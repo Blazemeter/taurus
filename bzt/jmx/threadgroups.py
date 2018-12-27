@@ -1,4 +1,7 @@
 from bzt.jmx.base import JMX
+from bzt.requests_model import has_variable_pattern
+
+GETTING_PARAM_ERR_MSG = "{gt}: Getting of {name} is impossible: {params}"
 
 
 class AbstractThreadGroup(object):
@@ -50,8 +53,11 @@ class AbstractThreadGroup(object):
 
     def _get_val(self, name, selector=None, default=None, raw=False):
         if not selector:
-            self.log.warning('Getting of %s for %s not implemented', name, self.gtype)
-            return default
+            self.log.debug('Getting of %s for %s not implemented', name, self.gtype)
+            if raw:
+                return None
+            else:
+                return default
 
         element = self.element.find(selector)
         if element is None:
@@ -83,14 +89,18 @@ class ThreadGroup(AbstractThreadGroup):
         self.fields["hold"]["getter"] = self._get_hold
 
     def _get_hold(self, default=None, raw=False):
-        duration = self.get("duration", raw=raw)
-        ramp_up = self.get("ramp-up", raw=raw)
+        if raw:
+            return None
+
+        duration = self.get("duration")
+        ramp_up = self.get("ramp-up")
         if not ramp_up:
             hold = duration
         elif isinstance(duration, int) and isinstance(ramp_up, int):
             hold = duration - ramp_up
         else:
-            self.log.warning("Impossible to get hold from duration: %s", duration)
+            params = "{'duration': %s, 'ramp-up': %s}" % (duration, ramp_up)
+            self.log.warning(GETTING_PARAM_ERR_MSG.format(tg=self.gtype, name="hold", params=params))
             hold = default
 
         return hold
@@ -105,7 +115,8 @@ class ThreadGroup(AbstractThreadGroup):
         elif scheduler == 'false':
             return self.get("ramp-up", raw=raw)
         else:
-            self.log.warning('Getting of ramp-up for %s is impossible due to scheduler: %s', self.gtype, scheduler)
+            params = "{'scheduler': %s}" % scheduler
+            self.log.warning(GETTING_PARAM_ERR_MSG.format(tg=self.gtype, name="duration", params=params))
             return default
 
     def _get_iterations(self, default=None, raw=False):
@@ -115,8 +126,8 @@ class ThreadGroup(AbstractThreadGroup):
             loop_sel = ".//*[@name='LoopController.loops']"
             return self._get_val("loops", default=default, selector=loop_sel, raw=raw)
         else:
-            msg = 'Getting of ramp-up for %s is impossible due to loop_controller: %s'
-            self.log.warning(msg, self.gtype, loop_controller)
+            params = "{'loop_controller': %s}" % loop_controller
+            self.log.warning(GETTING_PARAM_ERR_MSG.format(tg=self.gtype, name="hold", params=params))
 
         return default
 
@@ -153,21 +164,21 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
 
     def _get_duration(self, default=None, raw=False):
         if raw:
-            return default
+            return None
 
         # try to get number values
         hold = self.get("hold")
         ramp_up = self.get("ramp-up")
 
         # 'empty' means 0 sec, let's detect that
-        p_hold = self.get("hold", raw=True)
-        p_ramp_up = self.get("ramp-up", raw=True)
-        if hold is None and not p_hold:
-            hold = 0
-        if ramp_up is None and not p_ramp_up:
-            ramp_up = 0
-
-        return hold + ramp_up
+        r_hold = self.get("hold", raw=True)
+        r_ramp_up = self.get("ramp-up", raw=True)
+        if has_variable_pattern(r_hold) or has_variable_pattern(r_ramp_up):
+            params = "{'hold': %s, 'ramp-up': %s}" % (r_hold, r_ramp_up)
+            GETTING_PARAM_ERR_MSG.format(tg=self.gtype, name="hold", params=params)
+            return default
+        else:
+            return hold + ramp_up
 
 
 class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):
@@ -225,19 +236,35 @@ class ThreadGroupHandler(object):
         if target_gtype == ThreadGroup.__name__:
             new_group_element = JMX.get_thread_group(
                 concurrency=self.choose_val(concurrency, source.get("concurrency")),
-                rampup=self.choose_val(load.ramp_up, source.get_seconds("ramp-up")),    # todo call get_seconds by
-                hold=self.choose_val(load.hold, source.get_seconds("hold")),            # lazy way
+                rampup=self.choose_val(load.ramp_up, source.get_seconds("ramp-up")),
+                hold=self.choose_val(load.hold, source.get_seconds("hold")),
                 iterations=self.choose_val(load.iterations, source.get("iterations")),
                 testname=source.test_name,
                 on_error=source.get("on-error"))
         elif target_gtype == ConcurrencyThreadGroup.__name__:
+            unit = source.get("unit")
+            ramp_up = load.ramp_up
+            hold = load.hold
+            if False and unit == "M":
+                if ramp_up:
+                    if has_variable_pattern(ramp_up):
+                        self.log.warning("Impossible to convert property '%s' to minutes" % ramp_up)
+                    else:
+                        ramp_up = int(round(int(ramp_up)/60)) or 1
+
+                if hold:
+                    if has_variable_pattern(hold):
+                        self.log.warning("Impossible to convert property '%s' to minutes" % hold)
+                    else:
+                        hold = int(round(int(hold)/60)) or 1
+
             new_group_element = JMX.get_concurrency_thread_group(
                 concurrency=self.choose_val(concurrency, source.get("concurrency")),
-                rampup=self.choose_val(load.ramp_up, source.get("ramp-up")),
-                hold=self.choose_val(load.hold, source.get("hold")),
+                rampup=self.choose_val(ramp_up, source.get("ramp-up")),
+                hold=self.choose_val(hold, source.get("hold")),
                 steps=self.choose_val(load.steps, source.get("steps")),
                 testname=source.test_name,
-                unit=source.get("unit"),
+                unit=unit,
                 on_error=source.get("on-error"))
         else:
             self.log.warning('Unsupported preferred thread group: %s', target_gtype)

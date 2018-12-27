@@ -19,13 +19,16 @@ import mimetypes
 import re
 
 from bzt import TaurusConfigError, TaurusInternalException
-from bzt.utils import ensure_is_dict, dehumanize_time, BetterDict
+from bzt.utils import ensure_is_dict, dehumanize_time, BetterDict, text_type
 
 VARIABLE_PATTERN = re.compile("\${.+\}")
 
 
 def has_variable_pattern(val):
-    return bool(VARIABLE_PATTERN.search(val))
+    if isinstance(val, text_type):
+        return bool(VARIABLE_PATTERN.search(val))
+    else:
+        return False
 
 
 class Request(object):

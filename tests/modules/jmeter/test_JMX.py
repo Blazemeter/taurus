@@ -67,7 +67,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
 
         msg = 'Getting of concurrency for UltimateThreadGroup not implemented'
-        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+        self.assertIn(msg, self.log_recorder.debug_buff.getvalue())
 
         msg = "Had to add 1 more threads to maintain thread group proportion"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
@@ -94,7 +94,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
     def test_CTG_crs(self):
         """ ConcurrencyThreadGroup: concurrency, ramp-up, steps """
-        self.configure(load={'concurrency': 71, 'ramp-up': 103, 'steps': 5, "throughput": 52},
+        self.configure(load={'concurrency': 71, 'ramp-up': 120, 'steps': 5, "throughput": 52},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
         self.sniff_log(self.obj.log)
@@ -102,7 +102,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
 
         msg = 'Getting of concurrency for UltimateThreadGroup not implemented'
-        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+        self.assertIn(msg, self.log_recorder.debug_buff.getvalue())
 
         msg = "1 threads left undistributed due to thread group proportion"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
@@ -111,20 +111,20 @@ class TestLoadSettingsProcessor(BZTestCase):
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ConcurrencyThreadGroup")
             self.assertEqual("5", get(group, "steps"))
-            self.assertEqual("103", get(group, "ramp-up"))
 
             res_values[group.test_name] = {
                 "conc": group.get("concurrency"),
                 "on_error": get(group, "on-error"),
                 "unit": get(group, "unit"),
-                "hold": get(group, "hold")}
+                "hold": group.get("hold"),
+                "ramp-up": group.get("ramp-up")}
 
         self.assertEqual(res_values,
-                         {"TG.01": {"conc": 13, "on_error": "startnextloop", "unit": "S", "hold": "3"},
-                          "CTG.02": {"conc": 19, "on_error": "stopthread", "unit": "S", "hold": "0"},
-                          "STG.03": {"conc": 26, "on_error": "stoptest", "unit": "S", "hold": "60"},
-                          "UTG.04": {"conc": 6, "on_error": "stoptestnow", "unit": "S", "hold": "0"},
-                          "ATG.05": {"conc": 6, "on_error": "continue", "unit": "M", "hold": "5"}})
+                         {"TG.01": {"conc": 13, "on_error": "startnextloop", "unit": "S", "hold": 3, "ramp-up": 120},
+                          "CTG.02": {"conc": 19, "on_error": "stopthread", "unit": "S", "hold": 0, "ramp-up": 120},
+                          "STG.03": {"conc": 26, "on_error": "stoptest", "unit": "S", "hold": 60, "ramp-up": 120},
+                          "UTG.04": {"conc": 6, "on_error": "stoptestnow", "unit": "S", "hold": 0, "ramp-up": 120},
+                          "ATG.05": {"conc": 6, "on_error": "continue", "unit": "M", "hold": 5, "ramp-up": 2}})
 
         self.assertListEqual(self._get_tst_schedule(),
                              [['10.4', '10.4', '20'],
@@ -218,10 +218,8 @@ class TestLoadSettingsProcessor(BZTestCase):
         res_values = {}
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ThreadGroup")
-            self.assertEqual("${__P(r)}", group.element.find(".//*[@name='ThreadGroup.ramp_time']").text)
-            self.assertEqual("${__intSum(${__P(r)},${__P(h)})}",
-                             group.element.find(".//*[@name='ThreadGroup.duration']").text)
-            # self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)
+            self.assertEqual("${__P(r)}", get(group, "ramp-up"))
+            self.assertEqual("${__intSum(${__P(r)},${__P(h)})}", get(group, "duration"))
             res_values[group.test_name] = group.get("iterations")
 
         self.assertEqual(res_values, {"TG.01": 100, "CTG.02": -1, "STG.03": -1, "UTG.04": -1, "ATG.05": 33})
@@ -235,7 +233,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         res_values = {}
         for group in self.get_groupset():
-            self.assertEqual("70", group.element.find(".//*[@name='Hold']").text)
+            self.assertEqual(70, group.get("hold"))
 
             res_values[group.test_name] = group.get("concurrency")
 

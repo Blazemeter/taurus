@@ -126,7 +126,7 @@ class LoadSettingsProcessor(object):
 
             for group, concurrency in target_list:
                 self.tg_handler.convert(
-                    source=group, target_gtype=self.tg, load=self.specific_load, concurrency=concurrency)
+                    source=group, target_gtype=self.tg, load=self.raw_load, concurrency=concurrency)
 
         if self.specific_load.throughput:
             self._add_shaper(jmx)
