@@ -6,8 +6,8 @@ $cur_dir = getcwd();
 if (substr( $cur_dir, 0, 10 ) === ('/base/data')) {
     // our real website settings
     $level = \PWE\Core\PWELogger::WARNING;
-    $tempdir = "/home/gettauru/tmp";
-    $logfile = "/home/gettauru/logs/pwe.".date('Ym');
+    $tempdir = __DIR__ . "/tmp";
+    $logfile = __DIR__ . "/logs/pwe.".date('Ym');
 } else {
     // local debugging settings
     $level = \PWE\Core\PWELogger::DEBUG;
