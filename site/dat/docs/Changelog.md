@@ -9,9 +9,9 @@
 - support body of dictionary style for Gatling YAML scripts
 - use blacklist for cloud config filtering
 - don't fail if failureMessage is empty in error.jtl
-- add `screenshot([filename])` Selenium action, allow using variables and interpolation in screenshot names
+- add `screenshot(filename)` Selenium action, allow using variables and interpolation in screenshot names
 - bump taurus-java-helpers to 1.8
-- do not depend on `bzt` in generated Selenium scripts (get rid of `taurus_selenium_extras.py`)
+- do not depend on `bzt` in generated Selenium scripts (get rid of `taurus\_selenium\_extras.py`)
 - add `generate-flow-markers` option (scenario/settings level) for Nose tests
 - fix `chrome-loader.exe` location in windows installer (used by `proxy2jmx`)
 - use JTL as a results format for JUnit-based load tests
