@@ -94,7 +94,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
     def test_CTG_crs(self):
         """ ConcurrencyThreadGroup: concurrency, ramp-up, steps """
-        self.configure(load={'concurrency': 71, 'ramp-up': 120, 'steps': 5, "throughput": 52},
+        self.configure(load={'concurrency': 71, 'ramp-up': 103, 'steps': 5, "throughput": 52},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
         self.sniff_log(self.obj.log)
@@ -120,11 +120,11 @@ class TestLoadSettingsProcessor(BZTestCase):
                 "ramp-up": group.get("ramp-up")}
 
         self.assertEqual(res_values,
-                         {"TG.01": {"conc": 13, "on_error": "startnextloop", "unit": "S", "hold": 3, "ramp-up": 120},
-                          "CTG.02": {"conc": 19, "on_error": "stopthread", "unit": "S", "hold": 0, "ramp-up": 120},
-                          "STG.03": {"conc": 26, "on_error": "stoptest", "unit": "S", "hold": 60, "ramp-up": 120},
-                          "UTG.04": {"conc": 6, "on_error": "stoptestnow", "unit": "S", "hold": 0, "ramp-up": 120},
-                          "ATG.05": {"conc": 6, "on_error": "continue", "unit": "M", "hold": 5, "ramp-up": 2}})
+                         {"TG.01": {"conc": 13, "on_error": "startnextloop", "unit": "S", "hold": 3, "ramp-up": 103},
+                          "CTG.02": {"conc": 19, "on_error": "stopthread", "unit": "S", "hold": 0, "ramp-up": 103},
+                          "STG.03": {"conc": 26, "on_error": "stoptest", "unit": "S", "hold": 60, "ramp-up": 103},
+                          "UTG.04": {"conc": 6, "on_error": "stoptestnow", "unit": "S", "hold": 0, "ramp-up": 103},
+                          "ATG.05": {"conc": 6, "on_error": "continue", "unit": "M", "hold": 5, "ramp-up": 1}})
 
         self.assertListEqual(self._get_tst_schedule(),
                              [['10.4', '10.4', '20'],
@@ -233,11 +233,14 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         res_values = {}
         for group in self.get_groupset():
-            self.assertEqual(70, group.get("hold"))
+            res_values[group.test_name] = {"conc": group.get("concurrency"), "hold": group.get("hold")}
 
-            res_values[group.test_name] = group.get("concurrency")
-
-        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1, 'ATG.05': 1})
+        self.assertEqual(res_values, {
+            "TG.01": {"conc": 2, "hold": 70},
+            "CTG.02": {"conc": 3, "hold": 70},
+            "STG.03": {"conc": 4, "hold": 70},
+            "UTG.04": {"conc": 1, "hold": 70},
+            "ATG.05": {"conc": 1, "hold": 1}})
 
     def test_TG_ci(self):
         """ ThreadGroup: concurrency, iterations """

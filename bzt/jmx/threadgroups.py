@@ -245,7 +245,7 @@ class ThreadGroupHandler(object):
             unit = source.get("unit")
             ramp_up = load.ramp_up
             hold = load.hold
-            if False and unit == "M":
+            if unit == "M":
                 if ramp_up:
                     if has_variable_pattern(ramp_up):
                         self.log.warning("Impossible to convert property '%s' to minutes" % ramp_up)
