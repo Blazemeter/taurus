@@ -114,12 +114,12 @@ class LoadSettingsProcessor(object):
         # IMPORTANT: fix groups order as changing of element type changes order of getting of groups
         groups = list(self.tg_handler.groups(jmx))
 
-        if isinstance(self.load.concurrency, numeric_types):  # property found
+        if isinstance(self.load.concurrency, numeric_types):    # number must be divided proportionally
             target_list = zip(groups, self._get_concurrencies(groups))
 
             for group, concurrency in target_list:
                 self.tg_handler.convert(group=group, target=self.tg, load=self.load, concurrency=concurrency)
-        else:
+        else:   # empty load or property
             for group in groups:
                 self.tg_handler.convert(group=group, target=self.tg, load=self.load, concurrency=self.load.concurrency)
 
