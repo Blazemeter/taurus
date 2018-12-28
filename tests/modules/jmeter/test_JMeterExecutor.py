@@ -949,6 +949,19 @@ class TestJMeterExecutor(ExecutorTestCase):
         finally:
             self.obj.post_process()
 
+    def test_load_overriding(self):
+        self.obj.execution.merge({
+            "iterations": 2,
+            "scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
+        self.obj.prepare()
+        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        tg = modified_xml_tree.find(".//ThreadGroup")
+        ramp_up = tg.find(".//stringProp[@name='ThreadGroup.ramp_time']")
+        conc = tg.find(".//stringProp[@name='ThreadGroup.num_threads']")
+        self.assertEqual(conc.text, '${__P(val_c)}')    # concurrency should be saved
+        self.assertEqual(ramp_up.text, '0')             # ramp-up should be removed
+        self.obj.post_process()
+
     def test_distributed_gui(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/distributed_gui.yml").read()))
         self.obj.prepare()
