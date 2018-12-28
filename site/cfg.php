@@ -1,13 +1,11 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
 
-$cur_dir = getcwd();
-
-if (substr( $cur_dir, 0, 10 ) === ('/base/data')) {
+if (is_dir('/app')) {
     // our real website settings
     $level = \PWE\Core\PWELogger::WARNING;
-    $tempdir = __DIR__ . "/tmp";
-    $logfile = __DIR__ . "/logs/pwe.".date('Ym');
+    $tempdir = sys_get_temp_dir();
+    $logfile = "php://stdout";   //__DIR__ . "/logs/pwe.".date('Ym');
 } else {
     // local debugging settings
     $level = \PWE\Core\PWELogger::DEBUG;
@@ -25,7 +23,7 @@ $PWECore->setRootDirectory(__DIR__);
 $PWECore->setXMLDirectory($PWECore->getDataDirectory());
 $PWECore->setTempDirectory($tempdir);
 
-if (substr( $cur_dir, 0, 10 ) != ('/base/data')) {
+if (!is_dir('/app')) {
     $fname=$tempdir.'/taurus.xml';
     if (!is_file($fname)) {
       file_put_contents($fname, "<registry/>");
