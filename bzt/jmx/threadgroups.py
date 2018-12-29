@@ -193,6 +193,8 @@ class ThreadGroupHandler(object):
         msg = "Converting %s (%s) to %s and apply load parameters"
         self.log.debug(msg, group.gtype, group.get_testname(), target)
         on_error = group.get_on_error()
+        if not concurrency:
+            concurrency = group.get_concurrency(pure=True)
 
         if target == ThreadGroup.__name__:
             new_group_element = JMX.get_thread_group(

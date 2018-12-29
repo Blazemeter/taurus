@@ -121,7 +121,7 @@ def overwrite_levenstein_wheel(wheel_dir, levenstein_wheel_link):
         print("WARNING: Can't replace non-existent levenstein wheel")
 
     print("Downloading levenstein pre-built wheel")
-    r = requests.get(levenstein_wheel_link, stream=True)
+    r = requests.get(levenstein_wheel_link, headers={'User-Agent': 'Automation'}, stream=True)
     with open(target_filename, 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:  # filter out keep-alive new chunks
