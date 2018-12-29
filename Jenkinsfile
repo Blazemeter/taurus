@@ -31,24 +31,6 @@ node() {
                 """
         }
 
-        stage('Update Website') {
-            withCredentials([usernamePassword(credentialsId: 'tauruswebsite', usernameVariable: 'WEB_USER', passwordVariable: 'WEB_PASS')]) {
-                sh """ 
-            SRV="https://cphost13.qhoster.net:2083"
-            SESS=`curl -m 60 -v -c ./cj.txt \$SRV/login/ -d "user=$WEB_USER&pass=$WEB_PASS" | cut -d / -f2`
-            
-            curl -v -b ./cj.txt -m 180 "\$SRV/\$SESS/json-api/cpanel" \
-              -F "cpanel_jsonapi_user=user" -F "cpanel_jsonapi_apiversion=2" -F "cpanel_jsonapi_module=Fileman" -F "cpanel_jsonapi_func=uploadfiles" \
-              -F "dir=public_html" -F"overwrite=1" -F "file-1=@site/site.zip"
-            
-            
-            PARAM1="cpanel_jsonapi_module=Fileman&cpanel_jsonapi_func=fileop&cpanel_jsonapi_apiversion=2&filelist=1&multiform=1&doubledecode=0"
-            PARAM2="op=extract&metadata=undefined&sourcefiles=%2fhome%2fgettauru%2fpublic_html%2fsite.zip&destfiles=%2fpublic_html"
-            curl -v -b ./cj.txt "\$SRV/\$SESS/json-api/cpanel" -d "\$PARAM1&\$PARAM2" -m 60 || echo Failed to unpack site update! 
-             """
-            }
-        }
-
         stage("Post-build") {
             archiveArtifacts artifacts: 'dist/*.tar.gz'
             sh """ 
