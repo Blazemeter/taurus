@@ -46,7 +46,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.assertEqual(res_values,
                          {'TG.01': {'conc': 2, 'duration': 3, 'iterations': 100, 'rate': None},
-                          'CTG.02': {'conc': 3, 'duration': 100, 'iterations': None, 'rate': None},
+                          'CTG.02': {'conc': 3, 'duration': 100, 'iterations': 10, 'rate': None},
                           'STG.03': {'conc': 4, 'duration': None, 'iterations': None, 'rate': None},
                           'UTG.04': {'conc': 1, 'duration': None, 'iterations': None, 'rate': None},
                           'ATG.05': {'conc': 1, 'duration': 480, 'iterations': 33, 'rate': 2}})
@@ -192,6 +192,10 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ThreadGroup")
+
+            delay = group.element.find(".//boolProp[@name='ThreadGroup.delayedStart']")
+            self.assertIsNone(delay)
+
             self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)
             self.assertEqual("${__P(r)}", group.element.find(".//*[@name='ThreadGroup.ramp_time']").text)
             self.assertEqual("${__intSum(${__P(r)},${__P(h)})}",
@@ -208,9 +212,14 @@ class TestLoadSettingsProcessor(BZTestCase):
         for group in self.get_groupset():
             self.assertEqual("70", group.element.find(".//*[@name='Hold']").text)
 
-            res_values[group.get_testname()] = group.get_concurrency()
+            res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'iterations': group.get_iterations()}
 
-        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1, 'ATG.05': 1})
+        self.assertEqual(res_values, {
+            'TG.01': {'conc': 2, 'iterations': None},
+            'CTG.02': {'conc': 3, 'iterations': 10},
+            'STG.03': {'conc': 4, 'iterations': None},
+            'UTG.04': {'conc': 1, 'iterations': None},
+            'ATG.05': {'conc': 1, 'iterations': None}})
 
     def test_TG_ci(self):
         """ ThreadGroup: concurrency, iterations """

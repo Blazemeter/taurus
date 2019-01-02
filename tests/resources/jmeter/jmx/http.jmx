@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jmeterTestPlan version="1.2" properties="4.0" jmeter="4.0 r1823414">
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.0 r1840935">
   <hashTree>
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan" enabled="true">
       <stringProp name="TestPlan.comments"></stringProp>
@@ -36,6 +36,7 @@
         <boolProp name="ThreadGroup.scheduler">false</boolProp>
         <stringProp name="ThreadGroup.duration"></stringProp>
         <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
       </ThreadGroup>
       <hashTree>
         <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
@@ -308,6 +309,7 @@ test</stringProp>
         <stringProp name="DEFAULT">default</stringProp>
         <stringProp name="VARIABLE"></stringProp>
         <stringProp name="SUBJECT">BODY</stringProp>
+        <stringProp name="INPUT_FORMAT">JSON</stringProp>
       </com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor>
       <hashTree/>
       <com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion guiclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.gui.JSONPathAssertionGui" testclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion" testname="JSon path assertion" enabled="true">
@@ -317,6 +319,7 @@ test</stringProp>
         <boolProp name="EXPECT_NULL">false</boolProp>
         <boolProp name="INVERT">false</boolProp>
         <boolProp name="ISREGEX">true</boolProp>
+        <stringProp name="INPUT_FORMAT">JSON</stringProp>
       </com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion>
       <hashTree/>
     </hashTree>
