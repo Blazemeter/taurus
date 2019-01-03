@@ -1,0 +1,4 @@
+reuse non-load options from existing jmx:
+- thread delay (ThreadGroup)
+- scheduler delay (ThreadGroup)
+- iterations limit (ConcurrencyThreadGroup)
