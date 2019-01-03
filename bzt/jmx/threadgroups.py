@@ -102,6 +102,15 @@ class ThreadGroup(AbstractThreadGroup):
             msg = 'Getting of ramp-up for %s is impossible due to loop_controller: %s'
             self.log.warning(msg, (self.gtype, loop_controller))
 
+    def get_thread_delay(self):
+        delay_sel = ".//*[@name='ThreadGroup.delayedStart']"
+        delay = self._get_val(delay_sel, name="delay", pure=True)
+        return delay == "true"
+
+    def get_scheduler_delay(self):
+        delay_sel = ".//*[@name='ThreadGroup.delay']"
+        return self._get_val(delay_sel, name="delay", pure=True)
+
 
 class SteppingThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup'
@@ -186,34 +195,48 @@ class ThreadGroupHandler(object):
                 if group.get("enabled") != "false":
                     yield _class(group, self.log)
 
-    def convert(self, group, target, load, concurrency):
+    def convert(self, source, target_gtype, load, concurrency):
         """
         Convert a thread group to ThreadGroup/ConcurrencyThreadGroup for applying of load
         """
         msg = "Converting %s (%s) to %s and apply load parameters"
-        self.log.debug(msg, group.gtype, group.get_testname(), target)
-        on_error = group.get_on_error()
+        self.log.debug(msg, source.gtype, source.get_testname(), target_gtype)
+        on_error = source.get_on_error()
         if not concurrency:
-            concurrency = group.get_concurrency(pure=True)
+            concurrency = source.get_concurrency(pure=True)
 
-        if target == ThreadGroup.__name__:
+        if target_gtype == ThreadGroup.__name__:
+            thread_delay = None
+            scheduler_delay = None
+            if source.gtype == target_gtype:
+                thread_delay = source.get_thread_delay()
+                scheduler_delay = source.get_scheduler_delay()
+
             new_group_element = JMX.get_thread_group(
                 concurrency=concurrency,
                 rampup=load.ramp_up,
                 hold=load.hold,
                 iterations=load.iterations,
-                testname=group.get_testname(),
-                on_error=on_error)
-        elif target == ConcurrencyThreadGroup.__name__:
+                testname=source.get_testname(),
+                on_error=on_error,
+                thread_delay=thread_delay,
+                scheduler_delay=scheduler_delay)
+        elif target_gtype == ConcurrencyThreadGroup.__name__:
+            if source.gtype == target_gtype:
+                iterations = source.get_iterations()
+            else:
+                iterations = ""
+
             new_group_element = JMX.get_concurrency_thread_group(
                 concurrency=concurrency,
                 rampup=load.ramp_up,
                 hold=load.hold,
                 steps=load.steps,
-                testname=group.get_testname(),
-                on_error=on_error)
+                testname=source.get_testname(),
+                on_error=on_error,
+                iterations=iterations)
         else:
-            self.log.warning('Unsupported preferred thread group: %s', target)
+            self.log.warning('Unsupported preferred thread group: %s', target_gtype)
             return
 
-        group.element.getparent().replace(group.element, new_group_element)
+        source.element.getparent().replace(source.element, new_group_element)

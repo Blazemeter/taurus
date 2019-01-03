@@ -958,8 +958,13 @@ class TestJMeterExecutor(ExecutorTestCase):
         tg = modified_xml_tree.find(".//ThreadGroup")
         ramp_up = tg.find(".//stringProp[@name='ThreadGroup.ramp_time']")
         conc = tg.find(".//stringProp[@name='ThreadGroup.num_threads']")
+        delay = tg.find(".//boolProp[@name='ThreadGroup.delayedStart']")
         self.assertEqual(conc.text, '${__P(val_c)}')    # concurrency should be saved
         self.assertEqual(ramp_up.text, '0')             # ramp-up should be removed
+
+        delay = delay is not None and delay.text == "true"
+        self.assertTrue(delay)
+
         self.obj.post_process()
 
     def test_distributed_gui(self):

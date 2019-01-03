@@ -519,7 +519,7 @@ class JMX(object):
 
     @staticmethod
     def get_thread_group(concurrency=None, rampup=0, hold=0, iterations=None,
-                         testname="ThreadGroup", on_error="continue"):
+                         testname="ThreadGroup", on_error="continue", thread_delay=False, scheduler_delay=None):
         """
         Generates ThreadGroup
 
@@ -529,7 +529,7 @@ class JMX(object):
             ThreadGroup.scheduler (need to hold): boolean
             ThreadGroup.duration (rampup + hold): int
             LoopController.loops (iterations): int
-
+            ThreadGroup.delayedStart: boolean
         :return: etree element, ThreadGroup
         """
         rampup = cond_int(rampup or 0)
@@ -575,6 +575,12 @@ class JMX(object):
         trg.append(JMX._string_prop("ThreadGroup.end_time", ""))
         trg.append(JMX._bool_prop("ThreadGroup.scheduler", scheduler))
         trg.append(JMX._string_prop("ThreadGroup.duration", duration))
+
+        if scheduler_delay:
+            trg.append(JMX._string_prop("ThreadGroup.delay", scheduler_delay))
+
+        if thread_delay:
+            trg.append(JMX._bool_prop("ThreadGroup.delayedStart", thread_delay))
 
         return trg
 
@@ -670,8 +676,8 @@ class JMX(object):
         return udv_element
 
     @staticmethod
-    def get_concurrency_thread_group(
-            concurrency=None, rampup=0, hold=0, steps=None, on_error="continue", testname="ConcurrencyThreadGroup"):
+    def get_concurrency_thread_group(concurrency=None, rampup=0, hold=0, steps=None, on_error="continue",
+                                     testname="ConcurrencyThreadGroup", iterations=""):
         """
         Generates ConcurrencyThreadGroup
 
@@ -706,7 +712,7 @@ class JMX(object):
         concurrency_thread_group.append(JMX._string_prop("Steps", steps))
         concurrency_thread_group.append(JMX._string_prop("Hold", str(cond_int(hold))))
         concurrency_thread_group.append(JMX._string_prop("LogFilename", ""))
-        concurrency_thread_group.append(JMX._string_prop("Iterations", ""))
+        concurrency_thread_group.append(JMX._string_prop("Iterations", iterations))
         concurrency_thread_group.append(JMX._string_prop("Unit", "S"))
 
         return concurrency_thread_group
