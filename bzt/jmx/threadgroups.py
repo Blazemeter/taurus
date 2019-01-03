@@ -102,10 +102,14 @@ class ThreadGroup(AbstractThreadGroup):
             msg = 'Getting of ramp-up for %s is impossible due to loop_controller: %s'
             self.log.warning(msg, (self.gtype, loop_controller))
 
-    def get_delay(self):
+    def get_thread_delay(self):
         delay_sel = ".//*[@name='ThreadGroup.delayedStart']"
         delay = self._get_val(delay_sel, name="delay", pure=True)
         return delay == "true"
+
+    def get_scheduler_delay(self):
+        delay_sel = ".//*[@name='ThreadGroup.delay']"
+        return self._get_val(delay_sel, name="delay", pure=True)
 
 
 class SteppingThreadGroup(AbstractThreadGroup):
@@ -203,9 +207,9 @@ class ThreadGroupHandler(object):
 
         if target_gtype == ThreadGroup.__name__:
             if source.gtype == target_gtype:
-                delay = source.get_delay()
+                thread_delay = source.get_thread_delay()
             else:
-                delay = None
+                thread_delay = None
 
             new_group_element = JMX.get_thread_group(
                 concurrency=concurrency,
@@ -214,7 +218,7 @@ class ThreadGroupHandler(object):
                 iterations=load.iterations,
                 testname=source.get_testname(),
                 on_error=on_error,
-                delay=delay)
+                delay=thread_delay)
         elif target_gtype == ConcurrencyThreadGroup.__name__:
             if source.gtype == target_gtype:
                 iterations = source.get_iterations()
