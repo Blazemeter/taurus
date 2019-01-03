@@ -206,10 +206,11 @@ class ThreadGroupHandler(object):
             concurrency = source.get_concurrency(pure=True)
 
         if target_gtype == ThreadGroup.__name__:
+            thread_delay = None
+            scheduler_delay = None
             if source.gtype == target_gtype:
                 thread_delay = source.get_thread_delay()
-            else:
-                thread_delay = None
+                scheduler_delay = source.get_scheduler_delay()
 
             new_group_element = JMX.get_thread_group(
                 concurrency=concurrency,
@@ -218,7 +219,8 @@ class ThreadGroupHandler(object):
                 iterations=load.iterations,
                 testname=source.get_testname(),
                 on_error=on_error,
-                delay=thread_delay)
+                thread_delay=thread_delay,
+                scheduler_delay=scheduler_delay)
         elif target_gtype == ConcurrencyThreadGroup.__name__:
             if source.gtype == target_gtype:
                 iterations = source.get_iterations()

@@ -519,7 +519,7 @@ class JMX(object):
 
     @staticmethod
     def get_thread_group(concurrency=None, rampup=0, hold=0, iterations=None,
-                         testname="ThreadGroup", on_error="continue", delay=None):
+                         testname="ThreadGroup", on_error="continue", thread_delay=False, scheduler_delay=None):
         """
         Generates ThreadGroup
 
@@ -576,8 +576,11 @@ class JMX(object):
         trg.append(JMX._bool_prop("ThreadGroup.scheduler", scheduler))
         trg.append(JMX._string_prop("ThreadGroup.duration", duration))
 
-        if delay:
-            trg.append(JMX._bool_prop("ThreadGroup.delayedStart", delay))
+        if scheduler_delay:
+            trg.append(JMX._string_prop("ThreadGroup.delay", scheduler_delay))
+
+        if thread_delay:
+            trg.append(JMX._bool_prop("ThreadGroup.delayedStart", thread_delay))
 
         return trg
 

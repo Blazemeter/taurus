@@ -75,14 +75,10 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual("false", group.element.find(".//*[@name='LoopController.continue_forever']").text)
             self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)  # no loop limit
 
-            delay = group.element.find(".//stringProp[@name='ThreadGroup.delay']")
-            if delay is not None:
-                delay = delay.text
-
             res_values[group.get_testname()] = {
                 'conc': group.get_concurrency(),
                 'on_error': group.get_on_error(),
-                'delay': delay}
+                'delay': group.get_scheduler_delay()}
 
         self.assertEqual(res_values,
                          {'TG.01': {'conc': 14, 'on_error': 'startnextloop', 'delay': '33'},
