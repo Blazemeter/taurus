@@ -61,10 +61,9 @@ class AbstractThreadGroup(object):
         try:
             return int(raw_val)
         except (ValueError, TypeError):
-            if default:
-                msg = "Parsing {param} '{val}' in group '{gtype}' failed, choose {default}"
-                self.log.warning(msg.format(param=name, val=raw_val, gtype=self.gtype, default=default))
-                return default
+            msg = "Parsing {param} '{val}' in group '{gtype}' failed, choose {default}"
+            self.log.warning(msg.format(param=name, val=raw_val, gtype=self.gtype, default=default))
+            return default
 
     def get_on_error(self):
         action = self.element.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
