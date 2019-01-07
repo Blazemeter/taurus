@@ -1,6 +1,6 @@
 from bzt.jmx.base import JMX
 
-GETTING_PARAM_ERR_MSG = "{tg}: Getting of {name} is impossible: {params}"
+GETTING_PARAM_ERR_MSG = "{tg}: getting of {name} is impossible ({params})"
 
 
 class AbstractThreadGroup(object):
