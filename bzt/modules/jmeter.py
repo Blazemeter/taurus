@@ -156,7 +156,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         # throughput, concurrency, iterations, steps, hold, ramp_up
         raw_load = self.get_raw_load()
 
-        hold = self._try_convert(raw_load.hold, dehumanize_time)
+        hold = self._try_convert(raw_load.hold or 0, dehumanize_time)
 
         ramp_up = self._try_convert(raw_load.ramp_up, dehumanize_time)
 
