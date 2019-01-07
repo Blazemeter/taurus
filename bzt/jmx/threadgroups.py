@@ -1,5 +1,7 @@
 from bzt.jmx.base import JMX
 
+GETTING_PARAM_ERR_MSG = "{tg}: Getting of {name} is impossible: {params}"
+
 
 class AbstractThreadGroup(object):
     XPATH = None
@@ -37,20 +39,16 @@ class AbstractThreadGroup(object):
         self.log.warning('Getting of iterations for %s not implemented', self.gtype)
 
     def get_ramp_up(self, raw=False):
-        if not self.RAMP_UP_SEL:
-            self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
-            return 1
-
-        return self._get_val(self.RAMP_UP_SEL, name='ramp-up', default=0, raw=raw)
+        return self._get_val(self.RAMP_UP_SEL, name='ramp-up', default=1, raw=raw)
 
     def get_concurrency(self, raw=False):
-        if not self.CONCURRENCY_SEL:
-            self.log.warning('Getting of concurrency for %s not implemented', self.gtype)
-            return 1
-
         return self._get_val(self.CONCURRENCY_SEL, name='concurrency', default=1, raw=raw)
 
     def _get_val(self, selector, name='', default=None, raw=False):
+        if not selector:
+            self.log.warning(GETTING_PARAM_ERR_MSG.format(tg=self.gtype, name=name, params="not implemented"))
+            return default
+
         element = self.element.find(selector)
         if element is None:
             raw_val = None
