@@ -26,7 +26,7 @@ class AbstractThreadGroup(object):
         """
         self.log.warning('Getting of duration for %s not implemented', self.gtype)
 
-    def get_rate(self, pure=False):
+    def get_rate(self, raw=False):
         self.log.warning('Getting of rate for %s not implemented', self.gtype)
 
     def get_iterations(self):
@@ -36,28 +36,28 @@ class AbstractThreadGroup(object):
         """
         self.log.warning('Getting of iterations for %s not implemented', self.gtype)
 
-    def get_ramp_up(self, pure=False):
+    def get_ramp_up(self, raw=False):
         if not self.RAMP_UP_SEL:
             self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
             return 1
 
-        return self._get_val(self.RAMP_UP_SEL, name='ramp-up', default=0, pure=pure)
+        return self._get_val(self.RAMP_UP_SEL, name='ramp-up', default=0, raw=raw)
 
-    def get_concurrency(self, pure=False):
+    def get_concurrency(self, raw=False):
         if not self.CONCURRENCY_SEL:
             self.log.warning('Getting of concurrency for %s not implemented', self.gtype)
             return 1
 
-        return self._get_val(self.CONCURRENCY_SEL, name='concurrency', default=1, pure=pure)
+        return self._get_val(self.CONCURRENCY_SEL, name='concurrency', default=1, raw=raw)
 
-    def _get_val(self, selector, name='', default=None, convertor=int, pure=False):
+    def _get_val(self, selector, name='', default=None, convertor=int, raw=False):
         element = self.element.find(selector)
         if element is None:
             string_val = None
         else:
             string_val = element.text
 
-        if pure:
+        if raw:
             return string_val
 
         try:
@@ -81,7 +81,7 @@ class ThreadGroup(AbstractThreadGroup):
 
     def get_duration(self):
         sched_sel = ".//*[@name='ThreadGroup.scheduler']"
-        scheduler = self._get_val(sched_sel, "scheduler", pure=True)
+        scheduler = self._get_val(sched_sel, "scheduler", raw=True)
 
         if scheduler == 'true':
             duration_sel = ".//*[@name='ThreadGroup.duration']"
@@ -94,7 +94,7 @@ class ThreadGroup(AbstractThreadGroup):
 
     def get_iterations(self):
         loop_control_sel = ".//*[@name='LoopController.continue_forever']"
-        loop_controller = self._get_val(loop_control_sel, name="loop controller", pure=True)
+        loop_controller = self._get_val(loop_control_sel, name="loop controller", raw=True)
         if loop_controller == "false":
             loop_sel = ".//*[@name='LoopController.loops']"
             return self._get_val(loop_sel, name="loops")
@@ -104,12 +104,12 @@ class ThreadGroup(AbstractThreadGroup):
 
     def get_thread_delay(self):
         delay_sel = ".//*[@name='ThreadGroup.delayedStart']"
-        delay = self._get_val(delay_sel, name="delay", pure=True)
+        delay = self._get_val(delay_sel, name="delay", raw=True)
         return delay == "true"
 
     def get_scheduler_delay(self):
         delay_sel = ".//*[@name='ThreadGroup.delay']"
-        return self._get_val(delay_sel, name="delay", pure=True)
+        return self._get_val(delay_sel, name="delay", raw=True)
 
 
 class SteppingThreadGroup(AbstractThreadGroup):
@@ -127,7 +127,7 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
 
     def _get_time_unit(self):
         unit_sel = ".//*[@name='Unit']"
-        return self._get_val(unit_sel, name="unit", pure=True)
+        return self._get_val(unit_sel, name="unit", raw=True)
 
     def set_ramp_up(self, ramp_up=None):
         ramp_up_element = self.element.find(self.RAMP_UP_SEL)
@@ -140,8 +140,8 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
         ramp_up = self.get_ramp_up()
 
         # 'empty' means 0 sec, let's detect that
-        p_hold = self._get_val(hold_sel, name="hold", pure=True)
-        p_ramp_up = self.get_ramp_up(pure=True)
+        p_hold = self._get_val(hold_sel, name="hold", raw=True)
+        p_ramp_up = self.get_ramp_up(raw=True)
         if hold is None and not p_hold:
             hold = 0
         if ramp_up is None and not p_ramp_up:
@@ -172,8 +172,8 @@ class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.arrivals\.ArrivalsThreadGroup'
     RATE_SEL = ".//*[@name='TargetLevel']"
 
-    def get_rate(self, pure=False):
-        return self._get_val(self.RATE_SEL, name='rate', default=1, pure=pure)
+    def get_rate(self, raw=False):
+        return self._get_val(self.RATE_SEL, name='rate', default=1, raw=raw)
 
     def set_rate(self, rate=None):
         rate_prop = self.element.find(self.RATE_SEL)
@@ -203,7 +203,7 @@ class ThreadGroupHandler(object):
         self.log.debug(msg, source.gtype, source.get_testname(), target_gtype)
         on_error = source.get_on_error()
         if not concurrency:
-            concurrency = source.get_concurrency(pure=True)
+            concurrency = source.get_concurrency(raw=True)
 
         if target_gtype == ThreadGroup.__name__:
             thread_delay = None
