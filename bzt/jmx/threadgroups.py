@@ -50,22 +50,22 @@ class AbstractThreadGroup(object):
 
         return self._get_val(self.CONCURRENCY_SEL, name='concurrency', default=1, raw=raw)
 
-    def _get_val(self, selector, name='', default=None, convertor=int, raw=False):
+    def _get_val(self, selector, name='', default=None, raw=False):
         element = self.element.find(selector)
         if element is None:
-            string_val = None
+            raw_val = None
         else:
-            string_val = element.text
+            raw_val = element.text
 
         if raw:
-            return string_val
+            return raw_val
 
         try:
-            return convertor(string_val)
+            return int(raw_val)
         except (ValueError, TypeError):
             if default:
                 msg = "Parsing {param} '{val}' in group '{gtype}' failed, choose {default}"
-                self.log.warning(msg.format(param=name, val=string_val, gtype=self.gtype, default=default))
+                self.log.warning(msg.format(param=name, val=raw_val, gtype=self.gtype, default=default))
                 return default
 
     def get_on_error(self):

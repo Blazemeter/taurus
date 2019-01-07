@@ -23,7 +23,6 @@ from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario, BetterDict
-from bzt.requests_model import has_variable_pattern
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types, integer_types
 
 LOG = logging.getLogger("")
@@ -542,7 +541,7 @@ class JMX(object):
             iterations = -1
 
         scheduler = False
-        if hold or (rampup and not iterations):
+        if hold or (rampup and (iterations == -1)):
             scheduler = True
 
         if not hold:
