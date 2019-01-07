@@ -41,7 +41,7 @@ class AbstractThreadGroup(object):
 
     def _get_val(self, selector, name='', default=None, raw=False):
         if not selector:
-            self.log.warning(GETTING_PARAM_ERR_MSG.format(tg=self.gtype, name=name, params="not implemented"))
+            self.log.debug(GETTING_PARAM_ERR_MSG.format(tg=self.gtype, name=name, params="not implemented"))
             return default
 
         element = self.element.find(selector)

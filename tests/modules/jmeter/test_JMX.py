@@ -61,7 +61,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
 
         msg = 'UltimateThreadGroup: getting of concurrency is impossible (not implemented)'
-        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+        self.assertIn(msg, self.log_recorder.debug_buff.getvalue())
 
         msg = "Had to add 1 more threads to maintain thread group proportion"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
@@ -97,7 +97,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
 
         msg = 'UltimateThreadGroup: getting of concurrency is impossible (not implemented)'
-        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+        self.assertIn(msg, self.log_recorder.debug_buff.getvalue())
 
         msg = "1 threads left undistributed due to thread group proportion"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
