@@ -8,6 +8,7 @@ class AbstractThreadGroup(object):
     RAMP_UP_SEL = None
     CONCURRENCY_SEL = None
     RATE_SEL = None
+    ITER_SEL = None
 
     def __init__(self, element, logger):
         self.element = element
@@ -30,11 +31,7 @@ class AbstractThreadGroup(object):
         return self._get_val(self.RATE_SEL, name='rate', default=1, raw=raw)
 
     def get_iterations(self):
-        """
-        iterations number or None if getting isn't possible (skipped, unsupported, jmeter variables, etc.)
-        Note: ConcurrencyThreadGroup and ArrivalsThreadGroup aren't stopped by iterations limit
-        """
-        self.log.warning('Getting of iterations for %s not implemented', self.gtype)
+        return self._get_val(self.ITER_SEL, name="iterations")
 
     def get_ramp_up(self, raw=False):
         return self._get_val(self.RAMP_UP_SEL, name='ramp-up', default=1, raw=raw)
@@ -118,6 +115,7 @@ class UltimateThreadGroup(AbstractThreadGroup):
 # parent of ConcurrencyThreadGroup and ArrivalThreadGroup
 class AbstractDynamicThreadGroup(AbstractThreadGroup):
     RAMP_UP_SEL = ".//*[@name='RampUp']"
+    ITER_SEL = ".//*[@name='Iterations']"
 
     def _get_time_unit(self):
         unit_sel = ".//*[@name='Unit']"
@@ -147,10 +145,6 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
                 result *= 60
 
             return result
-
-    def get_iterations(self):
-        iter_sel = ".//*[@name='Iterations']"
-        return self._get_val(iter_sel, name="iterations")
 
 
 class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):
