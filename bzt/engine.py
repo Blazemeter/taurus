@@ -1147,6 +1147,22 @@ class ScenarioExecutor(EngineModule):
 
         return scenario_obj
 
+    def get_raw_load(self):
+        prov_type = self.engine.config.get(Provisioning.PROV)
+
+        throughput = self.execution.get(ScenarioExecutor.THRPT).get(prov_type, None)
+        concurrency = self.execution.get(ScenarioExecutor.CONCURR).get(prov_type, None)
+
+        iterations = self.execution.get("iterations", None)
+
+        steps = self.execution.get(ScenarioExecutor.STEPS, None)
+
+        hold = self.execution.get(ScenarioExecutor.HOLD_FOR, None)
+        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
+
+        return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
+                             iterations=iterations, duration=None, steps=steps)
+
     def get_load(self):
         """
         Helper method to read load specification
@@ -1164,24 +1180,25 @@ class ScenarioExecutor(EngineModule):
             except (ValueError, TypeError):
                 return value
 
-        prov_type = self.engine.config.get(Provisioning.PROV)
+        raw_load = self.get_raw_load()
 
-        throughput = eval_float(self.execution.get(ScenarioExecutor.THRPT).get(prov_type, 0))
-        concurrency = eval_int(self.execution.get(ScenarioExecutor.CONCURR).get(prov_type, 0))
+        iterations = eval_int(raw_load.iterations)
+        ramp_up = raw_load.ramp_up
 
-        iterations = eval_int(self.execution.get("iterations", None))
+        throughput = eval_float(raw_load.throughput or 0)
+        concurrency = eval_int(raw_load.concurrency or 0)
 
-        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
-        steps = eval_int(self.execution.get(ScenarioExecutor.STEPS, None))
-        hold = dehumanize_time(self.execution.get(ScenarioExecutor.HOLD_FOR, 0))
+        steps = eval_int(raw_load.steps)
+        hold = dehumanize_time(raw_load.hold or 0)
+
         if ramp_up is None:
             duration = hold
         else:
-            ramp_up = dehumanize_time(ramp_up)
+            ramp_up = dehumanize_time(raw_load.ramp_up)
             duration = hold + ramp_up
 
         if duration and not iterations:
-            iterations = 0  # which means infinite
+            iterations = 0  # infinite
 
         msg = ''
         if not isinstance(concurrency, numeric_types + (type(None),)):
