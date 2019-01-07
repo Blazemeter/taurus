@@ -7,6 +7,7 @@ class AbstractThreadGroup(object):
     XPATH = None
     RAMP_UP_SEL = None
     CONCURRENCY_SEL = None
+    RATE_SEL = None
 
     def __init__(self, element, logger):
         self.element = element
@@ -23,13 +24,10 @@ class AbstractThreadGroup(object):
         self.log.warning('Setting of ramp-up for %s not implemented', self.gtype)
 
     def get_duration(self):
-        """
-        task duration or None if getting isn't possible (skipped, timeless, jmeter variables, etc.)
-        """
-        self.log.warning('Getting of duration for %s not implemented', self.gtype)
+        return self._get_val(None, "duration")
 
     def get_rate(self, raw=False):
-        self.log.warning('Getting of rate for %s not implemented', self.gtype)
+        return self._get_val(self.RATE_SEL, name='rate', default=1, raw=raw)
 
     def get_iterations(self):
         """
@@ -66,9 +64,8 @@ class AbstractThreadGroup(object):
             return default
 
     def get_on_error(self):
-        action = self.element.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
-        if action is not None:
-            return action.text
+        selector = ".//stringProp[@name='ThreadGroup.on_sample_error']"
+        return self._get_val(selector, "on-error", raw=True)
 
 
 class ThreadGroup(AbstractThreadGroup):
@@ -168,9 +165,6 @@ class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):
 class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.arrivals\.ArrivalsThreadGroup'
     RATE_SEL = ".//*[@name='TargetLevel']"
-
-    def get_rate(self, raw=False):
-        return self._get_val(self.RATE_SEL, name='rate', default=1, raw=raw)
 
     def set_rate(self, rate=None):
         rate_prop = self.element.find(self.RATE_SEL)

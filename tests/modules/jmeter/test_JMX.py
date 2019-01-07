@@ -45,10 +45,10 @@ class TestLoadSettingsProcessor(BZTestCase):
                 'iterations': group.get_iterations()}
 
         self.assertEqual(res_values,
-                         {'TG.01': {'conc': 2, 'duration': 3, 'iterations': 100, 'rate': None},
-                          'CTG.02': {'conc': 3, 'duration': 100, 'iterations': 10, 'rate': None},
-                          'STG.03': {'conc': 4, 'duration': None, 'iterations': None, 'rate': None},
-                          'UTG.04': {'conc': 1, 'duration': None, 'iterations': None, 'rate': None},
+                         {'TG.01': {'conc': 2, 'duration': 3, 'iterations': 100, 'rate': 1},
+                          'CTG.02': {'conc': 3, 'duration': 100, 'iterations': 10, 'rate': 1},
+                          'STG.03': {'conc': 4, 'duration': None, 'iterations': None, 'rate': 1},
+                          'UTG.04': {'conc': 1, 'duration': None, 'iterations': None, 'rate': 1},
                           'ATG.05': {'conc': 1, 'duration': 480, 'iterations': 33, 'rate': 2}})
 
     def test_TG_cs(self):
