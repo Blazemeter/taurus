@@ -590,7 +590,6 @@ class FileReader(object):
         if self.is_ready():
             if last_pass:
                 size = -1
-            self.log.debug("Reading: %s", self.name)
             self.fds.seek(self.offset)
             for line in self._readlines(hint=size):
                 self.offset += len(line)
@@ -599,7 +598,6 @@ class FileReader(object):
     def get_line(self):
         line = ""
         if self.is_ready():
-            self.log.debug("Reading: %s", self.name)
             self.fds.seek(self.offset)
             line = self.fds.readline()
             self.offset += len(line)
@@ -610,7 +608,6 @@ class FileReader(object):
         if self.is_ready():
             if last_pass:
                 size = -1
-            self.log.debug("Reading: %s", self.name)
             self.fds.seek(self.offset)
             _bytes = self.fds.read(size)
             self.offset += len(_bytes)
