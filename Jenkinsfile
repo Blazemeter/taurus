@@ -26,8 +26,8 @@ node() {
                 """
             }
 
-            withCredentials([file(credentialsId: ` *blazemeter-taurus-website-prod* `, variable: `CRED_JSON`)]) {
-                def WORKSPACE_JSON = `pwd`:/bzt-configs+ `/.Google_credentials.json`
+            withCredentials([file(credentialsId: '*blazemeter-taurus-website-prod*', variable: `CRED_JSON`)]) {
+                def WORKSPACE_JSON = `pwd`:/bzt-configs+ '/.Google_credentials.json'
                 def input = readJSON file: CRED_JSON
                 writeJSON file: WORKSPACE_JSON, json: input
                 sh """
