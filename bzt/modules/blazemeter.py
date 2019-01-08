@@ -1554,6 +1554,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 del config.get("modules")[module]
 
     def prepare_cloud_config(self):
+        # expand concurrency and throughput
+        for executor in self.executors:
+            executor.get_load()
+
         config = copy.deepcopy(self.engine.config)
         provisioning = config.get(Provisioning.PROV)
         self._filter_unused_modules(config, provisioning)
@@ -1566,6 +1570,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         for execution in config[ScenarioExecutor.EXEC]:
             if execution.get("files") == []:
                 del execution["files"]
+
             for param in (ScenarioExecutor.CONCURR, ScenarioExecutor.THRPT):
                 param_value = execution.get(param).get(provisioning, None)
                 if param_value is None:

@@ -1,10 +1,14 @@
 from bzt.jmx.base import JMX
 
+GETTING_PARAM_ERR_MSG = "{tg}: getting of {name} is impossible ({params})"
+
 
 class AbstractThreadGroup(object):
     XPATH = None
     RAMP_UP_SEL = None
     CONCURRENCY_SEL = None
+    RATE_SEL = None
+    ITER_SEL = None
 
     def __init__(self, element, logger):
         self.element = element
@@ -21,57 +25,44 @@ class AbstractThreadGroup(object):
         self.log.warning('Setting of ramp-up for %s not implemented', self.gtype)
 
     def get_duration(self):
-        """
-        task duration or None if getting isn't possible (skipped, timeless, jmeter variables, etc.)
-        """
-        self.log.warning('Getting of duration for %s not implemented', self.gtype)
+        return self._get_val("duration")
 
-    def get_rate(self, pure=False):
-        self.log.warning('Getting of rate for %s not implemented', self.gtype)
+    def get_rate(self, raw=False):
+        return self._get_val("rate", self.RATE_SEL, default=1, raw=raw)
 
     def get_iterations(self):
-        """
-        iterations number or None if getting isn't possible (skipped, unsupported, jmeter variables, etc.)
-        Note: ConcurrencyThreadGroup and ArrivalsThreadGroup aren't stopped by iterations limit
-        """
-        self.log.warning('Getting of iterations for %s not implemented', self.gtype)
+        return self._get_val("iterations", self.ITER_SEL)
 
-    def get_ramp_up(self, pure=False):
-        if not self.RAMP_UP_SEL:
-            self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
-            return 1
+    def get_ramp_up(self, raw=False):
+        return self._get_val("ramp-up", self.RAMP_UP_SEL, default=1, raw=raw)
 
-        return self._get_val(self.RAMP_UP_SEL, name='ramp-up', default=0, pure=pure)
+    def get_concurrency(self, raw=False):
+        return self._get_val("concurrency", self.CONCURRENCY_SEL, default=1, raw=raw)
 
-    def get_concurrency(self, pure=False):
-        if not self.CONCURRENCY_SEL:
-            self.log.warning('Getting of concurrency for %s not implemented', self.gtype)
-            return 1
+    def _get_val(self, name, selector=None, default=None, raw=False):
+        if not selector:
+            self.log.debug(GETTING_PARAM_ERR_MSG.format(tg=self.gtype, name=name, params="not implemented"))
+            return default
 
-        return self._get_val(self.CONCURRENCY_SEL, name='concurrency', default=1, pure=pure)
-
-    def _get_val(self, selector, name='', default=None, convertor=int, pure=False):
         element = self.element.find(selector)
         if element is None:
-            string_val = None
+            raw_val = None
         else:
-            string_val = element.text
+            raw_val = element.text
 
-        if pure:
-            return string_val
+        if raw:
+            return raw_val
 
         try:
-            return convertor(string_val)
+            return int(raw_val)
         except (ValueError, TypeError):
-            if default:
-                msg = "Parsing {param} '{val}' in group '{gtype}' failed, choose {default}"
-                self.log.warning(msg.format(param=name, val=string_val, gtype=self.gtype, default=default))
-                return default
+            msg = "Parsing {param} '{val}' in group '{gtype}' failed, choose {default}"
+            self.log.warning(msg.format(param=name, val=raw_val, gtype=self.gtype, default=default))
+            return default
 
     def get_on_error(self):
-        action = self.element.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
-        if action is not None:
-            return action.text
+        selector = ".//stringProp[@name='ThreadGroup.on_sample_error']"
+        return self._get_val("on-error", selector, raw=True)
 
 
 class ThreadGroup(AbstractThreadGroup):
@@ -81,35 +72,35 @@ class ThreadGroup(AbstractThreadGroup):
 
     def get_duration(self):
         sched_sel = ".//*[@name='ThreadGroup.scheduler']"
-        scheduler = self._get_val(sched_sel, "scheduler", pure=True)
+        scheduler = self._get_val("scheduler", sched_sel, raw=True)
 
         if scheduler == 'true':
             duration_sel = ".//*[@name='ThreadGroup.duration']"
-            return self._get_val(duration_sel, "duration")
+            return self._get_val("duration", duration_sel)
         elif scheduler == 'false':
-            return self._get_val(self.RAMP_UP_SEL, "ramp-up")
+            return self._get_val("ramp-up", self.RAMP_UP_SEL)
         else:
             msg = 'Getting of ramp-up for %s is impossible due to scheduler: %s'
             self.log.warning(msg, (self.gtype, scheduler))
 
     def get_iterations(self):
         loop_control_sel = ".//*[@name='LoopController.continue_forever']"
-        loop_controller = self._get_val(loop_control_sel, name="loop controller", pure=True)
+        loop_controller = self._get_val("loop controller", loop_control_sel, raw=True)
         if loop_controller == "false":
             loop_sel = ".//*[@name='LoopController.loops']"
-            return self._get_val(loop_sel, name="loops")
+            return self._get_val("loops", loop_sel)
         else:
             msg = 'Getting of ramp-up for %s is impossible due to loop_controller: %s'
             self.log.warning(msg, (self.gtype, loop_controller))
 
     def get_thread_delay(self):
         delay_sel = ".//*[@name='ThreadGroup.delayedStart']"
-        delay = self._get_val(delay_sel, name="delay", pure=True)
+        delay = self._get_val("delay", delay_sel, raw=True)
         return delay == "true"
 
     def get_scheduler_delay(self):
         delay_sel = ".//*[@name='ThreadGroup.delay']"
-        return self._get_val(delay_sel, name="delay", pure=True)
+        return self._get_val("delay", delay_sel, raw=True)
 
 
 class SteppingThreadGroup(AbstractThreadGroup):
@@ -124,10 +115,11 @@ class UltimateThreadGroup(AbstractThreadGroup):
 # parent of ConcurrencyThreadGroup and ArrivalThreadGroup
 class AbstractDynamicThreadGroup(AbstractThreadGroup):
     RAMP_UP_SEL = ".//*[@name='RampUp']"
+    ITER_SEL = ".//*[@name='Iterations']"
 
     def _get_time_unit(self):
         unit_sel = ".//*[@name='Unit']"
-        return self._get_val(unit_sel, name="unit", pure=True)
+        return self._get_val("unit", unit_sel, raw=True)
 
     def set_ramp_up(self, ramp_up=None):
         ramp_up_element = self.element.find(self.RAMP_UP_SEL)
@@ -136,12 +128,12 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
     def get_duration(self):
         hold_sel = ".//*[@name='Hold']"
 
-        hold = self._get_val(hold_sel, name="hold")
+        hold = self._get_val("hold", hold_sel)
         ramp_up = self.get_ramp_up()
 
         # 'empty' means 0 sec, let's detect that
-        p_hold = self._get_val(hold_sel, name="hold", pure=True)
-        p_ramp_up = self.get_ramp_up(pure=True)
+        p_hold = self._get_val("hold", hold_sel, raw=True)
+        p_ramp_up = self.get_ramp_up(raw=True)
         if hold is None and not p_hold:
             hold = 0
         if ramp_up is None and not p_ramp_up:
@@ -153,10 +145,6 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
                 result *= 60
 
             return result
-
-    def get_iterations(self):
-        iter_sel = ".//*[@name='Iterations']"
-        return self._get_val(iter_sel, name="iterations")
 
 
 class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):
@@ -171,9 +159,6 @@ class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):
 class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.arrivals\.ArrivalsThreadGroup'
     RATE_SEL = ".//*[@name='TargetLevel']"
-
-    def get_rate(self, pure=False):
-        return self._get_val(self.RATE_SEL, name='rate', default=1, pure=pure)
 
     def set_rate(self, rate=None):
         rate_prop = self.element.find(self.RATE_SEL)
@@ -203,7 +188,7 @@ class ThreadGroupHandler(object):
         self.log.debug(msg, source.gtype, source.get_testname(), target_gtype)
         on_error = source.get_on_error()
         if not concurrency:
-            concurrency = source.get_concurrency(pure=True)
+            concurrency = source.get_concurrency(raw=True)
 
         if target_gtype == ThreadGroup.__name__:
             thread_delay = None
