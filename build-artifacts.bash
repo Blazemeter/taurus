@@ -8,6 +8,10 @@ apt-get update -y
 apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis composer zip google-cloud-sdk
 apt-get install -y --force-yes libssl-dev libncurses5-dev libsqlite3-dev libreadline-dev libtk8.5 libgdm-dev libdb4o-cil-dev libpcap-dev
 
+gcloud auth activate-service-account --key-file ${KEY_FILE}
+gcloud config set project blazemeter-taurus-website-prod
+gcloud app browse
+
 # build source distribution
 ./build-sdist.sh
 

@@ -26,9 +26,14 @@ node() {
                 """
             }
 
-            sh """
-                docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME} ${isTag} ${BUILD_NUMBER} 
-                """
+            withCredentials([file(credentialsId: ` *blazemeter-taurus-website-prod* `, variable: `CRED_JSON`)]) {
+                def WORKSPACE_JSON = `pwd`:/bzt-configs+ `/.Google_credentials.json`
+                def input = readJSON file: CRED_JSON
+                writeJSON file: WORKSPACE_JSON, json: input
+                sh """
+                    docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -e KEY_FILE=${WORKSPACE_JSON} -t ${JOB_NAME} ${isTag} ${BUILD_NUMBER}
+                    """
+            }
         }
 
         stage("Post-build") {
