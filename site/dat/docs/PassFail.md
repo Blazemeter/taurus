@@ -66,6 +66,29 @@ reporting:
     Sample Label fails too much: fail of Sample Label>50% for 10s, stop as failed
 ```
 
+## Per-Executor Criteria
+
+Failure criteria you add under `reporting` section is global. In case you use multiple `execution` items, aggregate data from all of them is used to trigger criteria. To attach criteria only to certain execution items or scenarios, use same syntax of `criteria`:
+
+```yaml
+execution:
+- scenario: s1
+  criteria:  # this is per-execution criteria list
+  - fail>0%
+  - rt>1s
+- scenario: s2
+
+scenarios:
+  s1:
+    script: file1.jmx
+  s2:
+    script: file2.jmx
+    criteria:  # this is per-scenario criteria list
+    - fail>50%   
+    - p90>250ms   
+```
+ 
+
 ## Monitoring-Based Failure Criteria 
 
 You can use special failure criteria based on [monitoring data](Monitoring) from target servers. Most of
