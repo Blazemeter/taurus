@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import fnmatch
+import logging
 import re
 import sys
 from abc import abstractmethod
@@ -31,29 +32,26 @@ from bzt.six import string_types, viewvalues, iteritems
 from bzt.utils import load_class, dehumanize_time, BetterDict
 
 
-class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
+class CriteriaProcessor(AggregatorListener):
     """
     :type criteria: list[FailCriterion]
     """
 
-    def __init__(self):
-        super(PassFailStatus, self).__init__()
+    def __init__(self, crit_config, feeder):
+        super(CriteriaProcessor, self).__init__()
         self.criteria = []
-        self.widget = None
         self.last_datapoint = None
+        self.log = logging.getLogger(__name__)
 
-    def prepare(self):
-        super(PassFailStatus, self).prepare()
-        criteria = self.parameters.get("criteria", [])
-        if isinstance(criteria, dict):
-            crit_iter = iteritems(criteria)
+        if isinstance(crit_config, dict):
+            crit_iter = iteritems(crit_config)
         else:
-            crit_iter = enumerate(criteria)
+            crit_iter = enumerate(crit_config)
 
         for idx, crit_config in crit_iter:
             if isinstance(crit_config, string_types):
                 crit_config = DataCriterion.string_to_config(crit_config)
-                self.parameters['criteria'][idx] = crit_config
+                crit_config[idx] = crit_config
             crit = load_class(crit_config.get('class', DataCriterion.__module__ + "." + DataCriterion.__name__))
             crit_instance = crit(crit_config, self)
             assert isinstance(crit_instance, FailCriterion)
@@ -61,12 +59,28 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
                 crit_instance.message = idx
             self.criteria.append(crit_instance)
 
-        if isinstance(self.engine.aggregator, ResultsProvider):
-            self.engine.aggregator.add_listener(self)
+        if isinstance(feeder, ResultsProvider):
+            feeder.add_listener(self)
+
+    def aggregated_second(self, data):
+        """
+        Inform criteria of the data
+
+        :type data: bzt.modules.aggregator.DataPoint
+        """
+        self.last_datapoint = data
+        for crit in self.criteria:
+            if isinstance(crit, DataCriterion):
+                if crit.selector != DataPoint.CUMULATIVE:
+                    crit.aggregated_second(data)
+
+    def check(self):
+        res = False
+        for crit in self.criteria:
+            res = res or crit.check()
+        return res
 
     def post_process(self):
-        super(PassFailStatus, self).post_process()
-
         if self.last_datapoint is not None:
             for crit in self.criteria:
                 if isinstance(crit, DataCriterion):
@@ -84,6 +98,34 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
                         self.log.warning("%s", crit)
                         raise AutomatedShutdown("%s" % crit)
 
+
+class PassFailStatus(Reporter, WidgetProvider):
+    """
+    :type processors: list[CriteriaProcessor]
+    """
+
+    def __init__(self):
+        super(PassFailStatus, self).__init__()
+        self.processors = []
+        self.widget = None
+
+    def prepare(self):
+        super(PassFailStatus, self).prepare()
+        glob_criteria = self.parameters.get("criteria", [])
+        self.processors.append(CriteriaProcessor(glob_criteria, self.engine.aggregator))
+
+        for executor in self.engine.provisioning.executors:
+            exec_criteria = executor.parameters.get("criteria", [])
+            self.processors.append(CriteriaProcessor(exec_criteria, executor.reader))
+
+        for processor in self.processors:
+            processor.log = self.log
+
+    def post_process(self):
+        super(PassFailStatus, self).post_process()
+        for processor in self.processors:
+            processor.post_process()
+
     def check(self):
         """
         Check if we should stop
@@ -93,21 +135,9 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
         if self.widget:
             self.widget.update()
         res = super(PassFailStatus, self).check()
-        for crit in self.criteria:
-            res = res or crit.check()
+        for processor in self.processors:
+            res = res or processor.check()
         return res
-
-    def aggregated_second(self, data):
-        """
-        Inform criteria of the data
-
-        :type data: bzt.modules.aggregator.DataPoint
-        """
-        self.last_datapoint = data
-        for crit in self.criteria:
-            if isinstance(crit, DataCriterion):
-                if crit.selector != DataPoint.CUMULATIVE:
-                    crit.aggregated_second(data)
 
     def get_widget(self):
         """
@@ -118,6 +148,10 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
         if not self.widget:
             self.widget = PassFailWidget(self)
         return self.widget
+
+    @property
+    def criteria(self):
+        return [item for sublist in self.processors for item in sublist.criteria]
 
 
 class FailCriterion(object):
@@ -330,10 +364,10 @@ class DataCriterion(FailCriterion):
             return lambda x: x[KPISet.PERCENTILES][level] if level in x[KPISet.PERCENTILES] else 0
         elif subject.startswith('rc'):
             count = lambda x: sum([
-                                      x[KPISet.RESP_CODES][y]
-                                      for y in x[KPISet.RESP_CODES].keys()
-                                      if fnmatch.fnmatch(y, subject[2:])
-                                      ])
+                x[KPISet.RESP_CODES][y]
+                for y in x[KPISet.RESP_CODES].keys()
+                if fnmatch.fnmatch(y, subject[2:])
+            ])
             if percentage:
                 return lambda x: 100.0 * count(x) / float(x[KPISet.SAMPLE_COUNT])
             else:
