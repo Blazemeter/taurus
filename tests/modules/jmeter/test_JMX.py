@@ -45,10 +45,10 @@ class TestLoadSettingsProcessor(BZTestCase):
                 'iterations': group.get_iterations()}
 
         self.assertEqual(res_values,
-                         {'TG.01': {'conc': 2, 'duration': 3, 'iterations': 100, 'rate': None},
-                          'CTG.02': {'conc': 3, 'duration': 100, 'iterations': 10, 'rate': None},
-                          'STG.03': {'conc': 4, 'duration': None, 'iterations': None, 'rate': None},
-                          'UTG.04': {'conc': 1, 'duration': None, 'iterations': None, 'rate': None},
+                         {'TG.01': {'conc': 2, 'duration': 3, 'iterations': 100, 'rate': 1},
+                          'CTG.02': {'conc': 3, 'duration': 100, 'iterations': 10, 'rate': 1},
+                          'STG.03': {'conc': 4, 'duration': None, 'iterations': None, 'rate': 1},
+                          'UTG.04': {'conc': 1, 'duration': None, 'iterations': None, 'rate': 1},
                           'ATG.05': {'conc': 1, 'duration': 480, 'iterations': 33, 'rate': 2}})
 
     def test_TG_cs(self):
@@ -60,8 +60,8 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.obj.modify(self.jmx)
 
-        msg = 'Getting of concurrency for UltimateThreadGroup not implemented'
-        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+        msg = 'UltimateThreadGroup: getting of concurrency is impossible (not implemented)'
+        self.assertIn(msg, self.log_recorder.debug_buff.getvalue())
 
         msg = "Had to add 1 more threads to maintain thread group proportion"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
@@ -96,8 +96,8 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.obj.modify(self.jmx)
 
-        msg = 'Getting of concurrency for UltimateThreadGroup not implemented'
-        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+        msg = 'UltimateThreadGroup: getting of concurrency is impossible (not implemented)'
+        self.assertIn(msg, self.log_recorder.debug_buff.getvalue())
 
         msg = "1 threads left undistributed due to thread group proportion"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
