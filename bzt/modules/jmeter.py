@@ -1316,33 +1316,41 @@ class JTLErrorsReader(object):
         rc = element.get("rc")
 
         msg = None
+        a_msg = None
+        e_msg = None
         url = None
         name = None
         err_type = KPISet.ERRTYPE_ERROR
 
         if element.tag == "assertionResult":
             if self.__assertion_is_failed(element):
-                msg, name = self.__get_assertion_message(element, def_msg)
+                a_msg, name = self.__get_assertion_message(element, def_msg)
                 err_type = KPISet.ERRTYPE_ASSERT
 
         elif element.tag in ("httpSample", "sample") and rc:
             if rc.startswith("2"):
                 if element.get("s") == "false":     # has failed sub element, we should look deeper...
                     for child in element.iterchildren():
-                        msg, url, rc, name, err_type = self.find_failure(
+                        e_msg, url, rc, name, err_type = self.find_failure(
                             child, def_msg=element.get("rm"), def_rc=rc, is_subresult=True)
-                        if msg:
+                        if e_msg:
                             break
 
             else:   # failed sub sample found
-                msg = element.get("rm") or def_msg
+                e_msg = element.get("rm")
                 url = element.xpath(self.url_xpath)
                 url = url[0].text if url else element.get("lb")
                 if is_subresult:
                     err_type = KPISet.ERRTYPE_SUBSAMPLE
 
-        if not is_subresult and msg is None:    # top level (exit from recursion) and no message
-            msg = def_msg                       # set default failure msg
+        if self.err_msg_separator and a_msg and e_msg:
+            msg = self.err_msg_separator.join(a_msg, e_msg)
+        elif a_msg:
+            msg = a_msg
+        elif e_msg:
+            msg = e_msg
+        elif not is_subresult:  # top level (exit from recursion) and no message
+            msg = def_msg       # set default failure msg
 
         rc = rc or def_rc
         return msg, url, rc, name, err_type
