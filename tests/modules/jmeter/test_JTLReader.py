@@ -174,6 +174,13 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(9, len(values.get("")))
         self.assertEqual(values.get('')[0].get("msg"), "Non HTTP response message: Connection reset")
 
+    def test_extended_err_message(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-bug1.jtl")
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+        self.assertEqual(9, len(values.get("")))
+        self.assertEqual(values.get('')[0].get("msg"), "Non HTTP response message: Connection reset")
+
     def test_resource_tc(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/resource_tc.jtl")
         self.obj.read_file()

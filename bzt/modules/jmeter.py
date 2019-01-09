@@ -290,7 +290,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.stderr = open(self.engine.create_artifact("jmeter", ".err"), "w")
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
+            err_msg_separator = self.settings.get("error-message-separator")
+            self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl, err_msg_separator)
             self.reader.is_distributed = len(self.distributed_servers) > 0
             assert isinstance(self.reader, JTLReader)
             self.engine.aggregator.add_underling(self.reader)
@@ -863,14 +864,14 @@ class JTLReader(ResultsReader):
     :type errors_reader: JTLErrorsReader
     """
 
-    def __init__(self, filename, parent_logger, errors_filename=None):
+    def __init__(self, filename, parent_logger, errors_filename=None, err_msg_separator=None):
         super(JTLReader, self).__init__()
         self.is_distributed = False
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
         if errors_filename:
-            self.errors_reader = JTLErrorsReader(errors_filename, parent_logger)
+            self.errors_reader = JTLErrorsReader(errors_filename, parent_logger, err_msg_separator)
         else:
             self.errors_reader = None
 
@@ -1210,7 +1211,7 @@ class JTLErrorsReader(object):
     assertionMessage = GenericTranslator().css_to_xpath("assertionResult>failureMessage")
     url_xpath = GenericTranslator().css_to_xpath("java\\.net\\.URL")
 
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger, err_msg_separator=None):
         # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -1218,6 +1219,7 @@ class JTLErrorsReader(object):
         self.file = FileReader(filename=filename, parent_logger=self.log)
         self.buffer = BetterDict()
         self.failed_processing = False
+        self.err_msg_separator = err_msg_separator
 
     def read_file(self, final_pass=False):
         """
