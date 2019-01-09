@@ -5,7 +5,7 @@ from bzt import AutomatedShutdown
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.passfail import PassFailStatus, DataCriterion, CriteriaProcessor
 from tests import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, ModuleMock
 
 
 class PassFailStatusMock(PassFailStatus):
@@ -286,3 +286,22 @@ class TestPassFailStatus(BZTestCase):
         self.assertTrue(self.obj.criteria[0].is_triggered)
         self.obj.shutdown()
         self.obj.post_process()
+
+    def test_executor_level(self):
+        executor = ModuleMock()
+        self.obj.engine.provisioning.executors.append(executor)
+        executor.execution.merge({"criteria": ["p90>0ms"]})
+        self.obj.prepare()
+        self.assertGreater(len(self.obj.criteria), 0)
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            self.obj.aggregated_second(point)
+            self.obj.check()
+
+        self.obj.shutdown()
+        try:
+            self.obj.post_process()
+            self.fail()
+        except AutomatedShutdown:
+            pass

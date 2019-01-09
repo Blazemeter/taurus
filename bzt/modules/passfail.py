@@ -112,11 +112,13 @@ class PassFailStatus(Reporter, WidgetProvider):
     def prepare(self):
         super(PassFailStatus, self).prepare()
         glob_criteria = self.parameters.get("criteria", [])
-        self.processors.append(CriteriaProcessor(glob_criteria, self.engine.aggregator))
+        if glob_criteria:
+            self.processors.append(CriteriaProcessor(glob_criteria, self.engine.aggregator))
 
         for executor in self.engine.provisioning.executors:
-            exec_criteria = executor.parameters.get("criteria", [])
-            self.processors.append(CriteriaProcessor(exec_criteria, executor.reader))
+            exec_criteria = executor.execution.get("criteria", [])
+            if exec_criteria:
+                self.processors.append(CriteriaProcessor(exec_criteria, executor.reader))
 
         for processor in self.processors:
             processor.log = self.log
