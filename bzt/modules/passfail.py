@@ -37,21 +37,21 @@ class CriteriaProcessor(AggregatorListener):
     :type criteria: list[FailCriterion]
     """
 
-    def __init__(self, crit_config, feeder):
+    def __init__(self, crit_cfg_list, feeder):
         super(CriteriaProcessor, self).__init__()
         self.criteria = []
         self.last_datapoint = None
         self.log = logging.getLogger(__name__)
 
-        if isinstance(crit_config, dict):
-            crit_iter = iteritems(crit_config)
+        if isinstance(crit_cfg_list, dict):
+            crit_iter = iteritems(crit_cfg_list)
         else:
-            crit_iter = enumerate(crit_config)
+            crit_iter = enumerate(crit_cfg_list)
 
         for idx, crit_config in crit_iter:
             if isinstance(crit_config, string_types):
                 crit_config = DataCriterion.string_to_config(crit_config)
-                crit_config[idx] = crit_config
+                crit_cfg_list[idx] = crit_config
             crit = load_class(crit_config.get('class', DataCriterion.__module__ + "." + DataCriterion.__name__))
             crit_instance = crit(crit_config, self)
             assert isinstance(crit_instance, FailCriterion)
