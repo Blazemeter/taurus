@@ -289,10 +289,11 @@ class TestPassFailStatus(BZTestCase):
 
     def test_executor_level(self):
         executor = ModuleMock()
+        executor.engine = self.obj.engine
         self.obj.engine.provisioning.executors.append(executor)
-        executor.execution.merge({"criteria": ["p90>0ms"]})
+        executor.execution.merge({"criteria": ["p90>0ms"], "scenario": {"criteria": ["p50>0ms"]}})
         self.obj.prepare()
-        self.assertGreater(len(self.obj.criteria), 0)
+        self.assertEqual(len(self.obj.criteria), 2)
 
         for n in range(0, 10):
             point = random_datapoint(n)

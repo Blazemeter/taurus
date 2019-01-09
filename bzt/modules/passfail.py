@@ -120,6 +120,10 @@ class PassFailStatus(Reporter, WidgetProvider):
             if exec_criteria:
                 self.processors.append(CriteriaProcessor(exec_criteria, executor.reader))
 
+            scen_criteria = executor.get_scenario().get("criteria", [])
+            if scen_criteria:
+                self.processors.append(CriteriaProcessor(scen_criteria, executor.reader))
+
         for processor in self.processors:
             processor.log = self.log
 
