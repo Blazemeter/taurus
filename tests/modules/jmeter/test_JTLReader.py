@@ -174,12 +174,23 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(9, len(values.get("")))
         self.assertEqual(values.get('')[0].get("msg"), "Non HTTP response message: Connection reset")
 
-    def test_extended_err_message(self):
-        self.configure("/home/fenrir/tmp/error.jtl", err_msg_sep=" *OMG!* ")
+    def test_short_err_message(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-mix.jtl")
         self.obj.read_file()
         values = self.obj.get_data(sys.maxsize)
-        self.assertEqual(9, len(values.get("")))
-        self.assertEqual(values.get('')[0].get("msg"), "Non HTTP response message: Connection reset")
+        self.assertEqual(values.get('')[0].get("msg"), "Not Found")
+
+    def test_full_err_message(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-mix.jtl", err_msg_sep=" *OMG!* ")
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+        self.assertEqual(values.get('')[0].get("msg"), "Not Found *OMG!* ")
+
+    def test_puzzle_jtl(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-com.jtl")
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+        self.assertEqual(values.get('')[0].get("msg"), "Test failed: text expected not to contain /understanding/")
 
     def test_resource_tc(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/resource_tc.jtl")

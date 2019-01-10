@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="713" lt="340" ts="1547122303087" s="false" lb="http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames.html" rc="200" rm="OK" tn="r 1-1" dt="text" de="UTF-8" by="10386" ng="1" na="1">
+  <assertionResult>
+    <name>Assert hasn&apos;t [&quot;U&quot;]</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <assertionResult>
+    <name>Assert hasn&apos;t [&quot;U&quot;]</name>
+    <failure>true</failure>
+    <error>false</error>
+    <failureMessage>One or more sub-samples failed</failureMessage>
+  </assertionResult>
+  <assertionResult>
+    <name>Timeout Check</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <httpSample t="340" lt="340" ts="1547122303087" s="true" lb="http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames.html-0" rc="200" rm="OK" tn="r 1-1" dt="text" de="UTF-8" by="937" ng="1" na="1">
+    <assertionResult>
+      <name>Assert hasn&apos;t [&quot;U&quot;]</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Thu, 10 Jan 2019 12:11:43 GMT
+Server: Apache/2.2.15 (Red Hat)
+Last-Modified: Thu, 22 Aug 2002 03:52:58 GMT
+ETag: &quot;e20417-275-3a8c4db64ba80&quot;
+Accept-Ranges: bytes
+Content-Length: 629
+Keep-Alive: timeout=15, max=10
+Connection: Keep-Alive
+Content-Type: text/html; charset=UTF-8
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: www.meteo.psu.edu
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+    <java.net.URL>http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames.html</java.net.URL>
+  </httpSample>
+  <httpSample t="335" lt="335" ts="1547122303435" s="false" lb="http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames.html-1" rc="200" rm="OK" tn="r 1-1" dt="text" de="UTF-8" by="2050" ng="1" na="1">
+    <assertionResult>
+      <name>Assert hasn&apos;t [&quot;U&quot;]</name>
+      <failure>true</failure>
+      <error>false</error>
+      <failureMessage>Test failed: text expected not to contain /understanding/</failureMessage>
+    </assertionResult>
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Thu, 10 Jan 2019 12:11:43 GMT
+Server: Apache/2.2.15 (Red Hat)
+Last-Modified: Thu, 22 Aug 2002 03:52:58 GMT
+ETag: &quot;e20418-6cd-3a8c4db64ba80&quot;
+Accept-Ranges: bytes
+Content-Length: 1741
+Keep-Alive: timeout=15, max=10
+Connection: Keep-Alive
+Content-Type: text/html; charset=UTF-8
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: www.meteo.psu.edu
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;!doctype html public &quot;-//w3c//dtd html 4.0 transitional//en&quot;&gt;
+&lt;html&gt;
+&lt;head&gt;
+   &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=iso-8859-1&quot;&gt;
+   &lt;meta name=&quot;GENERATOR&quot; content=&quot;Mozilla/4.76 [en] (X11; U; Linux 2.2.17-8 i686) [Netscape]&quot;&gt;
+   &lt;title&gt;HTML Forms&lt;/title&gt;
+&lt;/head&gt;
+&lt;body bgcolor=&quot;white&quot;&gt;
+
+&lt;hr color=&quot;black&quot; size=3 noshade &gt;
+&lt;center&gt;
+&lt;h1&gt;
+&lt;font size=+4&gt;Meteorology 473 - Computer Applications&lt;/font&gt;&lt;/h1&gt;&lt;/center&gt;
+
+&lt;center&gt;&lt;i&gt;&lt;font size=+4&gt;Fall 2001&lt;/font&gt;&lt;/i&gt;&lt;/center&gt;
+
+&lt;p&gt;
+&lt;hr color=&quot;black&quot; size=3 noshade &gt;
+&lt;br&gt;&amp;nbsp;
+&lt;p&gt;
+&lt;hr color=&quot;black&quot; size=3 noshade &gt;
+&lt;center&gt;
+&lt;p&gt;&lt;b&gt;&lt;font size=+3&gt;Frames Usage in HTML&lt;/font&gt;&lt;/b&gt;
+&lt;p&gt;
+&lt;hr WIDTH=&quot;100%&quot;&gt;&lt;/center&gt;
+
+&lt;p&gt;&lt;br&gt;
+&lt;br&gt;
+&lt;p&gt;&lt;font size=+2&gt;Frames are a useful tool in HTML. They are not related
+to JavaScript, but understanding somethings about them is good. Frames
+allow the HTML web designer the ability to divide the main window into
+separate, subwindows. This is excellent when it comes to organization.&lt;/font&gt;&lt;font size=+2&gt;&lt;/font&gt;
+&lt;p&gt;
+&lt;hr color=&quot;black&quot; size=3 noshade &gt;
+&lt;p&gt;&lt;b&gt;&lt;u&gt;&lt;font size=+2&gt;HTML Frames Examples&lt;/font&gt;&lt;/u&gt;&lt;/b&gt;
+&lt;p&gt;&lt;font size=+2&gt;Here are a few examples of HTML Frames:&lt;/font&gt;
+&lt;p&gt;&lt;font size=+2&gt;&lt;a href=&quot;basic-frames.html&quot;&gt;Basic Frame Example&lt;/a&gt;&lt;/font&gt;
+&lt;p&gt;&lt;font size=+2&gt;&lt;a href=&quot;http://www.meteo.psu.edu/~harring/classes/meteo473/java-tdew-v2.htm&quot;&gt;Example From DewPoint Calculation&lt;/a&gt;&lt;/font&gt;
+&lt;p&gt;&lt;font size=+2&gt;Each of these examples uses frames. 
+
+&lt;p&gt;&lt;br&gt;
+&lt;hr color=&quot;black&quot; size=3 noshade &gt;
+&lt;br&gt;&lt;font size=+2&gt;Return to &lt;a href=&quot;http://www.meteo.psu.edu/~harring/&quot;&gt;J.
+Harrington Web page&lt;/a&gt;&lt;/font&gt;
+&lt;p&gt;&lt;font size=+2&gt;Return to &lt;a href=&quot;http://www.met.psu.edu/&quot;&gt;Penn State
+Meteorology Web Page&lt;/a&gt;&lt;/font&gt;
+&lt;p&gt;
+&lt;hr color=&quot;black&quot; size=3 noshade &gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames1.html</java.net.URL>
+  </httpSample>
+  <httpSample t="364" lt="364" ts="1547122303436" s="true" lb="http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames.html-2" rc="200" rm="OK" tn="r 1-1" dt="text" de="UTF-8" by="1328" ng="1" na="1">
+    <assertionResult>
+      <name>Assert hasn&apos;t [&quot;U&quot;]</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Thu, 10 Jan 2019 12:11:43 GMT
+Server: Apache/2.2.15 (Red Hat)
+Last-Modified: Thu, 22 Aug 2002 03:52:58 GMT
+ETag: &quot;e20419-3fb-3a8c4db64ba80&quot;
+Accept-Ranges: bytes
+Content-Length: 1019
+Keep-Alive: timeout=15, max=10
+Connection: Keep-Alive
+Content-Type: text/html; charset=UTF-8
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: www.meteo.psu.edu
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+    <java.net.URL>http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames2.html</java.net.URL>
+  </httpSample>
+  <httpSample t="173" lt="173" ts="1547122303435" s="false" lb="http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames.html-3" rc="200" rm="OK" tn="r 1-1" dt="text" de="UTF-8" by="3628" ng="1" na="1">
+    <assertionResult>
+      <name>Assert hasn&apos;t [&quot;U&quot;]</name>
+      <failure>true</failure>
+      <error>false</error>
+      <failureMessage>Test failed: text expected not to contain /understanding/</failureMessage>
+    </assertionResult>
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Thu, 10 Jan 2019 12:11:43 GMT
+Server: Apache/2.2.15 (Red Hat)
+Last-Modified: Thu, 22 Aug 2002 03:52:59 GMT
+ETag: &quot;e2041a-cf8-3a8c4db73fcc0&quot;
+Accept-Ranges: bytes
+Content-Length: 3320
+Keep-Alive: timeout=15, max=9
+Connection: Keep-Alive
+Content-Type: text/html; charset=UTF-8
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: www.meteo.psu.edu
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;!doctype html public &quot;-//w3c//dtd html 4.0 transitional//en&quot;&gt;
+&lt;html&gt;
+&lt;head&gt;
+   &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=iso-8859-1&quot;&gt;
+   &lt;meta name=&quot;GENERATOR&quot; content=&quot;Mozilla/4.76 [en] (X11; U; Linux 2.2.17-8 i686) [Netscape]&quot;&gt;
+   &lt;title&gt;HTML Forms&lt;/title&gt;
+&lt;/head&gt;
+&lt;body bgcolor=&quot;white&quot;&gt;
+&lt;font size=+2&gt; &lt;i&gt; &lt;font color=&quot;#FF0000&quot;&gt; The code that created the first frame above, which is
+just &lt;b&gt;part &lt;/b&gt;of the main frames page on my web site, is given below:&lt;/i&gt;&lt;/font&gt;
+&lt;hr color=&quot;black&quot; size=3 noshade &gt;
+&lt;br&gt;&lt;font size=+2&gt;&lt;/font&gt;&amp;nbsp;&lt;font size=+2&gt;&lt;/font&gt;
+&lt;p&gt;&lt;font size=+2&gt;&amp;lt;html&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;head&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;nbsp;&amp;nbsp; &amp;lt;title&gt;HTML Frames&amp;lt;/title&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;/head&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;body&gt;&lt;/font&gt;&lt;font size=+2&gt;&lt;/font&gt;
+&lt;p&gt;&lt;font size=+2&gt;&amp;lt;hr&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;center&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;h1&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;font size=+4&gt;Meteorology 473 - Computer Applications&amp;lt;/font&gt;&amp;lt;/h1&gt;&amp;lt;/center&gt;&lt;/font&gt;&lt;font size=+2&gt;&lt;/font&gt;
+&lt;p&gt;&lt;font size=+2&gt;&amp;lt;center&gt;&amp;lt;i&gt;&amp;lt;font size=+4&gt;Fall 2001&amp;lt;/font&gt;&amp;lt;/i&gt;&amp;lt;/center&gt;&lt;/font&gt;&lt;font size=+2&gt;&lt;/font&gt;
+&lt;p&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;hr&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;br&gt;&amp;amp;nbsp;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;hr&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;center&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&amp;lt;b&gt;&amp;lt;font size=+3&gt;Frames Usage in HTML&amp;lt;/font&gt;&amp;lt;/b&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;hr WIDTH=&quot;100%&quot;&gt;&amp;lt;/center&gt;&lt;/font&gt;&lt;font size=+2&gt;&lt;/font&gt;
+&lt;p&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&amp;lt;br&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;br&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&amp;lt;font size=+2&gt;Frames are a useful tool in HTML.
+They are not related&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;to JavaScript, but understanding somethings about them
+is good. Frames&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;allow the HTML web designer the ability to divide the
+main window into&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;separate, subwindows. This is excellent when it comes
+to organization.&amp;lt;/font&gt;&amp;lt;font size=+2&gt;&amp;lt;/font&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;hr&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&amp;lt;b&gt;&amp;lt;u&gt;&amp;lt;font size=+2&gt;HTML Frames Examples&amp;lt;/font&gt;&amp;lt;/u&gt;&amp;lt;/b&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&amp;lt;font size=+2&gt;Here are a few examples of HTML
+Frames:&amp;lt;/font&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&amp;lt;font size=+2&gt;&amp;lt;a href=&quot;basic-frames.html&quot;&gt;Basic
+Frame Example&amp;lt;/a&gt;&amp;lt;/font&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&amp;lt;font size=+2&gt;&amp;lt;a href=&quot;http://www.meteo.psu.edu/~harring/classes/meteo473/java-tdew-v2.htm&quot;&gt;Example
+From DewPoint Calculation&amp;lt;/a&gt;&amp;lt;/font&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&amp;lt;font size=+2&gt;Each of these examples uses frames.&lt;/font&gt;&lt;font size=+2&gt;&lt;/font&gt;
+&lt;p&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&amp;lt;br&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;hr WIDTH=&quot;100%&quot;&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;br&gt;&amp;lt;font size=+2&gt;Return to &amp;lt;a href=&quot;http://www.meteo.psu.edu/~harring/&quot;&gt;J.&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;Harrington Web page&amp;lt;/a&gt;&amp;lt;/font&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&amp;lt;font size=+2&gt;Return to &amp;lt;a href=&quot;http://www.met.psu.edu/&quot;&gt;Penn
+State&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;Meteorology Web Page&amp;lt;/a&gt;&amp;lt;/font&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;p&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;hr&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;/body&gt;&lt;/font&gt;
+&lt;br&gt;&lt;font size=+2&gt;&amp;lt;/html&gt;&lt;/font&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames3.html</java.net.URL>
+  </httpSample>
+  <httpSample t="364" lt="364" ts="1547122303436" s="true" lb="http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames.html-4" rc="200" rm="OK" tn="r 1-1" dt="text" de="UTF-8" by="2443" ng="1" na="1">
+    <assertionResult>
+      <name>Assert hasn&apos;t [&quot;U&quot;]</name>
+      <failure>false</failure>
+      <error>false</error>
+    </assertionResult>
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Thu, 10 Jan 2019 12:11:43 GMT
+Server: Apache/2.2.15 (Red Hat)
+Last-Modified: Thu, 22 Aug 2002 03:52:59 GMT
+ETag: &quot;e2041b-856-3a8c4db73fcc0&quot;
+Accept-Ranges: bytes
+Content-Length: 2134
+Keep-Alive: timeout=15, max=10
+Connection: Keep-Alive
+Content-Type: text/html; charset=UTF-8
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: www.meteo.psu.edu
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+    <java.net.URL>http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames4.html</java.net.URL>
+  </httpSample>
+  <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Thu, 10 Jan 2019 12:11:43 GMT
+Server: Apache/2.2.15 (Red Hat)
+Last-Modified: Thu, 22 Aug 2002 03:52:58 GMT
+ETag: &quot;e20417-275-3a8c4db64ba80&quot;
+Accept-Ranges: bytes
+Content-Length: 629
+Keep-Alive: timeout=15, max=10
+Connection: Keep-Alive
+Content-Type: text/html; charset=UTF-8
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: www.meteo.psu.edu
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;!doctype html public &quot;-//w3c//dtd html 4.0 transitional//en&quot;&gt;
+&lt;html&gt;
+&lt;head&gt;
+   &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=iso-8859-1&quot;&gt;
+   &lt;meta name=&quot;GENERATOR&quot; content=&quot;Mozilla/4.76 [en] (X11; U; Linux 2.2.17-8 i686) [Netscape]&quot;&gt;
+   &lt;title&gt;Basic Frames Example&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;frameset rows=&quot;50%,50%&quot; cols=&quot;50%,50%&quot;&gt;
+
+&lt;frame scrolling=yes bordercolor=&quot;black&quot; src=&quot;basic-frames1.html&quot;&gt;
+&lt;frame scrolling=yes bordercolor=&quot;black&quot; src=&quot;basic-frames2.html&quot;&gt;
+&lt;frame scrolling=yes bordercolor=&quot;black&quot; src=&quot;basic-frames3.html&quot;&gt;
+&lt;frame scrolling=yes bordercolor=&quot;black&quot; src=&quot;basic-frames4.html&quot;&gt;
+
+&lt;/frameset&gt;
+
+&lt;/html&gt;
+</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://www.meteo.psu.edu/~jyh10/classes/meteo473/basic-frames.html</java.net.URL>
+</httpSample>
+
+</testResults>
