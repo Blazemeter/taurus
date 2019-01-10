@@ -418,3 +418,27 @@ class DummyListener(TransactionListener):
     def transaction_ended(self, sender, label, end_time):
         self.transactions[label] += 1
 
+class InfluxMock(object):
+    def __init__(self, obj=None):
+ 
+        super(InfluxMock, self).__init__()
+        self.mock_get = {
+            'http://localhost:8086/write?db=jmeter': "",
+            'https://localhost:8086/write?db=jmeter': ""
+        }
+
+        self.mock_post = {
+            'http://localhost:8086/write?db=jmeter': "",
+            'https://localhost:8086/write?db=jmeter': ""
+        }
+
+
+    def overwrite_request(self, obj):
+        obj.http_request = self
+
+    def post(self, url, data, headers):
+        resp = self.mock_post[url]
+        response = requests.Response()
+        response._content = to_json(resp)
+        response.status_code = 204
+        return response
