@@ -1,0 +1,25 @@
+execution:
+- concurrency: 2
+  ramp-up: 10s
+  hold-for: 180s
+  scenario: quick-test
+scenarios:
+  quick-test:
+    think-time: 2
+    requests:
+    - http://blazedemo.com
+    - http://blazedemo.com/vacation.html
+    - http://blazedemo.com/nothing.html  #intentional incorrect URL to show reporting of test errors
+    
+reporting:  
+- module: influx
+  send-interval: 5
+  resend-timeout: 1 #default 2 seconds.
+  influx-url: http://localhost:8086/write?db=jmeter
+  measurement: "jmeter"
+  application: "spaces inname"
+  test-title: "debug test"
+
+modules:
+  jmeter:
+    path: ~/.bzt/jmeter-taurus/jmeter4/

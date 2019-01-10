@@ -92,6 +92,8 @@ modules:
     class: bzt.modules.blazemeter.ServiceStubScreenshoter
   capturehar:
     class: bzt.modules.blazemeter.ServiceStubCaptureHAR
+  influx:
+    class: bzt.modules.influx.InfluxUploader
 
 ---
 # experimental & deprecated
