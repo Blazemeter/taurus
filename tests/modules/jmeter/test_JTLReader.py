@@ -131,8 +131,8 @@ class TestJTLErrorsReader(BZTestCase):
         super(TestJTLErrorsReader, self).setUp()
         self.obj = None
 
-    def configure(self, jtl_file):
-        self.obj = JTLErrorsReader(jtl_file, ROOT_LOGGER)
+    def configure(self, jtl_file, err_msg_sep=None):
+        self.obj = JTLErrorsReader(jtl_file, ROOT_LOGGER, err_msg_separator=err_msg_sep)
 
     def tearDown(self):
         close_reader_file(self.obj)
@@ -175,7 +175,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(values.get('')[0].get("msg"), "Non HTTP response message: Connection reset")
 
     def test_extended_err_message(self):
-        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-bug1.jtl")
+        self.configure("/home/fenrir/tmp/error.jtl", err_msg_sep=" *OMG!* ")
         self.obj.read_file()
         values = self.obj.get_data(sys.maxsize)
         self.assertEqual(9, len(values.get("")))
