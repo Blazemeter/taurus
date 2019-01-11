@@ -394,6 +394,7 @@ class TestCloudProvisioning(BZTestCase):
         )
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
+        super(CloudProvisioning, self.obj).prepare()  # init executors
         self.obj.get_rfiles()  # create runners
 
         cloud_config = self.obj.prepare_cloud_config()

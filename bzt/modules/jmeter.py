@@ -89,12 +89,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         hold = load.hold
         ramp_up = load.ramp_up
 
-        hold = self._try_convert(hold, dehumanize_time, 0)
-        duration = hold
+        duration = 0
 
         if ramp_up is not None:
             ramp_up = self._try_convert(ramp_up, dehumanize_time, 0)
             duration += ramp_up
+
+        if hold is not None:
+            hold = self._try_convert(hold, dehumanize_time, 0)
+            duration += hold
 
         msg = ''
         if not isinstance(concurrency, numeric_types + (type(None),)):
@@ -150,20 +153,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         Helper method to read load specification
         """
-        prov_type = self.engine.config.get(Provisioning.PROV)
+        # throughput, concurrency, iterations, steps, hold, ramp_up
+        raw_load = self.get_raw_load()
 
-        throughput = self.execution.get(ScenarioExecutor.THRPT).get(prov_type, None)
-        concurrency = self.execution.get(ScenarioExecutor.CONCURR).get(prov_type, None)
+        hold = self._try_convert(raw_load.hold or 0, dehumanize_time)
 
-        iterations = self.execution.get("iterations", None)
-
-        steps = self.execution.get(ScenarioExecutor.STEPS, None)
-
-        hold = self.execution.get(ScenarioExecutor.HOLD_FOR, 0)
-        hold = self._try_convert(hold, dehumanize_time)
-
-        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
-        ramp_up = self._try_convert(ramp_up, dehumanize_time)
+        ramp_up = self._try_convert(raw_load.ramp_up, dehumanize_time)
 
         if not hold:
             duration = ramp_up
@@ -174,10 +169,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         else:
             duration = 1  # dehumanize_time(<sum_of_props>) can be unpredictable so we use default there
 
-        throughput = self._try_convert(throughput, float)
-        concurrency = self._try_convert(concurrency, int)
-        iterations = self._try_convert(iterations, int)
-        steps = self._try_convert(steps, int)
+        throughput = self._try_convert(raw_load.throughput, float)
+        concurrency = self._try_convert(raw_load.concurrency, int)
+        iterations = self._try_convert(raw_load.iterations, int)
+        steps = self._try_convert(raw_load.steps, int)
 
         if duration and not iterations:
             iterations = 0  # which means infinite
