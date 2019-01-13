@@ -26,6 +26,7 @@ Taurus provides the following reporter modules:
 - `blazemeter`, that provides interactive online test reports
 - `final\_stats`, that provides post-test summary stats
 - `junit-xml`, that generates test stats in JUnit-compatible format
+- `influx`, that sends test results to a influx database
 
 ## Console Reporter
 
@@ -85,7 +86,7 @@ Field names with explanations:
  -   `avg\_rt` - average response time
  -   `stdev\_rt` - standard deviation of response time
  -   `avg\_ct` - average connect time if present
- -   `avg\_lt`  - average latency if present 
+ -   `avg\_lt`  - average latency if present
  -   `rc\_200` - counts for specific response codes
  -   `perc\_0.0` .. `perc\_100.0` - percentile levels for response time, 0 is also minimum response time, 100 is maximum
  -   `bytes` - total download size
@@ -109,10 +110,38 @@ reporting:
   data-source: pass-fail
 ```
 
+## Influx Reporter
+
+The `influx` reporter will send live test statistics to a influx database.  Taurus does not provide the influx database, it must be configured & running before execution.
+The format of the data is intended to closely match the format used by the JMeter Influx Backend Listener, however it is not guaranteed.
+
+The influx plugin will not guarantee data delivery. If the module cannot send the data after a retry it will be dropped.
+
+The `influx` reporter has the following parameters:
+- `send-interval` time period between sending stats. Taurus will group multiple datapoints captured during this period into a single write request to influx.
+- `resend-timeout` time period for data sending retry. This will block all other Taurus activities so a small time-period is recommended.
+- `influx-url` The full HTTP endpoint for the database. Must include the db name.
+- `measurement` The influx measurement e.g. `"jmeter"`.
+- `application` The name of the application your testing e.g `"blazedemo"`.
+- `test-title` A descriptor for the test you're running e.g.`"peak"`.
+
+Sample configuration:
+```yaml
+reporting:  
+- module: influx
+  send-interval: 5 #number of seconds between stats reporting
+  resend-timeout: 1 #time period for retries.
+  influx-url: http://localhost:8086/write?db=jmeter
+  measurement: "jmeter"
+  application: "blazedemo"
+  test-title: "peak"
+```
+
+
 ## Results Reading and Aggregating Facility
 
 Aggregating facility module is set through general settings, by default
-it is: 
+it is:
 
 ```yaml
 settings:
@@ -125,19 +154,19 @@ The `consolidator` has several settings:
 modules:
   consolidator:
     generalize-labels: 500    # support up to this number of labels
-    ignore-labels: # sample labels from this list 
+    ignore-labels: # sample labels from this list
       - ignore     # will be ignored by results reader
-      
+
     buffer-scale-choice: 0.5  # choose middle value from following percentiles list (95.0)
     buffer-multiplier: 2  # make buffer two times bigger than need to receive 95% samples
     min-buffer-len: 2s      # minimal length of buffer (default: 2s)
     max-buffer-len: 2h      # maximal length of buffer (default: infinity)
-    
+
     histogram-initial: 5s         # starting size of histograms to use, before auto-grow (default: 5s)  
     max-error-variety: 100  # max count of different error messages accepted (default: 100)
-        
-    percentiles:  # percentile levels to track, 
-                  # 0 also means min, 100 also means max 
+
+    percentiles:  # percentile levels to track,
+                  # 0 also means min, 100 also means max
     - 0.0
     - 50.0
     - 90.0
@@ -159,13 +188,13 @@ The sample folding mechanics also apply to test errors. Similar errors are folde
 
 To completely disable folding of labels or errors, you can set `generalize-labels` (or `max-error-variety`) to 0.
 Disabled folding makes Taurus consume more memory and CPU for tests with lots of labels, so be prepared.
- 
+
 ## Pass/Fail Criteria Subsystem
- 
+
  Pass/Fail module is used to dynamically update test status based on some runtime criteria. For
  example, you can use it to automatically fail the test when response time exceeds some threshold.
  Here's a sample:
- 
+
 ```yaml
 reporting:
 - module: passfail
@@ -173,6 +202,5 @@ reporting:
   - avg-rt of IndexPage>150ms for 10s, stop as failed
   - fail of CheckoutPage>50% for 10s, stop as failed
 ```
- 
+
 You can learn more about Pass/Fail criteria capabilities at its [page](PassFail.md).
- 
