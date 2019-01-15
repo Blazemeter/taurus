@@ -1319,10 +1319,10 @@ class JTLErrorsReader(object):
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
     def _extract_nonstandard(self, elem):
-        t_stamp = int(elem.gettext("timeStamp")) / 1000  # NOTE: will it be sometimes EndTime?
-        label = elem.gettext("label")
-        message = elem.gettext("responseMessage")
-        r_code = elem.gettext("responseCode")
+        t_stamp = int(elem.findtext("timeStamp")) / 1000  # NOTE: will it be sometimes EndTime?
+        label = elem.findtext("label")
+        message = elem.findtext("responseMessage")
+        r_code = elem.findtext("responseCode")
 
         self._extract_common(elem, label, r_code, t_stamp, message)
 
