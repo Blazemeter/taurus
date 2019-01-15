@@ -58,10 +58,10 @@ def get_child_assertion(element):
         if msg:
             return msg, name
 
-    return None, None
+    return "", None
 
 
-def parse_assertion(element, default=None):
+def parse_assertion(element, default=""):
     assertion = element.tag == "assertionResult"
     name = element.findtext("name")
     failure = element.findtext("failure") == "true"
@@ -75,7 +75,7 @@ def parse_assertion(element, default=None):
     failed_assertion = assertion and (failure or error) and (failure_message != wrong_message)
 
     if not failed_assertion:
-        failure_message = None
+        failure_message = ""
 
     return failure_message, name
 
@@ -1347,32 +1347,31 @@ class JTLErrorsReader(object):
 
         e_msg = def_msg     # always is empty for sub samples
         url = None
-        err_type = KPISet.ERRTYPE_ERROR
+        err_type = KPISet.ERRTYPE_ASSERT
 
         a_msg, name = get_child_assertion(element)
-        if a_msg:   # preliminary error type detection
-            err_type = KPISet.ERRTYPE_ASSERT
 
-        if rc.startswith("2"):
+        if not rc.startswith("2"):  # this sample is failed
+            e_msg = element.get("rm", default="")
+            url = element.xpath(self.url_xpath)
+            url = url[0].text if url else element.get("lb")
+            err_type = KPISet.ERRTYPE_ERROR
+        elif not a_msg:
             if not a_msg and element.get("s") == "false":     # has failed sub element, we should look deeper...
                 for child in element.iterchildren():
                     if child.tag in ("httpSample", "sample"):   # let's check sub samples..
                         e_msg, url, rc, name, err_type = self.find_failure(child)
                         if e_msg:
-                            if err_type != KPISet.ERRTYPE_ASSERT:   # final error type detection
+                            if err_type == KPISet.ERRTYPE_ERROR:   # replace subsample error
                                 err_type = KPISet.ERRTYPE_SUBSAMPLE
                             break
-        else:  # this sample is failed
-            e_msg = element.get("rm")
-            url = element.xpath(self.url_xpath)
-            url = url[0].text if url else element.get("lb")
 
         if self.err_msg_separator and (a_msg or e_msg):
             msg = self.err_msg_separator.join((a_msg, e_msg))
-        elif a_msg:
-            msg = a_msg
-        else:
+        elif e_msg:
             msg = e_msg
+        else:
+            msg = a_msg
 
         msg = msg or def_msg    # default msg on top level or empty on others
         rc = rc or def_rc

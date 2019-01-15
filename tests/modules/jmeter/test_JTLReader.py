@@ -184,7 +184,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/error-mix.jtl", err_msg_sep=" *OMG!* ")
         self.obj.read_file()
         values = self.obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "Not Found *OMG!* ")
+        self.assertEqual(values.get('')[0].get("msg"), "Test failed: code expected to contain /777/ *OMG!* Not Found")
 
     def test_puzzle_jtl(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/error-puzzle.jtl")
