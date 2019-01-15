@@ -1345,9 +1345,9 @@ class JTLErrorsReader(object):
         """ returns (message, url, rc, tag, err_type) """
         rc = element.get("rc", default="")
 
-        e_msg = def_msg     # always is empty for sub samples
+        e_msg = ""     # always is empty for sub samples
         url = None
-        err_type = KPISet.ERRTYPE_ASSERT
+        err_type = KPISet.ERRTYPE_ERROR
 
         a_msg, name = get_child_assertion(element)
 
@@ -1355,16 +1355,16 @@ class JTLErrorsReader(object):
             e_msg = element.get("rm", default="")
             url = element.xpath(self.url_xpath)
             url = url[0].text if url else element.get("lb")
-            err_type = KPISet.ERRTYPE_ERROR
-        elif not a_msg:
-            if not a_msg and element.get("s") == "false":     # has failed sub element, we should look deeper...
-                for child in element.iterchildren():
-                    if child.tag in ("httpSample", "sample"):   # let's check sub samples..
-                        e_msg, url, rc, name, err_type = self.find_failure(child)
-                        if e_msg:
-                            if err_type == KPISet.ERRTYPE_ERROR:   # replace subsample error
-                                err_type = KPISet.ERRTYPE_SUBSAMPLE
-                            break
+        elif a_msg:
+            err_type = KPISet.ERRTYPE_ASSERT
+        elif element.get("s") == "false":     # has failed sub element, we should look deeper...
+            for child in element.iterchildren():
+                if child.tag in ("httpSample", "sample"):   # let's check sub samples..
+                    e_msg, url, rc, name, err_type = self.find_failure(child)
+                    if e_msg:
+                        if err_type == KPISet.ERRTYPE_ERROR:   # replace subsample error
+                            err_type = KPISet.ERRTYPE_SUBSAMPLE
+                        break
 
         if self.err_msg_separator and (a_msg or e_msg):
             msg = self.err_msg_separator.join((a_msg, e_msg))
