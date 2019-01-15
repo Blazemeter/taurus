@@ -6,7 +6,7 @@ from bzt.modules import FuncSamplesReader
 from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
-from bzt.modules.passfail import PassFailStatus, DataCriterion
+from bzt.modules.passfail import PassFailStatus, DataCriterion, CriteriaProcessor
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
 from bzt.utils import BetterDict
@@ -243,7 +243,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine.provisioning = CloudProvisioning()
         obj.engine.provisioning.results_url = "http://test/report/123"
 
-        pass_fail1 = PassFailStatus()
+        pass_fail1 = CriteriaProcessor([], None)
 
         crit_cfg1 = BetterDict()
         crit_cfg2 = BetterDict()
@@ -269,7 +269,7 @@ class TestJUnitXML(BZTestCase):
         fc1_triggered = DataCriterion(crit_cfg1, pass_fail1)
         fc1_not_triggered = DataCriterion(crit_cfg2, pass_fail1)
 
-        pass_fail2 = PassFailStatus()
+        pass_fail2 = CriteriaProcessor([], None)
 
         fc2_triggered = DataCriterion(crit_cfg3, pass_fail1)
         fc2_not_triggered = DataCriterion(crit_cfg4, pass_fail1)
@@ -282,8 +282,10 @@ class TestJUnitXML(BZTestCase):
         fc1_triggered.is_triggered = True
         fc2_triggered.is_triggered = True
 
-        obj.engine.reporters.append(pass_fail1)
-        obj.engine.reporters.append(pass_fail2)
+        pass_fail = PassFailStatus()
+        pass_fail.processors.append(pass_fail1)
+        pass_fail.processors.append(pass_fail2)
+        obj.engine.reporters.append(pass_fail)
         obj.engine.reporters.append(BlazeMeterUploader())
 
         path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml_passfail', dir=obj.engine.artifacts_dir)
@@ -319,7 +321,7 @@ class TestJUnitXML(BZTestCase):
         pass_fail = PassFailStatus()
 
         crit_cfg = BetterDict.from_dict({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
-                                  'condition': '<', 'subject': 'avg-rt'})
+                                         'condition': '<', 'subject': 'avg-rt'})
         criteria = DataCriterion(crit_cfg, pass_fail)
         pass_fail.criteria.append(criteria)
         criteria.is_triggered = True

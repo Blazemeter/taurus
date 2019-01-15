@@ -3,15 +3,21 @@ import time
 
 from bzt import AutomatedShutdown
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.passfail import PassFailStatus, DataCriterion
+from bzt.modules.passfail import PassFailStatus, DataCriterion, CriteriaProcessor
 from tests import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, ModuleMock
+
+
+class PassFailStatusMock(PassFailStatus):
+    def aggregated_second(self, point):
+        for proc in self.processors:
+            proc.aggregated_second(point)
 
 
 class TestPassFailStatus(BZTestCase):
     def setUp(self):
         super(TestPassFailStatus, self).setUp()
-        self.obj = PassFailStatus()
+        self.obj = PassFailStatusMock()
         self.obj.engine = EngineEmul()
 
     def configure(self, params):
@@ -153,8 +159,9 @@ class TestPassFailStatus(BZTestCase):
         self.assertEqual(self.obj.widget.text_widget.text, "")
 
     def test_short_data(self):
-        crit_cfg = DataCriterion.string_to_config("failures>0%, stop as failed")
-        self.obj.criteria.append(DataCriterion(crit_cfg, self.obj))
+        proc = CriteriaProcessor(["failures>0%, stop as failed"], self)
+
+        self.obj.processors.append(proc)
 
         point = DataPoint(0)
         point[DataPoint.CUMULATIVE] = {}
@@ -170,8 +177,7 @@ class TestPassFailStatus(BZTestCase):
     def test_passfail_crash(self):
         self.configure({
             "module": "passfail",
-            "criteria": [
-                "fail>10% within 5s"]
+            "criteria": ["fail>10% within 5s"]
         })
 
         self.obj.engine.config.merge({
@@ -280,3 +286,23 @@ class TestPassFailStatus(BZTestCase):
         self.assertTrue(self.obj.criteria[0].is_triggered)
         self.obj.shutdown()
         self.obj.post_process()
+
+    def test_executor_level(self):
+        executor = ModuleMock()
+        executor.engine = self.obj.engine
+        self.obj.engine.provisioning.executors.append(executor)
+        executor.execution.merge({"criteria": ["p90>0ms"], "scenario": {"criteria": ["p50>0ms"]}})
+        self.obj.prepare()
+        self.assertEqual(len(self.obj.criteria), 2)
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            self.obj.aggregated_second(point)
+            self.obj.check()
+
+        self.obj.shutdown()
+        try:
+            self.obj.post_process()
+            self.fail()
+        except AutomatedShutdown:
+            pass

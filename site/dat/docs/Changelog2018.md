@@ -1,0 +1,254 @@
+## 1.13.2<sup>03 dec 2018</sup>
+
+- introduce a convention for plugin configs autodetection
+- optimize aggregator subsystem: bypass consolidation step when single execution is used, use single-pass HDR iterator
+- Gatling 3 support: use new keywords in scala file (baseUrl, during), use properties instead of cmdline params, handle new syntax of simulation.log
+- support embedded resource download options for Gatling
+- support body of dictionary style for Gatling YAML scripts
+- use blacklist for cloud config filtering
+- don't fail if failureMessage is empty in error.jtl
+- add `screenshot(filename)` Selenium action, allow using variables and interpolation in screenshot names
+- bump taurus-java-helpers to 1.8
+- do not depend on `bzt` in generated Selenium scripts (get rid of `taurus\_selenium\_extras.py`)
+- add `generate-flow-markers` option (scenario/settings level) for Nose tests
+- fix `chrome-loader.exe` location in windows installer (used by `proxy2jmx`)
+- use JTL as a results format for JUnit-based load tests
+- prevent skipping assertion failures from Selenium scripts
+- allow waiting for file with external results to appear within timeout
+- generate stepping schedule in JMeter TST when `steps` are used
+- don't raise exception when JMeter uses JSON body with no appropriate header
+- delegate multipart property setup to JMeter
+- support cloud failure criteria for BM tests to set exit code
+- added masterId argument when uploading monitoring file to BM
+- add include/exclude for `-install-tools` alias
+- don't fold labels and errors until 1/4 of limit used
+
+
+## 1.13.1<sup>26 oct 2018</sup>
+- use auto-growing histogram object to optimize CPU and memory usage (*big impact*)
+- optimize folding of labels and errors by using `fuzzyset` data structure (*big impact*)
+- bump up default JMeter to 5.0
+- bump up chromedriver to 2.43 and geckodriver to 0.23.0
+- fix `DivisionByZero` error happening for Cloud tests
+- fix hanging of shellexec commands due to `wait()` call used
+- use JMeter properties for configuration of PluginManagerCMD
+- in JMeter, allow starting throughput from float values less than 1.0
+- fix results reading for latest Locust
+- support proxy for all HTTP requests made from Taurus
+- support `store-cache` flag in Gatling
+- bump `astunparse` dependency version and fix tests
+- fix handling of subsample errors for BZA reports (Python 3)
+- don't fail cloud test on variable resource file name
+- fix logging unicode into file, filter broken output of third party tools
+- handle subsamples asserts as `ERRTYPE_ASSERT` instead of `ERRTYPE_SUBSAMPLE`
+- fix Gatling report reading when groups are used, limit to first level of group hierarchy
+- allow JMeter to send binary files via `body-file`
+- change Windows platform name in pip requirements
+- fix lost error message/trace for Postman scripts with assertions
+- refactor `RequiredTool` superclass, affects all underlying tool handling
+- less logging written for JUnit executor
+- use `STATUS_BROKEN` instead of `STATUS_FAILED` in JUnit 4
+- added `rc-file` as an executor option for Siege
+- some refactorings around artifacts dir in env variables
+- allow specifying Remote webdriver address and more capabilities for Selenium test
+
+## 1.13.0<sup>4 sep 2018</sup>
+- Windows installer is now self-contained, can be used without network connection (**need to uninstall older versions first!**)
+- remove `BetterDict` usage from `DataPoint` and `KPISet` - impactful internal change
+- fix nested dict merge operations with prefix flags (`~`, `$` etc)
+- restore `stdev` KPI reporting
+- add JSON representers for `KPISet` and `DataPoint`
+- make percentiles and standard deviation be calculated only when queried, this postpones heavy calculation into a "lazy" model
+- bump up default chromedriver version to 2.40
+- use Google Iowa as default Cloud location, instead of Sandbox
+- fix reporting tables on Windows platform not displayed
+- bump Apiritif version to 0.6.7 (fixes unicode support for CSV/LDJSON-based reports, fixes multiprocessing errors, supports `CONNECT` and `OPTIONS` HTTP methods)
+- make Java version checks more robust
+- support JUnit 5
+- add support for `concurrency` for JUnit executor
+- add "open window" action for Selenium YAML scripting
+- make java-related tools auto-install more robust
+- fix Taurus crash when retrieving JMeter diagnostics on Python 2
+- fix handling of JMeter script encodings
+- fix Final Stats Reporter crashing on `long` data type
+- do not send multiline `note` to BZA
+- don't change `PYTHONPATH` unless really needed in Python executors
+- fix a few Swagger2YAML converter crashes
+- fix handling of string `body` in Gatling script generator
+- handle `download-link` and `version` for JMeter to support nightly builds
+- don't subtract connect time from latency when reading JMeter results
+- handle iterations limit for LocustIO executor
+- support running LocustIO installed with Python 3
+- bump up Plugins Manager version to 1.3
+- handle log verbosity flag from config even better
+- read pytest assertion details when available
+- add ability to specify separate pass/fail criteria for cloud
+- add `external-results-loader` executor
+- do not force 'Generate parent sample' for all transactions in JMeter
+- cache JSR223 scripts in JMeter by default
+- ship older LocustIO in Docker image (0.8.1)
+
+## 1.12.1<sup>11 jul 2018</sup>
+- set `LC\_ALL` in Docker image so JVM's `file.encoding` property will be UTF-8
+- support SSL certificates for proxies with `settings.proxy.ssl-cert` option
+- limit max variety for error messages with `max-error-variety` option
+- add Authorization Manager support for JMeter YAML scripting
+- add Once Only Controller support for JMeter YAML scripting
+- use special JMeter plugin for `set-variables`
+- do not crash if tool reported negative response time, warn the user about it and proceed
+- fix empty results read handling for Apiritif tests
+- fix JMeter installation under proxy
+- remove whole disabled node (and also its hashTree, i.e. included elements)
+- support conversion of variable parametrized LoopController
+- improve check of conversion controllers (supported/unsupported, disabled, included, etc.)
+- fix `AssertionError: monitoring` error for cloud tests
+- handle log verbosity flag from config better
+- use newer `hdrpy` lib to improve datapoint export performance
+- recognize JUnit test methods inherited from abstract class, filter out abstract class
+- don't fail if slave log is delayed for Locust.io distributed test
+- proxy2jmx - fixed download jmx file for new BlazeMeter API
+- extract all Java helper classes into separate repo
+- send Taurus `engine-loop` monitoring KPI to BlazeMeter
+- send `settings.env` into cloud test config
+- support 'tags' in Robot Executor (thanks to @ddhoot09)
+- use Sandbox as default location for BlazeMeter Cloud
+- handle `body-file` option on JMeter level instead of Taurus level
+- fix failure when `settings.env` variables are used in non-JMeter load settings
+
+## 1.12.0<sup>4 jun 2018</sup>
+- new frame management support was incorporated. Frames by id, name, relative parent and relative top (Selenium IDE and SideeX style)
+- drag and drop support added to Nose Request (Selenium)
+- `go` command added to Nose Request (Selenium)
+- storeTitle, storeString, storeTextBy*, storeTitle and storeValueBy* added to Nose Request (Selenium)
+- type command added to Nose Request (Selenium)
+- summary Labels added to Final Stats Reporting module 
+- built-in new support module for generated selenium script called `selenium\_taurus\_extras`
+- services enhancing the Selenium executor can now be notified of test iteration progress
+- variable support added to Selenium (Nose)
+- new window management support was incorporated for selectWindow and closeWindow. Windows by name or sequential name incorporated (Selenium IDE and SideeX style)
+- fix `'NoneType' object is not iterable` error for JMeter result reading
+- load TestNG classes from JAR only if testng config isn't provided
+- support for YAML files in utf-8 format
+- fix connectTime inserted into JMX for JMeter 2.11
+- add boundary extractor to JMeter YAML scripting
+- make `ab`'s `headers` undestranding consistent with other executors
+- pass/Fail module is not possible to use as service anymore - removed old deprecation
+- use latest JMeter Plugins Manager 1.1 to speed-up startup
+- fix jmx2yaml crash when parsing LoopController with continue_forever set
+- proxy2jmx - because blazemeter backend has changed, we now first ask for the url of the jmx/smartjmx file and then downloading it like it used to be.
+- add LANG=en_US.UTF-8 and locales into Docker image
+- disable PYTHONPATH additions if interpreter is changed via config
+- fix `swagger2yaml` crash when found schema with `type: file`
+- fix `swagger2yaml` crash when an optional field is missing
+- for cloud test, if no sandbox location found and `default-location` is not valid, use first location by default
+- fix Gatling YAML scripts with CSV delimiter in `data-sources`
+- use `TAURUS\_DISABLE\_DOWNLOADS` env var to disable automated tool install
+- use more scope options for JMeter extractors
+- handle nested CSV sources in jmx2yaml
+- ignore KPI items from BlazeMeter cloud API if they have zero samples
+- add `properties` support for JUnit executor
+- add selective JUnit test running
+- use nice table for `-locations` and for final stats reporter
+
+
+## 1.11.1<sup>26 apr 2018</sup>
+ - fix JMeter 4.0 crash on Windows when `JMETER_HOME` var is unset
+ - add `include-timers` block to JMeter transactions
+ - add `match-no` and `use-namespaces` support into `extract-xpath` for JMeter
+ - fix crash on Python 2 when adding custom fields to kpi.jtl
+ - write connect time to kpi.jtl by default in JMeter
+ - use `match-no=0` by default for JMeter JSONPath Extractor
+ - do not generate `sleep` when `think-time` is zero for Nose executor
+ - redo Apiritif code generation to split requests into separate methods
+ - use master terminate API to shutdown not yet started BlazeMeter tests
+ - fix the way default project is located for `cloud` tests
+ - fix default pip inside Docker image to be pip2
+ - fix `rt` field when exporting datapoints to JSON (convert msecs to secs)
+ - add [doc page](KeywordIndex.md) with all config keywords we can find across doc pages.
+ - support more error details internally, available for reporting services
+ - add `simple-output` and `smart-output` option for `Proxy2JMX` service
+ - don't limit env vars evaluating in scenarios blocks
+ - evaluate only explicitly declared env variables across config
+ - fix lost `basePath` when using `--scenarios-from-paths` in swagger2yaml
+ - fix `swagger2yaml`: `default-address` should not contain endpoint path
+ - SwaggerConverter.convert accepts fd
+ - remove `options` object from SwaggerConverter
+ - support auth (basic and API keys) for Swagger2YAML
+ - swagger2YAML: Move base path to variable
+ - support disabling explicit interpolation of parameters/headers
+ - fix Gatling label groups read from simulation.log
+ - support specifying properties for Gatling on scenario level
+ - rename Gatling's `dir_prefix` option into `dir-prefix`
+
+## 1.11.0<sup>26 mar 2018</sup>
+ - don't force applying defaults into effective configuration (huge internal impact)
+ - use HDR histograms from `hdrpy` package for storing response times
+ - add environment variable evaluation in strings
+ - bump up default JMeter to 4.0 and Plugins Manager to 0.20
+ - handle non-string JMeter headers
+ - properly recover if JMeter has written non-UTF8 chars into JTL
+ - fix errors.jtl reading on MacOS + Python 3
+ - remote webdriver support added: selenium grid, appium, local or remote browsers or thirdparty compatible services
+ - add capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
+ - new browsers: Chrome-Android and Safari-iOS with local appium or remote webdriver support
+ - keysBy* - Special keys are allowed using the prefix KEY_ List: http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys
+ - new Selenium actions were added: selectBy*, doubleClickBy*, mouseDownBy*, mouseUpBy*, assertTextBy*, assertValueBy*, assertTitle
+ - add `headless` switch for selenium-based tests (Chrome and Firefox)
+ - move assertions inside transactions in Apiritif codegen
+ - add function translation for Apiritif executor: `__base64Encode`, `__base64Decode`, `__UUID` and `__urlencode`
+ - set `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` env variable to fight MacOS problems with Apiritif
+ - fix `scenario`-level timeout setting for Apiritif
+ - fix POST requests with form data generation for Apiritif
+ - inherit from `unittest.TestCase` when generating Apiritif script
+ - support `additional-classpath` for Gatling
+ - add `swagger2yaml` converter
+ - updated Geckodriver to 0.20.0 and Chromedriver to 2.37
+ - fix Python2 + Robot issue with test durations rounded to seconds
+ - make npm not touch `package.json` and `package-lock.json` for Node.js tests
+ - provide icon for Taurus status screen
+ - fix singletone service parameters merging
+ - write debug messages to log file in case `-v` used
+ - Make it to pick BZA user's account by default when possible
+ - use own test type for functional test in BZA
+ - use `name` filter in BZA /projects call
+ - retry requests to BZA test status in case of network failure
+ - always include OPL into `-locations` dump for BZA
+
+## 1.10.5 <sup>8 feb 2018</sup>
+ - add `-lint functionality for checking Taurus configs for errors/typos
+ - support recursive `included-configs`
+ - support `variables` for Robot executor
+ - unify environment variables setting for executors
+ - call `install-for-jmx` on modified JMX instead of original
+ - wait a bit for JMeter plugins manager to complete plugin installation
+ - for `cloud` provisioned test, don't fail on variable file name in upload
+ - don't fail if unable to get connections count in self-monitoring
+ - ensure that loaded configuration is dict, throw appropriate exception otherwise
+ - remove chrome profiler as it was outdated and unfixable
+ - apply load settings for JMX later than modifications disable thread groups
+ - support Runtime Controller and Interleave Controller in `jmx2yaml`
+ - make Java executors to prefer user-specified JAR files over default ones
+ - make TestNG runner to fail less on missing transitional dependencies
+
+## 1.10.4 <sup>9 jan 2018</sup>
+ - collect `conn-all` monitoring metric with the help of `netstat` utility (note that that introduces depepdency on `net-tools` package for Linux)
+ - don't level down logging if `settings.verbose` is set
+ - set `write-xml-jtl=full` in JMeter if `settings.verbose` is set
+ - fix files upload resolve for JMeter variables 
+ - fix error when exception is not shown for failed JMeter run
+ - fix JSONPath Extractor generated for JMeter
+ - set default timeout for BlazeMeter integration to 30 seconds
+ - support specifying cloud test by link to BM
+ - fix launching cloud tests by id
+ - fix crash when attempting to use external test as a cloud test
+ - add `send-report-email` option for cloud tests
+ - support `account` and `workspace` entities for cloud tests
+ - use `requests.Session` for BZA requests (enabled keep-alive)
+ - fix reporting for concurrent apiritif
+ - fix duration reporting in `final-stats` for some cases
+ - fix the way Taurus reads result file globally
+ - optimize local resource monitoring collecting
+ - fix mixed order of percentile and response code fields in `final-stats`'s CSV report
+ - make 'effective.json' file to be JSON-strict (no infinity literals)
+ 
+[Changelog for Year 2017](Changelog2017.md)
