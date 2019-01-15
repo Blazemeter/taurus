@@ -87,7 +87,9 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         args += ['-c', str(load_concurrency)]
         args += ['-d']  # do not print 'Processed *00 requests' every 100 requests or so
         args += ['-r']  # do not crash on socket level errors
-        args += ['-l']  # accept variable-len responses
+        if load.dynamic:
+           args += ['-l']  # accept variable-len responses
+ 
         args += ['-g', str(self._tsv_file)]  # dump stats to TSV file
 
         # add global scenario headers
