@@ -1341,46 +1341,40 @@ class JTLErrorsReader(object):
 
         self._extract_common(elem, label, r_code, t_stamp, message)
 
-    def find_failure(self, element, def_msg, def_rc=None, is_subresult=False):
+    def find_failure(self, element, def_msg="", def_rc=None):
         """ returns (message, url, rc, tag, err_type) """
+        rc = element.get("rc", default="")
 
-        rc = element.get("rc")
-
-        msg = None
-        e_msg = None
+        e_msg = def_msg     # always is empty for sub samples
         url = None
         err_type = KPISet.ERRTYPE_ERROR
 
-        a_msg, name = parse_assertion(element)
-
-        if a_msg:
+        a_msg, name = get_child_assertion(element)
+        if a_msg:   # preliminary error type detection
             err_type = KPISet.ERRTYPE_ASSERT
 
-        elif element.tag in ("httpSample", "sample") and rc:
-            if rc.startswith("2"):
-                if element.get("s") == "false":     # has failed sub element, we should look deeper...
-                    for child in element.iterchildren():
-                        e_msg, url, rc, name, err_type = self.find_failure(
-                            child, def_msg=element.get("rm"), def_rc=rc, is_subresult=True)
+        if rc.startswith("2"):
+            if not a_msg and element.get("s") == "false":     # has failed sub element, we should look deeper...
+                for child in element.iterchildren():
+                    if child.tag in ("httpSample", "sample"):   # let's check sub samples..
+                        e_msg, url, rc, name, err_type = self.find_failure(child)
                         if e_msg:
+                            if err_type != KPISet.ERRTYPE_ASSERT:   # final error type detection
+                                err_type = KPISet.ERRTYPE_SUBSAMPLE
                             break
+        else:  # this sample is failed
+            e_msg = element.get("rm")
+            url = element.xpath(self.url_xpath)
+            url = url[0].text if url else element.get("lb")
 
-            else:   # failed sub sample found
-                e_msg = element.get("rm")
-                url = element.xpath(self.url_xpath)
-                url = url[0].text if url else element.get("lb")
-                if is_subresult:
-                    err_type = KPISet.ERRTYPE_SUBSAMPLE
-
-        if self.err_msg_separator and a_msg and e_msg:
-            msg = self.err_msg_separator.join(a_msg, e_msg)
+        if self.err_msg_separator and (a_msg or e_msg):
+            msg = self.err_msg_separator.join((a_msg, e_msg))
         elif a_msg:
             msg = a_msg
-        elif e_msg:
+        else:
             msg = e_msg
-        elif not is_subresult:  # top level (exit from recursion) and no message
-            msg = def_msg       # set default failure msg
 
+        msg = msg or def_msg    # default msg on top level or empty on others
         rc = rc or def_rc
         return msg, url, rc, name, err_type
 
