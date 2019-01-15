@@ -33,7 +33,7 @@ from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
-from bzt.engine import SelfDiagnosable, Provisioning, SETTINGS
+from bzt.engine import SelfDiagnosable, SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -45,6 +45,39 @@ from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
 from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, FileReader, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
+
+
+def get_child_assertion(element):
+    """
+    Returns first failed assertion, or None
+
+    :rtype lxml.etree.Element
+    """
+    for child in element.iterchildren():
+        msg, name = parse_assertion(child)
+        if msg:
+            return msg, name
+
+    return "", None
+
+
+def parse_assertion(element, default=""):
+    assertion = element.tag == "assertionResult"
+    name = element.findtext("name")
+    failure = element.findtext("failure") == "true"
+    error = element.findtext("error") == "true"
+    failure_message = element.findtext("failureMessage", default=default)
+    if failure_message and failure_message.startswith("The operation lasted too long"):
+        failure_message = "The operation lasted too long"
+
+    wrong_message = "One or more sub-samples failed"
+
+    failed_assertion = assertion and (failure or error) and (failure_message != wrong_message)
+
+    if not failed_assertion:
+        failure_message = ""
+
+    return failure_message, name
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -290,7 +323,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.stderr = open(self.engine.create_artifact("jmeter", ".err"), "w")
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
+            err_msg_separator = self.settings.get("error-message-separator")
+            self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl, err_msg_separator)
             self.reader.is_distributed = len(self.distributed_servers) > 0
             assert isinstance(self.reader, JTLReader)
             self.engine.aggregator.add_underling(self.reader)
@@ -863,14 +897,14 @@ class JTLReader(ResultsReader):
     :type errors_reader: JTLErrorsReader
     """
 
-    def __init__(self, filename, parent_logger, errors_filename=None):
+    def __init__(self, filename, parent_logger, errors_filename=None, err_msg_separator=None):
         super(JTLReader, self).__init__()
         self.is_distributed = False
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
         if errors_filename:
-            self.errors_reader = JTLErrorsReader(errors_filename, parent_logger)
+            self.errors_reader = JTLErrorsReader(errors_filename, parent_logger, err_msg_separator)
         else:
             self.errors_reader = None
 
@@ -1122,7 +1156,6 @@ class FuncJTLReader(FunctionalResultsReader):
     def __get_failed_assertion(element):
         """
         Returns first failed assertion, or None
-
         :rtype lxml.etree.Element
         """
         assertions = [elem for elem in element.iterchildren() if elem.tag == "assertionResult"]
@@ -1207,10 +1240,9 @@ class JTLErrorsReader(object):
     :type filename: str
     :type parent_logger: logging.Logger
     """
-    assertionMessage = GenericTranslator().css_to_xpath("assertionResult>failureMessage")
     url_xpath = GenericTranslator().css_to_xpath("java\\.net\\.URL")
 
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger, err_msg_separator=None):
         # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -1218,6 +1250,7 @@ class JTLErrorsReader(object):
         self.file = FileReader(filename=filename, parent_logger=self.log)
         self.buffer = BetterDict()
         self.failed_processing = False
+        self.err_msg_separator = err_msg_separator
 
     def read_file(self, final_pass=False):
         """
@@ -1284,8 +1317,6 @@ class JTLErrorsReader(object):
     def _extract_common(self, elem, label, r_code, t_stamp, r_msg):
         f_msg, f_url, f_rc, f_tag, f_type = self.find_failure(elem, r_msg, r_code)
 
-        if f_type == KPISet.ERRTYPE_ASSERT:
-            f_rc = r_code
         if f_type == KPISet.ERRTYPE_SUBSAMPLE:
             url_counts = Counter({f_url: 1})
         else:
@@ -1301,90 +1332,51 @@ class JTLErrorsReader(object):
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
     def _extract_nonstandard(self, elem):
-        t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
-        label = self.__get_child(elem, "label")
-        message = self.__get_child(elem, "responseMessage")
-        r_code = self.__get_child(elem, "responseCode")
+        t_stamp = int(elem.findtext("timeStamp")) / 1000  # NOTE: will it be sometimes EndTime?
+        label = elem.findtext("label")
+        message = elem.findtext("responseMessage")
+        r_code = elem.findtext("responseCode")
 
         self._extract_common(elem, label, r_code, t_stamp, message)
 
-    def find_failure(self, element, def_msg, def_rc=None, is_subresult=False):
+    def find_failure(self, element, def_msg="", def_rc=None):
         """ returns (message, url, rc, tag, err_type) """
+        rc = element.get("rc", default="")
 
-        rc = element.get("rc")
-
-        msg = None
+        e_msg = ""
         url = None
-        name = None
         err_type = KPISet.ERRTYPE_ERROR
 
-        if element.tag == "assertionResult":
-            if self.__assertion_is_failed(element):
-                msg, name = self.__get_assertion_message(element, def_msg)
-                err_type = KPISet.ERRTYPE_ASSERT
+        a_msg, name = get_child_assertion(element)
 
-        elif element.tag in ("httpSample", "sample") and rc:
-            if rc.startswith("2"):
-                if element.get("s") == "false":     # has failed sub element, we should look deeper...
-                    for child in element.iterchildren():
-                        msg, url, rc, name, err_type = self.find_failure(
-                            child, def_msg=element.get("rm"), def_rc=rc, is_subresult=True)
-                        if msg:
-                            break
+        if not rc.startswith("2"):  # this sample is failed
+            e_msg = element.get("rm", default="")
+            url = element.xpath(self.url_xpath)
+            url = url[0].text if url else element.get("lb")
+        elif a_msg:
+            err_type = KPISet.ERRTYPE_ASSERT
+        elif element.get("s") == "false":     # has failed sub element, we should look deeper...
+            for child in element.iterchildren():
+                if child.tag in ("httpSample", "sample"):   # let's check sub samples..
+                    e_msg, url, rc, name, err_type = self.find_failure(child)
+                    if e_msg:
+                        if err_type == KPISet.ERRTYPE_ERROR:   # replace subsample error
+                            err_type = KPISet.ERRTYPE_SUBSAMPLE
+                        break
 
-            else:   # failed sub sample found
-                msg = element.get("rm") or def_msg
-                url = element.xpath(self.url_xpath)
-                url = url[0].text if url else element.get("lb")
-                if is_subresult:
-                    err_type = KPISet.ERRTYPE_SUBSAMPLE
+        if not (err_type == KPISet.ERRTYPE_SUBSAMPLE) and self.err_msg_separator and (a_msg or e_msg):
+            msg = self.err_msg_separator.join((a_msg, e_msg))
+        elif e_msg:
+            msg = e_msg
+        else:
+            msg = a_msg
 
-        if not is_subresult and msg is None:    # top level (exit from recursion) and no message
-            msg = def_msg                       # set default failure msg
+        if not msg and def_msg:     # top level, empty result
+            msg = def_msg
+            if self.err_msg_separator:  # add appropriate separator to default msg
+                msg = self.err_msg_separator + msg
 
-        rc = rc or def_rc
-        return msg, url, rc, name, err_type
-
-    def __get_assertion_message(self, assertion_element, default_message=None):
-        """
-        Returns assertion failureMessage if "failureMessage" element exists
-        """
-        failure_message_elem = assertion_element.find("failureMessage")
-        if failure_message_elem is not None:
-            msg = failure_message_elem.text
-            if msg and msg.startswith("The operation lasted too long"):
-                msg = "The operation lasted too long"
-
-            name_elm = assertion_element.find("name")
-            return msg, name_elm.text if name_elm is not None else None
-
-        return default_message, None
-
-    def __get_failed_assertion(self, element):
-        """
-        Returns first failed assertion, or None
-
-        :rtype lxml.etree.Element
-        """
-        assertions = [elem for elem in element.iterchildren() if elem.tag == "assertionResult"]
-        for assertion in assertions:
-            if self.__assertion_is_failed(assertion):
-                return assertion
-
-    def __assertion_is_failed(self, assertion_element):
-        """
-        returns True if assertion failed
-        """
-        failed = assertion_element.find("failure")
-        error = assertion_element.find("error")
-        if failed.text == "true" or error.text == "true":
-            return True
-        return False
-
-    def __get_child(self, elem, tag):
-        for child in elem:
-            if child.tag == tag:
-                return child.text
+        return msg, url, rc or def_rc, name, err_type
 
 
 class XMLJTLReader(JTLErrorsReader, ResultsReader):

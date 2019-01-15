@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="559" lt="543" ts="1547108154397" s="false" lb="http://blazedemo.com/nnn" rc="404" rm="Not Found" tn="r 1-1" dt="text" de="UTF-8" by="15713" ng="1" na="1">
+  <assertionResult>
+    <name>Assert has [&quot;777&quot;]</name>
+    <failure>true</failure>
+    <error>false</error>
+    <failureMessage>Test failed: code expected to contain /777/</failureMessage>
+  </assertionResult>
+  <assertionResult>
+    <name>Timeout Check</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String">HTTP/1.1 404 Not Found
+Cache-Control: no-cache, private
+Content-Type: text/html; charset=UTF-8
+Date: Thu, 10 Jan 2019 08:15:54 GMT
+Server: Apache
+transfer-encoding: chunked
+Connection: keep-alive
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+  <responseData class="java.lang.String">
+    some response data..
+  </responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://blazedemo.com/nnn</java.net.URL>
+</httpSample>
+
+</testResults>
