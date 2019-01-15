@@ -1025,14 +1025,16 @@ class FuncJTLReader(FunctionalResultsReader):
     @staticmethod
     def _extract_sample_assertions(sample_elem):
         assertions = []
-        for result in sample_elem:
-            msg, name = parse_assertion(result)
-            if msg:
-                assertions.append({"name": name, "isFailed": True, "errorMessage": msg})
+        for result in sample_elem.findall("assertionResult"):
+            name = result.findtext("name")
+            failed = result.findtext("failure") == "true" or result.findtext("error") == "true"
+            error_message = ""
+            if failed:
+                error_message = result.findtext("failureMessage")
+            assertions.append({"name": name, "isFailed": failed, "errorMessage": error_message})
         return assertions
 
-    @staticmethod
-    def _parse_http_headers(header_str):
+    def _parse_http_headers(self, header_str):
         headers = {}
         for line in header_str.split("\n"):
             clean_line = line.strip()
@@ -1041,8 +1043,7 @@ class FuncJTLReader(FunctionalResultsReader):
                 headers[key] = value
         return headers
 
-    @staticmethod
-    def _parse_http_cookies(cookie_str):
+    def _parse_http_cookies(self, cookie_str):
         cookies = {}
         clean_line = cookie_str.strip()
         if "; " in clean_line:
@@ -1111,10 +1112,10 @@ class FuncJTLReader(FunctionalResultsReader):
             error_msg = ""
             error_trace = ""
         else:
-            msg, _ = get_child_assertion(sample_elem)
-            if msg:
+            assertion = self.__get_failed_assertion(sample_elem)
+            if assertion is not None:
                 status = "FAILED"
-                error_msg = msg
+                error_msg = assertion.find("failureMessage").text
                 error_trace = ""
             else:
                 status = "BROKEN"
@@ -1150,6 +1151,20 @@ class FuncJTLReader(FunctionalResultsReader):
             else:
                 trace = ""
             return message, trace
+
+    @staticmethod
+    def __get_failed_assertion(element):
+        """
+        Returns first failed assertion, or None
+        :rtype lxml.etree.Element
+        """
+        assertions = [elem for elem in element.iterchildren() if elem.tag == "assertionResult"]
+        for assertion in assertions:
+            failed = assertion.find("failure")
+            error = assertion.find("error")
+            if failed.text == "true" or error.text == "true":
+                return assertion
+        return None
 
 
 class IncrementalCSVReader(object):
