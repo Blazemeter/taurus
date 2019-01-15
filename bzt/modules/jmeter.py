@@ -1317,8 +1317,6 @@ class JTLErrorsReader(object):
     def _extract_common(self, elem, label, r_code, t_stamp, r_msg):
         f_msg, f_url, f_rc, f_tag, f_type = self.find_failure(elem, r_msg, r_code)
 
-        if f_type == KPISet.ERRTYPE_ASSERT:
-            f_rc = r_code
         if f_type == KPISet.ERRTYPE_SUBSAMPLE:
             url_counts = Counter({f_url: 1})
         else:
@@ -1345,7 +1343,7 @@ class JTLErrorsReader(object):
         """ returns (message, url, rc, tag, err_type) """
         rc = element.get("rc", default="")
 
-        e_msg = ""     # always is empty for sub samples
+        e_msg = ""
         url = None
         err_type = KPISet.ERRTYPE_ERROR
 
@@ -1366,16 +1364,19 @@ class JTLErrorsReader(object):
                             err_type = KPISet.ERRTYPE_SUBSAMPLE
                         break
 
-        if self.err_msg_separator and (a_msg or e_msg):
+        if not (err_type == KPISet.ERRTYPE_SUBSAMPLE) and self.err_msg_separator and (a_msg or e_msg):
             msg = self.err_msg_separator.join((a_msg, e_msg))
         elif e_msg:
             msg = e_msg
         else:
             msg = a_msg
 
-        msg = msg or def_msg    # default msg on top level or empty on others
-        rc = rc or def_rc
-        return msg, url, rc, name, err_type
+        if not msg and def_msg:     # top level, empty result
+            msg = def_msg
+            if self.err_msg_separator:  # add appropriate separator to default msg
+                msg = self.err_msg_separator + msg
+
+        return msg, url, rc or def_rc, name, err_type
 
 
 class XMLJTLReader(JTLErrorsReader, ResultsReader):
