@@ -187,7 +187,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(values.get('')[0].get("msg"), "Not Found *OMG!* ")
 
     def test_puzzle_jtl(self):
-        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-com.jtl")
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-puzzle.jtl")
         self.obj.read_file()
         values = self.obj.get_data(sys.maxsize)
         self.assertEqual(values.get('')[0].get("msg"), "Test failed: text expected not to contain /understanding/")

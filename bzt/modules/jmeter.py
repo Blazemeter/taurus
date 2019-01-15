@@ -47,51 +47,37 @@ from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, FileReader
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
 
-def get_assertion_message(assertion_element, default_message=None):
-    """
-    Returns assertion failureMessage if "failureMessage" element exists
-    """
-    failure_message_elem = assertion_element.find("failureMessage")
-    if failure_message_elem is not None:
-        msg = failure_message_elem.text
-        if msg and msg.startswith("The operation lasted too long"):
-            msg = "The operation lasted too long"
-
-        name = assertion_element.find("name")
-        name = name if name is None else name.text
-        return msg, name
-
-    return default_message, None
-
-
-def get_child(elem, tag):
-    for child in elem:
-        if child.tag == tag:
-            return child.text
-
-
-def get_failed_assertion(element):
+def get_child_assertion(element):
     """
     Returns first failed assertion, or None
 
     :rtype lxml.etree.Element
     """
     for child in element.iterchildren():
-        if is_failed_assertion(child):
-            return child
+        msg, name = parse_assertion(child)
+        if msg:
+            return msg, name
+
+    return None, None
 
 
-def is_failed_assertion(element):
+def parse_assertion(element, default=None):
     assertion = element.tag == "assertionResult"
-    failure = element.find("failure")
-    failure = failure is not None and failure.text == "true"
-    error = element.find("error")
-    error = error is not None and error.text == "true"
-    failure_message = element.find("failureMessage")
-    failure_message = failure_message if failure_message is None else failure_message.text
+    name = element.findtext("name")
+    failure = element.findtext("failure") == "true"
+    error = element.findtext("error") == "true"
+    failure_message = element.findtext("failureMessage", default=default)
+    if failure_message and failure_message.startswith("The operation lasted too long"):
+        failure_message = "The operation lasted too long"
+
     wrong_message = "One or more sub-samples failed"
 
-    return assertion and (failure or error) and not (failure_message == wrong_message)
+    failed_assertion = assertion and (failure or error) and (failure_message != wrong_message)
+
+    if not failed_assertion:
+        failure_message = None
+
+    return failure_message, name
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -1039,16 +1025,14 @@ class FuncJTLReader(FunctionalResultsReader):
     @staticmethod
     def _extract_sample_assertions(sample_elem):
         assertions = []
-        for result in sample_elem.findall("assertionResult"):
-            name = result.findtext("name")
-            failed = result.findtext("failure") == "true" or result.findtext("error") == "true"
-            error_message = ""
-            if failed:
-                error_message = result.findtext("failureMessage")
-            assertions.append({"name": name, "isFailed": failed, "errorMessage": error_message})
+        for result in sample_elem:
+            msg, name = parse_assertion(result)
+            if msg:
+                assertions.append({"name": name, "isFailed": True, "errorMessage": msg})
         return assertions
 
-    def _parse_http_headers(self, header_str):
+    @staticmethod
+    def _parse_http_headers(header_str):
         headers = {}
         for line in header_str.split("\n"):
             clean_line = line.strip()
@@ -1057,7 +1041,8 @@ class FuncJTLReader(FunctionalResultsReader):
                 headers[key] = value
         return headers
 
-    def _parse_http_cookies(self, cookie_str):
+    @staticmethod
+    def _parse_http_cookies(cookie_str):
         cookies = {}
         clean_line = cookie_str.strip()
         if "; " in clean_line:
@@ -1126,10 +1111,10 @@ class FuncJTLReader(FunctionalResultsReader):
             error_msg = ""
             error_trace = ""
         else:
-            assertion = get_failed_assertion(sample_elem)
-            if assertion:
+            msg, _ = get_child_assertion(sample_elem)
+            if msg:
                 status = "FAILED"
-                error_msg = assertion.find("failureMessage").text
+                error_msg = msg
                 error_trace = ""
             else:
                 status = "BROKEN"
@@ -1240,7 +1225,6 @@ class JTLErrorsReader(object):
     :type filename: str
     :type parent_logger: logging.Logger
     """
-    assertionMessage = GenericTranslator().css_to_xpath("assertionResult>failureMessage")
     url_xpath = GenericTranslator().css_to_xpath("java\\.net\\.URL")
 
     def __init__(self, filename, parent_logger, err_msg_separator=None):
@@ -1335,10 +1319,10 @@ class JTLErrorsReader(object):
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
     def _extract_nonstandard(self, elem):
-        t_stamp = int(get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
-        label = get_child(elem, "label")
-        message = get_child(elem, "responseMessage")
-        r_code = get_child(elem, "responseCode")
+        t_stamp = int(elem.gettext("timeStamp")) / 1000  # NOTE: will it be sometimes EndTime?
+        label = elem.gettext("label")
+        message = elem.gettext("responseMessage")
+        r_code = elem.gettext("responseCode")
 
         self._extract_common(elem, label, r_code, t_stamp, message)
 
@@ -1348,14 +1332,13 @@ class JTLErrorsReader(object):
         rc = element.get("rc")
 
         msg = None
-        a_msg = None
         e_msg = None
         url = None
-        name = None
         err_type = KPISet.ERRTYPE_ERROR
 
-        if is_failed_assertion(element):
-            a_msg, name = get_assertion_message(element, def_msg)
+        a_msg, name = parse_assertion(element)
+
+        if a_msg:
             err_type = KPISet.ERRTYPE_ASSERT
 
         elif element.tag in ("httpSample", "sample") and rc:
