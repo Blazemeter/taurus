@@ -671,6 +671,10 @@ import apiritif
         elif atype == "script" and tag == "eval":
             cmd = 'self.driver.execute_script(self.template(%r))' % selector
             action_elements.append(self.gen_statement(cmd, indent=indent))
+        elif atype == "rawcode":
+            lines = selector.split('\n')
+            for line in lines:
+                action_elements.append(self.gen_statement(line, indent=indent))
         elif atype == 'go':
             if selector and not param:
                 cmd = "self.driver.get(self.template(%r))" % selector.strip()
@@ -749,11 +753,11 @@ import apiritif
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'script',
                             'editcontent', 'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
-                            'storeText', 'storeValue', 'store', 'open', 'screenshot'
+                            'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode'
                             ])
 
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Eval|ByIdx|String"
-        expr = re.compile("^(%s)(%s)?(\((.*)\))?$" % (actions, tag), re.IGNORECASE)
+        expr = re.compile("^(%s)(%s)?(\((((.*)(\n*))*)\))?$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
             msg = "Unsupported action: %s" % name
