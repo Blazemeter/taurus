@@ -69,6 +69,9 @@ class TestRequests(unittest.TestCase):
             self.wnd_mng.close(self.template('that_window'))
             self.driver.find_element(By.NAME, self.template('toPort')).submit()
             self.driver.execute_script(self.template("alert('This is Sparta');"))
+            for i in range(10):
+              if i % 2 == 0:
+                print(i)
             ActionChains(self.driver).drag_and_drop(self.driver.find_element(By.ID, self.template('address')), self.driver.find_element(By.NAME, self.template('toPort'))).perform()
             self.frm_mng.switch(self.driver.find_element(By.NAME, self.template('my_frame')))
             self.frm_mng.switch(1)
