@@ -459,7 +459,7 @@ import apiritif
             statement = self.gen_statement("self.driver.set_window_size(%s, %s)" % args)
             setup_method_def.append(statement)
         else:
-            setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
+            pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.fullscreen()"))
 
         setup_method_def.append(self.gen_new_line())
         return setup_method_def

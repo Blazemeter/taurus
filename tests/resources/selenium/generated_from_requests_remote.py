@@ -24,7 +24,6 @@ class TestRequests(unittest.TestCase):
         self.driver.implicitly_wait(3.5)
         self.wnd_mng = WindowManager(self.driver)
         self.frm_mng = FrameManager(self.driver)
-        self.driver.maximize_window()
 
     def tearDown(self):
         self.driver.quit()
