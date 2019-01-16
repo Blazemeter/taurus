@@ -672,7 +672,7 @@ import apiritif
             cmd = 'self.driver.execute_script(self.template(%r))' % selector
             action_elements.append(self.gen_statement(cmd, indent=indent))
         elif atype == "rawcode":
-            lines = selector.split('\n')
+            lines = param.split('\n')
             for line in lines:
                 action_elements.append(self.gen_statement(line, indent=indent))
         elif atype == 'go':
