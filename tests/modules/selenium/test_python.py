@@ -321,7 +321,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "closeWindow('that_window')",
                             "submitByName(\"toPort\")",
                             "scriptEval(\"alert('This is Sparta');\")",
-                            "rawCode(multi(1)\n  line(2)\n    block(33))",
+                            "rawCode(for i in range(10):\n  if i % 2 == 0:\n    print(i))",
                             {"dragByID(address)": "elementByName(toPort)"},
                             "switchFrameByName('my_frame')",
                             "switchFrameByIdx(1)",
