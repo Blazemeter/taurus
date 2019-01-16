@@ -49,6 +49,7 @@ Supported features:
     - selectBy* Select value in drop down list
     - submitBy* Send data of form by any its element
     - scriptEval Execute JS command
+    - rawCode Insert python code as-is
     - echoString(text) Print text string on the Nose output execution
     - waitBy* 
     - clickBy* 
@@ -159,6 +160,7 @@ scenarios:
       - submitByName(myInputName)
       - waitByID(myObjectToAppear): visible
       - scriptEval("alert('This is Sparta');")
+      - rawCode(print('It\'s Python'))  # insert as-is into script file
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
