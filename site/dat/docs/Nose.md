@@ -160,9 +160,9 @@ scenarios:
       - submitByName(myInputName)
       - waitByID(myObjectToAppear): visible
       - scriptEval("alert('This is Sparta');")
-      - rawCode: "print('It\'s Python')"  # insert as-is into script file
+      - rawCode: print('It\'s Python')  # insert as-is into script file
       - rawCode: |
-          for i in range(10):     # multiline example
+          for i in range(10):           # multiline example
             if i % 2 == 0:
               print(i)
       assert: # assert executed after actions
