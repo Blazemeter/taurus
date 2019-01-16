@@ -757,7 +757,7 @@ import apiritif
                             ])
 
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Eval|ByIdx|String"
-        expr = re.compile("^(%s)(%s)?(\((((.*)(\n*))*)\))?$" % (actions, tag), re.IGNORECASE)
+        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
             msg = "Unsupported action: %s" % name
