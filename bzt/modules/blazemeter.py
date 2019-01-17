@@ -1552,6 +1552,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         for module in modules:
             if module not in used_modules:
                 del config.get("modules")[module]
+            elif config.get("modules")[module].get("class"):
+                del config.get("modules")[module]["class"]
 
     def prepare_cloud_config(self):
         # expand concurrency and throughput
@@ -1563,10 +1565,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         for key in ("cli", "cli-aliases"):
             if key in config:
                 del config[key]
-
-        for conf in config.get("modules").values():
-            if conf.get("class"):
-                del conf["class"]
 
         provisioning = config.get(Provisioning.PROV)
         self._filter_unused_modules(config, provisioning)

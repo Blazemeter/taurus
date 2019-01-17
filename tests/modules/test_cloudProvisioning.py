@@ -338,7 +338,7 @@ class TestCloudProvisioning(BZTestCase):
 
         cloud_config = self.obj.prepare_cloud_config()
         cloud_jmeter = cloud_config.get("modules").get("jmeter")
-        self.assertIn("class", cloud_jmeter)
+        self.assertNotIn("class", cloud_jmeter)
         self.assertIn("version", cloud_jmeter)
 
     def test_cloud_config_cleanup_short_execution(self):
@@ -456,10 +456,9 @@ class TestCloudProvisioning(BZTestCase):
 
         cloud_config = self.obj.prepare_cloud_config()
         target = BetterDict.from_dict({
-            'blazemeter': {'class': 'bzt.modules.blazemeter.BlazeMeterUploader', 'strange_param': False},
-            'selenium': {'class': 'bzt.modules.selenium.SeleniumExecutor', 'virtual-display': False},
-            'nose': {'class': 'bzt.modules.python.executors.NoseTester', 'verbose': False},
-            'mock': {'class': 'tests.mocks.ModuleMock'}
+            'blazemeter': {'strange_param': False},
+            'selenium': {'virtual-display': False},
+            'nose': {'verbose': False}
         })
 
         self.assertEqual(target, cloud_config.get("modules"))
