@@ -20,3 +20,5 @@ ADD img ./img
 
 #RUN apt install -y mc bash-completion
 ADD *.php ./
+
+RUN mkdir -p snapshots && mkdir -p msi
