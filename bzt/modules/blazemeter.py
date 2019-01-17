@@ -61,6 +61,8 @@ CLOUD_CONFIG_BLACK_LIST = {
         "proxy": True,
         "check-updates": True
     },
+    "cli": True,
+    "cli-aliases": True,
     "modules": {
         "jmeter": {
             "path": True
@@ -1561,10 +1563,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             executor.get_load()
 
         config = copy.deepcopy(self.engine.config)
-
-        for key in ("cli", "cli-aliases"):
-            if key in config:
-                del config[key]
 
         provisioning = config.get(Provisioning.PROV)
         self._filter_unused_modules(config, provisioning)
