@@ -359,8 +359,11 @@ class TestCloudProvisioning(BZTestCase):
                         "class": ModuleMock.__module__ + "." + ModuleMock.__name__}},
 
                 "settings": {
-                    "default-executor": "jmeter"}
+                    "default-executor": "jmeter"},
+                "cli": {"remove": "me"},
+                "cli-aliases": {"remove": "me"},
                 }
+
             )
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
@@ -372,6 +375,8 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.engine.config.get(ScenarioExecutor.EXEC)[0]["files"] = []
 
         cloud_config = self.obj.prepare_cloud_config()
+        self.assertIsNone(cloud_config.get("cli", None), None)
+        self.assertIsNone(cloud_config.get("cli-aliases", None), None)
 
         cloud_execution = cloud_config.get(ScenarioExecutor.EXEC)[0]
         cloud_modules = cloud_config.get("modules")

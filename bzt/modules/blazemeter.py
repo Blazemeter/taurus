@@ -1560,6 +1560,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         config = copy.deepcopy(self.engine.config)
 
+        for key in ("cli", "cli-aliases"):
+            if key in config:
+                del config[key]
+
         for conf in config.get("modules").values():
             if conf.get("class"):
                 del conf["class"]
