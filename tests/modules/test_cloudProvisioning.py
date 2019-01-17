@@ -353,7 +353,11 @@ class TestCloudProvisioning(BZTestCase):
                             "http://blazedemo.com"]}},
                 "modules": {
                     "jmeter": {
+                        "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                        "just_option": "just_value"},
+                    "other": {
                         "class": ModuleMock.__module__ + "." + ModuleMock.__name__}},
+
                 "settings": {
                     "default-executor": "jmeter"}
                 }
@@ -367,9 +371,16 @@ class TestCloudProvisioning(BZTestCase):
         # let's check empty files list filtration..
         self.obj.engine.config.get(ScenarioExecutor.EXEC)[0]["files"] = []
 
-        cloud_execution = self.obj.prepare_cloud_config().get(ScenarioExecutor.EXEC)[0]
-        target = {ScenarioExecutor.CONCURR: 33, "scenario": "sc1", "executor": "jmeter"}
-        self.assertEqual(cloud_execution, BetterDict.from_dict(target))
+        cloud_config = self.obj.prepare_cloud_config()
+
+        cloud_execution = cloud_config.get(ScenarioExecutor.EXEC)[0]
+        cloud_modules = cloud_config.get("modules")
+
+        target_execution = {ScenarioExecutor.CONCURR: 33, "scenario": "sc1", "executor": "jmeter"}
+        target_modules = {"jmeter": {"just_option": "just_value"}}
+
+        self.assertEqual(cloud_execution, BetterDict.from_dict(target_execution))
+        self.assertEqual(cloud_modules, BetterDict.from_dict(target_modules))
 
     def test_cloud_config_cleanup_empty_class(self):
         strange_module = "bla_ze_me_ter"

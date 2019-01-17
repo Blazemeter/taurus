@@ -1559,6 +1559,11 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             executor.get_load()
 
         config = copy.deepcopy(self.engine.config)
+
+        for conf in config.get("modules").values():
+            if conf.get("class"):
+                del conf["class"]
+
         provisioning = config.get(Provisioning.PROV)
         self._filter_unused_modules(config, provisioning)
 
