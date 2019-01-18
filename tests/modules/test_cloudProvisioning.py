@@ -441,6 +441,10 @@ class TestCloudProvisioning(BZTestCase):
                         "strange_param": False
                     },
                     "unused_module": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                    "private_mod": {
+                        "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                        "send-to-blazemeter": True
+                    }
                 },
                 "settings": {
                     "default-executor": "jmeter",
@@ -458,7 +462,8 @@ class TestCloudProvisioning(BZTestCase):
         target = BetterDict.from_dict({
             'blazemeter': {'strange_param': False},
             'selenium': {'virtual-display': False},
-            'nose': {'verbose': False}
+            'nose': {'verbose': False},
+            'private_mod': {'class': 'tests.mocks.ModuleMock', 'send-to-blazemeter': True}
         })
 
         self.assertEqual(target, cloud_config.get("modules"))

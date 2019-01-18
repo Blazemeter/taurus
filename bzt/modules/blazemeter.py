@@ -1552,6 +1552,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         modules = set(config.get("modules").keys())
         for module in modules:
+            if config.get("modules")[module].get("send-to-blazemeter"):
+                continue
             if module not in used_modules:
                 del config.get("modules")[module]
             elif config.get("modules")[module].get("class"):
