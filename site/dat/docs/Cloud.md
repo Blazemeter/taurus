@@ -50,6 +50,30 @@ execution:
 Then you can just switch `provisioning` and load settings will be taken accordingly. For example, running `bzt config.yml -o provisioning=cloud` is an easy way to toggle on `cloud` provisioning. Short form `bzt config.yml -cloud` is available and contrariwise you can turn off cloud provisioning by the similar way: `bzt config.yml -local`   
 The `concurrency` and `througput` are always *total* value for execution, no matter how many locations will be involved.
 
+## Modules Settings
+
+There are some rules of sending test config to cloud machines.
+Taurus makes cleanup and removes unused modules and user-specific classes (as there aren't such classes in Cloud by default)
+To suppress this behaviour you can use `send-to-blazemeter` parameter.
+
+```yaml
+execution:
+- executor: jmeter
+  iterations: 10
+  files:
+  - my_own.py
+  scenario:
+    requests:
+    - http://blazedemo.com
+modules:
+  jmeter:
+    send-to-blazemeter: true    # keep class value for jmeter module
+    class: my_own.JMeterClass
+    path: /path/to/local/jmeter.sh
+  unused_mod:                   # will be removed
+    class: some.class.Name
+```
+
 ## Specifying Account, Workspace and Project
 
 Accounts, Workspaces and Projects are BlazeMeter's features that help to exactly specify the access rights and support

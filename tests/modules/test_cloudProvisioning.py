@@ -338,7 +338,7 @@ class TestCloudProvisioning(BZTestCase):
 
         cloud_config = self.obj.prepare_cloud_config()
         cloud_jmeter = cloud_config.get("modules").get("jmeter")
-        self.assertIn("class", cloud_jmeter)
+        self.assertNotIn("class", cloud_jmeter)
         self.assertIn("version", cloud_jmeter)
 
     def test_cloud_config_cleanup_short_execution(self):
@@ -353,10 +353,17 @@ class TestCloudProvisioning(BZTestCase):
                             "http://blazedemo.com"]}},
                 "modules": {
                     "jmeter": {
+                        "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                        "just_option": "just_value"},
+                    "other": {
                         "class": ModuleMock.__module__ + "." + ModuleMock.__name__}},
+
                 "settings": {
-                    "default-executor": "jmeter"}
+                    "default-executor": "jmeter"},
+                "cli": {"remove": "me"},
+                "cli-aliases": {"remove": "me"},
                 }
+
             )
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
@@ -367,9 +374,18 @@ class TestCloudProvisioning(BZTestCase):
         # let's check empty files list filtration..
         self.obj.engine.config.get(ScenarioExecutor.EXEC)[0]["files"] = []
 
-        cloud_execution = self.obj.prepare_cloud_config().get(ScenarioExecutor.EXEC)[0]
-        target = {ScenarioExecutor.CONCURR: 33, "scenario": "sc1", "executor": "jmeter"}
-        self.assertEqual(cloud_execution, BetterDict.from_dict(target))
+        cloud_config = self.obj.prepare_cloud_config()
+        self.assertIsNone(cloud_config.get("cli", None), None)
+        self.assertIsNone(cloud_config.get("cli-aliases", None), None)
+
+        cloud_execution = cloud_config.get(ScenarioExecutor.EXEC)[0]
+        cloud_modules = cloud_config.get("modules")
+
+        target_execution = {ScenarioExecutor.CONCURR: 33, "scenario": "sc1", "executor": "jmeter"}
+        target_modules = {"jmeter": {"just_option": "just_value"}}
+
+        self.assertEqual(cloud_execution, BetterDict.from_dict(target_execution))
+        self.assertEqual(cloud_modules, BetterDict.from_dict(target_modules))
 
     def test_cloud_config_cleanup_empty_class(self):
         strange_module = "bla_ze_me_ter"
@@ -425,6 +441,10 @@ class TestCloudProvisioning(BZTestCase):
                         "strange_param": False
                     },
                     "unused_module": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                    "private_mod": {
+                        "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                        "send-to-blazemeter": True
+                    }
                 },
                 "settings": {
                     "default-executor": "jmeter",
@@ -440,10 +460,10 @@ class TestCloudProvisioning(BZTestCase):
 
         cloud_config = self.obj.prepare_cloud_config()
         target = BetterDict.from_dict({
-            'blazemeter': {'class': 'bzt.modules.blazemeter.BlazeMeterUploader', 'strange_param': False},
-            'selenium': {'class': 'bzt.modules.selenium.SeleniumExecutor', 'virtual-display': False},
-            'nose': {'class': 'bzt.modules.python.executors.NoseTester', 'verbose': False},
-            'mock': {'class': 'tests.mocks.ModuleMock'}
+            'blazemeter': {'strange_param': False},
+            'selenium': {'virtual-display': False},
+            'nose': {'verbose': False},
+            'private_mod': {'class': 'tests.mocks.ModuleMock', 'send-to-blazemeter': True}
         })
 
         self.assertEqual(target, cloud_config.get("modules"))

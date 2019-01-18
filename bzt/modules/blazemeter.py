@@ -61,6 +61,8 @@ CLOUD_CONFIG_BLACK_LIST = {
         "proxy": True,
         "check-updates": True
     },
+    "cli": True,
+    "cli-aliases": True,
     "modules": {
         "jmeter": {
             "path": True
@@ -1550,8 +1552,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         modules = set(config.get("modules").keys())
         for module in modules:
+            if config.get("modules")[module].get("send-to-blazemeter"):
+                continue
             if module not in used_modules:
                 del config.get("modules")[module]
+            elif config.get("modules")[module].get("class"):
+                del config.get("modules")[module]["class"]
 
     def prepare_cloud_config(self):
         # expand concurrency and throughput
@@ -1559,6 +1565,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             executor.get_load()
 
         config = copy.deepcopy(self.engine.config)
+
         provisioning = config.get(Provisioning.PROV)
         self._filter_unused_modules(config, provisioning)
 
