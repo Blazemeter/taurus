@@ -17,8 +17,9 @@ limitations under the License.
 """
 
 import logging
-import time
+import re
 from math import ceil
+from distutils.version import LooseVersion
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
@@ -75,8 +76,8 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
     def startup(self):
         args = [self.tool.tool_path]
         load = self.get_load()
-        load_iterations = load.iterations if load.iterations is not None else 1
-        load_concurrency = load.concurrency if load.concurrency is not None else 1
+        load_iterations = load.iterations or 1
+        load_concurrency = load.concurrency or 1
 
         if load.hold:
             hold = int(ceil(dehumanize_time(load.hold)))
@@ -87,7 +88,10 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         args += ['-c', str(load_concurrency)]
         args += ['-d']  # do not print 'Processed *00 requests' every 100 requests or so
         args += ['-r']  # do not crash on socket level errors
-        args += ['-l']  # accept variable-len responses
+
+        if self.tool.version and LooseVersion(self.tool.version) >= LooseVersion("2.4.7"):
+            args += ['-l']  # accept variable-len responses
+
         args += ['-g', str(self._tsv_file)]  # dump stats to TSV file
 
         # add global scenario headers
@@ -195,10 +199,18 @@ class ApacheBenchmark(RequiredTool):
 
         super(ApacheBenchmark, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
+    def _get_version(self, output):
+        version = re.findall("Version\s(\S+)\s", output)
+        if not version:
+            self.log.warning("%s tool version parsing error: %s", self.tool_name, output)
+        else:
+            return version[0]
+
     def check_if_installed(self):
         self.log.debug('Trying %s: %s', self.tool_name, self.tool_path)
         try:
             out, err = self.call([self.tool_path, '-V'])
+            self.version = self._get_version(out)
             self.log.debug("%s check stdout: %s", self.tool_name, out)
             if err:
                 self.log.warning("%s check stderr: %s", self.tool_name, err)
