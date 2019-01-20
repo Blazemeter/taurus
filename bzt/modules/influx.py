@@ -89,13 +89,13 @@ class InfluxUploader(Reporter, AggregatorListener, MonitoringListener, Singleton
         Logs test start time in influx
         """
         super(InfluxUploader, self).startup()
-        self.__send_kpi_data("events,application=" + str(self.influx_application).replace(" ","\\ ").replace(",","\\,").replace("=","\\=") + ",title=ApacheJMeter text=\""+ self.influx_test_title +" started\" " +  str(int(round(time.time() * 1000))))
+        self.__send_kpi_data("events,application=" + str(self.influx_application).replace(" ","\\ ").replace(",","\\,").replace("=","\\=") + ",title=ApacheJMeter text=\""+ str(self.influx_test_title) +" started\" " +  str(int(round(time.time() * 1000))))
       
     def shutdown(self):
         """
         Logs test end time in influx
         """
-        self.__send_kpi_data("events,application="+ str(self.influx_application).replace(" ","\\ ").replace(",","\\,").replace("=","\\=") + ",title=ApacheJMeter text=\"" + self.influx_test_title + " ended\" " +  str(int(round(time.time() * 1000))))
+        self.__send_kpi_data("events,application="+ str(self.influx_application).replace(" ","\\ ").replace(",","\\,").replace("=","\\=") + ",title=ApacheJMeter text=\"" + str(self.influx_test_title) + " ended\" " +  str(int(round(time.time() * 1000))))
 
     def post_process(self):
         """
@@ -134,7 +134,7 @@ class InfluxUploader(Reporter, AggregatorListener, MonitoringListener, Singleton
         self.influx_application
         requestBody = ""
         for item in serialized_list: 
-            requestBody = requestBody + self.influx_measurement +  ",application=" + self.influx_application.replace(" ","\\ ").replace(",","\\,").replace("=","\\=") + "," + str(item) + "\n"
+            requestBody = requestBody + self.influx_measurement +  ",application=" + str(self.influx_application).replace(" ","\\ ").replace(",","\\,").replace("=","\\=") + "," + str(item) + "\n"
         self.__send_kpi_data(requestBody)
 
     # This is the loopback from the Taurus engine. After you've registered the module the engine will periodically call this function with results.
