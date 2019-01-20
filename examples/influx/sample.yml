@@ -17,8 +17,8 @@ reporting:
   resend-timeout: 1 #default 2 seconds.
   influx-url: http://localhost:8086/write?db=jmeter
   measurement: "jmeter"
-  application: "spaces inname"
-  test-title: "debug test"
+  application: "blazedemo"
+  test-title: "peaktest"
 
 modules:
   jmeter:
