@@ -348,13 +348,13 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     def _get_load_props(self):
         load = self.get_load()
         props = {}
-        if load.concurrency is not None:
+        if load.concurrency:
             props['concurrency'] = load.concurrency
         if load.ramp_up is not None:
             props['ramp-up'] = int(load.ramp_up)
         if load.hold is not None:
             props['hold-for'] = int(load.hold)
-        if load.iterations is not None and load.iterations != 0:
+        if load.iterations:
             props['iterations'] = int(load.iterations)
         if load.throughput:
             if load.duration:
