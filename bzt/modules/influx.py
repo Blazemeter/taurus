@@ -22,29 +22,22 @@ import traceback
 import json
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict, Counter, namedtuple
-from functools import wraps
-from ssl import SSLError
 
 import requests
-import yaml
+
 from requests.exceptions import ReadTimeout, ConnectionError
-#from terminaltables import SingleTable, AsciiTable
-from urwid import Pile, Text
+
 
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.engine import Singletone, SETTINGS
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
-from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener, LocalClient
-from bzt.modules.services import Unpacker
-from bzt.modules.selenium import SeleniumExecutor
-from bzt.requests_model import has_variable_pattern
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
-from bzt.utils import open_browser, BetterDict, ExceptionalDownloader, ProgressBarContext
-from bzt.utils import to_json, dehumanize_time, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
+from bzt.utils import BetterDict
+from bzt.utils import to_json, dehumanize_time
 
 class InfluxUploader(Reporter, AggregatorListener, MonitoringListener, Singletone):
     """
