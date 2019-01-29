@@ -459,7 +459,8 @@ import apiritif
             statement = self.gen_statement("self.driver.set_window_size(%s, %s)" % args)
             setup_method_def.append(statement)
         else:
-            pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.fullscreen()"))
+            pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
+            # but maximize_window does not work on virtual displays. Bummer
 
         setup_method_def.append(self.gen_new_line())
         return setup_method_def

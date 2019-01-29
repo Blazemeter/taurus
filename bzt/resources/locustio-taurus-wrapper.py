@@ -77,6 +77,10 @@ class LocustStarter(object):
         self.fhd.flush()
         self.__check_limits()
 
+    def __on_exception(self, locust_instance, exception, tb):
+        del locust_instance, tb
+        self.__on_request_failure('', '', 0, exception)
+
     def __on_slave_report(self, client_id, data):
         if data['stats'] or data['errors']:
             for item in data['stats']:
@@ -109,6 +113,7 @@ class LocustStarter(object):
 
             events.request_success += self.__on_request_success
             events.request_failure += self.__on_request_failure
+            events.locust_error += self.__on_exception
             events.slave_report += self.__on_slave_report
 
             main.main()
