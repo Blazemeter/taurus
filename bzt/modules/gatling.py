@@ -246,6 +246,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     """
     Gatling executor module
     """
+
     def __init__(self):
         super(GatlingExecutor, self).__init__()
         self.script = None
@@ -412,7 +413,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         cmdline = [self.tool.tool_path]
 
         if LooseVersion(self.tool.version) < LooseVersion("3"):
-            cmdline += ["-m"]   # default for 3.0.0
+            cmdline += ["-m"]  # default for 3.0.0
 
         return cmdline
 
@@ -609,26 +610,34 @@ class DataLogReader(ResultsReader):
             return None
 
     def __parse_group(self, fields):
-        user_id = fields[2]
-        label = fields[3]
-        if ',' in label:
-            return None  # skip nested groups for now
-        t_stamp = int(fields[5]) / 1000.0
-        r_time = int(fields[6]) / 1000.0
         latency = 0.0
         con_time = 0.0
 
-        if label in self._group_errors[user_id]:
-            error = ';'.join(self._group_errors[user_id].pop(label))
+        if len(fields) < 4:
+            label = ""
+            t_stamp = int(fields[2]) / 1000.0
+            r_time = 0
+            error = fields[1]
+            r_code = "N/A"
         else:
-            error = None
+            user_id = fields[2]
+            label = fields[3]
+            if ',' in label:
+                return None  # skip nested groups for now
+            t_stamp = int(fields[5]) / 1000.0
+            r_time = int(fields[6]) / 1000.0
 
-        if fields[7] == 'OK':
-            r_code = '200'
-        else:
-            _tmp_rc = fields[-1].split(" ")[-1]
-            r_code = _tmp_rc if _tmp_rc.isdigit() else 'N/A'
-            assert error, label
+            if label in self._group_errors[user_id]:
+                error = ';'.join(self._group_errors[user_id].pop(label))
+            else:
+                error = None
+
+            if fields[7] == 'OK':
+                r_code = '200'
+            else:
+                _tmp_rc = fields[-1].split(" ")[-1]
+                r_code = _tmp_rc if _tmp_rc.isdigit() else 'N/A'
+                assert error, label
 
         return int(t_stamp), label, r_time, con_time, latency, r_code, error
 
@@ -808,7 +817,7 @@ class Gatling(RequiredTool):
                 for line in fds.readlines():
                     if is_windows() and line.startswith('set COMPILER_CLASSPATH='):
                         mod_success = True
-                        line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'   # add from env
+                        line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'  # add from env
                     if not is_windows() and line.startswith('COMPILER_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
