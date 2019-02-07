@@ -21,6 +21,7 @@ pip3 install virtualenv
 
 #if [ "$1" = "true" ]; then
 ./build-base-site.sh
+./build-snapshot.sh
 #else
 #fi
 
