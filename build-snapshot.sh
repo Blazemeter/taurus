@@ -1,7 +1,7 @@
 #!/bin/bash -xe
 
 # copy snapshot to storage
-gsutil cp dist/bzt-*.whl gs://taurus-site/snapshots/
+gsutil cp dist/*.whl gs://taurus-site/snapshots/
 
 # cleanup site dir
 rm -r site
@@ -15,6 +15,12 @@ rm site.zip
 
 # add snapshots
 mkdir snapshots
-gsutils cp gs://taurus-site/snapshots/ snapshots
+gsutils cp gs://taurus-site/snapshots/*.whl snapshots
 gsutils cp gs://taurus-site/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb snapshots
 
+
+# debug commands
+zip -r site2.zip *
+cd ..
+# upload base site.zip to storage
+gsutil cp site/site2.zip gs://taurus-site/
