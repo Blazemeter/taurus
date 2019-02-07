@@ -158,7 +158,7 @@ class TaurusReporter {
         }
 
         // Calculate status from assertions
-        const assertionFailed = sample.assertions.some(ast => ast.isFailed);
+        const assertionFailed = sample.assertions.some((ast) => ast.isFailed);
         sample.status = item.passed && !assertionFailed ? "PASSED" : "FAILED";
 
         if (!item.passed || assertionFailed) {
