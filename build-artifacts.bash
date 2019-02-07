@@ -6,7 +6,7 @@ echo "deb http://packages.cloud.google.com/apt ${CLOUD_SDK_REPO} main" | tee -a 
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
 apt-get update -y
-apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis composer zip google-cloud-sdk
+apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis composer zip google-cloud-sdk php-xml
 apt-get install -y libssl-dev libncurses5-dev libsqlite3-dev libreadline-dev libtk8.5 libgdm-dev libdb4o-cil-dev libpcap-dev
 
 gcloud auth activate-service-account --key-file ${KEY_FILE}
