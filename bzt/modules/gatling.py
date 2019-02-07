@@ -664,10 +664,24 @@ class DataLogReader(ResultsReader):
         if fields[5] == 'OK':
             r_code = '200'
         else:
-            _tmp_rc = fields[-1].split(" ")[-1]
+            _tmp_rc = self.__rc_from_msg(fields[-1])
             r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
 
         return int(t_stamp), label, r_time, con_time, latency, r_code, error
+
+    def __rc_from_msg(self, msg):
+        _tmp_rc = msg.split("but actually ")[-1]  # gatling-core/src/main/scala/io/gatling/core/check/Validator.scala
+
+        if _tmp_rc.startswith("unexpectedly "):
+            _tmp_rc = _tmp_rc[len("unexpectedly "):]
+        if _tmp_rc.startswith("found "):
+            _tmp_rc = _tmp_rc[len("found "):]
+
+        parts = _tmp_rc.split(' ')
+        if len(parts) > 1 and parts[1] == 'is':
+            _tmp_rc = parts[0]
+            
+        return _tmp_rc
 
     def _guess_gatling_version(self, fields):
         if fields and fields[-1].strip().startswith("3"):

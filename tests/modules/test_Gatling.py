@@ -615,3 +615,13 @@ class TestDataLogReader(BZTestCase):
         self.assertEqual(obj.guessed_gatling_version, "2.2+")
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(2, len(last_cumul['[empty]'][KPISet.ERRORS]))
+
+    def test_read_rc_asserts(self):
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-5')  # regular one
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 1)
+        self.assertEqual(obj.guessed_gatling_version, "2.2+")
+        last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
+        self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['400'])
+        self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['401'])
