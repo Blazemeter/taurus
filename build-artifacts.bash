@@ -1,6 +1,6 @@
 #!/bin/bash -xe
 BUILD_NUMBER=$2
-PROJECT_ID = "blazemeter-taurus-website-prod"
+PROJECT_ID="blazemeter-taurus-website-prod"
 
 CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
 echo "deb http://packages.cloud.google.com/apt ${CLOUD_SDK_REPO} main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
