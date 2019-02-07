@@ -38,19 +38,6 @@ node() {
 
 
 
-        stage("Post-build") {
-            archiveArtifacts artifacts: 'dist/*.tar.gz'
-            sh """ 
-            mkdir -p s3
-            cp dist/bzt-*.tar.gz s3/bzt-${BUILD_NUMBER}.tar.gz 
-            """
-
-            setAWSCredentialKeys('test_jenkins2_key')
-            s3Upload bucket: "deployment.blazemeter.com",
-                    file: "s3/bzt-${BUILD_NUMBER}.tar.gz",
-                    path: "jobs/${JOB_NAME}/${BUILD_NUMBER}/bzt-${BUILD_NUMBER}.tar.gz",
-                    acl: "PublicRead"
-        }
     } catch (e) {
         currentBuild.result = "FAILED"
         throw e
