@@ -8,8 +8,6 @@ rm -r site
 mkdir site
 cd site
 
-cp vendor/undera/pwe/.htaccess ./
-
 # clone base site
 gsutil cp gs://taurus-site/site.zip site.zip
 unzip site.zip -d .
