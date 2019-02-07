@@ -15,8 +15,8 @@ rm site.zip
 
 # add snapshots
 mkdir snapshots
-gsutils cp gs://taurus-site/snapshots/*.whl snapshots
-gsutils cp gs://taurus-site/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb snapshots
+gsutil cp gs://taurus-site/snapshots/*.whl snapshots
+gsutil cp gs://taurus-site/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb snapshots
 
 
 # debug commands
