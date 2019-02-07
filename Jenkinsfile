@@ -7,6 +7,8 @@ node() {
             scmVars = checkout scm
             commitHash = scmVars.GIT_COMMIT
             isTag =  scmVars.GIT_BRANCH.startsWith("refs/tags/")
+            IMAGE_TAG = env.JOB_NAME + ":" + env.CHANGE_ID + "." + env.BUILD_NUMBER
+            IMAGE_TAG = IMAGE_TAG.toLowerCase()
         }
 
         stage("Docker Image Build") {
@@ -31,7 +33,7 @@ node() {
                 def input = readJSON file: CRED_JSON
                 writeJSON file: WORKSPACE_JSON, json: input
                 sh """
-                    docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -e KEY_FILE=${WORKSPACE_JSON} -t ${JOB_NAME} ${isTag} ${BUILD_NUMBER}
+                    docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -e KEY_FILE=${WORKSPACE_JSON} -e IMAGE_TAG=${IMAGE_TAG} -t ${JOB_NAME} ${isTag} ${BUILD_NUMBER}
                     """
             }
         }
