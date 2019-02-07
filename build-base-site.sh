@@ -19,6 +19,6 @@ cd site
 zip -r site.zip *
 cd ..
 
-gsutil cp site.zip gs://taurus-site/
+gsutil cp site/site.zip gs://taurus-site/
 
 
