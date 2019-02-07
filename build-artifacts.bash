@@ -20,7 +20,7 @@ pip3 install virtualenv
 ./build-windows-installer.sh ./dist/bzt-*.whl
 
 #if [ "$1" = "true" ]; then
-./build-release.sh
+./build-base-site.sh
 #else
 #fi
 
