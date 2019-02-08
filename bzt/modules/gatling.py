@@ -680,7 +680,7 @@ class DataLogReader(ResultsReader):
         parts = _tmp_rc.split(' ')
         if len(parts) > 1 and parts[1] == 'is':
             _tmp_rc = parts[0]
-            
+
         return _tmp_rc
 
     def _guess_gatling_version(self, fields):
