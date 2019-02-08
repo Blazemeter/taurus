@@ -28,9 +28,9 @@ node()
             """
 
             //if (!isTag) {
-                sh """
-                sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
-                """
+            //    sh """
+            //    sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
+            //    """
             //}
 
             sh """
