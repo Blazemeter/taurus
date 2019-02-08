@@ -4,6 +4,8 @@ Note: this article is a work-in-progress. It will be completed later.
 Feel free to ask your questions at Taurus [support channel](https://groups.google.com/forum/#!forum/codename-taurus)
 or to open a pull requst at Github.
 
+There is good example of minimal custom executor code here: [examples/custom][https://github.com/Blazemeter/taurus/tree/master/examples/custom]
+
 So you want to support a new testing tool with Taurus. For that you'll have to write a new test executor.
 
 Test executor has two main tasks:
