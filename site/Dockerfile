@@ -13,7 +13,7 @@ ADD php.ini /usr/local/etc/php/
 ADD composer.json ./
 RUN composer.phar update --prefer-stable --no-dev
 
-COPY vendor/undera/pwe/.htaccess ./
+RUN cp vendor/undera/pwe/.htaccess ./
 ADD Taurus ./Taurus
 ADD dat ./dat
 ADD img ./img
