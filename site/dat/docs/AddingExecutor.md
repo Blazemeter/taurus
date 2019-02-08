@@ -16,7 +16,7 @@ Test executor has two main tasks:
 Overview of steps:
 1. Create a new Python module inside `bzt/modules/`
 2. Declare a class inherited from `bzt.engine.ScenarioExecutor`
-3. Implement `prepare()`, `startup()`, `check()`, `shutdown()` and `post_process()` phase methods
+3. Implement `prepare()`, `startup()`, `check()`, `shutdown()` and `post\_process()` phase methods
 4. Add a class mapping for the new executor into `modules` section of `bzt/resources/base-config.yml`
 5. Write unittests, put your unittest file in in `tests/modules/` dir
 
@@ -28,19 +28,19 @@ Each executor has 5 phase methods:
 - `startup()` - start test executor process
 - `check()` - check if test executor process finished, returns True if finished
 - `shutdown()` - shut down executor process
-- `post_process()` - post-process executor, close all opened resources
+- `post\_process()` - post-process executor, close all opened resources
 
-Note that `prepare()`-`post_process()` and `startup()`-`post_process()` are mirrored phases.
-It means that if executor's `prepare()` was called - the engine will always call executor's `post_process()`.
+Note that `prepare()`-`post\_process()` and `startup()`-`post\_process()` are mirrored phases.
+It means that if executor's `prepare()` was called - the engine will always call executor's `post\_process()`.
 
-This makes `prepare()` phase a right place to open any resources and `post_process()` — a right place to close them.
+This makes `prepare()` phase a right place to open any resources and `post\_process()` — a right place to close them.
 Just like that, `startup()` is a good place to launch subprocess, while taking it down in `shutdown()`.
  
 
 ## Step 2 - Reading Test Results
 
 If executor wants Taurus to pick up test results from load testing tool — it should declare a results reader class.
-This class should inherit from `bzt.modules.aggregator.ResultsReader`, implementing `_read()` generator method.
+This class should inherit from `bzt.modules.aggregator.ResultsReader`, implementing `\_read()` generator method.
 
 Reader is expected to be able to extract the following nonaggregated data about
 each HTTP request from the load testing tool:
