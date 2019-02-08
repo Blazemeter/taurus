@@ -1,6 +1,6 @@
 FROM docker:18.09
 
-RUN apk add --update python py-pip curl which bash
+RUN apk add --update python py-pip curl which bash zip
 RUN pip install pyyaml
 RUN curl -sSL https://sdk.cloud.google.com | bash
 
