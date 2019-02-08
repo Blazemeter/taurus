@@ -1,0 +1,13 @@
+execution:
+  - executor: my-custom
+    concurrency: 100
+    iterations: 10
+    scenario: with-payload
+
+scenarios:
+  with-payload:
+    payload-file: payload.json
+
+modules:
+  my-custom:
+    class: custom_exec.MyCustomExecutor
