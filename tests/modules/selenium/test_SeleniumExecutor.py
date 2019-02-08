@@ -16,6 +16,7 @@ from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul, DummyListener
 from tests.modules.selenium import SeleniumTestCase
 
+
 class LDJSONReaderEmul(object):
     def __init__(self):
         self.data = []
@@ -117,7 +118,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.runner.reader.readers[0].csvreader.file.close()
 
         self.assertEquals(1, len(results))
-        self.assertIsNone(results[0][7])    # error msg
+        self.assertIsNone(results[0][7])  # error msg
 
     def test_from_extension_reuse(self):
         self.configure({ScenarioExecutor.EXEC: {
@@ -290,7 +291,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 class TestReportReader(BZTestCase):
     def test_report_reader(self):
         reader = LoadSamplesReader(RESOURCES_DIR + "selenium/report.ldjson", ROOT_LOGGER)
-        items = list(reader._read())
+        items = list(reader._read(last_pass=True))
         self.assertEqual(4, len(items))
         self.assertEqual(items[0][1], 'testFailure')
         self.assertEqual(items[0][6], '400')
@@ -318,11 +319,13 @@ class TestReportReader(BZTestCase):
 
     def test_func_reader(self):
         reader = FuncSamplesReader(RESOURCES_DIR + "selenium/report.ldjson", EngineEmul(), ROOT_LOGGER)
-        items = list(reader.read())
-        self.assertEqual(4, len(items))
+        items = list(reader.read(last_pass=True))
+        self.assertEqual(5, len(items))
         self.assertEqual(items[0].test_case, 'testFailure')
         self.assertEqual(items[0].status, "FAILED")
         self.assertEqual(items[1].test_case, 'testBroken')
         self.assertEqual(items[1].status, "BROKEN")
         self.assertEqual(items[2].test_case, 'testSuccess')
         self.assertEqual(items[2].status, "PASSED")
+        self.assertEqual(items[4].test_case, 'SkippedTest')
+        self.assertEqual(items[4].status, "SKIPPED")
