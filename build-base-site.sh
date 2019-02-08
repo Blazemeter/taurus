@@ -1,10 +1,10 @@
 #!/bin/bash -xe
 
-# copy installer to storage
-gsutil cp build/nsis/*.exe gs://taurus-site/releases/
-
 TAURUS_VERSION=$(python -c 'import bzt; print(bzt.VERSION)')
 sed -ri "s/_TAURUS_VERSION_/_${TAURUS_VERSION}_/" site/dat/docs/Installation.md
+
+# copy installer to storage
+gsutil cp build/nsis/*.exe gs://taurus-site/releases/
 
 mkdir -p site/msi
 gsutil cp gs://taurus-site/releases/*.exe site/msi
