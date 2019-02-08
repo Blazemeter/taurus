@@ -6,7 +6,6 @@ gcloud config set compute/zone us-central1-a
 
 ./build-base-site.sh
 ./build-snapshot-site.sh
-./deploy-site.sh
 
 docker build -t ${IMAGE_TAG} .
 
