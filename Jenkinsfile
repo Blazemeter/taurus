@@ -10,7 +10,7 @@ node()
             scmVars = checkout scm
             commitHash = scmVars.GIT_COMMIT
             isTag =  scmVars.GIT_BRANCH.startsWith("refs/tags/")
-            IMAGE_TAG = env.JOB_NAME + ":" + env.CHANGE_ID + "." + env.BUILD_NUMBER
+            IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
             IMAGE_TAG = IMAGE_TAG.toLowerCase()
         }
 
@@ -53,7 +53,7 @@ node()
                     docker run --entrypoint /bzt/deploy-site.sh \
                     -e KEY_FILE=${WORKSPACE_JSON} \
                     -e PROJECT_ID=${PROJECT_ID} \
-                    -e IMAGE_TAG=${IMAGE_TAG} \
+                    -e BUILD_NUMBER=${BUILD_NUMBER} \
                     -u root \
                     -v /var/run/docker.sock:/var/run/docker.sock \
                     -v `pwd`:/bzt -t deploy-image
