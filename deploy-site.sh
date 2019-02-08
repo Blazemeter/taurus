@@ -1,5 +1,13 @@
 #!/bin/bash -xe
 
+gcloud auth activate-service-account --key-file ${KEY_FILE}
+gcloud config set project ${PROJECT_ID}
+gcloud config set compute/zone us-central1-a
+
+./build-base-site.sh
+./build-snapshot-site.sh
+./deploy-site.sh
+
 docker build -t ${IMAGE_TAG} .
 
 gcloud auth configure-docker
