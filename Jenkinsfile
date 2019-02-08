@@ -42,7 +42,7 @@ node()
         stage("Deploy site")
         {
             sh """
-                docker build -t deployImage -f Dockerfile.deploy .
+                docker build -t deploy-image -f Dockerfile.deploy .
                 """
             PROJECT_ID="blazemeter-taurus-website-prod"
             withCredentials([file(credentialsId: "${PROJECT_ID}", variable: 'CRED_JSON')]) {
@@ -50,7 +50,7 @@ node()
                 def input = readJSON file: CRED_JSON
                 writeJSON file: WORKSPACE_JSON, json: input
                 sh """
-                    docker run --entrypoint ./deploy-site.sh -t deployImage \
+                    docker run --entrypoint /bzt/deploy-site.sh -t deploy-image \
                     -e KEY_FILE=${WORKSPACE_JSON} \
                     -e PROJECT_ID=${PROJECT_ID} \
                     -e IMAGE_TAG=${IMAGE_TAG}
