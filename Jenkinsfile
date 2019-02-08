@@ -34,9 +34,7 @@ pipeline
             {
                 script
                 {
-                    sh """
-                        docker build -t ${JOB_NAME} .
-                    """
+                    docker.build("${JOB_NAME}", '-f Dockerfile .')
                 }
             }
         }
