@@ -9,7 +9,7 @@ gcloud config set compute/zone us-central1-a
 
 docker build -t taurus-site.${BUILD_NUMBER} .
 
-gcloud auth configure-docker
+gcloud auth --quiet configure-docker
 
 docker tag  ${IMAGE_TAG} gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
 docker push gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
