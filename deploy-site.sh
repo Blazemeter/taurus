@@ -7,6 +7,7 @@ gcloud config set compute/zone us-central1-a
 ./build-base-site.sh
 ./build-snapshot-site.sh
 
+cd site
 docker build -t taurus-site.${BUILD_NUMBER} .
 
 gcloud auth --quiet configure-docker
