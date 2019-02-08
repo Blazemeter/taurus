@@ -14,7 +14,6 @@ unzip site.zip -d .
 rm site.zip
 
 # add snapshots
-mkdir snapshots
 gsutil cp gs://taurus-site/snapshots/*.whl snapshots
 
 cd ..

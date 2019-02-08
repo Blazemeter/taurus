@@ -6,7 +6,6 @@ sed -ri "s/_TAURUS_VERSION_/_${TAURUS_VERSION}_/" site/dat/docs/Installation.md
 # copy installer to storage
 gsutil cp build/nsis/*.exe gs://taurus-site/releases/
 
-mkdir -p site/msi
 gsutil cp gs://taurus-site/releases/*.exe site/msi
 
 python site/Taurus/kwindexer.py site/dat/docs site/dat/docs/KeywordIndex.md
