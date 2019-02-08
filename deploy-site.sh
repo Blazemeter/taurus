@@ -4,7 +4,11 @@ gcloud auth activate-service-account --key-file ${KEY_FILE}
 gcloud config set project ${PROJECT_ID}
 gcloud config set compute/zone us-central1-a
 
+echo "IS_TAG: " + $1
+#if [ "$1" = "true" ]; then
 ./build-base-site.sh
+#fi
+
 ./build-snapshot-site.sh
 
 cd site

@@ -56,7 +56,8 @@ node()
                     -e BUILD_NUMBER=${BUILD_NUMBER} \
                     -u root \
                     -v /var/run/docker.sock:/var/run/docker.sock \
-                    -v `pwd`:/bzt -t deploy-image
+                    -v `pwd`:/bzt -t deploy-image \
+                    ${isTag}
                     """
             }
 
