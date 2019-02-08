@@ -14,6 +14,5 @@ gcloud auth --quiet configure-docker
 docker tag  taurus-site.${BUILD_NUMBER} gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
 docker push gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
 gcloud container clusters get-credentials taurus-site
-#kubectl set image deployment/taurus-site taurus-site=gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
-kubectl run taurus-site --image=gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER} --port 80
-kubectl expose deployment taurus-site --type=LoadBalancer --port 80 --target-port 80
+
+kubectl set image deployment/taurus-site taurus-site=gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
