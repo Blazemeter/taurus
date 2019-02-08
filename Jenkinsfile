@@ -12,7 +12,6 @@ pipeline
     }
     stages
     {
-        try {
             stage('Checkout') {
                 cleanWs()
                 scmVars = checkout scm
@@ -65,11 +64,6 @@ pipeline
                     ./deploy-site.sh
                     """
             }
-        } catch (e) {
-            currentBuild.result = "FAILED"
-            throw e
-        } finally {
-            smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
-        }
+
     }
 }
