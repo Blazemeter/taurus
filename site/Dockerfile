@@ -17,6 +17,8 @@ RUN cp vendor/undera/pwe/.htaccess ./
 ADD Taurus ./Taurus
 ADD dat ./dat
 ADD img ./img
+ADD msi ./msi
+ADD snapshots ./snapshots
 
 #RUN apt install -y mc bash-completion
 ADD *.php ./
