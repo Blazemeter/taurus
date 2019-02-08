@@ -7,6 +7,7 @@ sed -ri "s/_TAURUS_VERSION_/_${TAURUS_VERSION}_/" site/dat/docs/Installation.md
 gsutil cp build/nsis/*.exe gs://taurus-site/releases/
 
 gsutil cp gs://taurus-site/releases/*.exe site/msi
+gsutil cp gs://taurus-site/releases/*.deb site/msi
 
 python site/Taurus/kwindexer.py site/dat/docs site/dat/docs/KeywordIndex.md
 cp site/dat/docs/img/*.png site/img/
