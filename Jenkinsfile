@@ -50,10 +50,11 @@ node()
                 def input = readJSON file: CRED_JSON
                 writeJSON file: WORKSPACE_JSON, json: input
                 sh """
-                    docker run --entrypoint /bzt/deploy-site.sh -v `pwd`:/bzt -t deploy-image \
+                    docker run --entrypoint /bzt/deploy-site.sh \
                     -e KEY_FILE=${WORKSPACE_JSON} \
                     -e PROJECT_ID=${PROJECT_ID} \
-                    -e IMAGE_TAG=${IMAGE_TAG}
+                    -e IMAGE_TAG=${IMAGE_TAG} \
+                    -v `pwd`:/bzt -t deploy-image
                     """
             }
 
