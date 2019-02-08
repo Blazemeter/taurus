@@ -24,7 +24,8 @@ pipeline
                     isTag =  scmVars.GIT_BRANCH.startsWith("refs/tags/")
                     IMAGE_TAG = env.JOB_NAME + ":" + env.CHANGE_ID + "." + env.BUILD_NUMBER
                     IMAGE_TAG = IMAGE_TAG.toLowerCase()
-                }
+                    docker.build("${JOB_NAME}", '-f Dockerfile .')
+               }
             }
         }
 
@@ -34,7 +35,6 @@ pipeline
             {
                 script
                 {
-                    docker.build("${JOB_NAME}", '-f Dockerfile .')
                 }
             }
         }
