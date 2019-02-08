@@ -54,6 +54,8 @@ node()
                     -e KEY_FILE=${WORKSPACE_JSON} \
                     -e PROJECT_ID=${PROJECT_ID} \
                     -e IMAGE_TAG=${IMAGE_TAG} \
+                    -u root \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
                     -v `pwd`:/bzt -t deploy-image
                     """
             }
