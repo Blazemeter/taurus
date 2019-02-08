@@ -16,9 +16,9 @@ node()
 
         stage("Docker Image Build")
         {
-            sh """
-                docker build -t ${JOB_NAME} .
-                """
+            //sh """
+            //    docker build -t ${JOB_NAME} .
+            //    """
         }
 
         stage("Create Artifacts")
