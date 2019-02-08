@@ -1,6 +1,7 @@
 FROM docker:18.09
 
-RUN apk add --update python curl which bash
+RUN apk add --update python py-pip curl which bash
+RUN pip install pyyaml
 RUN curl -sSL https://sdk.cloud.google.com | bash
 
 ENV PATH $PATH:/root/google-cloud-sdk/bin
