@@ -27,11 +27,11 @@ node()
                 sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py
             """
 
-            if (!isTag) {
+            //if (!isTag) {
                 sh """
                 sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
                 """
-            }
+            //}
 
             sh """
                 docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME} ${BUILD_NUMBER}
