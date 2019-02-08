@@ -12,7 +12,10 @@ pipeline
     }
     stages
     {
-            stage('Checkout') {
+        stage('Checkout')
+        {
+            script
+            {
                 cleanWs()
                 scmVars = checkout scm
                 commitHash = scmVars.GIT_COMMIT
@@ -20,14 +23,22 @@ pipeline
                 IMAGE_TAG = env.JOB_NAME + ":" + env.CHANGE_ID + "." + env.BUILD_NUMBER
                 IMAGE_TAG = IMAGE_TAG.toLowerCase()
             }
+        }
 
-            stage("Docker Image Build") {
+        stage("Docker Image Build")
+        {
+            script
+            {
                 sh """
                     docker build -t ${JOB_NAME} .
                 """
             }
+        }
 
-            stage("Create Artifacts") {
+        stage("Create Artifacts")
+        {
+            script
+            {
                 sh """
                     sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py
                 """
@@ -43,8 +54,12 @@ pipeline
                     """
 
             }
-            stage("Deploy site") {
+        }
 
+        stage("Deploy site")
+        {
+            script
+            {
                 PROJECT_ID="blazemeter-taurus-website-prod"
                 withCredentials([file(credentialsId: "${PROJECT_ID}", variable: 'CRED_JSON')]) {
                     def WORKSPACE_JSON = 'Google_credentials.json'
@@ -64,6 +79,6 @@ pipeline
                     ./deploy-site.sh
                     """
             }
-
+        }
     }
 }
