@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-import traceback
 from distutils.version import LooseVersion
 
 from bzt import TaurusInternalException, TaurusConfigError
@@ -26,7 +25,7 @@ from bzt.jmx.base import cond_int
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
 from bzt.requests_model import RequestVisitor, has_variable_pattern, HierarchicRequestParser
 from bzt.six import etree, iteritems, numeric_types
-from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, guess_csv_dialect, load_class
+from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, load_class, guess_delimiter, get_data_sources
 
 
 class RequestCompiler(RequestVisitor):
@@ -408,7 +407,7 @@ class JMeterScenarioBuilder(JMX):
         for _, protocol in iteritems(self.protocol_handlers):
             elements.extend(protocol.get_toplevel_elements(scenario))
         elements.extend(self.__gen_authorization(scenario))
-        elements.extend(self.__gen_datasources(scenario))
+        elements.extend(self.__gen_data_sources(scenario))
         elements.extend(self.__gen_requests(scenario))
         return elements
 
@@ -634,17 +633,10 @@ class JMeterScenarioBuilder(JMX):
 
         return elements
 
-    def __gen_datasources(self, scenario):
-        sources = scenario.get("data-sources")
-        if not sources:
-            return []
-        if not isinstance(sources, list):
-            raise TaurusConfigError("data-sources '%s' is not a list" % sources)
+    def __gen_data_sources(self, scenario):
         elements = []
-        for idx, source in enumerate(sources):
-            source = ensure_is_dict(sources, idx, "path")
+        for source in get_data_sources(scenario):
             source_path = source["path"]
-
             delimiter = source.get("delimiter")
 
             if has_variable_pattern(source_path):
@@ -658,7 +650,7 @@ class JMeterScenarioBuilder(JMX):
                 if not os.path.isfile(source_path):
                     raise TaurusConfigError("data-sources path not found: %s" % source_path)
                 if not delimiter:
-                    delimiter = self.__guess_delimiter(source_path)
+                    delimiter = guess_delimiter(source_path)
 
             config = JMX._get_csv_config(source_path, delimiter, source.get("quoted", False), source.get("loop", True),
                                          source.get("variable-names", ""))
@@ -666,14 +658,3 @@ class JMeterScenarioBuilder(JMX):
             elements.append(etree.Element("hashTree"))
         return elements
 
-    def __guess_delimiter(self, path):
-        with open(path) as fhd:
-            header = fhd.read(4096)  # 4KB is enough for header
-            try:
-                delimiter = guess_csv_dialect(header).delimiter
-            except BaseException as exc:
-                self.log.debug(traceback.format_exc())
-                self.log.warning('CSV dialect detection failed (%s), default delimiter selected (",")', exc)
-                delimiter = ","  # default value
-
-        return delimiter
