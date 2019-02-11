@@ -5,10 +5,10 @@ gcloud config set project ${PROJECT_ID}
 gcloud config set compute/zone us-central1-a
 
 if [ "$1" = "true" ]; then
-    ./build-base-site.sh
+    ./scripts/build-base-site.sh
 fi
 
-./build-snapshot-site.sh
+./scripts/build-snapshot-site.sh
 
 cd site
 docker build -t taurus-site.${BUILD_NUMBER} .
