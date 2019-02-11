@@ -1,16 +1,11 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
 
-if (is_dir('/app')) {
-    // GCP config
+if (is_dir("/home/gettauru")) {
+    // our real website settings
     $level = \PWE\Core\PWELogger::WARNING;
-    $tempdir = sys_get_temp_dir();
-    $logfile = "php://stdout";
-} else if (is_dir("/home/gettauru")) {
-   // our real website settings
-   $level = \PWE\Core\PWELogger::WARNING;
-   $tempdir = "/home/gettauru/tmp";
-   $logfile = "/home/gettauru/logs/pwe.".date('Ym');
+    $tempdir = "/home/gettauru/tmp";
+    $logfile = "/home/gettauru/logs/pwe.".date('Ym');
 } else {
     // local debugging settings
     $level = \PWE\Core\PWELogger::DEBUG;
@@ -28,7 +23,7 @@ $PWECore->setRootDirectory(__DIR__);
 $PWECore->setXMLDirectory($PWECore->getDataDirectory());
 $PWECore->setTempDirectory($tempdir);
 
-if (!is_dir('/app') && !is_dir("/home/gettauru")) {
+if (!is_dir("/home/gettauru")) {
     $fname=$tempdir.'/taurus.xml';
     if (!is_file($fname)) {
       file_put_contents($fname, "<registry/>");

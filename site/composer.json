@@ -13,8 +13,7 @@
     "phpunit/phpunit": "~4"
   },
   "require": {
-    "php": "7.2.*",
-    "ext-yaml": "*",
+    "php": ">=5.5.0",
     "undera/pwe": "dev-master"
   }
 }
