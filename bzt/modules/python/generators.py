@@ -270,13 +270,8 @@ import apiritif
 
         self.root.append(self.gen_statement("# coding=utf-8", indent=0))
         self.root.append(self.add_imports())
-        self.root.extend(self.get_data_source_readers())
         self.root.append(test_class)
         self.root.append(self.add_utilities())
-
-    def get_data_source_readers(self):
-        for source in self.scenario.get_data_sources():
-            pass    # todo get data and fill statement
 
     def _fill_test_method(self, req, test_method):
         if req.label:
@@ -828,8 +823,32 @@ log.setLevel(logging.DEBUG)
         stmts.append(self.gen_empty_line_stmt())
         stmts.extend(self.gen_global_vars())
         stmts.append(self.gen_empty_line_stmt())
+        stmts.extend(self.get_data_source_readers())
         stmts.append(self.gen_classdef())
         return ast.Module(body=stmts)
+
+
+    def get_data_source_readers(self):
+        readers = []
+        for idx, source in enumerate(self.scenario.get_data_sources(), start=1):
+            reader_tpl = "reader{idx} = CSVReaderPerThread({params})"
+
+            params = source.get("path")
+            if "loop" in source:
+                params += ", " + "loop=%s" % source.get("loop")
+
+            if "quoted" in source:
+                params += ", " + "quoted=%s" % source.get("quoted")
+
+            if "delimiter" in source:
+                params += ", " + "delimiter='%s'" % source.get("delimiter")
+
+            if "fieldnames" in source:
+                params += ", " + "fiednames='%s'" % source.get("fieldnames")
+
+            reader = ast.parse(reader_tpl.format(idx=idx, params=params))
+            readers.append(ast.Expr(reader))
+        return readers
 
     def gen_classdef(self):
         class_body = []
