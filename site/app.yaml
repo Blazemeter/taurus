@@ -1,0 +1,20 @@
+runtime: php
+env: flex
+
+runtime_config:
+  document_root: .
+  front_controller_file: index.php
+
+handlers:
+- url: /img
+  static_dir: img
+
+- url: /favicon.ico
+  static_files: img/favicon.png
+  upload: img/favicon.png
+
+- url: /dat/kb/img
+  static_dir: dat/kb/img
+
+- url: .*
+  script: auto
