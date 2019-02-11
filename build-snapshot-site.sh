@@ -1,7 +1,7 @@
 #!/bin/bash -xe
 
 # copy snapshot to storage
-gsutil cp dist/*.whl gs://taurus-site/snapshots/
+gsutil -s regional cp dist/*.whl gs://taurus-site/snapshots/
 
 # cleanup site dir
 rm -r site
