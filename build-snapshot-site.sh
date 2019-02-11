@@ -2,6 +2,7 @@
 
 # copy snapshot to storage
 gsutil cp -s regional dist/*.whl gs://taurus-site/snapshots/
+gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
 
 # cleanup site dir
 rm -r site
