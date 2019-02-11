@@ -1650,12 +1650,3 @@ def guess_delimiter(path):
 
     return delimiter
 
-
-def get_data_sources(scenario):
-    sources = scenario.get("data-sources", [])
-    if not isinstance(sources, list):
-        raise TaurusConfigError("data-sources is not a list: '%s'" % sources)
-
-    for idx, source in enumerate(sources):
-        source = ensure_is_dict(sources, idx, "path")
-        yield source

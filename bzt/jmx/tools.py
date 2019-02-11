@@ -25,7 +25,7 @@ from bzt.jmx.base import cond_int
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
 from bzt.requests_model import RequestVisitor, has_variable_pattern, HierarchicRequestParser
 from bzt.six import etree, iteritems, numeric_types
-from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, load_class, guess_delimiter, get_data_sources
+from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, load_class, guess_delimiter
 
 
 class RequestCompiler(RequestVisitor):
@@ -635,7 +635,7 @@ class JMeterScenarioBuilder(JMX):
 
     def __gen_data_sources(self, scenario):
         elements = []
-        for source in get_data_sources(scenario):
+        for source in scenario.get_data_sources():
             source_path = source["path"]
             delimiter = source.get("delimiter")
 

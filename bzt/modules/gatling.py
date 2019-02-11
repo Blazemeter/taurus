@@ -322,8 +322,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         return simulation, file_name
 
     def __copy_data_sources(self):
-        scenario = self.get_scenario()
-        for source in scenario.get_data_sources():
+        for source in self.get_scenario().get_data_sources():
             source_path = self.engine.find_file(source["path"])
             self.engine.existing_artifact(source_path)
 
@@ -489,8 +488,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         if script:
             files.append(script)
         else:
-            data_sources = self.get_scenario().get_data_sources()
-            for source in data_sources:
+            for source in self.get_scenario().get_data_sources():
                 source_path = self.engine.find_file(source["path"])
                 files.append(source_path)
         files.extend(self.get_additional_classpath())

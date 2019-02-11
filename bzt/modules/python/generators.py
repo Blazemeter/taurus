@@ -27,7 +27,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems, text_type, etree
-from bzt.utils import PythonGenerator, dehumanize_time, ensure_is_dict, get_data_sources
+from bzt.utils import PythonGenerator, dehumanize_time, ensure_is_dict
 from .jmeter_functions import Base64DecodeFunction, UrlEncodeFunction, UuidFunction
 from .jmeter_functions import TimeFunction, RandomFunction, RandomStringFunction, Base64EncodeFunction
 
@@ -275,7 +275,7 @@ import apiritif
         self.root.append(self.add_utilities())
 
     def get_data_source_readers(self):
-        for source in get_data_sources(self.scenario):
+        for source in self.scenario.get_data_sources():
             pass    # todo get data and fill statement
 
     def _fill_test_method(self, req, test_method):
