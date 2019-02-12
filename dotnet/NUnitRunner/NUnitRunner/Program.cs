@@ -110,9 +110,12 @@ namespace NUnitRunner
                         //Get Properties
                         Dictionary<object, object> dictionary = new Dictionary<object, object>();
 
-                        foreach (XmlNode childNode in node.FirstChild)
+                        if (node.HasChildNodes)
                         {
-                            dictionary.Add(childNode.Attributes["name"].Value, childNode.Attributes["value"]);
+                            foreach (XmlNode childNode in node.FirstChild)
+                            {
+                                dictionary.Add(childNode.Attributes["name"].Value, childNode.Attributes["value"]);
+                            }
                         }
 
                         item.Extras = dictionary;
