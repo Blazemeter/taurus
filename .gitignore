@@ -17,7 +17,6 @@
 /site/vendor
 /site/img/design
 /site/dat/tmp
-/site/snapshots
 
 # node.js
 node_modules
