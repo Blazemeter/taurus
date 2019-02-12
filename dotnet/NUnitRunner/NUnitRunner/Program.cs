@@ -106,6 +106,17 @@ namespace NUnitRunner
                         item.TestSuite = node.Attributes["classname"].Value;
                         item.ErrorMessage = "";
                         item.ErrorTrace = "";
+
+                        //Get Properties
+                        Dictionary<object, object> dictionary = new Dictionary<object, object>();
+
+                        foreach (XmlNode childNode in node.FirstChild)
+                        {
+                            dictionary.Add(childNode.Attributes["name"].Value, childNode.Attributes["value"]);
+                        }
+
+                        item.Extras = dictionary;
+
                         if (node.Attributes["result"].Value == "Passed")
                         {
                             item.Status = "PASSED";
