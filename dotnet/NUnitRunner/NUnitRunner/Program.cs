@@ -114,7 +114,7 @@ namespace NUnitRunner
                         {
                             foreach (XmlNode childNode in node.FirstChild)
                             {
-                                dictionary.Add(childNode.Attributes["name"].Value, childNode.Attributes["value"]);
+                                dictionary.Add(childNode.Attributes["name"].Value, childNode.Attributes["value"].Value);
                             }
                         }
 
