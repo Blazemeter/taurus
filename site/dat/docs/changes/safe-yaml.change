@@ -1,0 +1,1 @@
+- use `safe_` version of YAML functions because of CVE-2017-18342
