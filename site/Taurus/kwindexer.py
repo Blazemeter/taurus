@@ -40,7 +40,7 @@ def index_file(fname):
     keys = set()
     for block in blocks:
         try:
-            for struct in yaml.load_all(block):
+            for struct in yaml.safe_load_all(block):
                 keys.update(get_keys(struct))
         except BaseException:
             logging.warning("Failed to parse block: %s", traceback.format_exc())

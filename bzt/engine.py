@@ -797,7 +797,7 @@ class Configuration(BetterDict):
     def _read_yaml_or_json(self, config_file, configs, contents):
         try:
             self.log.debug("Reading %s as YAML", config_file)
-            yaml_documents = list(yaml.load_all(contents))
+            yaml_documents = list(yaml.safe_load_all(contents))
             for doc in yaml_documents:
                 if doc is None:
                     continue
@@ -837,7 +837,7 @@ class Configuration(BetterDict):
             json_s = to_json(self)
             fds.write(json_s.encode('utf-8'))
         elif fmt == self.YAML:
-            yml = yaml.dump(self, default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True,
+            yml = yaml.safe_dump(self, default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True,
                             encoding='utf-8', width=float("inf"))
             fds.write(yml)
         else:
