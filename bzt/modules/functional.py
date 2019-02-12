@@ -68,8 +68,9 @@ class FunctionalAggregator(Aggregator):
 
 class FunctionalSample(object):
     def __init__(
-        self, test_case, test_suite, status, start_time, duration, error_msg, error_trace,
-        extras=None, subsamples=None, path=None,
+            self, test_case, test_suite, status,
+            start_time, duration, error_msg, error_trace,
+            extras=None, subsamples=None, path=None,
     ):
         # test_case: str - name of test case (method)
         # test_suite: str - name of test suite (class)
@@ -159,10 +160,10 @@ class TestReportReader(object):
         "subsamples",  # list of samples
         "assertions",  # list of dicts, {"name": str, "failed": bool, "error_msg": str, "error_trace": str}
         "path"  # list of components, [{"value": "test_Something", "type": "module"},
-                #                      {"value": "TestAPI", "type": "class"},
-                #                      {"value": "test_heartbeat", "type": "method"}
-                #                      {"value": "index page": "type": "transaction"}
-                #                      {"value": "http://blazedemo.com/": "type": "request"}
+        #                      {"value": "TestAPI", "type": "class"},
+        #                      {"value": "test_heartbeat", "type": "method"}
+        #                      {"value": "index page": "type": "transaction"}
+        #                      {"value": "http://blazedemo.com/": "type": "request"}
     ]
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
@@ -211,6 +212,9 @@ class LoadSamplesReader(ResultsReader):
         self.read_records = 0
 
     def extract_sample(self, item):
+        if item["status"] == 'SKIPPED':
+            return  # we ignore skipped samples to not skew results
+
         tstmp = int(item["start_time"])
         label = item["test_case"]
         concur = 1
@@ -227,7 +231,8 @@ class LoadSamplesReader(ResultsReader):
         for row in self.report_reader.read(last_pass):
             self.read_records += 1
             sample = self.extract_sample(row)
-            yield sample
+            if sample:
+                yield sample
 
 
 class FuncSamplesReader(FunctionalResultsReader):
