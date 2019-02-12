@@ -1,0 +1,4 @@
+.dockerignore
+Dockerfile
+vendor
+composer.lock

@@ -57,6 +57,10 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
         'entry_point': 'scripts.installer.bzt_run:main'
     }
 
+    cfg['Command bzt-python'] = {
+        'entry_point': 'scripts.installer.bzt_python:main'
+    }
+
     cfg['Python'] = {
         'bitness': 64,
         'version': '3.6.5',

@@ -118,7 +118,6 @@ class TaurusReporter {
         var sample = {
             test_case: item.name,
             test_suite: this.options.collection.name,
-            status: item.passed ? "PASSED" : "FAILED",
             start_time: item.startTime,
             duration: (item.response && item.response.responseTime) / 1000.0 || 0,
             error_msg: null,
@@ -158,7 +157,11 @@ class TaurusReporter {
             sample.assertions = assertions;
         }
 
-        if (!item.passed) {
+        // Calculate status from assertions
+        const assertionFailed = sample.assertions.some((ast) => ast.isFailed);
+        sample.status = item.passed && !assertionFailed ? "PASSED" : "FAILED";
+
+        if (!item.passed || assertionFailed) {
             const msg = item.assertions.filter((a) => a.isFailed).map((a) => a.name).join(", ");
             const responseCode = (item.response && item.response.responseCode) || "-";
             const reason = (item.response && item.response.reason()) || "-";
