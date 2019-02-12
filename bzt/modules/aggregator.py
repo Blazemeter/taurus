@@ -23,7 +23,7 @@ from abc import abstractmethod
 from collections import Counter
 
 import fuzzyset
-import yaml
+from yaml import SafeDumper
 from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
@@ -501,8 +501,8 @@ class DataPoint(dict):
             self.recalculate()
 
 
-yaml.add_representer(KPISet, SafeRepresenter.represent_dict)
-yaml.add_representer(DataPoint, SafeRepresenter.represent_dict)
+SafeDumper.add_representer(KPISet, SafeRepresenter.represent_dict)
+SafeDumper.add_representer(DataPoint, SafeRepresenter.represent_dict)
 
 
 class ResultsProvider(object):

@@ -37,6 +37,7 @@ from distutils.version import LooseVersion
 from json import encoder
 
 import yaml
+from yaml import SafeDumper
 from yaml.representer import SafeRepresenter
 
 import bzt
@@ -77,8 +78,8 @@ class Engine(object):
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
 
-        self.env = Environment(self.log)            # backward compatibility
-        self.shared_env = Environment(self.log)     # backward compatibility
+        self.env = Environment(self.log)  # backward compatibility
+        self.shared_env = Environment(self.log)  # backward compatibility
 
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
@@ -500,7 +501,7 @@ class Engine(object):
             shutil.move(tmp_f_name, dest)
             return dest
         else:
-            filename = os.path.expanduser(filename)     # expanding of '~' is required for check of existence
+            filename = os.path.expanduser(filename)  # expanding of '~' is required for check of existence
 
             # check filename 'as is' and all combinations of file_search_path/filename
             for dirname in [""] + self.file_search_paths:
@@ -837,8 +838,8 @@ class Configuration(BetterDict):
             json_s = to_json(self)
             fds.write(json_s.encode('utf-8'))
         elif fmt == self.YAML:
-            yml = yaml.safe_dump(self, default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True,
-                            encoding='utf-8', width=float("inf"))
+            yml = yaml.safe_dump(self, default_flow_style=False, explicit_start=True, canonical=False,
+                                 allow_unicode=True, encoding='utf-8', width=float("inf"))
             fds.write(yml)
         else:
             raise TaurusInternalException("Unknown dump format: %s" % fmt)
@@ -904,11 +905,11 @@ class Configuration(BetterDict):
         return res
 
 
-yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
-yaml.add_representer(BetterDict, SafeRepresenter.represent_dict)
+SafeDumper.add_representer(Configuration, SafeRepresenter.represent_dict)
+SafeDumper.add_representer(BetterDict, SafeRepresenter.represent_dict)
 if PY2:
-    yaml.add_representer(text_type, SafeRepresenter.represent_unicode)
-yaml.add_representer(str, str_representer)
+    SafeDumper.add_representer(text_type, SafeRepresenter.represent_unicode)
+SafeDumper.add_representer(str, str_representer)
 
 if PY2:
     # dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
@@ -1345,7 +1346,7 @@ class Scenario(UserDict, object):
         :rtype: list[bzt.requests_model.Request]
         """
         requests_parser = parser(self, self.engine)
-        return requests_parser.extract_requests(require_url=require_url,)
+        return requests_parser.extract_requests(require_url=require_url, )
 
     def get_data_sources(self):
         data_sources = self.get(self.FIELD_DATA_SOURCES, [])
