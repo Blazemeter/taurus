@@ -1,0 +1,1 @@
+- Expanded NUnitRunner to write test context properties to NUnitExecutor.Idjson for parsing later on.  Any objects in the test context will be listed in under extras.
