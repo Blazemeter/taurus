@@ -108,14 +108,21 @@ namespace NUnitRunner
                         item.ErrorTrace = "";
 
                         //Get Properties
+                        XmlNodeList propertiesNodeList = node.SelectNodes("properties");
+
                         Dictionary<object, object> dictionary = new Dictionary<object, object>();
 
-                        if (node.HasChildNodes)
+                        if (propertiesNodeList.Count == 1)
                         {
-                            foreach (XmlNode childNode in node.FirstChild)
+                        
+                            Dictionary<string, string> transactionDictionary = new Dictionary<string, string>();
+
+                            foreach (XmlNode childNode in propertiesNodeList[0])
                             {
-                                dictionary.Add(childNode.Attributes["name"].Value, childNode.Attributes["value"].Value);
+                                transactionDictionary.Add(childNode.Attributes["name"].Value, childNode.Attributes["value"].Value);
                             }
+
+                            dictionary.Add("test_context", transactionDictionary);
                         }
 
                         item.Extras = dictionary;

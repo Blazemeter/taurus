@@ -1,1 +1,2 @@
 - Expanded NUnitRunner to write test context properties to NUnitExecutor.Idjson for parsing later on.  Any objects in the test context will be listed in under extras.
+- Changed test context output to be within test_context within extras in Id.json report.
