@@ -37,6 +37,7 @@ node()
                 docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME} ${BUILD_NUMBER}
                 """
 
+            archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
         }
 
         stage("Deploy site")
