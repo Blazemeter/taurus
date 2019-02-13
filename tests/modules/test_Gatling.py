@@ -630,6 +630,6 @@ class TestDataLogReader(BZTestCase):
         log_path = RESOURCES_DIR + "gatling/"
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-302')  # regular one
         list_of_values = list(obj.datapoints(True))
-        self.assertEqual(len(list_of_values), 10)
-        self.assertEqual(obj.guessed_gatling_version, "2.2+")
-        self.assertIn('http://blazedemo.com/', list_of_values[-1][DataPoint.CUMULATIVE].keys())
+        self.assertEqual(len(list_of_values), 1)
+        self.assertEqual(obj.guessed_gatling_version, "3.X")
+        self.assertIn('group2', list_of_values[-1][DataPoint.CUMULATIVE].keys())
