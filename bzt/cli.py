@@ -541,7 +541,7 @@ class ConfigOverrider(object):
     @staticmethod
     def __parse_override_value(override):
         try:
-            return yaml.load(override)
+            return yaml.safe_load(override)
         except BaseException:
             return override
 
