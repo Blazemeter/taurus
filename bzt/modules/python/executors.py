@@ -341,9 +341,10 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
             elif isinstance(variables, dict):
                 self.variables_file = self.engine.create_artifact("robot-vars", ".yaml")
                 with open(self.variables_file, 'wb') as fds:
-                    yml = yaml.dump(variables,
-                                    default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True,
-                                    encoding='utf-8', width=float("inf"))
+                    yml = yaml.safe_dump(variables,
+                                         default_flow_style=False, explicit_start=True, canonical=False,
+                                         allow_unicode=True,
+                                         encoding='utf-8', width=float("inf"))
                     fds.write(yml)
             else:
                 raise TaurusConfigError("`variables` is neither file nor dict")
