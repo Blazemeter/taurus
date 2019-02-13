@@ -1,0 +1,2 @@
+- fix broken GROUP reading from Gatling log
+- for Gatling, parse `but actually XXX is not less than or equal to YYY` errors into RC

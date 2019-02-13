@@ -116,8 +116,8 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertIn(jars[1], self.obj.env.get(var))
 
         for line in modified_lines:
-            self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))       # win
-            if line.startswith('COMPILATION_CLASSPATH='):                           # linux
+            self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))  # win
+            if line.startswith('COMPILATION_CLASSPATH='):  # linux
                 self.assertTrue(line.endswith(':"${COMPILATION_CLASSPATH}"\n'))
 
     def test_external_jar_built_launcher_v3(self):
@@ -146,9 +146,9 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertIn(jars[1], self.obj.env.get(var))
 
         for line in modified_lines:
-            if line.startswith('set COMPILER_CLASSPATH='):                      # win
+            if line.startswith('set COMPILER_CLASSPATH='):  # win
                 self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
-            if line.startswith('COMPILER_CLASSPATH='):                          # linux
+            if line.startswith('COMPILER_CLASSPATH='):  # linux
                 self.assertTrue('${COMPILATION_CLASSPATH}"\n')
 
     def test_install_Gatling(self):
@@ -231,7 +231,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                 "headers": {"H1": "V1"},
                 "requests": [
                     {
-                        "url": "/reserve.php",      # complicate body without content header -> json
+                        "url": "/reserve.php",  # complicate body without content header -> json
                         "headers": {"H2": "V2"},
                         "method": "POST",
                         "body": {"com": {"pli": {"cat": ["ed", "dict"]}}},
@@ -251,13 +251,13 @@ class TestGatlingExecutor(ExecutorTestCase):
                         "method": "POST",
                         "body": {
                             "param_name1": "param_value1",
-                            "param_name2": "param_value2"}      # simple body without content header -> params
+                            "param_name2": "param_value2"}  # simple body without content header -> params
                     }, {
                         "url": "/something_else.php",
                         "headers": {"Content-Type": "application/json"},
                         "method": "POST",
                         "body": {
-                            "param_name3": "param_value4"}}     # simple body with content header -> json
+                            "param_name3": "param_value4"}}  # simple body with content header -> json
                 ]}}})
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
@@ -479,7 +479,7 @@ class TestGatlingExecutor(ExecutorTestCase):
 
             for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
                 self.assertIn("simulations.jar", self.obj.env.get(var))
-                self.assertNotIn("deps.jar", self.obj.env.get(var))         # new logic: don't add 'files' to cp
+                self.assertNotIn("deps.jar", self.obj.env.get(var))  # new logic: don't add 'files' to cp
 
         finally:
             os.chdir(curdir)
@@ -606,6 +606,25 @@ class TestDataLogReader(BZTestCase):
         self.assertEqual(len(list_of_values), 10)
         self.assertEqual(obj.guessed_gatling_version, "2.2+")
         self.assertIn('http://blazedemo.com/', list_of_values[-1][DataPoint.CUMULATIVE].keys())
+
+    def test_read_group(self):
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-4')  # regular one
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 179)
+        self.assertEqual(obj.guessed_gatling_version, "2.2+")
+        last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
+        self.assertEqual(2, len(last_cumul['[empty]'][KPISet.ERRORS]))
+
+    def test_read_rc_asserts(self):
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-5')  # regular one
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 1)
+        self.assertEqual(obj.guessed_gatling_version, "2.2+")
+        last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
+        self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['400'])
+        self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['401'])
 
     def test_read_gatling302(self):
         log_path = RESOURCES_DIR + "gatling/"
