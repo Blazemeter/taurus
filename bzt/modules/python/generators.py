@@ -827,13 +827,12 @@ log.setLevel(logging.DEBUG)
         stmts.append(self.gen_classdef())
         return ast.Module(body=stmts)
 
-
     def get_data_source_readers(self):
         readers = []
         for idx, source in enumerate(self.scenario.get_data_sources(), start=1):
             reader_tpl = "reader{idx} = CSVReaderPerThread({params})"
 
-            params = source.get("path")
+            args = "'%s'" % source.get("path")
             if "loop" in source:
                 params += ", " + "loop=%s" % source.get("loop")
 
@@ -844,9 +843,27 @@ log.setLevel(logging.DEBUG)
                 params += ", " + "delimiter='%s'" % source.get("delimiter")
 
             if "fieldnames" in source:
-                params += ", " + "fiednames='%s'" % source.get("fieldnames")
+                fieldnames = source.get("fieldnames").split(",")
+                params += ", " + "fiednames=%s" % fieldnames
 
-            reader = ast.parse(reader_tpl.format(idx=idx, params=params))
+            reader = ast.Assign(
+                targets=[ast.Name(id="reader%s" % idx)],
+                value=ast.Call(
+                    func="CSVReaderPerThread",
+                    args=ast.arguments(
+                        args=[ast.Name(id='self', ctx=ast.Param())],
+                        defaults=[],
+                        vararg=None,
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        kwarg=None,
+                        returns=None),
+                    keywords=[],
+                    starargs=None,
+                    kwargs=None))
+
+            #reader = ast.parse(reader_tpl.format(idx=idx, params=params))
+
             readers.append(ast.Expr(reader))
         return readers
 

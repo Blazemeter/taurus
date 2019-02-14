@@ -569,6 +569,24 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
 class TestApiritifScriptGenerator(ExecutorTestCase):
     EXECUTOR = ApiritifNoseExecutor
 
+    def test_data_sources(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "data-sources": ["file1", {"path": "/path/file2", "fieldnames": "name,pass"}],
+                    "default-address": "http://blazedemo.com",
+                    "requests": [
+                        "/",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("target.keep_alive(True)", test_script)
+
     def test_keepalive_default(self):
         self.configure({
             "execution": [{

@@ -1343,6 +1343,8 @@ class Scenario(UserDict, object):
 
         for idx, source in enumerate(sources):
             source = ensure_is_dict(sources, idx, "path")
+            if not source:
+                raise TaurusConfigError("Data source must have valid file path: '%s'" % source)
             yield source
 
     def get_requests(self, parser=RequestParser, require_url=True):
