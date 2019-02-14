@@ -574,7 +574,15 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
             "execution": [{
                 "test-mode": "apiritif",
                 "scenario": {
-                    "data-sources": ["file1", {"path": "/path/file2", "fieldnames": "name,pass"}],
+                    "data-sources": [
+                        "file1", {
+                            "path": "/path/file2",
+                            "fieldnames": "f1,f2",
+                            "delimiter": "-",
+                            "quoted": False,
+                            "loop": False
+                        }
+                    ],
                     "default-address": "http://blazedemo.com",
                     "requests": [
                         "/",

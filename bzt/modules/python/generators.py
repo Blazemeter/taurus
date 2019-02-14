@@ -829,40 +829,53 @@ log.setLevel(logging.DEBUG)
 
     def get_data_source_readers(self):
         readers = []
+
+        r1 = ast.Assign(
+            targets=[ast.Name(id="one")],
+            value=
+            ast.Call(
+                func=ast.Name(id="two"),
+                args=[ast.Name(id="three")],
+                keywords=[
+                    ast.keyword(
+                        arg="four",
+                        value=ast.Name(id="five")
+                    )]))
+
         for idx, source in enumerate(self.scenario.get_data_sources(), start=1):
-            reader_tpl = "reader{idx} = CSVReaderPerThread({params})"
-
-            args = "'%s'" % source.get("path")
-            if "loop" in source:
-                params += ", " + "loop=%s" % source.get("loop")
-
-            if "quoted" in source:
-                params += ", " + "quoted=%s" % source.get("quoted")
-
-            if "delimiter" in source:
-                params += ", " + "delimiter='%s'" % source.get("delimiter")
+            keywords = []
 
             if "fieldnames" in source:
-                fieldnames = source.get("fieldnames").split(",")
-                params += ", " + "fiednames=%s" % fieldnames
+                fieldnames = ast.keyword()
+                fieldnames.arg = "fieldnames"
+                str_names = source.get("fieldnames").split(",")
+                fieldnames.value = ast.List(elts=[ast.Str(s=fname) for fname in str_names])
+                keywords.append(fieldnames)
+
+            if "loop" in source:
+                loop = ast.keyword()
+                loop.arg = "loop"
+                loop.value = ast.Name(id=source.get("loop"))
+                keywords.append(loop)
+
+            if "quoted" in source:
+                quoted = ast.keyword()
+                quoted.arg = "quoted"
+                quoted.value = ast.Name(id=source.get("quoted"))
+                keywords.append(quoted)
+
+            if "delimiter" in source:
+                delimiter = ast.keyword()
+                delimiter.arg = "delimiter"
+                delimiter.value = ast.Str(s=source.get("delimiter"))
+                keywords.append(delimiter)
 
             reader = ast.Assign(
                 targets=[ast.Name(id="reader%s" % idx)],
                 value=ast.Call(
-                    func="CSVReaderPerThread",
-                    args=ast.arguments(
-                        args=[ast.Name(id='self', ctx=ast.Param())],
-                        defaults=[],
-                        vararg=None,
-                        kwonlyargs=[],
-                        kw_defaults=[],
-                        kwarg=None,
-                        returns=None),
-                    keywords=[],
-                    starargs=None,
-                    kwargs=None))
-
-            #reader = ast.parse(reader_tpl.format(idx=idx, params=params))
+                    func=ast.Name(id="CSVReaderPerThread"),
+                    args=[ast.Str(s=source["path"])],
+                    keywords=keywords))
 
             readers.append(ast.Expr(reader))
         return readers
