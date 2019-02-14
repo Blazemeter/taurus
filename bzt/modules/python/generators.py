@@ -913,7 +913,29 @@ log.setLevel(logging.DEBUG)
         if not self.data_sources:
             return []
 
-        setup_body = []     # todo:
+        target = ast.Attribute(attr="vars", value=ast.Name(id="self"))
+        setup_body = [ast.Assign(targets=[target], value=ast.Dict(keys=[], values=[]))]
+        for idx, source in enumerate(self.data_sources, start=1):
+            setup_body.append(self.gen_empty_line_stmt())
+
+            reader = "reader%s" % idx
+            get_vars = ast.Call(
+                func=ast.Attribute(value=ast.Name(id=reader), attr="get_vars"),
+                args=[],
+                keywords=[])
+
+            update = ast.Attribute(
+                attr="update",
+                value=ast.Attribute(
+                    attr="vars",
+                    value=ast.Name(id="self")))
+
+            extend_vars = ast.Call(func=update, args=[get_vars], keywords=[])
+            setup_body.append(extend_vars)
+
+
+
+
         setup = ast.FunctionDef(
             name="setUp",
             args=ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None),
