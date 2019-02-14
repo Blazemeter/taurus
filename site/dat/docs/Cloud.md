@@ -18,6 +18,7 @@ modules:
     check-interval: 5s  # interval which Taurus uses to query test status from BlazeMeter
     public-report: false  # make test report public, disabled by default
     send-report-email: false  # send report email once test is finished, disabled by default
+    request-logging-limit: 10240 # use this to dump more of request/response data into logs, for debugging
 ```
 
 All folders among your resource files (scripts) will be packed automatically before sending and unpacked on cloud workers with `unpacker` service.   

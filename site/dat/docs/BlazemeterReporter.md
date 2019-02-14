@@ -68,6 +68,7 @@ modules:
     artifact-upload-size-limit: 5  # limit max size of file (in megabytes)
                                    # that goes into zip for artifact upload, 10 by default
     public-report: false  # set to true to create a public link to the report
+    request-logging-limit: 10240 # use this to dump more of request/response data into logs, for debugging
 
     # following instructions will have effect when no per-reporter settings
     report-name: My Next Test  # if you will use value 'ask', it will ask it from command line
