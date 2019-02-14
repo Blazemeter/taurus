@@ -895,7 +895,7 @@ log.setLevel(logging.DEBUG)
     def gen_classdef(self):
         class_body = []
         class_body.append(self.gen_empty_line_stmt())
-        #class_body.extend(self.gen_class_setup_methods())  #todo
+        class_body.extend(self.gen_class_setup())
         class_body.extend(self.gen_test_methods())
 
         class_name = create_class_name(self.label)
@@ -909,14 +909,14 @@ log.setLevel(logging.DEBUG)
             decorator_list=[],
         )
 
-    def gen_class_setup_methods(self):
+    def gen_class_setup(self):
         if not self.data_sources:
             return []
 
-        setup_body = ""     # todo:
+        setup_body = []     # todo:
         setup = ast.FunctionDef(
             name="setUp",
-            args=ast.arguments(args=[ast.Name(id="self")]),
+            args=ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None),
             body=setup_body,
             decorator_list=[])
 
