@@ -620,23 +620,24 @@ class DataLogReader(ResultsReader):
             error = fields[1]
             r_code = "N/A"
         else:
-            user_id = fields[2]
-            label = fields[3]
+            if self.guessed_gatling_version != "3.X":
+                del fields[1]
+            user_id = fields[1]
+            label = fields[2]
             if ',' in label:
                 return None  # skip nested groups for now
-            t_stamp = int(fields[5]) / 1000.0
-            r_time = int(fields[6]) / 1000.0
+            t_stamp = int(fields[4]) / 1000.0
+            r_time = int(fields[5]) / 1000.0
 
             if label in self._group_errors[user_id]:
                 error = ';'.join(self._group_errors[user_id].pop(label))
             else:
                 error = None
 
-            if fields[7] == 'OK':
+            if fields[6] == 'OK':
                 r_code = '200'
             else:
-                _tmp_rc = fields[-1].split(" ")[-1]
-                r_code = _tmp_rc if _tmp_rc.isdigit() else 'N/A'
+                r_code = self.__rc_from_msg(fields[-1])
                 assert error, label
 
         return int(t_stamp), label, r_time, con_time, latency, r_code, error
@@ -664,8 +665,7 @@ class DataLogReader(ResultsReader):
         if fields[5] == 'OK':
             r_code = '200'
         else:
-            _tmp_rc = self.__rc_from_msg(fields[-1])
-            r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
+            r_code = self.__rc_from_msg(fields[-1])
 
         return int(t_stamp), label, r_time, con_time, latency, r_code, error
 
@@ -681,7 +681,7 @@ class DataLogReader(ResultsReader):
         if len(parts) > 1 and parts[1] == 'is':
             _tmp_rc = parts[0]
 
-        return _tmp_rc
+        return _tmp_rc if _tmp_rc.isdigit() else 'N/A'
 
     def _guess_gatling_version(self, fields):
         if fields and fields[-1].strip().startswith("3"):
