@@ -792,7 +792,7 @@ class ApiritifScriptGenerator(PythonGenerator):
     def __init__(self, scenario, label, parent_log):
         super(ApiritifScriptGenerator, self).__init__(scenario, parent_log)
         self.scenario = scenario
-        self.data_sources = scenario.get_data_sources()
+        self.data_sources = list(scenario.get_data_sources())
         self.label = label
         self.log = parent_log.getChild(self.__class__.__name__)
         self.tree = None
@@ -822,9 +822,12 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.setLevel(logging.DEBUG)
 """).body)
         stmts.append(self.gen_empty_line_stmt())
+        stmts.append(self.gen_empty_line_stmt())
         stmts.extend(self.gen_global_vars())
         stmts.append(self.gen_empty_line_stmt())
+        stmts.append(self.gen_empty_line_stmt())
         stmts.extend(self.gen_data_source_readers())
+        stmts.append(self.gen_empty_line_stmt())
         stmts.extend(self.gen_module_setup())
         stmts.append(self.gen_classdef())
         return ast.Module(body=stmts)
@@ -833,12 +836,25 @@ log.setLevel(logging.DEBUG)
         if not self.data_sources:
             return []
 
-        setup = ast.FunctionDef(name="", args="", body="")  # todo
-        return [setup, self.gen_empty_line_stmt()]
+        body = []
+
+        for idx, source in enumerate(self.data_sources, start=1):
+            body.append(self.gen_empty_line_stmt())
+            reader = "reader%s" % idx
+            reader_call = ast.Call(
+                func=ast.Attribute(value=ast.Name(id=reader), attr="read_vars"),
+                args=[],
+                keywords=[])
+            body.append(reader_call)
+
+        setup = ast.FunctionDef(
+            name="setup",
+            args=[],
+            body=body,
+            decorator_list=[])
+        return [setup, self.gen_empty_line_stmt(), self.gen_empty_line_stmt()]
 
     def gen_data_source_readers(self):
-        readers = []
-
         for idx, source in enumerate(self.data_sources, start=1):
             keywords = []
 
@@ -874,13 +890,12 @@ log.setLevel(logging.DEBUG)
                     args=[ast.Str(s=source["path"])],
                     keywords=keywords))
 
-            readers.append(ast.Expr(reader))
-        return readers
+            yield reader
 
     def gen_classdef(self):
         class_body = []
         class_body.append(self.gen_empty_line_stmt())
-        class_body.extend(self.gen_class_setup_methods())
+        #class_body.extend(self.gen_class_setup_methods())  #todo
         class_body.extend(self.gen_test_methods())
 
         class_name = create_class_name(self.label)
@@ -901,7 +916,9 @@ log.setLevel(logging.DEBUG)
         setup_body = ""     # todo:
         setup = ast.FunctionDef(
             name="setUp",
-            args=ast.arguments(args=[ast.Name(id="self")], body=setup_body))
+            args=ast.arguments(args=[ast.Name(id="self")]),
+            body=setup_body,
+            decorator_list=[])
 
         return [setup, self.gen_empty_line_stmt()]
 
@@ -1104,18 +1121,13 @@ log.setLevel(logging.DEBUG)
 
     def gen_global_vars(self):
         variables = self.scenario.get("variables")
-        stmts = [
-            ast.Assign(
-                targets=[
-                    ast.Name(id='vars', ctx=ast.Store()),
-                ],
-                value=ast.Dict(
-                    keys=[self.expr_compiler.gen_expr(key) for key, _ in iteritems(variables)],
-                    values=[self.expr_compiler.gen_expr(value) for _, value in iteritems(variables)]
-                )
-            )
-        ]
+        values = ast.Dict(
+            keys=[self.expr_compiler.gen_expr(key) for key, _ in iteritems(variables)],
+            values=[self.expr_compiler.gen_expr(value) for _, value in iteritems(variables)])
+
+        stmts = [ast.Assign(targets=[ast.Name(id='vars', ctx=ast.Store())], value=values)]
         stmts.extend(self.gen_target())
+
         return stmts
 
     def _gen_assertions(self, request):

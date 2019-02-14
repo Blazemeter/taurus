@@ -574,6 +574,8 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
             "execution": [{
                 "test-mode": "apiritif",
                 "scenario": {
+                    "variables": {
+                        "n1": "v1", "n2": "v2"},
                     "data-sources": [
                         "file1", {
                             "path": "/path/file2",
