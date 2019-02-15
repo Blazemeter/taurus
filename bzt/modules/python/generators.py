@@ -816,11 +816,7 @@ class ApiritifScriptGenerator(PythonGenerator):
 
         if self.verbose:
             stmts.append(self.gen_empty_line_stmt())
-            stmts.extend(ast.parse("""\
-log = logging.getLogger('apiritif.http')
-log.addHandler(logging.StreamHandler(sys.stdout))
-log.setLevel(logging.DEBUG)
-""").body)
+            stmts.extend(self.gen_logging())
         stmts.append(self.gen_empty_line_stmt())
         stmts.append(self.gen_empty_line_stmt())
         stmts.extend(self.gen_global_vars())
@@ -844,6 +840,8 @@ log.setLevel(logging.DEBUG)
             reader_call = ast.Call(
                 func=ast.Attribute(value=ast.Name(id=reader), attr="read_vars"),
                 args=[],
+                starargs=None,
+                kwargs=None,
                 keywords=[])
             body.append(reader_call)
 
@@ -888,6 +886,8 @@ log.setLevel(logging.DEBUG)
                 value=ast.Call(
                     func=ast.Name(id="CSVReaderPerThread"),
                     args=[ast.Str(s=source["path"])],
+                    starargs=None,
+                    kwargs=None,
                     keywords=keywords))
 
             yield reader
@@ -922,6 +922,8 @@ log.setLevel(logging.DEBUG)
             get_vars = ast.Call(
                 func=ast.Attribute(value=ast.Name(id=reader), attr="get_vars"),
                 args=[],
+                starargs=None,
+                kwargs=None,
                 keywords=[])
 
             update = ast.Attribute(
@@ -930,7 +932,12 @@ log.setLevel(logging.DEBUG)
                     attr="vars",
                     value=ast.Name(id="self")))
 
-            extend_vars = ast.Call(func=update, args=[get_vars], keywords=[])
+            extend_vars = ast.Call(
+                func=update,
+                args=[get_vars],
+                starargs=None,
+                kwargs=None,
+                keywords=[])
             setup_body.append(extend_vars)
 
 
@@ -1339,3 +1346,35 @@ log.setLevel(logging.DEBUG)
             source = source.replace('class %s(unittest.TestCase, )' % class_name,
                                     'class %s(unittest.TestCase)' % class_name)
             fds.write(source)
+
+    def gen_logging(self):
+        set_log = ast.Assign(targets=[ast.Name(id="log")], value=ast.Call(
+                func=ast.Attribute(
+                    value=ast.Name(id="logging"),
+                    attr="getLogger"),
+                args=[ast.Str(s="apiritif.http")],
+                keywords=[],
+                starargs=None,
+                kwargs=None))
+        add_handler = ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="log"),
+                attr="addHandler"),
+            args=[ast.Call(
+                    func=ast.Attribute(value=ast.Name(id="logging"), attr="StreamHandler"),
+                    args=[ast.Attribute(value=ast.Name(id="sys"), attr="stdout")],
+                    keywords=[],
+                    starargs=None,
+                    kwargs=None)],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+        set_level = ast.Call(
+            func=ast.Attribute(value=ast.Name(id="log"), attr="setLevel"),
+            args=[ast.Attribute(value=ast.Name(id="logging"), attr="DEBUG")],
+            keywords=[],
+            starargs=None,
+            kwargs=None)
+
+        return [set_log, self.gen_empty_line_stmt(), add_handler, self.gen_empty_line_stmt(), set_level]

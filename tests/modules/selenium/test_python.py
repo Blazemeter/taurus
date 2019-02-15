@@ -571,6 +571,7 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
 
     def test_data_sources(self):
         self.configure({
+            "settings": {"verbose": True},
             "execution": [{
                 "test-mode": "apiritif",
                 "scenario": {
