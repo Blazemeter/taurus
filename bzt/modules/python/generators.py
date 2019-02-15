@@ -893,8 +893,7 @@ class ApiritifScriptGenerator(PythonGenerator):
             yield reader
 
     def gen_classdef(self):
-        class_body = []
-        class_body.append(self.gen_empty_line_stmt())
+        class_body =[self.gen_empty_line_stmt()]
         class_body.extend(self.gen_class_setup())
         class_body.extend(self.gen_test_methods())
 
@@ -906,8 +905,7 @@ class ApiritifScriptGenerator(PythonGenerator):
             keywords=[],
             starargs=None,
             kwargs=None,
-            decorator_list=[],
-        )
+            decorator_list=[])
 
     def gen_class_setup(self):
         if not self.data_sources:
@@ -939,9 +937,6 @@ class ApiritifScriptGenerator(PythonGenerator):
                 kwargs=None,
                 keywords=[])
             setup_body.append(extend_vars)
-
-
-
 
         setup = ast.FunctionDef(
             name="setUp",
@@ -1126,10 +1121,7 @@ class ApiritifScriptGenerator(PythonGenerator):
                                   for name, value in iteritems(named_args)],
                         starargs=None,
                         kwargs=None
-                    )
-                )
-            ],
-        )
+                    ))])
         transaction.body.extend(self._gen_assertions(req))
         transaction.body.extend(self._gen_jsonpath_assertions(req))
         transaction.body.extend(self._gen_xpath_assertions(req))
@@ -1138,13 +1130,17 @@ class ApiritifScriptGenerator(PythonGenerator):
         lines.extend(self._gen_extractors(req))
 
         if think_time:
-            lines.append(ast.Expr(ast.Call(func=ast.Attribute(value=ast.Name(id="time", ctx=ast.Load()),
-                                                              attr="sleep",
-                                                              ctx=ast.Load()),
-                                           args=[self.gen_expr(think_time)],
-                                           keywords=[],
-                                           starargs=None,
-                                           kwargs=None)))
+            lines.append(
+                ast.Expr(
+                    ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Name(id="time", ctx=ast.Load()),
+                            attr="sleep",
+                            ctx=ast.Load()),
+                        args=[self.gen_expr(think_time)],
+                        keywords=[],
+                        starargs=None,
+                        kwargs=None)))
 
         return lines
 
