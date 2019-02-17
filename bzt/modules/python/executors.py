@@ -79,14 +79,14 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
         test_mode = self.execution.get("test-mode", "apiritif")
+        scenario = self.get_scenario()
+
         if test_mode == "apiritif":
-            scenario = self.get_scenario()
-            builder = ApiritifScriptGenerator(scenario, self.label, self.log)
+            builder = ApiritifScriptGenerator(self.engine, scenario, self.label, self.log)
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
-            scenario = self.get_scenario()
             generate_markers = scenario.get('generate-flow-markers', self.settings.get('generate-flow-markers', None))
             extra_utilities = os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py")
             builder = SeleniumScriptBuilder(scenario, self.log, wdlog, extra_utilities, ignore_unknown_actions,

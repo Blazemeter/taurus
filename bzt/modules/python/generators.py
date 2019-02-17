@@ -67,7 +67,7 @@ class JMeterExprCompiler(object):
         if ctx is None:
             ctx = ast.Load()
         return ast.Subscript(
-            value=ast.Name(id='vars', ctx=ast.Load()),
+            value=ast.Name(id='self.vars', ctx=ast.Load()),
             slice=ast.Index(value=ast.Str(s=varname)),
             ctx=ctx
         )
@@ -789,9 +789,10 @@ class ApiritifScriptGenerator(PythonGenerator):
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
 
-    def __init__(self, scenario, label, parent_log):
+    def __init__(self, engine, scenario, label, parent_log):
         super(ApiritifScriptGenerator, self).__init__(scenario, parent_log)
         self.scenario = scenario
+        self.engine = engine
         self.data_sources = list(scenario.get_data_sources())
         self.label = label
         self.log = parent_log.getChild(self.__class__.__name__)
@@ -811,7 +812,8 @@ class ApiritifScriptGenerator(PythonGenerator):
             ast.Import(names=[ast.alias(name='time', asname=None)]),
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             self.gen_empty_line_stmt(),
-            ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
+            ast.Import(names=[ast.alias(name='apiritif', asname=None)]), # or "from apiritif import http, utils"?
+            ast.Import(names=[ast.alias(name='apiritif.csv', asname=None)]),
         ]
 
         if self.verbose:
@@ -881,11 +883,12 @@ class ApiritifScriptGenerator(PythonGenerator):
                 delimiter.value = ast.Str(s=source.get("delimiter"))
                 keywords.append(delimiter)
 
+            csv_file = self.engine.find_file(source["path"])
             reader = ast.Assign(
                 targets=[ast.Name(id="reader%s" % idx)],
                 value=ast.Call(
-                    func=ast.Name(id="CSVReaderPerThread"),
-                    args=[ast.Str(s=source["path"])],
+                    func=ast.Name(id="apiritif.csv.CSVReaderPerThread"),
+                    args=[ast.Str(s=csv_file)],
                     starargs=None,
                     kwargs=None,
                     keywords=keywords))
