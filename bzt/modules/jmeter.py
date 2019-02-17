@@ -788,13 +788,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def res_files_from_scenario(self, scenario):
         files = []
-        data_sources = scenario.data.get('data-sources')
-        if data_sources:
-            for data_source in data_sources:
-                if isinstance(data_source, string_types):
-                    files.append(data_source)
-                elif isinstance(data_source, dict):
-                    files.append(data_source['path'])
+        for source in scenario.get_data_sources():
+            files.append(source['path'])
         requests = scenario.get_requests(parser=HierarchicRequestParser)
         for req in requests:
             files.extend(self.res_files_from_request(req))

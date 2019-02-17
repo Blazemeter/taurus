@@ -45,6 +45,13 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         super(ApiritifNoseExecutor, self).__init__()
         self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
 
+    def resource_files(self):
+        files = super(ApiritifNoseExecutor, self).resource_files()
+        for source in self.get_scenario().get_data_sources():
+            files.append(source['path'])
+
+        return files
+
     def create_func_reader(self, report_file):
         del report_file
         return ApiritifFuncReader(self.engine, self.log)
