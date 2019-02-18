@@ -60,14 +60,20 @@ def create_method_name(label):
 
 
 class JMeterExprCompiler(object):
-    def __init__(self, parent_log):
+    def __init__(self, scenario, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
+        self.scenario = scenario
 
     def gen_var_accessor(self, varname, ctx=None):
         if ctx is None:
             ctx = ast.Load()
+
+        var_id = "vars"  # global variable (scenario level)
+        if varname not in self.scenario.get("variables"):   # local variable (csv, etc.)
+            var_id = "self." + var_id
+
         return ast.Subscript(
-            value=ast.Name(id='self.vars', ctx=ast.Load()),
+            value=ast.Name(id=var_id, ctx=ast.Load()),
             slice=ast.Index(value=ast.Str(s=varname)),
             ctx=ctx
         )
@@ -798,7 +804,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.tree = None
         self.verbose = False
-        self.expr_compiler = JMeterExprCompiler(self.log)
+        self.expr_compiler = JMeterExprCompiler(scenario=scenario, parent_log=self.log)
 
     def gen_empty_line_stmt(self):
         return ast.Expr(value=ast.Name(id=""))  # hacky, but works
@@ -852,7 +858,7 @@ class ApiritifScriptGenerator(PythonGenerator):
             args=[],
             body=body,
             decorator_list=[])
-        return [setup, self.gen_empty_line_stmt(), self.gen_empty_line_stmt()]
+        return [setup, self.gen_empty_line_stmt()]
 
     def gen_data_source_readers(self):
         for idx, source in enumerate(self.data_sources, start=1):
@@ -896,8 +902,7 @@ class ApiritifScriptGenerator(PythonGenerator):
             yield reader
 
     def gen_classdef(self):
-        class_body =[self.gen_empty_line_stmt()]
-        class_body.extend(self.gen_class_setup())
+        class_body = self.gen_class_setup()
         class_body.extend(self.gen_test_methods())
 
         class_name = create_class_name(self.label)
