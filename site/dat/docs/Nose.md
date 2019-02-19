@@ -37,6 +37,7 @@ Supported features:
   - capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
   - set timeout/think-time on both scenario and request levels
   - assertions (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)
+  - csv data sources
   - pauseFor (pause for n seconds) 
   - request method GET (only)
   - selenium commands:
@@ -214,6 +215,20 @@ scenario:
       - storeString(${my_title} love my ${my_text} with ${my_value}): final_text
 ```
 
+### Data Sources
+Taurus provides csv data sources support by generation of appropriate python source constructions.
+Use following format to specify sources:
+```yaml
+scenario:
+  sample:
+    data-sources: # list of external data sources
+    - path/to/my.csv  # this is a shorthand form
+    - path: path/to/another.csv  # this is full form, path option is required
+      delimiter: ';'  # CSV delimiter, auto-detected by default
+      quoted: false  # allow quoted data
+      loop: true  # loop over in case of end-of-file reached if true, stop thread if false
+      variable-names: id,name  # delimiter-separated list of variable names, empty by default
+```
 
 ### Remote WebDriver
 
