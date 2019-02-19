@@ -919,10 +919,10 @@ class ApiritifScriptGenerator(PythonGenerator):
         target = ast.Attribute(attr="vars", value=ast.Name(id="self"))
         setup_body = [ast.Assign(targets=[target], value=ast.Dict(keys=[], values=[]))]
 
-        for idx, source in enumerate(self.data_sources, start=1):
+        for idx in range(len(self.data_sources)):
             setup_body.append(self.gen_empty_line_stmt())
 
-            reader = "reader%s" % idx
+            reader = "reader%s" % (idx + 1)
             get_vars = ast.Call(
                 func=ast.Attribute(value=ast.Name(id=reader), attr="get_vars"),
                 args=[],
