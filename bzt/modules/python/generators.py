@@ -888,7 +888,7 @@ class ApiritifScriptGenerator(PythonGenerator):
 
             csv_file = self.engine.find_file(source["path"])
             reader = ast.Assign(
-                targets=[ast.Name(id="reader%s" % idx)],
+                targets=[ast.Name(id="reader_%s" % idx)],
                 value=ast.Call(
                     func=ast.Name(id="apiritif.csv.CSVReaderPerThread"),
                     args=[ast.Str(s=csv_file)],
@@ -922,7 +922,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         for idx in range(len(self.data_sources)):
             setup_body.append(self.gen_empty_line_stmt())
 
-            reader = "reader%s" % (idx + 1)
+            reader = "reader_%s" % (idx + 1)
             get_vars = ast.Call(
                 func=ast.Attribute(value=ast.Name(id=reader), attr="get_vars"),
                 args=[],

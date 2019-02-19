@@ -573,35 +573,6 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
 class TestApiritifScriptGenerator(ExecutorTestCase):
     EXECUTOR = ApiritifNoseExecutor
 
-    def test_data_sources(self):
-        self.configure({
-            "settings": {"verbose": True},
-            "execution": [{
-                "test-mode": "apiritif",
-                "scenario": {
-                    "variables": {
-                        "n1": "v1", "n2": "v2"},
-                    "data-sources": [
-                        "file1", {
-                            "path": "/path/file2",
-                            "fieldnames": "f1,f2",
-                            "delimiter": "-",
-                            "quoted": False,
-                            "loop": False
-                        }
-                    ],
-                    "default-address": "http://blazedemo.com",
-                    "requests": [
-                        "/",
-                    ]
-                }
-            }]
-        })
-        self.obj.prepare()
-        with open(self.obj.script) as fds:
-            test_script = fds.read()
-        self.assertIn("target.keep_alive(True)", test_script)
-
     def test_keepalive_default(self):
         self.configure({
             "execution": [{
@@ -1222,6 +1193,27 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         reader.register_file(RESOURCES_DIR + "apiritif/transactions.ldjson")
         items = list(reader.read())
         self.assertEqual(len(items), 18)
+
+    def test_data_sources(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://localhost:8000/",
+                    "requests": ["${an}", "${bn}", "${cn}"],
+                    "data-sources":[
+                        "first-file.csv", {
+                            "path": "/second/file.csv",
+                            "delimiter": "-",
+                            "loop": True,
+                            "quoted": False,
+                            "variable-names": "bn, bbn"}]}}]})
+
+        self.obj.settings.get("variables", force_set=True)["cn"] = "cv"
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "/apiritif/test_data_sources.py"
+        self.assertFilesEqual(exp_file, self.obj.script)
 
     def test_codegen_requests(self):
         self.configure({
