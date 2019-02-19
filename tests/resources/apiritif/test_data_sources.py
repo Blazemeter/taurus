@@ -10,7 +10,7 @@ import apiritif
 import apiritif.csv
 
 vars = {
-
+    'cn': 'cv',
 }
 target = apiritif.http.target('http://localhost:8000/')
 target.keep_alive(True)
@@ -44,5 +44,5 @@ class TestAPI(unittest.TestCase):
             response = target.get(self.vars['bn'])
 
     def test_3_cn(self):
-        with apiritif.transaction(self.vars['cn']):
-            response = target.get(self.vars['cn'])
+        with apiritif.transaction(vars['cn']):
+            response = target.get(vars['cn'])

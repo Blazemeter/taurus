@@ -1199,6 +1199,7 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
             "execution": [{
                 "test-mode": "apiritif",
                 "scenario": {
+                    "variables": {"cn": "cv"},
                     "default-address": "http://localhost:8000/",
                     "requests": ["${an}", "${bn}", "${cn}"],
                     "data-sources":[
