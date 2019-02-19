@@ -826,12 +826,8 @@ class ApiritifScriptGenerator(PythonGenerator):
             stmts.append(self.gen_empty_line_stmt())
             stmts.extend(self.gen_logging())
         stmts.append(self.gen_empty_line_stmt())
-        stmts.append(self.gen_empty_line_stmt())
         stmts.extend(self.gen_global_vars())
-        stmts.append(self.gen_empty_line_stmt())
-        stmts.append(self.gen_empty_line_stmt())
         stmts.extend(self.gen_data_source_readers())
-        stmts.append(self.gen_empty_line_stmt())
         stmts.extend(self.gen_module_setup())
         stmts.append(self.gen_classdef())
         return ast.Module(body=stmts)
@@ -842,9 +838,9 @@ class ApiritifScriptGenerator(PythonGenerator):
 
         body = []
 
-        for idx, source in enumerate(self.data_sources, start=1):
+        for idx in range(len(self.data_sources)):
             body.append(self.gen_empty_line_stmt())
-            reader = "reader%s" % idx
+            reader = "reader_%s" % (idx + 1)
             reader_call = ast.Call(
                 func=ast.Attribute(value=ast.Name(id=reader), attr="read_vars"),
                 args=[],
@@ -861,6 +857,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         return [setup, self.gen_empty_line_stmt()]
 
     def gen_data_source_readers(self):
+        readers = []
         for idx, source in enumerate(self.data_sources, start=1):
             keywords = []
 
@@ -899,10 +896,13 @@ class ApiritifScriptGenerator(PythonGenerator):
                     kwargs=None,
                     keywords=keywords))
 
-            yield reader
+            readers.append(reader)
+
+        readers.append(self.gen_empty_line_stmt())
+        return readers
 
     def gen_classdef(self):
-        class_body = self.gen_class_setup()
+        class_body = [self.gen_class_setup()]
         class_body.extend(self.gen_test_methods())
 
         class_name = create_class_name(self.label)
@@ -916,11 +916,9 @@ class ApiritifScriptGenerator(PythonGenerator):
             decorator_list=[])
 
     def gen_class_setup(self):
-        if not self.data_sources:
-            return []
-
         target = ast.Attribute(attr="vars", value=ast.Name(id="self"))
         setup_body = [ast.Assign(targets=[target], value=ast.Dict(keys=[], values=[]))]
+
         for idx, source in enumerate(self.data_sources, start=1):
             setup_body.append(self.gen_empty_line_stmt())
 
@@ -952,7 +950,7 @@ class ApiritifScriptGenerator(PythonGenerator):
             body=setup_body,
             decorator_list=[])
 
-        return [setup, self.gen_empty_line_stmt()]
+        return setup
 
     def gen_test_methods(self):
         requests = self.scenario.get_requests()
@@ -988,7 +986,7 @@ class ApiritifScriptGenerator(PythonGenerator):
                 decorator_list=[],
             )
 
-            yield [method, self.gen_empty_line_stmt()]
+            yield method
 
     def gen_expr(self, value):
         return self.expr_compiler.gen_expr(value)
