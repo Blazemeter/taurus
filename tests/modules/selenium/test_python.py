@@ -1255,7 +1255,7 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
-        self.assertIn("data=[('product', vars['product_id'])]", test_script)
+        self.assertIn("data=[('product', self.vars['product_id'])]", test_script)
 
     def test_inherit_test_case(self):
         self.configure({

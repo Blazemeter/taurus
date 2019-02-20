@@ -9,10 +9,6 @@ import unittest
 import apiritif
 import apiritif.csv
 
-vars = {
-    
-}
-
 
 class TestAPI(unittest.TestCase):
 

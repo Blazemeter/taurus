@@ -9,14 +9,12 @@ import unittest
 import apiritif
 import apiritif.csv
 
-vars = {
-    'cn': 'cv',
-}
 target = apiritif.http.target('http://localhost:8000/')
 target.keep_alive(True)
 target.auto_assert_ok(True)
 target.use_cookies(True)
 target.allow_redirects(True)
+
 reader_1 = apiritif.csv.CSVReaderPerThread('first-file.csv')
 reader_2 = apiritif.csv.CSVReaderPerThread('/second/file.csv', loop=True, quoted=False, delimiter='-')
 
@@ -30,7 +28,7 @@ class TestAPI(unittest.TestCase):
 
     def setUp(self):
         self.vars = {
-
+            'cn': 'cv',
         }
         self.vars.update(reader_1.get_vars())
         self.vars.update(reader_2.get_vars())
@@ -44,5 +42,5 @@ class TestAPI(unittest.TestCase):
             response = target.get(self.vars['bn'])
 
     def test_3_cn(self):
-        with apiritif.transaction(vars['cn']):
-            response = target.get(vars['cn'])
+        with apiritif.transaction(self.vars['cn']):
+            response = target.get(self.vars['cn'])

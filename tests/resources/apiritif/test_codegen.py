@@ -13,9 +13,6 @@ log = logging.getLogger('apiritif.http')
 log.addHandler(logging.StreamHandler(sys.stdout))
 log.setLevel(logging.DEBUG)
 
-vars = {
-    
-}
 target = apiritif.http.target('https://jsonplaceholder.typicode.com')
 target.keep_alive(True)
 target.auto_assert_ok(True)

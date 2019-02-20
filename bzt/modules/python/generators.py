@@ -68,12 +68,8 @@ class JMeterExprCompiler(object):
         if ctx is None:
             ctx = ast.Load()
 
-        var_id = "vars"  # global variable (scenario level)
-        if varname not in self.scenario.get("variables"):   # local variable (csv, etc.)
-            var_id = "self." + var_id
-
         return ast.Subscript(
-            value=ast.Name(id=var_id, ctx=ast.Load()),
+            value=ast.Name(id="self.vars", ctx=ast.Load()),
             slice=ast.Index(value=ast.Str(s=varname)),
             ctx=ctx
         )
@@ -810,7 +806,19 @@ class ApiritifScriptGenerator(PythonGenerator):
         return ast.Expr(value=ast.Name(id=""))  # hacky, but works
 
     def gen_module(self):
-        stmts = [
+        stmts = [self._gen_imports()]
+
+        if self.verbose:
+            stmts.extend(self.gen_logging())
+
+        stmts.append(self._gen_target())
+        stmts.extend(self.gen_data_source_readers())
+        stmts.extend(self.gen_module_setup())
+        stmts.append(self.gen_classdef())
+        return ast.Module(body=stmts)
+
+    def _gen_imports(self):
+        return [
             ast.Import(names=[ast.alias(name='logging', asname=None)]),
             ast.Import(names=[ast.alias(name='random', asname=None)]),
             ast.Import(names=[ast.alias(name='string', asname=None)]),
@@ -820,17 +828,7 @@ class ApiritifScriptGenerator(PythonGenerator):
             self.gen_empty_line_stmt(),
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]), # or "from apiritif import http, utils"?
             ast.Import(names=[ast.alias(name='apiritif.csv', asname=None)]),
-        ]
-
-        if self.verbose:
-            stmts.append(self.gen_empty_line_stmt())
-            stmts.extend(self.gen_logging())
-        stmts.append(self.gen_empty_line_stmt())
-        stmts.extend(self.gen_global_vars())
-        stmts.extend(self.gen_data_source_readers())
-        stmts.extend(self.gen_module_setup())
-        stmts.append(self.gen_classdef())
-        return ast.Module(body=stmts)
+            self.gen_empty_line_stmt()]
 
     def gen_module_setup(self):
         if not self.data_sources:
@@ -898,7 +896,9 @@ class ApiritifScriptGenerator(PythonGenerator):
 
             readers.append(reader)
 
-        readers.append(self.gen_empty_line_stmt())
+        if readers:
+            readers.append(self.gen_empty_line_stmt())
+
         return readers
 
     def gen_classdef(self):
@@ -916,8 +916,7 @@ class ApiritifScriptGenerator(PythonGenerator):
             decorator_list=[])
 
     def gen_class_setup(self):
-        target = ast.Attribute(attr="vars", value=ast.Name(id="self"))
-        setup_body = [ast.Assign(targets=[target], value=ast.Dict(keys=[], values=[]))]
+        setup_body = [self.gen_default_vars()]
 
         for idx in range(len(self.data_sources)):
             setup_body.append(self.gen_empty_line_stmt())
@@ -1010,7 +1009,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         else:
             return ApiritifScriptGenerator.ACCESS_PLAIN
 
-    def gen_target(self):
+    def _gen_target(self):
         keepalive = self.scenario.get("keepalive", None)
         default_address = self.scenario.get("default-address", None)
         base_path = self.scenario.get("base-path", None)
@@ -1024,10 +1023,10 @@ class ApiritifScriptGenerator(PythonGenerator):
         if store_cookie is None:
             store_cookie = True
 
-        stmts = []
+        target = []
         if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET:
             http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
-            stmts = [
+            target = [
                 ast.Assign(
                     targets=[
                         ast.Name(id="target", ctx=ast.Store()),
@@ -1038,18 +1037,19 @@ class ApiritifScriptGenerator(PythonGenerator):
                         keywords=[],
                         starargs=None,
                         kwargs=None
-                    )
-                ),
+                    ))]
+            target.extend([
                 self._gen_target_setup('keep_alive', keepalive),
                 self._gen_target_setup('auto_assert_ok', auto_assert_ok),
                 self._gen_target_setup('use_cookies', store_cookie),
                 self._gen_target_setup('allow_redirects', follow_redirects),
-            ]
+            ])
             if base_path:
-                stmts.append(self._gen_target_setup('base_path', base_path))
+                target.append(self._gen_target_setup('base_path', base_path))
             if timeout is not None:
-                stmts.append(self._gen_target_setup('timeout', dehumanize_time(timeout)))
-        return stmts
+                target.append(self._gen_target_setup('timeout', dehumanize_time(timeout)))
+            target.append(self.gen_empty_line_stmt())
+        return target
 
     def _extract_named_args(self, req):
         named_args = OrderedDict()
@@ -1150,14 +1150,13 @@ class ApiritifScriptGenerator(PythonGenerator):
 
         return lines
 
-    def gen_global_vars(self):
+    def gen_default_vars(self):
         variables = self.scenario.get("variables")
         values = ast.Dict(
             keys=[self.expr_compiler.gen_expr(key) for key, _ in iteritems(variables)],
             values=[self.expr_compiler.gen_expr(value) for _, value in iteritems(variables)])
 
-        stmts = [ast.Assign(targets=[ast.Name(id='vars', ctx=ast.Store())], value=values)]
-        stmts.extend(self.gen_target())
+        stmts = [ast.Assign(targets=[ast.Name(id='self.vars', ctx=ast.Store())], value=values)]
 
         return stmts
 
@@ -1379,4 +1378,5 @@ class ApiritifScriptGenerator(PythonGenerator):
             starargs=None,
             kwargs=None)
 
-        return [set_log, self.gen_empty_line_stmt(), add_handler, self.gen_empty_line_stmt(), set_level]
+        return [set_log, self.gen_empty_line_stmt(), add_handler,
+                self.gen_empty_line_stmt(), set_level, self.gen_empty_line_stmt()]
