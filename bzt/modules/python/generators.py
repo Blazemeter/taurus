@@ -60,9 +60,8 @@ def create_method_name(label):
 
 
 class JMeterExprCompiler(object):
-    def __init__(self, scenario, parent_log):
+    def __init__(self, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
-        self.scenario = scenario
 
     def gen_var_accessor(self, varname, ctx=None):
         if ctx is None:
@@ -800,7 +799,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.tree = None
         self.verbose = False
-        self.expr_compiler = JMeterExprCompiler(scenario=scenario, parent_log=self.log)
+        self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
 
     def gen_empty_line_stmt(self):
         return ast.Expr(value=ast.Name(id=""))  # hacky, but works
