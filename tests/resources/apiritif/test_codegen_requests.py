@@ -7,7 +7,6 @@ import time
 import unittest
 
 import apiritif
-import apiritif.csv
 
 
 class TestAPI(unittest.TestCase):

@@ -827,7 +827,6 @@ class ApiritifScriptGenerator(PythonGenerator):
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             self.gen_empty_line_stmt(),
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]), # or "from apiritif import http, utils"?
-            ast.Import(names=[ast.alias(name='apiritif.csv', asname=None)]),
             self.gen_empty_line_stmt()]
 
     def gen_module_setup(self):

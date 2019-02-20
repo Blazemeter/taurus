@@ -7,7 +7,6 @@ import time
 import unittest
 
 import apiritif
-import apiritif.csv
 
 log = logging.getLogger('apiritif.http')
 log.addHandler(logging.StreamHandler(sys.stdout))

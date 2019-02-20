@@ -7,7 +7,6 @@ import time
 import unittest
 
 import apiritif
-import apiritif.csv
 
 target = apiritif.http.target('http://localhost:8000/')
 target.keep_alive(True)
