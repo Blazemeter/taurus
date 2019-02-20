@@ -1337,6 +1337,18 @@ class Scenario(UserDict, object):
             headers = {}
         return headers
 
+    def get_data_sources(self):
+        sources = self.get(self.FIELD_DATA_SOURCES, [])
+        if not isinstance(sources, list):
+            raise TaurusConfigError("data-sources is not a list: '%s'" % sources)
+
+        for idx, source in enumerate(sources):
+            source = ensure_is_dict(sources, idx, "path")
+            if not source:
+                raise TaurusConfigError("Data source must have valid file path: '%s'" % source)
+
+            yield source
+
     def get_requests(self, parser=RequestParser, require_url=True):
         """
         Generator object to read requests
@@ -1347,14 +1359,6 @@ class Scenario(UserDict, object):
         """
         requests_parser = parser(self, self.engine)
         return requests_parser.extract_requests(require_url=require_url, )
-
-    def get_data_sources(self):
-        data_sources = self.get(self.FIELD_DATA_SOURCES, [])
-        if not isinstance(data_sources, list):
-            raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
-        for index, _ in enumerate(data_sources):
-            ensure_is_dict(data_sources, index, "path")
-        return self.get(self.FIELD_DATA_SOURCES, [])
 
 
 class HavingInstallableTools(object):

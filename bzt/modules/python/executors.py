@@ -45,6 +45,13 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         super(ApiritifNoseExecutor, self).__init__()
         self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
 
+    def resource_files(self):
+        files = super(ApiritifNoseExecutor, self).resource_files()
+        for source in self.get_scenario().get_data_sources():
+            files.append(source['path'])
+
+        return files
+
     def create_func_reader(self, report_file):
         del report_file
         return ApiritifFuncReader(self.engine, self.log)
@@ -72,14 +79,14 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
         test_mode = self.execution.get("test-mode", "apiritif")
+        scenario = self.get_scenario()
+
         if test_mode == "apiritif":
-            scenario = self.get_scenario()
-            builder = ApiritifScriptGenerator(scenario, self.label, self.log)
+            builder = ApiritifScriptGenerator(self.engine, scenario, self.label, self.log)
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
-            scenario = self.get_scenario()
             generate_markers = scenario.get('generate-flow-markers', self.settings.get('generate-flow-markers', None))
             extra_utilities = os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py")
             builder = SeleniumScriptBuilder(scenario, self.log, wdlog, extra_utilities, ignore_unknown_actions,

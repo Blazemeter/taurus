@@ -66,8 +66,9 @@ class JMeterExprCompiler(object):
     def gen_var_accessor(self, varname, ctx=None):
         if ctx is None:
             ctx = ast.Load()
+
         return ast.Subscript(
-            value=ast.Name(id='vars', ctx=ast.Load()),
+            value=ast.Name(id="self.vars", ctx=ast.Load()),
             slice=ast.Index(value=ast.Str(s=varname)),
             ctx=ctx
         )
@@ -789,20 +790,34 @@ class ApiritifScriptGenerator(PythonGenerator):
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
 
-    def __init__(self, scenario, label, parent_log):
+    def __init__(self, engine, scenario, label, parent_log):
         super(ApiritifScriptGenerator, self).__init__(scenario, parent_log)
         self.scenario = scenario
+        self.engine = engine
+        self.data_sources = list(scenario.get_data_sources())
         self.label = label
         self.log = parent_log.getChild(self.__class__.__name__)
         self.tree = None
         self.verbose = False
-        self.expr_compiler = JMeterExprCompiler(self.log)
+        self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
 
     def gen_empty_line_stmt(self):
         return ast.Expr(value=ast.Name(id=""))  # hacky, but works
 
     def gen_module(self):
-        stmts = [
+        stmts = [self._gen_imports()]
+
+        if self.verbose:
+            stmts.extend(self.gen_logging())
+
+        stmts.append(self._gen_target())
+        stmts.extend(self.gen_data_source_readers())
+        stmts.extend(self.gen_module_setup())
+        stmts.append(self.gen_classdef())
+        return ast.Module(body=stmts)
+
+    def _gen_imports(self):
+        return [
             ast.Import(names=[ast.alias(name='logging', asname=None)]),
             ast.Import(names=[ast.alias(name='random', asname=None)]),
             ast.Import(names=[ast.alias(name='string', asname=None)]),
@@ -810,25 +825,82 @@ class ApiritifScriptGenerator(PythonGenerator):
             ast.Import(names=[ast.alias(name='time', asname=None)]),
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             self.gen_empty_line_stmt(),
-            ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
-        ]
+            ast.Import(names=[ast.alias(name='apiritif', asname=None)]), # or "from apiritif import http, utils"?
+            self.gen_empty_line_stmt()]
 
-        if self.verbose:
-            stmts.append(self.gen_empty_line_stmt())
-            stmts.extend(ast.parse("""\
-log = logging.getLogger('apiritif.http')
-log.addHandler(logging.StreamHandler(sys.stdout))
-log.setLevel(logging.DEBUG)
-""").body)
-        stmts.append(self.gen_empty_line_stmt())
-        stmts.extend(self.gen_global_vars())
-        stmts.append(self.gen_empty_line_stmt())
-        stmts.append(self.gen_classdef())
-        return ast.Module(body=stmts)
+    def gen_module_setup(self):
+        if not self.data_sources:
+            return []
+
+        body = []
+
+        for idx in range(len(self.data_sources)):
+            body.append(self.gen_empty_line_stmt())
+            reader = "reader_%s" % (idx + 1)
+            reader_call = ast.Call(
+                func=ast.Attribute(value=ast.Name(id=reader), attr="read_vars"),
+                args=[],
+                starargs=None,
+                kwargs=None,
+                keywords=[])
+            body.append(reader_call)
+
+        setup = ast.FunctionDef(
+            name="setup",
+            args=[],
+            body=body,
+            decorator_list=[])
+        return [setup, self.gen_empty_line_stmt()]
+
+    def gen_data_source_readers(self):
+        readers = []
+        for idx, source in enumerate(self.data_sources, start=1):
+            keywords = []
+
+            if "fieldnames" in source:
+                fieldnames = ast.keyword()
+                fieldnames.arg = "fieldnames"
+                str_names = source.get("fieldnames").split(",")
+                fieldnames.value = ast.List(elts=[ast.Str(s=fname) for fname in str_names])
+                keywords.append(fieldnames)
+
+            if "loop" in source:
+                loop = ast.keyword()
+                loop.arg = "loop"
+                loop.value = ast.Name(id=source.get("loop"))
+                keywords.append(loop)
+
+            if "quoted" in source:
+                quoted = ast.keyword()
+                quoted.arg = "quoted"
+                quoted.value = ast.Name(id=source.get("quoted"))
+                keywords.append(quoted)
+
+            if "delimiter" in source:
+                delimiter = ast.keyword()
+                delimiter.arg = "delimiter"
+                delimiter.value = ast.Str(s=source.get("delimiter"))
+                keywords.append(delimiter)
+
+            csv_file = self.engine.find_file(source["path"])
+            reader = ast.Assign(
+                targets=[ast.Name(id="reader_%s" % idx)],
+                value=ast.Call(
+                    func=ast.Name(id="apiritif.csv.CSVReaderPerThread"),
+                    args=[ast.Str(s=csv_file)],
+                    starargs=None,
+                    kwargs=None,
+                    keywords=keywords))
+
+            readers.append(reader)
+
+        if readers:
+            readers.append(self.gen_empty_line_stmt())
+
+        return readers
 
     def gen_classdef(self):
-        class_body = []
-        class_body.append(self.gen_empty_line_stmt())
+        class_body = [self.gen_class_setup()]
         class_body.extend(self.gen_test_methods())
 
         class_name = create_class_name(self.label)
@@ -839,11 +911,45 @@ log.setLevel(logging.DEBUG)
             keywords=[],
             starargs=None,
             kwargs=None,
-            decorator_list=[],
-        )
+            decorator_list=[])
+
+    def gen_class_setup(self):
+        setup_body = [self.gen_default_vars()]
+
+        for idx in range(len(self.data_sources)):
+            setup_body.append(self.gen_empty_line_stmt())
+
+            reader = "reader_%s" % (idx + 1)
+            get_vars = ast.Call(
+                func=ast.Attribute(value=ast.Name(id=reader), attr="get_vars"),
+                args=[],
+                starargs=None,
+                kwargs=None,
+                keywords=[])
+
+            update = ast.Attribute(
+                attr="update",
+                value=ast.Attribute(
+                    attr="vars",
+                    value=ast.Name(id="self")))
+
+            extend_vars = ast.Call(
+                func=update,
+                args=[get_vars],
+                starargs=None,
+                kwargs=None,
+                keywords=[])
+            setup_body.append(extend_vars)
+
+        setup = ast.FunctionDef(
+            name="setUp",
+            args=ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None),
+            body=setup_body,
+            decorator_list=[])
+
+        return setup
 
     def gen_test_methods(self):
-        stmts = []
         requests = self.scenario.get_requests()
         number_of_digits = int(math.log10(len(requests))) + 1
         for index, req in enumerate(requests, start=1):
@@ -877,10 +983,7 @@ log.setLevel(logging.DEBUG)
                 decorator_list=[],
             )
 
-            stmts.append(method)
-            stmts.append(self.gen_empty_line_stmt())
-
-        return stmts
+            yield method
 
     def gen_expr(self, value):
         return self.expr_compiler.gen_expr(value)
@@ -904,7 +1007,7 @@ log.setLevel(logging.DEBUG)
         else:
             return ApiritifScriptGenerator.ACCESS_PLAIN
 
-    def gen_target(self):
+    def _gen_target(self):
         keepalive = self.scenario.get("keepalive", None)
         default_address = self.scenario.get("default-address", None)
         base_path = self.scenario.get("base-path", None)
@@ -918,10 +1021,10 @@ log.setLevel(logging.DEBUG)
         if store_cookie is None:
             store_cookie = True
 
-        stmts = []
+        target = []
         if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET:
             http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
-            stmts = [
+            target = [
                 ast.Assign(
                     targets=[
                         ast.Name(id="target", ctx=ast.Store()),
@@ -932,18 +1035,19 @@ log.setLevel(logging.DEBUG)
                         keywords=[],
                         starargs=None,
                         kwargs=None
-                    )
-                ),
+                    ))]
+            target.extend([
                 self._gen_target_setup('keep_alive', keepalive),
                 self._gen_target_setup('auto_assert_ok', auto_assert_ok),
                 self._gen_target_setup('use_cookies', store_cookie),
                 self._gen_target_setup('allow_redirects', follow_redirects),
-            ]
+            ])
             if base_path:
-                stmts.append(self._gen_target_setup('base_path', base_path))
+                target.append(self._gen_target_setup('base_path', base_path))
             if timeout is not None:
-                stmts.append(self._gen_target_setup('timeout', dehumanize_time(timeout)))
-        return stmts
+                target.append(self._gen_target_setup('timeout', dehumanize_time(timeout)))
+            target.append(self.gen_empty_line_stmt())
+        return target
 
     def _extract_named_args(self, req):
         named_args = OrderedDict()
@@ -1021,10 +1125,7 @@ log.setLevel(logging.DEBUG)
                                   for name, value in iteritems(named_args)],
                         starargs=None,
                         kwargs=None
-                    )
-                )
-            ],
-        )
+                    ))])
         transaction.body.extend(self._gen_assertions(req))
         transaction.body.extend(self._gen_jsonpath_assertions(req))
         transaction.body.extend(self._gen_xpath_assertions(req))
@@ -1033,30 +1134,28 @@ log.setLevel(logging.DEBUG)
         lines.extend(self._gen_extractors(req))
 
         if think_time:
-            lines.append(ast.Expr(ast.Call(func=ast.Attribute(value=ast.Name(id="time", ctx=ast.Load()),
-                                                              attr="sleep",
-                                                              ctx=ast.Load()),
-                                           args=[self.gen_expr(think_time)],
-                                           keywords=[],
-                                           starargs=None,
-                                           kwargs=None)))
+            lines.append(
+                ast.Expr(
+                    ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Name(id="time", ctx=ast.Load()),
+                            attr="sleep",
+                            ctx=ast.Load()),
+                        args=[self.gen_expr(think_time)],
+                        keywords=[],
+                        starargs=None,
+                        kwargs=None)))
 
         return lines
 
-    def gen_global_vars(self):
+    def gen_default_vars(self):
         variables = self.scenario.get("variables")
-        stmts = [
-            ast.Assign(
-                targets=[
-                    ast.Name(id='vars', ctx=ast.Store()),
-                ],
-                value=ast.Dict(
-                    keys=[self.expr_compiler.gen_expr(key) for key, _ in iteritems(variables)],
-                    values=[self.expr_compiler.gen_expr(value) for _, value in iteritems(variables)]
-                )
-            )
-        ]
-        stmts.extend(self.gen_target())
+        values = ast.Dict(
+            keys=[self.expr_compiler.gen_expr(key) for key, _ in iteritems(variables)],
+            values=[self.expr_compiler.gen_expr(value) for _, value in iteritems(variables)])
+
+        stmts = [ast.Assign(targets=[ast.Name(id='self.vars', ctx=ast.Store())], value=values)]
+
         return stmts
 
     def _gen_assertions(self, request):
@@ -1246,3 +1345,36 @@ log.setLevel(logging.DEBUG)
             source = source.replace('class %s(unittest.TestCase, )' % class_name,
                                     'class %s(unittest.TestCase)' % class_name)
             fds.write(source)
+
+    def gen_logging(self):
+        set_log = ast.Assign(targets=[ast.Name(id="log")], value=ast.Call(
+                func=ast.Attribute(
+                    value=ast.Name(id="logging"),
+                    attr="getLogger"),
+                args=[ast.Str(s="apiritif.http")],
+                keywords=[],
+                starargs=None,
+                kwargs=None))
+        add_handler = ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="log"),
+                attr="addHandler"),
+            args=[ast.Call(
+                    func=ast.Attribute(value=ast.Name(id="logging"), attr="StreamHandler"),
+                    args=[ast.Attribute(value=ast.Name(id="sys"), attr="stdout")],
+                    keywords=[],
+                    starargs=None,
+                    kwargs=None)],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+        set_level = ast.Call(
+            func=ast.Attribute(value=ast.Name(id="log"), attr="setLevel"),
+            args=[ast.Attribute(value=ast.Name(id="logging"), attr="DEBUG")],
+            keywords=[],
+            starargs=None,
+            kwargs=None)
+
+        return [set_log, self.gen_empty_line_stmt(), add_handler,
+                self.gen_empty_line_stmt(), set_level, self.gen_empty_line_stmt()]

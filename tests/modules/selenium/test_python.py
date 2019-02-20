@@ -377,8 +377,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         })
 
         self.obj.prepare()
-        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests.py",
-                              (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\'), "<somewhere>")
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>")
 
     def test_headless_default(self):
         self.configure({
@@ -493,7 +494,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         })
 
         self.obj.prepare()
-        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests_remote.py")
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_remote.py"
+        self.assertFilesEqual(exp_file, self.obj.script)
 
     def test_build_script_appium_browser(self):
         self.configure({
@@ -530,7 +532,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         })
 
         self.obj.prepare()
-        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py")
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py"
+        self.assertFilesEqual(exp_file, self.obj.script)
 
     def test_build_script_flow_markers(self):
         self.configure({
@@ -562,8 +565,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             }
         })
         self.obj.prepare()
-        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests_flow_markers.py",
-                              (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\'), "<somewhere>")
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_flow_markers.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>")
 
 
 class TestApiritifScriptGenerator(ExecutorTestCase):
@@ -1024,7 +1028,7 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + 'apiritif/test_codegen.py'
         # import shutil; shutil.copy2(self.obj.script, exp_file)  # keep this comment to ease updates
-        self.assertFilesEqual(self.obj.script, exp_file)
+        self.assertFilesEqual(exp_file, self.obj.script)
 
     def test_jmeter_functions_time(self):
         self.configure({
@@ -1190,6 +1194,28 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         items = list(reader.read())
         self.assertEqual(len(items), 18)
 
+    def test_data_sources(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "variables": {"cn": "cv"},
+                    "default-address": "http://localhost:8000/",
+                    "requests": ["${an}", "${bn}", "${cn}"],
+                    "data-sources":[
+                        "first-file.csv", {
+                            "path": "/second/file.csv",
+                            "delimiter": "-",
+                            "loop": True,
+                            "quoted": False,
+                            "variable-names": "bn, bbn"}]}}]})
+
+        self.obj.settings.get("variables", force_set=True)["cn"] = "cv"
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "/apiritif/test_data_sources.py"
+        self.assertFilesEqual(exp_file, self.obj.script)
+
     def test_codegen_requests(self):
         self.configure({
             "execution": [{
@@ -1203,7 +1229,8 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
             }]
         })
         self.obj.prepare()
-        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "/apiritif/test_codegen_requests.py")
+        exp_file = RESOURCES_DIR + "/apiritif/test_codegen_requests.py"
+        self.assertFilesEqual(exp_file, self.obj.script)
 
     def test_generator_crash(self):
         self.configure({
@@ -1228,7 +1255,7 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
-        self.assertIn("data=[('product', vars['product_id'])]", test_script)
+        self.assertIn("data=[('product', self.vars['product_id'])]", test_script)
 
     def test_inherit_test_case(self):
         self.configure({
