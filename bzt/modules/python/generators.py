@@ -810,7 +810,6 @@ class ApiritifScriptGenerator(PythonGenerator):
         if self.verbose:
             stmts.extend(self.gen_logging())
 
-        stmts.append(self._gen_target())
         stmts.extend(self.gen_data_source_readers())
         stmts.extend(self.gen_module_setup())
         stmts.append(self.gen_classdef())
@@ -829,21 +828,39 @@ class ApiritifScriptGenerator(PythonGenerator):
             self.gen_empty_line_stmt()]
 
     def gen_module_setup(self):
-        if not self.data_sources:
-            return []
+        body = self._gen_target()
+        body.append(self._gen_default_vars())
 
-        body = []
+        if self.data_sources:
+            # reader_XX.read_vars
+            for idx in range(len(self.data_sources)):
+                body.append(self.gen_empty_line_stmt())
+                reader = "reader_%s" % (idx + 1)
+                func = ast.Attribute(value=ast.Name(id=reader), attr="read_vars")
+                body.append(ast.Expr(ast.Call(func=func, args=[], starargs=None, kwargs=None, keywords=[])))
 
-        for idx in range(len(self.data_sources)):
-            body.append(self.gen_empty_line_stmt())
-            reader = "reader_%s" % (idx + 1)
-            reader_call = ast.Call(
-                func=ast.Attribute(value=ast.Name(id=reader), attr="read_vars"),
-                args=[],
-                starargs=None,
-                kwargs=None,
-                keywords=[])
-            body.append(reader_call)
+            for idx in range(len(self.data_sources)):
+                body.append(self.gen_empty_line_stmt())
+
+                reader = "reader_%s" % (idx + 1)
+                get_vars = ast.Call(
+                    func=ast.Attribute(value=ast.Name(id=reader), attr="get_vars"),
+                    args=[],
+                    starargs=None,
+                    kwargs=None,
+                    keywords=[])
+
+                update = ast.Attribute(
+                    attr="update",
+                    value=ast.Name(id="vars"))
+
+                extend_vars = ast.Call(
+                    func=update,
+                    args=[get_vars],
+                    starargs=None,
+                    kwargs=None,
+                    keywords=[])
+                body.append(ast.Expr(extend_vars))
 
         setup = ast.FunctionDef(
             name="setup",
@@ -886,7 +903,7 @@ class ApiritifScriptGenerator(PythonGenerator):
             reader = ast.Assign(
                 targets=[ast.Name(id="reader_%s" % idx)],
                 value=ast.Call(
-                    func=ast.Name(id="apiritif.csv.CSVReaderPerThread"),
+                    func=ast.Name(id="apiritif.CSVReaderPerThread"),
                     args=[ast.Str(s=csv_file)],
                     starargs=None,
                     kwargs=None,
@@ -904,9 +921,10 @@ class ApiritifScriptGenerator(PythonGenerator):
         class_body.extend(self.gen_test_methods())
 
         class_name = create_class_name(self.label)
+        base = ast.Attribute(value=ast.Name(id='unittest', ctx=ast.Load()), attr='TestCase', ctx=ast.Load())
         return ast.ClassDef(
             name=class_name,
-            bases=[ast.Attribute(value=ast.Name(id='unittest', ctx=ast.Load()), attr='TestCase', ctx=ast.Load())],
+            bases=[base],
             body=class_body,
             keywords=[],
             starargs=None,
@@ -914,40 +932,9 @@ class ApiritifScriptGenerator(PythonGenerator):
             decorator_list=[])
 
     def gen_class_setup(self):
-        setup_body = [self.gen_default_vars()]
-
-        for idx in range(len(self.data_sources)):
-            setup_body.append(self.gen_empty_line_stmt())
-
-            reader = "reader_%s" % (idx + 1)
-            get_vars = ast.Call(
-                func=ast.Attribute(value=ast.Name(id=reader), attr="get_vars"),
-                args=[],
-                starargs=None,
-                kwargs=None,
-                keywords=[])
-
-            update = ast.Attribute(
-                attr="update",
-                value=ast.Attribute(
-                    attr="vars",
-                    value=ast.Name(id="self")))
-
-            extend_vars = ast.Call(
-                func=update,
-                args=[get_vars],
-                starargs=None,
-                kwargs=None,
-                keywords=[])
-            setup_body.append(extend_vars)
-
-        setup = ast.FunctionDef(
-            name="setUp",
-            args=ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None),
-            body=setup_body,
-            decorator_list=[])
-
-        return setup
+        body = []   # todo:
+        args = ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None)
+        return ast.FunctionDef(name="setUp", args=args, body=body, decorator_list=[])
 
     def gen_test_methods(self):
         requests = self.scenario.get_requests()
@@ -1089,7 +1076,7 @@ class ApiritifScriptGenerator(PythonGenerator):
     def gen_request_lines(self, req):
         apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()),
                                       attr='http', ctx=ast.Load())
-        target = ast.Name(id='target', ctx=ast.Load())
+        target = ast.Name(id='self.target', ctx=ast.Load())
         requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
 
         method = req.method.lower()
@@ -1148,15 +1135,13 @@ class ApiritifScriptGenerator(PythonGenerator):
 
         return lines
 
-    def gen_default_vars(self):
+    def _gen_default_vars(self):
         variables = self.scenario.get("variables")
         values = ast.Dict(
             keys=[self.expr_compiler.gen_expr(key) for key, _ in iteritems(variables)],
             values=[self.expr_compiler.gen_expr(value) for _, value in iteritems(variables)])
 
-        stmts = [ast.Assign(targets=[ast.Name(id='self.vars', ctx=ast.Store())], value=values)]
-
-        return stmts
+        return ast.Assign(targets=[ast.Name(id='vars', ctx=ast.Store())], value=values)
 
     def _gen_assertions(self, request):
         stmts = []

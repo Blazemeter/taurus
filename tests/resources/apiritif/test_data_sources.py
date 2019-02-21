@@ -8,12 +8,11 @@ import unittest
 
 import apiritif
 
-reader_1 = apiritif.csv.CSVReaderPerThread('first-file.csv')
-reader_2 = apiritif.csv.CSVReaderPerThread('/second/file.csv', loop=True, quoted=False, delimiter='-')
+reader_1 = apiritif.CSVReaderPerThread('first-file.csv')
+reader_2 = apiritif.CSVReaderPerThread('/second/file.csv', loop=True, quoted=False, delimiter='-')
 
 
 def setup():
-    # variable data must be saved into thread context due to multi threading load model
     target = apiritif.http.target('http://localhost:8000/')
     target.keep_alive(True)
     target.auto_assert_ok(True)
