@@ -33,7 +33,8 @@ def setup():
 class TestAPI(unittest.TestCase):
 
     def setUp(self):
-        self.vars, self.target = apiritif.get_from_thread_store()
+
+        (self.vars, self.target) = apiritif.get_from_thread_store()
 
     def test_1_an(self):
         with apiritif.transaction(self.vars['an']):

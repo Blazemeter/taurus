@@ -800,8 +800,10 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.tree = None
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
+        self.stored_vars = []
 
-    def gen_empty_line_stmt(self):
+    @staticmethod
+    def gen_empty_line_stmt():
         return ast.Expr(value=ast.Name(id=""))  # hacky, but works
 
     def gen_module(self):
@@ -824,48 +826,58 @@ class ApiritifScriptGenerator(PythonGenerator):
             ast.Import(names=[ast.alias(name='time', asname=None)]),
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             self.gen_empty_line_stmt(),
-            ast.Import(names=[ast.alias(name='apiritif', asname=None)]), # or "from apiritif import http, utils"?
+            ast.Import(names=[ast.alias(name='apiritif', asname=None)]),    # or "from apiritif import http, utils"?
             self.gen_empty_line_stmt()]
 
     def gen_module_setup(self):
-        body = self._gen_target()
-        body.append(self._gen_default_vars())
+        target_init = self._gen_target()
+        def_vars = [self._gen_default_vars()]
 
-        if self.data_sources:
-            # reader_XX.read_vars
-            for idx in range(len(self.data_sources)):
-                body.append(self.gen_empty_line_stmt())
-                reader = "reader_%s" % (idx + 1)
-                func = ast.Attribute(value=ast.Name(id=reader), attr="read_vars")
-                body.append(ast.Expr(ast.Call(func=func, args=[], starargs=None, kwargs=None, keywords=[])))
+        data_sources = []
+        for idx in range(len(self.data_sources)):
+            reader = "reader_%s" % (idx + 1)
+            func = ast.Attribute(value=ast.Name(id=reader), attr="read_vars")
+            read_vars = ast.Call(func=func, args=[], starargs=None, kwargs=None, keywords=[])
+            data_sources.append(ast.Expr(read_vars))
 
-            for idx in range(len(self.data_sources)):
-                body.append(self.gen_empty_line_stmt())
+        for idx in range(len(self.data_sources)):
+            reader = "reader_%s" % (idx + 1)
+            get_vars = ast.Call(
+                func=ast.Attribute(value=ast.Name(id=reader), attr="get_vars"),
+                args=[],
+                starargs=None,
+                kwargs=None,
+                keywords=[])
 
-                reader = "reader_%s" % (idx + 1)
-                get_vars = ast.Call(
-                    func=ast.Attribute(value=ast.Name(id=reader), attr="get_vars"),
-                    args=[],
-                    starargs=None,
-                    kwargs=None,
-                    keywords=[])
+            update = ast.Attribute(
+                attr="update",
+                value=ast.Name(id="vars"))
 
-                update = ast.Attribute(
-                    attr="update",
-                    value=ast.Name(id="vars"))
+            extend_vars = ast.Call(
+                func=update,
+                args=[get_vars],
+                starargs=None,
+                kwargs=None,
+                keywords=[])
+            data_sources.append(ast.Expr(extend_vars))
 
-                extend_vars = ast.Call(
-                    func=update,
-                    args=[get_vars],
-                    starargs=None,
-                    kwargs=None,
-                    keywords=[])
-                body.append(ast.Expr(extend_vars))
+        self.stored_vars = ['vars']
+        if target_init:
+            self.stored_vars.append('target')
+
+        store_call = ast.Call(
+                func=ast.Attribute(attr="put_into_thread_store", value=ast.Name(id="apiritif")),
+                args=[ast.Name(id=var) for var in self.stored_vars],
+                starargs=None,
+                kwargs=None,
+                keywords=[])
+
+        store_block = [self.gen_empty_line_stmt(), ast.Expr(store_call)]
 
         setup = ast.FunctionDef(
             name="setup",
             args=[],
-            body=body,
+            body=target_init + def_vars + data_sources + store_block,
             decorator_list=[])
         return [setup, self.gen_empty_line_stmt()]
 
@@ -932,9 +944,18 @@ class ApiritifScriptGenerator(PythonGenerator):
             decorator_list=[])
 
     def gen_class_setup(self):
-        body = []   # todo:
+        get_expr = ast.Expr(
+            ast.Assign(
+                targets=[ast.Tuple(elts=[ast.Name(id="self.%s" % var) for var in self.stored_vars])],
+                value=ast.Call(
+                    func=ast.Attribute(attr="get_from_thread_store", value=ast.Name(id="apiritif")),
+                    args=[],
+                    starargs=None,
+                    kwargs=None,
+                    keywords=[]
+                )))
         args = ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None)
-        return ast.FunctionDef(name="setUp", args=args, body=body, decorator_list=[])
+        return ast.FunctionDef(name="setUp", args=args, body=[get_expr], decorator_list=[])
 
     def gen_test_methods(self):
         requests = self.scenario.get_requests()
