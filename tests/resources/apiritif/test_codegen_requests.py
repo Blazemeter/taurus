@@ -9,12 +9,19 @@ import unittest
 import apiritif
 
 
+def setup():
+    vars = {
+
+    }
+
+    apiritif.put_into_thread_store(vars)
+
+
 class TestAPI(unittest.TestCase):
 
     def setUp(self):
-        self.vars = {
 
-        }
+        (self.vars,) = apiritif.get_from_thread_store()
 
     def test_1_apiritif(self):
         with apiritif.transaction('apiritif'):
