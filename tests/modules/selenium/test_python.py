@@ -1210,8 +1210,6 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
                             "quoted": False,
                             "variable-names": "bn, bbn"}]}}]})
 
-        self.obj.settings.get("variables", force_set=True)["cn"] = "cv"
-
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "/apiritif/test_data_sources.py"
         self.assertFilesEqual(exp_file, self.obj.script)
