@@ -14,6 +14,11 @@ gsutil cp gs://taurus-site/site.zip site.zip
 unzip site.zip -d .
 rm site.zip
 
+# static learning course
+gsutil cp gs://taurus-site/learn.zip learn.zip
+unzip learn.zip -d .
+rm learn.zip
+
 # add snapshots
 gsutil cp gs://taurus-site/snapshots/*.whl snapshots
 
