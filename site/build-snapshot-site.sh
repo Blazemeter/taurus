@@ -9,11 +9,11 @@ mkdir site.bak
 cp -v site/Dockerfile* site.bak
 rm -r site
 mkdir site
+cp -vr site.bak/* site/
 
 # clone base site
 gsutil cp gs://taurus-site/site.zip site.zip
 unzip -v site.zip -d .
-cp -vr site.bak/* site/
 
 # static learning course
 gsutil cp gs://taurus-site/learn.zip learn.zip
