@@ -6,15 +6,12 @@ gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
 
 # cleanup site dir
 mkdir site.bak
-cp -v site/*.sh site.bak
 cp -v site/Dockerfile* site.bak
-
 rm -r site
 
 # clone base site
 gsutil cp gs://taurus-site/site.zip site.zip
-unzip site.zip -d .
-rm site.zip
+unzip -v site.zip -d .
 mv site.bak/* site/
 
 # static learning course
