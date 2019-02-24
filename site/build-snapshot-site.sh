@@ -23,5 +23,6 @@ rm learn.zip
 
 # add snapshots
 gsutil cp gs://taurus-site/snapshots/*.whl snapshots
+gsutil cp gs://taurus-site/snapshots/*.exe snapshots
 
 cd ..
