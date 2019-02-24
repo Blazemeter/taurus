@@ -26,13 +26,6 @@ node()
             sh """
                 docker run -v `pwd`:/bzt-configs -v `pwd`/integr-artifacts:/tmp/artifacts ${JOB_NAME} -sequential examples/all-executors.yml
                 """
-
-RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (\
-  ls -lh /tmp/all-executors-artifacts; \
-  (ls /tmp/all-executors-artifacts/{geckodriver.log,*.out,*.err,processlist.txt} | sort | xargs tail -vn +1); \
-  exit 1)
-
-
         }
 
         stage("Create Artifacts")
