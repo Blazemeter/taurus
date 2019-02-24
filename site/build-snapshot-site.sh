@@ -15,7 +15,7 @@ gsutil cp gs://taurus-site/site.zip site.zip
 unzip -o site.zip -d .
 rm site.zip
 
-cp -vr /bzt/scripts/Dockerfile* site/
+cp -vr /bzt/scripts/Dockerfile* ./
 
 # static learning course
 gsutil cp gs://taurus-site/learn.zip learn.zip
