@@ -24,4 +24,3 @@ ADD snapshots ./snapshots
 #RUN apt install -y mc bash-completion
 ADD *.php ./
 
-RUN ls -la

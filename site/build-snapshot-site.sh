@@ -5,9 +5,11 @@ gsutil cp -s regional dist/*.whl gs://taurus-site/snapshots/
 gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
 
 # cleanup site dir
+mkdir site.bak
+cp -v site/* site.bak
+
 rm -r site
-mkdir site
-cd site
+mv site.bak site
 
 # clone base site
 gsutil cp gs://taurus-site/site.zip site.zip
