@@ -846,6 +846,7 @@ def humanize_time(secs):
 def guess_csv_dialect(header, force_doublequote=False):
     """ completely arbitrary fn to detect the delimiter
 
+    :param force_doublequote: bool
     :type header: str
     :rtype: csv.Dialect
     """
@@ -1635,3 +1636,17 @@ def get_host_ips(filter_loopbacks=True):
 
 def is_url(url):
     return parse.urlparse(url).scheme in ["https", "http"]
+
+
+def guess_delimiter(path):
+    with open(path) as fhd:
+        header = fhd.read(4096)  # 4KB is enough for header
+        try:
+            delimiter = guess_csv_dialect(header).delimiter
+        except BaseException as exc:
+            LOG.debug(traceback.format_exc())
+            LOG.warning('CSV dialect detection failed (%s), default delimiter selected (",")', exc)
+            delimiter = ","  # default value
+
+    return delimiter
+
