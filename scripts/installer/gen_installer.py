@@ -1,4 +1,3 @@
-import configparser
 import os
 import re
 import subprocess
@@ -6,6 +5,7 @@ import sys
 import tempfile
 import zipfile
 
+import configparser
 import requests
 
 
@@ -110,6 +110,7 @@ def extract_all_dependencies(wheel_dir):
 def download_tkinter(archive_url, archive_filename):
     print("Downloading tkinter archive")
     r = requests.get(archive_url, stream=True)
+    r.raise_for_status()
     with open(archive_filename, 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:  # filter out keep-alive new chunks
@@ -126,6 +127,8 @@ def overwrite_levenstein_wheel(wheel_dir, levenstein_wheel_link):
 
     print("Downloading levenstein pre-built wheel")
     r = requests.get(levenstein_wheel_link, headers={'User-Agent': 'Automation'}, stream=True)
+    r.raise_for_status()
+
     with open(target_filename, 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:  # filter out keep-alive new chunks
