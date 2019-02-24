@@ -12,7 +12,7 @@ rm -r site
 # clone base site
 gsutil cp gs://taurus-site/site.zip site.zip
 unzip -v site.zip -d .
-mv site.bak/* site/
+cp -r site.bak/ site/
 
 # static learning course
 gsutil cp gs://taurus-site/learn.zip learn.zip
