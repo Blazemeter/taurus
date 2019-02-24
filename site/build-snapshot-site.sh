@@ -8,16 +8,16 @@ gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
 mkdir site.bak
 cp -v site/Dockerfile* site.bak
 rm -r site
+mkdir site
 
 # clone base site
 gsutil cp gs://taurus-site/site.zip site.zip
 unzip -v site.zip -d .
-cp -r site.bak/ site/
+cp -vr site.bak/* site/
 
 # static learning course
 gsutil cp gs://taurus-site/learn.zip learn.zip
 unzip learn.zip -d .
-rm learn.zip
 
 # add snapshots
 gsutil cp gs://taurus-site/snapshots/*.whl snapshots
