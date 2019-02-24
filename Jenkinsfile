@@ -57,6 +57,7 @@ node()
                 cp site/deploy-site.sh scripts/deploy-site.sh
                 cp site/build-base-site.sh scripts/build-base-site.sh
                 cp site/build-snapshot-site.sh scripts/build-snapshot-site.sh
+                cp site/Dockerfile* scripts/
                 """
             PROJECT_ID="blazemeter-taurus-website-prod"
             withCredentials([file(credentialsId: "${PROJECT_ID}", variable: 'CRED_JSON')]) {
