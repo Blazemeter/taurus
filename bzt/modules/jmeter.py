@@ -1277,8 +1277,8 @@ class JTLErrorsReader(object):
             if not final_pass:
                 break
             elif self.file.is_ready() and os.path.getsize(self.file.name) != start_size:
-                self.log.warning("Error file size has changed %d=>%d while reading offset %d",
-                                 start_size, os.path.getsize(self.file.name), self.file.offset)
+                self.log.debug("Error file size has changed %d=>%d while reading offset %d",
+                               start_size, os.path.getsize(self.file.name), self.file.offset)
                 break
 
     def _parse_element(self, elem):
