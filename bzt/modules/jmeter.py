@@ -1307,7 +1307,7 @@ class JTLErrorsReader(object):
                     KPISet.inc_list(res, ('msg', err_item['msg']), err_item)
 
         if result:
-            self.log.debug("Got info for %s, labels: %s", max_ts, result.keys())
+            self.log.debug("Got error info for %s, labels: %s", max_ts, result.keys())
         return result
 
     def _extract_standard(self, elem):
