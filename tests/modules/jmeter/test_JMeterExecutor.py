@@ -77,6 +77,20 @@ class TestJMeterExecutor(ExecutorTestCase):
         }})
         self.obj.prepare()
 
+    def test_zero_concurrency(self):
+        self.configure({"execution": {
+            "concurrency": 3,
+            "scenario": {
+                "script": RESOURCES_DIR + "/jmeter/jmx/zero-concurrency.jmx"}
+        }})
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
+        selector += '>stringProp[name=ThreadGroup\.num_threads]'
+        thr = jmx.get(selector)
+        self.assertEquals('3', thr[0].text)
+        self.assertEquals('0', thr[1].text)
+
     def test_jmx_2tg(self):
         self.configure({"execution": {
             "concurrency": 1051,
