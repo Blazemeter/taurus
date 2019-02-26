@@ -476,6 +476,14 @@ scenarios:
         invert: false # invert condition
 ```
 
+If sample is broken (RC isn't 200) and cause of assertion the same time, error message will be overwritten 
+with assertion message. Sometimes both of them are important and should be saved into results file. 
+For this case you can use following jmeter option:
+```yaml
+modules:
+  jmeter:
+    error-message-separator: ';'  # joins error and assert message if presented
+```
 ##### JSR223 Blocks
 
 Sometimes you may want to use a JSR223 Pre/Post Processor to execute a code block before or
