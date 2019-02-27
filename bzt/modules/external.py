@@ -87,7 +87,9 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
         # TODO: detect CSV dialect for JTLs
 
         if header.startswith(self.AB_HEADER):
-            return TSVDataReader(self.data_file, self.log)
+            reader = TSVDataReader(self.data_file, self.log)
+            reader.url_label = "N/A"
+            return reader
         elif header.startswith("<?xml"):
             return XMLJTLReader(self.data_file, self.log)
         elif self.PBENCH_FORMAT.match(header):

@@ -8,9 +8,9 @@ from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
 from tests.mocks import r, rc, err, MockReader
 
 
-class TestDefaultAggregator(BZTestCase):
+class TestResultsReader(BZTestCase):
     def setUp(self):
-        super(TestDefaultAggregator, self).setUp()
+        super(TestResultsReader, self).setUp()
         self.obj = ResultsReader()
         self.obj.track_percentiles = [25, 50, 75, 80, 90, 95, 99, 99.9, 100]
         self.obj.buffer_scale_idx = str(float(self.obj.track_percentiles[-1]))
@@ -46,6 +46,23 @@ class TestDefaultAggregator(BZTestCase):
         for point in mock.results:
             overall = point[DataPoint.CURRENT]['']
             self.assertTrue(len(overall[KPISet.PERCENTILES]) > 0)
+
+    def test_sample_ignores(self):
+        mock = MockReader()
+        mock.ignored_labels = ["ignore"]
+        mock.buffer_scale_idx = '100.0'
+        mock.data.append((1, "ignore", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((2, "ignore1", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((2, "ignore2", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((3, "not-ignore", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((3, "not-ignore", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((4, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((4, "", 1, r(), r(), r(), 200, None, '', 0))
+
+        for point in mock.datapoints(True):
+            self.assertNotIn("ignore", point[DataPoint.CUMULATIVE].keys())
+            self.assertNotIn("ignore1", point[DataPoint.CUMULATIVE].keys())
+            self.assertNotIn("ignore2", point[DataPoint.CUMULATIVE].keys())
 
     def test_speed(self):
         obj = self.obj
@@ -147,5 +164,3 @@ class TestDefaultAggregator(BZTestCase):
                 rt = float(key)
                 self.assertGreaterEqual(rt, 1.0)
                 self.assertLessEqual(rt, 2.0)
-
-

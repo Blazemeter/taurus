@@ -125,8 +125,8 @@ The `consolidator` has several settings:
 modules:
   consolidator:
     generalize-labels: 500    # support up to this number of labels
-    ignore-labels: # sample labels from this list 
-      - ignore     # will be ignored by results reader
+    ignore-labels: # sample labels starting with prefixes from this list 
+      - ignore     # will be ignored by results reader (eg ignore_myrequest)
       
     buffer-scale-choice: 0.5  # choose middle value from following percentiles list (95.0)
     buffer-multiplier: 2  # make buffer two times bigger than need to receive 95% samples
