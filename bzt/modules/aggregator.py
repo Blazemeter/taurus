@@ -634,8 +634,9 @@ class ResultsReader(ResultsProvider):
             elif isinstance(result, list) or isinstance(result, tuple):
                 t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count = result
 
-                if label in self.ignored_labels:
+                if any([label.startswith(ignore) for ignore in self.ignored_labels]):
                     continue
+
                 if t_stamp < self.min_timestamp:
                     self.log.debug("Putting sample %s into %s", t_stamp, self.min_timestamp)
                     t_stamp = self.min_timestamp
