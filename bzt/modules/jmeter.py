@@ -1251,14 +1251,17 @@ class JTLErrorsReader(object):
         """
         Read the next part of the file
         """
+        start_size = os.path.getsize(self.file.name) if self.file.is_ready() else 0
         while not self.failed_processing:
             # we need to feed bytes, not a unicode string, into the parser
-            read = self.file.get_bytes(size=1024 * 1024, decode=False)
+            read = self.file.get_bytes(size=1024 * 1024, decode=False)  # "Huge input lookup" error without capping :)
             if not read or not read.strip():
                 break
 
+            self.log.debug("Read bytes from error file: %s", len(read))
+
             try:
-                self.parser.feed(read)  # "Huge input lookup" error without capping :)
+                self.parser.feed(read)
             except etree.XMLSyntaxError as exc:
                 self.failed_processing = True
                 self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
@@ -1272,6 +1275,10 @@ class JTLErrorsReader(object):
                         del elem.getparent()[0]
 
             if not final_pass:
+                break
+            elif self.file.is_ready() and os.path.getsize(self.file.name) != start_size:
+                self.log.debug("Error file size has changed %d=>%d while reading offset %d",
+                               start_size, os.path.getsize(self.file.name), self.file.offset)
                 break
 
     def _parse_element(self, elem):
@@ -1299,6 +1306,8 @@ class JTLErrorsReader(object):
                 for err_item in label_data:
                     KPISet.inc_list(res, ('msg', err_item['msg']), err_item)
 
+        if result:
+            self.log.debug("Got error info for %s, labels: %s", max_ts, result.keys())
         return result
 
     def _extract_standard(self, elem):
@@ -1350,12 +1359,12 @@ class JTLErrorsReader(object):
             url = url[0].text if url else element.get("lb")
         elif a_msg:
             err_type = KPISet.ERRTYPE_ASSERT
-        elif element.get("s") == "false":     # has failed sub element, we should look deeper...
+        elif element.get("s") == "false":  # has failed sub element, we should look deeper...
             for child in element.iterchildren():
-                if child.tag in ("httpSample", "sample"):   # let's check sub samples..
+                if child.tag in ("httpSample", "sample"):  # let's check sub samples..
                     e_msg, url, rc, name, err_type = self.find_failure(child)
                     if e_msg:
-                        if err_type == KPISet.ERRTYPE_ERROR:   # replace subsample error
+                        if err_type == KPISet.ERRTYPE_ERROR:  # replace subsample error
                             err_type = KPISet.ERRTYPE_SUBSAMPLE
                         break
 
@@ -1366,7 +1375,7 @@ class JTLErrorsReader(object):
         else:
             msg = a_msg
 
-        if not msg and def_msg:     # top level, empty result
+        if not msg and def_msg:  # top level, empty result
             msg = def_msg
             if self.err_msg_separator:  # add appropriate separator to default msg
                 msg = self.err_msg_separator + msg
