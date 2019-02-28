@@ -79,7 +79,7 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_zero_concurrency(self):
         self.configure({"execution": {
-            "concurrency": 3,
+            "concurrency": 30,
             "scenario": {
                 "script": RESOURCES_DIR + "/jmeter/jmx/zero-concurrency.jmx"}
         }})
@@ -90,6 +90,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         thr = jmx.get(selector)
         self.assertEquals('3', thr[0].text)
         self.assertEquals('0', thr[1].text)
+        self.assertEquals('0', thr[2].text)
 
     def test_jmx_2tg(self):
         self.configure({"execution": {

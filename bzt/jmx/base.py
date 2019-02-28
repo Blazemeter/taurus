@@ -691,7 +691,7 @@ class JMX(object):
         if not rampup:
             rampup = 0
 
-        if not concurrency:
+        if concurrency is None:
             concurrency = 1
 
         if steps is None:  # zero means infinity of steps
