@@ -79,7 +79,7 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_zero_concurrency(self):
         self.configure({"execution": {
-            "concurrency": 30,
+            "concurrency": 60,
             "scenario": {
                 "script": RESOURCES_DIR + "/jmeter/jmx/zero-concurrency.jmx"}
         }})
@@ -88,9 +88,10 @@ class TestJMeterExecutor(ExecutorTestCase):
         selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
         selector += '>stringProp[name=ThreadGroup\.num_threads]'
         thr = jmx.get(selector)
-        self.assertEquals('3', thr[0].text)
-        self.assertEquals('0', thr[1].text)
-        self.assertEquals('0', thr[2].text)
+        self.assertEqual(3, len(thr))   # tg with concurrency=0 must be disabled
+        self.assertEquals('20', thr[0].text)    # 2 -> 20
+        self.assertEquals('10', thr[1].text)    # ${some_var} -> 1 -> 10
+        self.assertEquals('30', thr[2].text)    # {__P(prop, 3)} -> 3 -> 30
 
     def test_jmx_2tg(self):
         self.configure({"execution": {
