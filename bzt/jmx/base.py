@@ -560,8 +560,13 @@ class JMX(object):
         rampup = cond_int(rampup or 0)
         hold = cond_int(hold or 0)
 
-        if not concurrency:
+        if concurrency is None:
             concurrency = 1
+
+        if isinstance(concurrency, numeric_types) and concurrency <= 0:
+            enabled = "false"
+        else:
+            enabled = "true"
 
         if not iterations:
             iterations = -1
@@ -580,7 +585,7 @@ class JMX(object):
             duration = "${__intSum(%s,%s)}" % (rampup, hold)
 
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
-                            testclass="ThreadGroup", testname=testname)
+                            testclass="ThreadGroup", testname=testname, enabled=enabled)
         if on_error is not None:
             trg.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
         loop = etree.Element("elementProp",
@@ -720,12 +725,17 @@ class JMX(object):
         if concurrency is None:
             concurrency = 1
 
+        if isinstance(concurrency, numeric_types) and concurrency <= 0:
+            enabled = "false"
+        else:
+            enabled = "true"
+
         if steps is None:  # zero means infinity of steps
             steps = 0
 
         name = 'com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup'
         concurrency_thread_group = etree.Element(
-            name, guiclass=name + "Gui", testclass=name, testname=testname, enabled="true")
+            name, guiclass=name + "Gui", testclass=name, testname=testname, enabled=enabled)
         virtual_user_controller = etree.Element(
             "elementProp",
             name="ThreadGroup.main_controller",

@@ -88,10 +88,11 @@ class TestJMeterExecutor(ExecutorTestCase):
         selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
         selector += '>stringProp[name=ThreadGroup\.num_threads]'
         thr = jmx.get(selector)
-        self.assertEqual(3, len(thr))   # tg with concurrency=0 must be disabled
-        self.assertEquals('20', thr[0].text)    # 2 -> 20
-        self.assertEquals('10', thr[1].text)    # ${some_var} -> 1 -> 10
-        self.assertEquals('30', thr[2].text)    # {__P(prop, 3)} -> 3 -> 30
+        self.assertEqual(4, len(thr))   # tg with concurrency=0 must be disabled
+        self.assertEqual('20', thr[0].text)    # 2 -> 20
+        self.assertEqual("false", thr[1].getparent().attrib["enabled"])
+        self.assertEqual('10', thr[2].text)    # ${some_var} -> 1 -> 10
+        self.assertEqual('30', thr[3].text)    # {__P(prop, 3)} -> 3 -> 30
 
     def test_jmx_2tg(self):
         self.configure({"execution": {

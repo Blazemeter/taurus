@@ -191,8 +191,6 @@ class ThreadGroupHandler(object):
         msg = "Converting %s (%s) to %s and apply load parameters"
         self.log.debug(msg, source.gtype, source.get_testname(), target_gtype)
         on_error = source.get_on_error()
-        if not concurrency:
-            concurrency = source.get_concurrency(raw=True)
 
         if target_gtype == ThreadGroup.__name__:
             thread_delay = None
