@@ -28,6 +28,32 @@ from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_ty
 LOG = logging.getLogger("")
 
 
+def try_convert(val, func=int, default=None):
+    if val is None:
+        res = val
+    elif isinstance(val, string_types) and val.startswith('$'):  # it's property...
+        if default is not None:
+            val = get_prop_default(val) or default
+            res = func(val)
+        else:
+            res = val
+    else:
+        res = func(val)
+
+    return res
+
+
+def get_prop_default(val):
+    comma_ind = val.find(",")
+    comma_found = comma_ind > -1
+    is_expression = val.startswith("${") and val.endswith("}")
+    is_property = val.startswith("${__property(") or val.startswith("${__P(")
+    if is_expression and is_property and comma_found:
+        return val[comma_ind + 1: -2]
+    else:
+        return None
+
+
 def cond_int(val):
     if isinstance(val, float):
         return int(val)

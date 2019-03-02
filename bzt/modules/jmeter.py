@@ -34,7 +34,7 @@ from cssselect import GenericTranslator
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.engine import SelfDiagnosable, SETTINGS
-from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
+from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
@@ -125,11 +125,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         duration = 0
 
         if ramp_up is not None:
-            ramp_up = self._try_convert(ramp_up, dehumanize_time, 0)
+            ramp_up = try_convert(ramp_up, dehumanize_time, 0)
             duration += ramp_up
 
         if hold is not None:
-            hold = self._try_convert(hold, dehumanize_time, 0)
+            hold = try_convert(hold, dehumanize_time, 0)
             duration += hold
 
         msg = ''
@@ -145,42 +145,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if msg:
             self.log.warning(msg)
 
-        throughput = self._try_convert(throughput, float, 0)
-        concurrency = self._try_convert(concurrency, int, 0)
-        iterations = self._try_convert(iterations, int, 0)
-        steps = self._try_convert(steps, int, 0)
+        throughput = try_convert(throughput, float, default=0)
+        concurrency = try_convert(concurrency, default=0)
+        iterations = try_convert(iterations, default=0)
+        steps = try_convert(steps, default=0)
 
         if duration and not iterations:
             iterations = 0  # which means infinite
 
         return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
                              iterations=iterations, duration=duration, steps=steps)
-
-    @staticmethod
-    def _get_prop_default(val):
-        comma_ind = val.find(",")
-        comma_found = comma_ind > -1
-        is_expression = val.startswith("${") and val.endswith("}")
-        is_property = val.startswith("${__property(") or val.startswith("${__P(")
-        if is_expression and is_property and comma_found:
-            return val[comma_ind + 1: -2]
-        else:
-            return None
-
-    @staticmethod
-    def _try_convert(val, func, default=None):
-        if val is None:
-            res = val
-        elif isinstance(val, string_types) and val.startswith('$'):  # it's property...
-            if default is not None:
-                val = JMeterExecutor._get_prop_default(val) or default
-                res = func(val)
-            else:
-                res = val
-        else:
-            res = func(val)
-
-        return res
 
     def get_specific_load(self):
         """
@@ -189,9 +163,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         # throughput, concurrency, iterations, steps, hold, ramp_up
         raw_load = self.get_raw_load()
 
-        hold = self._try_convert(raw_load.hold or 0, dehumanize_time)
+        hold = try_convert(raw_load.hold or 0, dehumanize_time)
 
-        ramp_up = self._try_convert(raw_load.ramp_up, dehumanize_time)
+        ramp_up = try_convert(raw_load.ramp_up, dehumanize_time)
 
         if not hold:
             duration = ramp_up
@@ -202,10 +176,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         else:
             duration = 1  # dehumanize_time(<sum_of_props>) can be unpredictable so we use default there
 
-        throughput = self._try_convert(raw_load.throughput, float)
-        concurrency = self._try_convert(raw_load.concurrency, int)
-        iterations = self._try_convert(raw_load.iterations, int)
-        steps = self._try_convert(raw_load.steps, int)
+        throughput = try_convert(raw_load.throughput, float)
+        concurrency = try_convert(raw_load.concurrency)
+        iterations = try_convert(raw_load.iterations)
+        steps = try_convert(raw_load.steps)
 
         if duration and not iterations:
             iterations = 0  # which means infinite
