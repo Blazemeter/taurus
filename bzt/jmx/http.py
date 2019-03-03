@@ -4,7 +4,7 @@ import logging
 from bzt.jmx.base import JMX
 from bzt.jmx.tools import ProtocolHandler
 from bzt.six import etree, numeric_types
-from bzt.utils import get_host_ips, BetterDict, simple_body_dict
+from bzt.utils import get_host_ips, simple_body_dict
 
 LOG = logging.getLogger("")
 

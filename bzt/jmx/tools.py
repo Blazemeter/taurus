@@ -24,7 +24,7 @@ from bzt.jmx import JMX
 from bzt.jmx.base import cond_int
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
 from bzt.requests_model import RequestVisitor, has_variable_pattern, HierarchicRequestParser
-from bzt.six import etree, iteritems, numeric_types
+from bzt.six import etree, iteritems, numeric_types, string_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, load_class, guess_delimiter
 
 
@@ -113,50 +113,51 @@ class LoadSettingsProcessor(object):
         # IMPORTANT: fix groups order as changing of element type changes order of getting of groups
         groups = list(self.tg_handler.groups(jmx))
 
-        if isinstance(self.load.concurrency, numeric_types):    # number must be divided proportionally
-            target_list = zip(groups, self._get_concurrencies(groups))
+        # user concurrency is jmeter variable, write it to tg as is
+        if isinstance(self.load.concurrency, string_types):
+            target_list = [(group, self.load.concurrency) for group in groups]
+        else:   # concurrency is numeric or empty
+            raw = self.load.concurrency is None     # keep existed concurrency if self.load.concurrency is omitted
 
-            for group, concurrency in target_list:
-                self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load, concurrency=concurrency)
-        else:   # empty load or property
+            concurrency_list = []
             for group in groups:
-                self.tg_handler.convert(
-                    source=group, target_gtype=self.tg, load=self.load, concurrency=self.load.concurrency)
+                concurrency_list.append(group.get_concurrency(raw=raw))
+
+            if not raw: # divide numeric concurrency
+                self._divide_concurrency(concurrency_list)
+
+            target_list = zip(groups, concurrency_list)
+
+        for group, concurrency in target_list:
+            self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load, concurrency=concurrency)
 
         if self.load.throughput:
             self._add_shaper(jmx)
 
-        if self.load.steps and self.tg == self.TG:
+        if self.tg == self.TG and self.load.steps:
             self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
 
-    def _get_concurrencies(self, groups):
+    def _divide_concurrency(self, concurrency_list):
         """
-        Collect concurrency values and
         calculate target concurrency for every thread group
         """
-        concurrency_list = []
-        for group in groups:
-            concurrency_list.append(group.get_concurrency())
+        total_old_concurrency = sum(concurrency_list)
 
-        if concurrency_list and self.load.concurrency:
-            total_old_concurrency = sum(concurrency_list)  # t_o_c != 0 because of logic of group.get_concurrency()
-
-            for idx, concurrency in enumerate(concurrency_list):
+        for idx, concurrency in enumerate(concurrency_list):
+            if total_old_concurrency:
                 part_of_load = 1.0 * self.load.concurrency * concurrency / total_old_concurrency
-                if part_of_load < 1:
-                    concurrency_list[idx] = 1
-                else:
-                    concurrency_list[idx] = int(round(part_of_load))
+                concurrency_list[idx] = int(round(part_of_load))
+            else:
+                concurrency_list[idx] = 0
 
-            total_new_concurrency = sum(concurrency_list)
-            leftover = self.load.concurrency - total_new_concurrency
-            if leftover < 0:
-                msg = "Had to add %s more threads to maintain thread group proportion"
-                self.log.warning(msg, -leftover)
-            elif leftover > 0:
-                msg = "%s threads left undistributed due to thread group proportion"
-                self.log.warning(msg, leftover)
-        return concurrency_list
+        total_new_concurrency = sum(concurrency_list)
+        leftover = self.load.concurrency - total_new_concurrency
+        if leftover < 0:
+            msg = "Had to add %s more threads to maintain thread group proportion"
+            self.log.warning(msg, -leftover)
+        elif leftover > 0:
+            msg = "%s threads left undistributed due to thread group proportion"
+            self.log.warning(msg, leftover)
 
     def _add_shaper(self, jmx):
         """

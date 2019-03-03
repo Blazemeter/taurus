@@ -16,5 +16,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from bzt.jmx.base import JMX
+from bzt.jmx.base import JMX, try_convert
 from bzt.jmx.tools import JMeterScenarioBuilder, LoadSettingsProcessor

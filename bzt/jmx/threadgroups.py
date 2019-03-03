@@ -1,4 +1,4 @@
-from bzt.jmx.base import JMX
+from bzt.jmx.base import JMX, try_convert
 
 GETTING_PARAM_ERR_MSG = "{tg}: getting of {name} is impossible ({params})"
 
@@ -37,7 +37,11 @@ class AbstractThreadGroup(object):
         return self._get_val("ramp-up", self.RAMP_UP_SEL, default=1, raw=raw)
 
     def get_concurrency(self, raw=False):
-        return self._get_val("concurrency", self.CONCURRENCY_SEL, default=1, raw=raw)
+        raw_concurrency = self._get_val("concurrency", self.CONCURRENCY_SEL, default=1, raw=True)
+        if raw:
+            return raw_concurrency
+        else:
+            return try_convert(raw_concurrency, default=1)
 
     def _get_val(self, name, selector=None, default=None, raw=False):
         if not selector:
@@ -187,8 +191,6 @@ class ThreadGroupHandler(object):
         msg = "Converting %s (%s) to %s and apply load parameters"
         self.log.debug(msg, source.gtype, source.get_testname(), target_gtype)
         on_error = source.get_on_error()
-        if not concurrency:
-            concurrency = source.get_concurrency(raw=True)
 
         if target_gtype == ThreadGroup.__name__:
             thread_delay = None

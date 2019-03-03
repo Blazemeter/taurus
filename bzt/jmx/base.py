@@ -23,9 +23,35 @@ from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario, BetterDict
+from bzt.requests_model import has_variable_pattern
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types, integer_types
 
 LOG = logging.getLogger("")
+
+
+def try_convert(val, func=int, default=None):
+    if val is None:
+        res = val
+    elif has_variable_pattern(val):  # it's property...
+        if default is not None:
+            val = get_prop_default(val) or default
+            res = func(val)
+        else:
+            res = val
+    else:
+        res = func(val)
+
+    return res
+
+
+def get_prop_default(val):
+    comma_ind = val.find(",")
+    comma_found = comma_ind > -1
+    is_property = val.startswith("${__property(") or val.startswith("${__P(")
+    if has_variable_pattern(val) and is_property and comma_found:
+        return val[comma_ind + 1: -2]
+    else:
+        return None
 
 
 def cond_int(val):
@@ -534,8 +560,13 @@ class JMX(object):
         rampup = cond_int(rampup or 0)
         hold = cond_int(hold or 0)
 
-        if not concurrency:
+        if concurrency is None:
             concurrency = 1
+
+        if isinstance(concurrency, numeric_types) and concurrency <= 0:
+            enabled = "false"
+        else:
+            enabled = "true"
 
         if not iterations:
             iterations = -1
@@ -554,7 +585,7 @@ class JMX(object):
             duration = "${__intSum(%s,%s)}" % (rampup, hold)
 
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
-                            testclass="ThreadGroup", testname=testname)
+                            testclass="ThreadGroup", testname=testname, enabled=enabled)
         if on_error is not None:
             trg.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
         loop = etree.Element("elementProp",
@@ -691,15 +722,20 @@ class JMX(object):
         if not rampup:
             rampup = 0
 
-        if not concurrency:
+        if concurrency is None:
             concurrency = 1
+
+        if isinstance(concurrency, numeric_types) and concurrency <= 0:
+            enabled = "false"
+        else:
+            enabled = "true"
 
         if steps is None:  # zero means infinity of steps
             steps = 0
 
         name = 'com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup'
         concurrency_thread_group = etree.Element(
-            name, guiclass=name + "Gui", testclass=name, testname=testname, enabled="true")
+            name, guiclass=name + "Gui", testclass=name, testname=testname, enabled=enabled)
         virtual_user_controller = etree.Element(
             "elementProp",
             name="ThreadGroup.main_controller",
