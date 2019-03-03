@@ -21,10 +21,10 @@ from distutils.version import LooseVersion
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
 from bzt.jmx import JMX
-from bzt.jmx.base import cond_int
+from bzt.jmx.base import cond_int, get_valid_concurrency
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
 from bzt.requests_model import RequestVisitor, has_variable_pattern, HierarchicRequestParser
-from bzt.six import etree, iteritems, numeric_types
+from bzt.six import etree, iteritems, numeric_types, string_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, load_class, guess_delimiter
 
 
@@ -113,20 +113,19 @@ class LoadSettingsProcessor(object):
         # IMPORTANT: fix groups order as changing of element type changes order of getting of groups
         groups = list(self.tg_handler.groups(jmx))
 
-        if isinstance(self.load.concurrency, numeric_types):    # number must be divided proportionally
+        # user concurrency is jmeter variable, write it to tg as is
+        if isinstance(self.load.concurrency, string_types):
+            target_list = [(group, self.load.concurrency) for group in groups]
+        else:   # concurrency is numeric or empty
             target_list = zip(groups, self._get_concurrencies(groups))
 
-            for group, concurrency in target_list:
-                self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load, concurrency=concurrency)
-        else:   # empty load or property
-            for group in groups:
-                self.tg_handler.convert(
-                    source=group, target_gtype=self.tg, load=self.load, concurrency=self.load.concurrency)
+        for group, concurrency in target_list:
+            self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load, concurrency=concurrency)
 
         if self.load.throughput:
             self._add_shaper(jmx)
 
-        if self.load.steps and self.tg == self.TG:
+        if self.tg == self.TG and self.load.steps:
             self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
 
     def _get_concurrencies(self, groups):
@@ -138,7 +137,7 @@ class LoadSettingsProcessor(object):
         for group in groups:
             concurrency_list.append(group.get_concurrency())
 
-        if concurrency_list and self.load.concurrency:
+        if concurrency_list and self.load.concurrency:  # must be divided proportionally
             total_old_concurrency = sum(concurrency_list)  # t_o_c != 0 because of logic of group.get_concurrency()
 
             for idx, concurrency in enumerate(concurrency_list):

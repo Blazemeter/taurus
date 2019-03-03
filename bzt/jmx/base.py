@@ -23,6 +23,7 @@ from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario, BetterDict
+from bzt.requests_model import has_variable_pattern
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types, integer_types
 
 LOG = logging.getLogger("")
@@ -31,7 +32,7 @@ LOG = logging.getLogger("")
 def try_convert(val, func=int, default=None):
     if val is None:
         res = val
-    elif isinstance(val, string_types) and val.startswith('$'):  # it's property...
+    elif has_variable_pattern(val):  # it's property...
         if default is not None:
             val = get_prop_default(val) or default
             res = func(val)
@@ -46,9 +47,8 @@ def try_convert(val, func=int, default=None):
 def get_prop_default(val):
     comma_ind = val.find(",")
     comma_found = comma_ind > -1
-    is_expression = val.startswith("${") and val.endswith("}")
     is_property = val.startswith("${__property(") or val.startswith("${__P(")
-    if is_expression and is_property and comma_found:
+    if has_variable_pattern(val) and is_property and comma_found:
         return val[comma_ind + 1: -2]
     else:
         return None
@@ -66,6 +66,14 @@ def cond_float(val, rounding=None):
         return round(float(val), rounding) if rounding is not None else float(val)
 
     return val
+
+
+def get_valid_concurrency(conc, default=None):
+    concurrency = try_convert(conc, default=default)
+    if isinstance(concurrency, numeric_types) and concurrency <= 0:
+        concurrency = default
+
+    return concurrency
 
 
 class JMX(object):
