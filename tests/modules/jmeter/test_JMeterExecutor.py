@@ -90,7 +90,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         thr = jmx.get(selector)
         self.assertEqual(4, len(thr))   # tg with concurrency=0 must be disabled
         self.assertEqual('20', thr[0].text)    # 2 -> 20
-        self.assertEqual("false", thr[1].getparent().attrib["enabled"])
+        self.assertEqual("false", thr[1].getparent().attrib["enabled"]) # 0 -> disable tg
         self.assertEqual('10', thr[2].text)    # ${some_var} -> 1 -> 10
         self.assertEqual('30', thr[3].text)    # {__P(prop, 3)} -> 3 -> 30
 
