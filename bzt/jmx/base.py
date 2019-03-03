@@ -68,14 +68,6 @@ def cond_float(val, rounding=None):
     return val
 
 
-def get_valid_concurrency(conc, default=None):
-    concurrency = try_convert(conc, default=default)
-    if isinstance(concurrency, numeric_types) and concurrency <= 0:
-        concurrency = default
-
-    return concurrency
-
-
 class JMX(object):
     """
     A class to manipulate and generate JMX test plans for JMeter
