@@ -5,6 +5,7 @@ import time
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
+from bzt.modules import ConsolidatingAggregator
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
 from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor
 from bzt.modules.python.executors import ApiritifLoadReader, ApiritifFuncReader
@@ -1185,6 +1186,18 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         self.assertTrue(reader.read_records)
         self.assertEqual(len(items), 4)
 
+    def test_load_reader_real(self):
+        reader = ApiritifLoadReader(self.obj.log)
+        reader.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-0.csv")
+        reader.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-1.csv")
+        reader.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-2.csv")
+
+        cons = ConsolidatingAggregator()
+        cons.add_underling(reader)
+        items = list(cons.datapoints())
+        self.assertTrue(reader.read_records)
+        self.assertEqual(len(items), 4)
+
     def test_func_reader(self):
         reader = ApiritifFuncReader(self.obj.engine, self.obj.log)
         items = list(reader.read())
@@ -1202,7 +1215,7 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
                     "variables": {"cn": "cv"},
                     "default-address": "http://localhost:8000/",
                     "requests": ["${an}", "${bn}", "${cn}"],
-                    "data-sources":[
+                    "data-sources": [
                         "first-file.csv", {
                             "path": "/second/file.csv",
                             "delimiter": "-",
