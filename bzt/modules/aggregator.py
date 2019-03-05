@@ -572,14 +572,14 @@ class ResultsProvider(object):
         """
         self.listeners.append(listener)
 
-    def __merge_to_cumulative(self, current, sid):
+    def __merge_to_cumulative(self, current):
         """
         Merge current KPISet to cumulative
         :param current: KPISet
         """
         for label, data in iteritems(current):
             cumul = self.cumulative.setdefault(label, KPISet(self.track_percentiles, data[KPISet.RESP_TIMES].high))
-            cumul.merge_kpis(data, sid)
+            cumul.merge_kpis(data)
             cumul.recalculate()
 
     def datapoints(self, final_pass=False):
@@ -590,7 +590,7 @@ class ResultsProvider(object):
         """
         for datapoint in self._calculate_datapoints(final_pass):
             current = datapoint[DataPoint.CURRENT]
-            self.__merge_to_cumulative(current, datapoint[DataPoint.SOURCE_ID])
+            self.__merge_to_cumulative(current)
             datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
             datapoint.recalculate()
 

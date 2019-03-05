@@ -18,14 +18,12 @@ import os
 import re
 import shlex
 import sys
-import time
 
 import yaml
 
 from bzt import TaurusConfigError
 from bzt.engine import HavingInstallableTools, SETTINGS
-from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSamplesReader, FunctionalAggregator
-from bzt.modules.aggregator import ResultsReader
+from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSamplesReader
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type
@@ -199,24 +197,21 @@ class NoseTester(ApiritifNoseExecutor):
     pass
 
 
-class ApiritifLoadReader(ResultsReader):
+class ApiritifLoadReader(ConsolidatingAggregator):
     def __init__(self, parent_log):
         super(ApiritifLoadReader, self).__init__()
         self.log = parent_log.getChild(self.__class__.__name__)
-        self.filenames = []
-        self.readers = []
-        self.read_records = False
 
     def register_file(self, report_filename):
-        self.filenames.append(report_filename)
         reader = JTLReader(report_filename, self.log)
-        self.readers.append(reader)
+        self.add_underling(reader)
 
-    def _read(self, final_pass=False):
-        for reader in self.readers:  # type: JTLReader
-            for sample in reader._read(final_pass):
-                self.read_records = True
-                yield sample[:-2] + (reader.csvreader.file.name,) + sample[-1:]
+    @property
+    def read_records(self):
+        for reader in self.underlings:  # type: JTLReader
+            if reader.read_records > 0:
+                return True
+        return False
 
 
 class ApiritifFuncReader(FunctionalResultsReader):
