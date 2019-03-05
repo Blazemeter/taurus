@@ -255,7 +255,7 @@ class KPISet(dict):
         cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
         self[self.SAMPLE_COUNT] += 1
         if cnc:
-            self._concurrencies[trname] = cnc
+            self.add_concurrency(cnc, trname)
 
         if r_code is not None:
             self[self.RESP_CODES][r_code] += 1
@@ -280,6 +280,9 @@ class KPISet(dict):
             self[self.BYTE_COUNT] += byte_count
             # TODO: max/min rt? there is percentiles...
             # TODO: throughput if interval is not 1s
+
+    def add_concurrency(self, cnc, sid):
+        self._concurrencies[sid] = cnc
 
     @staticmethod
     def inc_list(values, selector, value):
@@ -385,7 +388,7 @@ class KPISet(dict):
         self[self.BYTE_COUNT] += src[self.BYTE_COUNT]
         # NOTE: should it be average? mind the timestamp gaps
         if src[self.CONCURRENCY]:
-            self._concurrencies[sid] = src[self.CONCURRENCY]
+            self.add_concurrency(src[self.CONCURRENCY], sid)
 
         if src[self.RESP_TIMES]:
             self[self.RESP_TIMES].merge(src[self.RESP_TIMES])
@@ -758,6 +761,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.underlings = []
         self.buffer = {}
         self.histogram_max = 5.0
+        self._sticky_concurrencies = {}
 
     def prepare(self):
         """
@@ -857,7 +861,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
     def _calculate_datapoints(self, final_pass=False):
         """
         Override ResultsProvider._calculate_datapoints
-
         """
         self._process_underlings(final_pass)
 
@@ -870,16 +873,34 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             tstamp = timestamps.pop(0)
             self.log.debug("Merging into %s", tstamp)
             points_to_consolidate = self.buffer.pop(tstamp)
+
+            for subresult in points_to_consolidate:
+                self._sticky_concurrencies[subresult[DataPoint.SOURCE_ID]] = {
+                    label: kpiset[KPISet.CONCURRENCY] for label, kpiset in iteritems(subresult[DataPoint.CURRENT])
+                }
+
             if len(points_to_consolidate) == 1:
                 self.log.debug("Bypassing consolidation because of single result")
                 point = points_to_consolidate[0]
+                point[DataPoint.SUBRESULTS].append(points_to_consolidate[0])
             else:
                 point = DataPoint(tstamp, self.track_percentiles)
                 for subresult in points_to_consolidate:
                     self.log.debug("Merging %s", subresult[DataPoint.TIMESTAMP])
-                    point.merge_point(subresult)
+                    point.merge_point(subresult, do_recalculate=False)
                 point.recalculate()
+
+            for sid in self._sticky_concurrencies:
+                current_sids = [x[DataPoint.SOURCE_ID] for x in point[DataPoint.SUBRESULTS]]
+                if sid not in current_sids:
+                    self.log.debug("Adding sticky concurrency for %s", sid)
+                    self._add_sticky_concurrency(point, self._sticky_concurrencies[sid], sid)
+
             yield point
+
+    def _add_sticky_concurrency(self, point, concur, sid):
+        for label, kpiset in iteritems(point[DataPoint.CURRENT]):  # type: (str, KPISet)
+            kpiset.add_concurrency(concur[label], sid)
 
 
 class NoneAggregator(Aggregator, ResultsProvider):

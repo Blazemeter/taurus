@@ -926,7 +926,7 @@ class JTLReader(ResultsReader):
                         label_data[KPISet.ERRORS] = data[label]
                     else:
                         label_data[KPISet.ERRORS] = []
-
+            point[DataPoint.SOURCE_ID] = self.csvreader.file.name + "@" + str(id(self))
             yield point
 
 

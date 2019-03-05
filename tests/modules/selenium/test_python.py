@@ -1196,12 +1196,14 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
 
         reader.datapoints()
 
-        items = list(reader.datapoints())
-        logging.info([point[DataPoint.CUMULATIVE][''][KPISet.CONCURRENCY] for point in items])
+        items = []
+        for point in reader.datapoints():
+            items.append(point)
+            logging.info("%s: %s", point[DataPoint.TIMESTAMP], point[DataPoint.CURRENT][''][KPISet.CONCURRENCY])
 
         self.assertTrue(reader.read_records)
-        self.assertEqual(69, len(items))
-        self.assertEqual(4, items[-1][DataPoint.CUMULATIVE][''][KPISet.CONCURRENCY])
+        self.assertEqual(70, len(items))
+        self.assertEqual(4, items[-1][DataPoint.CURRENT][''][KPISet.CONCURRENCY])
 
     def test_func_reader(self):
         reader = ApiritifFuncReader(self.obj.engine, self.obj.log)
