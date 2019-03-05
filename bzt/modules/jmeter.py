@@ -913,7 +913,7 @@ class JTLReader(ResultsReader):
 
             byte_count = int(row.get("bytes", 0))
 
-            tstmp = int(int(row["timeStamp"]) / 1000)
+            tstmp = int(int(row["timeStamp"]) / 1000.0)
             self.read_records += 1
             yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count
 
