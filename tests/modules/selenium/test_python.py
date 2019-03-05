@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import tempfile
 import time
@@ -1193,11 +1194,16 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-1.csv")
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-2.csv")
 
-        cons = ConsolidatingAggregator()
-        cons.add_underling(reader)
-        items = list(cons.datapoints())
+        reader.datapoints()
+
+        # cons = ConsolidatingAggregator()
+        # cons.add_underling(reader)
+        items = list(reader.datapoints())
+        for point in items:
+            logging.info(point[DataPoint.CURRENT][''][KPISet.CONCURRENCY])
+
         self.assertTrue(reader.read_records)
-        self.assertEqual(70, len(items))
+        self.assertEqual(69, len(items))
         self.assertEqual(4, items[-1][DataPoint.CURRENT][''][KPISet.CONCURRENCY])
 
     def test_func_reader(self):
