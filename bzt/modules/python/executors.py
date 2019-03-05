@@ -213,10 +213,10 @@ class ApiritifLoadReader(ResultsReader):
         self.readers.append(reader)
 
     def _read(self, final_pass=False):
-        for reader in self.readers:
+        for reader in self.readers:  # type: JTLReader
             for sample in reader._read(final_pass):
                 self.read_records = True
-                yield sample
+                yield sample[:-2] + (reader.csvreader.file.name,) + sample[-1:]
 
 
 class ApiritifFuncReader(FunctionalResultsReader):
