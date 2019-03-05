@@ -68,7 +68,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         return self.widget
 
     def __first_http_request(self):
-        for request in self.scenario.get_requests():
+        for request in self.get_requests():
             if isinstance(request, HTTPRequest):
                 return request
         return None
@@ -98,7 +98,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         for key, val in iteritems(self.scenario.get_headers()):
             args += ['-H', "%s: %s" % (key, val)]
 
-        requests = self.scenario.get_requests()
+        requests = self.get_requests()
         if not requests:
             raise TaurusConfigError("You must specify at least one request for ab")
         if len(requests) > 1:

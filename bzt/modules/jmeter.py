@@ -108,6 +108,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.management_port = None
         self.resource_files_collector = None
         self.tool = None
+        self.features[ScenarioExecutor.TRANSACTION_ABLE] = True
 
     def get_load(self):
         """
@@ -764,7 +765,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         files = []
         for source in scenario.get_data_sources():
             files.append(source['path'])
-        requests = scenario.get_requests(parser=HierarchicRequestParser)
+        requests = self.get_requests(parser=HierarchicRequestParser, scenario=scenario)
         for req in requests:
             files.extend(self.res_files_from_request(req))
             self.resource_files_collector.clear_path_cache()

@@ -16,6 +16,7 @@ limitations under the License.
 import logging
 import traceback
 import mimetypes
+import copy
 import re
 
 from bzt import TaurusConfigError, TaurusInternalException
@@ -223,9 +224,10 @@ class IncludeScenarioBlock(Request):
 
 
 class RequestParser(object):
-    def __init__(self, scenario, engine):
+    def __init__(self, scenario, engine, transactions):
         self.engine = engine
         self.scenario = scenario
+        self.transactions = transactions
 
     def _parse_requests(self, raw_requests, require_url=True):
         requests = []
@@ -245,6 +247,20 @@ class RequestParser(object):
 
     def extract_requests(self, require_url=True):
         requests = self.scenario.get("requests", [])
+
+        if not self.transactions:   # expand transactions
+            simple_requests = []
+            for request in requests:
+                request = copy.deepcopy(request)
+                if "transaction" in request:
+                    do_block = request.get("do")
+                    for req in do_block:
+                        simple_requests.append(req)
+                else:
+                    simple_requests.append(request)
+
+            requests = simple_requests
+
         return self._parse_requests(requests, require_url=require_url)
 
 

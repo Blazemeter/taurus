@@ -85,7 +85,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         user_vars = ["%s=%s" % (key, val) for (key, val) in iteritems(user_vars)]
 
         url_list = []
-        for req in self.scenario.get_requests():
+        for req in self.get_requests():
             if not isinstance(req, HTTPRequest):
                 msg = "Siege executor doesn't support '%s' blocks, skipping"
                 self.log.warning(msg, req.NAME)

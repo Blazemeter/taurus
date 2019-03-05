@@ -1048,6 +1048,9 @@ class ScenarioExecutor(EngineModule):
     STEPS = "steps"
     LOAD_FMT = namedtuple("LoadSpec", "concurrency throughput ramp_up hold iterations duration steps")
 
+    # features
+    TRANSACTION_ABLE = "transaction-able"
+
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
         self.env = Environment(log=self.log)
@@ -1062,6 +1065,17 @@ class ScenarioExecutor(EngineModule):
         self.delay = None
         self.start_time = None
         self.preprocess_args = lambda x: None
+
+        self.features = {
+            self.TRANSACTION_ABLE: False
+        }
+
+    def get_requests(self, parser=RequestParser, scenario=None):
+        if scenario is None:
+            scenario = self.get_scenario()
+
+        requests = scenario.get_requests(parser=parser, transactions=self.features[self.TRANSACTION_ABLE])
+        return requests
 
     def _get_tool(self, tool, **kwargs):
         instance = tool(env=self.env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
@@ -1349,15 +1363,16 @@ class Scenario(UserDict, object):
 
             yield source
 
-    def get_requests(self, parser=RequestParser, require_url=True):
+    def get_requests(self, parser=RequestParser, require_url=True, transactions=False):
         """
         Generator object to read requests
 
         :type require_url: bool
         :type parser: class
+        :type transactions: bool
         :rtype: list[bzt.requests_model.Request]
         """
-        requests_parser = parser(self, self.engine)
+        requests_parser = parser(self, self.engine, transactions)
         return requests_parser.extract_requests(require_url=require_url, )
 
 

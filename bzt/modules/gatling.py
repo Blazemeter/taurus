@@ -79,7 +79,7 @@ class GatlingScriptBuilder(object):
 
     def _get_exec(self):
         exec_str = ''
-        for req in self.scenario.get_requests():
+        for req in self.get_requests():
             if not isinstance(req, HTTPRequest):
                 msg = "Gatling simulation generator doesn't support '%s' blocks, skipping"
                 self.log.warning(msg, req.NAME)
