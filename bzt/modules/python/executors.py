@@ -103,7 +103,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         executable = self.settings.get("interpreter", sys.executable)
 
         report_type = ".ldjson" if self.engine.is_functional_mode() else ".csv"
-        report_tpl = self.engine.create_artifact("apiritif-", "") + "%s" + report_type
+        report_tpl = self.engine.create_artifact("apiritif", ".") + "%s" + report_type
         cmdline = [executable, "-m", "apiritif.loadgen", '--result-file-template', report_tpl]
 
         load = self.get_load()
