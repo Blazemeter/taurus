@@ -268,6 +268,8 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.prepare()
         self.obj.add_underling(get_success_reader())
         for point in self.obj.datapoints():
+            if point[DataPoint.SUBRESULTS] == [point]:
+                del point[DataPoint.SUBRESULTS]
             self.obj.log.info(to_json(point))
 
     def test_negative_response_time_scaling_crash(self):

@@ -904,7 +904,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
     def _add_sticky_concurrency(self, point, sid):
         concur = self._sticky_concurrencies[sid]
         for label, kpiset in iteritems(point[DataPoint.CURRENT]):  # type: (str, KPISet)
-            kpiset.add_concurrency(concur[label], sid)
+            if label in concur:
+                kpiset.add_concurrency(concur[label], sid)
 
 
 class NoneAggregator(Aggregator, ResultsProvider):

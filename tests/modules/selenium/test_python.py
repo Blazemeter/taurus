@@ -1175,18 +1175,20 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         # add empty reader
         with tempfile.NamedTemporaryFile() as f_name:
             reader.register_file(f_name.name)
-            items = list(reader._read())
+            items = list(reader.datapoints(True))
 
         self.assertEqual(len(items), 0)
         self.assertFalse(reader.read_records)
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
-        items = list(reader._read())
-        self.assertEqual(len(items), 2)
+        items = list(reader.datapoints(True))
+        self.assertEqual(len(items), 1)
+        items = list(reader.datapoints(True))
+        self.assertEqual(len(items), 0)
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
-        items = list(reader._read())
+        items = list(reader.datapoints(True))
         self.assertTrue(reader.read_records)
-        self.assertEqual(len(items), 4)
+        self.assertEqual(len(items), 1)
 
     def test_load_reader_real2(self):
         reader1 = ApiritifLoadReader(self.obj.log)
