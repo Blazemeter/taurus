@@ -1188,21 +1188,29 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         self.assertTrue(reader.read_records)
         self.assertEqual(len(items), 4)
 
-    def test_load_reader_real(self):
-        reader = ApiritifLoadReader(self.obj.log)
-        reader.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-0.csv")
-        reader.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-1.csv")
-        reader.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-2.csv")
+    def test_load_reader_real2(self):
+        reader1 = ApiritifLoadReader(self.obj.log)
+        reader1.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif-0.csv")
+        reader1.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif-1.csv")
 
-        reader.datapoints()
+        reader2 = ApiritifLoadReader(self.obj.log)
+        reader2.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif--10.csv")
+        reader2.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif--11.csv")
+
+        reader = ConsolidatingAggregator()
+        reader.add_underling(reader1)
+        reader.add_underling(reader2)
 
         items = []
         for point in reader.datapoints():
             items.append(point)
-            logging.info("%s: %s", point[DataPoint.TIMESTAMP], point[DataPoint.CURRENT][''][KPISet.CONCURRENCY])
+            cnc = point[DataPoint.CURRENT][''][KPISet.CONCURRENCY]
+            logging.info("%s: %s", point[DataPoint.TIMESTAMP], cnc)
+            self.assertLessEqual(cnc, 4)
+            cnc1 = point[DataPoint.CUMULATIVE][''][KPISet.CONCURRENCY]
+            self.assertLessEqual(cnc1, 4)
 
-        self.assertTrue(reader.read_records)
-        self.assertEqual(70, len(items))
+        self.assertEqual(39, len(items))
         self.assertEqual(4, items[-1][DataPoint.CURRENT][''][KPISet.CONCURRENCY])
 
     def test_func_reader(self):

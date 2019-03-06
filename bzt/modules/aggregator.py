@@ -875,6 +875,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             points_to_consolidate = self.buffer.pop(tstamp)
 
             for subresult in points_to_consolidate:
+                if not subresult[DataPoint.SOURCE_ID]:
+                    raise ValueError("Reader must provide source ID for datapoint")
                 self._sticky_concurrencies[subresult[DataPoint.SOURCE_ID]] = {
                     label: kpiset[KPISet.CONCURRENCY] for label, kpiset in iteritems(subresult[DataPoint.CURRENT])
                 }
@@ -882,7 +884,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             if len(points_to_consolidate) == 1:
                 self.log.debug("Bypassing consolidation because of single result")
                 point = points_to_consolidate[0]
-                point[DataPoint.SUBRESULTS].append(points_to_consolidate[0])
+                point[DataPoint.SUBRESULTS] = [points_to_consolidate[0]]
             else:
                 point = DataPoint(tstamp, self.track_percentiles)
                 for subresult in points_to_consolidate:
@@ -890,15 +892,17 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                     point.merge_point(subresult, do_recalculate=False)
                 point.recalculate()
 
+            current_sids = [x[DataPoint.SOURCE_ID] for x in point[DataPoint.SUBRESULTS]]
             for sid in self._sticky_concurrencies:
-                current_sids = [x[DataPoint.SOURCE_ID] for x in point[DataPoint.SUBRESULTS]]
                 if sid not in current_sids:
                     self.log.debug("Adding sticky concurrency for %s", sid)
-                    self._add_sticky_concurrency(point, self._sticky_concurrencies[sid], sid)
+                    self._add_sticky_concurrency(point, sid)
 
+            point[DataPoint.SOURCE_ID] = self.__class__.__name__ + '@' + str(id(self))
             yield point
 
-    def _add_sticky_concurrency(self, point, concur, sid):
+    def _add_sticky_concurrency(self, point, sid):
+        concur = self._sticky_concurrencies[sid]
         for label, kpiset in iteritems(point[DataPoint.CURRENT]):  # type: (str, KPISet)
             kpiset.add_concurrency(concur[label], sid)
 
