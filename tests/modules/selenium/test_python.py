@@ -55,7 +55,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")))
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")))
 
     def test_selenium_startup_shutdown_python_folder(self):
         """
@@ -242,7 +242,7 @@ class TestNoseRunner(ExecutorTestCase):
             self.obj.shutdown()
         self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
-        reader = LoadSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.ldjson"), self.obj.log)
+        reader = LoadSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.ldjson"), self.obj.log)
         samples = list(reader._read(last_pass=True))
         self.assertEqual(len(samples), 1)
         tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count = samples[0]
