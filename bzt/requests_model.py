@@ -243,12 +243,27 @@ class RequestParser(object):
     def _parse_request(self, req):
         return HTTPRequest(req, self.scenario, self.engine)
 
+    def _expand_transactions(self, requests):
+        res = []
+        for req in requests:
+            if "transaction" in req:
+                res.extend(self._expand_transactions(req.get("do")))
+            else:
+                res.append(req)
+
+        return res
+
     def extract_requests(self, require_url=True):
         requests = self.scenario.get("requests", [])
+        requests = self._expand_transactions(requests)
         return self._parse_requests(requests, require_url=require_url)
 
 
 class HierarchicRequestParser(RequestParser):
+    def extract_requests(self, require_url=True):
+        requests = self.scenario.get("requests", [])
+        return self._parse_requests(requests, require_url=require_url)
+
     def _parse_request(self, req):
         if 'if' in req:
             condition = req.get("if")

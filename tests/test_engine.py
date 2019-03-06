@@ -208,6 +208,21 @@ class TestEngine(BZTestCase):
 
 
 class TestScenarioExecutor(ExecutorTestCase):
+    def test_transaction_block(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [
+                        "url0",
+                        {"transaction": "first", "do": ["url1", "url2"]},
+                        {"transaction": "second", "do": [{"url": "url3"}]}
+                    ]
+                }}]})
+        self.obj.get_scenario()
+        reqs = self.obj.get_scenario().get_requests()
+        urls = [req.config["url"] for req in reqs]
+        self.assertEqual(urls, ["url0", "url1", "url2", "url3"])
+
     def test_scenario_extraction_script(self):
         self.configure({
             "execution": [{
