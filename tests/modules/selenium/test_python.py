@@ -75,7 +75,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")))
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")))
 
     def test_runner_fail_no_test_found(self):
         """
@@ -266,7 +266,7 @@ class TestNoseRunner(ExecutorTestCase):
         finally:
             self.obj.shutdown()
         self.obj.post_process()
-        reader = FuncSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.ldjson"),
+        reader = FuncSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.ldjson"),
                                    self.obj.engine, self.obj.log)
         samples = list(reader.read(last_pass=True))
         self.assertEqual(len(samples), 4)
