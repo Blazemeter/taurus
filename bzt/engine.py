@@ -1074,7 +1074,7 @@ class ScenarioExecutor(EngineModule):
         if scenario is None:
             scenario = self.get_scenario()
 
-        requests = scenario.get_requests(parser=parser, transactions=self.features[self.TRANSACTION_ABLE])
+        requests = scenario.get_requests(parser=parser, get_transactions=self.features[self.TRANSACTION_ABLE])
         return requests
 
     def _get_tool(self, tool, **kwargs):
@@ -1363,16 +1363,16 @@ class Scenario(UserDict, object):
 
             yield source
 
-    def get_requests(self, parser=RequestParser, require_url=True, transactions=False):
+    def get_requests(self, parser=RequestParser, require_url=True, get_transactions=False):
         """
         Generator object to read requests
 
         :type require_url: bool
         :type parser: class
-        :type transactions: bool
+        :type get_transactions: bool
         :rtype: list[bzt.requests_model.Request]
         """
-        requests_parser = parser(self, self.engine, transactions)
+        requests_parser = parser(self, self.engine, get_transactions)
         return requests_parser.extract_requests(require_url=require_url, )
 
 

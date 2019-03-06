@@ -254,8 +254,7 @@ class RequestParser(object):
                 request = copy.deepcopy(request)
                 if "transaction" in request:
                     do_block = request.get("do")
-                    for req in do_block:
-                        simple_requests.append(req)
+                    simple_requests.extend(do_block)
                 else:
                     simple_requests.append(request)
 
