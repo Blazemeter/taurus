@@ -573,6 +573,25 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
 class TestApiritifScriptGenerator(ExecutorTestCase):
     EXECUTOR = ApiritifNoseExecutor
 
+    def test_transactions(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": [
+                        "url_0",
+                        {"transaction": "t_1", "do": [
+                            "url_1.0",
+                            {"url": "url_1.1"}]},
+                        {"transaction": "t_2", "do": [
+                            "url_2.0",
+                            {"transaction": "t_22", "do": [
+                                "url_22.0"]}]}]}}]})
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        pass
+
     def test_keepalive_default(self):
         self.configure({
             "execution": [{

@@ -25,7 +25,7 @@ import astunparse
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
-from bzt.requests_model import HTTPRequest
+from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock
 from bzt.six import parse, string_types, iteritems, text_type, etree
 from bzt.utils import PythonGenerator, dehumanize_time, ensure_is_dict
 from .jmeter_functions import Base64DecodeFunction, UrlEncodeFunction, UuidFunction
@@ -941,20 +941,17 @@ class ApiritifScriptGenerator(PythonGenerator):
         return ast.FunctionDef(name="setUp", args=args, body=[get_expr], decorator_list=[])
 
     def _gen_test_methods(self):
+        #requests = self.scenario.get_requests(parser=HierarchicRequestParser)
         requests = self.scenario.get_requests()
+
         number_of_digits = int(math.log10(len(requests))) + 1
         for index, req in enumerate(requests, start=1):
-            if not isinstance(req, HTTPRequest):
+            if not isinstance(req, (HTTPRequest, TransactionBlock)):
                 msg = "Apiritif script generator doesn't support '%s' blocks, skipping"
                 self.log.warning(msg, req.NAME)
                 continue
 
-            if req.label:
-                label = req.label
-            else:
-                label = req.url
-
-            label = create_method_name(label[:40])
+            label = create_method_name(req.label[:40])
             counter = str(index).zfill(number_of_digits)
 
             # 'test_01_get_posts'
@@ -1016,7 +1013,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET:
             http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
             target = [
-                ast.Assign(
+                ast.Expr(ast.Assign(
                     targets=[
                         ast.Name(id="target", ctx=ast.Store()),
                     ],
@@ -1026,7 +1023,7 @@ class ApiritifScriptGenerator(PythonGenerator):
                         keywords=[],
                         starargs=None,
                         kwargs=None
-                    ))]
+                    )))]
             target.extend([
                 self._gen_target_setup('keep_alive', keepalive),
                 self._gen_target_setup('auto_assert_ok', auto_assert_ok),
