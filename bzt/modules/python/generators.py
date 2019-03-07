@@ -941,8 +941,8 @@ class ApiritifScriptGenerator(PythonGenerator):
         return ast.FunctionDef(name="setUp", args=args, body=[get_expr], decorator_list=[])
 
     def _gen_test_methods(self):
-        #requests = self.scenario.get_requests(parser=HierarchicRequestParser)
-        requests = self.scenario.get_requests()
+        requests = self.scenario.get_requests(parser=HierarchicRequestParser)
+        #requests = self.scenario.get_requests()
 
         number_of_digits = int(math.log10(len(requests))) + 1
         for index, req in enumerate(requests, start=1):
@@ -1075,49 +1075,49 @@ class ApiritifScriptGenerator(PythonGenerator):
         return named_args
 
     def gen_request_lines(self, req):
-        apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()),
-                                      attr='http', ctx=ast.Load())
-        target = ast.Name(id='self.target', ctx=ast.Load())
-        requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
-
-        method = req.method.lower()
-        think_time = dehumanize_time(req.priority_option('think-time', default=None))
-        named_args = self._extract_named_args(req)
-
-        if req.label:
-            label = req.label
-        else:
-            label = req.url
-
         lines = []
 
         tran = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr="transaction", ctx=ast.Load())
         transaction = ast.With(
             context_expr=ast.Call(
                 func=tran,
-                args=[self.gen_expr(label)],
+                args=[self.gen_expr(req.label)],
                 keywords=[],
                 starargs=None,
                 kwargs=None
             ),
             optional_vars=None,
-            body=[
-                ast.Assign(
-                    targets=[
-                        ast.Name(id="response", ctx=ast.Store())
-                    ],
-                    value=ast.Call(
-                        func=ast.Attribute(value=requestor, attr=method, ctx=ast.Load()),
-                        args=[self.gen_expr(req.url)],
-                        keywords=[ast.keyword(arg=name, value=self.gen_expr(value))
-                                  for name, value in iteritems(named_args)],
-                        starargs=None,
-                        kwargs=None
-                    ))])
-        transaction.body.extend(self._gen_assertions(req))
-        transaction.body.extend(self._gen_jsonpath_assertions(req))
-        transaction.body.extend(self._gen_xpath_assertions(req))
+            body=self._get_trans_body(req))
         lines.append(transaction)
+
+        return lines
+
+    def _get_trans_body(self, req):
+        lines = []
+        method = req.method.lower()
+        think_time = dehumanize_time(req.priority_option('think-time', default=None))
+        named_args = self._extract_named_args(req)
+        target = ast.Name(id='self.target', ctx=ast.Load())
+        apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
+
+        requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
+
+        lines.append(ast.Expr(ast.Assign(
+            targets=[
+                ast.Name(id="response", ctx=ast.Store())
+            ],
+            value=ast.Call(
+                func=ast.Attribute(value=requestor, attr=method, ctx=ast.Load()),
+                args=[self.gen_expr(req.url)],
+                keywords=[ast.keyword(arg=name, value=self.gen_expr(value))
+                          for name, value in iteritems(named_args)],
+                starargs=None,
+                kwargs=None
+            ))))
+
+        lines.extend(self._gen_assertions(req))
+        lines.extend(self._gen_jsonpath_assertions(req))
+        lines.extend(self._gen_xpath_assertions(req))
 
         lines.extend(self._gen_extractors(req))
 
@@ -1133,7 +1133,6 @@ class ApiritifScriptGenerator(PythonGenerator):
                         keywords=[],
                         starargs=None,
                         kwargs=None)))
-
         return lines
 
     def _gen_default_vars(self):
