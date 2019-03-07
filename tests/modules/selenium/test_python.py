@@ -590,7 +590,9 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        pass
+
+        exp_file = RESOURCES_DIR + "apiritif/test_transactions.py"
+        self.assertFilesEqual(exp_file, self.obj.script)
 
     def test_keepalive_default(self):
         self.configure({

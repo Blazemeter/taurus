@@ -17,6 +17,7 @@ limitations under the License.
 import ast
 import json
 import math
+import copy
 import re
 import string
 from collections import OrderedDict
@@ -945,13 +946,22 @@ class ApiritifScriptGenerator(PythonGenerator):
         #requests = self.scenario.get_requests()
 
         number_of_digits = int(math.log10(len(requests))) + 1
-        for index, req in enumerate(requests, start=1):
-            if not isinstance(req, (HTTPRequest, TransactionBlock)):
+        for index, request in enumerate(requests, start=1):
+            if not isinstance(request, (HTTPRequest, TransactionBlock)):
                 msg = "Apiritif script generator doesn't support '%s' blocks, skipping"
-                self.log.warning(msg, req.NAME)
+                self.log.warning(msg, request.NAME)
                 continue
 
-            label = create_method_name(req.label[:40])
+            # convert top-level http request to transaction
+            if isinstance(request, HTTPRequest):
+                request = TransactionBlock(
+                    name=request.label,
+                    requests=[request],
+                    include_timers=[],
+                    config=request.config,
+                    scenario=request.scenario)
+
+            label = create_method_name(request.label[:40])
             counter = str(index).zfill(number_of_digits)
 
             # 'test_01_get_posts'
@@ -967,7 +977,7 @@ class ApiritifScriptGenerator(PythonGenerator):
                     kwarg=None,
                     returns=None,
                 ),
-                body=self.gen_request_lines(req),
+                body=[self._gen_transaction(request)],
                 decorator_list=[],
             )
 
@@ -1074,25 +1084,29 @@ class ApiritifScriptGenerator(PythonGenerator):
 
         return named_args
 
-    def gen_request_lines(self, req):
-        lines = []
+    # generate transactions recursively
+    def _gen_transaction(self, trans_conf):
+        body = []
+        for request in trans_conf.requests:
+            if isinstance(request, TransactionBlock):
+                body.append(self._gen_transaction(request))
+            else:
+                body.append(self._gen_http_request(request))
 
-        tran = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr="transaction", ctx=ast.Load())
         transaction = ast.With(
             context_expr=ast.Call(
-                func=tran,
-                args=[self.gen_expr(req.label)],
+                func=ast.Attribute(value=ast.Name(id='apiritif'), attr="transaction"),
+                args=[self.gen_expr(trans_conf.label)],
                 keywords=[],
                 starargs=None,
                 kwargs=None
             ),
             optional_vars=None,
-            body=self._get_trans_body(req))
-        lines.append(transaction)
+            body=body)
 
-        return lines
+        return transaction
 
-    def _get_trans_body(self, req):
+    def _gen_http_request(self, req):
         lines = []
         method = req.method.lower()
         think_time = dehumanize_time(req.priority_option('think-time', default=None))
@@ -1102,9 +1116,9 @@ class ApiritifScriptGenerator(PythonGenerator):
 
         requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
 
-        lines.append(ast.Expr(ast.Assign(
+        lines.append(ast.Assign(
             targets=[
-                ast.Name(id="response", ctx=ast.Store())
+                ast.Name(id="response")
             ],
             value=ast.Call(
                 func=ast.Attribute(value=requestor, attr=method, ctx=ast.Load()),
@@ -1113,7 +1127,7 @@ class ApiritifScriptGenerator(PythonGenerator):
                           for name, value in iteritems(named_args)],
                 starargs=None,
                 kwargs=None
-            ))))
+            )))
 
         lines.extend(self._gen_assertions(req))
         lines.extend(self._gen_jsonpath_assertions(req))
