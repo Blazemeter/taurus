@@ -30,10 +30,15 @@ class TestAPI(unittest.TestCase):
     def test_2_t1(self):
         with apiritif.transaction('t_1'):
             response = apiritif.http.get('url_1.0')
-            response = apiritif.http.get('url_1.1')
+            response = apiritif.http.get('url_1.1', headers={
+                'o': 'ne',
+                't': 'wo',
+            })
 
     def test_3_t2(self):
         with apiritif.transaction('t_2'):
             response = apiritif.http.get('url_2.0')
+            time.sleep(2.0)
             with apiritif.transaction('t_22'):
                 response = apiritif.http.get('url_22.0')
+                time.sleep(3.0)

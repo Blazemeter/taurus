@@ -582,14 +582,12 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
                         "url_0",
                         {"transaction": "t_1", "do": [
                             "url_1.0",
-                            {"url": "url_1.1"}]},
+                            {"url": "url_1.1", "headers": {"o": "ne", "t": "wo"}}]},
                         {"transaction": "t_2", "do": [
-                            "url_2.0",
+                            {"url": "url_2.0", "think-time": 2},
                             {"transaction": "t_22", "do": [
-                                "url_22.0"]}]}]}}]})
+                                {"url": "url_22.0", "think-time": 3}]}]}]}}]})
         self.obj.prepare()
-        with open(self.obj.script) as fds:
-            test_script = fds.read()
 
         exp_file = RESOURCES_DIR + "apiritif/test_transactions.py"
         self.assertFilesEqual(exp_file, self.obj.script)
