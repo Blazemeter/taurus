@@ -358,6 +358,8 @@ class JMX(object):
         JMX.__add_hostnameport_2sampler(parsed_url, proxy, url)
 
         path = parsed_url.path
+        if parsed_url.params:
+            path += ";" + parsed_url.params
         if parsed_url.query:
             path += "?" + parsed_url.query
 
