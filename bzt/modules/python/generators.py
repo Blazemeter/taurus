@@ -936,14 +936,13 @@ class ApiritifScriptGenerator(PythonGenerator):
         get_func = ast.Attribute(attr="get_from_thread_store", value=ast.Name(id="apiritif"))
         get_call = ast.Call(func=get_func, args=[], starargs=None, kwargs=None, keywords=[])
 
-        get_expr = ast.Expr(ast.Assign(targets=[fields], value=get_call))
+        get_expr = ast.Assign(targets=[fields], value=get_call)
         args = ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None)
 
         return ast.FunctionDef(name="setUp", args=args, body=[get_expr], decorator_list=[])
 
     def _gen_test_methods(self):
         requests = self.scenario.get_requests(parser=HierarchicRequestParser)
-        #requests = self.scenario.get_requests()
 
         number_of_digits = int(math.log10(len(requests))) + 1
         for index, request in enumerate(requests, start=1):
@@ -1007,7 +1006,6 @@ class ApiritifScriptGenerator(PythonGenerator):
 
     def _gen_target(self):
         keepalive = self.scenario.get("keepalive", None)
-        default_address = self.scenario.get("default-address", None)
         base_path = self.scenario.get("base-path", None)
         auto_assert_ok = self.scenario.get("auto-assert-ok", True)
         store_cookie = self.scenario.get("store-cookie", None)
@@ -1021,20 +1019,9 @@ class ApiritifScriptGenerator(PythonGenerator):
 
         target = []
         if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET:
-            http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
-            target = [
-                ast.Expr(ast.Assign(
-                    targets=[
-                        ast.Name(id="target", ctx=ast.Store()),
-                    ],
-                    value=ast.Call(
-                        func=ast.Attribute(value=http, attr='target', ctx=ast.Load()),
-                        args=[self.gen_expr(default_address)],
-                        keywords=[],
-                        starargs=None,
-                        kwargs=None
-                    )))]
+
             target.extend([
+                self._init_target(),
                 self._gen_target_setup('keep_alive', keepalive),
                 self._gen_target_setup('auto_assert_ok', auto_assert_ok),
                 self._gen_target_setup('use_cookies', store_cookie),
@@ -1045,6 +1032,27 @@ class ApiritifScriptGenerator(PythonGenerator):
             if timeout is not None:
                 target.append(self._gen_target_setup('timeout', dehumanize_time(timeout)))
             target.append(self._gen_empty_line_stmt())
+        return target
+
+    def _init_target(self):
+        default_address = self.scenario.get("default-address", None)
+
+        http = ast.Attribute(
+            value=ast.Name(id='apiritif', ctx=ast.Load()),
+            attr='http',
+            ctx=ast.Load())
+
+        target_call = ast.Call(
+            func=ast.Attribute(value=http, attr='target', ctx=ast.Load()),
+            args=[self.gen_expr(default_address)],
+            keywords=[],
+            starargs=None,
+            kwargs=None)
+
+        target = ast.Assign(
+            targets=[ast.Name(id="target", ctx=ast.Store())],
+            value=target_call)
+
         return target
 
     def _extract_named_args(self, req):

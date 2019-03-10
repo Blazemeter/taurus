@@ -20,7 +20,6 @@ def setup():
 class TestAPI(unittest.TestCase):
 
     def setUp(self):
-
         (self.vars,) = apiritif.get_from_thread_store()
 
     def test_1_url0(self):

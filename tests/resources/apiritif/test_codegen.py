@@ -31,7 +31,6 @@ def setup():
 class TestWithExtractors(unittest.TestCase):
 
     def setUp(self):
-
         (self.vars, self.target) = apiritif.get_from_thread_store()
 
     def test_1_just_get(self):
@@ -42,12 +41,12 @@ class TestWithExtractors(unittest.TestCase):
         with apiritif.transaction('get posts'):
             response = self.target.get('/posts')
             response.assert_jsonpath('$.[0].userId', expected_value=1)
-        self.vars['userID'] = response.extract_jsonpath('$.[5].userId', 'NOT_FOUND')
+            self.vars['userID'] = response.extract_jsonpath('$.[5].userId', 'NOT_FOUND')
     
     def test_3_get_posts_of_certain_user(self):
         with apiritif.transaction('get posts of certain user'):
             response = self.target.get('/posts?userId={}'.format(self.vars['userID']))
-        self.vars['postID'] = response.extract_jsonpath('$.[0].id', 'NOT_FOUND')
+            self.vars['postID'] = response.extract_jsonpath('$.[0].id', 'NOT_FOUND')
     
     def test_4_get_comments_on_post(self):
         with apiritif.transaction('get comments on post'):
@@ -63,7 +62,7 @@ class TestWithExtractors(unittest.TestCase):
                 'title': 'foo',
                 'userId': self.vars['userID'],
             })
-        self.vars['addedID'] = response.extract_jsonpath('$.id', 'NOT_FOUND')
+            self.vars['addedID'] = response.extract_jsonpath('$.id', 'NOT_FOUND')
     
     def test_6_delete_from_posts(self):
         with apiritif.transaction('delete from posts'):
