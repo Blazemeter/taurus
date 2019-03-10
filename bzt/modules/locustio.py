@@ -19,7 +19,6 @@ import json
 import math
 import os
 import sys
-import time
 from collections import OrderedDict, Counter
 
 from bzt import TaurusConfigError
@@ -28,8 +27,9 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, Dat
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
+from bzt.modules.python.generators import PythonGenerator
 from bzt.six import iteritems
-from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader, CALL_PROBLEMS
+from bzt.utils import get_full_path, ensure_is_dict, FileReader, CALL_PROBLEMS
 from bzt.utils import shutdown_process, RequiredTool, dehumanize_time, RESOURCES_DIR
 
 
