@@ -26,10 +26,10 @@ from bzt import TaurusConfigError
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock
 from bzt.six import string_types, iteritems
-from bzt.utils import PythonGenerator, dehumanize_time, ensure_is_dict
+from bzt.utils import dehumanize_time, ensure_is_dict
 from .jmeter_functions import Base64DecodeFunction, UrlEncodeFunction, UuidFunction
 from .jmeter_functions import TimeFunction, RandomFunction, RandomStringFunction, Base64EncodeFunction
-
+from .python import PythonGenerator
 
 def normalize_class_name(text):
     allowed_chars = "%s%s%s" % (string.digits, string.ascii_letters, '_')

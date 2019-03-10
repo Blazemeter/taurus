@@ -32,19 +32,17 @@ import re
 import shlex
 import shutil
 import signal
+import subprocess
 import sys
 import tarfile
 import tempfile
-import time
 import traceback
 import webbrowser
 import zipfile
-import subprocess
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
 from distutils.version import LooseVersion
-from math import log
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
 from webbrowser import GenericBrowser
 
@@ -52,11 +50,13 @@ import ipaddress
 import psutil
 import requests
 import requests.adapters
+import time
+from math import log
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname, communicate
+from bzt.six import stream_decode, file_type, parse, deunicode, url2pathname, communicate
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, numeric_types
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
@@ -1504,75 +1504,6 @@ def which(filename):
     return candidates
 
 
-class PythonGenerator(object):
-    IMPORTS = ''
-    INDENT_STEP = 4
-
-    def __init__(self, scenario, parent_logger):
-        self.root = etree.Element("PythonCode")
-        self.tree = etree.ElementTree(self.root)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.scenario = scenario
-
-    def add_imports(self):
-        imports = etree.Element("imports")
-        imports.text = self.IMPORTS
-        return imports
-
-    @abstractmethod
-    def build_source_code(self):
-        pass
-
-    @staticmethod
-    def gen_class_definition(class_name, inherits_from, indent=0):
-        def_tmpl = "class {class_name}({inherits_from}):"
-        class_def_element = etree.Element("class_definition", indent=str(indent))
-        class_def_element.text = def_tmpl.format(class_name=class_name, inherits_from="".join(inherits_from))
-        return class_def_element
-
-    @staticmethod
-    def gen_method_definition(method_name, params, indent=None):
-        if indent is None:
-            indent = PythonGenerator.INDENT_STEP
-
-        def_tmpl = "def {method_name}({params}):"
-        method_def_element = etree.Element("method_definition", indent=str(indent))
-        method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
-        return method_def_element
-
-    @staticmethod
-    def gen_decorator_statement(decorator_name, indent=None):
-        if indent is None:
-            indent = PythonGenerator.INDENT_STEP
-
-        def_tmpl = "@{decorator_name}"
-        decorator_element = etree.Element("decorator_statement", indent=str(indent))
-        decorator_element.text = def_tmpl.format(decorator_name=decorator_name)
-        return decorator_element
-
-    @staticmethod
-    def gen_statement(statement, indent=None):
-        if indent is None:
-            indent = PythonGenerator.INDENT_STEP * 2
-
-        statement_elem = etree.Element("statement", indent=str(indent))
-        statement_elem.text = statement
-        return statement_elem
-
-    def gen_comment(self, comment, indent=None):
-        return self.gen_statement("# %s" % comment, indent=indent)
-
-    def save(self, filename):
-        with codecs.open(filename, 'w', encoding='utf-8') as fds:
-            for child in self.root.iter():
-                if child.text is not None:
-                    indent = int(child.get('indent', "0"))
-                    fds.write(" " * indent + child.text + "\n")
-
-    def gen_new_line(self, indent=0):
-        return self.gen_statement("", indent=indent)
-
-
 def str_representer(dumper, data):
     """ Representer for PyYAML that dumps multiline strings as | scalars """
     if len(data.splitlines()) > 1:
@@ -1587,7 +1518,7 @@ def humanize_bytes(byteval):
 
     # determine binary order in steps of size 10
     # (coerce to int, // still returns a float)
-    order = int(log(byteval, 2) / 10) if byteval else 0
+    order = int(log(byteval, 2) / 10.0) if byteval else 0
     # format file size
     # (.4g results in rounded numbers for exact matches and max 3 decimals,
     # should never resort to exponent values)

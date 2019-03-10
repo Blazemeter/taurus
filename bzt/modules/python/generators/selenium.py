@@ -19,7 +19,8 @@ import re
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.six import parse, string_types, iteritems, text_type, etree
-from bzt.utils import PythonGenerator, dehumanize_time
+from bzt.utils import dehumanize_time
+from .python import PythonGenerator
 
 
 class SeleniumScriptBuilder(PythonGenerator):
