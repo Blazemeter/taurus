@@ -913,7 +913,7 @@ class JTLReader(ResultsReader):
 
             byte_count = int(row.get("bytes", 0))
 
-            tstmp = int(int(row["timeStamp"]) / 1000)
+            tstmp = int(int(row["timeStamp"]) / 1000.0)
             self.read_records += 1
             yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count
 
@@ -926,7 +926,7 @@ class JTLReader(ResultsReader):
                         label_data[KPISet.ERRORS] = data[label]
                     else:
                         label_data[KPISet.ERRORS] = []
-
+            point[DataPoint.SOURCE_ID] = self.csvreader.file.name + "@" + str(id(self))
             yield point
 
 

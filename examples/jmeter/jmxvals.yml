@@ -8,4 +8,4 @@ scenarios:
       loops: 8
 
 execution: 
-  scenario: jmxvals
+- scenario: jmxvals

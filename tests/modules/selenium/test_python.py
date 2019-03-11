@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 import tempfile
 import time
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
+from bzt.modules import ConsolidatingAggregator
+from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
 from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor
 from bzt.modules.python.executors import ApiritifLoadReader, ApiritifFuncReader
@@ -52,7 +55,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")))
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")))
 
     def test_selenium_startup_shutdown_python_folder(self):
         """
@@ -72,7 +75,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")))
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")))
 
     def test_runner_fail_no_test_found(self):
         """
@@ -239,7 +242,7 @@ class TestNoseRunner(ExecutorTestCase):
             self.obj.shutdown()
         self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
-        reader = LoadSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.ldjson"), self.obj.log)
+        reader = LoadSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.ldjson"), self.obj.log)
         samples = list(reader._read(last_pass=True))
         self.assertEqual(len(samples), 1)
         tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count = samples[0]
@@ -263,7 +266,7 @@ class TestNoseRunner(ExecutorTestCase):
         finally:
             self.obj.shutdown()
         self.obj.post_process()
-        reader = FuncSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.ldjson"),
+        reader = FuncSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.ldjson"),
                                    self.obj.engine, self.obj.log)
         samples = list(reader.read(last_pass=True))
         self.assertEqual(len(samples), 4)
@@ -1191,18 +1194,45 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         # add empty reader
         with tempfile.NamedTemporaryFile() as f_name:
             reader.register_file(f_name.name)
-            items = list(reader._read())
+            items = list(reader.datapoints(True))
 
         self.assertEqual(len(items), 0)
         self.assertFalse(reader.read_records)
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
-        items = list(reader._read())
-        self.assertEqual(len(items), 2)
+        items = list(reader.datapoints(True))
+        self.assertEqual(len(items), 1)
+        items = list(reader.datapoints(True))
+        self.assertEqual(len(items), 0)
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
-        items = list(reader._read())
+        items = list(reader.datapoints(True))
         self.assertTrue(reader.read_records)
-        self.assertEqual(len(items), 4)
+        self.assertEqual(len(items), 1)
+
+    def test_load_reader_real2(self):
+        reader1 = ApiritifLoadReader(self.obj.log)
+        reader1.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif-0.csv")
+        reader1.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif-1.csv")
+
+        reader2 = ApiritifLoadReader(self.obj.log)
+        reader2.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif--10.csv")
+        reader2.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif--11.csv")
+
+        reader = ConsolidatingAggregator()
+        reader.add_underling(reader1)
+        reader.add_underling(reader2)
+
+        items = []
+        for point in reader.datapoints():
+            items.append(point)
+            cnc = point[DataPoint.CURRENT][''][KPISet.CONCURRENCY]
+            logging.info("%s: %s", point[DataPoint.TIMESTAMP], cnc)
+            self.assertLessEqual(cnc, 4)
+            cnc1 = point[DataPoint.CUMULATIVE][''][KPISet.CONCURRENCY]
+            self.assertLessEqual(cnc1, 4)
+
+        self.assertEqual(39, len(items))
+        self.assertEqual(4, items[-1][DataPoint.CURRENT][''][KPISet.CONCURRENCY])
 
     def test_func_reader(self):
         reader = ApiritifFuncReader(self.obj.engine, self.obj.log)
@@ -1221,7 +1251,7 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
                     "variables": {"cn": "cv"},
                     "default-address": "http://localhost:8000/",
                     "requests": ["${an}", "${bn}", "${cn}"],
-                    "data-sources":[
+                    "data-sources": [
                         "first-file.csv", {
                             "path": "/second/file.csv",
                             "delimiter": "-",
