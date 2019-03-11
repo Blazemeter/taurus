@@ -7,6 +7,7 @@ import yaml
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor
+from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules.python import ApiritifNoseExecutor
@@ -112,13 +113,13 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
-        results = list(self.obj.runner.reader._read(final_pass=True))
+        results = list(self.obj.runner.reader.datapoints(final_pass=True))
 
         self.obj.runner._tailer.close()
-        self.obj.runner.reader.readers[0].csvreader.file.close()
+        self.obj.runner.reader.underlings[0].csvreader.file.close()
 
         self.assertEquals(1, len(results))
-        self.assertIsNone(results[0][7])  # error msg
+        self.assertFalse(results[0][DataPoint.CUMULATIVE][''][KPISet.ERRORS])  # error msg
 
     def test_from_extension_reuse(self):
         self.configure({ScenarioExecutor.EXEC: {
@@ -132,13 +133,13 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
-        results = list(self.obj.runner.reader._read(final_pass=True))
+        results = list(self.obj.runner.reader.datapoints(final_pass=True))
 
         self.obj.runner._tailer.close()
-        self.obj.runner.reader.readers[0].csvreader.file.close()
+        self.obj.runner.reader.underlings[0].csvreader.file.close()
 
         self.assertEquals(1, len(results))
-        self.assertIsNone(results[0][7])  # error msg
+        self.assertFalse(results[0][DataPoint.CUMULATIVE][''][KPISet.ERRORS])  # error msg
 
     def test_requests(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
@@ -149,12 +150,12 @@ class TestSeleniumStuff(SeleniumTestCase):
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
-        reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv"))
+        reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv"))
         lines = reader.get_lines(last_pass=True)
 
         reader.close()
         self.obj.runner._tailer.close()
-        self.obj.runner.reader.readers[0].csvreader.file.close()
+        self.obj.runner.reader.underlings[0].csvreader.file.close()
 
         self.assertEquals(4, len(list(lines)))
 

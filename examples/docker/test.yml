@@ -1,0 +1,12 @@
+execution:
+  - scenario: basic
+    concurrency: 10
+    ramp-up: 30s
+    hold-for: 1m
+
+scenarios:
+  basic:
+    retrieve-resources: false
+    think-time: 250ms
+    requests:
+      - http://blazedemo.com

@@ -203,10 +203,10 @@ class TestConsolidatingAggregator(BZTestCase):
     def test_labels_aggressive_folding_2(self):
         self.obj.track_percentiles = [50]
         self.obj.prepare()
-        LABEL_COUNT = 50
-        reader = get_success_reader_shrinking_labels(max_label_size=int(LABEL_COUNT * 2), count=LABEL_COUNT)
+        label_count = 50
+        reader = get_success_reader_shrinking_labels(max_label_size=int(label_count * 2), count=label_count)
         self.obj.log.info(len(reader.data))
-        self.obj.generalize_labels = LABEL_COUNT
+        self.obj.generalize_labels = label_count
         self.obj.add_underling(reader)
         last = None
         for point in self.obj.datapoints():
@@ -214,9 +214,10 @@ class TestConsolidatingAggregator(BZTestCase):
         cum_dict = self.obj.cumulative
         labels = list(cum_dict.keys())
         labels_count = len(labels)
-        self.assertLessEqual(labels_count, LABEL_COUNT + 1)  # didn't overflow
-        self.assertGreaterEqual(labels_count, LABEL_COUNT * 0.25)  # at least a quorter-filled
-        self.assertEqual(0, len(last[DataPoint.SUBRESULTS]))
+        self.assertLessEqual(labels_count, label_count + 1)  # didn't overflow
+        self.assertGreaterEqual(labels_count, label_count * 0.25)  # at least a quarter-filled
+        self.assertEqual(1, len(last[DataPoint.SUBRESULTS]))
+        self.assertEqual(last, last[DataPoint.SUBRESULTS][0])
 
     def test_errors_variety(self):
         self.obj.track_percentiles = [50]
@@ -268,6 +269,8 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.prepare()
         self.obj.add_underling(get_success_reader())
         for point in self.obj.datapoints():
+            if point[DataPoint.SUBRESULTS] == [point]:
+                del point[DataPoint.SUBRESULTS]
             self.obj.log.info(to_json(point))
 
     def test_negative_response_time_scaling_crash(self):

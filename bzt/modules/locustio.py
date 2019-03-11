@@ -295,7 +295,7 @@ class SlavesReader(ResultsProvider):
 
             kpiset[KPISet.SUCCESSES] = kpiset[KPISet.SAMPLE_COUNT] - kpiset[KPISet.FAILURES]
             point[DataPoint.CURRENT][item['name']] = kpiset
-            overall.merge_kpis(kpiset)
+            overall.merge_kpis(kpiset, sid)
 
         point[DataPoint.CURRENT][''] = overall
         point.recalculate()
