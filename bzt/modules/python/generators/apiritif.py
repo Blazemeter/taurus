@@ -31,6 +31,7 @@ from .jmeter_functions import Base64DecodeFunction, UrlEncodeFunction, UuidFunct
 from .jmeter_functions import TimeFunction, RandomFunction, RandomStringFunction, Base64EncodeFunction
 from .python import PythonGenerator
 
+
 def normalize_class_name(text):
     allowed_chars = "%s%s%s" % (string.digits, string.ascii_letters, '_')
     split_separator = re.split(r'[\-_]', text)
