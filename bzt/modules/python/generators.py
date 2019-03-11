@@ -17,6 +17,7 @@ limitations under the License.
 import ast
 import json
 import math
+import copy
 import re
 import string
 from collections import OrderedDict
@@ -25,7 +26,7 @@ import astunparse
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
-from bzt.requests_model import HTTPRequest
+from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock
 from bzt.six import parse, string_types, iteritems, text_type, etree
 from bzt.utils import PythonGenerator, dehumanize_time, ensure_is_dict
 from .jmeter_functions import Base64DecodeFunction, UrlEncodeFunction, UuidFunction
@@ -935,26 +936,31 @@ class ApiritifScriptGenerator(PythonGenerator):
         get_func = ast.Attribute(attr="get_from_thread_store", value=ast.Name(id="apiritif"))
         get_call = ast.Call(func=get_func, args=[], starargs=None, kwargs=None, keywords=[])
 
-        get_expr = ast.Expr(ast.Assign(targets=[fields], value=get_call))
+        get_expr = ast.Assign(targets=[fields], value=get_call)
         args = ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None)
 
         return ast.FunctionDef(name="setUp", args=args, body=[get_expr], decorator_list=[])
 
     def _gen_test_methods(self):
-        requests = self.scenario.get_requests()
+        requests = self.scenario.get_requests(parser=HierarchicRequestParser)
+
         number_of_digits = int(math.log10(len(requests))) + 1
-        for index, req in enumerate(requests, start=1):
-            if not isinstance(req, HTTPRequest):
+        for index, request in enumerate(requests, start=1):
+            if not isinstance(request, (HTTPRequest, TransactionBlock)):
                 msg = "Apiritif script generator doesn't support '%s' blocks, skipping"
-                self.log.warning(msg, req.NAME)
+                self.log.warning(msg, request.NAME)
                 continue
 
-            if req.label:
-                label = req.label
-            else:
-                label = req.url
+            # convert top-level http request to transaction
+            if isinstance(request, HTTPRequest):
+                request = TransactionBlock(
+                    name=request.label,
+                    requests=[request],
+                    include_timers=[],
+                    config=request.config,
+                    scenario=request.scenario)
 
-            label = create_method_name(label[:40])
+            label = create_method_name(request.label[:40])
             counter = str(index).zfill(number_of_digits)
 
             # 'test_01_get_posts'
@@ -970,7 +976,7 @@ class ApiritifScriptGenerator(PythonGenerator):
                     kwarg=None,
                     returns=None,
                 ),
-                body=self.gen_request_lines(req),
+                body=[self._gen_transaction(request)],
                 decorator_list=[],
             )
 
@@ -1000,7 +1006,6 @@ class ApiritifScriptGenerator(PythonGenerator):
 
     def _gen_target(self):
         keepalive = self.scenario.get("keepalive", None)
-        default_address = self.scenario.get("default-address", None)
         base_path = self.scenario.get("base-path", None)
         auto_assert_ok = self.scenario.get("auto-assert-ok", True)
         store_cookie = self.scenario.get("store-cookie", None)
@@ -1014,20 +1019,9 @@ class ApiritifScriptGenerator(PythonGenerator):
 
         target = []
         if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET:
-            http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
-            target = [
-                ast.Assign(
-                    targets=[
-                        ast.Name(id="target", ctx=ast.Store()),
-                    ],
-                    value=ast.Call(
-                        func=ast.Attribute(value=http, attr='target', ctx=ast.Load()),
-                        args=[self.gen_expr(default_address)],
-                        keywords=[],
-                        starargs=None,
-                        kwargs=None
-                    ))]
+
             target.extend([
+                self._init_target(),
                 self._gen_target_setup('keep_alive', keepalive),
                 self._gen_target_setup('auto_assert_ok', auto_assert_ok),
                 self._gen_target_setup('use_cookies', store_cookie),
@@ -1038,6 +1032,27 @@ class ApiritifScriptGenerator(PythonGenerator):
             if timeout is not None:
                 target.append(self._gen_target_setup('timeout', dehumanize_time(timeout)))
             target.append(self._gen_empty_line_stmt())
+        return target
+
+    def _init_target(self):
+        default_address = self.scenario.get("default-address", None)
+
+        http = ast.Attribute(
+            value=ast.Name(id='apiritif', ctx=ast.Load()),
+            attr='http',
+            ctx=ast.Load())
+
+        target_call = ast.Call(
+            func=ast.Attribute(value=http, attr='target', ctx=ast.Load()),
+            args=[self.gen_expr(default_address)],
+            keywords=[],
+            starargs=None,
+            kwargs=None)
+
+        target = ast.Assign(
+            targets=[ast.Name(id="target", ctx=ast.Store())],
+            value=target_call)
+
         return target
 
     def _extract_named_args(self, req):
@@ -1077,50 +1092,54 @@ class ApiritifScriptGenerator(PythonGenerator):
 
         return named_args
 
-    def gen_request_lines(self, req):
-        apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()),
-                                      attr='http', ctx=ast.Load())
-        target = ast.Name(id='self.target', ctx=ast.Load())
-        requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
+    # generate transactions recursively
+    def _gen_transaction(self, trans_conf):
+        body = []
+        for request in trans_conf.requests:
+            if isinstance(request, TransactionBlock):
+                body.append(self._gen_transaction(request))
+            else:
+                body.append(self._gen_http_request(request))
 
-        method = req.method.lower()
-        think_time = dehumanize_time(req.priority_option('think-time', default=None))
-        named_args = self._extract_named_args(req)
-
-        if req.label:
-            label = req.label
-        else:
-            label = req.url
-
-        lines = []
-
-        tran = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr="transaction", ctx=ast.Load())
         transaction = ast.With(
             context_expr=ast.Call(
-                func=tran,
-                args=[self.gen_expr(label)],
+                func=ast.Attribute(value=ast.Name(id='apiritif'), attr="transaction"),
+                args=[self.gen_expr(trans_conf.label)],
                 keywords=[],
                 starargs=None,
                 kwargs=None
             ),
             optional_vars=None,
-            body=[
-                ast.Assign(
-                    targets=[
-                        ast.Name(id="response", ctx=ast.Store())
-                    ],
-                    value=ast.Call(
-                        func=ast.Attribute(value=requestor, attr=method, ctx=ast.Load()),
-                        args=[self.gen_expr(req.url)],
-                        keywords=[ast.keyword(arg=name, value=self.gen_expr(value))
-                                  for name, value in iteritems(named_args)],
-                        starargs=None,
-                        kwargs=None
-                    ))])
-        transaction.body.extend(self._gen_assertions(req))
-        transaction.body.extend(self._gen_jsonpath_assertions(req))
-        transaction.body.extend(self._gen_xpath_assertions(req))
-        lines.append(transaction)
+            body=body)
+
+        return transaction
+
+    def _gen_http_request(self, req):
+        lines = []
+        method = req.method.lower()
+        think_time = dehumanize_time(req.priority_option('think-time', default=None))
+        named_args = self._extract_named_args(req)
+        target = ast.Name(id='self.target', ctx=ast.Load())
+        apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
+
+        requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
+
+        lines.append(ast.Assign(
+            targets=[
+                ast.Name(id="response")
+            ],
+            value=ast.Call(
+                func=ast.Attribute(value=requestor, attr=method, ctx=ast.Load()),
+                args=[self.gen_expr(req.url)],
+                keywords=[ast.keyword(arg=name, value=self.gen_expr(value))
+                          for name, value in iteritems(named_args)],
+                starargs=None,
+                kwargs=None
+            )))
+
+        lines.extend(self._gen_assertions(req))
+        lines.extend(self._gen_jsonpath_assertions(req))
+        lines.extend(self._gen_xpath_assertions(req))
 
         lines.extend(self._gen_extractors(req))
 
@@ -1136,7 +1155,6 @@ class ApiritifScriptGenerator(PythonGenerator):
                         keywords=[],
                         starargs=None,
                         kwargs=None)))
-
         return lines
 
     def _gen_default_vars(self):

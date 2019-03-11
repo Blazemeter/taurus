@@ -143,10 +143,11 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
         """
         Repaint the screen
         """
+        if self._last_datapoint:
+            self.__print_one_line_stats(self.log.info if self.disabled else self.log.debug)
+            self._last_datapoint = None
+
         if self.disabled:
-            if self._last_datapoint:
-                self.__print_one_line_stats()
-                self._last_datapoint = None
             return False
 
         self.__start_screen()
@@ -155,7 +156,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
         self.__update_screen()
         return False
 
-    def __print_one_line_stats(self):
+    def __print_one_line_stats(self, log_method):
         cur = self._last_datapoint[DataPoint.CURRENT]['']
         line = "Current: %s vu\t%s succ\t%s fail\t%.3f avg rt"
         stats = (cur[KPISet.CONCURRENCY], cur[KPISet.SUCCESSES], cur[KPISet.FAILURES],
@@ -164,7 +165,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
         line += "\t/\t"  # separator
         line += "Cumulative: %.3f avg rt, %d%% failures"
         stats += (cumul[KPISet.AVG_RESP_TIME], 100 * (cumul[KPISet.FAILURES] / cumul[KPISet.SAMPLE_COUNT]))
-        self.log.info(line % stats)
+        log_method(line % stats)
 
     def __start_screen(self):
         """
