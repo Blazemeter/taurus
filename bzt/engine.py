@@ -145,7 +145,7 @@ class Engine(object):
 
         prov_type = self.config.get(Provisioning.PROV)
 
-        for execution in executions:
+        for execution in executions:  # type: BetterDict
             executor = execution.get("executor", default_executor, force_set=True)
             if not executor:
                 msg = "Cannot determine executor type and no default executor in %s"
