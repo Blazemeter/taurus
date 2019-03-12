@@ -307,3 +307,10 @@ class TestJMX(BZTestCase):
                                     use_random_host_ip=True, host_ips=["192.168.1.1", "192.168.1.2"])
         self.assertEqual("${__chooseRandom(192.168.1.1,192.168.1.2,randomAddr)}",
                          res.find(".//stringProp[@name='HTTPSampler.ipSource']").text)
+
+    def test_param_url(self):
+        obj = JMX()
+        res = obj._get_http_request(url="https://example_url.net/Xhtml;jsessionid=XXXX:XXXX?JacadaApplicationName=XXXX",
+                                    label="label", method="method", timeout=0, body={}, keepalive=True)
+        self.assertEqual("/Xhtml;jsessionid=XXXX:XXXX?JacadaApplicationName=XXXX",
+                         res.find(".//stringProp[@name='HTTPSampler.path']").text)
