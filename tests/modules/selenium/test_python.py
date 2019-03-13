@@ -1272,7 +1272,9 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
                     "default-address": "http://localhost:8000/",
                     "requests": [
                         "${an}",
-                        {"set-variables": {"an": "another_page"}},
+                        {"set-variables": {
+                            "an": "another_path1",
+                            "bn": "another_path2"}},
                         "${an}"],
                 }}]})
 

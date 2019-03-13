@@ -33,7 +33,8 @@ class TestAPI(unittest.TestCase):
             response = self.target.get(self.vars['an'])
 
     def test_2_set_variables(self):
-        self.vars['an'] = 'another_path'
+        self.vars['an'] = 'another_path1'
+        self.vars['bn'] = 'another_path2'
 
     def test_3_an(self):
         with apiritif.transaction(self.vars['an']):
