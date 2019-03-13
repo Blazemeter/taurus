@@ -960,19 +960,22 @@ class ApiritifScriptGenerator(PythonGenerator):
                     config=request.config,
                     scenario=request.scenario)
 
-            label = create_method_name(request.label[:40])
-            counter = str(index).zfill(number_of_digits)
-            method_name = 'test_' + counter + '_' + label
-
             if isinstance(request, TransactionBlock):
                 body = self._gen_transaction(request)
+                label = create_method_name(request.label[:40])
             elif isinstance(request, SetVariables):
                 body = self._gen_set_vars(request)
+                label = "set_variables"
+            else:
+                return
+
+            counter = str(index).zfill(number_of_digits)
+            method_name = 'test_' + counter + '_' + label
 
             yield self._gen_test_method(method_name, body)
 
     def _gen_set_vars(self, request):
-        pass
+        return self._gen_empty_line_stmt()
 
     @staticmethod
     def _gen_test_method(name, body):
