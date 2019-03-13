@@ -17,7 +17,6 @@ limitations under the License.
 import ast
 import json
 import math
-import copy
 import re
 import string
 from collections import OrderedDict
@@ -26,7 +25,7 @@ import astunparse
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
-from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock
+from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
 from bzt.six import parse, string_types, iteritems, text_type, etree
 from bzt.utils import PythonGenerator, dehumanize_time, ensure_is_dict
 from .jmeter_functions import Base64DecodeFunction, UrlEncodeFunction, UuidFunction
@@ -790,6 +789,7 @@ class ApiritifScriptGenerator(PythonGenerator):
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
+    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables)
 
     def __init__(self, engine, scenario, label, parent_log):
         super(ApiritifScriptGenerator, self).__init__(scenario, parent_log)
@@ -946,7 +946,7 @@ class ApiritifScriptGenerator(PythonGenerator):
 
         number_of_digits = int(math.log10(len(requests))) + 1
         for index, request in enumerate(requests, start=1):
-            if not isinstance(request, (HTTPRequest, TransactionBlock)):
+            if not isinstance(request, self.SUPPORTED_BLOCKS):
                 msg = "Apiritif script generator doesn't support '%s' blocks, skipping"
                 self.log.warning(msg, request.NAME)
                 continue
@@ -962,25 +962,38 @@ class ApiritifScriptGenerator(PythonGenerator):
 
             label = create_method_name(request.label[:40])
             counter = str(index).zfill(number_of_digits)
-
-            # 'test_01_get_posts'
             method_name = 'test_' + counter + '_' + label
-            method = ast.FunctionDef(
-                name=method_name,
-                args=ast.arguments(
-                    args=[ast.Name(id='self', ctx=ast.Param())],
-                    defaults=[],
-                    vararg=None,
-                    kwonlyargs=[],
-                    kw_defaults=[],
-                    kwarg=None,
-                    returns=None,
-                ),
-                body=[self._gen_transaction(request)],
-                decorator_list=[],
-            )
 
-            yield method
+            if isinstance(request, TransactionBlock):
+                body = self._gen_transaction(request)
+            elif isinstance(request, SetVariables):
+                body = self._gen_set_vars(request)
+
+            yield self._gen_test_method(method_name, body)
+
+    def _gen_set_vars(self, request):
+        pass
+
+    @staticmethod
+    def _gen_test_method(name, body):
+        # 'test_01_get_posts'
+
+        method = ast.FunctionDef(
+            name=name,
+            args=ast.arguments(
+                args=[ast.Name(id='self', ctx=ast.Param())],
+                defaults=[],
+                vararg=None,
+                kwonlyargs=[],
+                kw_defaults=[],
+                kwarg=None,
+                returns=None,
+            ),
+            body=[body],
+            decorator_list=[],
+        )
+
+        return method
 
     def gen_expr(self, value):
         return self.expr_compiler.gen_expr(value)
