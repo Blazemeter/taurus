@@ -63,7 +63,8 @@ class JMeterExprCompiler(object):
     def __init__(self, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
 
-    def gen_var_accessor(self, varname, ctx=None):
+    @staticmethod
+    def gen_var_accessor(varname, ctx=None):
         if ctx is None:
             ctx = ast.Load()
 
@@ -975,7 +976,9 @@ class ApiritifScriptGenerator(PythonGenerator):
             yield self._gen_test_method(method_name, body)
 
     def _gen_set_vars(self, request):
-        return self._gen_empty_line_stmt()
+        for n, v in request.mapping:
+            res = ast.Assign(targets=[self.gen_expr("${%s}" % n)], value=ast.Str(s="%s" % v))
+            yield res
 
     @staticmethod
     def _gen_test_method(name, body):
