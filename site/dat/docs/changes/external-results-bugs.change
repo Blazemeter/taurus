@@ -1,0 +1,2 @@
+- for external results loader, allow specifying files under scenario
+- fix external results loader hanging on small result files
