@@ -962,7 +962,7 @@ class ApiritifScriptGenerator(PythonGenerator):
                     scenario=request.scenario)
 
             if isinstance(request, TransactionBlock):
-                body = self._gen_transaction(request)
+                body = [self._gen_transaction(request)]
                 label = create_method_name(request.label[:40])
             elif isinstance(request, SetVariables):
                 body = self._gen_set_vars(request)
@@ -976,9 +976,13 @@ class ApiritifScriptGenerator(PythonGenerator):
             yield self._gen_test_method(method_name, body)
 
     def _gen_set_vars(self, request):
-        for n, v in request.mapping:
-            res = ast.Assign(targets=[self.gen_expr("${%s}" % n)], value=ast.Str(s="%s" % v))
-            yield res
+        res = []
+        for name in sorted(request.mapping.keys()):
+            res.append(ast.Assign(
+                targets=[self.gen_expr("${%s}" % name)],
+                value=ast.Str(s="%s" % request.mapping[name])))
+
+        return res
 
     @staticmethod
     def _gen_test_method(name, body):
@@ -995,7 +999,7 @@ class ApiritifScriptGenerator(PythonGenerator):
                 kwarg=None,
                 returns=None,
             ),
-            body=[body],
+            body=body,
             decorator_list=[],
         )
 
