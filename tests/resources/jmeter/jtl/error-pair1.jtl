@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="139" lt="59" ts="1551614636213" s="false" lb="embeddedResources" rc="200" rm="Embedded resource download error:http://demo.blazemeter.com/themes/bluemarine/logo.png code:404 message:Not Found, http://demo.blazemeter.com/themes/bluemarine/logo12.png code:404 message:Not Found, " tn="Thread Group constant response 1-1" dt="text" de="" by="6911" ng="1" na="1">
+  <httpSample t="60" lt="59" ts="1551614636213" s="true" lb="embeddedResources-0" rc="200" rm="OK" tn="Thread Group constant response 1-1" dt="text" de="" by="5813" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Sun, 03 Mar 2019 12:03:56 GMT
+Server: Apache/2.2.22 (Ubuntu)
+X-Powered-By: PHP/5.4.9-4ubuntu2.4
+Vary: Accept-Encoding
+Content-Length: 5563
+Keep-Alive: timeout=5, max=100
+Connection: Keep-Alive
+Content-Type: text/html
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: demo.blazemeter.com
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+    <java.net.URL>http://demo.blazemeter.com/echo.php?embedded</java.net.URL>
+  </httpSample>
+  <httpSample t="2" lt="2" ts="1551614636347" s="false" lb="embeddedResources-1" rc="404" rm="Not Found" tn="Thread Group constant response 1-1" dt="text" de="iso-8859-1" by="548" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 404 Not Found
+Date: Sun, 03 Mar 2019 12:03:56 GMT
+Server: Apache/2.2.22 (Ubuntu)
+Vary: Accept-Encoding
+Content-Length: 309
+Keep-Alive: timeout=5, max=99
+Connection: Keep-Alive
+Content-Type: text/html; charset=iso-8859-1
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: demo.blazemeter.com
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;!DOCTYPE HTML PUBLIC &quot;-//IETF//DTD HTML 2.0//EN&quot;&gt;
+&lt;html&gt;&lt;head&gt;
+&lt;title&gt;404 Not Found&lt;/title&gt;
+&lt;/head&gt;&lt;body&gt;
+&lt;h1&gt;Not Found&lt;/h1&gt;
+&lt;p&gt;The requested URL /themes/bluemarine/logo.png was not found on this server.&lt;/p&gt;
+&lt;hr&gt;
+&lt;address&gt;Apache/2.2.22 (Ubuntu) Server at demo.blazemeter.com Port 80&lt;/address&gt;
+&lt;/body&gt;&lt;/html&gt;
+</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://demo.blazemeter.com/themes/bluemarine/logo.png</java.net.URL>
+  </httpSample>
+  <httpSample t="2" lt="2" ts="1551614636350" s="false" lb="embeddedResources-2" rc="404" rm="Not Found" tn="Thread Group constant response 1-1" dt="text" de="iso-8859-1" by="550" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 404 Not Found
+Date: Sun, 03 Mar 2019 12:03:56 GMT
+Server: Apache/2.2.22 (Ubuntu)
+Vary: Accept-Encoding
+Content-Length: 311
+Keep-Alive: timeout=5, max=98
+Connection: Keep-Alive
+Content-Type: text/html; charset=iso-8859-1
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: demo.blazemeter.com
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;!DOCTYPE HTML PUBLIC &quot;-//IETF//DTD HTML 2.0//EN&quot;&gt;
+&lt;html&gt;&lt;head&gt;
+&lt;title&gt;404 Not Found&lt;/title&gt;
+&lt;/head&gt;&lt;body&gt;
+&lt;h1&gt;Not Found&lt;/h1&gt;
+&lt;p&gt;The requested URL /themes/bluemarine/logo12.png was not found on this server.&lt;/p&gt;
+&lt;hr&gt;
+&lt;address&gt;Apache/2.2.22 (Ubuntu) Server at demo.blazemeter.com Port 80&lt;/address&gt;
+&lt;/body&gt;&lt;/html&gt;
+</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://demo.blazemeter.com/themes/bluemarine/logo12.png</java.net.URL>
+  </httpSample>
+  <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Sun, 03 Mar 2019 12:03:56 GMT
+Server: Apache/2.2.22 (Ubuntu)
+X-Powered-By: PHP/5.4.9-4ubuntu2.4
+Vary: Accept-Encoding
+Content-Length: 5563
+Keep-Alive: timeout=5, max=100
+Connection: Keep-Alive
+Content-Type: text/html
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: demo.blazemeter.com
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;html&gt;
+&lt;head&gt;&lt;script type=&quot;text/javascript&quot;&gt;window.NREUM||(NREUM={}),__nr_require=function(e,n,t){function r(t){if(!n[t]){var o=n[t]={exports:{}};e[t][0].call(o.exports,function(n){var o=e[t][1][n];return r(o||n)},o,o.exports)}return n[t].exports}if(&quot;function&quot;==typeof __nr_require)return __nr_require;for(var o=0;o&lt;t.length;o++)r(t[o]);return r}({1:[function(e,n,t){function r(){}function o(e,n,t){return function(){return i(e,[c.now()].concat(u(arguments)),n?null:this,t),n?void 0:this}}var i=e(&quot;handle&quot;),a=e(3),u=e(4),f=e(&quot;ee&quot;).get(&quot;tracer&quot;),c=e(&quot;loader&quot;),s=NREUM;&quot;undefined&quot;==typeof window.newrelic&amp;&amp;(newrelic=s);var p=[&quot;setPageViewName&quot;,&quot;setCustomAttribute&quot;,&quot;setErrorHandler&quot;,&quot;finished&quot;,&quot;addToTrace&quot;,&quot;inlineHit&quot;,&quot;addRelease&quot;],d=&quot;api-&quot;,l=d+&quot;ixn-&quot;;a(p,function(e,n){s[n]=o(d+n,!0,&quot;api&quot;)}),s.addPageAction=o(d+&quot;addPageAction&quot;,!0),s.setCurrentRouteName=o(d+&quot;routeName&quot;,!0),n.exports=newrelic,s.interaction=function(){return(new r).get()};var m=r.prototype={createTracer:function(e,n){var t={},r=this,o=&quot;function&quot;==typeof n;return i(l+&quot;tracer&quot;,[c.now(),e,t],r),function(){if(f.emit((o?&quot;&quot;:&quot;no-&quot;)+&quot;fn-start&quot;,[c.now(),r,o],t),o)try{return n.apply(this,arguments)}catch(e){throw f.emit(&quot;fn-err&quot;,[arguments,this,e],t),e}finally{f.emit(&quot;fn-end&quot;,[c.now()],t)}}}};a(&quot;actionText,setName,setAttribute,save,ignore,onEnd,getContext,end,get&quot;.split(&quot;,&quot;),function(e,n){m[n]=o(l+n)}),newrelic.noticeError=function(e,n){&quot;string&quot;==typeof e&amp;&amp;(e=new Error(e)),i(&quot;err&quot;,[e,c.now(),!1,n])}},{}],2:[function(e,n,t){function r(e,n){if(!o)return!1;if(e!==o)return!1;if(!n)return!0;if(!i)return!1;for(var t=i.split(&quot;.&quot;),r=n.split(&quot;.&quot;),a=0;a&lt;r.length;a++)if(r[a]!==t[a])return!1;return!0}var o=null,i=null,a=/Version\/(\S+)\s+Safari/;if(navigator.userAgent){var u=navigator.userAgent,f=u.match(a);f&amp;&amp;u.indexOf(&quot;Chrome&quot;)===-1&amp;&amp;u.indexOf(&quot;Chromium&quot;)===-1&amp;&amp;(o=&quot;Safari&quot;,i=f[1])}n.exports={agent:o,version:i,match:r}},{}],3:[function(e,n,t){function r(e,n){var t=[],r=&quot;&quot;,i=0;for(r in e)o.call(e,r)&amp;&amp;(t[i]=n(r,e[r]),i+=1);return t}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],4:[function(e,n,t){function r(e,n,t){n||(n=0),&quot;undefined&quot;==typeof t&amp;&amp;(t=e?e.length:0);for(var r=-1,o=t-n||0,i=Array(o&lt;0?0:o);++r&lt;o;)i[r]=e[n+r];return i}n.exports=r},{}],5:[function(e,n,t){n.exports={exists:&quot;undefined&quot;!=typeof window.performance&amp;&amp;window.performance.timing&amp;&amp;&quot;undefined&quot;!=typeof window.performance.timing.navigationStart}},{}],ee:[function(e,n,t){function r(){}function o(e){function n(e){return e&amp;&amp;e instanceof r?e:e?f(e,u,i):i()}function t(t,r,o,i){if(!d.aborted||i){e&amp;&amp;e(t,r,o);for(var a=n(o),u=v(t),f=u.length,c=0;c&lt;f;c++)u[c].apply(a,r);var p=s[y[t]];return p&amp;&amp;p.push([b,t,r,a]),a}}function l(e,n){h[e]=v(e).concat(n)}function m(e,n){var t=h[e];if(t)for(var r=0;r&lt;t.length;r++)t[r]===n&amp;&amp;t.splice(r,1)}function v(e){return h[e]||[]}function g(e){return p[e]=p[e]||o(t)}function w(e,n){c(e,function(e,t){n=n||&quot;feature&quot;,y[t]=n,n in s||(s[n]=[])})}var h={},y={},b={on:l,addEventListener:l,removeEventListener:m,emit:t,get:g,listeners:v,context:n,buffer:w,abort:a,aborted:!1};return b}function i(){return new r}function a(){(s.api||s.feature)&amp;&amp;(d.aborted=!0,s=d.backlog={})}var u=&quot;nr@context&quot;,f=e(&quot;gos&quot;),c=e(3),s={},p={},d=n.exports=o();d.backlog=s},{}],gos:[function(e,n,t){function r(e,n,t){if(o.call(e,n))return e[n];var r=t();if(Object.defineProperty&amp;&amp;Object.keys)try{return Object.defineProperty(e,n,{value:r,writable:!0,enumerable:!1}),r}catch(i){}return e[n]=r,r}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],handle:[function(e,n,t){function r(e,n,t,r){o.buffer([e],r),o.emit(e,n,t)}var o=e(&quot;ee&quot;).get(&quot;handle&quot;);n.exports=r,r.ee=o},{}],id:[function(e,n,t){function r(e){var n=typeof e;return!e||&quot;object&quot;!==n&amp;&amp;&quot;function&quot;!==n?-1:e===window?0:a(e,i,function(){return o++})}var o=1,i=&quot;nr@id&quot;,a=e(&quot;gos&quot;);n.exports=r},{}],loader:[function(e,n,t){function r(){if(!E++){var e=x.info=NREUM.info,n=l.getElementsByTagName(&quot;script&quot;)[0];if(setTimeout(s.abort,3e4),!(e&amp;&amp;e.licenseKey&amp;&amp;e.applicationID&amp;&amp;n))return s.abort();c(y,function(n,t){e[n]||(e[n]=t)}),f(&quot;mark&quot;,[&quot;onload&quot;,a()+x.offset],null,&quot;api&quot;);var t=l.createElement(&quot;script&quot;);t.src=&quot;https://&quot;+e.agent,n.parentNode.insertBefore(t,n)}}function o(){&quot;complete&quot;===l.readyState&amp;&amp;i()}function i(){f(&quot;mark&quot;,[&quot;domContent&quot;,a()+x.offset],null,&quot;api&quot;)}function a(){return O.exists&amp;&amp;performance.now?Math.round(performance.now()):(u=Math.max((new Date).getTime(),u))-x.offset}var u=(new Date).getTime(),f=e(&quot;handle&quot;),c=e(3),s=e(&quot;ee&quot;),p=e(2),d=window,l=d.document,m=&quot;addEventListener&quot;,v=&quot;attachEvent&quot;,g=d.XMLHttpRequest,w=g&amp;&amp;g.prototype;NREUM.o={ST:setTimeout,SI:d.setImmediate,CT:clearTimeout,XHR:g,REQ:d.Request,EV:d.Event,PR:d.Promise,MO:d.MutationObserver};var h=&quot;&quot;+location,y={beacon:&quot;bam.nr-data.net&quot;,errorBeacon:&quot;bam.nr-data.net&quot;,agent:&quot;js-agent.newrelic.com/nr-1118.min.js&quot;},b=g&amp;&amp;w&amp;&amp;w[m]&amp;&amp;!/CriOS/.test(navigator.userAgent),x=n.exports={offset:u,now:a,origin:h,features:{},xhrWrappable:b,userAgent:p};e(1),l[m]?(l[m](&quot;DOMContentLoaded&quot;,i,!1),d[m](&quot;load&quot;,r,!1)):(l[v](&quot;onreadystatechange&quot;,o),d[v](&quot;onload&quot;,r)),f(&quot;mark&quot;,[&quot;firstbyte&quot;,u],null,&quot;api&quot;);var E=0,O=e(5)},{}]},{},[&quot;loader&quot;]);&lt;/script&gt;
+    &lt;title&gt;echo&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;img src=&apos;/themes/bluemarine/logo.png&apos;&gt;
+&lt;img src=&apos;/themes/bluemarine/logo12.png&apos;&gt;
+&lt;/br&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;window.NREUM||(NREUM={});NREUM.info={&quot;beacon&quot;:&quot;bam.nr-data.net&quot;,&quot;licenseKey&quot;:&quot;338cffe5d3&quot;,&quot;applicationID&quot;:&quot;5126265&quot;,&quot;transactionName&quot;:&quot;YVxSYxACCxcEVRFfWlgWZUULTAAHDVlLRl1G&quot;,&quot;queueTime&quot;:0,&quot;applicationTime&quot;:0,&quot;atts&quot;:&quot;TRtRFVgYGBk=&quot;,&quot;errorBeacon&quot;:&quot;bam.nr-data.net&quot;,&quot;agent&quot;:&quot;&quot;}&lt;/script&gt;&lt;/body&gt;
+&lt;/html&gt;</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://demo.blazemeter.com/echo.php?embedded</java.net.URL>
+</httpSample>
+<httpSample t="64" lt="0" ts="1551614636369" s="false" lb="not exist url" rc="Non HTTP response code: java.net.UnknownHostException" rm="Non HTTP response message: demo.blazemeter1.com: Name or service not known" tn="Thread Group constant response 1-1" dt="text" de="" by="2331" ng="1" na="1">
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: demo.blazemeter1.com
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+  <responseData class="java.lang.String">java.net.UnknownHostException: demo.blazemeter1.com: Name or service not known
+	at java.net.Inet6AddressImpl.lookupAllHostAddr(Native Method)
+	at java.net.InetAddress$2.lookupAllHostAddr(InetAddress.java:929)
+	at java.net.InetAddress.getAddressesFromNameService(InetAddress.java:1324)
+	at java.net.InetAddress.getAllByName0(InetAddress.java:1277)
+	at java.net.InetAddress.getAllByName(InetAddress.java:1193)
+	at java.net.InetAddress.getAllByName(InetAddress.java:1127)
+	at org.apache.http.impl.conn.SystemDefaultDnsResolver.resolve(SystemDefaultDnsResolver.java:45)
+	at org.apache.http.impl.conn.DefaultHttpClientConnectionOperator.connect(DefaultHttpClientConnectionOperator.java:112)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl$JMeterDefaultHttpClientConnectionOperator.connect(HTTPHC4Impl.java:331)
+	at org.apache.http.impl.conn.PoolingHttpClientConnectionManager.connect(PoolingHttpClientConnectionManager.java:373)
+	at org.apache.http.impl.execchain.MainClientExec.establishRoute(MainClientExec.java:394)
+	at org.apache.http.impl.execchain.MainClientExec.execute(MainClientExec.java:237)
+	at org.apache.http.impl.execchain.ProtocolExec.execute(ProtocolExec.java:185)
+	at org.apache.http.impl.execchain.RetryExec.execute(RetryExec.java:89)
+	at org.apache.http.impl.execchain.RedirectExec.execute(RedirectExec.java:110)
+	at org.apache.http.impl.client.InternalHttpClient.doExecute(InternalHttpClient.java:185)
+	at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:83)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl.executeRequest(HTTPHC4Impl.java:832)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl.sample(HTTPHC4Impl.java:570)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy.sample(HTTPSamplerProxy.java:67)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.sample(HTTPSamplerBase.java:1231)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.sample(HTTPSamplerBase.java:1220)
+	at org.apache.jmeter.threads.JMeterThread.doSampling(JMeterThread.java:622)
+	at org.apache.jmeter.threads.JMeterThread.executeSamplePackage(JMeterThread.java:546)
+	at org.apache.jmeter.threads.JMeterThread.processSampler(JMeterThread.java:486)
+	at org.apache.jmeter.threads.JMeterThread.run(JMeterThread.java:253)
+	at java.lang.Thread.run(Thread.java:748)
+</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://demo.blazemeter1.com/echo.php</java.net.URL>
+</httpSample>
+<httpSample t="3" lt="3" ts="1551614636435" s="false" lb="Response Code 4xx 5xx" rc="502" rm="Bad Gateway" tn="Thread Group constant response 1-1" dt="text" de="" by="255" ng="1" na="1">
+  <responseHeader class="java.lang.String">HTTP/1.1 502 Bad Gateway
+Date: Sun, 03 Mar 2019 12:03:56 GMT
+Server: Apache/2.2.22 (Ubuntu)
+X-Powered-By: PHP/5.4.9-4ubuntu2.4
+Vary: Accept-Encoding
+Content-Length: 0
+Keep-Alive: timeout=5, max=97
+Connection: Keep-Alive
+Content-Type: text/html
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: demo.blazemeter.com
+User-Agent: Apache-HttpClient/4.5.6 (Java/1.8.0_191)
+</requestHeader>
+  <responseData class="java.lang.String"></responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://demo.blazemeter.com/echo.php?error=100</java.net.URL>
+</httpSample>
+<sample t="100" lt="1" ts="1551614636608" s="false" lb="Response Code 400" rc="400" rm="Bad Request" tn="Thread Group constant response 1-1" dt="text" de="" by="13" ng="1" na="1">
+  <assertionResult>
+    <name>Response Code = 400</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">{Bad Request}</responseData>
+  <samplerData class="java.lang.String">https://a.blazemeter.com/api/latest/sessions/r-op-beta53c3bdd960f23</samplerData>
+</sample>
+<sample t="210" lt="1" ts="1551614636715" s="false" lb="Invalid Assert (No results for path)" rc="200" rm="Not Found" tn="Thread Group constant response 1-1" dt="text" de="" by="213" ng="1" na="1">
+  <assertionResult>
+    <name>Response Code = 200</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <assertionResult>
+    <name>JSON Path Assertion - No results for path</name>
+    <failure>true</failure>
+    <error>false</error>
+    <failureMessage>No results for path: $[&apos;error&apos;]</failureMessage>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">{
+	&quot;result&quot;: [{
+		&quot;label&quot;: &quot;ALL&quot;,
+		&quot;kpis&quot;: [{
+			&quot;n&quot;: 123,
+			&quot;na&quot;: 1,
+			&quot;t_avg&quot;: 493.14634146341,
+			&quot;ts&quot;: 1405338180
+		},
+		{
+			&quot;n&quot;: 11,
+			&quot;na&quot;: 1,
+			&quot;t_avg&quot;: 478.36363636364,
+			&quot;ts&quot;: 1405338240
+		}]
+	}]
+}</responseData>
+  <samplerData class="java.lang.String">https://a.blazemeter.com/api/latest/data/all?session_ids[]=r-op-beta53c3bdd960f23&amp;labels[]=ALL&amp;from=1405338180&amp;interval=60&amp;_=1405329779597</samplerData>
+</sample>
+<sample t="450" lt="0" ts="1551614636719" s="false" lb="TC for embeddedResources check last fail" rc="408" rm="Number of samples in transaction : 3, number of failing samples : 2" tn="Thread Group constant response 1-1" dt="" de="" by="841" ng="1" na="1">
+  <sample t="100" lt="1" ts="1551614636719" s="true" lb="RequestEmbedded#1 Response Code 200" rc="200" rm="OK" tn="Thread Group constant response 1-1" dt="text" de="" by="415" ng="1" na="1">
+    <responseHeader class="java.lang.String"></responseHeader>
+    <requestHeader class="java.lang.String"></requestHeader>
+  </sample>
+  <sample t="150" lt="1" ts="1551614636719" s="false" lb="RequestEmbedded#2 Response Code 408 " rc="408" rm="Request Timeout" tn="Thread Group constant response 1-1" dt="text" de="" by="213" ng="1" na="1">
+    <responseHeader class="java.lang.String"></responseHeader>
+    <requestHeader class="java.lang.String"></requestHeader>
+    <responseData class="java.lang.String">{
+	&quot;result&quot;: [{
+		&quot;label&quot;: &quot;ALL&quot;,
+		&quot;kpis&quot;: [{
+			&quot;n&quot;: 123,
+			&quot;na&quot;: 1,
+			&quot;t_avg&quot;: 493.14634146341,
+			&quot;ts&quot;: 1405338180
+		},
+		{
+			&quot;n&quot;: 11,
+			&quot;na&quot;: 1,
+			&quot;t_avg&quot;: 478.36363636364,
+			&quot;ts&quot;: 1405338240
+		}]
+	}]
+}</responseData>
+    <samplerData class="java.lang.String">https://a.blazemeter.com/api/latest/data/all?session_ids[]=r-op-beta53c3bdd960f23&amp;labels[]=ALL&amp;from=1405338180&amp;interval=60&amp;_=1405329779597</samplerData>
+  </sample>
+  <sample t="200" lt="1" ts="1551614636719" s="false" lb="RequestEmbedded#3 Response Code 404 " rc="404" rm="Not Found" tn="Thread Group constant response 1-1" dt="text" de="" by="213" ng="1" na="1">
+    <responseHeader class="java.lang.String"></responseHeader>
+    <requestHeader class="java.lang.String"></requestHeader>
+    <responseData class="java.lang.String">{
+	&quot;result&quot;: [{
+		&quot;label&quot;: &quot;ALL&quot;,
+		&quot;kpis&quot;: [{
+			&quot;n&quot;: 123,
+			&quot;na&quot;: 1,
+			&quot;t_avg&quot;: 493.14634146341,
+			&quot;ts&quot;: 1405338180
+		},
+		{
+			&quot;n&quot;: 11,
+			&quot;na&quot;: 1,
+			&quot;t_avg&quot;: 478.36363636364,
+			&quot;ts&quot;: 1405338240
+		}]
+	}]
+}</responseData>
+    <samplerData class="java.lang.String">https://a.blazemeter.com/api/latest/data/all?session_ids[]=r-op-beta53c3bdd960f23&amp;labels[]=ALL&amp;from=1405338180&amp;interval=60&amp;_=1405329779597</samplerData>
+  </sample>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">Non-TEXT response data, cannot record: ()</responseData>
+</sample>
+
+</testResults>

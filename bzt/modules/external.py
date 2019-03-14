@@ -32,11 +32,9 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
         self._file_check_ts = time.time()
 
     def prepare(self):
-        self.data_file = self.execution.get("data-file", self.data_file)
-        self._data_file_pattern = self.execution.get("data-file-pattern", self._data_file_pattern)
+        self._read_options()
         assert self._data_file_pattern or self.data_file, "Option is required: data-file or data-file-pattern"
         self.label = self.data_file
-        self.errors_file = self.execution.get("errors-jtl", None)
         if self.errors_file:
             self.errors_file = self.engine.find_file(self.errors_file)
 
@@ -48,6 +46,19 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
 
         self._file_check_ts = time.time()
         self._try_make_reader()
+
+    def _read_options(self):
+        # read from scenario
+        if 'scenario' in self.execution:
+            scenario = self.get_scenario()
+            self.data_file = scenario.get('data-file', self.data_file)
+            self.errors_file = scenario.get('errors-file', self.errors_file)
+            self._data_file_pattern = scenario.get("data-file-pattern", self._data_file_pattern)
+
+        # execution level overrides scenario level
+        self.data_file = self.execution.get("data-file", self.data_file)
+        self.errors_file = self.execution.get("errors-jtl", None)
+        self._data_file_pattern = self.execution.get("data-file-pattern", self._data_file_pattern)
 
     def _try_make_reader(self):
         if self.reader:
@@ -113,7 +124,17 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
 
     def check(self):
         self._try_make_reader()
-        if self._last_ts > 0 and self._last_ts == self._prev_ts and time.time() - self._last_ts > self._result_timeout:
+        ts_not_changed = self._last_ts == self._prev_ts
+        if self._last_ts > 0 and ts_not_changed and time.time() - self._last_ts > self._result_timeout:
             return True
         else:
             self._prev_ts = self._last_ts
+
+    def get_resource_files(self):
+        self._read_options()
+        files = []
+        if self.data_file:
+            files.append(self.data_file)
+        if self.errors_file:
+            files.append(self.errors_file)
+        return super(ExternalResultsLoader, self).get_resource_files() + files
