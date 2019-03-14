@@ -96,8 +96,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.assertGreater(len(results), 0)
         last_dp = results[-1]
         cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
-        self.assertIn('200', cumulative_kpis[KPISet.RESP_CODES])
-        self.assertIn('404', cumulative_kpis[KPISet.RESP_CODES])
+        self.assertEqual(8, cumulative_kpis[KPISet.SAMPLE_COUNT])
 
     def test_ab(self):
         self.configure({

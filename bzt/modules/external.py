@@ -15,6 +15,9 @@ from bzt.utils import dehumanize_time
 
 
 class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
+    """
+    :type reader: bzt.modules.aggregator.ResultsReader
+    """
     AB_HEADER = "starttime\tseconds\tctime\tdtime\tttime\twait"
     PBENCH_FORMAT = re.compile("^[0-9]+\.[0-9]{3}\t[^\t]*\t([0-9]+\t){9}[0-9]+$")
 
@@ -125,7 +128,9 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
     def check(self):
         self._try_make_reader()
         ts_not_changed = self._last_ts == self._prev_ts
-        if self._last_ts > 0 and ts_not_changed and time.time() - self._last_ts > self._result_timeout:
+        no_new_results = time.time() - self._last_ts > self._result_timeout
+        has_read_some = self._last_ts > 0 or bool(self.reader and self.reader.buffer)
+        if has_read_some and ts_not_changed and no_new_results:
             return True
         else:
             self._prev_ts = self._last_ts
