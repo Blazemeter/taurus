@@ -30,7 +30,7 @@ matrix:
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
 addons:
-  firefox: "57.0"
+  firefox: "65.0.1"
   apt:
     packages:
     - oracle-java8-set-default
