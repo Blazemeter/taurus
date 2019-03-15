@@ -1,5 +1,5 @@
 # Nose Executor
-Allows to run functional Python tests based on nose library.
+Allows to run load and functional Python tests based on nose library.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded.
@@ -11,6 +11,45 @@ execution:
   scenario:
     script: tests/
 ```
+
+## Apiritif mode
+You can use [Apiritif test framework](https://github.com/Blazemeter/apiritif) for scenario execution with `test-mode` option:
+
+```yaml
+execution:
+- executor: nose
+  test-mode: apiritif
+```
+
+It allows you to use some logic blocks:
+- `transactions`: collect requests in one block
+- `set-variables`: set/change value of variable
+
+and CSV data sources. Use following format to specify them:
+```yaml
+scenario:
+  sample:
+    variables:
+    var1: val1
+
+    - http://blazedemo.com     # ordinal request
+    - transaction: second   # transaction
+      do:
+      - http://blazedemo.com/send
+      - http://blazedemo.com/receive/${var1} # get 'receive/val2'
+      - set-variables:  # change variable value
+        var1: val2
+      - http://blazedemo.com/receive/${var1} # get 'receive/val2'
+
+    data-sources: # list of external data sources
+    - path/to/my.csv  # this is a shorthand form
+    - path: path/to/another.csv  # this is full form, path option is required
+      delimiter: ';'  # CSV delimiter, auto-detected by default
+      quoted: false  # allow quoted data
+      loop: true  # loop over in case of end-of-file reached if true, stop thread if false
+      variable-names: id,name  # delimiter-separated list of variable names, empty by default
+```
+
 
 ## Supported file types:
 
@@ -37,7 +76,6 @@ Supported features:
   - capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
   - set timeout/think-time on both scenario and request levels
   - assertions (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)
-  - csv data sources
   - pauseFor (pause for n seconds) 
   - request method GET (only)
   - selenium commands:
@@ -213,21 +251,6 @@ scenario:
       - storeTextByXPath(//*[@id="elemid"]/h2): my_text
       - storeValueByXPath(//*[@id="elemid"]/input): my_value
       - storeString(${my_title} love my ${my_text} with ${my_value}): final_text
-```
-
-### Data Sources
-Taurus provides csv data sources support by generation of appropriate python source constructions.
-Use following format to specify sources:
-```yaml
-scenario:
-  sample:
-    data-sources: # list of external data sources
-    - path/to/my.csv  # this is a shorthand form
-    - path: path/to/another.csv  # this is full form, path option is required
-      delimiter: ';'  # CSV delimiter, auto-detected by default
-      quoted: false  # allow quoted data
-      loop: true  # loop over in case of end-of-file reached if true, stop thread if false
-      variable-names: id,name  # delimiter-separated list of variable names, empty by default
 ```
 
 ### Remote WebDriver
