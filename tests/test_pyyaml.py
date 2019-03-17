@@ -1,4 +1,5 @@
-import unittest, yaml
+import unittest
+import yaml
 
 
 class MyTestCase(unittest.TestCase):
@@ -7,4 +8,5 @@ class MyTestCase(unittest.TestCase):
         res = yaml.safe_dump(data,
                              default_flow_style=False, explicit_start=True, canonical=False,
                              allow_unicode=True, encoding='utf-8', width=float("inf"))
+        res = res.decode('utf8')
         self.assertEqual('---\nstr: "\\tpart1\\tpart2\\t\"\n', res)
