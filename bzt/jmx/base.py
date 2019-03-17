@@ -747,7 +747,7 @@ class JMX(object):
         concurrency_thread_group.append(JMX._string_prop("Steps", steps))
         concurrency_thread_group.append(JMX._string_prop("Hold", str(cond_int(hold))))
         concurrency_thread_group.append(JMX._string_prop("LogFilename", ""))
-        concurrency_thread_group.append(JMX._string_prop("Iterations", iterations))
+        concurrency_thread_group.append(JMX._string_prop("Iterations", iterations or ""))
         concurrency_thread_group.append(JMX._string_prop("Unit", "S"))
 
         return concurrency_thread_group

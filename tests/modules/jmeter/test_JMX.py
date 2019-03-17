@@ -126,6 +126,28 @@ class TestLoadSettingsProcessor(BZTestCase):
                               ['41.6', '41.6', '21'],
                               ['52.0', '52.0', '21']])
 
+    def test_CTG_null_iterations(self):
+        """ ConcurrencyThreadGroup: concurrency, ramp-up, steps """
+        self.configure(load={'hold-for': 103},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/null-iterations.jmx')
+        self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
+        self.sniff_log(self.obj.log)
+
+        self.obj.modify(self.jmx)
+
+        msg = "Parsing iterations 'None' in group 'ConcurrencyThreadGroup' failed, choose 'None'"
+        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+
+        res_values = {}
+        for group in self.get_groupset():
+            self.assertEqual(group.gtype, "ConcurrencyThreadGroup")
+            self.assertEqual("", group.element.find(".//*[@name='Iterations']").text)
+            self.assertIn(group.element.find(".//*[@name='Hold']").text, ("103",))
+
+            res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'on_error': group.get_on_error()}
+
+        self.assertEqual({'CTG.02': {'conc': 3, 'on_error': 'stopthread'}}, res_values, )
+
     def test_CTG_prop_rs(self):
         """ ConcurrencyThreadGroup: properties in ramp-up, steps """
         self.configure(load={'ramp-up': '${__P(r)}', 'steps': '${__P(s)}'},
