@@ -135,7 +135,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.obj.modify(self.jmx)
 
-        msg = "Parsing iterations 'None' in group 'ConcurrencyThreadGroup' failed, choose 'None'"
+        msg = "Parsing iterations 'None' in group 'ConcurrencyThreadGroup' failed, choose None"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
 
         res_values = {}
