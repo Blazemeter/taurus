@@ -39,12 +39,13 @@ import time
 import traceback
 import webbrowser
 import zipfile
+import subprocess
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 import math
-from subprocess import CalledProcessError, PIPE, check_output, STDOUT, CREATE_NEW_PROCESS_GROUP
+from subprocess import CalledProcessError, PIPE, check_output, STDOUT
 from webbrowser import GenericBrowser
 
 import ipaddress
@@ -441,7 +442,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 
     if is_windows():
         return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
-                            creationflags=CREATE_NEW_PROCESS_GROUP)
+                            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
     else:
         return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
                             preexec_fn=os.setpgrp, close_fds=True)

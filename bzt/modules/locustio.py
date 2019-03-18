@@ -19,7 +19,6 @@ import json
 import math
 import os
 import sys
-import time
 from collections import OrderedDict, Counter
 
 from bzt import TaurusConfigError
