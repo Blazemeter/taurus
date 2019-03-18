@@ -391,7 +391,10 @@ def exec_and_communicate(*args, **kwargs):
     process = shell_exec(*args, **kwargs)
     out, err = communicate(process)
     if process.returncode != 0:
-        raise CalledProcessError(process.returncode, args[0][0])
+        out_tpl = "{arg}\n>>> {out_start} >>>\n{out}\n<<< {out_end} <<<\n>>> {err_start} >>>\n{err}<<< {err_end} <<<\n"
+        full_output = out_tpl.format(arg=args[0], out_start="START OF STDOUT", out=out, out_end="END OF STDOUT",
+                                     err_start="START OF STDERR", err=err, err_end="END OF STDERR")
+        raise CalledProcessError(process.returncode, full_output)
 
     return out, err
 
