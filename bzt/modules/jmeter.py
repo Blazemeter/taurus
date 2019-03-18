@@ -920,12 +920,21 @@ class JTLReader(ResultsReader):
     def _calculate_datapoints(self, final_pass=False):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):
             if self.errors_reader:
-                data = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])
-                for label, label_data in iteritems(point[DataPoint.CURRENT]):
-                    if label in data:
-                        label_data[KPISet.ERRORS] = data[label]
+                self.errors_reader.read_file()
+                err_details = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])  # get only for labels we have
+                for label in err_details:
+                    if label in point[DataPoint.CURRENT]:
+                        point[DataPoint.CURRENT][label][KPISet.ERRORS] = err_details[label]
                     else:
-                        label_data[KPISet.ERRORS] = []
+                        self.log.warning("Had error data for %s, but no label: %s", label, err_details[label])
+
+                for label, label_data in iteritems(point[DataPoint.CURRENT]):
+                    if label in err_details:
+                        pass
+                    elif label_data[KPISet.ERRORS]:
+                        self.log.warning("No details for errors of %s, dropped info: %s", label,
+                                         label_data[KPISet.ERRORS])
+
             point[DataPoint.SOURCE_ID] = self.csvreader.file.name + "@" + str(id(self))
             yield point
 
