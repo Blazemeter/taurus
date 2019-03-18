@@ -30,8 +30,9 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
         self.data_file = None
         self.errors_file = None
         self.reader = None
-        self._last_ts = -1
-        self._prev_ts = -1
+        self._last_update_ts = -1
+        self._last_datapoint_ts = -1
+        self._prev_datapoint_ts = -1
         self._file_check_ts = time.time()
 
     def prepare(self):
@@ -44,7 +45,8 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
         str_wait = self.execution.get("wait-for-file", self.settings.get("wait-for-file", self._file_exists_wait))
         self._file_exists_wait = dehumanize_time(str_wait)
 
-        str_to = self.execution.get("results-timeout", self.settings.get("results-timeout", self._result_timeout))
+        def_timout = self.engine.check_interval * 10
+        str_to = self.execution.get("results-timeout", self.settings.get("results-timeout", def_timout))
         self._result_timeout = dehumanize_time(str_to)
 
         self._file_check_ts = time.time()
@@ -119,7 +121,9 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
             raise TaurusInternalException("Unable to detect results format for: %s" % self.data_file)
 
     def aggregated_second(self, data):
-        self._last_ts = data[DataPoint.TIMESTAMP]
+        self._last_datapoint_ts = data[DataPoint.TIMESTAMP]
+        self._last_update_ts = time.time()
+        # self.log.debug("Notified of datapoint %s", self._last_datapoint_ts)
 
     def startup(self):
         super(ExternalResultsLoader, self).startup()
@@ -127,13 +131,14 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
 
     def check(self):
         self._try_make_reader()
-        ts_not_changed = self._last_ts == self._prev_ts
-        no_new_results = time.time() - self._last_ts > self._result_timeout
-        has_read_some = self._last_ts > 0 or bool(self.reader and self.reader.buffer)
+        ts_not_changed = self._last_datapoint_ts == self._prev_datapoint_ts
+        no_new_results = time.time() - self._last_update_ts > self._result_timeout
+        has_read_some = self._last_datapoint_ts > 0 or bool(self.reader and self.reader.buffer)
+        # self.log.info("%s %s %s", self._last_datapoint_ts, self._prev_datapoint_ts, self._last_update_ts)
         if has_read_some and ts_not_changed and no_new_results:
             return True
         else:
-            self._prev_ts = self._last_ts
+            self._prev_datapoint_ts = self._last_datapoint_ts
 
     def get_resource_files(self):
         self._read_options()
