@@ -594,7 +594,7 @@ class ResultsProvider(object):
         for datapoint in self._calculate_datapoints(final_pass):
             current = datapoint[DataPoint.CURRENT]
             self.__merge_to_cumulative(current)
-            datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
+            datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)  # FIXME: this line eats RAM like hell!
             datapoint.recalculate()
 
             for listener in self.listeners:

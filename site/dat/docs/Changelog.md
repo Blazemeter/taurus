@@ -1,6 +1,9 @@
 # Changelog
 
-## 1.13.3<sup>next</sup>
+## 1.13.4<sup>next</sup>
+- bump up default JMeter version to 5.1.1
+
+## 1.13.3<sup>24 feb 2019</sup>
 
 - use `safe_` version of YAML functions because of CVE-2017-18342
 - add response message to assertion error in JMeter, controlled by flag
