@@ -1445,26 +1445,26 @@ class JMeter(RequiredTool):
         return False
 
     def run_and_check(self):
-        self.log.debug("Trying jmeter: %s", self.tool_path)
+        self.log.debug("Trying JMeter..")
         jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
 
+        cmd_line = [self.tool_path, '-j', jmlog.name, '--version']
         try:
-            cmd_line = [self.tool_path, '-j', jmlog.name, '--version']
             out, err = self.call(cmd_line)
-            self.log.debug("JMeter check: %s / %s", out, err)
-
-            if "is too low to run JMeter" in out:
-                raise ToolError("Java version is too low to run JMeter")
-
-            if "Error:" in out:
-                self.log.warning("JMeter output: \n%s", out)
-                raise ToolError("Unable to run JMeter, see error above")
-
         except CALL_PROBLEMS as exc:
             self.log.debug("JMeter check failed: %s", exc)
             return False
         finally:
             jmlog.close()
+
+        self.log.debug("JMeter check: %s / %s", out, err)
+
+        if "is too low to run JMeter" in out:
+            raise ToolError("Java version is too low to run JMeter")
+
+        if "Error:" in out:
+            self.log.warning("JMeter output: \n%s", out)
+            raise ToolError("Unable to run JMeter, see error above")
 
         return True
 
@@ -1477,25 +1477,15 @@ class JMeter(RequiredTool):
             self.log.warning("Script %s not found" % jmx_file)
             return
 
+        params = ["install-for-jmx", jmx_file]
+
         try:
-            params = ["install-for-jmx", jmx_file]
             out, err = self._pmgr_call(params)
-            self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
         except CALL_PROBLEMS as exc:
-            short_log = ""
-            full_log = ""
-
-            if isinstance(exc, TaurusCalledProcessError):
-                short_log = "Command '%s' returned non-zero exit status %d" % (exc.cmd, exc.returncode)
-                full_log = exc.output
-            elif isinstance(exc, OSError):
-                short_log = str(OSError)
-
-            if short_log:
-                self.log.warning("Failed to detect plugins for %s: %s", jmx_file, short_log)
-            if full_log:
-                self.log.debug(full_log)
+            self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
             return
+
+        self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
 
         if err and "Wrong command: install-for-jmx" in err:  # old manager
             self.log.debug("pmgr can't discover jmx for plugins")
@@ -1542,9 +1532,10 @@ class JMeter(RequiredTool):
         self.log.debug("Trying: %s", cmd_line)
         try:
             out, err = self.call(cmd_line)
-            self.log.debug("Install PluginsManager: %s / %s", out, err)
         except CALL_PROBLEMS as exc:
             raise ToolError("Failed to install PluginsManager: %s" % exc)
+
+        self.log.debug("Install PluginsManager: %s / %s", out, err)
 
     def __install_plugins(self, plugins_manager_cmd):
         plugin_str = ",".join(self.plugins)
@@ -1554,9 +1545,10 @@ class JMeter(RequiredTool):
 
         try:
             out, err = self.call(cmd_line)
-            self.log.debug("Install plugins: %s / %s", out, err)
         except CALL_PROBLEMS as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
+
+        self.log.debug("Install plugins: %s / %s", out, err)
 
         if out and "Plugins manager will apply some modifications" in out:
             time.sleep(5)  # allow for modifications to complete

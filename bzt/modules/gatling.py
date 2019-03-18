@@ -778,16 +778,17 @@ class Gatling(RequiredTool):
         self.tool_dir = get_full_path(self.tool_path, step_up=2)
 
     def check_if_installed(self):
-        self.log.debug("Trying Gatling: %s", self.tool_path)
+        self.log.debug("Trying Gatling...")
         try:
             out, err = self.call([self.tool_path, '--help'])
             self.log.debug("Gatling check output: %s", out)
-            if err:
-                self.log.warning("Gatling check stderr: %s", err)
-            return True
         except CALL_PROBLEMS as exc:
             self.log.info("Gatling check failed: %s", exc)
             return False
+
+        if err:
+            self.log.warning("Gatling check stderr: %s", err)
+        return True
 
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)

@@ -18,7 +18,6 @@ limitations under the License.
 import logging
 import os
 import re
-import time
 import traceback
 import copy
 
@@ -417,17 +416,18 @@ class Tsung(RequiredTool):
         super(Tsung, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
-        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
+        self.log.debug("Trying %s...", self.tool_name)
         try:
             out, err = self.call([self.tool_path, "-v"])
-            if err:
-                out += err
-            self.log.debug("%s output: %s", self.tool_name, out)
-            return True
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)
             self.log.warning("Info for tsung installation: %s", self.INSTALLATION_DOCS)
             return False
+
+        if err:
+            out += err
+        self.log.debug("%s output: %s", self.tool_name, out)
+        return True
 
     def get_tool_abspath(self):
         if not self.tool_path:

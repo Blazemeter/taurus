@@ -39,13 +39,12 @@ import time
 import traceback
 import webbrowser
 import zipfile
-import subprocess
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
 from distutils.version import LooseVersion
-from math import log
-from subprocess import CalledProcessError, PIPE, check_output, STDOUT
+import math
+from subprocess import CalledProcessError, PIPE, check_output, STDOUT, CREATE_NEW_PROCESS_GROUP
 from webbrowser import GenericBrowser
 
 import ipaddress
@@ -442,7 +441,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 
     if is_windows():
         return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
-                            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+                            creationflags=CREATE_NEW_PROCESS_GROUP)
     else:
         return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
                             preexec_fn=os.setpgrp, close_fds=True)
@@ -1269,12 +1268,13 @@ class JavaVM(RequiredTool):
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             out, err = self.call(cmd)
-            self.version = self._get_version(err)
-            self.log.debug("%s output: %s", self.tool_name, out)
-            return True
         except CALL_PROBLEMS as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
+
+        self.version = self._get_version(err)
+        self.log.debug("%s output: %s", self.tool_name, out)
+        return True
 
 
 class ProgressBarContext(ProgressBar):
@@ -1379,14 +1379,18 @@ class Node(RequiredTool):
         node_candidates = ["node", "nodejs"]
         for candidate in node_candidates:
             try:
-                self.log.debug("Trying %r", candidate)
-                out, _ = self.call([candidate, '--version'])
-                self.log.debug("%s output: %s", candidate, out)
-                self.tool_path = candidate
-                return True
-            except CALL_PROBLEMS:
-                self.log.debug("%r is not installed", candidate)
+                self.log.debug("Trying '%r' as Node Tool...", candidate)
+                out, err = self.call([candidate, '--version'])
+            except CALL_PROBLEMS as exc:
+                self.log.debug("%r is not installed: %s", candidate, exc)
                 continue
+
+            if err:
+                out += err
+            self.log.debug("%s output: %s", candidate, out)
+            self.tool_path = candidate
+            return True
+
         return False
 
 
@@ -1614,7 +1618,7 @@ def humanize_bytes(byteval):
 
     # determine binary order in steps of size 10
     # (coerce to int, // still returns a float)
-    order = int(log(byteval, 2) / 10) if byteval else 0
+    order = int(math.log(byteval, 2) / 10.0) if byteval else 0
     # format file size
     # (.4g results in rounded numbers for exact matches and max 3 decimals,
     # should never resort to exponent values)
