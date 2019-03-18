@@ -43,8 +43,8 @@ from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
 from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
-from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, FileReader, CALL_PROBLEMS
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
+from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, CALL_PROBLEMS, TaurusCalledProcessError
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, FileReader
 
 
 def get_child_assertion(element):
@@ -1482,7 +1482,19 @@ class JMeter(RequiredTool):
             out, err = self._pmgr_call(params)
             self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
         except CALL_PROBLEMS as exc:
-            self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
+            short_log = ""
+            full_log = ""
+
+            if isinstance(exc, TaurusCalledProcessError):
+                short_log = "Command '%s' returned non-zero exit status %d" % (exc.cmd, exc.returncode)
+                full_log = exc.output
+            elif isinstance(exc, OSError):
+                short_log = str(OSError)
+
+            if short_log:
+                self.log.warning("Failed to detect plugins for %s: %s", jmx_file, short_log)
+            if full_log:
+                self.log.debug(full_log)
             return
 
         if err and "Wrong command: install-for-jmx" in err:  # old manager
