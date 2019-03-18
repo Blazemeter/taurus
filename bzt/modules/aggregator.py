@@ -19,11 +19,12 @@ import collections
 import copy
 import logging
 import math
+import time
 from abc import abstractmethod
 from collections import Counter
 
 import fuzzyset
-import time
+from hdrpy import HdrHistogram, RecordedIterator
 from yaml import SafeDumper
 from yaml.representer import SafeRepresenter
 
@@ -31,7 +32,6 @@ from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems, PY3, text_type
 from bzt.utils import dehumanize_time, JSONConvertible
-from hdrpy import HdrHistogram, RecordedIterator
 
 log = logging.getLogger('aggregator')
 
@@ -418,7 +418,7 @@ class KPISet(dict):
             if key == inst.RESP_TIMES:
                 if isinstance(val, dict):
                     for value, count in iteritems(val):
-                        inst[inst.RESP_TIMES].add(value, count)
+                        inst[inst.RESP_TIMES].add(float(value), count)
             else:
                 inst[key] = val
 
@@ -698,7 +698,7 @@ class ResultsReader(ResultsProvider):
         :type final_pass: bool
         :rtype: DataPoint
         """
-        if final_pass or len(self.buffer) * 10 < self.buffer_len:  # safety valve to preserve RAM
+        if final_pass or len(self.buffer) < self.buffer_len * 10:  # safety valve to preserve RAM
             self.__process_readers(final_pass)
         else:
             self.log.debug("Skipped reading new data, we have enough in the buffer")
@@ -839,7 +839,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         :rtype: bool
         """
         for point in self.datapoints():
-            self.log.debug("Processed datapoint: %s/%s", point[DataPoint.TIMESTAMP], point[DataPoint.SOURCE_ID])
+            self.log.debug("Processed datapoint: %s/%s with %d labels",
+                           point[DataPoint.TIMESTAMP], point[DataPoint.SOURCE_ID], len(point[DataPoint.CUMULATIVE]))
         return super(ConsolidatingAggregator, self).check()
 
     def post_process(self):
@@ -861,7 +862,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                     self._put_into_buffer(point)
                     break
 
-            self.log.debug("Cons buf len: %s", len(self.buffer))
             if not had_data:
                 break
 
