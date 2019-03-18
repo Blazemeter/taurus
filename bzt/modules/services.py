@@ -26,10 +26,10 @@ import zipfile
 from bzt.six import communicate, text_type, string_types
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
-from bzt.engine import Service, HavingInstallableTools, Singletone, ScenarioExecutor
+from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.six import get_stacktrace
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
-from bzt.utils import replace_in_config, JavaVM, Node, Environment
+from bzt.utils import replace_in_config, JavaVM, Node, CALL_PROBLEMS
 
 if not is_windows():
     try:
@@ -262,7 +262,7 @@ class Appium(RequiredTool):
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, OSError) as exc:
+        except CALL_PROBLEMS as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
@@ -278,7 +278,7 @@ class AndroidEmulator(RequiredTool):
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, OSError) as exc:
+        except CALL_PROBLEMS as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 

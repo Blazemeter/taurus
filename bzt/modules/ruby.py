@@ -16,12 +16,12 @@ limitations under the License.
 import traceback
 import os
 
-from subprocess import CalledProcessError, check_output, STDOUT
+from subprocess import check_output, STDOUT
 
 from bzt import TaurusConfigError
 from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools
-from bzt.utils import RequiredTool, is_windows, TclLibrary, RESOURCES_DIR
+from bzt.utils import RequiredTool, is_windows, TclLibrary, RESOURCES_DIR, CALL_PROBLEMS
 
 
 class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
@@ -87,7 +87,7 @@ class Ruby(RequiredTool):
             output = check_output([self.tool_path, '--version'], stderr=STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (CalledProcessError, OSError):
+        except CALL_PROBLEMS:
             return False
 
 
@@ -101,7 +101,7 @@ class RSpec(RequiredTool):
             output = check_output([rspec_exec, '--version'], stderr=STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (CalledProcessError, OSError):
+        except CALL_PROBLEMS:
             self.log.debug("RSpec check exception: %s", traceback.format_exc())
             return False
 

@@ -59,8 +59,8 @@ from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname, communicate
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, numeric_types
 
-CALL_PROBLEMS = (CalledProcessError, OSError)
 LOG = logging.getLogger("")
+CALL_PROBLEMS = (CalledProcessError, OSError)
 
 
 def sync_run(args, env=None):
@@ -387,14 +387,38 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     return base + diff + suffix
 
 
+class TaurusCalledProcessError(CalledProcessError):
+    def __init__(self, *args, **kwargs):
+        """ join output and stderr for compatibility """
+        output = ""
+        if "output" in kwargs:
+            output += "\n>>> {out_start} >>>\n{out}\n<<< {out_end} <<<\n".format(
+                out_start="START OF STDOUT", out=kwargs["output"], out_end="END OF STDOUT")
+
+        if "stderr" in kwargs:
+            output += "\n>>> {err_start} >>>\n{err}\n<<< {err_end} <<<\n".format(
+                err_start="START OF STDERR", err=kwargs.pop("stderr"), err_end="END OF STDERR")
+
+        if output:
+            kwargs["output"] = output
+
+        super(TaurusCalledProcessError, self).__init__(*args, **kwargs)
+
+    def __str__(self):
+        base_str = super(TaurusCalledProcessError, self).__str__()
+
+        if self.output:
+            base_str += '\n' + self.output
+
+        return base_str
+
+
 def exec_and_communicate(*args, **kwargs):
     process = shell_exec(*args, **kwargs)
     out, err = communicate(process)
+
     if process.returncode != 0:
-        out_tpl = "{arg}\n>>> {out_start} >>>\n{out}\n<<< {out_end} <<<\n>>> {err_start} >>>\n{err}<<< {err_end} <<<\n"
-        full_output = out_tpl.format(arg=args[0], out_start="START OF STDOUT", out=out, out_end="END OF STDOUT",
-                                     err_start="START OF STDERR", err=err, err_end="END OF STDERR")
-        raise CalledProcessError(process.returncode, full_output)
+        raise TaurusCalledProcessError(process.returncode, cmd=args[0], output=out, stderr=err)
 
     return out, err
 
@@ -1652,4 +1676,3 @@ def guess_delimiter(path):
             delimiter = ","  # default value
 
     return delimiter
-
