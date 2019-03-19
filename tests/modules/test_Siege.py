@@ -18,6 +18,7 @@ class TestSiegeExecutor(ExecutorTestCase):
     def setUp(self):
         super(TestSiegeExecutor, self).setUp()
         self.obj.engine.aggregator = ConsolidatingAggregator()
+        self.obj.engine.aggregator.engine = self.obj.engine
         self.obj.settings.merge({"path": TOOL_PATH})
 
     def tearDown(self):

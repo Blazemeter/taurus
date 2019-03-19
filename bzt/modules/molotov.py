@@ -15,7 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import time
 from distutils.version import LooseVersion
 
 from math import ceil
@@ -131,17 +130,18 @@ class Molotov(RequiredTool):
         self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
             out, err = self.call([self.tool_path, "--version"])
-            version = out.strip()
-            if LooseVersion(version) < LooseVersion("1.4"):
-                raise ToolError("You must install molotov>=1.4 to use this executor (version %s detected)" % version)
-            if err:
-                out += err
-            self.log.debug("%s output: %s", self.tool_name, out)
-
-            return True
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
+
+        version = out.strip()
+        if LooseVersion(version) < LooseVersion("1.4"):
+            raise ToolError("You must install molotov>=1.4 to use this executor (version %s detected)" % version)
+        if err:
+            out += err
+        self.log.debug("%s output: %s", self.tool_name, out)
+
+        return True
 
 
 class MolotovReportReader(ResultsReader):

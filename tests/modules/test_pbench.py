@@ -7,7 +7,6 @@ import unittest
 import urwid
 import yaml
 
-
 from os.path import join
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor
@@ -75,6 +74,7 @@ class TestPBenchExecutor(TestPBench):
                                 "param": "value"}}]}}})
 
         self.obj.engine.aggregator = ConsolidatingAggregator()
+        self.obj.engine.aggregator.engine = self.obj.engine
         self.obj.engine.aggregator.add_listener(DataPointLogger())
 
         self.obj.engine.aggregator.prepare()

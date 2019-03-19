@@ -13,15 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import traceback
 import os
-
-from subprocess import CalledProcessError, check_output, STDOUT
 
 from bzt import TaurusConfigError
 from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools
-from bzt.utils import RequiredTool, is_windows, TclLibrary, RESOURCES_DIR
+from bzt.utils import RequiredTool, is_windows, TclLibrary, RESOURCES_DIR, CALL_PROBLEMS
 
 
 class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
@@ -83,12 +80,17 @@ class Ruby(RequiredTool):
         super(Ruby, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
+        self.log.debug("Trying %s...", self.tool_name)
         try:
-            output = check_output([self.tool_path, '--version'], stderr=STDOUT)
-            self.log.debug("%s output: %s", self.tool_name, output)
-            return True
-        except (CalledProcessError, OSError):
+            out, err = self.call([self.tool_path, '--version'])
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
+
+        if err:
+            out += err
+        self.log.debug("%s output: %s", self.tool_name, out)
+        return True
 
 
 class RSpec(RequiredTool):
@@ -96,14 +98,17 @@ class RSpec(RequiredTool):
         super(RSpec, self).__init__(installable=False, **kwargs)
 
     def check_if_installed(self):
+        rspec_exec = "rspec.bat" if is_windows() else "rspec"
         try:
-            rspec_exec = "rspec.bat" if is_windows() else "rspec"
-            output = check_output([rspec_exec, '--version'], stderr=STDOUT)
-            self.log.debug("%s output: %s", self.tool_name, output)
-            return True
-        except (CalledProcessError, OSError):
-            self.log.debug("RSpec check exception: %s", traceback.format_exc())
+            out, err = self.call([rspec_exec, '--version'])
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
+
+        if err:
+            out += err
+        self.log.debug("%s output: %s", self.tool_name, out)
+        return True
 
 
 class TaurusRSpecPlugin(RequiredTool):

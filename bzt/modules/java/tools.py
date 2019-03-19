@@ -58,14 +58,15 @@ class JavaC(RequiredTool):
         self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
             out, err = self.call([self.tool_path, "-version"])
-            if err:
-                out += err
-            self.log.debug("%s output: %s", self.tool_name, out)
-            self.version = self._get_version(out)
-            return True
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
+
+        if err:
+            out += err
+        self.log.debug("%s output: %s", self.tool_name, out)
+        self.version = self._get_version(out)
+        return True
 
 
 class SeleniumServer(JarTool):
@@ -78,13 +79,14 @@ class SeleniumServer(JarTool):
         self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
             out, err = self.call(["java", "-jar", self.tool_path, "-help"])
-            if err:
-                out += err
-            self.log.debug("%s output: %s", self.tool_name, out)
-            return True
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
+
+        if err:
+            out += err
+        self.log.debug("%s output: %s", self.tool_name, out)
+        return True
 
 
 class Json(JarTool):
