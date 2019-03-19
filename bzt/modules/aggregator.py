@@ -19,10 +19,12 @@ import collections
 import copy
 import logging
 import math
+import time
 from abc import abstractmethod
 from collections import Counter
 
 import fuzzyset
+from hdrpy import HdrHistogram, RecordedIterator
 from yaml import SafeDumper
 from yaml.representer import SafeRepresenter
 
@@ -30,7 +32,6 @@ from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems, PY3, text_type
 from bzt.utils import dehumanize_time, JSONConvertible
-from hdrpy import HdrHistogram, RecordedIterator
 
 log = logging.getLogger('aggregator')
 
@@ -417,7 +418,7 @@ class KPISet(dict):
             if key == inst.RESP_TIMES:
                 if isinstance(val, dict):
                     for value, count in iteritems(val):
-                        inst[inst.RESP_TIMES].add(value, count)
+                        inst[inst.RESP_TIMES].add(float(value), count)
             else:
                 inst[key] = val
 
@@ -664,7 +665,7 @@ class ResultsReader(ResultsProvider):
         """
         current = datapoint[DataPoint.CURRENT]
         for sample in samples:
-            label, r_time, concur, con_time, latency, r_code, error, trname, byte_count = sample
+            label, concur, r_time, con_time, latency, r_code, error, trname, byte_count = sample
             if label == '':
                 label = '[empty]'
 
@@ -675,7 +676,7 @@ class ResultsReader(ResultsProvider):
                 current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))
 
             # empty means overall
-            current[label].add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
+            current[label].add_sample((concur, r_time, con_time, latency, r_code, error, trname, byte_count))
 
         overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
         for label in current.values():
@@ -697,7 +698,10 @@ class ResultsReader(ResultsProvider):
         :type final_pass: bool
         :rtype: DataPoint
         """
-        self.__process_readers(final_pass)
+        if final_pass or len(self.buffer) < self.buffer_len * 10:  # safety valve to preserve RAM
+            self.__process_readers(final_pass)
+        else:
+            self.log.debug("Skipped reading new data, we have enough in the buffer")
 
         self.log.debug("Buffer len: %s; Known errors count: %s", len(self.buffer), len(self.known_errors))
         if not self.buffer:
@@ -717,7 +721,7 @@ class ResultsReader(ResultsProvider):
         while final_pass or (timestamps[-1] >= (timestamps[0] + self.buffer_len)):
             timestamp = timestamps.pop(0)
             self.min_timestamp = timestamp + 1
-            self.log.debug("Aggregating: %s", timestamp)
+            self.log.debug("Aggregating: %s, %s in buffer", timestamp, len(self.buffer))
             samples = self.buffer.pop(timestamp)
             datapoint = self.__get_new_datapoint(timestamp)
             self.__aggregate_current(datapoint, samples)
@@ -811,20 +815,19 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         :type underling: ResultsProvider
         """
         underling.track_percentiles = self.track_percentiles
-        if isinstance(underling, ResultsReader):
-            underling.ignored_labels = self.ignored_labels
-            underling.min_buffer_len = self.min_buffer_len
-            underling.max_buffer_len = self.max_buffer_len
-            underling.buffer_multiplier = self.buffer_multiplier
-            underling.buffer_scale_idx = self.buffer_scale_idx
-            underling.histogram_max = self.histogram_max
+        underling.ignored_labels = self.ignored_labels
+        underling.min_buffer_len = self.min_buffer_len
+        underling.max_buffer_len = self.max_buffer_len
+        underling.buffer_multiplier = self.buffer_multiplier
+        underling.buffer_scale_idx = self.buffer_scale_idx
+        underling.histogram_max = self.histogram_max
 
-            underling.max_error_count = self.max_error_count
-            underling.generalize_labels = self.generalize_labels
+        underling.max_error_count = self.max_error_count
+        underling.generalize_labels = self.generalize_labels
 
-            # share error set and label set between underlings
-            underling.known_errors = self.known_errors
-            underling.known_labels = self.known_labels
+        # share error set and label set between underlings
+        underling.known_errors = self.known_errors
+        underling.known_labels = self.known_labels
 
         self.underlings.append(underling)
 
@@ -835,7 +838,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         :rtype: bool
         """
         for point in self.datapoints():
-            self.log.debug("Processed datapoint: %s/%s", point[DataPoint.TIMESTAMP], point[DataPoint.SOURCE_ID])
+            self.log.debug("Processed datapoint: %s/%s with %d labels",
+                           point[DataPoint.TIMESTAMP], point[DataPoint.SOURCE_ID], len(point[DataPoint.CUMULATIVE]))
         return super(ConsolidatingAggregator, self).check()
 
     def post_process(self):
@@ -847,16 +851,28 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             self.log.debug("Processed datapoint: %s/%s", point[DataPoint.TIMESTAMP], point[DataPoint.SOURCE_ID])
 
     def _process_underlings(self, final_pass):
-        for underling in self.underlings:
-            for data in underling.datapoints(final_pass):
-                tstamp = data[DataPoint.TIMESTAMP]
-                if self.buffer:
-                    mints = min(self.buffer.keys())
-                    if tstamp < mints:
-                        self.log.debug("Putting datapoint %s into %s", tstamp, mints)
-                        data[DataPoint.TIMESTAMP] = mints
-                        tstamp = mints
-                self.buffer.setdefault(tstamp, []).append(data)
+        time_start = time.time()
+        has_some_time = lambda x: time.time() - x < self.engine.check_interval
+        while final_pass or has_some_time(time_start):
+            had_data = False
+            for underling in self.underlings:
+                for point in underling.datapoints(final_pass):
+                    had_data = True
+                    self._put_into_buffer(point)
+                    break
+
+            if not had_data:
+                break
+
+    def _put_into_buffer(self, point):
+        tstamp = point[DataPoint.TIMESTAMP]
+        if self.buffer:
+            mints = min(self.buffer.keys())
+            if tstamp < mints:
+                self.log.debug("Putting datapoint %s into %s", tstamp, mints)
+                point[DataPoint.TIMESTAMP] = mints
+                tstamp = mints
+        self.buffer.setdefault(tstamp, []).append(point)
 
     def _calculate_datapoints(self, final_pass=False):
         """

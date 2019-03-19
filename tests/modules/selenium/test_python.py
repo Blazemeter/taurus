@@ -12,6 +12,7 @@ from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, Functio
 from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor
 from bzt.modules.python.executors import ApiritifLoadReader, ApiritifFuncReader
 from tests import RESOURCES_DIR, ExecutorTestCase
+from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 
 
@@ -1211,28 +1212,38 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
 
     def test_load_reader_real2(self):
         reader1 = ApiritifLoadReader(self.obj.log)
+        reader1.engine = EngineEmul()
         reader1.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif-0.csv")
         reader1.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif-1.csv")
 
         reader2 = ApiritifLoadReader(self.obj.log)
+        reader2.engine = EngineEmul()
         reader2.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif--10.csv")
         reader2.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif--11.csv")
 
         reader = ConsolidatingAggregator()
+        reader.engine = EngineEmul()
         reader.add_underling(reader1)
         reader.add_underling(reader2)
 
-        items = []
-        for point in reader.datapoints():
-            items.append(point)
-            cnc = point[DataPoint.CURRENT][''][KPISet.CONCURRENCY]
-            logging.info("%s: %s", point[DataPoint.TIMESTAMP], cnc)
-            self.assertLessEqual(cnc, 4)
-            cnc1 = point[DataPoint.CUMULATIVE][''][KPISet.CONCURRENCY]
-            self.assertLessEqual(cnc1, 4)
+        items = list(reader.datapoints())
+        self.assertEqual(0, len(items))
 
-        self.assertEqual(39, len(items))
-        self.assertEqual(4, items[-1][DataPoint.CURRENT][''][KPISet.CONCURRENCY])
+        all_items = []
+        while True:
+            items = list(reader.datapoints())
+            all_items.extend(items)
+            if not items:
+                break
+
+            for point in items:
+                cnc = point[DataPoint.CURRENT][''][KPISet.CONCURRENCY]
+                logging.info("%s: %s", point[DataPoint.TIMESTAMP], cnc)
+                self.assertLessEqual(cnc, 4)
+                cnc1 = point[DataPoint.CUMULATIVE][''][KPISet.CONCURRENCY]
+                self.assertLessEqual(cnc1, 4)
+
+        self.assertEqual(4, all_items[-1][DataPoint.CURRENT][''][KPISet.CONCURRENCY])
 
     def test_func_reader(self):
         reader = ApiritifFuncReader(self.obj.engine, self.obj.log)

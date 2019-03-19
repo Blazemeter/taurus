@@ -26,6 +26,9 @@ List of supported file formats:
 - TSV files (Apache Benchmark)
 - `pbench-kpis.txt` (PBench)
 
+You can put `data-file`, and `errors-file` under scenario definition also, and point execution item onto corresponding scenario.
+
+
 ## Dynamic File Detection
 
 It is possible to tell results loader that file might appear on disk later, and also have dynamic name. For that, two additional options can be specified (either on executor level, or in module settings). Consider following config:

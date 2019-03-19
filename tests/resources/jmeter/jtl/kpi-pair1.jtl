@@ -1,0 +1,9 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,success,bytes,grpThreads,allThreads,Latency,Hostname,Connect
+1551614636213,139,embeddedResources,200,"Embedded resource download error:http://demo.blazemeter.com/themes/bluemarine/logo.png code:404 message:Not Found, http://demo.blazemeter.com/themes/bluemarine/logo12.png code:404 message:Not Found, ",Thread Group constant response 1-1,false,6911,1,1,59,144e9610e2d5,38
+1551614636369,64,not exist url,Non HTTP response code: java.net.UnknownHostException,Non HTTP response message: demo.blazemeter1.com: Name or service not known,Thread Group constant response 1-1,false,2331,1,1,0,144e9610e2d5,63
+1551614636435,3,Response Code 4xx 5xx,502,Bad Gateway,Thread Group constant response 1-1,false,255,1,1,3,144e9610e2d5,0
+1551614636439,50,Response Code 200,200,OK,Thread Group constant response 1-1,true,415,1,1,1,144e9610e2d5,0
+1551614636608,100,Response Code 400,400,Bad Request,Thread Group constant response 1-1,false,13,1,1,1,144e9610e2d5,0
+1551614636715,210,Invalid Assert (No results for path),200,Not Found,Thread Group constant response 1-1,false,213,1,1,1,144e9610e2d5,0
+1551614636719,75,TC for embeddedResources check pass,200,"Number of samples in transaction : 1, number of failing samples : 0",Thread Group constant response 1-1,true,415,1,1,0,144e9610e2d5,0
+1551614636719,450,TC for embeddedResources check last fail,408,"Number of samples in transaction : 3, number of failing samples : 2",Thread Group constant response 1-1,false,841,1,1,0,144e9610e2d5,0
