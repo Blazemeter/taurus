@@ -210,7 +210,7 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.generalize_labels = label_count
         self.obj.add_underling(reader)
         last = None
-        for point in self.obj.datapoints():
+        for point in self.obj.datapoints(True):
             last = point
         cum_dict = self.obj.cumulative
         labels = list(cum_dict.keys())
