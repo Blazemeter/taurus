@@ -815,20 +815,19 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         :type underling: ResultsProvider
         """
         underling.track_percentiles = self.track_percentiles
-        if isinstance(underling, ResultsReader):
-            underling.ignored_labels = self.ignored_labels
-            underling.min_buffer_len = self.min_buffer_len
-            underling.max_buffer_len = self.max_buffer_len
-            underling.buffer_multiplier = self.buffer_multiplier
-            underling.buffer_scale_idx = self.buffer_scale_idx
-            underling.histogram_max = self.histogram_max
+        underling.ignored_labels = self.ignored_labels
+        underling.min_buffer_len = self.min_buffer_len
+        underling.max_buffer_len = self.max_buffer_len
+        underling.buffer_multiplier = self.buffer_multiplier
+        underling.buffer_scale_idx = self.buffer_scale_idx
+        underling.histogram_max = self.histogram_max
 
-            underling.max_error_count = self.max_error_count
-            underling.generalize_labels = self.generalize_labels
+        underling.max_error_count = self.max_error_count
+        underling.generalize_labels = self.generalize_labels
 
-            # share error set and label set between underlings
-            underling.known_errors = self.known_errors
-            underling.known_labels = self.known_labels
+        # share error set and label set between underlings
+        underling.known_errors = self.known_errors
+        underling.known_labels = self.known_labels
 
         self.underlings.append(underling)
 

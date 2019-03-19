@@ -1114,6 +1114,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/masters/1/status': [
                     {"result": {"id": id(self.obj)}},
                     {"result": {"id": id(self.obj), 'progress': 100}},
+                    {"result": {"id": id(self.obj), 'progress': 100}},
                 ],
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
                 'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {"result": [
@@ -1133,7 +1134,7 @@ class TestCloudProvisioning(BZTestCase):
                                     "n": 15,
                                     "na": 2,
                                     "ec": 0,
-                                    "ts": 1442497724,
+                                    "ts": 1,
                                     "t_avg": 558,
                                     "lt_avg": 25.7,
                                     "by_avg": 0,
@@ -1143,7 +1144,7 @@ class TestCloudProvisioning(BZTestCase):
                                     "n": 7,
                                     "na": 4,
                                     "ec": 0,
-                                    "ts": 1442497725,
+                                    "ts": 1,
                                     "t_avg": 88.1,
                                     "lt_avg": 11.9,
                                     "by_avg": 0,
@@ -1159,7 +1160,7 @@ class TestCloudProvisioning(BZTestCase):
                                     "n": 15,
                                     "na": 2,
                                     "ec": 0,
-                                    "ts": 1442497724,
+                                    "ts": 2,
                                     "t_avg": 558,
                                     "lt_avg": 25.7,
                                     "by_avg": 0,
@@ -1169,13 +1170,15 @@ class TestCloudProvisioning(BZTestCase):
                                     "n": 7,
                                     "na": 4,
                                     "ec": 0,
-                                    "ts": 1442497725,
+                                    "ts": 2,
                                     "t_avg": 88.1,
                                     "lt_avg": 11.9,
                                     "by_avg": 0,
                                     "n_avg": 7,
                                     "ec_avg": 0
                                 }]}]},
+                'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=2&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
+                    "result": []},
                 'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
                     "api_version": 2,
                     "error": None,
@@ -1228,19 +1231,24 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.obj.startup()
+        self.obj.log.info("Check 1")
         self.obj.check()  # this one should work
         self.obj.engine.aggregator.check()
+
+        self.obj.log.info("Check 2")
         self.obj.check()  # this one should be skipped
         self.obj.engine.aggregator.check()
         time.sleep(1.5)
+
+        self.obj.log.info("Check 3")
         self.obj.check()  # this one should work
         self.obj.engine.aggregator.check()
-        self.obj.results_reader.min_ts = 0  # to make it request same URL
+
+        self.obj.log.info("Check 4")
         self.obj.check()  # this one should skip
-        self.obj.results_reader.min_ts = 0  # to make it request same URL
         self.obj.engine.aggregator.check()
 
-        self.assertEqual(28, len(self.mock.requests))
+        self.assertEqual(30, len(self.mock.requests))
 
     def test_dump_locations(self):
         self.configure()
