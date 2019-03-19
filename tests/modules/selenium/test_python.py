@@ -12,6 +12,7 @@ from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, Functio
 from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor
 from bzt.modules.python.executors import ApiritifLoadReader, ApiritifFuncReader
 from tests import RESOURCES_DIR, ExecutorTestCase
+from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 
 
@@ -1219,6 +1220,7 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         reader2.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif--11.csv")
 
         reader = ConsolidatingAggregator()
+        reader.engine = EngineEmul()
         reader.add_underling(reader1)
         reader.add_underling(reader2)
 

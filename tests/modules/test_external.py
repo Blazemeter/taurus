@@ -26,6 +26,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         super(TestExternalResultsLoader, self).configure(config)
         self.results_listener = MockReader()
         self.obj.engine.aggregator = ConsolidatingAggregator()
+        self.obj.engine.aggregator.engine = self.obj.engine
         self.obj.engine.aggregator.add_listener(self.results_listener)
 
     def test_no_data_file(self):

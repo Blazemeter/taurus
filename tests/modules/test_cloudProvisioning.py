@@ -362,9 +362,9 @@ class TestCloudProvisioning(BZTestCase):
                     "default-executor": "jmeter"},
                 "cli": {"remove": "me"},
                 "cli-aliases": {"remove": "me"},
-                }
+            }
 
-            )
+        )
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
@@ -2159,6 +2159,7 @@ class TestResultsFromBZA(BZTestCase):
     def test_inconsistent(self):
         self.skipTest("just keep this code for future troubleshooting")
         agg = ConsolidatingAggregator()
+        agg.engine = EngineEmul()
         obj = ResultsFromBZA(MasterFromLog(data={'id': 0}))
         with open("/home/undera/bzt.log") as fhd:
             obj.master.loglines = fhd.readlines()
