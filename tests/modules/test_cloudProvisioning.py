@@ -32,6 +32,7 @@ class TestCloudProvisioning(BZTestCase):
         super(TestCloudProvisioning, self).setUp()
         engine = EngineEmul()
         engine.aggregator = ConsolidatingAggregator()
+        engine.aggregator.engine = engine
         self.obj = CloudProvisioning()
         self.obj.settings.merge({'delete-test-files': False})
         self.obj.engine = engine
@@ -1234,6 +1235,7 @@ class TestCloudProvisioning(BZTestCase):
         time.sleep(1.5)
         self.obj.check()  # this one should work
         self.obj.engine.aggregator.check()
+        self.obj.results_reader.min_ts = 0  # to make it request same URL
         self.obj.check()  # this one should skip
         self.obj.results_reader.min_ts = 0  # to make it request same URL
         self.obj.engine.aggregator.check()

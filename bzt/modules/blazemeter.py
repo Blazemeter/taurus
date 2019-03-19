@@ -1826,6 +1826,7 @@ class ResultsFromBZA(ResultsProvider):
 
         for tstmp in timestamps:
             point = DataPoint(tstmp)
+            point[DataPoint.SOURCE_ID] = self.master['id']
             self.__generate_kpisets(aggr, data, point, tstmp)
 
             if self.handle_errors:
