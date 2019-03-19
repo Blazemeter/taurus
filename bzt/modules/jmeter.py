@@ -43,8 +43,8 @@ from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
 from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
-from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, FileReader, CALL_PROBLEMS
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
+from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, CALL_PROBLEMS, TaurusCalledProcessError
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, FileReader
 
 
 def get_child_assertion(element):
@@ -1454,26 +1454,26 @@ class JMeter(RequiredTool):
         return False
 
     def run_and_check(self):
-        self.log.debug("Trying jmeter: %s", self.tool_path)
+        self.log.debug("Trying JMeter..")
         jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
 
+        cmd_line = [self.tool_path, '-j', jmlog.name, '--version']
         try:
-            cmd_line = [self.tool_path, '-j', jmlog.name, '--version']
             out, err = self.call(cmd_line)
-            self.log.debug("JMeter check: %s / %s", out, err)
-
-            if "is too low to run JMeter" in out:
-                raise ToolError("Java version is too low to run JMeter")
-
-            if "Error:" in out:
-                self.log.warning("JMeter output: \n%s", out)
-                raise ToolError("Unable to run JMeter, see error above")
-
         except CALL_PROBLEMS as exc:
             self.log.debug("JMeter check failed: %s", exc)
             return False
         finally:
             jmlog.close()
+
+        self.log.debug("JMeter check: %s / %s", out, err)
+
+        if "is too low to run JMeter" in out:
+            raise ToolError("Java version is too low to run JMeter")
+
+        if "Error:" in out:
+            self.log.warning("JMeter output: \n%s", out)
+            raise ToolError("Unable to run JMeter, see error above")
 
         return True
 
@@ -1486,13 +1486,15 @@ class JMeter(RequiredTool):
             self.log.warning("Script %s not found" % jmx_file)
             return
 
+        params = ["install-for-jmx", jmx_file]
+
         try:
-            params = ["install-for-jmx", jmx_file]
             out, err = self._pmgr_call(params)
-            self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
         except CALL_PROBLEMS as exc:
             self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
             return
+
+        self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
 
         if err and "Wrong command: install-for-jmx" in err:  # old manager
             self.log.debug("pmgr can't discover jmx for plugins")
@@ -1539,9 +1541,10 @@ class JMeter(RequiredTool):
         self.log.debug("Trying: %s", cmd_line)
         try:
             out, err = self.call(cmd_line)
-            self.log.debug("Install PluginsManager: %s / %s", out, err)
         except CALL_PROBLEMS as exc:
             raise ToolError("Failed to install PluginsManager: %s" % exc)
+
+        self.log.debug("Install PluginsManager: %s / %s", out, err)
 
     def __install_plugins(self, plugins_manager_cmd):
         plugin_str = ",".join(self.plugins)
@@ -1551,9 +1554,10 @@ class JMeter(RequiredTool):
 
         try:
             out, err = self.call(cmd_line)
-            self.log.debug("Install plugins: %s / %s", out, err)
         except CALL_PROBLEMS as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
+
+        self.log.debug("Install plugins: %s / %s", out, err)
 
         if out and "Plugins manager will apply some modifications" in out:
             time.sleep(5)  # allow for modifications to complete

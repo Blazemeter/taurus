@@ -19,17 +19,16 @@ limitations under the License.
 import copy
 import json
 import os
-import subprocess
 import time
 import zipfile
 
 from bzt.six import communicate, text_type, string_types
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
-from bzt.engine import Service, HavingInstallableTools, Singletone, ScenarioExecutor
+from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.six import get_stacktrace
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
-from bzt.utils import replace_in_config, JavaVM, Node, Environment
+from bzt.utils import replace_in_config, JavaVM, Node, CALL_PROBLEMS, exec_and_communicate
 
 if not is_windows():
     try:
@@ -256,15 +255,18 @@ class Appium(RequiredTool):
         super(Appium, self).__init__(installable=False, **kwargs)
 
     def check_if_installed(self):
+        self.log.debug("Trying %s...", self.tool_name)
         cmd = [self.tool_path, '--version']
-        self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-            self.log.debug("%s output: %s", self.tool_name, output)
-            return True
-        except (subprocess.CalledProcessError, OSError) as exc:
+            out, err = exec_and_communicate(cmd)
+        except CALL_PROBLEMS as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
+
+        if err:
+            out += err
+        self.log.debug("%s output: %s", self.tool_name, out)
+        return True
 
 
 class AndroidEmulator(RequiredTool):
@@ -272,15 +274,17 @@ class AndroidEmulator(RequiredTool):
         super(AndroidEmulator, self).__init__(installable=False, **kwargs)
 
     def check_if_installed(self):
+        self.log.debug("Trying %s...", self.tool_name)
+
         cmd = [self.tool_path, '-list-avds']
-        self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-            self.log.debug("%s output: %s", self.tool_name, output)
-            return True
-        except (subprocess.CalledProcessError, OSError) as exc:
+            output = exec_and_communicate(cmd)
+        except CALL_PROBLEMS as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
+
+        self.log.debug("%s output: %s", self.tool_name, output)
+        return True
 
 
 class VirtualDisplay(Service, Singletone):

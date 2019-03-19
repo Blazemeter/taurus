@@ -25,7 +25,7 @@ from bzt import ToolError
 from bzt.engine import Provisioning, SelfDiagnosable
 from bzt.six import numeric_types
 from bzt.six import reraise
-from bzt.utils import dehumanize_time, Environment
+from bzt.utils import dehumanize_time
 
 
 class Local(Provisioning):

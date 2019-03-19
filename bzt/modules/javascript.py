@@ -268,17 +268,19 @@ class NPM(RequiredTool):
         if is_windows():
             candidates.append("npm.cmd")
         for candidate in candidates:
+            self.log.debug("Trying '%r' as NPM Tool...", candidate)
             try:
-                self.log.debug("Trying %r", candidate)
                 out, err = self.call([candidate, '--version'])
-                if err:
-                    out += err
-                self.log.debug("%s output: %s", candidate, out)
-                self.tool_path = candidate
-                return True
-            except CALL_PROBLEMS:
-                self.log.debug("%r is not installed", candidate)
+            except CALL_PROBLEMS as exc:
+                self.log.debug("%r is not installed: %s", candidate, exc)
                 continue
+
+            if err:
+                out += err
+            self.log.debug("%s output: %s", candidate, out)
+            self.tool_path = candidate
+            return True
+
         return False
 
 
@@ -318,13 +320,13 @@ class NPMPackage(RequiredTool):
 
         try:
             out, err = self.call(cmdline)
-            self.log.debug("%s install stdout: %s", self.tool_name, out)
-            if err:
-                self.log.warning("%s install stderr: %s", self.tool_name, err)
-            return True
         except CALL_PROBLEMS as exc:
             self.log.debug("%s install failed: %s", self.package_name, exc)
-            return False
+            return
+
+        self.log.debug("%s install stdout: %s", self.tool_name, out)
+        if err:
+            self.log.warning("%s install stderr: %s", self.tool_name, err)
 
 
 class Mocha(NPMPackage):
