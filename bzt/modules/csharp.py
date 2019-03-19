@@ -76,10 +76,11 @@ class Mono(RequiredTool):
         self.log.debug('Trying %s: %s', self.tool_name, self.tool_path)
         try:
             out, err = self.call([self.tool_path, '--version'])
-            self.log.debug("%s check stdout: %s", self.tool_name, out)
-            if err:
-                self.log.warning("%s check stderr: %s", self.tool_name, err)
-            return True
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
+
+        self.log.debug("%s check stdout: %s", self.tool_name, out)
+        if err:
+            self.log.warning("%s check stderr: %s", self.tool_name, err)
+        return True

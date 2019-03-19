@@ -94,12 +94,12 @@ def stream_decode(string):
     return string
 
 
-def deunicode(string):
+def deunicode(string, errors="strict"):
     """
     If string is unicode - convert it to basic string. Otherwise - leave it.
     Does nothing on py3 as there're no basic strings there.
     """
     if isinstance(string, unicode):
-        return string.encode()
+        return string.encode(errors=errors)
     else:
         return string

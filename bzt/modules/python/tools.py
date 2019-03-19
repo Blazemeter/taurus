@@ -36,10 +36,11 @@ class Robot(RequiredTool):
         self.log.debug('Checking Robot Framework: %s' % self.tool_path)
         try:
             out, err = self.call([self.python, '-c', 'import robot; print(robot.__version__)'])
-            if err:
-                out += err
-            self.log.debug("Robot output: %s", out)
-            return True
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
+
+        if err:
+            out += err
+        self.log.debug("Robot output: %s", out)
+        return True

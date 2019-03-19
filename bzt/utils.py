@@ -44,7 +44,7 @@ from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
 from distutils.version import LooseVersion
-from math import log
+import math
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
 from webbrowser import GenericBrowser
 
@@ -59,8 +59,8 @@ from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname, communicate
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, numeric_types
 
-CALL_PROBLEMS = (CalledProcessError, OSError)
 LOG = logging.getLogger("")
+CALL_PROBLEMS = (CalledProcessError, OSError)
 
 
 def sync_run(args, env=None):
@@ -387,11 +387,38 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     return base + diff + suffix
 
 
+class TaurusCalledProcessError(CalledProcessError):
+    def __init__(self, *args, **kwargs):
+        """ join output and stderr for compatibility """
+        output = ""
+        if "output" in kwargs:
+            output += u"\n>>> {out_start} >>>\n{out}\n<<< {out_end} <<<\n".format(
+                out_start="START OF STDOUT", out=kwargs["output"], out_end="END OF STDOUT")
+
+        if "stderr" in kwargs:
+            output += u"\n>>> {err_start} >>>\n{err}\n<<< {err_end} <<<\n".format(
+                err_start="START OF STDERR", err=kwargs.pop("stderr"), err_end="END OF STDERR")
+
+        if output:
+            kwargs["output"] = output
+
+        super(TaurusCalledProcessError, self).__init__(*args, **kwargs)
+
+    def __str__(self):
+        base_str = super(TaurusCalledProcessError, self).__str__()
+
+        if self.output:
+            base_str += '\n' + deunicode(self.output, errors="ignore")
+
+        return base_str
+
+
 def exec_and_communicate(*args, **kwargs):
     process = shell_exec(*args, **kwargs)
     out, err = communicate(process)
+
     if process.returncode != 0:
-        raise CalledProcessError(process.returncode, args[0][0])
+        raise TaurusCalledProcessError(process.returncode, cmd=args[0], output=out, stderr=err)
 
     return out, err
 
@@ -1242,12 +1269,13 @@ class JavaVM(RequiredTool):
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             out, err = self.call(cmd)
-            self.version = self._get_version(err)
-            self.log.debug("%s output: %s", self.tool_name, out)
-            return True
         except CALL_PROBLEMS as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
+
+        self.version = self._get_version(err)
+        self.log.debug("%s output: %s", self.tool_name, out)
+        return True
 
 
 class ProgressBarContext(ProgressBar):
@@ -1352,14 +1380,18 @@ class Node(RequiredTool):
         node_candidates = ["node", "nodejs"]
         for candidate in node_candidates:
             try:
-                self.log.debug("Trying %r", candidate)
-                out, _ = self.call([candidate, '--version'])
-                self.log.debug("%s output: %s", candidate, out)
-                self.tool_path = candidate
-                return True
-            except CALL_PROBLEMS:
-                self.log.debug("%r is not installed", candidate)
+                self.log.debug("Trying '%r' as Node Tool...", candidate)
+                out, err = self.call([candidate, '--version'])
+            except CALL_PROBLEMS as exc:
+                self.log.debug("%r is not installed: %s", candidate, exc)
                 continue
+
+            if err:
+                out += err
+            self.log.debug("%s output: %s", candidate, out)
+            self.tool_path = candidate
+            return True
+
         return False
 
 
@@ -1587,7 +1619,7 @@ def humanize_bytes(byteval):
 
     # determine binary order in steps of size 10
     # (coerce to int, // still returns a float)
-    order = int(log(byteval, 2) / 10) if byteval else 0
+    order = int(math.log(byteval, 2) / 10.0) if byteval else 0
     # format file size
     # (.4g results in rounded numbers for exact matches and max 3 decimals,
     # should never resort to exponent values)
@@ -1649,4 +1681,3 @@ def guess_delimiter(path):
             delimiter = ","  # default value
 
     return delimiter
-
