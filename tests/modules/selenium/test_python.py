@@ -119,6 +119,8 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.assertIn("Nothing to test", diagnostics)
 
     def test_long_iterations_value(self):
+        self.engine.aggregator = ConsolidatingAggregator()
+        self.engine.aggregator.engine = self.engine
         self.obj.execution.merge({
             "iterations": 2 ** 64,
             "scenario": {
@@ -132,6 +134,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             self.obj.startup()
             for _ in range(3):
                 self.assertFalse(self.obj.check())
+                self.engine.aggregator.check()
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
