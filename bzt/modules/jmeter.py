@@ -926,7 +926,7 @@ class JTLReader(ResultsReader):
                     if label in point[DataPoint.CURRENT]:
                         point[DataPoint.CURRENT][label][KPISet.ERRORS] = err_details[label]
                     else:
-                        self.log.warning("Had error data for %s, but no label: %s", label, err_details[label])
+                        self.log.warning("Had error data but no KPISet %s: %s", label, err_details[label])
 
                 for label, label_data in iteritems(point[DataPoint.CURRENT]):
                     if label in err_details:
