@@ -392,11 +392,11 @@ class TaurusCalledProcessError(CalledProcessError):
         """ join output and stderr for compatibility """
         output = ""
         if "output" in kwargs:
-            output += "\n>>> {out_start} >>>\n{out}\n<<< {out_end} <<<\n".format(
+            output += u"\n>>> {out_start} >>>\n{out}\n<<< {out_end} <<<\n".format(
                 out_start="START OF STDOUT", out=kwargs["output"], out_end="END OF STDOUT")
 
         if "stderr" in kwargs:
-            output += "\n>>> {err_start} >>>\n{err}\n<<< {err_end} <<<\n".format(
+            output += u"\n>>> {err_start} >>>\n{err}\n<<< {err_end} <<<\n".format(
                 err_start="START OF STDERR", err=kwargs.pop("stderr"), err_end="END OF STDERR")
 
         if output:
@@ -408,7 +408,7 @@ class TaurusCalledProcessError(CalledProcessError):
         base_str = super(TaurusCalledProcessError, self).__str__()
 
         if self.output:
-            base_str += '\n' + self.output
+            base_str += '\n' + deunicode(self.output, errors="ignore")
 
         return base_str
 
