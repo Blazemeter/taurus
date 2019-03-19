@@ -4,7 +4,7 @@ from apiritif import random_string
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.utils import to_json
 from tests import BZTestCase
-from tests.mocks import r, MockReader
+from tests.mocks import r, MockReader, EngineEmul
 
 
 def get_success_reader(offset=0):
@@ -117,6 +117,7 @@ class TestConsolidatingAggregator(BZTestCase):
     def setUp(self):
         super(TestConsolidatingAggregator, self).setUp()
         self.obj = ConsolidatingAggregator()
+        self.obj.engine=EngineEmul()
 
     def test_two_executions(self):
         self.obj.track_percentiles = [0, 50, 100]
