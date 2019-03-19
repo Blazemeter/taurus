@@ -966,7 +966,7 @@ class ApiritifScriptGenerator(PythonGenerator):
                 label = create_method_name(request.label[:40])
             elif isinstance(request, SetVariables):
                 body = self._gen_set_vars(request)
-                label = "set_variables"
+                label = request.config.get("label", "set_variables")
             else:
                 return
 
