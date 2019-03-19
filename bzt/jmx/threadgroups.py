@@ -31,7 +31,7 @@ class AbstractThreadGroup(object):
         return self._get_val("rate", self.RATE_SEL, default=1, raw=raw)
 
     def get_iterations(self):
-        return self._get_val("iterations", self.ITER_SEL)
+        return self._get_val("iterations", self.ITER_SEL, default=-1)
 
     def get_ramp_up(self, raw=False):
         return self._get_val("ramp-up", self.RAMP_UP_SEL, default=1, raw=raw)

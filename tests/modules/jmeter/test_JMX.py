@@ -47,8 +47,8 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.assertEqual(res_values,
                          {'TG.01': {'conc': 2, 'duration': 3, 'iterations': 100, 'rate': 1},
                           'CTG.02': {'conc': 3, 'duration': 100, 'iterations': 10, 'rate': 1},
-                          'STG.03': {'conc': 4, 'duration': None, 'iterations': None, 'rate': 1},
-                          'UTG.04': {'conc': 1, 'duration': None, 'iterations': None, 'rate': 1},
+                          'STG.03': {'conc': 4, 'duration': None, 'iterations': -1, 'rate': 1},
+                          'UTG.04': {'conc': 1, 'duration': None, 'iterations': -1, 'rate': 1},
                           'ATG.05': {'conc': 1, 'duration': 480, 'iterations': 33, 'rate': 2}})
 
     def test_TG_cs(self):
@@ -136,12 +136,12 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
 
         msg = "Parsing iterations 'None' in group 'ConcurrencyThreadGroup' failed, choose None"
-        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+        self.assertNotIn(msg, self.log_recorder.warn_buff.getvalue())
 
         res_values = {}
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ConcurrencyThreadGroup")
-            self.assertEqual("", group.element.find(".//*[@name='Iterations']").text)
+            self.assertEqual("-1", group.element.find(".//*[@name='Iterations']").text)
             self.assertIn(group.element.find(".//*[@name='Hold']").text, ("103",))
 
             res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'on_error': group.get_on_error()}
@@ -241,11 +241,11 @@ class TestLoadSettingsProcessor(BZTestCase):
             res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'iterations': group.get_iterations()}
 
         self.assertEqual(res_values, {
-            'TG.01': {'conc': 2, 'iterations': None},
+            'TG.01': {'conc': 2, 'iterations': -1},
             'CTG.02': {'conc': 3, 'iterations': 10},
-            'STG.03': {'conc': 4, 'iterations': None},
-            'UTG.04': {'conc': 1, 'iterations': None},
-            'ATG.05': {'conc': 1, 'iterations': None}})
+            'STG.03': {'conc': 4, 'iterations': -1},
+            'UTG.04': {'conc': 1, 'iterations': -1},
+            'ATG.05': {'conc': 1, 'iterations': -1}})
 
     def test_TG_ci(self):
         """ ThreadGroup: concurrency, iterations """
