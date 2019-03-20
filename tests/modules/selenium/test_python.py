@@ -1277,6 +1277,27 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         exp_file = RESOURCES_DIR + "/apiritif/test_data_sources.py"
         self.assertFilesEqual(exp_file, self.obj.script)
 
+    def test_vars(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "variables": {"an": "av"},
+                    "default-address": "http://localhost:8000/",
+                    "requests": [
+                        "${an}",
+                        {"set-variables": {
+                            "an": "another_path1",
+                            "bn": "another_path2"}},
+                        "${an}"],
+                }}]})
+
+        self.obj.engine.aggregator = ConsolidatingAggregator()
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "/apiritif/test_vars.py"
+        self.assertIn("test_2_set_variables", self.obj.engine.aggregator.ignored_labels)
+        self.assertFilesEqual(exp_file, self.obj.script)
+
     def test_codegen_requests(self):
         self.configure({
             "execution": [{
