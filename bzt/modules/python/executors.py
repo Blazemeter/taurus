@@ -99,6 +99,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
         builder.build_source_code()
         builder.save(filename)
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.engine.aggregator.ignored_labels.extend(builder.service_methods)
         return filename
 
     def startup(self):

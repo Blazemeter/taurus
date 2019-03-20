@@ -803,6 +803,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
         self.stored_vars = []
+        self.service_methods = []
 
     @staticmethod
     def _gen_empty_line_stmt():
@@ -972,6 +973,9 @@ class ApiritifScriptGenerator(PythonGenerator):
 
             counter = str(index).zfill(number_of_digits)
             method_name = 'test_' + counter + '_' + label
+
+            if isinstance(request, SetVariables):
+                self.service_methods.append(method_name)    # for sample excluding
 
             yield self._gen_test_method(method_name, body)
 
