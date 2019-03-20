@@ -56,7 +56,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def create_load_reader(self, report_file):
         del report_file
-        return ApiritifLoadReader(self.log)
+        reader = ApiritifLoadReader(self.log)
+        reader.engine = self.engine
+        return reader
 
     def prepare(self):
         super(ApiritifNoseExecutor, self).prepare()

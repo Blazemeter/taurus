@@ -278,17 +278,13 @@ class PBenchGenerator(object):
             self.log.info("Done generating schedule file")
 
     def check_config(self):
+        self.log.debug("Check pbench config...")
+
         cmdline = [self.tool.tool_path, 'check', self.config_file]
-        self.log.debug("Check pbench config with command: %s", cmdline)
-        out = open(self.engine.create_artifact('pbench_check', '.out'), 'wb')
-        err = open(self.engine.create_artifact('pbench_check', '.err'), 'wb')
         try:
-            self.tool.call(cmdline, stdout=out, stderr=err)
+            self.tool.call(cmdline)
         except CALL_PROBLEMS as exc:
-            raise TaurusConfigError("Config check has failed: %s\nLook at %s for details" % (exc, err.name))
-        finally:
-            out.close()
-            err.close()
+            raise TaurusConfigError("Config check has failed: %s" % exc)
 
     def _generate_payload_inner(self, scenario):
         requests = scenario.get_requests()
@@ -701,11 +697,11 @@ class PBench(RequiredTool):
         self.log.debug("Trying phantom: %s", self.tool_path)
         try:
             out, err = self.call([self.tool_path])
-
-            self.log.debug("PBench check stdout: %s", out)
-            if err:
-                self.log.warning("PBench check stderr: %s", err)
-            return True
         except CALL_PROBLEMS as exc:
             self.log.info("Phantom check failed: %s", exc)
             return False
+
+        self.log.debug("PBench check stdout: %s", out)
+        if err:
+            self.log.warning("PBench check stderr: %s", err)
+        return True

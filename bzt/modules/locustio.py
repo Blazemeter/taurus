@@ -19,7 +19,6 @@ import json
 import math
 import os
 import sys
-import time
 from collections import OrderedDict, Counter
 
 from bzt import TaurusConfigError
@@ -198,13 +197,14 @@ class LocustIO(RequiredTool):
         self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
             out, err = self.call([self.tool_path, "--version"])
-            if err:
-                out += err
-            self.log.debug("%s output: %s", self.tool_name, out)
-            return True
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
+
+        if err:
+            out += err
+        self.log.debug("%s output: %s", self.tool_name, out)
+        return True
 
 
 class SlavesReader(ResultsProvider):
