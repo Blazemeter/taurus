@@ -30,8 +30,8 @@ class AbstractThreadGroup(object):
     def get_rate(self, raw=False):
         return self._get_val("rate", self.RATE_SEL, default=1, raw=raw)
 
-    def get_iterations(self):
-        return self._get_val("iterations", self.ITER_SEL)
+    def get_iterations(self, raw=False):
+        return self._get_val("iterations", self.ITER_SEL, raw=raw)
 
     def get_ramp_up(self, raw=False):
         return self._get_val("ramp-up", self.RAMP_UP_SEL, default=1, raw=raw)
@@ -209,10 +209,10 @@ class ThreadGroupHandler(object):
                 thread_delay=thread_delay,
                 scheduler_delay=scheduler_delay)
         elif target_gtype == ConcurrencyThreadGroup.__name__:
+            iterations = None
             if source.gtype == target_gtype:
-                iterations = source.get_iterations()
-            else:
-                iterations = ""
+                iterations = source.get_iterations(raw=True)
+            iterations = iterations or ""
 
             new_group_element = JMX.get_concurrency_thread_group(
                 concurrency=concurrency,
