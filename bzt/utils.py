@@ -1207,7 +1207,9 @@ class RequiredTool(object):
         return
 
     def call(self, *args, **kwargs):
-        kwargs["env"] = self.env.get().update(kwargs.get("env", {}))
+        mixed_env = self.env.get()
+        mixed_env.update(kwargs.get("env", {}))
+        kwargs["env"] = mixed_env
         return exec_and_communicate(*args, **kwargs)
 
     def check_if_installed(self):
