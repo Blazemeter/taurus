@@ -689,7 +689,7 @@ class Engine(object):
     def _check_updates(self, install_id):
         try:
             params = (bzt.VERSION, install_id)
-            addr = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
+            addr = "https://gettaurus.org/updates/?version=%s&installID=%s" % params
             self.log.debug("Requesting updates info: %s", addr)
             client = self.get_http_client()
             response = client.request('GET', addr, timeout=10)
