@@ -53,7 +53,7 @@ if mode == 'files':     # test_engine
     files()
 elif mode == 'server':  # test_JMeterExecutor.test_shutdown_soft
     udp_server()
-elif mode == 'heap':    # test_JMeterExecutor.test_jvm_heap*
+elif mode == 'jvm_args':    # test_JMeterExecutor.test_jvm_heap*
     print(os.environ['JVM_ARGS'])
 elif mode == 'log':
     write_log()
