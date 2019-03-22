@@ -898,16 +898,16 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_constant_timer(delay):
+    def get_constant_timer(delay):
         """
 
         :type delay: int
-        :rtype: lxml.etree.Element
+        :rtype: list
         """
         element = etree.Element("ConstantTimer", guiclass="ConstantTimerGui",
                                 testclass="ConstantTimer", testname="Think-Time")
         element.append(JMX._string_prop("ConstantTimer.delay", delay))
-        return element
+        return [element, etree.Element("hashTree")]
 
     @staticmethod
     def _get_extractor(varname, headers, regexp, template, match_no, default='NOT_FOUND', scope='', from_var=''):

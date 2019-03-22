@@ -117,14 +117,14 @@ class LoadSettingsProcessor(object):
         # user concurrency is jmeter variable, write it to tg as is
         if isinstance(self.load.concurrency, string_types):
             target_list = [(group, self.load.concurrency) for group in groups]
-        else:   # concurrency is numeric or empty
-            raw = self.load.concurrency is None     # keep existed concurrency if self.load.concurrency is omitted
+        else:  # concurrency is numeric or empty
+            raw = self.load.concurrency is None  # keep existed concurrency if self.load.concurrency is omitted
 
             concurrency_list = []
             for group in groups:
                 concurrency_list.append(group.get_concurrency(raw=raw))
 
-            if not raw: # divide numeric concurrency
+            if not raw:  # divide numeric concurrency
                 self._divide_concurrency(concurrency_list)
 
             target_list = zip(groups, concurrency_list)
@@ -242,31 +242,31 @@ class JMeterScenarioBuilder(JMX):
             instance = cls_obj(self.system_props)
             self.protocol_handlers[protocol] = instance
 
-    def _get_timers(self, req):
-        elemnets = []
+    @staticmethod
+    def _get_timer(req):
         think_time = req.priority_option('think-time')
-        if think_time:
+        if not think_time:
+            return []
 
-            distributions = ["uniform", "poisson", "gaussian"]
-            expr = re.compile("^(%s)\(([\wd]+)[,\s]+([\wd]+)\)$" % '|'.join(distributions), re.IGNORECASE)
-            res = expr.match(think_time)
+        distributions = ["uniform", "poisson", "gaussian"]
+        format_str = "^(%s)\(([\wd]+)[,\s]+([\wd]+)\)$"
+        expr = re.compile(format_str % '|'.join(distributions), re.IGNORECASE)
+        res = expr.match(think_time)
 
-            if not res:     # constant
-                timer = JMX._get_constant_timer(ProtocolHandler.safe_time(think_time))
-            elif res.group(1).lower() == distributions[0]:      # uniform
-                timer = JMX.get_uniform_timer()
-            elif res.group(1).lower() == distributions[1]:      # gaussian
-                timer = JMX.get_gaussian_timer()
-            elif res.group(1).lower() == distributions[2]:      # poisson
-                timer = JMX.get_poisson_timer()
-            else:
-                raise TaurusConfigError("Wrong timer type: %s" % res.group(1))
+        if not res:  # constant
+            return JMX.get_constant_timer(delay=ProtocolHandler.safe_time(think_time))
 
+        mean = ProtocolHandler.safe_time(res.group(2))
+        dev = ProtocolHandler.safe_time(res.group(3))
 
-            elements.append(timer)
-            elements.append(etree.Element("hashTree"))
-
-        return elements
+        if res.group(1).lower() == distributions[0]:  # uniform
+            return JMX.get_uniform_timer(maximum=dev * 2, offset=mean - dev)
+        elif res.group(1).lower() == distributions[1]:  # gaussian
+            return JMX.get_gaussian_timer(dev=dev, offset=mean)
+        elif res.group(1).lower() == distributions[2]:  # poisson
+            return JMX.get_poisson_timer(lam=mean - dev, delay=dev)
+        else:
+            raise TaurusConfigError("Wrong timer type: %s" % res.group(1))
 
     def __add_extractors(self, children, req):
         self.__add_boundary_ext(children, req)
@@ -679,4 +679,3 @@ class JMeterScenarioBuilder(JMX):
             elements.append(config)
             elements.append(etree.Element("hashTree"))
         return elements
-
