@@ -251,7 +251,7 @@ class JMeterScenarioBuilder(JMX):
         distributions = ["uniform", "poisson", "gaussian"]
         format_str = "^(%s)\(([\wd]+)[,\s]+([\wd]+)\)$"
         expr = re.compile(format_str % '|'.join(distributions), re.IGNORECASE)
-        res = expr.match(think_time)
+        res = expr.match(str(think_time))
 
         if not res:  # constant
             return JMX.get_constant_timer(delay=ProtocolHandler.safe_time(think_time))
