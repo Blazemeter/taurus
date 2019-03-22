@@ -248,8 +248,8 @@ class JMeterScenarioBuilder(JMX):
         if not think_time:
             return []
 
-        distributions = ["uniform", "poisson", "gaussian"]
-        format_str = "^(%s)\(([\wd]+)[,\s]+([\wd]+)\)$"
+        distributions = ["uniform", "gaussian", "poisson"]
+        format_str = "^(%s)\(([\wd.]+)[,\s]+([\wd.]+)\)$"
         expr = re.compile(format_str % '|'.join(distributions), re.IGNORECASE)
         res = expr.match(str(think_time))
 
