@@ -1,0 +1,11 @@
+execution:
+  scenario:
+    think-time: 0.75s # constant timer
+    requests:
+      - http://blazedemo.com/t0
+      - url: http://blazedemo.com/t1
+        think-time: uniform(1m, 5s)  # uniform random timer, mean ('maximum'/2 + 'delay') and deviation ('max'/2)
+      - url: http://blazedemo.com/t2
+        think-time: gaussian(11s, 0.5s)  # gaussian random timer, mean ('offset') and deviation
+      - url: http://blazedemo.com/t3
+        think-time: poisson(2m, 30s)   # poisson random timer, final mean ('lambda'+offset) and offset

@@ -451,6 +451,15 @@ class TestJMeterExecutor(ExecutorTestCase):
         finally:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
 
+    def test_timers(self):
+        with open(os.path.join(RESOURCES_DIR, "yaml/timers.yml")) as config_file:
+            config = yaml.load(config_file.read())
+
+        self.configure(config)
+        self.obj.prepare()
+        result = open(self.obj.modified_jmx).read()
+        self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
+
     def test_think_time_bug(self):
         self.configure({
             'execution': {

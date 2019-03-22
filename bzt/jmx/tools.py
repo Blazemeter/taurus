@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+import re
 from distutils.version import LooseVersion
 
 from bzt import TaurusInternalException, TaurusConfigError
@@ -241,11 +242,31 @@ class JMeterScenarioBuilder(JMX):
             instance = cls_obj(self.system_props)
             self.protocol_handlers[protocol] = instance
 
-    def __add_think_time(self, children, req):
+    def _get_timers(self, req):
+        elemnets = []
         think_time = req.priority_option('think-time')
-        if think_time is not None:
-            children.append(JMX._get_constant_timer(ProtocolHandler.safe_time(think_time)))
-            children.append(etree.Element("hashTree"))
+        if think_time:
+
+            distributions = ["uniform", "poisson", "gaussian"]
+            expr = re.compile("^(%s)\(([\wd]+)[,\s]+([\wd]+)\)$" % '|'.join(distributions), re.IGNORECASE)
+            res = expr.match(think_time)
+
+            if not res:     # constant
+                timer = JMX._get_constant_timer(ProtocolHandler.safe_time(think_time))
+            elif res.group(1).lower() == distributions[0]:      # uniform
+                timer = JMX.get_uniform_timer()
+            elif res.group(1).lower() == distributions[1]:      # gaussian
+                timer = JMX.get_gaussian_timer()
+            elif res.group(1).lower() == distributions[2]:      # poisson
+                timer = JMX.get_poisson_timer()
+            else:
+                raise TaurusConfigError("Wrong timer type: %s" % res.group(1))
+
+
+            elements.append(timer)
+            elements.append(etree.Element("hashTree"))
+
+        return elements
 
     def __add_extractors(self, children, req):
         self.__add_boundary_ext(children, req)
@@ -428,7 +449,7 @@ class JMeterScenarioBuilder(JMX):
             self.log.warning("Problematic request: %s", request.config)
             raise TaurusInternalException("Unable to handle request, please review missing options")
 
-        self.__add_think_time(children, request)
+        children.extend(self._get_timer(request))
 
         self.__add_assertions(children, request)
 
