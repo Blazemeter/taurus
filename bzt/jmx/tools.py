@@ -244,29 +244,24 @@ class JMeterScenarioBuilder(JMX):
 
     @staticmethod
     def _get_timer(req):
-        think_time = req.priority_option('think-time')
+        think_time = req.get_think_time(full=True)
         if not think_time:
             return []
 
-        distributions = ["uniform", "gaussian", "poisson"]
-        format_str = "^(%s)\(([\wd.]+)[,\s]+([\wd.]+)\)$"
-        expr = re.compile(format_str % '|'.join(distributions), re.IGNORECASE)
-        res = expr.match(str(think_time))
-
-        if not res:  # constant
+        if not isinstance(think_time, list):  # constant
             return JMX.get_constant_timer(delay=ProtocolHandler.safe_time(think_time))
 
-        mean = ProtocolHandler.safe_time(res.group(2))
-        dev = ProtocolHandler.safe_time(res.group(3))
+        mean = ProtocolHandler.safe_time(think_time[1])
+        dev = ProtocolHandler.safe_time(think_time[2])
 
-        if res.group(1).lower() == distributions[0]:  # uniform
+        if think_time[0] == "uniform":
             return JMX.get_uniform_timer(maximum=dev * 2, offset=mean - dev)
-        elif res.group(1).lower() == distributions[1]:  # gaussian
+        elif think_time[0] == "gaussian":
             return JMX.get_gaussian_timer(dev=dev, offset=mean)
-        elif res.group(1).lower() == distributions[2]:  # poisson
+        elif think_time[0] == "poisson":
             return JMX.get_poisson_timer(lam=mean - dev, delay=dev)
         else:
-            raise TaurusConfigError("Wrong timer type: %s" % res.group(1))
+            raise TaurusConfigError("Wrong timer type: %s" % think_time[0])
 
     def __add_extractors(self, children, req):
         self.__add_boundary_ext(children, req)

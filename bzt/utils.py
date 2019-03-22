@@ -1681,3 +1681,18 @@ def guess_delimiter(path):
             delimiter = ","  # default value
 
     return delimiter
+
+
+def parse_think_time(think_time, full=False):
+    distributions = ["uniform", "gaussian", "poisson"]
+    format_str = "^(%s)\(([\wd.]+)[,\s]+([\wd.]+)\)$"
+    expr = re.compile(format_str % '|'.join(distributions), re.IGNORECASE)
+    res = expr.match(str(think_time))
+
+    if not res:  # constant timer
+        return think_time
+
+    if not full:
+        return res.group(2).lower()  # make it simple!
+    else:
+        return [res.group(i + 1).lower() for i in range(3)]

@@ -215,7 +215,7 @@ class NewmanExecutor(JavaScriptExecutor):
         if timeout is not None:
             cmdline += ["--timeout-request", str(int(dehumanize_time(timeout) * 1000))]
 
-        think = scenario.get('think-time', None)
+        think = scenario.get_think_time()
         if think is not None:
             cmdline += ["--delay-request", str(int(dehumanize_time(think) * 1000))]
 

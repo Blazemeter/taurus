@@ -338,7 +338,7 @@ from locust import HttpLocust, TaskSet, task
     def __gen_task(self):
         task = self.gen_method_definition("generated_task", ['self'])
 
-        think_time = dehumanize_time(self.scenario.get("think-time"))
+        think_time = dehumanize_time(self.scenario.get_think_time())
         global_headers = self.scenario.get_headers()
         if not self.scenario.get("keepalive", True):
             global_headers['Connection'] = 'close'
@@ -357,8 +357,8 @@ from locust import HttpLocust, TaskSet, task
 
             self.__gen_check(method, req, task, dehumanize_time(timeout), global_headers)
 
-            if req.think_time:
-                task.append(self.gen_statement("sleep(%s)" % dehumanize_time(req.think_time)))
+            if req.get_think_time():
+                task.append(self.gen_statement("sleep(%s)" % dehumanize_time(req.get_think_time())))
             else:
                 if think_time:
                     task.append(self.gen_statement("sleep(%s)" % think_time))
