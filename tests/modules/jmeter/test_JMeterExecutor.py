@@ -1546,7 +1546,7 @@ class TestJMeterExecutor(ExecutorTestCase):
                 'jmeter': {
                     'memory-xmx': '2G'}}})
         self.obj.prepare()
-        self.obj.env.set({'TEST_MODE': 'heap'})
+        self.obj.env.set({'TEST_MODE': 'jvm_args'})
         self.obj.startup()
         self.obj.shutdown()
         self.obj.post_process()
