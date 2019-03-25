@@ -44,6 +44,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self._tools = []
         self._java_scripts = []
         self._full_install = True
+        self.tool = None
         self.report_file_suffix = ".ldjson"
 
     def install_required_tools(self):
@@ -56,7 +57,9 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
             self._tools.append(self._get_tool(JavaC))
 
         self._tools.append(self._get_tool(TclLibrary))
-        self._tools.append(self._get_tool(JavaVM))
+
+        self.tool = self._get_tool(JavaVM, mandatory=True)
+        self._tools.append(self.tool)
 
         self._check_tools(self._tools)
 
@@ -237,7 +240,7 @@ class JUnitTester(JavaTestRunner):
 
         class_path = os.pathsep.join(self.class_path)
         runner_class = "com.blazemeter.taurus.junit.CustomRunner"
-        junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true", runner_class, self.props_file]
+        junit_cmd_line = [self.tool.tool_path, "-cp", class_path, "-Djna.nosys=true", runner_class, self.props_file]
 
         self.process = self.execute(junit_cmd_line)
 
@@ -345,7 +348,7 @@ class TestNGTester(JavaTestRunner):
             if testng_xml:
                 props.write('testng_config=%s\n' % testng_xml.replace(os.path.sep, '/'))
 
-        cmdline = ["java", "-cp", os.pathsep.join(self.class_path),
+        cmdline = [self.tool.tool_path, "-cp", os.pathsep.join(self.class_path),
                    "com.blazemeter.taurus.testng.TestNGRunner", self.props_file]
         self.process = self.execute(cmdline)
 

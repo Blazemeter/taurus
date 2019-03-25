@@ -1180,11 +1180,12 @@ class RequiredTool(object):
     """
 
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
-                 env=None, version=None, installable=True):
+                 env=None, version=None, installable=True, mandatory=True):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
         self.mirror_manager = None
+        self.mandatory = mandatory
 
         self.version = None
         if version is not None:
@@ -1218,7 +1219,12 @@ class RequiredTool(object):
 
     def install(self):
         if not self.installable:
-            raise ToolError("Automatic installation of %s isn't implemented" % self.tool_name)
+            msg = "%s isn't found, automatic installation isn't implemented" % self.tool_name
+            if self.mandatory:
+                raise ToolError(msg)
+            else:
+                self.log.warning(msg)
+                return
 
         with ProgressBarContext() as pbar:
             if not os.path.exists(os.path.dirname(self.tool_path)):
@@ -1253,6 +1259,8 @@ class RequiredTool(object):
 
 class JavaVM(RequiredTool):
     def __init__(self, **kwargs):
+        if "mandatory" not in kwargs:
+            kwargs["mandatory"] = False
         super(JavaVM, self).__init__(installable=False, tool_path="java", **kwargs)
 
     def _get_version(self, output):
