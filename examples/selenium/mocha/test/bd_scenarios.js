@@ -18,14 +18,15 @@ describe('Site verification', function() {
     });
 
     it('home page loads', function () {
-        driver.get(blazedemo.homePage());
-        driver.getTitle().then(function (title) {
-            assert.equal(title, blazedemo.homePageTitle());
-        });
+        return driver.get(blazedemo.homePage())
+            .then(() => driver.getTitle())
+            .then(title => {
+                assert.equal(title, blazedemo.homePageTitle());
+            });
     });
 
     it("reserve.php opens", function () {
-        driver.get(blazedemo.homePage() + blazedemo.reserve());
+        return driver.get(blazedemo.homePage() + blazedemo.reserve());
     });
 
 });
