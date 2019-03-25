@@ -898,16 +898,35 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_constant_timer(delay):
-        """
+    def get_constant_timer(delay):
+        timer_type = "ConstantTimer"
+        element = etree.Element(timer_type, guiclass="%sGui" % timer_type, testclass=timer_type, testname="Think-Time")
+        element.append(JMX._string_prop("%s.delay" % timer_type, delay))
+        return [element, etree.Element("hashTree")]
 
-        :type delay: int
-        :rtype: lxml.etree.Element
-        """
-        element = etree.Element("ConstantTimer", guiclass="ConstantTimerGui",
-                                testclass="ConstantTimer", testname="Think-Time")
+    @staticmethod
+    def get_uniform_timer(maximum, offset):
+        timer_type = "UniformRandomTimer"
+        element = etree.Element(timer_type, guiclass="%sGui" % timer_type, testclass=timer_type, testname="Think-Time")
+        element.append(JMX._string_prop("ConstantTimer.delay", offset))
+        element.append(JMX._string_prop("RandomTimer.range", maximum))
+        return [element, etree.Element("hashTree")]
+
+    @staticmethod
+    def get_gaussian_timer(dev, offset):
+        timer_type = "GaussianRandomTimer"
+        element = etree.Element(timer_type, guiclass="%sGui" % timer_type, testclass=timer_type, testname="Think-Time")
+        element.append(JMX._string_prop("ConstantTimer.delay", offset))
+        element.append(JMX._string_prop("RandomTimer.range", dev))
+        return [element, etree.Element("hashTree")]
+
+    @staticmethod
+    def get_poisson_timer(lam, delay):
+        timer_type = "PoissonRandomTimer"
+        element = etree.Element(timer_type, guiclass="%sGui" % timer_type, testclass=timer_type, testname="Think-Time")
         element.append(JMX._string_prop("ConstantTimer.delay", delay))
-        return element
+        element.append(JMX._string_prop("RandomTimer.range", lam))
+        return [element, etree.Element("hashTree")]
 
     @staticmethod
     def _get_extractor(varname, headers, regexp, template, match_no, default='NOT_FOUND', scope='', from_var=''):

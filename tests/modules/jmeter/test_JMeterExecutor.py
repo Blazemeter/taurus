@@ -451,6 +451,41 @@ class TestJMeterExecutor(ExecutorTestCase):
         finally:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
 
+    def test_timers(self):
+        with open(os.path.join(RESOURCES_DIR, "yaml/timers.yml")) as config_file:
+            config = yaml.load(config_file.read())
+
+        self.configure(config)
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        constant_timer = jmx.tree.find(".//ConstantTimer[@testname='Think-Time']")
+        constant_timer.find(".//stringProp[@name='CookieManager.implementation']")
+        uniform_timer = jmx.tree.find(".//UniformRandomTimer[@testname='Think-Time']")
+        gaussian_timer = jmx.tree.find(".//GaussianRandomTimer[@testname='Think-Time']")
+        poisson_timer = jmx.tree.find(".//PoissonRandomTimer[@testname='Think-Time']")
+        
+        ctd = "ConstantTimer.delay"
+        rtr = "RandomTimer.range"
+        str_prop = ".//stringProp[@name='%s']"
+        
+        const_delay = constant_timer.find(str_prop % ctd).text
+        self.assertEqual("750", const_delay)
+
+        uniform_delay = uniform_timer.find(str_prop % ctd).text
+        uniform_range = uniform_timer.find(str_prop % rtr).text
+        self.assertEqual("55000", uniform_delay)
+        self.assertEqual("10000", uniform_range)
+
+        gaussian_delay = gaussian_timer.find(str_prop % ctd).text
+        gaussian_range = gaussian_timer.find(str_prop % rtr).text
+        self.assertEqual("11000", gaussian_delay)
+        self.assertEqual("500", gaussian_range)
+
+        poisson_delay = poisson_timer.find(str_prop % ctd).text
+        poisson_range = poisson_timer.find(str_prop % rtr).text
+        self.assertEqual("30000", poisson_delay)
+        self.assertEqual("90000", poisson_range)
+
     def test_think_time_bug(self):
         self.configure({
             'execution': {

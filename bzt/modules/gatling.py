@@ -127,7 +127,7 @@ class GatlingScriptBuilder(object):
 
             exec_str += self.indent(')', level=1)
 
-            think_time = int(dehumanize_time(req.priority_option('think-time')))
+            think_time = int(dehumanize_time(req.get_think_time()))
             if think_time:
                 exec_str += '.pause(%(think_time)s)' % {'think_time': think_time}
 

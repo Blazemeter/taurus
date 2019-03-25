@@ -1,6 +1,7 @@
 """ unit test """
 import os
 import sys
+import yaml
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, Configuration
@@ -208,6 +209,15 @@ class TestEngine(BZTestCase):
 
 
 class TestScenarioExecutor(ExecutorTestCase):
+    def test_timers(self):
+        """ general executor supports only simplified form of think-time """
+        with open(os.path.join(RESOURCES_DIR, "yaml/timers.yml")) as config_file:
+            config = yaml.load(config_file.read())
+
+        self.configure(config)
+        timers = [request.get_think_time() for request in self.obj.get_scenario().get_requests()]
+        self.assertEqual(['0.75s', '1m', '11s', '2m'], timers)
+
     def test_transaction_block(self):
         self.configure({
             "execution": [{
