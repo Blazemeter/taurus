@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+import re
 from distutils.version import LooseVersion
 
 from bzt import TaurusInternalException, TaurusConfigError
@@ -116,14 +117,14 @@ class LoadSettingsProcessor(object):
         # user concurrency is jmeter variable, write it to tg as is
         if isinstance(self.load.concurrency, string_types):
             target_list = [(group, self.load.concurrency) for group in groups]
-        else:   # concurrency is numeric or empty
-            raw = self.load.concurrency is None     # keep existed concurrency if self.load.concurrency is omitted
+        else:  # concurrency is numeric or empty
+            raw = self.load.concurrency is None  # keep existed concurrency if self.load.concurrency is omitted
 
             concurrency_list = []
             for group in groups:
                 concurrency_list.append(group.get_concurrency(raw=raw))
 
-            if not raw: # divide numeric concurrency
+            if not raw:  # divide numeric concurrency
                 self._divide_concurrency(concurrency_list)
 
             target_list = zip(groups, concurrency_list)
@@ -241,11 +242,26 @@ class JMeterScenarioBuilder(JMX):
             instance = cls_obj(self.system_props)
             self.protocol_handlers[protocol] = instance
 
-    def __add_think_time(self, children, req):
-        think_time = req.priority_option('think-time')
-        if think_time is not None:
-            children.append(JMX._get_constant_timer(ProtocolHandler.safe_time(think_time)))
-            children.append(etree.Element("hashTree"))
+    @staticmethod
+    def _get_timer(req):
+        think_time = req.get_think_time(full=True)
+        if not think_time:
+            return []
+
+        if not isinstance(think_time, list):  # constant
+            return JMX.get_constant_timer(delay=ProtocolHandler.safe_time(think_time))
+
+        mean = ProtocolHandler.safe_time(think_time[1])
+        dev = ProtocolHandler.safe_time(think_time[2])
+
+        if think_time[0] == "uniform":
+            return JMX.get_uniform_timer(maximum=dev * 2, offset=mean - dev)
+        elif think_time[0] == "gaussian":
+            return JMX.get_gaussian_timer(dev=dev, offset=mean)
+        elif think_time[0] == "poisson":
+            return JMX.get_poisson_timer(lam=mean - dev, delay=dev)
+        else:
+            raise TaurusConfigError("Wrong timer type: %s" % think_time[0])
 
     def __add_extractors(self, children, req):
         self.__add_boundary_ext(children, req)
@@ -428,7 +444,7 @@ class JMeterScenarioBuilder(JMX):
             self.log.warning("Problematic request: %s", request.config)
             raise TaurusInternalException("Unable to handle request, please review missing options")
 
-        self.__add_think_time(children, request)
+        children.extend(self._get_timer(request))
 
         self.__add_assertions(children, request)
 
@@ -658,4 +674,3 @@ class JMeterScenarioBuilder(JMX):
             elements.append(config)
             elements.append(etree.Element("hashTree"))
         return elements
-

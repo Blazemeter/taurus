@@ -1,7 +1,25 @@
 # Changelog
 
 ## 1.13.4<sup>next</sup>
+
 - bump up default JMeter version to 5.1.1
+- for external results loader, allow specifying files under scenario
+- fix external results loader hanging on small result files
+- save some RAM if result readers have read enough data into buffers
+- support `set-variables` action for Apiritif executor
+- support CSV reading in Apiritif executor
+- print stderr/stdout for failed subprocesses in tool checks
+- walk into YAML transaction blocks for all executors
+- for Thread Groups that have 0 concurrency, disable them
+- for Apiritif threads, handle variable scope properly
+- change `ignore-labels` behavior to prefix instead of exact match
+- change the way detailed error info matched to datapoints, for future bug catch
+- read more of error.jtl in single pass
+- add url parameters support for JMeter
+- fix 'None' iterations written into JMeter CTG
+- remember rolling concurrency to avoid fuzziness in multi-executor case
+- use HTTPS to check for version upgrade needs
+
 
 ## 1.13.3<sup>24 feb 2019</sup>
 

@@ -47,7 +47,7 @@ from bzt.requests_model import RequestParser
 from bzt.six import numeric_types, string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
-from bzt.utils import str_representer, Environment, RequiredTool
+from bzt.utils import str_representer, Environment, RequiredTool, parse_think_time
 
 TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
 
@@ -689,7 +689,7 @@ class Engine(object):
     def _check_updates(self, install_id):
         try:
             params = (bzt.VERSION, install_id)
-            addr = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
+            addr = "https://gettaurus.org/updates/?version=%s&installID=%s" % params
             self.log.debug("Requesting updates info: %s", addr)
             client = self.get_http_client()
             response = client.request('GET', addr, timeout=10)
@@ -1336,6 +1336,11 @@ class Scenario(UserDict, object):
         if headers is None:
             headers = {}
         return headers
+
+    def get_think_time(self, full=False):
+        think_time = self.get('think-time')
+        if think_time:
+            return parse_think_time(think_time=think_time, full=full)
 
     def get_data_sources(self):
         sources = self.get(self.FIELD_DATA_SOURCES, [])

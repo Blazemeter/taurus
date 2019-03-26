@@ -361,7 +361,7 @@ class TsungConfig(object):
     def __gen_options(self, scenario):
         options = etree.Element("options")
 
-        global_think_time = scenario.get("think-time")
+        global_think_time = scenario.get_think_time()
         if global_think_time:
             think_time = int(dehumanize_time(global_think_time))
             options.append(etree.Element("option", name="thinktime", value=str(think_time), random="false"))
@@ -396,8 +396,8 @@ class TsungConfig(object):
 
             request_elem.append(http_elem)
             session.append(request_elem)
-            if request.think_time is not None:
-                think_time = int(dehumanize_time(request.think_time))
+            if request.get_think_time():
+                think_time = int(dehumanize_time(request.get_think_time()))
                 session.append(etree.Element("thinktime", value=str(think_time), random="false"))
         sessions.append(session)
         return sessions

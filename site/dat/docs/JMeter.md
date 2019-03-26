@@ -223,6 +223,12 @@ Note that `timeout` also sets duration assertion that will mark response failed 
 
 If you want to use JMeter properties in `default-address`, you'll have to specify mandatory scheme and separate address/port. Like this: `default-address: https://${\__P(hostname)}:${\__P(port)}`.
 
+It's possible to use follow specific values for choosing of `think-time`:
+* 2s: constant value
+* uniform(5s, 1s): random `think-time`, uniform distribution, possible values are 5±1 sec
+* gaussian(1m, 1.5s): normal distribution of random values, where mean is 60s and deviation is 1.5s
+* poisson(10s, 3s): poisson distribution, mean is 10s and range of values starts from 3s.
+
 ### Requests
 
 Request objects can be of two kinds:

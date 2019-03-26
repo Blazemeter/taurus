@@ -318,7 +318,7 @@ import apiritif
             test_method.append(self.gen_statement('pass', indent=self.INDENT_STEP * (indent + 1)))
         test_method.append(self.gen_new_line())
 
-        test_method.extend(self.gen_think_time(req.priority_option('think-time'), indent=self.INDENT_STEP * indent))
+        test_method.extend(self.gen_think_time(req.get_think_time(), indent=self.INDENT_STEP * indent))
 
         if self.generate_markers:
             marker = "self.driver.execute_script('/* FLOW_MARKER test-case-stop */', " \
@@ -1144,7 +1144,7 @@ class ApiritifScriptGenerator(PythonGenerator):
     def _gen_http_request(self, req):
         lines = []
         method = req.method.lower()
-        think_time = dehumanize_time(req.priority_option('think-time', default=None))
+        think_time = dehumanize_time(req.get_think_time())
         named_args = self._extract_named_args(req)
         target = ast.Name(id='self.target', ctx=ast.Load())
         apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())

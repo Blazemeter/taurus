@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Example selenium-based test suite using Mocha",
   "main": "index.js",
+  "engines" : {
+    "node" : ">= 6.9.0"
+  },
   "directories": {
     "test": "test"
   },

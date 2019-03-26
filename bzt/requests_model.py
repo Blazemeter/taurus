@@ -20,7 +20,7 @@ import re
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.six import string_types
-from bzt.utils import ensure_is_dict, dehumanize_time, BetterDict
+from bzt.utils import ensure_is_dict, dehumanize_time, BetterDict, parse_think_time
 
 VARIABLE_PATTERN = re.compile("\${.+\}")
 
@@ -68,9 +68,13 @@ class HTTPRequest(Request):
 
         self.keepalive = self.config.get('keepalive', None)
         self.timeout = self.config.get('timeout', None)
-        self.think_time = self.config.get('think-time', None)
         self.follow_redirects = self.config.get('follow-redirects', None)
         self.body = self._get_body(pure_body_file=pure_body_file)
+
+    def get_think_time(self, full=False):
+        think_time = self.priority_option('think-time')
+        if think_time:
+            return parse_think_time(think_time=think_time, full=full)
 
     def get_header(self, name):
         def dic_lower(dic):

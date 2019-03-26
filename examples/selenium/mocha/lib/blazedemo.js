@@ -3,9 +3,9 @@ exports.homePage = function() {
 };
 
 exports.homePageTitle = function() {
-    return 'Simple Flights App'
+    return 'BlazeDemo';
 };
 
 exports.reserve = function() {
-    return 'reserve.php'
+    return 'reserve.php';
 };

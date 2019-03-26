@@ -1,1 +1,0 @@
-- disable JMeter thread group if it has zero concurrency

@@ -1180,11 +1180,12 @@ class RequiredTool(object):
     """
 
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
-                 env=None, version=None, installable=True):
+                 env=None, version=None, installable=True, mandatory=True):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
         self.mirror_manager = None
+        self.mandatory = mandatory
 
         self.version = None
         if version is not None:
@@ -1207,9 +1208,9 @@ class RequiredTool(object):
         return
 
     def call(self, *args, **kwargs):
-        env = kwargs.get("env", {})
-        kwargs["env"] = self.env.get()
-        kwargs["env"].update(env)
+        mixed_env = self.env.get()
+        mixed_env.update(kwargs.get("env", {}))
+        kwargs["env"] = mixed_env
         return exec_and_communicate(*args, **kwargs)
 
     def check_if_installed(self):
@@ -1220,7 +1221,12 @@ class RequiredTool(object):
 
     def install(self):
         if not self.installable:
-            raise ToolError("Automatic installation of %s isn't implemented" % self.tool_name)
+            msg = "%s isn't found, automatic installation isn't implemented" % self.tool_name
+            if self.mandatory:
+                raise ToolError(msg)
+            else:
+                self.log.warning(msg)
+                return
 
         with ProgressBarContext() as pbar:
             if not os.path.exists(os.path.dirname(self.tool_path)):
@@ -1255,6 +1261,8 @@ class RequiredTool(object):
 
 class JavaVM(RequiredTool):
     def __init__(self, **kwargs):
+        if "mandatory" not in kwargs:
+            kwargs["mandatory"] = False
         super(JavaVM, self).__init__(installable=False, tool_path="java", **kwargs)
 
     def _get_version(self, output):
@@ -1683,3 +1691,18 @@ def guess_delimiter(path):
             delimiter = ","  # default value
 
     return delimiter
+
+
+def parse_think_time(think_time, full=False):
+    distributions = ["uniform", "gaussian", "poisson"]
+    format_str = "^(%s)\(([\wd.]+)[,\s]+([\wd.]+)\)$"
+    expr = re.compile(format_str % '|'.join(distributions), re.IGNORECASE)
+    res = expr.match(str(think_time))
+
+    if not res:  # constant timer
+        return think_time
+
+    if not full:
+        return res.group(2).lower()  # make it simple!
+    else:
+        return [res.group(i + 1).lower() for i in range(3)]
