@@ -324,15 +324,20 @@ class TestCloudProvisioning(BZTestCase):
                         "version": "some_value"},
                     "blazemeter": {
                         "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
-                        "strange_param": False
-                    }
-                },
+                        "strange_param": False,
+                    },
+                    "cloud": {
+                        "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                        "name": "value",
+                        "token": "secret_key"
+                    }},
+                "provisioning": "cloud",
                 "settings": {
                     "default-executor": "jmeter"
                 }
-            },
-        )
+            })
 
+        self.obj.engine.config["provisioning"] = "cloud"
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
         super(CloudProvisioning, self.obj).prepare()  # init executors
@@ -341,6 +346,7 @@ class TestCloudProvisioning(BZTestCase):
         cloud_jmeter = cloud_config.get("modules").get("jmeter")
         self.assertNotIn("class", cloud_jmeter)
         self.assertIn("version", cloud_jmeter)
+        self.assertNotIn("token", cloud_config.get("modules").get("cloud"))
 
     def test_cloud_config_cleanup_short_execution(self):
         self.configure(
