@@ -63,6 +63,8 @@ CLOUD_CONFIG_BLACK_LIST = {
     },
     "cli": True,
     "cli-aliases": True,
+    "install-id": True,
+    "version": True,
     "modules": {
         "jmeter": {
             "path": True
@@ -97,10 +99,12 @@ CLOUD_CONFIG_BLACK_LIST = {
         "blazemeter": {
             "address": True,
             "data-address": True,
+            "token": True,
         },
         "cloud": {
             "address": True,
             "data-address": True,
+            "token": True,
         },
     },
     "provisioning": True,
