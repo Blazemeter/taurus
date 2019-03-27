@@ -19,6 +19,7 @@
 - fix 'None' iterations written into JMeter CTG
 - remember rolling concurrency to avoid fuzziness in multi-executor case
 - use HTTPS to check for version upgrade needs
+- support keystore configuration for jmeter executor in yaml
 
 
 ## 1.13.3<sup>24 feb 2019</sup>
