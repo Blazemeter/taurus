@@ -26,6 +26,43 @@ class TestGatlingExecutor(ExecutorTestCase):
         close_reader_file(self.obj.reader)
         super(TestGatlingExecutor, self).tearDown()
 
+    def test_props_with_space(self):
+        version = "3.0.1"
+        prop_val = "v a"
+
+        self.obj.settings.merge({"version": version})
+        self.configure({
+            "execution": {
+                "executor": "gatling",
+                "iterations": 1,
+                "concurrency": 1,
+                "scenario": "gs"},
+            "scenarios": {
+                "gs": {
+                    "properties": {"something": prop_val},
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+        self.obj.settings["path"] = os.path.join(BUILD_DIR, "gatling-taurus", version, "bin", "gatling" + EXE_SUFFIX)
+        self.obj.prepare()
+
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        except ToolError:
+            pass
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+
+        with open(self.obj.stderr.name) as fds:
+            stderr = fds.read()
+
+        with open(self.obj.stdout.name) as fds:
+            stdout = fds.read()
+
+        self.assertIn(10*'=', stdout, stderr)
+
     def test_gatling3(self):
         self.obj.settings.merge({"version": "3.0.1"})
         self.configure({

@@ -286,13 +286,13 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         cpath = self.get_additional_classpath()
         self.log.debug("Classpath for Gatling: %s", cpath)
 
-        if cpath:
-            new_name = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
-            self.log.debug("Building Gatling launcher: %s", new_name)
-            self.tool.build_launcher(new_name)
-            for element in cpath:
-                self.env.add_path({"JAVA_CLASSPATH": element})
-                self.env.add_path({"COMPILATION_CLASSPATH": element})
+        for element in cpath:
+            self.env.add_path({"JAVA_CLASSPATH": element})
+            self.env.add_path({"COMPILATION_CLASSPATH": element})
+
+        new_name = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
+        self.log.debug("Building Gatling launcher: %s", new_name)
+        self.tool.build_launcher(new_name)
 
         self.script = self.get_script_path()
         if not self.script:
@@ -306,8 +306,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         self.dir_prefix = self.settings.get("dir-prefix", self.dir_prefix)
 
-        self.stdout = open(self.engine.create_artifact("gatling", ".out"), "w")
-        self.stderr = open(self.engine.create_artifact("gatling", ".err"), "w")
+        self.stdout = open(self.engine.create_artifact("gatling", ".out"), "w", 0)
+        self.stderr = open(self.engine.create_artifact("gatling", ".err"), "w", 0)
 
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -396,9 +396,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         props.merge(self._get_simulation_props())
         props.merge(self._get_load_props())
         props.merge(self._get_scenario_props())
-        for key in props:
+        for key in sorted(props.keys()):
             if isinstance(props[key], string_types) and ' ' in props[key]:
-                self.env.add_java_param({"JAVA_OPTS": "-D%s='%s'" % (key, props[key])})
+                prop = props[key]
+                #index = prop.index(' ')
+                #prop = prop[:index] + '\\' + prop[index:]
+                self.env.add_java_param({"JAVA_OPTS": "-D%s='%s'" % (key, prop)})
             else:
                 self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, props[key])})
 
@@ -812,12 +815,17 @@ class Gatling(RequiredTool):
 
             with open(self.tool_path) as fds:
                 for line in fds.readlines():
-                    if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
-                        mod_success = True
-                        continue  # don't add it to modified_lines - just remove
-                    if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip() + ':"${COMPILATION_CLASSPATH}"\n'  # add from env
+                    if is_windows():
+                        if line.startswith('set COMPILATION_CLASSPATH=""'):
+                            mod_success = True
+                            continue  # don't add it to modified_lines - just remove
+                    else:
+                        if line.startswith('COMPILATION_CLASSPATH='):
+                            mod_success = True
+                            line = line.rstrip() + ':"${COMPILATION_CLASSPATH}"\n'  # add from env
+                        elif line.startswith('"$JAVA"'):
+                            line = 'eval ' + line
+
                     modified_lines.append(line)
 
             if not mod_success:
@@ -831,12 +839,16 @@ class Gatling(RequiredTool):
 
             with open(self.tool_path) as fds:
                 for line in fds.readlines():
-                    if is_windows() and line.startswith('set COMPILER_CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'  # add from env
-                    if not is_windows() and line.startswith('COMPILER_CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
+                    if is_windows():
+                        if line.startswith('set COMPILER_CLASSPATH='):
+                            mod_success = True
+                            line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'  # add from env
+                    else:
+                        if line.startswith('COMPILER_CLASSPATH='):
+                            mod_success = True
+                            line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
+                        elif line.startswith('"$JAVA"'):
+                            line = 'eval ' + line
                     modified_lines.append(line)
 
             if not mod_success:
