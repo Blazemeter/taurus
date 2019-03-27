@@ -64,6 +64,7 @@ CLOUD_CONFIG_BLACK_LIST = {
     "cli": True,
     "cli-aliases": True,
     "install-id": True,
+    "version": True,
     "modules": {
         "jmeter": {
             "path": True
