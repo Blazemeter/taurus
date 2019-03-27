@@ -1294,6 +1294,7 @@ class Scenario(UserDict, object):
     FIELD_HEADERS = "headers"
     FIELD_BODY = "body"
     FIELD_DATA_SOURCES = 'data-sources'
+    FIELD_KEYSTORE_CONFIG = 'keystore-config'
 
     def __init__(self, engine, scenario=None):
         super(Scenario, self).__init__()
@@ -1353,6 +1354,9 @@ class Scenario(UserDict, object):
                 raise TaurusConfigError("Data source must have valid file path: '%s'" % source)
 
             yield source
+
+    def get_keystore_config(self):
+        return self.get(self.FIELD_KEYSTORE_CONFIG)
 
     def get_requests(self, parser=RequestParser, require_url=True):
         """

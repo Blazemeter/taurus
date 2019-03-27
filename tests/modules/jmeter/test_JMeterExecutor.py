@@ -2795,3 +2795,33 @@ class TestJMeterExecutor(ExecutorTestCase):
         jmeter_home = self.obj.env.get("JMETER_HOME")
         self.assertEqual(jmeter_home, get_full_path(self.obj.settings.get("path"), step_up=2))
         self.assertEqual(jmeter_home, get_full_path(RESOURCES_DIR))
+
+    def test_keystore_config(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://example.com/"
+                    }],
+                    "keystore-config": {
+                        "variable-name": "certalias",
+                        "start-index": 0,
+                        "end-index": 99,
+                        "preload": 'true'
+                    }
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        keystore_config = xml_tree.find(".//KeystoreConfig/")
+        self.assertIsNotNone(keystore_config)
+        keystore_config_clientcert_alias_varname = xml_tree.find(
+            ".//KeystoreConfig/stringProp[@name='clientCertAliasVarName']")
+        self.assertEqual(keystore_config_clientcert_alias_varname.text, 'certalias')
+        keystore_config_start_index = xml_tree.find(".//KeystoreConfig/stringProp[@name='startIndex']")
+        self.assertEqual(keystore_config_start_index.text, '0')
+        keystore_config_end_index = xml_tree.find(".//KeystoreConfig/stringProp[@name='endIndex']")
+        self.assertEqual(keystore_config_end_index.text, '99')
+        keystore_config_preload = xml_tree.find(".//KeystoreConfig/stringProp[@name='preload']")
+        self.assertEqual(keystore_config_preload.text, 'true')
