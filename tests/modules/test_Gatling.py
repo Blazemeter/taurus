@@ -27,10 +27,9 @@ class TestGatlingExecutor(ExecutorTestCase):
         super(TestGatlingExecutor, self).tearDown()
 
     def test_props_with_space(self):
-        version = "3.0.1"
+        self.obj.settings.merge({"version": "3.0.1"})
         prop_val = "v a"
 
-        self.obj.settings.merge({"version": version})
         self.configure({
             "execution": {
                 "executor": "gatling",
@@ -42,7 +41,8 @@ class TestGatlingExecutor(ExecutorTestCase):
                     "properties": {"something": prop_val},
                     "requests": [
                         "http://blazedemo.com"]}}})
-        self.obj.settings["path"] = os.path.join(BUILD_DIR, "gatling-taurus", version, "bin", "gatling" + EXE_SUFFIX)
+        self.obj.settings["path"] = os.path.join(
+            BUILD_DIR, "gatling-taurus", self.obj.settings["version"], "bin", "gatling" + EXE_SUFFIX)
         self.obj.prepare()
 
         try:
@@ -64,7 +64,10 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.assertIn(10*'=', stdout, stderr)
 
     def test_gatling3(self):
-        self.obj.settings.merge({"version": "3.0.1"})
+        self.obj.settings.merge({
+            "path": os.path.abspath(RESOURCES_DIR + "gatling/gatling3" + EXE_SUFFIX),
+            "version": "3.0.1"})
+
         self.configure({
             "execution": {
                 "executor": "gatling",
