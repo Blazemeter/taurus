@@ -399,8 +399,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         for key in sorted(props.keys()):
             if isinstance(props[key], string_types) and ' ' in props[key]:
                 prop = props[key]
-                #index = prop.index(' ')
-                #prop = prop[:index] + '\\' + prop[index:]
                 self.env.add_java_param({"JAVA_OPTS": "-D%s='%s'" % (key, prop)})
             else:
                 self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, props[key])})
