@@ -397,7 +397,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         props.merge(self._get_load_props())
         props.merge(self._get_scenario_props())
         for key in sorted(props.keys()):
-            self.env.add_java_param({"JAVA_OPTS": "-D%s=%r" % (key, props[key])})
+            prop = props[key]
+            val_tpl = "%s"
+            if isinstance(prop, string_types):
+                val_tpl = "'%s'"
+
+            self.env.add_java_param({"JAVA_OPTS": ("-D%s=" + val_tpl) % (key, prop)})
 
         self.env.set({"NO_PAUSE": "TRUE"})
         self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
