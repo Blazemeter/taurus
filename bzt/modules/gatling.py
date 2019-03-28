@@ -306,8 +306,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         self.dir_prefix = self.settings.get("dir-prefix", self.dir_prefix)
 
-        self.stdout = open(self.engine.create_artifact("gatling", ".out"), "w", 0)
-        self.stderr = open(self.engine.create_artifact("gatling", ".err"), "w", 0)
+        self.stdout = open(self.engine.create_artifact("gatling", ".out"), "w")
+        self.stderr = open(self.engine.create_artifact("gatling", ".err"), "w")
 
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
