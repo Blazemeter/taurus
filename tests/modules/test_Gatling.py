@@ -61,7 +61,8 @@ class TestGatlingExecutor(ExecutorTestCase):
         with open(self.obj.stdout.name) as fds:
             stdout = fds.read()
 
-        self.assertIn(10*'=', stdout, stderr)
+        success_str = 10 * '='
+        self.assertIn(success_str, stdout, stderr)
 
     def test_props_with_space_v3(self):
         self.obj.settings.merge({"version": "3.0.1"})
