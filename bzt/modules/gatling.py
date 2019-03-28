@@ -397,10 +397,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         props.merge(self._get_load_props())
         props.merge(self._get_scenario_props())
         for key in sorted(props.keys()):
-            if isinstance(props[key], string_types):
-                self.env.add_java_param({"JAVA_OPTS": "-D%s='%s'" % (key, props[key])})
-            else:
-                self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, props[key])})
+            self.env.add_java_param({"JAVA_OPTS": "-D%s=%r" % (key, props[key])})
 
         self.env.set({"NO_PAUSE": "TRUE"})
         self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
@@ -783,7 +780,7 @@ class Gatling(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying Gatling...")
         try:
-            out, err = self.call([self.tool_path, '--help'], env={"JAVA_OPTS": "-Dtaurus.dummy=1"})
+            out, err = self.call([self.tool_path, '--help'])
             self.log.debug("Gatling check output: %s", out)
         except CALL_PROBLEMS as exc:
             self.log.info("Gatling check failed: %s", exc)
