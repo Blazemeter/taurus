@@ -19,6 +19,10 @@
 - fix 'None' iterations written into JMeter CTG
 - remember rolling concurrency to avoid fuzziness in multi-executor case
 - use HTTPS to check for version upgrade needs
+- YAML syntax: support uniform, gaussian and poisson think-times for JMeter
+- filter `token` and some other options from config when running `-cloud`
+- make Java presence checks softer
+- fix env vars not passed to Plugins Manager
 
 
 ## 1.13.3<sup>24 feb 2019</sup>
