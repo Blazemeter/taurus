@@ -400,7 +400,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             prop = props[key]
             val_tpl = "%s"
             if isinstance(prop, string_types):
-                val_tpl = "'%s'"
+                val_tpl = "%r"
 
             self.env.add_java_param({"JAVA_OPTS": ("-D%s=" + val_tpl) % (key, prop)})
 
