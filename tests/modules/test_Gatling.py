@@ -9,7 +9,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.modules.provisioning import Local
 from bzt.six import u
-from bzt.utils import EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, is_windows
 from tests import ExecutorTestCase, BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 
 
@@ -25,81 +25,6 @@ class TestGatlingExecutor(ExecutorTestCase):
     def tearDown(self):
         close_reader_file(self.obj.reader)
         super(TestGatlingExecutor, self).tearDown()
-
-    def test_props_with_space_v2(self):
-        self.obj.settings.merge({"version": "2.3.0"})
-        prop_val = "v a"
-
-        self.configure({
-            "execution": {
-                "executor": "gatling",
-                "iterations": 1,
-                "concurrency": 1,
-                "scenario": "gs"},
-            "scenarios": {
-                "gs": {
-                    "properties": {"something": prop_val},
-                    "requests": [
-                        "http://blazedemo.com"]}}})
-        self.obj.settings["path"] = os.path.join(
-            BUILD_DIR, "gatling-taurus", self.obj.settings["version"], "bin", "gatling" + EXE_SUFFIX)
-        self.obj.prepare()
-
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        except ToolError:
-            pass
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-
-        with open(self.obj.stderr.name) as fds:
-            stderr = fds.read()
-
-        with open(self.obj.stdout.name) as fds:
-            stdout = fds.read()
-
-        success_str = 10 * '='
-        self.assertIn(success_str, stdout, stderr)
-
-    def test_props_with_space_v3(self):
-        self.obj.settings.merge({"version": "3.0.1"})
-        prop_val = "v a"
-
-        self.configure({
-            "execution": {
-                "executor": "gatling",
-                "iterations": 1,
-                "concurrency": 1,
-                "scenario": "gs"},
-            "scenarios": {
-                "gs": {
-                    "properties": {"something": prop_val},
-                    "requests": [
-                        "http://blazedemo.com"]}}})
-        self.obj.settings["path"] = os.path.join(
-            BUILD_DIR, "gatling-taurus", self.obj.settings["version"], "bin", "gatling" + EXE_SUFFIX)
-        self.obj.prepare()
-
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        except ToolError:
-            pass
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-
-        with open(self.obj.stderr.name) as fds:
-            stderr = fds.read()
-
-        with open(self.obj.stdout.name) as fds:
-            stdout = fds.read()
-
-        self.assertIn(10*'=', stdout, stderr)
 
     def test_gatling3(self):
         self.obj.settings.merge({
@@ -194,6 +119,8 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertIn(jars[1], self.obj.env.get(var))
 
         for line in modified_lines:
+            if not is_windows() and '"$JAVA"' in line:
+                self.assertTrue(line.startswith('eval'))
             self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))  # win
             if line.startswith('COMPILATION_CLASSPATH='):  # linux
                 self.assertTrue(line.endswith(':"${COMPILATION_CLASSPATH}"\n'))
@@ -224,6 +151,8 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertIn(jars[1], self.obj.env.get(var))
 
         for line in modified_lines:
+            if not is_windows() and '"$JAVA"' in line:
+                self.assertTrue(line.startswith('eval'))
             if line.startswith('set COMPILER_CLASSPATH='):  # win
                 self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
             if line.startswith('COMPILER_CLASSPATH='):  # linux
@@ -268,21 +197,6 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.prepare()
         artifacts = os.listdir(self.obj.engine.artifacts_dir)
         self.assertNotIn(script, artifacts)
-
-    def test_env_type(self):
-        script = "LocalBasicSimulation.scala"
-        self.configure({"execution": {
-            "concurrency": 2,
-            "hold-for": 1000,
-            "throughput": 100,
-            "scenario": {"script": RESOURCES_DIR + "gatling/" + script}}})
-        self.obj.prepare()
-        self.obj.engine.artifacts_dir = u(self.obj.engine.artifacts_dir)
-        self.obj.startup()
-        self.obj.shutdown()
-        with open(self.obj.stdout.name) as fds:
-            lines = fds.readlines()
-        self.assertIn('throughput', lines[-1])
 
     def test_warning_for_throughput_without_duration(self):
         script = "LocalBasicSimulation.scala"
