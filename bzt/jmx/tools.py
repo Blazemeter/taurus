@@ -241,6 +241,7 @@ class JMeterScenarioBuilder(JMX):
             cls_obj = load_class(cls_name)
             instance = cls_obj(self.system_props)
             self.protocol_handlers[protocol] = instance
+        self.FIELD_KEYSTORE_CONFIG = 'keystore-config'
 
     @staticmethod
     def _get_timer(req):
@@ -424,6 +425,7 @@ class JMeterScenarioBuilder(JMX):
         for _, protocol in iteritems(self.protocol_handlers):
             elements.extend(protocol.get_toplevel_elements(scenario))
         elements.extend(self.__gen_authorization(scenario))
+        elements.extend(self.__gen_keystore_config(scenario))
         elements.extend(self.__gen_data_sources(scenario))
         elements.extend(self.__gen_requests(scenario))
         return elements
@@ -674,3 +676,18 @@ class JMeterScenarioBuilder(JMX):
             elements.append(config)
             elements.append(etree.Element("hashTree"))
         return elements
+
+    def __gen_keystore_config(self, scenario):
+        elements = []
+        keystore_config = scenario.get(self.FIELD_KEYSTORE_CONFIG)
+        if keystore_config:
+            variable_name = keystore_config["variable-name"]
+            start_index = keystore_config["start-index"]
+            end_index = keystore_config["end-index"]
+            preload = keystore_config["preload"]
+
+            config = JMX.get_keystore_config_elements(variable_name, start_index, end_index, preload)
+            elements.append(config)
+            elements.append(etree.Element("hashTree"))
+        return elements
+

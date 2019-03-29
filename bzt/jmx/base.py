@@ -406,6 +406,19 @@ class JMX(object):
         return elements
 
     @staticmethod
+    def get_keystore_config_elements(variable_name, start_index, end_index, preload):
+        elements = []
+        if variable_name:
+            elements = etree.Element("KeystoreConfig", guiclass="TestBeanGUI", testclass="KeystoreConfig",
+                                     testname="Taurus-Keystore-Configuration")
+            elements.append(JMX._string_prop("clientCertAliasVarName", variable_name))
+            elements.append(JMX._string_prop("startIndex", start_index))
+            elements.append(JMX._string_prop("endIndex", end_index))
+            elements.append(JMX._string_prop("preload", preload))
+
+        return elements
+
+    @staticmethod
     def __add_body_from_string(args, body, proxy):
         proxy.append(JMX._bool_prop("HTTPSampler.postBodyRaw", True))
         coll_prop = JMX._collection_prop("Arguments.arguments")
