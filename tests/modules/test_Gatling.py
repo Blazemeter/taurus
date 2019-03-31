@@ -9,7 +9,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.modules.provisioning import Local
 from bzt.six import u
-from bzt.utils import EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, is_windows
 from tests import ExecutorTestCase, BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 
 
@@ -27,7 +27,10 @@ class TestGatlingExecutor(ExecutorTestCase):
         super(TestGatlingExecutor, self).tearDown()
 
     def test_gatling3(self):
-        self.obj.settings.merge({"version": "3.0.1"})
+        self.obj.settings.merge({
+            "path": os.path.abspath(RESOURCES_DIR + "gatling/gatling3" + EXE_SUFFIX),
+            "version": "3.0.1"})
+
         self.configure({
             "execution": {
                 "executor": "gatling",
@@ -116,6 +119,8 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertIn(jars[1], self.obj.env.get(var))
 
         for line in modified_lines:
+            if not is_windows() and '"$JAVA"' in line:
+                self.assertTrue(line.startswith('eval'))
             self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))  # win
             if line.startswith('COMPILATION_CLASSPATH='):  # linux
                 self.assertTrue(line.endswith(':"${COMPILATION_CLASSPATH}"\n'))
@@ -146,6 +151,8 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertIn(jars[1], self.obj.env.get(var))
 
         for line in modified_lines:
+            if not is_windows() and '"$JAVA"' in line:
+                self.assertTrue(line.startswith('eval'))
             if line.startswith('set COMPILER_CLASSPATH='):  # win
                 self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
             if line.startswith('COMPILER_CLASSPATH='):  # linux
@@ -190,21 +197,6 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.prepare()
         artifacts = os.listdir(self.obj.engine.artifacts_dir)
         self.assertNotIn(script, artifacts)
-
-    def test_env_type(self):
-        script = "LocalBasicSimulation.scala"
-        self.configure({"execution": {
-            "concurrency": 2,
-            "hold-for": 1000,
-            "throughput": 100,
-            "scenario": {"script": RESOURCES_DIR + "gatling/" + script}}})
-        self.obj.prepare()
-        self.obj.engine.artifacts_dir = u(self.obj.engine.artifacts_dir)
-        self.obj.startup()
-        self.obj.shutdown()
-        with open(self.obj.stdout.name) as fds:
-            lines = fds.readlines()
-        self.assertIn('throughput', lines[-1])
 
     def test_warning_for_throughput_without_duration(self):
         script = "LocalBasicSimulation.scala"
@@ -538,8 +530,8 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.execute = lambda *args, **kwargs: None
         self.obj.prepare()
         self.obj.startup()
-        self.assertIn("gatling.http.ahc.allowPoolingConnections=true", self.obj.env.get("JAVA_OPTS"))
-        self.assertIn("gatling.http.ahc.keepAlive=true", self.obj.env.get("JAVA_OPTS"))
+        self.assertIn("gatling.http.ahc.allowPoolingConnections='true'", self.obj.env.get("JAVA_OPTS"))
+        self.assertIn("gatling.http.ahc.keepAlive='true'", self.obj.env.get("JAVA_OPTS"))
 
     def test_properties_2levels(self):
         self.obj.settings.merge({
@@ -560,8 +552,8 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.execute = lambda *args, **kwargs: None
         self.obj.prepare()
         self.obj.startup()
-        self.assertIn("-Dscenlevel=scenval", self.obj.env.get("JAVA_OPTS"))
-        self.assertIn("-Dsettlevel=settval", self.obj.env.get("JAVA_OPTS"))
+        self.assertIn("-Dscenlevel='scenval'", self.obj.env.get("JAVA_OPTS"))
+        self.assertIn("-Dsettlevel='settval'", self.obj.env.get("JAVA_OPTS"))
         self.assertIn("-Doverride=2", self.obj.env.get("JAVA_OPTS"))
 
 

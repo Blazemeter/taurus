@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.13.4<sup>next</sup>
+## 1.13.4<sup>31 mar 2019</sup>
 
 - bump up default JMeter version to 5.1.1
 - for external results loader, allow specifying files under scenario
@@ -23,6 +23,8 @@
 - filter `token` and some other options from config when running `-cloud`
 - make Java presence checks softer
 - fix env vars not passed to Plugins Manager
+- support keystore configuration for jmeter executor in YAML
+- allow spaces to be used in Gatling properties
 
 
 ## 1.13.3<sup>24 feb 2019</sup>

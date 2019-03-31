@@ -838,6 +838,70 @@ Possible authorization params and their value are:
 Required of them are username & password and one of url & domain.
 For implementation of authorization Taurus uses JMeter HTTP Authorization Manager.  
 
+### Client Certificate Based Authorization
+Taurus allows the use of client certificate based authorization using JMeter executor.
+
+There are generally two scenarios for client certificate based authentication.
+
+#### If you require only one certificate for your whole test:
+* For this method, you can use either a certificate type of pkcs12 (*.p12) or Java Key Store (JKS)
+* Set the certificate path and the certificate password in JMeter system-properties section 
+```yaml
+modules:
+  jmeter:
+    properties:
+    system-properties:
+      javax.net.ssl.keyStore: ${BASE_DIR}/test-data/my-client-certificates.p12
+      javax.net.ssl.keyStorePassword: MyClientCertificatePassword
+```
+* If the certificate has more than one certificate in it, JMeter will use only one
+* Keep an eye on the jmeter.log file to confirm if the certificate loaded correctly
+```
+INFO o.a.j.u.SSLManager: Total of 1 aliases loaded OK from keystore
+```
+
+#### If you require multiple client certificates for your test (e.g. one per user session):
+* For this method, you need a single JKS file with all the certificates added with their own aliases
+    * You can use java's keytool utility to convert other formats to JKS and add it to single JKS file with aliases
+* Create a CSV file with list of corresponding certificate aliases that are required for your test
+* Add a data-source for this CSV file for taurus to load
+* Use keystore-config to set various parameters about the keystore as shown below
+    * For each iteration of execution, an alias from CSV file will be read and stored in the variable mentioned
+    * And the corresponding certificate for the alias will be used when setting up the https connection 
+```yaml
+scenarios:
+  client-cert-scenario:
+    data-sources: # Read cert aliases from this CSV file
+    - path: ${BASE_DIR}/test-data/my-client-certificate-aliases.csv
+      delimiter: ','
+      quoted: false  # allow quoted data
+      loop: true  # loop over in case of end-of-file reached if true, stop thread if false
+      variable-names: certalias  # variable-name here needs to be used in keystore-config next
+    keystore-config:
+      variable-name: certalias # variable name used in data-source element
+      start-index: 0 # The index of the first key to use in Keystore, 0-based.
+      end-index: 99 # The index of the last key to use in Keystore, 0-based. 
+      preload: true
+```
+* Also add the JKS file and its password in the system-properties section
+```yaml
+modules:
+  jmeter:
+    properties:
+    system-properties:
+      javax.net.ssl.keyStore: ${BASE_DIR}/test-data/my-client-certificates-in-one-jks.jks
+      javax.net.ssl.keyStorePassword: MyClientCertificateJKSFilePassword
+```
+* Keep an eye on the jmeter.log file to confirm if the all aliases loaded correctly
+```
+INFO o.a.j.c.KeystoreConfig: Configuring Keystore with (preload: 'True', startIndex: 0, endIndex: 99, clientCertAliasVarName: 'certalias')
+INFO o.a.j.u.JsseSSLManager: Using default SSL protocol: TLS
+INFO o.a.j.u.JsseSSLManager: SSL session context: per-thread
+INFO o.a.j.u.SSLManager: JmeterKeyStore Location: /tmp/test-data/my-client-certificates-in-one-jks.jks type JKS
+INFO o.a.j.u.SSLManager: KeyStore created OK
+INFO o.a.j.u.SSLManager: Total of 100 aliases loaded OK from keystore
+```
+
 ## User cookies
 Taurus allows you to set up some user cookies with follow syntax:
 ```yaml

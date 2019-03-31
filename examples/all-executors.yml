@@ -158,6 +158,8 @@ execution:
   hold-for: 10s
   iterations: 10
   scenario:
+    properties:
+      dangerous: "I F S"
     requests:
       - url: http://localhost:8000/
         label: gatling
