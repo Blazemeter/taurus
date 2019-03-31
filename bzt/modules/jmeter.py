@@ -43,7 +43,7 @@ from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
 from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
-from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, CALL_PROBLEMS, TaurusCalledProcessError
+from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, FileReader
 
 
