@@ -472,11 +472,19 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def install_required_tools(self):
         self.tool = self._get_tool(Gatling, config=self.settings)
-        required_tools = [self._get_tool(TclLibrary), self._get_tool(JavaVM), self.tool]
+        java = self._get_tool(JavaVM)
+        required_tools = [self._get_tool(TclLibrary), java, self.tool]
 
         for tool in required_tools:
             if not tool.check_if_installed():
                 tool.install()
+
+        # old gatling compiler (zinc) is incompatible with new jre
+        old_gatling = LooseVersion('3') > LooseVersion(self.tool.version)
+        new_java = java.version and int(java.version) > 8
+
+        if old_gatling and new_java:
+            self.log.warning('Gatling v%s is incompatible with Java %s', self.tool.version, java.version)
 
     def get_widget(self):
         if not self.widget:

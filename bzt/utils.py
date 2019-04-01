@@ -125,7 +125,7 @@ def parse_java_version(versions):
             major = re.findall("\.([\d]*)", version)
 
         if major:
-            return major[0]
+            return deunicode(major[0])
 
 
 def run_once(func):
