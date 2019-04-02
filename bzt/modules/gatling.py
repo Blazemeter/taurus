@@ -399,7 +399,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         for key in sorted(props.keys()):
             prop = props[key]
             val_tpl = "%s"
-            if isinstance(prop, string_types):
+
+            # extend properties support (contained separators/quotes/etc.) on lin/mac
+            if not is_windows() and isinstance(prop, string_types):
                 val_tpl = "%r"
 
             self.env.add_java_param({"JAVA_OPTS": ("-D%s=" + val_tpl) % (key, prop)})
