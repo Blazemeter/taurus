@@ -380,36 +380,36 @@ import apiritif
 
     def _check_platform(self):
         inherited_capabilities = [{x: y} for x, y in iteritems(self.capabilities_from_outside)]
-        mobile_browsers = ["chrome", "safari"]
-        mobile_platforms = ["android", "ios"]
+        mobile_browsers = ["Chrome", "Safari"]
+        mobile_platforms = ["Android", "iOS"]
         remote_executor = self.scenario.get("remote", self.webdriver_address)
 
-        browser = self.scenario.get("browser", "")
+        browser = self.scenario.get("browser", None)
 
-        browser_platform = ""
+        browser_platform = None
         if browser:
             browser_split = browser.split("-")
             browser = browser_split[0]
-            browsers = ["firefox", "chrome", "ie", "opera", "remote"]
-            if browser.lower() not in browsers:
+            browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
+            if browser not in browsers:
                 raise TaurusConfigError("Unsupported browser name: %s" % browser)
             if len(browser_split) > 1:
                 browser_platform = browser_split[1]
 
         if remote_executor:
-            if browser and browser.lower() != "remote":
+            if browser and browser != "Remote":
                 self.log.warning("Forcing browser to Remote, because of remote WebDriver address")
                 inherited_capabilities.append({"browser": browser})
             browser = "Remote"
             if self.generate_markers is None:  # if not set by user - set to true
                 self.generate_markers = True
-        elif not browser:
-            browser = "Firefox"
-        elif browser.lower() in mobile_browsers and browser_platform.lower() in mobile_platforms:
+        elif browser in mobile_browsers and browser_platform in mobile_platforms:
             self.appium = True
             inherited_capabilities.append({"platform": browser_platform})
             inherited_capabilities.append({"browser": browser})
             browser = "Remote"  # Force to use remote web driver
+        elif not browser:
+            browser = "Firefox"
 
         return browser, inherited_capabilities, remote_executor
 
