@@ -554,7 +554,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "scenarios": {
                 "remote_sc": {
                     "capabilities": [
-                        {"browser": "chrome"}],
+                        {"browser": "chrome"}],     # must be faced in desired_capabilities
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "http://blazedemo.com",
@@ -570,7 +570,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         self.assertIn(target, content)
 
     def test_build_script_remote_Firefox_browser(self):
-        """ taurus should not wipe browserName (from capabilities) """
+        """ check usage of 'browser' scenario options as browserName (from capabilities) """
         self.configure({
             "execution": [{
                 "executor": "selenium",
@@ -580,7 +580,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "scenario": "remote_sc"}],
             "scenarios": {
                 "remote_sc": {
-                    "browser": "Firefox",
+                    "browser": "Firefox",   # must be faced in desired_capabilities
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "http://blazedemo.com",
