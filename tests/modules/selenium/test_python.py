@@ -547,12 +547,10 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         self.configure({
             "execution": [{
                 "executor": "selenium",
-                "hold-for": "4m",
-                "ramp-up": "3m",
                 "remote": "http://addr-of-remote-server.com",
                 "scenario": "remote_sc"}],
             "scenarios": {
-                "remote_sc": {
+                "remote_sc": {  # no 'browser' element
                     "capabilities": [
                         {"browser": "chrome"}],     # must be faced in desired_capabilities
                     "timeout": "3.5s",
@@ -566,21 +564,21 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = '"browserName" : "chrome"'
+        target = '"browserName": "chrome"'
         self.assertIn(target, content)
 
-    def test_build_script_remote_Firefox_browser(self):
-        """ check usage of 'browser' scenario options as browserName (from capabilities) """
+    def test_build_script_remote_browser(self):
+        """ taurus should not wipe browserName (from capabilities) """
         self.configure({
             "execution": [{
                 "executor": "selenium",
-                "hold-for": "4m",
-                "ramp-up": "3m",
                 "remote": "http://addr-of-remote-server.com",
                 "scenario": "remote_sc"}],
             "scenarios": {
                 "remote_sc": {
-                    "browser": "Firefox",   # must be faced in desired_capabilities
+                    "browser": "Remote",
+                    "capabilities": [
+                        {"browser": "chrome"}],     # must be faced in desired_capabilities
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "http://blazedemo.com",
@@ -592,7 +590,31 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = '"browserName" : "Firefox"'
+        target = '"browserName": "chrome"'
+        self.assertIn(target, content)
+
+    def test_build_script_remote_Firefox_browser(self):
+        """ check usage of 'browser' scenario options as browserName (from capabilities) """
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "remote": "http://addr-of-remote-server.com",
+                "scenario": "remote_sc"}],
+            "scenarios": {
+                "remote_sc": {
+                    "browser": "fIReFox",   # must be faced in desired_capabilities (as is!)
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "http://blazedemo.com",
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])"]},
+                        {"label": "empty"}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = '"browserName": "fIReFox"'
         self.assertIn(target, content)
 
     def test_build_script_flow_markers(self):
