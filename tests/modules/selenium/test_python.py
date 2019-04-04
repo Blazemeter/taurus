@@ -542,6 +542,59 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py"
         self.assertFilesEqual(exp_file, self.obj.script)
 
+    def test_build_script_remote_empty_browser(self):
+        """ taurus should not wipe browserName (from capabilities) """
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "remote": "http://addr-of-remote-server.com",
+                "scenario": "remote_sc"}],
+            "scenarios": {
+                "remote_sc": {
+                    "capabilities": [
+                        {"browser": "chrome"}],
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "http://blazedemo.com",
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])"]},
+                        {"label": "empty"}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = '"browserName" : "chrome"'
+        self.assertIn(target, content)
+
+    def test_build_script_remote_Firefox_browser(self):
+        """ taurus should not wipe browserName (from capabilities) """
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "remote": "http://addr-of-remote-server.com",
+                "scenario": "remote_sc"}],
+            "scenarios": {
+                "remote_sc": {
+                    "browser": "Firefox",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "http://blazedemo.com",
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])"]},
+                        {"label": "empty"}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = '"browserName" : "Firefox"'
+        self.assertIn(target, content)
+
     def test_build_script_flow_markers(self):
         self.configure({
             "execution": [{

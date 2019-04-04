@@ -399,7 +399,7 @@ import apiritif
         if remote_executor:
             if browser:
                 self.log.warning("Forcing browser to Remote, because of remote webdriver address")
-            inherited_capabilities.append({"browser": browser})
+                inherited_capabilities.append({"browser": browser})
             browser = "Remote"
             if self.generate_markers is None:  # if not set by user - set to true
                 self.generate_markers = True
