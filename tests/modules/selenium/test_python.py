@@ -602,7 +602,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "scenario": "remote_sc"}],
             "scenarios": {
                 "remote_sc": {
-                    "browser": "Firefox",   # must be faced in desired_capabilities (as is!)
+                    "browser": "Firefox",   # must be faced in desired_capabilities (in lower case)
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "http://blazedemo.com",
@@ -614,7 +614,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = '"browserName": "Firefox"'
+        target = '"browserName": "firefox"'
         self.assertIn(target, content)
 
     def test_build_script_flow_markers(self):
