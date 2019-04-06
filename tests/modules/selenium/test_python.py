@@ -357,7 +357,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         "version": "54.0",
                         "platformName": "linux",
                         "javascriptEnabled": "True",
-                        "os_version": "",
+                        "platformVersion": "",
                         "seleniumVersion": "",
                         "deviceName": "",
                         "app": ""
@@ -472,7 +472,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         "version": "54.0",
                         "platformName": "linux",
                         "javascriptEnabled": "True",
-                        "os_version": "",
+                        "platformVersion": "",
                         "seleniumVersion": "",
                         "deviceName": "",
                         "app": ""

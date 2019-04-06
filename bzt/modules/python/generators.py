@@ -470,7 +470,8 @@ import apiritif
         return setup_method_def
 
     def _gen_remote_driver(self, remote_executor):
-        capabilities = [{x: str(y)} for x, y in iteritems(self.capabilities)]
+        # avoid versions and other number values
+        capabilities = {key: str(self.capabilities[key]) for key in self.capabilities}
 
         tpl = "self.driver = webdriver.Remote(command_executor={command_executor}, desired_capabilities={caps})"
 
