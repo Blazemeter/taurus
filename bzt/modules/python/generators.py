@@ -385,7 +385,7 @@ import apiritif
 
         browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
-        browser = browser.lower()
+        browser = browser.lower()   # todo: whether we should take browser as is? (without lower case)
 
         browser_platform = None
         if browser:

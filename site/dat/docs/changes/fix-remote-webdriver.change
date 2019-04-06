@@ -1,0 +1,5 @@
+* store browser in lowercase
+* send capabilities to webdriver as is
+* check capabilities for 'browser' option
+* avoid explicit RemoteDriver request
+
