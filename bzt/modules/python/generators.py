@@ -379,38 +379,40 @@ import apiritif
         test_method.append(self.gen_new_line())
 
     def _check_platform(self):
-        inherited_capabilities = [{x: y} for x, y in iteritems(self.capabilities_from_outside)]
-        mobile_browsers = ["Chrome", "Safari"]
-        mobile_platforms = ["Android", "iOS"]
+        mobile_browsers = ["chrome", "safari"]
+        mobile_platforms = ["android", "ios"]
         remote_executor = self.scenario.get("remote", self.webdriver_address)
 
-        browser = self.scenario.get("browser", None)
+        browser = self.capabilities_from_outside.get("browserName", "")
+        browser = self.scenario.get("browser", browser)
+        browser = browser.lower()
 
         browser_platform = None
         if browser:
             browser_split = browser.split("-")
             browser = browser_split[0]
-            browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
+            browsers = ["firefox", "chrome", "ie", "opera", "remote"]
             if browser not in browsers:
                 raise TaurusConfigError("Unsupported browser name: %s" % browser)
             if len(browser_split) > 1:
                 browser_platform = browser_split[1]
 
         if remote_executor:
-            if browser and browser != "Remote":
+            if browser and browser != "remote":
                 self.log.warning("Forcing browser to Remote, because of remote WebDriver address")
-                inherited_capabilities.append({"browser": browser.lower()})
-            browser = "Remote"
+                self.capabilities_from_outside["browser"] = browser
+            browser = "remote"
             if self.generate_markers is None:  # if not set by user - set to true
                 self.generate_markers = True
         elif browser in mobile_browsers and browser_platform in mobile_platforms:
             self.appium = True
-            inherited_capabilities.append({"platform": browser_platform})
-            inherited_capabilities.append({"browser": browser})
-            browser = "Remote"  # Force to use remote web driver
+            self.capabilities_from_outside["platform"] = browser_platform
+            self.capabilities_from_outside["browser"] = browser
+            browser = "remote"  # Force to use remote web driver
         elif not browser:
-            browser = "Firefox"
+            browser = "firefox"
 
+        inherited_capabilities = [{x: y} for x, y in iteritems(self.capabilities_from_outside)]
         return browser, inherited_capabilities, remote_executor
 
     def gen_setup_method(self):
@@ -424,7 +426,7 @@ import apiritif
         setup_method_def = self.gen_method_definition("setUp", ["self"])
         setup_method_def.extend(self.gen_global_vars())
 
-        if browser == 'Firefox':
+        if browser == 'firefox':
             setup_method_def.append(self.gen_statement("options = webdriver.FirefoxOptions()"))
             if headless:
                 setup_method_def.append(self.gen_statement("options.set_headless()"))
@@ -434,13 +436,13 @@ import apiritif
             setup_method_def.append(log_set)
             tmpl = "self.driver = webdriver.Firefox(profile, firefox_options=options)"
             setup_method_def.append(self.gen_statement(tmpl))
-        elif browser == 'Chrome':
+        elif browser == 'chrome':
             setup_method_def.append(self.gen_statement("options = webdriver.ChromeOptions()"))
             if headless:
                 setup_method_def.append(self.gen_statement("options.set_headless()"))
             statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
-        elif browser == 'Remote':
+        elif browser == 'remote':
             setup_method_def.append(self._gen_remote_driver(inherited_capabilities, remote_executor))
         else:
             if headless:
