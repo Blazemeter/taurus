@@ -352,18 +352,16 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 },
                 "loc_sc_remote": {
                     "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
-                    "capabilities": [
-                        {
-                            "browser": "firefox",
-                            "version": "54.0",
-                            "platform": "linux",
-                            "javascript": "True",
-                            "os_version": "",
-                            "selenium": "",
-                            "device": "",
-                            "app": ""
-                        }
-                    ],
+                    "capabilities": {
+                        "browserName": "firefox",
+                        "version": "54.0",
+                        "platformName": "linux",
+                        "javascriptEnabled": "True",
+                        "os_version": "",
+                        "seleniumVersion": "",
+                        "deviceName": "",
+                        "app": ""
+                    },
                     "default-address": "http://blazedemo.com",
                     "timeout": "3.5s",
                     "requests": [{
@@ -469,18 +467,16 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "scenarios": {
                 "loc_sc_remote": {
                     "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
-                    "capabilities": [
-                        {
-                            "browser": "firefox",
-                            "version": "54.0",
-                            "platform": "linux",
-                            "javascript": "True",
-                            "os_version": "",
-                            "selenium": "",
-                            "device": "",
-                            "app": ""
-                        }
-                    ],
+                    "capabilities": {
+                        "browserName": "firefox",
+                        "version": "54.0",
+                        "platformName": "linux",
+                        "javascriptEnabled": "True",
+                        "os_version": "",
+                        "seleniumVersion": "",
+                        "deviceName": "",
+                        "app": ""
+                    },
                     "default-address": "http://blazedemo.com",
                     "timeout": "3.5s",
                     "requests": [{
@@ -514,11 +510,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "scenarios": {
                 "loc_sc_appium": {
                     "browser": "Chrome-Android",
-                    "capabilities": [
-                        {
-                            "device": "",
-                        }
-                    ],
+                    "capabilities": {
+                        "deviceName": "",
+                    },
                     "default-address": "http://blazedemo.com",
                     "timeout": "3.5s",
                     "requests": [{
@@ -551,8 +545,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "scenario": "remote_sc"}],
             "scenarios": {
                 "remote_sc": {  # no 'browser' element
-                    "capabilities": [
-                        {"browser": "chrome"}],     # must be faced in desired_capabilities
+                    "capabilities": {
+                        "browserName": "chrome"},     # must be faced in desired_capabilities
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "http://blazedemo.com",
@@ -577,8 +571,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "scenarios": {
                 "remote_sc": {
                     "browser": "Remote",
-                    "capabilities": [
-                        {"browser": "chrome"}],     # must be faced in desired_capabilities
+                    "capabilities": {
+                        "browserName": "chrome"},     # must be faced in desired_capabilities
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "http://blazedemo.com",
