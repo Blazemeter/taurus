@@ -391,7 +391,7 @@ import apiritif
         if browser:
             browser_split = browser.split("-")
             browser = browser_split[0]
-            browsers = ["firefox", "chrome", "ie", "opera", "remote"] + mobile_browsers
+            browsers = ["firefox", "chrome", "ie", "opera"] + mobile_browsers
             if browser not in browsers:
                 raise TaurusConfigError("Unsupported browser name: %s" % browser)
             if len(browser_split) > 1:
