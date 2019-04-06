@@ -18,6 +18,7 @@ import os
 import re
 import shlex
 import sys
+import copy
 
 import yaml
 
@@ -86,16 +87,25 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
-            ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
-            generate_markers = scenario.get('generate-flow-markers', self.settings.get('generate-flow-markers', None))
-            extra_utilities = os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py")
-            builder = SeleniumScriptBuilder(scenario, self.log, wdlog, extra_utilities, ignore_unknown_actions,
-                                            generate_markers)
-            builder.label = self.label
-            builder.webdriver_address = self.settings.get("remote", builder.webdriver_address)
-            builder.webdriver_address = self.execution.get("remote", builder.webdriver_address)
-            builder.capabilities_from_outside = self.settings.get("capabilities")
-            builder.capabilities_from_outside.merge(self.execution.get("capabilities"))
+
+            generate_markers = self.settings.get('generate-flow-markers', None)
+            generate_markers = scenario.get('generate-flow-markers', generate_markers)
+
+            capabilities = copy.deepcopy(self.settings.get("capabilities"))
+            capabilities.merge(self.execution.get("capabilities"))
+            capabilities.merge(scenario.get("capabilities"))
+
+            remote = self.settings.get("remote", None)
+            remote = self.execution.get("remote", remote)
+
+            builder = SeleniumScriptBuilder(
+                scenario, self.log, wdlog,
+                utils_file=os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py"),
+                ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
+                generate_markers=generate_markers,
+                capabilities=capabilities,
+                label=self.label,
+                wd_addr=remote)
 
         builder.build_source_code()
         builder.save(filename)

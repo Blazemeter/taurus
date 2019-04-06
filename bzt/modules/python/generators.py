@@ -208,11 +208,12 @@ import apiritif
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
-    def __init__(self, scenario, parent_logger, wdlog, utils_file, ignore_unknown_actions=False, generate_markers=None):
+    def __init__(self, scenario, parent_logger, wdlog, utils_file,
+                 ignore_unknown_actions=False, generate_markers=None, capabilities=None, label='', wd_addr=None):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
-        self.label = ''
-        self.webdriver_address = None
-        self.capabilities_from_outside = {}
+        self.label = label
+        self.webdriver_address = wd_addr
+        self.capabilities = capabilities or {}
         self.window_size = None
         self.wdlog = wdlog
         self.appium = False
@@ -383,7 +384,7 @@ import apiritif
         mobile_platforms = ["android", "ios"]
         remote_executor = self.scenario.get("remote", self.webdriver_address)
 
-        browser = self.capabilities_from_outside.get("browserName", "")
+        browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
         browser = browser.lower()
 
@@ -400,24 +401,23 @@ import apiritif
         if remote_executor:
             if browser and browser != "remote":
                 self.log.warning("Forcing browser to Remote, because of remote WebDriver address")
-                self.capabilities_from_outside["browser"] = browser
+                self.capabilities["browserName"] = browser
             browser = "remote"
             if self.generate_markers is None:  # if not set by user - set to true
                 self.generate_markers = True
         elif browser in mobile_browsers and browser_platform in mobile_platforms:
             self.appium = True
-            self.capabilities_from_outside["platform"] = browser_platform
-            self.capabilities_from_outside["browser"] = browser
+            self.capabilities["platformName"] = browser_platform
+            self.capabilities["browserName"] = browser
             browser = "remote"  # Force to use remote web driver
         elif not browser:
             browser = "firefox"
 
-        inherited_capabilities = [{x: y} for x, y in iteritems(self.capabilities_from_outside)]
-        return browser, inherited_capabilities, remote_executor
+        return browser, remote_executor
 
     def gen_setup_method(self):
         self.log.debug("Generating setUp test method")
-        browser, inherited_capabilities, remote_executor = self._check_platform()
+        browser, remote_executor = self._check_platform()
 
         headless = self.scenario.get("headless", False)
         if headless:
@@ -443,7 +443,7 @@ import apiritif
             statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         elif browser == 'remote':
-            setup_method_def.append(self._gen_remote_driver(inherited_capabilities, remote_executor))
+            setup_method_def.append(self._gen_remote_driver(remote_executor))
         else:
             if headless:
                 self.log.warning("Browser %r doesn't support headless mode")
@@ -469,33 +469,10 @@ import apiritif
         setup_method_def.append(self.gen_new_line())
         return setup_method_def
 
-    def _gen_remote_driver(self, inherited_caps, remote_executor):
-        desired_caps = {}
-        remote_caps = self.scenario.get("capabilities", [])
-        if not isinstance(remote_caps, list):
-            remote_caps = [remote_caps]
-        capabilities = remote_caps + inherited_caps
+    def _gen_remote_driver(self, remote_executor):
+        capabilities = [{x: str(y)} for x, y in iteritems(self.capabilities)]
 
-        for capability in capabilities:
-            for cap_key in capability.keys():
-                if cap_key == "browser":
-                    desired_caps["browserName"] = capability[cap_key]
-                elif cap_key == "version":
-                    desired_caps["version"] = str(capability[cap_key])
-                elif cap_key == "selenium":
-                    desired_caps["seleniumVersion"] = str(capability[cap_key])
-                elif cap_key == "javascript":
-                    desired_caps["javascriptEnabled"] = capability[cap_key]
-                elif cap_key == "platform":
-                    desired_caps["platformName"] = str(capability[cap_key])
-                elif cap_key == "os_version":
-                    desired_caps["platformVersion"] = str(capability[cap_key])
-                elif cap_key == "device":
-                    desired_caps["deviceName"] = str(capability[cap_key])
-                else:
-                    desired_caps[cap_key] = capability[cap_key]
-
-        tpl = "self.driver = webdriver.Remote(command_executor={command_executor}, desired_capabilities={des_caps})"
+        tpl = "self.driver = webdriver.Remote(command_executor={command_executor}, desired_capabilities={caps})"
 
         if not remote_executor:
             if self.appium:
@@ -503,7 +480,7 @@ import apiritif
             else:
                 remote_executor = "http://localhost:4444/wd/hub"
 
-        cmd = tpl.format(command_executor=repr(remote_executor), des_caps=json.dumps(desired_caps, sort_keys=True))
+        cmd = tpl.format(command_executor=repr(remote_executor), caps=json.dumps(capabilities, sort_keys=True))
 
         return self.gen_statement(cmd)
 
