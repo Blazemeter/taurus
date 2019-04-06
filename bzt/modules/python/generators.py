@@ -212,7 +212,7 @@ import apiritif
                  ignore_unknown_actions=False, generate_markers=None, capabilities=None, label='', wd_addr=None):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.label = label
-        self.webdriver_address = wd_addr
+        self.remote_address = wd_addr
         self.capabilities = capabilities or {}
         self.window_size = None
         self.wdlog = wdlog
@@ -382,7 +382,6 @@ import apiritif
     def _check_platform(self):
         mobile_browsers = ["chrome", "safari"]
         mobile_platforms = ["android", "ios"]
-        remote_executor = self.scenario.get("remote", self.webdriver_address)
 
         browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
@@ -392,32 +391,34 @@ import apiritif
         if browser:
             browser_split = browser.split("-")
             browser = browser_split[0]
-            browsers = ["firefox", "chrome", "ie", "opera", "remote"]
+            browsers = ["firefox", "chrome", "ie", "opera", "remote"] + mobile_browsers
             if browser not in browsers:
                 raise TaurusConfigError("Unsupported browser name: %s" % browser)
             if len(browser_split) > 1:
                 browser_platform = browser_split[1]
 
-        if remote_executor:
+        if self.remote_address:
             if browser and browser != "remote":
-                self.log.warning("Forcing browser to Remote, because of remote WebDriver address")
+                msg = "Forcing browser to Remote, because of remote WebDriver address, use '%s' as browserName"
+                self.log.warning(msg % browser)
                 self.capabilities["browserName"] = browser
             browser = "remote"
             if self.generate_markers is None:  # if not set by user - set to true
                 self.generate_markers = True
         elif browser in mobile_browsers and browser_platform in mobile_platforms:
             self.appium = True
+            self.remote_address = "http://localhost:4723/wd/hub"
             self.capabilities["platformName"] = browser_platform
             self.capabilities["browserName"] = browser
             browser = "remote"  # Force to use remote web driver
         elif not browser:
             browser = "firefox"
 
-        return browser, remote_executor
+        return browser
 
     def gen_setup_method(self):
         self.log.debug("Generating setUp test method")
-        browser, remote_executor = self._check_platform()
+        browser = self._check_platform()
 
         headless = self.scenario.get("headless", False)
         if headless:
@@ -443,7 +444,7 @@ import apiritif
             statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         elif browser == 'remote':
-            setup_method_def.append(self._gen_remote_driver(remote_executor))
+            setup_method_def.append(self._gen_remote_driver())
         else:
             if headless:
                 self.log.warning("Browser %r doesn't support headless mode")
@@ -469,19 +470,12 @@ import apiritif
         setup_method_def.append(self.gen_new_line())
         return setup_method_def
 
-    def _gen_remote_driver(self, remote_executor):
+    def _gen_remote_driver(self):
         # avoid versions and other number values
         capabilities = {key: str(self.capabilities[key]) for key in self.capabilities}
 
         tpl = "self.driver = webdriver.Remote(command_executor={command_executor}, desired_capabilities={caps})"
-
-        if not remote_executor:
-            if self.appium:
-                remote_executor = "http://localhost:4723/wd/hub"
-            else:
-                remote_executor = "http://localhost:4444/wd/hub"
-
-        cmd = tpl.format(command_executor=repr(remote_executor), caps=json.dumps(capabilities, sort_keys=True))
+        cmd = tpl.format(command_executor=repr(self.remote_address), caps=json.dumps(capabilities, sort_keys=True))
 
         return self.gen_statement(cmd)
 

@@ -97,6 +97,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
             remote = self.settings.get("remote", None)
             remote = self.execution.get("remote", remote)
+            remote = scenario.get("remote", remote)
 
             builder = SeleniumScriptBuilder(
                 scenario, self.log, wdlog,
