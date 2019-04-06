@@ -20,7 +20,7 @@ class TestRequests(unittest.TestCase):
         self.vars = {}
         self.template = Template(self.vars)
         
-        self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub', desired_capabilities={"app": "", "browserName": null, "deviceName": "", "javascriptEnabled": "True", "platformName": "linux", "platformVersion": "", "seleniumVersion": "", "version": "54.0"})
+        self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub', desired_capabilities={"app": "", "browserName": "firefox", "deviceName": "", "javascriptEnabled": "True", "platformName": "linux", "platformVersion": "", "seleniumVersion": "", "version": "54.0"})
         self.driver.implicitly_wait(3.5)
         self.wnd_mng = WindowManager(self.driver)
         self.frm_mng = FrameManager(self.driver)
