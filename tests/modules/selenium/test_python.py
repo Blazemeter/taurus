@@ -570,7 +570,6 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "scenario": "remote_sc"}],
             "scenarios": {
                 "remote_sc": {
-                    "browser": "Remote",
                     "capabilities": {
                         "browserName": "chrome"},     # must be faced in desired_capabilities
                     "timeout": "3.5s",
