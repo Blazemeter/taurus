@@ -301,16 +301,21 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         }],
                         "actions": [
                             "switchWindow(0)",
-                            #"openWindow(some.url)",
-                            #"closeWindow('win_ser_local')",
+                            "openWindow(some.url)",
+                            "closeWindow('win_ser_local')"
                         ]}]}}})
 
         self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target_str = "self.wnd_mng.switch(self.template('0'))"
-        self.assertIn(target_str, content)
+        target_lines = [
+            "self.wnd_mng.switch(self.template('0'))",
+            "self.driver.execute_script(self.template(window.open('%s')))",
+            "self.wnd_mng.close(self.template('win_ser_local'))"]
+
+        for line in target_lines:
+            self.assertIn(line, content)
 
     def test_build_script(self):
         self.configure({

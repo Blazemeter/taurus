@@ -897,25 +897,40 @@ class ApiritifScriptGenerator(object):
 
         if tag == "window":
             if atype == "switch":
-                action_elements.append(ast.Expr(self._gen_call(
-                    func=self._gen_attr(
-                        base=self._gen_attr(base="self", attr="wnd_mng"),
-                        attr="switch"),
-                    args=[
-                        self._gen_call(
-                            func=self._gen_attr(base="self", attr="template"),
-                            args=[ast.Str(selector)])])))
+                action_elements.append(
+                    ast.Expr(self._gen_call(
+                        func=self._gen_attr(
+                            base=self._gen_attr(base="self", attr="wnd_mng"),
+                            attr="switch"),
+                        args=[
+                            self._gen_call(
+                                func=self._gen_attr(base="self", attr="template"),
+                                args=[ast.Str(selector)])])))
             elif atype == "open":
-                script = "window.open('%s');" % selector
-                cmd = 'self.driver.execute_script(self.template(%r))' % script
-                action_elements.append(self.gen_statement(cmd, indent=indent))
+                action_elements.append(
+                    ast.Expr(self._gen_call(
+                        func=self._gen_attr(
+                            base=self._gen_attr(base="self", attr="driver"),
+                            attr="execute_script"),
+                        args=[
+                            self._gen_call(
+                                func=self._gen_attr(base="self", attr="template"),
+                                args=[
+                                    self._gen_call(
+                                        func=self._gen_attr(base="window", attr="open"),
+                                        args=[ast.Str(selector)])])])))
             elif atype == "close":
+                args = []
                 if selector:
-                    cmd = 'self.wnd_mng.close(self.template(%r))' % selector
-                else:
-                    cmd = 'self.wnd_mng.close()'
-                action_elements.append(self.gen_statement(cmd, indent=indent))
-
+                    args.append(self._gen_call(
+                        func=self._gen_attr(base="self", attr="template"),
+                        args=[ast.Str(selector)]))
+                action_elements.append(
+                    ast.Expr(self._gen_call(
+                        func=self._gen_attr(
+                            base=self._gen_attr(base="self", attr="wnd_mng"),
+                            attr="close"),
+                        args=args)))
         elif atype == "switchframe":
             if tag == "byidx":
                 cmd = "self.frm_mng.switch(%r)" % int(selector)
