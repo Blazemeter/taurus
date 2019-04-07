@@ -169,9 +169,6 @@ class JMeterExprCompiler(object):
 
 
 class SeleniumScriptBuilder(PythonGenerator):
-    """
-    :type window_size: tuple[int,int]
-    """
 
     IMPORTS_SELENIUM = """import unittest
 import os
@@ -208,8 +205,8 @@ import apiritif
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
-    def __init__(self, scenario, parent_logger, wdlog, utils_file,
-                 ignore_unknown_actions=False, generate_markers=None, capabilities=None, label='', wd_addr=None):
+    def __init__(self, engine, scenario, parent_logger, label, wdlog, utils_file,
+                 ignore_unknown_actions=False, generate_markers=None, capabilities=None, wd_addr=None):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.label = label
         self.remote_address = wd_addr
@@ -718,6 +715,7 @@ import apiritif
 
         return action_elements
 
+    # migrated
     def _parse_action(self, action_config):
         if isinstance(action_config, string_types):
             name = action_config
@@ -762,12 +760,48 @@ import apiritif
 class ApiritifScriptGenerator(object):
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
+    IMPORTS_SELENIUM = """import unittest
+    import os
+    import re
+    from time import sleep, time
+    from selenium import webdriver
+    from selenium.common.exceptions import NoSuchElementException
+    from selenium.common.exceptions import NoAlertPresentException
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.common.action_chains import ActionChains
+    from selenium.webdriver.support.ui import Select
+    from selenium.webdriver.support import expected_conditions as econd
+    from selenium.webdriver.support.wait import WebDriverWait
+    from selenium.webdriver.common.keys import Keys
+
+    import apiritif
+    """
+    IMPORTS_APPIUM = """import unittest
+    import os
+    import re
+    from time import sleep, time
+    from appium import webdriver
+    from selenium.common.exceptions import NoSuchElementException
+    from selenium.common.exceptions import NoAlertPresentException
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.common.action_chains import ActionChains
+    from selenium.webdriver.support.ui import Select
+    from selenium.webdriver.support import expected_conditions as econd
+    from selenium.webdriver.support.wait import WebDriverWait
+    from selenium.webdriver.common.keys import Keys
+
+    import apiritif
+    """
+
+    TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
+
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
     SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables)
 
-    def __init__(self, engine, scenario, label, parent_log):
-        super(ApiritifScriptGenerator, self).__init__(scenario, parent_log)
+    def __init__(self, engine, scenario, label, parent_log,
+                 wdlog=None, utils_file=None,
+                 ignore_unknown_actions=False, generate_markers=None, capabilities=None, wd_addr=None):
         self.scenario = scenario
         self.engine = engine
         self.data_sources = list(scenario.get_data_sources())
@@ -778,6 +812,262 @@ class ApiritifScriptGenerator(object):
         self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
         self.stored_vars = []
         self.service_methods = []
+
+        self.remote_address = wd_addr
+        self.capabilities = capabilities or {}
+        self.window_size = None
+        self.wdlog = wdlog
+        self.appium = False
+        self.utils_file = utils_file
+        self.ignore_unknown_actions = ignore_unknown_actions
+        self.generate_markers = generate_markers
+
+    def _parse_action(self, action_config):
+        if isinstance(action_config, string_types):
+            name = action_config
+            param = None
+        elif isinstance(action_config, dict):
+            name, param = next(iteritems(action_config))
+        else:
+            raise TaurusConfigError("Unsupported value for action: %s" % action_config)
+
+        actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
+                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'script',
+                            'editcontent', 'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
+                            'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode'
+                            ])
+
+        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Eval|ByIdx|String"
+        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (actions, tag), re.IGNORECASE)
+        res = expr.match(name)
+        if not res:
+            msg = "Unsupported action: %s" % name
+            if self.ignore_unknown_actions:
+                self.log.warning(msg)
+                return
+            else:
+                raise TaurusConfigError(msg)
+
+        atype = res.group(1).lower()
+        tag = res.group(2).lower() if res.group(2) else ""
+        selector = res.group(4)
+
+        # hello, reviewer!
+        if selector:
+            if selector.startswith('"') and selector.endswith('"'):
+                selector = selector[1:-1]
+            elif selector.startswith("'") and selector.endswith("'"):
+                selector = selector[1:-1]
+        else:
+            selector = ""
+        return atype, tag, param, selector
+
+    @staticmethod
+    def _gen_attr(base, attr):
+        return ast.Attribute(attr=attr, value=ast.Name(id=base))
+
+    @staticmethod
+    def _gen_call(func, args):
+        return ast.Call(func=func, args=args, starargs=None, kwargs=None, keywords=[])
+
+    def gen_action(self, action_config, indent=None):
+        action = self._parse_action(action_config)
+        if action:
+            atype, tag, param, selector = action
+        else:
+            return
+
+        action_elements = []
+
+        bys = {
+            'byxpath': "XPATH",
+            'bycss': "CSS_SELECTOR",
+            'byname': "NAME",
+            'byid': "ID",
+            'bylinktext': "LINK_TEXT"
+        }
+        action_chains = {
+            'doubleclick': "double_click",
+            'mousedown': "click_and_hold",
+            'mouseup': "release",
+            'mousemove': "move_to_element"
+        }
+
+        if tag == "window":
+            if atype == "switch":
+                action_elements.append(self._gen_call(
+                    func=self._gen_attr(
+                        base=self._gen_attr(base="self", attr="wnd_mng"),
+                        attr="switch"),
+                    args=[
+                        self._gen_call(
+                            func=self._gen_attr(base="self", attr="template"),
+                            args=[selector])]))
+                #    'self.wnd_mng.switch(self.template(%r))' % selector
+                # action_elements.append(self.gen_statement(cmd, indent=indent))
+            elif atype == "open":
+                script = "window.open('%s');" % selector
+                cmd = 'self.driver.execute_script(self.template(%r))' % script
+                action_elements.append(self.gen_statement(cmd, indent=indent))
+            elif atype == "close":
+                if selector:
+                    cmd = 'self.wnd_mng.close(self.template(%r))' % selector
+                else:
+                    cmd = 'self.wnd_mng.close()'
+                action_elements.append(self.gen_statement(cmd, indent=indent))
+
+        elif atype == "switchframe":
+            if tag == "byidx":
+                cmd = "self.frm_mng.switch(%r)" % int(selector)
+            elif selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
+                cmd = "self.frm_mng.switch(%r)" % selector
+            else:
+                frame = "self.driver.find_element(By.%s, self.template(%r))" % (bys[tag], selector)
+                cmd = "self.frm_mng.switch(%s)" % frame
+
+            action_elements.append(self.gen_statement(cmd, indent=indent))
+
+        elif atype in action_chains:
+            tpl = "self.driver.find_element(By.%s, self.template(%r))"
+            action = action_chains[atype]
+            action_elements.append(self.gen_statement(
+                "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
+                indent=indent))
+        elif atype == 'drag':
+            drop_action = self._parse_action(param)
+            if drop_action and drop_action[0] == "element" and not drop_action[2]:
+                drop_tag, drop_selector = (drop_action[1], drop_action[3])
+                tpl = "self.driver.find_element(By.%s, self.template(%r))"
+                action = "drag_and_drop"
+                drag_element = tpl % (bys[tag], selector)
+                drop_element = tpl % (bys[drop_tag], drop_selector)
+                action_elements.append(self.gen_statement(
+                    "ActionChains(self.driver).%s(%s, %s).perform()" % (action, drag_element, drop_element),
+                    indent=indent))
+        elif atype == 'select':
+            tpl = "self.driver.find_element(By.%s, self.template(%r))"
+            action = "select_by_visible_text(self.template(%r))" % param
+            action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
+                                                      indent=indent))
+        elif atype.startswith('assert') or atype.startswith('store'):
+            if tag == 'title':
+                if atype.startswith('assert'):
+                    action_elements.append(
+                        self.gen_statement("self.assertEqual(self.driver.title, self.template(%r))"
+                                           % selector, indent=indent))
+                else:
+                    action_elements.append(self.gen_statement(
+                        "self.vars['%s'] = self.template(self.driver.title)" % param.strip(), indent=indent
+                    ))
+            elif atype == 'store' and tag == 'string':
+                action_elements.append(self.gen_statement(
+                    "self.vars['%s'] = self.template('%s')" % (param.strip(), selector.strip()), indent=indent
+                ))
+            else:
+                tpl = "self.driver.find_element(By.%s, self.template(%r)).%s"
+                if atype in ['asserttext', 'storetext']:
+                    action = "get_attribute('innerText')"
+                elif atype in ['assertvalue', 'storevalue']:
+                    action = "get_attribute('value')"
+                if atype.startswith('assert'):
+                    action_elements.append(
+                        self.gen_statement("self.assertEqual(self.template(%s).strip(), self.template(%r).strip())" %
+                                           (tpl % (bys[tag], selector, action), param),
+                                           indent=indent))
+                elif atype.startswith('store'):
+                    action_elements.append(
+                        self.gen_statement("self.vars['%s'] = self.template(%s)" %
+                                           (param.strip(), tpl % (bys[tag], selector, action)),
+                                           indent=indent))
+        elif atype in ('click', 'type', 'keys', 'submit'):
+            tpl = "self.driver.find_element(By.%s, self.template(%r)).%s"
+            action = None
+            if atype == 'click':
+                action = "click()"
+            elif atype == 'submit':
+                action = "submit()"
+            elif atype in ['keys', 'type']:
+                if atype == 'type':
+                    action_elements.append(self.gen_statement(
+                        tpl % (bys[tag], selector, "clear()"), indent=indent))
+                action = "send_keys(self.template(%r))" % str(param)
+                if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
+                    action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
+
+            action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
+
+        elif atype == "script" and tag == "eval":
+            cmd = 'self.driver.execute_script(self.template(%r))' % selector
+            action_elements.append(self.gen_statement(cmd, indent=indent))
+        elif atype == "rawcode":
+            lines = param.split('\n')
+            for line in lines:
+                action_elements.append(self.gen_statement(line, indent=indent))
+        elif atype == 'go':
+            if selector and not param:
+                cmd = "self.driver.get(self.template(%r))" % selector.strip()
+                action_elements.append(self.gen_statement(cmd, indent=indent))
+        elif atype == "editcontent":
+            element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
+            editable_error = "The element (By.%s, %r) " \
+                             "is not contenteditable element" % (bys[tag], selector)
+            editable_script_tpl = "arguments[0].innerHTML = %s;"
+            editable_script_tpl_argument = "self.template.str_repr(self.template(%r))" % param.strip()
+            editable_script = "%r %% %s" % \
+                              (editable_script_tpl, editable_script_tpl_argument)
+            action_elements.extend([
+                self.gen_statement(
+                    "if %s.get_attribute('contenteditable'):" % element,
+                    indent=indent),
+                self.gen_statement(
+                    "self.driver.execute_script(",
+                    indent=indent + self.INDENT_STEP),
+                self.gen_statement(
+                    "%s," % editable_script,
+                    indent=indent + self.INDENT_STEP * 2),
+                self.gen_statement(
+                    element,
+                    indent=indent + self.INDENT_STEP * 2),
+                self.gen_statement(
+                    ")",
+                    indent=indent + self.INDENT_STEP),
+                self.gen_statement(
+                    "else:", indent=indent),
+                self.gen_statement(
+                    "raise NoSuchElementException(%r)" % editable_error,
+                    indent=indent + self.INDENT_STEP)
+            ])
+        elif atype == 'echo' and tag == 'string':
+            if len(selector) > 0 and not param:
+                action_elements.append(
+                    self.gen_statement("print(self.template(%r))" % selector.strip(), indent=indent))
+        elif atype == 'wait':
+            tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, self.template(%r))), %r)"
+            mode = "visibility" if param == 'visible' else 'presence'
+            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
+            timeout = dehumanize_time(self.scenario.get("timeout", exc))
+            errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
+            action_elements.append(self.gen_statement(tpl % (timeout, mode, bys[tag], selector, errmsg), indent=indent))
+        elif atype == 'pause' and tag == 'for':
+            tpl = "sleep(%g)"
+            action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
+        elif atype == 'clear' and tag == 'cookies':
+            action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
+        elif atype == 'screenshot':
+            if selector:
+                filename = selector
+                action_elements.append(self.gen_statement('self.driver.save_screenshot(self.template(%r))' % filename,
+                                                          indent=indent))
+            else:
+                filename = "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), " \
+                           "'screenshot-%d.png' % (time() * 1000))"
+                action_elements.append(self.gen_statement(filename, indent=indent))
+                action_elements.append(self.gen_statement('self.driver.save_screenshot(filename)', indent=indent))
+
+        if not action_elements:
+            raise TaurusInternalException("Could not build code for action: %s" % action_config)
+
+        return action_elements
 
     @staticmethod
     def _gen_empty_line_stmt():
@@ -1101,6 +1391,10 @@ class ApiritifScriptGenerator(object):
                 body.append(self._gen_transaction(request))
             else:
                 body.append(self._gen_http_request(request))
+
+            # todo: handle actions at this point
+            #for action_config in req.config.get("actions", []):
+            #    action = self.gen_action(action_config)
 
         transaction = ast.With(
             context_expr=ast.Call(

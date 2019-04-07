@@ -99,13 +99,12 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             remote = self.execution.get("remote", remote)
             remote = scenario.get("remote", remote)
 
-            builder = SeleniumScriptBuilder(
-                scenario, self.log, wdlog,
+            builder = ApiritifScriptGenerator(
+                self.engine, scenario, self.label, self.log, wdlog,
                 utils_file=os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py"),
                 ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
                 generate_markers=generate_markers,
                 capabilities=capabilities,
-                label=self.label,
                 wd_addr=remote)
 
         builder.build_source_code()
