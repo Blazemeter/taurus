@@ -49,7 +49,7 @@ class RandomFunction(JMeterFunction):
                 attr='random_uniform',
                 ctx=ast.Load(),
             ),
-            args=[self.compiler._gen_expr(int(args["min"])), self.compiler._gen_expr(int(args["max"]))],
+            args=[self.compiler.gen_expr(int(args["min"])), self.compiler.gen_expr(int(args["max"]))],
             keywords=[],
             starargs=None,
             kwargs=None
@@ -67,9 +67,9 @@ class RandomStringFunction(JMeterFunction):
         # TODO: handle `varname`
 
         size = int(args.get("size"))
-        arguments = [self.compiler._gen_expr(size)]
+        arguments = [self.compiler.gen_expr(size)]
         if "chars" in args:
-            arguments.append(self.compiler._gen_expr(args["chars"]))
+            arguments.append(self.compiler.gen_expr(args["chars"]))
 
         return ast.Call(
             func=ast.Attribute(
@@ -98,7 +98,7 @@ class Base64DecodeFunction(JMeterFunction):
                 attr='base64_decode',
                 ctx=ast.Load(),
             ),
-            args=[self.compiler._gen_expr(args["text"])],
+            args=[self.compiler.gen_expr(args["text"])],
             keywords=[],
             starargs=None,
             kwargs=None
@@ -119,7 +119,7 @@ class Base64EncodeFunction(JMeterFunction):
                 attr='base64_encode',
                 ctx=ast.Load(),
             ),
-            args=[self.compiler._gen_expr(args["text"])],
+            args=[self.compiler.gen_expr(args["text"])],
             keywords=[],
             starargs=None,
             kwargs=None
@@ -134,7 +134,7 @@ class TimeFunction(JMeterFunction):
         # TODO: handle varname
         arguments = []
         if "format" in args:
-            arguments.append(self.compiler._gen_expr(args["format"]))
+            arguments.append(self.compiler.gen_expr(args["format"]))
         return ast.Call(
             func=ast.Attribute(
                 value=ast.Name(id="apiritif", ctx=ast.Load()),
@@ -161,7 +161,7 @@ class UrlEncodeFunction(JMeterFunction):
                 attr='encode_url',
                 ctx=ast.Load(),
             ),
-            args=[self.compiler._gen_expr(args["chars"])],
+            args=[self.compiler.gen_expr(args["chars"])],
             keywords=[],
             starargs=None,
             kwargs=None

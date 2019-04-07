@@ -864,7 +864,9 @@ class ApiritifScriptGenerator(object):
 
     @staticmethod
     def _gen_attr(base, attr):
-        return ast.Attribute(attr=attr, value=ast.Name(id=base))
+        if not isinstance(base, ast.expr):
+            base = ast.Name(id=base)
+        return ast.Attribute(attr=attr, value=base)
 
     @staticmethod
     def _gen_call(func, args):
@@ -895,16 +897,14 @@ class ApiritifScriptGenerator(object):
 
         if tag == "window":
             if atype == "switch":
-                action_elements.append(self._gen_call(
+                action_elements.append(ast.Expr(self._gen_call(
                     func=self._gen_attr(
                         base=self._gen_attr(base="self", attr="wnd_mng"),
                         attr="switch"),
                     args=[
                         self._gen_call(
                             func=self._gen_attr(base="self", attr="template"),
-                            args=[selector])]))
-                #    'self.wnd_mng.switch(self.template(%r))' % selector
-                # action_elements.append(self.gen_statement(cmd, indent=indent))
+                            args=[ast.Str(selector)])])))
             elif atype == "open":
                 script = "window.open('%s');" % selector
                 cmd = 'self.driver.execute_script(self.template(%r))' % script
@@ -1247,7 +1247,7 @@ class ApiritifScriptGenerator(object):
         res = []
         for name in sorted(request.mapping.keys()):
             res.append(ast.Assign(
-                targets=[self._gen_expr("${%s}" % name)],
+                targets=[self.gen_expr("${%s}" % name)],
                 value=ast.Str(s="%s" % request.mapping[name])))
 
         return res
@@ -1273,13 +1273,13 @@ class ApiritifScriptGenerator(object):
 
         return method
 
-    def _gen_expr(self, value):
+    def gen_expr(self, value):
         return self.expr_compiler.gen_expr(value)
 
     def _gen_target_setup(self, key, value):
         return ast.Expr(value=ast.Call(
             func=ast.Attribute(value=ast.Name(id='target', ctx=ast.Load()), attr=key, ctx=ast.Load()),
-            args=[self._gen_expr(value)],
+            args=[self.gen_expr(value)],
             keywords=[],
             starargs=None,
             kwargs=None
@@ -1335,7 +1335,7 @@ class ApiritifScriptGenerator(object):
 
         target_call = ast.Call(
             func=ast.Attribute(value=http, attr='target', ctx=ast.Load()),
-            args=[self._gen_expr(default_address)],
+            args=[self.gen_expr(default_address)],
             keywords=[],
             starargs=None,
             kwargs=None)
@@ -1364,19 +1364,19 @@ class ApiritifScriptGenerator(object):
         headers.update(req.headers)
 
         if headers:
-            named_args['headers'] = self._gen_expr(headers)
+            named_args['headers'] = self.gen_expr(headers)
 
         merged_headers = dict([(key.lower(), value) for key, value in iteritems(headers)])
         content_type = merged_headers.get("content-type")
 
         if content_type == 'application/json' and isinstance(req.body, (dict, list)):  # json request body
-            named_args['json'] = self._gen_expr(req.body)
+            named_args['json'] = self.gen_expr(req.body)
         elif req.method.lower() == "get" and isinstance(req.body, dict):  # request URL params (?a=b&c=d)
-            named_args['params'] = self._gen_expr(req.body)
+            named_args['params'] = self.gen_expr(req.body)
         elif isinstance(req.body, dict):  # form data
-            named_args['data'] = self._gen_expr(list(iteritems(req.body)))
+            named_args['data'] = self.gen_expr(list(iteritems(req.body)))
         elif isinstance(req.body, string_types):
-            named_args['data'] = self._gen_expr(req.body)
+            named_args['data'] = self.gen_expr(req.body)
         elif req.body:
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(req.body), req.body))
@@ -1395,7 +1395,7 @@ class ApiritifScriptGenerator(object):
         transaction = ast.With(
             context_expr=ast.Call(
                 func=ast.Attribute(value=ast.Name(id='apiritif'), attr="transaction"),
-                args=[self._gen_expr(trans_conf.label)],
+                args=[self.gen_expr(trans_conf.label)],
                 keywords=[],
                 starargs=None,
                 kwargs=None
@@ -1423,15 +1423,15 @@ class ApiritifScriptGenerator(object):
             ],
             value=ast.Call(
                 func=ast.Attribute(value=requestor, attr=method, ctx=ast.Load()),
-                args=[self._gen_expr(req.url)],
-                keywords=[ast.keyword(arg=name, value=self._gen_expr(value))
+                args=[self.gen_expr(req.url)],
+                keywords=[ast.keyword(arg=name, value=self.gen_expr(value))
                           for name, value in iteritems(named_args)],
                 starargs=None,
                 kwargs=None
             )))
 
         for action in req.config.get("actions"):
-            lines.append(self.gen_action(action))
+            lines.extend(self.gen_action(action))
 
         lines.extend(self._gen_assertions(req))
         lines.extend(self._gen_jsonpath_assertions(req))
@@ -1447,7 +1447,7 @@ class ApiritifScriptGenerator(object):
                             value=ast.Name(id="time", ctx=ast.Load()),
                             attr="sleep",
                             ctx=ast.Load()),
-                        args=[self._gen_expr(think_time)],
+                        args=[self.gen_expr(think_time)],
                         keywords=[],
                         starargs=None,
                         kwargs=None)))
@@ -1489,7 +1489,7 @@ class ApiritifScriptGenerator(object):
                                 attr=method,
                                 ctx=ast.Load()
                             ),
-                            args=[self._gen_expr(member)],
+                            args=[self.gen_expr(member)],
                             keywords=[],
                             starargs=None,
                             kwargs=None
@@ -1505,7 +1505,7 @@ class ApiritifScriptGenerator(object):
                                 attr=method,
                                 ctx=ast.Load()
                             ),
-                            args=[self._gen_expr(member)],
+                            args=[self.gen_expr(member)],
                             keywords=[],
                             starargs=None,
                             kwargs=None
@@ -1529,8 +1529,8 @@ class ApiritifScriptGenerator(object):
                         attr=method,
                         ctx=ast.Load()
                     ),
-                    args=[self._gen_expr(query)],
-                    keywords=[ast.keyword(arg="expected_value", value=self._gen_expr(expected))],
+                    args=[self.gen_expr(query)],
+                    keywords=[ast.keyword(arg="expected_value", value=self.gen_expr(expected))],
                     starargs=None,
                     kwargs=None
                 )
@@ -1555,9 +1555,9 @@ class ApiritifScriptGenerator(object):
                         attr=method,
                         ctx=ast.Load()
                     ),
-                    args=[self._gen_expr(query)],
-                    keywords=[ast.keyword(arg="parser_type", value=self._gen_expr(parser_type)),
-                              ast.keyword(arg="validate", value=self._gen_expr(validate))],
+                    args=[self.gen_expr(query)],
+                    keywords=[ast.keyword(arg="parser_type", value=self.gen_expr(parser_type)),
+                              ast.keyword(arg="validate", value=self.gen_expr(validate))],
                     starargs=None,
                     kwargs=None
                 )
@@ -1578,7 +1578,7 @@ class ApiritifScriptGenerator(object):
                         attr="extract_jsonpath",
                         ctx=ast.Load()
                     ),
-                    args=[self._gen_expr(cfg['jsonpath']), self._gen_expr(cfg.get('default', 'NOT_FOUND'))],
+                    args=[self.gen_expr(cfg['jsonpath']), self.gen_expr(cfg.get('default', 'NOT_FOUND'))],
                     keywords=[],
                     starargs=None,
                     kwargs=None
@@ -1597,7 +1597,7 @@ class ApiritifScriptGenerator(object):
                         attr="extract_regex",
                         ctx=ast.Load()
                     ),
-                    args=[self._gen_expr(cfg['regexp']), self._gen_expr(cfg.get('default', 'NOT_FOUND'))],
+                    args=[self.gen_expr(cfg['regexp']), self.gen_expr(cfg.get('default', 'NOT_FOUND'))],
                     keywords=[],
                     starargs=None,
                     kwargs=None
@@ -1619,7 +1619,7 @@ class ApiritifScriptGenerator(object):
                         attr="extract_xpath",
                         ctx=ast.Load()
                     ),
-                    args=[self._gen_expr(cfg['xpath'])],
+                    args=[self.gen_expr(cfg['xpath'])],
                     keywords=[ast.keyword(arg="default", value=cfg.get('default', 'NOT_FOUND')),
                               ast.keyword(arg="parser_type", value=parser_type),
                               ast.keyword(arg="validate", value=validate)],

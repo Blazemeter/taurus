@@ -278,7 +278,7 @@ class TestNoseRunner(ExecutorTestCase):
 
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
-    def testaaa(self):
+    def test_modern_actions_generator(self):
         self.configure({
             "execution": [{
                 "executor": "selenium",
@@ -300,29 +300,17 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
-                            # "waitByXPath(//input[@type='submit'])",
-                            # "assertTitle(BlazeDemo)",
-                            # "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
-                            # "doubleClickByXPath(/html/body/div[3]/h2)",
-                            # "mouseDownByXPath(/html/body/div[3]/form/select[1])",
-                            # "mouseUpByXPath(/html/body/div[3]/form/select[1]/option[6])",
-                            # {"selectByName(toPort)": "London"},
-                            # {"keysByCSS(body input.btn.btn-primary)": "KEY_ENTER"},
-                            # {"assertValueByID(address)": "123 Beautiful st."},
-                            # {"assertTextByXPath(/html/body/div[2]/form/div[1]/label)": "${name}"},
-                            # {"waitByName('toPort')": "visible"},
-                            # {"keysByName(\"toPort\")": "B"},
-                            # {"typeByName(\"toPort\")": "B"},
-                            # {"keysByName(\"toPort\")": u"KEY_ENTER"},
-                            # {"typeByName(\"toPort\")": "KEY_ENTER"},
-                            # "clickByXPath(//div[3]/form/select[1]//option[3])",
-                            # "clickByXPath(//div[3]/form/select[2]//option[6])",
-                            "switchWindow(0)",]}]}}})
+                            "switchWindow(0)",
+                            #"openWindow(some.url)",
+                            #"closeWindow('win_ser_local')",
+                        ]}]}}})
 
         self.obj.prepare()
-        exp_file = RESOURCES_DIR + "selenium/generated_from_requests.py"
-        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>")
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_str = "self.wnd_mng.switch(self.template('0'))"
+        self.assertIn(target_str, content)
 
     def test_build_script(self):
         self.configure({
