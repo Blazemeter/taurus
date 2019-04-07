@@ -92,8 +92,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             generate_markers = scenario.get('generate-flow-markers', generate_markers)
 
             capabilities = copy.deepcopy(self.settings.get("capabilities"))
-            capabilities.merge(self.execution.get("capabilities"))
-            capabilities.merge(scenario.get("capabilities"))
+            capabilities.merge(copy.deepcopy(self.execution.get("capabilities")))
+            capabilities.merge(copy.deepcopy(scenario.get("capabilities")))
 
             remote = self.settings.get("remote", None)
             remote = self.execution.get("remote", remote)
