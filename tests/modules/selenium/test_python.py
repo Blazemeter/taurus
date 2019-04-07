@@ -278,6 +278,52 @@ class TestNoseRunner(ExecutorTestCase):
 
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
+    def testaaa(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "default-address": "http://blazedemo.com",
+                    "variables": {
+                        "red_pill": "take_it",
+                        "name": "Name"
+                    },
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            # "waitByXPath(//input[@type='submit'])",
+                            # "assertTitle(BlazeDemo)",
+                            # "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
+                            # "doubleClickByXPath(/html/body/div[3]/h2)",
+                            # "mouseDownByXPath(/html/body/div[3]/form/select[1])",
+                            # "mouseUpByXPath(/html/body/div[3]/form/select[1]/option[6])",
+                            # {"selectByName(toPort)": "London"},
+                            # {"keysByCSS(body input.btn.btn-primary)": "KEY_ENTER"},
+                            # {"assertValueByID(address)": "123 Beautiful st."},
+                            # {"assertTextByXPath(/html/body/div[2]/form/div[1]/label)": "${name}"},
+                            # {"waitByName('toPort')": "visible"},
+                            # {"keysByName(\"toPort\")": "B"},
+                            # {"typeByName(\"toPort\")": "B"},
+                            # {"keysByName(\"toPort\")": u"KEY_ENTER"},
+                            # {"typeByName(\"toPort\")": "KEY_ENTER"},
+                            # "clickByXPath(//div[3]/form/select[1]//option[3])",
+                            # "clickByXPath(//div[3]/form/select[2]//option[6])",
+                            "switchWindow(0)",]}]}}})
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>")
+
     def test_build_script(self):
         self.configure({
             "execution": [{

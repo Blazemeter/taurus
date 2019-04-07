@@ -1392,10 +1392,6 @@ class ApiritifScriptGenerator(object):
             else:
                 body.append(self._gen_http_request(request))
 
-            # todo: handle actions at this point
-            #for action_config in req.config.get("actions", []):
-            #    action = self.gen_action(action_config)
-
         transaction = ast.With(
             context_expr=ast.Call(
                 func=ast.Attribute(value=ast.Name(id='apiritif'), attr="transaction"),
@@ -1411,8 +1407,10 @@ class ApiritifScriptGenerator(object):
 
     def _gen_http_request(self, req):
         lines = []
-        method = req.method.lower()
         think_time = dehumanize_time(req.get_think_time())
+
+        # todo: if no url in req what type of request we got?
+        method = req.method.lower()
         named_args = self._extract_named_args(req)
         target = ast.Name(id='self.target', ctx=ast.Load())
         apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
@@ -1431,6 +1429,9 @@ class ApiritifScriptGenerator(object):
                 starargs=None,
                 kwargs=None
             )))
+
+        for action in req.config.get("actions"):
+            lines.append(self.gen_action(action))
 
         lines.extend(self._gen_assertions(req))
         lines.extend(self._gen_jsonpath_assertions(req))
