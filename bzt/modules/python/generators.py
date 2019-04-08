@@ -1218,7 +1218,7 @@ class ApiritifScriptGenerator(object):
         return ast.FunctionDef(name="setUp", args=args, body=[get_expr], decorator_list=[])
 
     def _gen_test_methods(self):
-        requests = self.scenario.get_requests(parser=HierarchicRequestParser)
+        requests = self.scenario.get_requests(parser=HierarchicRequestParser, require_url=False)
 
         number_of_digits = int(math.log10(len(requests))) + 1
         for index, request in enumerate(requests, start=1):
@@ -1419,26 +1419,28 @@ class ApiritifScriptGenerator(object):
         lines = []
         think_time = dehumanize_time(req.get_think_time())
 
-        # todo: if no url in req what type of request we got?
-        method = req.method.lower()
-        named_args = self._extract_named_args(req)
-        target = ast.Name(id='self.target', ctx=ast.Load())
-        apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
+        if req.url:
+            method = req.method.lower()
+            named_args = self._extract_named_args(req)
+            target = ast.Name(id='self.target', ctx=ast.Load())
+            apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
 
-        requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
+            requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
 
-        lines.append(ast.Assign(
-            targets=[
-                ast.Name(id="response")
-            ],
-            value=ast.Call(
-                func=ast.Attribute(value=requestor, attr=method, ctx=ast.Load()),
-                args=[self.gen_expr(req.url)],
-                keywords=[ast.keyword(arg=name, value=self.gen_expr(value))
-                          for name, value in iteritems(named_args)],
-                starargs=None,
-                kwargs=None
-            )))
+            lines.append(ast.Assign(
+                targets=[
+                    ast.Name(id="response")
+                ],
+                value=ast.Call(
+                    func=ast.Attribute(value=requestor, attr=method, ctx=ast.Load()),
+                    args=[self.gen_expr(req.url)],
+                    keywords=[ast.keyword(arg=name, value=self.gen_expr(value))
+                              for name, value in iteritems(named_args)],
+                    starargs=None,
+                    kwargs=None
+                )))
+        elif "actions" not in req.config:
+            raise TaurusConfigError("'url' and/or 'actions' are mandatory for request but not found: '%s'", req.config)
 
         for action in req.config.get("actions"):
             lines.extend(self.gen_action(action))

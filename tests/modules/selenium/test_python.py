@@ -294,7 +294,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                     },
                     "timeout": "3.5s",
                     "requests": [{
-                        "url": "/",
+                        "label": "la-la",
                         "assert": [{
                             "contains": ['contained_text'],
                             "not": True
