@@ -899,21 +899,14 @@ class ApiritifScriptGenerator(object):
                 action_elements.append(
                     ast.Expr(ast_call(
                         func=ast_attr("self.wnd_mng.switch"),
-                        args=[
-                            ast_call(
-                                func=ast_attr("self.template"),
-                                args=[ast.Str(selector)])])))
+                        args=[ast_call(func=ast_attr("self.template"), args=[ast.Str(selector)])])))
             elif atype == "open":
                 action_elements.append(
                     ast.Expr(ast_call(
                         func=ast_attr("self.driver.execute_script"),
-                        args=[
-                            ast_call(
-                                func=ast_attr("self.template"),
-                                args=[
-                                    ast_call(
-                                        func=ast_attr("window.open"),
-                                        args=[ast.Str(selector)])])])))
+                        args=[ast_call(
+                            func=ast_attr("self.template"),
+                            args=[ast_call(func=ast_attr("window.open"), args=[ast.Str(selector)])])])))
             elif atype == "close":
                 args = []
                 if selector:
@@ -925,15 +918,26 @@ class ApiritifScriptGenerator(object):
                         func=ast_attr("self.wnd_mng.close"),
                         args=args)))
         elif atype == "switchframe":
-            if tag == "byidx":
-                cmd = "self.frm_mng.switch(%r)" % int(selector)
-            elif selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
-                cmd = "self.frm_mng.switch(%r)" % selector
-            else:
-                frame = "self.driver.find_element(By.%s, self.template(%r))" % (bys[tag], selector)
-                cmd = "self.frm_mng.switch(%s)" % frame
+            if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
+                if tag == "byidx":
+                    selector = "index=%s" % selector
 
-            action_elements.append(self.gen_statement(cmd, indent=indent))
+                element = ast_call(
+                    func=ast_attr("self.frm_mng.switch"),
+                    args=[ast.Str(selector)])
+            else:
+                locators = [
+                    ast_attr("By.%s" % bys[tag]),
+                    ast_call(func=ast_attr("self.template"), args=[ast.Str(selector)])]
+
+                element = ast_call(
+                    func=ast_attr("self.frm_mng.switch"),
+                    args=[
+                        ast_call(
+                            func=ast_attr("self.driver.find_element"),
+                            args=locators)])
+
+            action_elements.append(ast.Expr(element))
 
         elif atype in action_chains:
             tpl = "self.driver.find_element(By.%s, self.template(%r))"

@@ -302,7 +302,12 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         "actions": [
                             "switchWindow(0)",
                             "openWindow(some.url)",
-                            "closeWindow('win_ser_local')"
+                            "closeWindow()",
+                            "closeWindow('win_ser_local')",
+                            "switchFrameByIdx(1)",
+                            "switchFrame(relative=parent)",
+                            "switchFrameByName('my_frame')",
+
                         ]}]}}})
 
         self.obj.prepare()
@@ -312,7 +317,11 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         target_lines = [
             "self.wnd_mng.switch(self.template('0'))",
             "self.driver.execute_script(self.template(window.open('some.url')))",
-            "self.wnd_mng.close(self.template('win_ser_local'))"]
+            "self.wnd_mng.close()",
+            "self.wnd_mng.close(self.template('win_ser_local'))",
+            "self.frm_mng.switch('index=1')",
+            "self.frm_mng.switch('relative=parent')",
+            "self.frm_mng.switch(self.driver.find_element(By.NAME, self.template('my_frame')))",]
 
         for line in target_lines:
             self.assertIn(line, content)
