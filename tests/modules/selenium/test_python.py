@@ -300,13 +300,19 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
+                            # windows
                             "switchWindow(0)",
                             "openWindow(some.url)",
                             "closeWindow()",
                             "closeWindow('win_ser_local')",
+
+                            # frames
                             "switchFrameByIdx(1)",
                             "switchFrame(relative=parent)",
                             "switchFrameByName('my_frame')",
+
+                            # chains
+                            "mouseDownByXPath(/html/body/div[3]/form/select[1])",
 
                         ]}]}}})
 
@@ -321,7 +327,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "self.wnd_mng.close(self.template('win_ser_local'))",
             "self.frm_mng.switch('index=1')",
             "self.frm_mng.switch('relative=parent')",
-            "self.frm_mng.switch(self.driver.find_element(By.NAME, self.template('my_frame')))",]
+            "self.frm_mng.switch(self.driver.find_element(By.NAME, self.template('my_frame')))",
+            "ActionChains(self.driver).click_and_hold(self.driver.find_element(By.XPATH, self.template('/html/body/div[3]/form/select[1]'))).perform()"]
 
         for line in target_lines:
             self.assertIn(line, content)

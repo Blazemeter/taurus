@@ -33,12 +33,22 @@ from .jmeter_functions import TimeFunction, RandomFunction, RandomStringFunction
 
 
 def ast_attr(fields):
-    """ fields is string of attrs (e.g. 'self.call.me.now') """
-    if "." in fields:
-        fields_list = fields.split(".")
-        return ast.Attribute(attr=fields_list[-1], value=ast_attr(".".join(fields_list[:-1])))
-    else:
+    """ fields is string of attrs (e.g. 'self.call.me.now') or list of ast args"""
+    if isinstance(fields, string_types):
+        if "." in fields:
+            fields_list = fields.split(".")
+            return ast.Attribute(attr=fields_list[-1], value=ast_attr(".".join(fields_list[:-1])))
+
         return ast.Name(id=fields)
+    else:
+        if len(fields) == 1:
+            if isinstance(fields[0], string_types):
+                return ast.Name(id=fields[0])
+            else:
+                return fields[0]
+
+        return ast.Attribute(attr=fields[-1], value=ast_attr(fields[:-1]))  # join ast expressions
+
 
 
 def ast_call(func, args=None, keywords=None):
@@ -871,6 +881,16 @@ class ApiritifScriptGenerator(object):
             selector = ""
         return atype, tag, param, selector
 
+    @staticmethod
+    def _gen_locator(by, selector):
+        return ast_call(
+            func=ast_attr("self.driver.find_element"),
+            args=[
+                ast_attr("By.%s" % by),
+                ast_call(
+                    func=ast_attr("self.template"),
+                    args=[ast.Str(selector)])])
+
     def gen_action(self, action_config, indent=None):
         action = self._parse_action(action_config)
         if action:
@@ -926,25 +946,31 @@ class ApiritifScriptGenerator(object):
                     func=ast_attr("self.frm_mng.switch"),
                     args=[ast.Str(selector)])
             else:
-                locators = [
-                    ast_attr("By.%s" % bys[tag]),
-                    ast_call(func=ast_attr("self.template"), args=[ast.Str(selector)])]
-
                 element = ast_call(
                     func=ast_attr("self.frm_mng.switch"),
-                    args=[
-                        ast_call(
-                            func=ast_attr("self.driver.find_element"),
-                            args=locators)])
+                    args=[self._gen_locator(bys[tag], selector)])
 
             action_elements.append(ast.Expr(element))
 
         elif atype in action_chains:
-            tpl = "self.driver.find_element(By.%s, self.template(%r))"
-            action = action_chains[atype]
-            action_elements.append(self.gen_statement(
-                "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
-                indent=indent))
+            #tpl = "self.driver.find_element(By.%s, self.template(%r))" %  (bys[tag], selector)
+            #action = action_chains[atype]
+            #action_elements.append(self.gen_statement(
+            #    "ActionChains(self.driver).%s(%s).perform()" % (action, tpl),
+            #    indent=indent))
+
+            action_elements.append(ast.Expr(
+                ast_call(
+                    func=ast_attr(
+                        fields=(
+                            ast_call(
+                                func=ast_attr(
+                                    fields=(
+                                        ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
+                                        action_chains[atype])),
+                                args=self._gen_locator(bys[tag], selector)),
+                            "perform")))))
+
         elif atype == 'drag':
             drop_action = self._parse_action(param)
             if drop_action and drop_action[0] == "element" and not drop_action[2]:
