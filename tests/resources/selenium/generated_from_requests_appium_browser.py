@@ -20,7 +20,7 @@ class TestRequests(unittest.TestCase):
         self.vars = {}
         self.template = Template(self.vars)
         
-        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={"browserName": "Chrome", "deviceName": "", "platformName": "Android"})
+        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={"browserName": "chrome", "deviceName": "", "platformName": "android"})
         self.driver.implicitly_wait(3.5)
         self.wnd_mng = WindowManager(self.driver)
         self.frm_mng = FrameManager(self.driver)

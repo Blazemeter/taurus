@@ -352,18 +352,16 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 },
                 "loc_sc_remote": {
                     "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
-                    "capabilities": [
-                        {
-                            "browser": "firefox",
-                            "version": "54.0",
-                            "platform": "linux",
-                            "javascript": "True",
-                            "os_version": "",
-                            "selenium": "",
-                            "device": "",
-                            "app": ""
-                        }
-                    ],
+                    "capabilities": {
+                        "browserName": "firefox",
+                        "version": "54.0",
+                        "platformName": "linux",
+                        "javascriptEnabled": "True",
+                        "platformVersion": "",
+                        "seleniumVersion": "",
+                        "deviceName": "",
+                        "app": ""
+                    },
                     "default-address": "http://blazedemo.com",
                     "timeout": "3.5s",
                     "requests": [{
@@ -469,18 +467,16 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "scenarios": {
                 "loc_sc_remote": {
                     "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
-                    "capabilities": [
-                        {
-                            "browser": "firefox",
-                            "version": "54.0",
-                            "platform": "linux",
-                            "javascript": "True",
-                            "os_version": "",
-                            "selenium": "",
-                            "device": "",
-                            "app": ""
-                        }
-                    ],
+                    "capabilities": {
+                        "browserName": "firefox",
+                        "version": "54.0",
+                        "platformName": "linux",
+                        "javascriptEnabled": "True",
+                        "platformVersion": "",
+                        "seleniumVersion": "",
+                        "deviceName": "",
+                        "app": ""
+                    },
                     "default-address": "http://blazedemo.com",
                     "timeout": "3.5s",
                     "requests": [{
@@ -514,11 +510,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "scenarios": {
                 "loc_sc_appium": {
                     "browser": "Chrome-Android",
-                    "capabilities": [
-                        {
-                            "device": "",
-                        }
-                    ],
+                    "capabilities": {
+                        "deviceName": "",
+                    },
                     "default-address": "http://blazedemo.com",
                     "timeout": "3.5s",
                     "requests": [{
@@ -541,6 +535,80 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py"
         self.assertFilesEqual(exp_file, self.obj.script)
+
+    def test_build_script_remote_empty_browser(self):
+        """ taurus should not wipe browserName (from capabilities) """
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "remote": "http://addr-of-remote-server.com",
+                "scenario": "remote_sc"}],
+            "scenarios": {
+                "remote_sc": {  # no 'browser' element
+                    "capabilities": {
+                        "browserName": "chrome"},     # must be faced in desired_capabilities
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "http://blazedemo.com",
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])"]},
+                        {"label": "empty"}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = '"browserName": "chrome"'
+        self.assertIn(target, content)
+
+    def test_build_script_remote_browser(self):
+        """ taurus should not wipe browserName (from capabilities) """
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "remote": "http://addr-of-remote-server.com",
+                "scenario": "remote_sc"}],
+            "scenarios": {
+                "remote_sc": {
+                    "capabilities": {
+                        "browserName": "chrome"},     # must be faced in desired_capabilities
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "http://blazedemo.com",
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])"]},
+                        {"label": "empty"}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = '"browserName": "chrome"'
+        self.assertIn(target, content)
+
+    def test_build_script_remote_Firefox_browser(self):
+        """ check usage of 'browser' scenario options as browserName (from capabilities) """
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "remote": "http://addr-of-remote-server.com",
+                "scenario": "remote_sc"}],
+            "scenarios": {
+                "remote_sc": {
+                    "browser": "Firefox",   # must be faced in desired_capabilities (in lower case)
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "http://blazedemo.com",
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])"]},
+                        {"label": "empty"}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = '"browserName": "firefox"'
+        self.assertIn(target, content)
 
     def test_build_script_flow_markers(self):
         self.configure({

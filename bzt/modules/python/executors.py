@@ -18,6 +18,7 @@ import os
 import re
 import shlex
 import sys
+import copy
 
 import yaml
 
@@ -86,16 +87,34 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
-            ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
-            generate_markers = scenario.get('generate-flow-markers', self.settings.get('generate-flow-markers', None))
-            extra_utilities = os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py")
-            builder = SeleniumScriptBuilder(scenario, self.log, wdlog, extra_utilities, ignore_unknown_actions,
-                                            generate_markers)
-            builder.label = self.label
-            builder.webdriver_address = self.settings.get("remote", builder.webdriver_address)
-            builder.webdriver_address = self.execution.get("remote", builder.webdriver_address)
-            builder.capabilities_from_outside = self.settings.get("capabilities")
-            builder.capabilities_from_outside.merge(self.execution.get("capabilities"))
+
+            generate_markers = self.settings.get('generate-flow-markers', None)
+            generate_markers = scenario.get('generate-flow-markers', generate_markers)
+
+            capabilities = copy.deepcopy(self.settings.get("capabilities"))
+            capabilities.merge(copy.deepcopy(self.execution.get("capabilities")))
+
+            scenario_caps = copy.deepcopy(scenario.get("capabilities"))
+
+            # todo: just for legacy support, remove it later
+            if isinstance(scenario_caps, list):
+                self.log.warning("Obsolete format of capabilities found (list), should be dict")
+                scenario_caps = {item.keys()[0]: item.values()[0] for item in scenario_caps}
+
+            capabilities.merge(scenario_caps)
+
+            remote = self.settings.get("remote", None)
+            remote = self.execution.get("remote", remote)
+            remote = scenario.get("remote", remote)
+
+            builder = SeleniumScriptBuilder(
+                scenario, self.log, wdlog,
+                utils_file=os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py"),
+                ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
+                generate_markers=generate_markers,
+                capabilities=capabilities,
+                label=self.label,
+                wd_addr=remote)
 
         builder.build_source_code()
         builder.save(filename)
