@@ -862,11 +862,12 @@ class ApiritifScriptGenerator(object):
             selector = ""
         return atype, tag, param, selector
 
-    @staticmethod
-    def _gen_attr(base, attr):
-        if not isinstance(base, ast.expr):
-            base = ast.Name(id=base)
-        return ast.Attribute(attr=attr, value=base)
+    def _gen_attr(self, fields):
+        if "." in fields:
+            fields_list = fields.split(".")
+            return ast.Attribute(attr=fields_list[-1], value=self._gen_attr(".".join(fields_list[:-1])))
+        else:
+            return ast.Name(id=fields)
 
     @staticmethod
     def _gen_call(func, args):
@@ -899,37 +900,31 @@ class ApiritifScriptGenerator(object):
             if atype == "switch":
                 action_elements.append(
                     ast.Expr(self._gen_call(
-                        func=self._gen_attr(
-                            base=self._gen_attr(base="self", attr="wnd_mng"),
-                            attr="switch"),
+                        func=self._gen_attr("self.wnd_mng.switch"),
                         args=[
                             self._gen_call(
-                                func=self._gen_attr(base="self", attr="template"),
+                                func=self._gen_attr("self.template"),
                                 args=[ast.Str(selector)])])))
             elif atype == "open":
                 action_elements.append(
                     ast.Expr(self._gen_call(
-                        func=self._gen_attr(
-                            base=self._gen_attr(base="self", attr="driver"),
-                            attr="execute_script"),
+                        func=self._gen_attr("self.driver.execute_script"),
                         args=[
                             self._gen_call(
-                                func=self._gen_attr(base="self", attr="template"),
+                                func=self._gen_attr("self.template"),
                                 args=[
                                     self._gen_call(
-                                        func=self._gen_attr(base="window", attr="open"),
+                                        func=self._gen_attr("window.open"),
                                         args=[ast.Str(selector)])])])))
             elif atype == "close":
                 args = []
                 if selector:
                     args.append(self._gen_call(
-                        func=self._gen_attr(base="self", attr="template"),
+                        func=self._gen_attr("self.template"),
                         args=[ast.Str(selector)]))
                 action_elements.append(
                     ast.Expr(self._gen_call(
-                        func=self._gen_attr(
-                            base=self._gen_attr(base="self", attr="wnd_mng"),
-                            attr="close"),
+                        func=self._gen_attr("self.wnd_mng.close"),
                         args=args)))
         elif atype == "switchframe":
             if tag == "byidx":

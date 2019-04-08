@@ -311,7 +311,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
 
         target_lines = [
             "self.wnd_mng.switch(self.template('0'))",
-            "self.driver.execute_script(self.template(window.open('%s')))",
+            "self.driver.execute_script(self.template(window.open('some.url')))",
             "self.wnd_mng.close(self.template('win_ser_local'))"]
 
         for line in target_lines:
