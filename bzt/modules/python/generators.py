@@ -863,6 +863,7 @@ class ApiritifScriptGenerator(object):
         return atype, tag, param, selector
 
     def _gen_attr(self, fields):
+        """ fields is string of attrs (e.g. 'self.call.me.now') """
         if "." in fields:
             fields_list = fields.split(".")
             return ast.Attribute(attr=fields_list[-1], value=self._gen_attr(".".join(fields_list[:-1])))
@@ -870,7 +871,8 @@ class ApiritifScriptGenerator(object):
             return ast.Name(id=fields)
 
     @staticmethod
-    def _gen_call(func, args):
+    def _gen_call(func, args=None):
+        args = args or []
         return ast.Call(func=func, args=args, starargs=None, kwargs=None, keywords=[])
 
     def gen_action(self, action_config, indent=None):
@@ -1111,10 +1113,7 @@ class ApiritifScriptGenerator(object):
 
         data_sources = [self._gen_default_vars()]
         for idx in range(len(self.data_sources)):
-            reader = "reader_%s" % (idx + 1)
-            func = ast.Attribute(value=ast.Name(id=reader), attr="read_vars")
-            read_vars = ast.Call(func=func, args=[], starargs=None, kwargs=None, keywords=[])
-            data_sources.append(ast.Expr(read_vars))
+            data_sources.append(ast.Expr(self._gen_call(func=self._gen_attr("reader_%s.read_vars" % (idx + 1)))))
 
         for idx in range(len(self.data_sources)):
             reader_get_vars = ast.Attribute(value=ast.Name(id="reader_%s" % (idx + 1)), attr="get_vars")
