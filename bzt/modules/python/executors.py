@@ -93,7 +93,15 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
             capabilities = copy.deepcopy(self.settings.get("capabilities"))
             capabilities.merge(copy.deepcopy(self.execution.get("capabilities")))
-            capabilities.merge(copy.deepcopy(scenario.get("capabilities")))
+
+            scenario_caps = copy.deepcopy(scenario.get("capabilities"))
+
+            # todo: just for legacy support, remove it later
+            if isinstance(scenario_caps, list):
+                self.log.warning("Obsolete format of capabilities found (list), should be dict")
+                scenario_caps = {item.keys()[0]: item.values()[0] for item in scenario_caps}
+
+            capabilities.merge(scenario_caps)
 
             remote = self.settings.get("remote", None)
             remote = self.execution.get("remote", remote)
