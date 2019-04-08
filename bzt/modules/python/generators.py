@@ -1116,24 +1116,20 @@ class ApiritifScriptGenerator(object):
             data_sources.append(ast.Expr(self._gen_call(func=self._gen_attr("reader_%s.read_vars" % (idx + 1)))))
 
         for idx in range(len(self.data_sources)):
-            reader_get_vars = ast.Attribute(value=ast.Name(id="reader_%s" % (idx + 1)), attr="get_vars")
-            get_vars = ast.Call(func=reader_get_vars, args=[], starargs=None, kwargs=None,keywords=[])
 
-            update = ast.Attribute(attr="update", value=ast.Name(id="vars"))
-
-            extend_vars = ast.Call(func=update, args=[get_vars], starargs=None, kwargs=None, keywords=[])
+            extend_vars = self._gen_call(
+                func=self._gen_attr("vars.update"),
+                args=[self._gen_call(
+                    func=self._gen_attr("reader_%s.get_vars" % (idx + 1)))])
             data_sources.append(ast.Expr(extend_vars))
 
         self.stored_vars = ['vars']
         if target_init:
             self.stored_vars.append('target')
 
-        store_call = ast.Call(
-                func=ast.Attribute(attr="put_into_thread_store", value=ast.Name(id="apiritif")),
-                args=[ast.Name(id=var) for var in self.stored_vars],
-                starargs=None,
-                kwargs=None,
-                keywords=[])
+        store_call = self._gen_call(
+                func=self._gen_attr("apiritif.put_into_thread_store"),
+                args=[ast.Name(id=var) for var in self.stored_vars])
 
         store_block = [self._gen_empty_line_stmt(), ast.Expr(store_call)]
 
@@ -1195,11 +1191,9 @@ class ApiritifScriptGenerator(object):
         class_body = [self._gen_class_setup()]
         class_body.extend(self._gen_test_methods())
 
-        class_name = create_class_name(self.label)
-        base = ast.Attribute(value=ast.Name(id='unittest', ctx=ast.Load()), attr='TestCase', ctx=ast.Load())
         return ast.ClassDef(
-            name=class_name,
-            bases=[base],
+            name=create_class_name(self.label),
+            bases=[self._gen_attr("unittest.TestCase")],
             body=class_body,
             keywords=[],
             starargs=None,
@@ -1208,8 +1202,7 @@ class ApiritifScriptGenerator(object):
 
     def _gen_class_setup(self):
         fields = ast.Tuple(elts=[ast.Name(id="self.%s" % var) for var in self.stored_vars])
-        get_func = ast.Attribute(attr="get_from_thread_store", value=ast.Name(id="apiritif"))
-        get_call = ast.Call(func=get_func, args=[], starargs=None, kwargs=None, keywords=[])
+        get_call = self._gen_call(func=self._gen_attr("apiritif.get_from_thread_store"))
 
         get_expr = ast.Assign(targets=[fields], value=get_call)
         args = ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None)
@@ -1286,13 +1279,9 @@ class ApiritifScriptGenerator(object):
         return self.expr_compiler.gen_expr(value)
 
     def _gen_target_setup(self, key, value):
-        return ast.Expr(value=ast.Call(
-            func=ast.Attribute(value=ast.Name(id='target', ctx=ast.Load()), attr=key, ctx=ast.Load()),
-            args=[self.gen_expr(value)],
-            keywords=[],
-            starargs=None,
-            kwargs=None
-        ))
+        return ast.Expr(self._gen_call(
+            func=self._gen_attr("target.%s" % key),
+            args=[self.gen_expr(value)]))
 
     def _access_method(self):
         keepalive = self.scenario.get("keepalive", None)
@@ -1337,17 +1326,9 @@ class ApiritifScriptGenerator(object):
     def _init_target(self):
         default_address = self.scenario.get("default-address", None)
 
-        http = ast.Attribute(
-            value=ast.Name(id='apiritif', ctx=ast.Load()),
-            attr='http',
-            ctx=ast.Load())
-
-        target_call = ast.Call(
-            func=ast.Attribute(value=http, attr='target', ctx=ast.Load()),
-            args=[self.gen_expr(default_address)],
-            keywords=[],
-            starargs=None,
-            kwargs=None)
+        target_call = self._gen_call(
+            func=self._gen_attr("apiritif.http.target"),
+            args=[self.gen_expr(default_address)])
 
         target = ast.Assign(
             targets=[ast.Name(id="target", ctx=ast.Store())],
@@ -1402,13 +1383,9 @@ class ApiritifScriptGenerator(object):
                 body.append(self._gen_http_request(request))
 
         transaction = ast.With(
-            context_expr=ast.Call(
-                func=ast.Attribute(value=ast.Name(id='apiritif'), attr="transaction"),
-                args=[self.gen_expr(trans_conf.label)],
-                keywords=[],
-                starargs=None,
-                kwargs=None
-            ),
+            context_expr=self._gen_call(
+                func=self._gen_attr("apiritif.transaction"),
+                args=[self.gen_expr(trans_conf.label)]),
             optional_vars=None,
             body=body)
 
@@ -1422,7 +1399,7 @@ class ApiritifScriptGenerator(object):
             method = req.method.lower()
             named_args = self._extract_named_args(req)
             target = ast.Name(id='self.target', ctx=ast.Load())
-            apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
+            apiritif_http = self._gen_attr("apiritif.http")
 
             requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
 
@@ -1451,17 +1428,11 @@ class ApiritifScriptGenerator(object):
         lines.extend(self._gen_extractors(req))
 
         if think_time:
-            lines.append(
-                ast.Expr(
-                    ast.Call(
-                        func=ast.Attribute(
-                            value=ast.Name(id="time", ctx=ast.Load()),
-                            attr="sleep",
-                            ctx=ast.Load()),
-                        args=[self.gen_expr(think_time)],
-                        keywords=[],
-                        starargs=None,
-                        kwargs=None)))
+            lines.append(ast.Expr(
+                self._gen_call(
+                    func=self._gen_attr("time.sleep"),
+                    args=[self.gen_expr(think_time)])))
+
         return lines
 
     def _gen_default_vars(self):
@@ -1494,34 +1465,17 @@ class ApiritifScriptGenerator(object):
                     }
                     method = func_table[(subject, assertion.get('regexp', True), assertion.get('not', False))]
                     stmts.append(ast.Expr(
-                        ast.Call(
-                            func=ast.Attribute(
-                                value=ast.Name(id="response", ctx=ast.Load()),
-                                attr=method,
-                                ctx=ast.Load()
-                            ),
-                            args=[self.gen_expr(member)],
-                            keywords=[],
-                            starargs=None,
-                            kwargs=None
-                        )
-                    ))
+                        self._gen_call(
+                            func=self._gen_attr("response.%s" % method),
+                            args=[self.gen_expr(member)])))
+
             elif subject == Scenario.FIELD_RESP_CODE:
                 for member in assertion["contains"]:
                     method = "assert_status_code" if not assertion.get('not', False) else "assert_not_status_code"
                     stmts.append(ast.Expr(
-                        ast.Call(
-                            func=ast.Attribute(
-                                value=ast.Name(id="response", ctx=ast.Load()),
-                                attr=method,
-                                ctx=ast.Load()
-                            ),
-                            args=[self.gen_expr(member)],
-                            keywords=[],
-                            starargs=None,
-                            kwargs=None
-                        )
-                    ))
+                        self._gen_call(
+                            func=self._gen_attr("response.%s" % method),
+                            args=[self.gen_expr(member)])))
         return stmts
 
     def _gen_jsonpath_assertions(self, request):
@@ -1535,11 +1489,7 @@ class ApiritifScriptGenerator(object):
             method = "assert_not_jsonpath" if assertion.get('invert', False) else "assert_jsonpath"
             stmts.append(ast.Expr(
                 ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="response", ctx=ast.Load()),
-                        attr=method,
-                        ctx=ast.Load()
-                    ),
+                    func=self._gen_attr("response.%s" % method),
                     args=[self.gen_expr(query)],
                     keywords=[ast.keyword(arg="expected_value", value=self.gen_expr(expected))],
                     starargs=None,
@@ -1561,11 +1511,7 @@ class ApiritifScriptGenerator(object):
             method = "assert_not_xpath" if assertion.get('invert', False) else "assert_xpath"
             stmts.append(ast.Expr(
                 ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="response", ctx=ast.Load()),
-                        attr=method,
-                        ctx=ast.Load()
-                    ),
+                    func=self._gen_attr("response.%s" % method),
                     args=[self.gen_expr(query)],
                     keywords=[ast.keyword(arg="parser_type", value=self.gen_expr(parser_type)),
                               ast.keyword(arg="validate", value=self.gen_expr(validate))],
@@ -1583,18 +1529,9 @@ class ApiritifScriptGenerator(object):
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
             stmts.append(ast.Assign(
                 targets=[self.expr_compiler.gen_var_accessor(varname, ast.Store())],
-                value=ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="response", ctx=ast.Load()),
-                        attr="extract_jsonpath",
-                        ctx=ast.Load()
-                    ),
-                    args=[self.gen_expr(cfg['jsonpath']), self.gen_expr(cfg.get('default', 'NOT_FOUND'))],
-                    keywords=[],
-                    starargs=None,
-                    kwargs=None
-                )
-            ))
+                value=self._gen_call(
+                    func=self._gen_attr("response.extract_jsonpath"),
+                    args=[self.gen_expr(cfg['jsonpath']), self.gen_expr(cfg.get('default', 'NOT_FOUND'))])))
 
         extractors = request.config.get("extract-regexp")
         for varname in extractors:
@@ -1602,18 +1539,9 @@ class ApiritifScriptGenerator(object):
             # TODO: support non-'body' value of 'subject'
             stmts.append(ast.Assign(
                 targets=[self.expr_compiler.gen_var_accessor(varname, ast.Store())],
-                value=ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="response", ctx=ast.Load()),
-                        attr="extract_regex",
-                        ctx=ast.Load()
-                    ),
-                    args=[self.gen_expr(cfg['regexp']), self.gen_expr(cfg.get('default', 'NOT_FOUND'))],
-                    keywords=[],
-                    starargs=None,
-                    kwargs=None
-                )
-            ))
+                value=self._gen_call(
+                    func=self._gen_attr("response.extract_regex"),
+                    args=[self.gen_expr(cfg['regexp']), self.gen_expr(cfg.get('default', 'NOT_FOUND'))])))
 
         # TODO: css/jquery extractor?
 
@@ -1625,11 +1553,7 @@ class ApiritifScriptGenerator(object):
             stmts.append(ast.Assign(
                 targets=[self.expr_compiler.gen_var_accessor(varname, ast.Store())],
                 value=ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="response", ctx=ast.Load()),
-                        attr="extract_xpath",
-                        ctx=ast.Load()
-                    ),
+                    func=self._gen_attr("response.extract_xpath"),
                     args=[self.gen_expr(cfg['xpath'])],
                     keywords=[ast.keyword(arg="default", value=cfg.get('default', 'NOT_FOUND')),
                               ast.keyword(arg="parser_type", value=parser_type),
@@ -1661,34 +1585,19 @@ class ApiritifScriptGenerator(object):
             fds.write(source)
 
     def _gen_logging(self):
-        set_log = ast.Assign(targets=[ast.Name(id="log")], value=ast.Call(
-                func=ast.Attribute(
-                    value=ast.Name(id="logging"),
-                    attr="getLogger"),
-                args=[ast.Str(s="apiritif.http")],
-                keywords=[],
-                starargs=None,
-                kwargs=None))
-        add_handler = ast.Call(
-            func=ast.Attribute(
-                value=ast.Name(id="log"),
-                attr="addHandler"),
-            args=[ast.Call(
-                    func=ast.Attribute(value=ast.Name(id="logging"), attr="StreamHandler"),
-                    args=[ast.Attribute(value=ast.Name(id="sys"), attr="stdout")],
-                    keywords=[],
-                    starargs=None,
-                    kwargs=None)],
-            keywords=[],
-            starargs=None,
-            kwargs=None
-        )
-        set_level = ast.Call(
-            func=ast.Attribute(value=ast.Name(id="log"), attr="setLevel"),
-            args=[ast.Attribute(value=ast.Name(id="logging"), attr="DEBUG")],
-            keywords=[],
-            starargs=None,
-            kwargs=None)
+        set_log = ast.Assign(
+            targets=[ast.Name(id="log")],
+            value=self._gen_call(
+                func=self._gen_attr("logging.getLogger"),
+                args=[ast.Str(s="apiritif.http")]))
+        add_handler = self._gen_call(
+            func=self._gen_attr("log.addHandler"),
+            args=[self._gen_call(
+                    func=self._gen_attr("logging.StreamHandler"),
+                    args=[self._gen_attr("sys.stdout")])])
+        set_level = self._gen_call(
+            func=self._gen_attr("log.setLevel"),
+            args=[self._gen_attr("logging.DEBUG")])
 
         return [set_log, self._gen_empty_line_stmt(), add_handler,
                 self._gen_empty_line_stmt(), set_level, self._gen_empty_line_stmt()]
