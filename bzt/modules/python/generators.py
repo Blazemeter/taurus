@@ -189,7 +189,6 @@ class JMeterExprCompiler(object):
 
 
 class SeleniumScriptBuilder(PythonGenerator):
-
     IMPORTS_SELENIUM = """import unittest
 import os
 import re
@@ -402,7 +401,7 @@ import apiritif
 
         browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
-        browser = browser.lower()   # todo: whether we should take browser as is? (without lower case)
+        browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
 
         browser_platform = None
         if browser:
@@ -882,15 +881,28 @@ class ApiritifScriptGenerator(object):
             selector = ""
         return atype, tag, param, selector
 
-    @staticmethod
-    def _gen_locator(by, selector):
+    def _gen_locator(self, by, selector):
         return ast_call(
             func=ast_attr("self.driver.find_element"),
             args=[
                 ast_attr("By.%s" % by),
-                ast_call(
-                    func=ast_attr("self.template"),
-                    args=[ast.Str(selector)])])
+                self._gen_tpl(selector)])
+
+    @staticmethod
+    def _gen_tpl(selector):
+        if isinstance(selector, string_types):
+            selector = ast.Str(selector)
+        return ast_call(
+            func=ast_attr("self.template"),
+            args=[selector])
+
+    @staticmethod
+    def _gen_store(name, value):
+        return ast.Assign(
+            targets=[ast.Subscript(
+                value=ast_attr("self.vars"),
+                slice=ast.Str(name))],
+            value=value)
 
     def gen_action(self, action_config, indent=None):
         action = self._parse_action(action_config)
@@ -966,13 +978,14 @@ class ApiritifScriptGenerator(object):
                                 args=[self._gen_locator(bys[tag], selector)]),
                             "perform")))))
 
-        elif atype == 'drag':
+        elif atype == "drag":
             drop_action = self._parse_action(param)
             if drop_action and drop_action[0] == "element" and not drop_action[2]:
                 drop_tag, drop_selector = (drop_action[1], drop_action[3])
-                operator = ast_attr(fields=(
-                    ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
-                    "drag_and_drop"))
+                operator = ast_attr(
+                    fields=(
+                        ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
+                        "drag_and_drop"))
                 action_elements.append(ast.Expr(
                     ast_call(
                         func=ast_attr(
@@ -982,63 +995,104 @@ class ApiritifScriptGenerator(object):
                                     args=[self._gen_locator(bys[tag], selector),
                                           self._gen_locator(bys[drop_tag], drop_selector)]),
                                 "perform")))))
-        elif atype == 'select':
+        elif atype == "select":
             action_elements.append(ast.Expr(
                 ast_call(
                     func=ast_attr(
                         fields=(
                             ast_call(func="Select", args=[self._gen_locator(bys[tag], selector)]),
                             "select_by_visible_text")),
-                    args=[
-                        ast_call(
-                            func=ast_attr("self.template"),
-                            args=[ast.Str(param)])])))
+                    args=[self._gen_tpl(param)])))
         elif atype.startswith('assert') or atype.startswith('store'):
             if tag == 'title':
                 if atype.startswith('assert'):
                     action_elements.append(
-                        self.gen_statement("self.assertEqual(self.driver.title, self.template(%r))"
-                                           % selector, indent=indent))
+                        ast.Expr(
+                            ast_call(
+                                func=ast_attr("self.assertEqual"),
+                                args=[ast_attr("self.driver.title"), self._gen_tpl(selector)])))
                 else:
-                    action_elements.append(self.gen_statement(
-                        "self.vars['%s'] = self.template(self.driver.title)" % param.strip(), indent=indent
-                    ))
+                    action_elements.append(
+                        ast.Expr(
+                            self._gen_store(
+                                name=param.strip(),
+                                value=self._gen_tpl(ast_attr("self.driver.title")))))
             elif atype == 'store' and tag == 'string':
-                action_elements.append(self.gen_statement(
-                    "self.vars['%s'] = self.template('%s')" % (param.strip(), selector.strip()), indent=indent
-                ))
+                action_elements.append(
+                    ast.Expr(
+                        self._gen_store(
+                            name=param.strip(),
+                            value=self._gen_tpl(selector.strip()))))
             else:
-                tpl = "self.driver.find_element(By.%s, self.template(%r)).%s"
                 if atype in ['asserttext', 'storetext']:
-                    action = "get_attribute('innerText')"
+                    target = "innerText"
                 elif atype in ['assertvalue', 'storevalue']:
-                    action = "get_attribute('value')"
+                    target = "value"
+                else:
+                    return []
+
+                locator_attr = ast_call(
+                    func=ast_attr(
+                        fields=(
+                            self._gen_locator(bys[tag], selector),
+                            "get_attribute")),
+                    args=[ast.Str(target)])
+
                 if atype.startswith('assert'):
                     action_elements.append(
-                        self.gen_statement("self.assertEqual(self.template(%s).strip(), self.template(%r).strip())" %
-                                           (tpl % (bys[tag], selector, action), param),
-                                           indent=indent))
+                        ast.Expr(
+                            ast_call(func=ast_attr(fields="self.assertEqual"),
+                                     args=[
+                                         ast_call(
+                                             func=ast_attr(
+                                                 fields=(
+                                                     self._gen_tpl(locator_attr),
+                                                     "strip"))),
+                                         ast_call(
+                                             func=ast_attr(
+                                                 fields=(
+                                                     self._gen_tpl(param),
+                                                     "strip")))])))
                 elif atype.startswith('store'):
                     action_elements.append(
-                        self.gen_statement("self.vars['%s'] = self.template(%s)" %
-                                           (param.strip(), tpl % (bys[tag], selector, action)),
-                                           indent=indent))
+                        ast.Expr(
+                            self._gen_store(
+                                name=param.strip(),
+                                value=self._gen_tpl(locator_attr))))
+
         elif atype in ('click', 'type', 'keys', 'submit'):
-            tpl = "self.driver.find_element(By.%s, self.template(%r)).%s"
-            action = None
+
+            args = []
             if atype == 'click':
-                action = "click()"
+                action = "click"
             elif atype == 'submit':
-                action = "submit()"
+                action = "submit"
             elif atype in ['keys', 'type']:
                 if atype == 'type':
-                    action_elements.append(self.gen_statement(
-                        tpl % (bys[tag], selector, "clear()"), indent=indent))
-                action = "send_keys(self.template(%r))" % str(param)
-                if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
-                    action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
+                    action_elements.append(
+                        ast.Expr(
+                            ast_call(
+                                func=ast_attr(
+                                    fields=(
+                                        self._gen_locator(bys[tag], selector),
+                                        "clear")))))
 
-            action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
+                action = "send_keys"
+                if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
+                    args = [ast_attr("Keys.%s" % param.split("KEY_")[1])]
+                else:
+                    args = [self._gen_tpl(str(param))]
+            else:
+                return []
+
+            action_elements.append(
+                ast.Expr(
+                    ast_call(
+                        func=ast_attr(
+                            fields=(
+                                self._gen_locator(bys[tag], selector),
+                                action)),
+                        args=args)))
 
         elif atype == "script" and tag == "eval":
             cmd = 'self.driver.execute_script(self.template(%r))' % selector
@@ -1137,7 +1191,7 @@ class ApiritifScriptGenerator(object):
             ast.Import(names=[ast.alias(name='time', asname=None)]),
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             self._gen_empty_line_stmt(),
-            ast.Import(names=[ast.alias(name='apiritif', asname=None)]),    # or "from apiritif import http, utils"?
+            ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
             self._gen_empty_line_stmt()]
 
     def _gen_module_setup(self):
@@ -1148,7 +1202,6 @@ class ApiritifScriptGenerator(object):
             data_sources.append(ast.Expr(ast_call(func=ast_attr("reader_%s.read_vars" % (idx + 1)))))
 
         for idx in range(len(self.data_sources)):
-
             extend_vars = ast_call(
                 func=ast_attr("vars.update"),
                 args=[ast_call(
@@ -1160,8 +1213,8 @@ class ApiritifScriptGenerator(object):
             self.stored_vars.append('target')
 
         store_call = ast_call(
-                func=ast_attr("apiritif.put_into_thread_store"),
-                args=[ast.Name(id=var) for var in self.stored_vars])
+            func=ast_attr("apiritif.put_into_thread_store"),
+            args=[ast.Name(id=var) for var in self.stored_vars])
 
         store_block = [self._gen_empty_line_stmt(), ast.Expr(store_call)]
 
@@ -1271,7 +1324,7 @@ class ApiritifScriptGenerator(object):
             method_name = 'test_' + counter + '_' + label
 
             if isinstance(request, SetVariables):
-                self.service_methods.append(method_name)    # for sample excluding
+                self.service_methods.append(method_name)  # for sample excluding
 
             yield self._gen_test_method(method_name, body)
 
@@ -1604,8 +1657,8 @@ class ApiritifScriptGenerator(object):
         add_handler = ast_call(
             func=ast_attr("log.addHandler"),
             args=[ast_call(
-                    func=ast_attr("logging.StreamHandler"),
-                    args=[ast_attr("sys.stdout")])])
+                func=ast_attr("logging.StreamHandler"),
+                args=[ast_attr("sys.stdout")])])
         set_level = ast_call(
             func=ast_attr("log.setLevel"),
             args=[ast_attr("logging.DEBUG")])

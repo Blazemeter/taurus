@@ -314,10 +314,17 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             # chains
                             "mouseDownByXPath(/html/body/div[3]/form/select[1])",
 
-                            # drag, select, assert
+                            # drag, select, assert, store
                             {"dragByID(address)": "elementByName(toPort)"},
                             {"selectByName(my_frame)": "London"},
-                            #"assertTitle(BlazeDemo)",
+                            "assertTitle(BlazeDemo)",
+                            {"storeTitle()": "hEaDeR"},
+                            {"storeString(Title_Basic_By)": "Final"},
+                            {"assertValueByID(address)": "123 Beautiful st."},
+                            {"storeTextByID(address)": "Basic"},
+
+                            # click, type, keys, submit
+                            {"typeByName(\"toPort\")": "B"},
 
                         ]}]}}})
 
@@ -341,7 +348,15 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "ActionChains(self.driver).click_and_hold(%s).perform()" % locator1,
             "ActionChains(self.driver).drag_and_drop(%s, %s).perform()" % (locator2_1, locator2_2),
             "Select(%s).select_by_visible_text(self.template('London'))" % locator0,
-            #"self.assertEqual(self.driver.title, self.template('BlazeDemo'))"
+            "self.assertEqual(self.driver.title, self.template('BlazeDemo'))",
+            "self.vars['hEaDeR'] = self.template(self.driver.title)",
+            "self.vars['Final'] = self.template('Title_Basic_By')",
+            "self.vars['Basic'] = self.template(%s.get_attribute('innerText'))" % locator2_1,
+            "self.assertEqual(self.template(self.driver.find_element(By.ID, self.template('address'))." 
+                "get_attribute('value')).strip(), self.template('123 Beautiful st.').strip())",
+            "self.driver.find_element(By.NAME, self.template('toPort')).clear()",
+            "self.driver.find_element(By.NAME, self.template('toPort')).send_keys(self.template('B'))"
+
         ]
 
         for line in target_lines:
