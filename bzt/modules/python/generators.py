@@ -50,9 +50,10 @@ def ast_attr(fields):
         return ast.Attribute(attr=fields[-1], value=ast_attr(fields[:-1]))  # join ast expressions
 
 
-
 def ast_call(func, args=None, keywords=None):
     args = args or []
+    if isinstance(func, string_types):
+        func = ast.Name(id=func)
     return ast.Call(func=func, args=args, starargs=None, kwargs=None, keywords=keywords or [])
 
 
@@ -953,40 +954,45 @@ class ApiritifScriptGenerator(object):
             action_elements.append(ast.Expr(element))
 
         elif atype in action_chains:
-            #tpl = "self.driver.find_element(By.%s, self.template(%r))" %  (bys[tag], selector)
-            #action = action_chains[atype]
-            #action_elements.append(self.gen_statement(
-            #    "ActionChains(self.driver).%s(%s).perform()" % (action, tpl),
-            #    indent=indent))
-
+            operator = ast_attr(fields=(
+                ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
+                action_chains[atype]))
             action_elements.append(ast.Expr(
                 ast_call(
                     func=ast_attr(
                         fields=(
                             ast_call(
-                                func=ast_attr(
-                                    fields=(
-                                        ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
-                                        action_chains[atype])),
-                                args=self._gen_locator(bys[tag], selector)),
+                                func=operator,
+                                args=[self._gen_locator(bys[tag], selector)]),
                             "perform")))))
 
         elif atype == 'drag':
             drop_action = self._parse_action(param)
             if drop_action and drop_action[0] == "element" and not drop_action[2]:
                 drop_tag, drop_selector = (drop_action[1], drop_action[3])
-                tpl = "self.driver.find_element(By.%s, self.template(%r))"
-                action = "drag_and_drop"
-                drag_element = tpl % (bys[tag], selector)
-                drop_element = tpl % (bys[drop_tag], drop_selector)
-                action_elements.append(self.gen_statement(
-                    "ActionChains(self.driver).%s(%s, %s).perform()" % (action, drag_element, drop_element),
-                    indent=indent))
+                operator = ast_attr(fields=(
+                    ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
+                    "drag_and_drop"))
+                action_elements.append(ast.Expr(
+                    ast_call(
+                        func=ast_attr(
+                            fields=(
+                                ast_call(
+                                    func=operator,
+                                    args=[self._gen_locator(bys[tag], selector),
+                                          self._gen_locator(bys[drop_tag], drop_selector)]),
+                                "perform")))))
         elif atype == 'select':
-            tpl = "self.driver.find_element(By.%s, self.template(%r))"
-            action = "select_by_visible_text(self.template(%r))" % param
-            action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
-                                                      indent=indent))
+            action_elements.append(ast.Expr(
+                ast_call(
+                    func=ast_attr(
+                        fields=(
+                            ast_call(func="Select", args=[self._gen_locator(bys[tag], selector)]),
+                            "select_by_visible_text")),
+                    args=[
+                        ast_call(
+                            func=ast_attr("self.template"),
+                            args=[ast.Str(param)])])))
         elif atype.startswith('assert') or atype.startswith('store'):
             if tag == 'title':
                 if atype.startswith('assert'):

@@ -314,11 +314,21 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             # chains
                             "mouseDownByXPath(/html/body/div[3]/form/select[1])",
 
+                            # drag, select, assert
+                            {"dragByID(address)": "elementByName(toPort)"},
+                            {"selectByName(my_frame)": "London"},
+                            #"assertTitle(BlazeDemo)",
+
                         ]}]}}})
 
         self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
+
+        locator0 = "self.driver.find_element(By.NAME, self.template('my_frame'))"
+        locator1 = "self.driver.find_element(By.XPATH, self.template('/html/body/div[3]/form/select[1]'))"
+        locator2_1 = "self.driver.find_element(By.ID, self.template('address'))"
+        locator2_2 = "self.driver.find_element(By.NAME, self.template('toPort'))"
 
         target_lines = [
             "self.wnd_mng.switch(self.template('0'))",
@@ -327,8 +337,12 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "self.wnd_mng.close(self.template('win_ser_local'))",
             "self.frm_mng.switch('index=1')",
             "self.frm_mng.switch('relative=parent')",
-            "self.frm_mng.switch(self.driver.find_element(By.NAME, self.template('my_frame')))",
-            "ActionChains(self.driver).click_and_hold(self.driver.find_element(By.XPATH, self.template('/html/body/div[3]/form/select[1]'))).perform()"]
+            "self.frm_mng.switch(%s)" % locator0,
+            "ActionChains(self.driver).click_and_hold(%s).perform()" % locator1,
+            "ActionChains(self.driver).drag_and_drop(%s, %s).perform()" % (locator2_1, locator2_2),
+            "Select(%s).select_by_visible_text(self.template('London'))" % locator0,
+            #"self.assertEqual(self.driver.title, self.template('BlazeDemo'))"
+        ]
 
         for line in target_lines:
             self.assertIn(line, content)
