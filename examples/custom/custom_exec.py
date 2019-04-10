@@ -24,4 +24,4 @@ class MyCustomExecutor(SubprocessedExecutor):
         cmdline = [os.path.abspath(os.path.join(os.path.dirname(__file__), "custom_cmd.sh")),
                    self.report_file, str(load.concurrency), str(load.iterations)]
 
-        self.process = self.execute(cmdline)
+        self.process = self._execute(cmdline)

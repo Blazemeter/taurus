@@ -527,7 +527,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                 "requests": ["http://blazedemo.com/"]}
         })
 
-        self.obj.execute = lambda *args, **kwargs: None
+        self.obj._execute = lambda *args, **kwargs: None
         self.obj.prepare()
         self.obj.startup()
         self.assertIn("gatling.http.ahc.allowPoolingConnections='true'", self.obj.env.get("JAVA_OPTS"))
@@ -549,7 +549,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                 "requests": ["http://blazedemo.com/"]}
         })
 
-        self.obj.execute = lambda *args, **kwargs: None
+        self.obj._execute = lambda *args, **kwargs: None
         self.obj.prepare()
         self.obj.startup()
         self.assertIn("-Dscenlevel='scenval'", self.obj.env.get("JAVA_OPTS"))

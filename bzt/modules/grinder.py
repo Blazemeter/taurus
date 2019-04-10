@@ -34,6 +34,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     """
     Grinder executor module
     """
+
     def __init__(self):
         super(GrinderExecutor, self).__init__()
         self.script = None
@@ -121,6 +122,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         fds.write("# BZT Properies End\n")
 
     def prepare(self):
+        super(GrinderExecutor, self).prepare()
         self.stdout = open(self.engine.create_artifact("grinder", ".out"), "w")
         self.stderr = open(self.engine.create_artifact("grinder", ".err"), "w")
 
@@ -162,7 +164,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         Should start the tool as fast as possible.
         """
         self.env.set({"T_GRINDER_PREFIX": self.exec_id})
-        self.process = self.execute(self.cmd_line)
+        self.process = self._execute(self.cmd_line)
 
     def check(self):
         """
@@ -406,7 +408,7 @@ class DataLogReader(ResultsReader):
         return url, error_msg
 
 
-class Grinder(RequiredTool):        # todo: take it from maven and convert to JarTool(?)
+class Grinder(RequiredTool):  # todo: take it from maven and convert to JarTool(?)
     VERSION = "3.11"
     LOCAL_PATH = "~/.bzt/grinder-taurus/lib/grinder.jar"
 

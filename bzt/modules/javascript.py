@@ -95,7 +95,7 @@ class MochaTester(JavaScriptExecutor):
         if load.hold:
             mocha_cmdline += ['--hold-for', str(load.hold)]
 
-        self.process = self.execute(mocha_cmdline)
+        self.process = self._execute(mocha_cmdline)
 
 
 class WebdriverIOExecutor(JavaScriptExecutor):
@@ -158,7 +158,7 @@ class WebdriverIOExecutor(JavaScriptExecutor):
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
 
-        self.process = self.execute(cmdline, cwd=script_dir)
+        self.process = self._execute(cmdline, cwd=script_dir)
 
 
 class NewmanExecutor(JavaScriptExecutor):
@@ -231,7 +231,7 @@ class NewmanExecutor(JavaScriptExecutor):
         # if load.hold:
         #    cmdline += ['--hold-for', str(load.hold)]
 
-        self.process = self.execute(cmdline, cwd=script_dir)
+        self.process = self._execute(cmdline, cwd=script_dir)
 
     def _dump_vars(self, key):
         cmdline = []
