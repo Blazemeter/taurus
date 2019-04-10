@@ -326,6 +326,12 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             # click, type, keys, submit
                             {"typeByName(\"toPort\")": "B"},
 
+                            # exec, rawcode, go, edit
+                            "scriptEval(\"alert('This is Sparta');\")",
+                            {"rawCode": "for i in range(10):\n  if i % 2 == 0:\n    print(i)"},
+                            "go(http:\\blazemeter.com)",
+                            {"editContentById(editor)": "lo-la-lu"},
+
                         ]}]}}})
 
         self.obj.prepare()
@@ -355,12 +361,25 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "self.assertEqual(self.template(self.driver.find_element(By.ID, self.template('address'))." 
                 "get_attribute('value')).strip(), self.template('123 Beautiful st.').strip())",
             "self.driver.find_element(By.NAME, self.template('toPort')).clear()",
-            "self.driver.find_element(By.NAME, self.template('toPort')).send_keys(self.template('B'))"
+            "self.driver.find_element(By.NAME, self.template('toPort')).send_keys(self.template('B'))",
+            "self.driver.execute_script(self.template(\"alert('This is Sparta');\"))",
+
+            "for i in range(10):",
+            "if ((i % 2) == 0):",
+            "print(i)",
+
+            "self.driver.get(self.template('http:\\\\blazemeter.com'))",
+
+            "if self.driver.find_element(By.ID, 'editor').get_attribute('contenteditable'):",
+            "self.driver.execute_script(('arguments[0].innerHTML = %s;' % self.template.str_"
+                "repr(self.template('lo-la-lu'))), self.driver.find_element(By.ID, 'editor'))",
+            "else:",
+            "raise NoSuchElementException(('The element (By.%s, %r) is not contenteditable element' % ('ID', 'editor')))"
 
         ]
 
         for line in target_lines:
-            self.assertIn(line, content)
+            self.assertIn(line, content, line)
 
     def test_build_script(self):
         self.configure({

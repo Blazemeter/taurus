@@ -1095,46 +1095,53 @@ class ApiritifScriptGenerator(object):
                         args=args)))
 
         elif atype == "script" and tag == "eval":
-            cmd = 'self.driver.execute_script(self.template(%r))' % selector
-            action_elements.append(self.gen_statement(cmd, indent=indent))
+            action_elements.append(
+                ast.Expr(
+                    ast_call(func=ast_attr("self.driver.execute_script"),
+                             args=[self._gen_tpl(selector)])))
         elif atype == "rawcode":
-            lines = param.split('\n')
-            for line in lines:
-                action_elements.append(self.gen_statement(line, indent=indent))
+            action_elements.append(ast.parse(param))
         elif atype == 'go':
             if selector and not param:
-                cmd = "self.driver.get(self.template(%r))" % selector.strip()
-                action_elements.append(self.gen_statement(cmd, indent=indent))
-        elif atype == "editcontent":
-            element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
-            editable_error = "The element (By.%s, %r) " \
-                             "is not contenteditable element" % (bys[tag], selector)
-            editable_script_tpl = "arguments[0].innerHTML = %s;"
-            editable_script_tpl_argument = "self.template.str_repr(self.template(%r))" % param.strip()
-            editable_script = "%r %% %s" % \
-                              (editable_script_tpl, editable_script_tpl_argument)
-            action_elements.extend([
-                self.gen_statement(
-                    "if %s.get_attribute('contenteditable'):" % element,
-                    indent=indent),
-                self.gen_statement(
-                    "self.driver.execute_script(",
-                    indent=indent + self.INDENT_STEP),
-                self.gen_statement(
-                    "%s," % editable_script,
-                    indent=indent + self.INDENT_STEP * 2),
-                self.gen_statement(
-                    element,
-                    indent=indent + self.INDENT_STEP * 2),
-                self.gen_statement(
-                    ")",
-                    indent=indent + self.INDENT_STEP),
-                self.gen_statement(
-                    "else:", indent=indent),
-                self.gen_statement(
-                    "raise NoSuchElementException(%r)" % editable_error,
-                    indent=indent + self.INDENT_STEP)
-            ])
+                action_elements.append(
+                    ast.Expr(
+                        ast_call(func=ast_attr("self.driver.get"),
+                                 args=[self._gen_tpl(selector.strip())])))
+        elif atype == "editcontent":    # todo: fix it (possibly broken)
+            short_locator = ast_call(
+                func=ast_attr("self.driver.find_element"),
+                args=[
+                    ast_attr("By.%s" % bys[tag]),
+                    ast.Str(selector)])
+
+            action_elements.append(
+                ast.If(
+                    test=ast_call(
+                        func=ast_attr(
+                            fields=(short_locator, "get_attribute")),
+                        args=[ast.Str("contenteditable")]),
+                    body=[      # self.driver.execute_script(editable_script)
+                        ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
+                                 args=[
+                                     ast.BinOp(
+                                         left=ast.Str("arguments[0].innerHTML = %s;"),
+                                         op=ast.Mod(),
+                                         right=ast_call(
+                                             func=ast_attr("self.template.str_repr"),
+                                             args=[self._gen_tpl(param.strip())])),
+                                     short_locator]))],
+                    orelse=[
+                        ast.Raise(   # "raise NoSuchElementException(%r)" % editable_error
+                            exc=ast_call(
+                                func="NoSuchElementException",
+                                args=[ast.BinOp(
+                                    left=ast.Str("The element (By.%s, %r) is not contenteditable element"),
+                                    op=ast.Mod(),
+                                    right=ast.Tuple(
+                                        elts=[
+                                            ast.Str(bys[tag]),
+                                            ast.Str(selector)]))]),
+                            cause=None)]))
         elif atype == 'echo' and tag == 'string':
             if len(selector) > 0 and not param:
                 action_elements.append(
