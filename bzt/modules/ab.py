@@ -44,6 +44,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         self.scenario = None
 
     def prepare(self):
+        super(ApacheBenchmarkExecutor, self).prepare()
         self.scenario = self.get_scenario()
         self.install_required_tools()
 
@@ -121,7 +122,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
 
         self.reader.setup(load_concurrency, request.label)
 
-        self.process = self.execute(args)
+        self.process = self._execute(args)
 
     def check(self):
         ret_code = self.process.poll()

@@ -320,7 +320,7 @@ class TestScenarioExecutor(ExecutorTestCase):
         cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
         self.engine.eval_env()
         self.engine.prepare()
-        process = self.obj.execute(cmdline, shell=True)
+        process = self.obj._execute(cmdline, shell=True)
         stdout, _ = communicate(process)
         self.assertEquals(self.engine.artifacts_dir, stdout.strip())
 
@@ -332,7 +332,7 @@ class TestScenarioExecutor(ExecutorTestCase):
 
         for cmdline in cmdlines:
             self.obj.env.set(env)
-            process = self.obj.execute(cmdline, shell=True)
+            process = self.obj._execute(cmdline, shell=True)
             stdout, _ = communicate(process)
             results.add(stdout.strip())
         if is_windows():

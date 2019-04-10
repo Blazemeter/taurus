@@ -50,6 +50,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.process = None
 
     def prepare(self):
+        super(PBenchExecutor, self).prepare()
         self.install_required_tools()
 
         self._prepare_pbench()
@@ -78,7 +79,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def startup(self):
         cmdline = [self.tool.tool_path, 'run', self.generator.config_file]
-        self.process = self.execute(cmdline)
+        self.process = self._execute(cmdline)
 
     def check(self):
         retcode = self.process.poll()
@@ -202,7 +203,7 @@ class PBenchGenerator(object):
     def generate_payload(self, scenario):
         self.payload_file = self.executor.get_script_path()
 
-        if not self.payload_file:       # generation from requests
+        if not self.payload_file:  # generation from requests
             self.payload_file = self.engine.create_artifact("pbench", '.src')
             self.log.info("Generating payload file: %s", self.payload_file)
             self._generate_payload_inner(scenario)  # raises if there is no requests

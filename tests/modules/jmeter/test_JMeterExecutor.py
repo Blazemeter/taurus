@@ -2790,7 +2790,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         })
         self.obj.settings.merge({"version": "4.0"})
         self.obj.prepare()
-        self.obj.execute = lambda *args, **kwargs: None
+        self.obj._execute = lambda *args, **kwargs: None
         self.obj.startup()
         jmeter_home = self.obj.env.get("JMETER_HOME")
         self.assertEqual(jmeter_home, get_full_path(self.obj.settings.get("path"), step_up=2))

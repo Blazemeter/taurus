@@ -278,6 +278,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         return cp
 
     def prepare(self):
+        super(GatlingExecutor, self).prepare()
+
         self.install_required_tools()
         scenario = self.get_scenario()
 
@@ -411,7 +413,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def startup(self):
         self._set_env()
-        self.process = self.execute(self._get_cmdline())
+        self.process = self._execute(self._get_cmdline())
 
     def _get_cmdline(self):
         cmdline = [self.tool.tool_path]
