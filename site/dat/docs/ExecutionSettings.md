@@ -150,3 +150,16 @@ modules:
     sequential: true
 ```
 Keep in mind: as modules start sequentially, `[Startup Delay](#Startup-Delay)` doesn't matter in this case.
+
+## Environment Variables
+
+In addition to [global env vars](ConfigSyntax.md#environment-variable-access), you can specify execution-specific environment variables. This is done by specifying key-value pairs under `env` option of execution:  
+
+```yaml
+execution:
+- concurrency: 10
+  hold-for: 20s
+  scenario: main
+  env:
+    base_url: http://foo.bar/
+```
