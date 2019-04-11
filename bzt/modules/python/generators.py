@@ -778,6 +778,14 @@ import apiritif
 
 
 class ApiritifScriptGenerator(object):
+    BYS = {
+        'byxpath': "XPATH",
+        'bycss': "CSS_SELECTOR",
+        'byname': "NAME",
+        'byid': "ID",
+        'bylinktext': "LINK_TEXT"
+    }
+
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
     IMPORTS_SELENIUM = """import unittest
@@ -882,11 +890,11 @@ class ApiritifScriptGenerator(object):
             selector = ""
         return atype, tag, param, selector
 
-    def _gen_locator(self, by, selector):
+    def _gen_locator(self, tag, selector):
         return ast_call(
             func=ast_attr("self.driver.find_element"),
             args=[
-                ast_attr("By.%s" % by),
+                ast_attr("By.%s" % self.BYS[tag]),
                 self._gen_tpl(selector)])
 
     @staticmethod
@@ -905,23 +913,68 @@ class ApiritifScriptGenerator(object):
                 slice=ast.Str(name))],
             value=value)
 
+    @staticmethod
+    def _gen_window_mngr(atype, selector):
+        actions = []
+        if atype == "switch":
+            actions.append(ast_call(
+                func=ast_attr("self.wnd_mng.switch"),
+                args=[ast_call(
+                    func=ast_attr("self.template"),
+                    args=[ast.Str(selector)])]))
+        elif atype == "open":
+            actions.append(ast_call(
+                func=ast_attr("self.driver.execute_script"),
+                args=[ast_call(
+                    func=ast_attr("self.template"),
+                    args=[ast_call(
+                        func=ast_attr("window.open"),
+                        args=[ast.Str(selector)])])]))
+        elif atype == "close":
+            args = []
+            if selector:
+                args.append(ast_call(
+                    func=ast_attr("self.template"),
+                    args=[ast.Str(selector)]))
+            actions.append(ast_call(
+                func=ast_attr("self.wnd_mng.close"),
+                args=args))
+        return actions
+
+    def _gen_frame_mngr(self, tag, selector):
+        actions = []    # todo: byid/byidx disambiguation?
+        if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
+            if tag == "byidx":
+                selector = "index=%s" % selector
+
+            actions.append(ast_call(
+                func=ast_attr("self.frm_mng.switch"),
+                args=[ast.Str(selector)]))
+        else:
+            actions.append(ast_call(
+                func=ast_attr("self.frm_mng.switch"),
+                args=[self._gen_locator(tag, selector)]))
+        return actions
+
+    def _gen_mngr(self):
+        actions = []
+        return actions
+    def _gen_mngr(self):
+        actions = []
+        return actions
+    def _gen_mngr(self):
+        actions = []
+        return actions
+
     def gen_action(self, action_config):
-        # todo: is None allowed (as return value)
         action = self._parse_action(action_config)
         if action:
             atype, tag, param, selector = action
         else:
-            return
+            atype = tag = param = selector = None
 
         action_elements = []
 
-        bys = {
-            'byxpath': "XPATH",
-            'bycss': "CSS_SELECTOR",
-            'byname': "NAME",
-            'byid': "ID",
-            'bylinktext': "LINK_TEXT"
-        }
         action_chains = {
             'doubleclick': "double_click",
             'mousedown': "click_and_hold",
@@ -930,48 +983,20 @@ class ApiritifScriptGenerator(object):
         }
 
         if tag == "window":
-            if atype == "switch":
-                action_elements.append(ast_call(
-                        func=ast_attr("self.wnd_mng.switch"),
-                        args=[ast_call(func=ast_attr("self.template"), args=[ast.Str(selector)])]))
-            elif atype == "open":
-                action_elements.append(ast_call(
-                        func=ast_attr("self.driver.execute_script"),
-                        args=[ast_call(
-                            func=ast_attr("self.template"),
-                            args=[ast_call(func=ast_attr("window.open"), args=[ast.Str(selector)])])]))
-            elif atype == "close":
-                args = []
-                if selector:
-                    args.append(ast_call(
-                        func=ast_attr("self.template"),
-                        args=[ast.Str(selector)]))
-                action_elements.append(ast_call(
-                        func=ast_attr("self.wnd_mng.close"),
-                        args=args))
+            action_elements.extend(self._gen_window_mngr(atype, selector))
         elif atype == "switchframe":
-            if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
-                if tag == "byidx":
-                    selector = "index=%s" % selector
-
-                action_elements.append(ast_call(
-                    func=ast_attr("self.frm_mng.switch"),
-                    args=[ast.Str(selector)]))
-            else:
-                action_elements.append(ast_call(
-                    func=ast_attr("self.frm_mng.switch"),
-                    args=[self._gen_locator(bys[tag], selector)]))
+            action_elements.extend(self._gen_frame_mngr(tag, selector))
         elif atype in action_chains:
             operator = ast_attr(fields=(
                 ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
                 action_chains[atype]))
             action_elements.append(ast_call(
-                    func=ast_attr(
-                        fields=(
-                            ast_call(
-                                func=operator,
-                                args=[self._gen_locator(bys[tag], selector)]),
-                            "perform"))))
+                func=ast_attr(
+                    fields=(
+                        ast_call(
+                            func=operator,
+                            args=[self._gen_locator(tag, selector)]),
+                        "perform"))))
 
         elif atype == "drag":
             drop_action = self._parse_action(param)
@@ -984,34 +1009,34 @@ class ApiritifScriptGenerator(object):
                             args=[ast_attr("self.driver")]),
                         "drag_and_drop"))
                 action_elements.append(ast_call(
-                        func=ast_attr(
-                            fields=(
-                                ast_call(
-                                    func=operator,
-                                    args=[self._gen_locator(bys[tag], selector),
-                                          self._gen_locator(bys[drop_tag], drop_selector)]),
-                                "perform"))))
-        elif atype == "select":
-            action_elements.append(ast_call(
                     func=ast_attr(
                         fields=(
-                            ast_call(func="Select", args=[self._gen_locator(bys[tag], selector)]),
-                            "select_by_visible_text")),
-                    args=[self._gen_tpl(param)]))
+                            ast_call(
+                                func=operator,
+                                args=[self._gen_locator(tag, selector),
+                                      self._gen_locator(drop_tag, drop_selector)]),
+                            "perform"))))
+        elif atype == "select":
+            action_elements.append(ast_call(
+                func=ast_attr(
+                    fields=(
+                        ast_call(func="Select", args=[self._gen_locator(tag, selector)]),
+                        "select_by_visible_text")),
+                args=[self._gen_tpl(param)]))
         elif atype.startswith('assert') or atype.startswith('store'):
             if tag == 'title':
                 if atype.startswith('assert'):
                     action_elements.append(ast_call(
-                                func=ast_attr("self.assertEqual"),
-                                args=[ast_attr("self.driver.title"), self._gen_tpl(selector)]))
+                        func=ast_attr("self.assertEqual"),
+                        args=[ast_attr("self.driver.title"), self._gen_tpl(selector)]))
                 else:
                     action_elements.append(self._gen_store(
-                                name=param.strip(),
-                                value=self._gen_tpl(ast_attr("self.driver.title"))))
+                        name=param.strip(),
+                        value=self._gen_tpl(ast_attr("self.driver.title"))))
             elif atype == 'store' and tag == 'string':
                 action_elements.append(self._gen_store(
-                            name=param.strip(),
-                            value=self._gen_tpl(selector.strip())))
+                    name=param.strip(),
+                    value=self._gen_tpl(selector.strip())))
             else:
                 if atype in ['asserttext', 'storetext']:
                     target = "innerText"
@@ -1023,28 +1048,28 @@ class ApiritifScriptGenerator(object):
                 locator_attr = ast_call(
                     func=ast_attr(
                         fields=(
-                            self._gen_locator(bys[tag], selector),
+                            self._gen_locator(tag, selector),
                             "get_attribute")),
                     args=[ast.Str(target)])
 
                 if atype.startswith('assert'):
                     action_elements.append(ast_call(
                         func=ast_attr(fields="self.assertEqual"),
-                                     args=[
-                                         ast_call(
-                                             func=ast_attr(
-                                                 fields=(
-                                                     self._gen_tpl(locator_attr),
-                                                     "strip"))),
-                                         ast_call(
-                                             func=ast_attr(
-                                                 fields=(
-                                                     self._gen_tpl(param),
-                                                     "strip")))]))
+                        args=[
+                            ast_call(
+                                func=ast_attr(
+                                    fields=(
+                                        self._gen_tpl(locator_attr),
+                                        "strip"))),
+                            ast_call(
+                                func=ast_attr(
+                                    fields=(
+                                        self._gen_tpl(param),
+                                        "strip")))]))
                 elif atype.startswith('store'):
                     action_elements.append(self._gen_store(
-                                name=param.strip(),
-                                value=self._gen_tpl(locator_attr)))
+                        name=param.strip(),
+                        value=self._gen_tpl(locator_attr)))
 
         elif atype in ('click', 'type', 'keys', 'submit'):
 
@@ -1056,10 +1081,10 @@ class ApiritifScriptGenerator(object):
             elif atype in ['keys', 'type']:
                 if atype == 'type':
                     action_elements.append(ast_call(
-                                func=ast_attr(
-                                    fields=(
-                                        self._gen_locator(bys[tag], selector),
-                                        "clear"))))
+                        func=ast_attr(
+                            fields=(
+                                self._gen_locator(tag, selector),
+                                "clear"))))
                 action = "send_keys"
                 if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
                     args = [ast_attr("Keys.%s" % param.split("KEY_")[1])]
@@ -1069,114 +1094,114 @@ class ApiritifScriptGenerator(object):
                 return []
 
             action_elements.append(ast_call(
-                    func=ast_attr(
-                        fields=(
-                            self._gen_locator(bys[tag], selector),
-                            action)),
-                    args=args))
+                func=ast_attr(
+                    fields=(
+                        self._gen_locator(tag, selector),
+                        action)),
+                args=args))
 
         elif atype == "script" and tag == "eval":
             action_elements.append(ast_call(func=ast_attr("self.driver.execute_script"),
-                             args=[self._gen_tpl(selector)]))
+                                            args=[self._gen_tpl(selector)]))
         elif atype == "rawcode":
             action_elements.append(ast.parse(param))
         elif atype == 'go':
             if selector and not param:
                 action_elements.append(ast_call(func=ast_attr("self.driver.get"),
-                                 args=[self._gen_tpl(selector.strip())]))
+                                                args=[self._gen_tpl(selector.strip())]))
         elif atype == "editcontent":  # todo: fix it (possibly broken)
             short_locator = ast_call(
                 func=ast_attr("self.driver.find_element"),
                 args=[
-                    ast_attr("By.%s" % bys[tag]),
+                    ast_attr("By.%s" % self.BYS[tag]),
                     ast.Str(selector)])
 
             action_elements.append(ast.If(
-                    test=ast_call(
-                        func=ast_attr(
-                            fields=(short_locator, "get_attribute")),
-                        args=[ast.Str("contenteditable")]),
-                    body=[  # self.driver.execute_script(editable_script)
-                        ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
-                                          args=[
-                                              ast.BinOp(
-                                                  left=ast.Str("arguments[0].innerHTML = %s;"),
-                                                  op=ast.Mod(),
-                                                  right=ast_call(
-                                                      func=ast_attr("self.template.str_repr"),
-                                                      args=[self._gen_tpl(param.strip())])),
-                                              short_locator]))],
-                    orelse=[
-                        ast.Raise(  # "raise NoSuchElementException(%r)" % editable_error
-                            exc=ast_call(
-                                func="NoSuchElementException",
-                                args=[ast.BinOp(
-                                    left=ast.Str("The element (By.%s, %r) is not contenteditable element"),
-                                    op=ast.Mod(),
-                                    right=ast.Tuple(
-                                        elts=[
-                                            ast.Str(bys[tag]),
-                                            ast.Str(selector)]))]),
-                            cause=None)]))
+                test=ast_call(
+                    func=ast_attr(
+                        fields=(short_locator, "get_attribute")),
+                    args=[ast.Str("contenteditable")]),
+                body=[  # self.driver.execute_script(editable_script)
+                    ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
+                                      args=[
+                                          ast.BinOp(
+                                              left=ast.Str("arguments[0].innerHTML = %s;"),
+                                              op=ast.Mod(),
+                                              right=ast_call(
+                                                  func=ast_attr("self.template.str_repr"),
+                                                  args=[self._gen_tpl(param.strip())])),
+                                          short_locator]))],
+                orelse=[
+                    ast.Raise(  # "raise NoSuchElementException(%r)" % editable_error
+                        exc=ast_call(
+                            func="NoSuchElementException",
+                            args=[ast.BinOp(
+                                left=ast.Str("The element (By.%s, %r) is not contenteditable element"),
+                                op=ast.Mod(),
+                                right=ast.Tuple(
+                                    elts=[
+                                        ast.Str(self.BYS[tag]),
+                                        ast.Str(selector)]))]),
+                        cause=None)]))
         elif atype == 'echo' and tag == 'string':
             if len(selector) > 0 and not param:
                 action_elements.append(ast_call(
-                            func="print",
-                            args=[self._gen_tpl(selector.strip())]))
+                    func="print",
+                    args=[self._gen_tpl(selector.strip())]))
         elif atype == 'wait':  # todo: 'econd'?
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
             action_elements.append(ast_call(
-                        func=ast_attr(
-                            fields=(
-                                ast_call(
-                                    func="WebDriverWait",
-                                    args=[
-                                        ast_attr("self.driver"),
-                                        ast.Num(timeout)]),
-                                "until")),
+                func=ast_attr(
+                    fields=(
+                        ast_call(
+                            func="WebDriverWait",
+                            args=[
+                                ast_attr("self.driver"),
+                                ast.Num(timeout)]),
+                        "until")),
+                args=[
+                    ast_call(
+                        func=ast_attr("econd.visibility_of_element_located"),
                         args=[
-                            ast_call(
-                                func=ast_attr("econd.visibility_of_element_located"),
-                                args=[
-                                    ast.Tuple(
-                                        elts=[
-                                            ast_attr("By.%s" % bys[tag]),
-                                            self._gen_tpl(selector)])]),
-                            ast.Str(errmsg)]))
+                            ast.Tuple(
+                                elts=[
+                                    ast_attr("By.%s" % self.BYS[tag]),
+                                    self._gen_tpl(selector)])]),
+                    ast.Str(errmsg)]))
         elif atype == 'pause' and tag == 'for':
 
             action_elements.append(ast_call(
-                        func="sleep",
-                        args=[ast.Num(dehumanize_time(selector))]))
+                func="sleep",
+                args=[ast.Num(dehumanize_time(selector))]))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(ast_call(
-                        func=ast_attr("self.driver.delete_all_cookies")))
+                func=ast_attr("self.driver.delete_all_cookies")))
         elif atype == 'screenshot':
             if selector:
                 action_elements.append(ast_call(
-                            func=ast_attr("self.driver.save_screenshot"),
-                            args=[self._gen_tpl(selector)]))
+                    func=ast_attr("self.driver.save_screenshot"),
+                    args=[self._gen_tpl(selector)]))
             else:
                 action_elements.append(ast.Assign(
-                            targets=[ast.Name(id="filename")],
-                            value=ast_call(
-                                func=ast_attr("os.path.join"),
-                                args=[
-                                    ast_call(
-                                        func=ast_attr("os.getenv"),
-                                        args=[ast.Str('TAURUS_ARTIFACTS_DIR')]),
-                                    ast.BinOp(
-                                        left=ast.Str('screenshot-%d.png'),
-                                        op=ast.Mod(),
-                                        right=ast.BinOp(
-                                            left=ast_call(func="time"),
-                                            op=ast.Mult(),
-                                            right=ast.Num(1000)))])))
+                    targets=[ast.Name(id="filename")],
+                    value=ast_call(
+                        func=ast_attr("os.path.join"),
+                        args=[
+                            ast_call(
+                                func=ast_attr("os.getenv"),
+                                args=[ast.Str('TAURUS_ARTIFACTS_DIR')]),
+                            ast.BinOp(
+                                left=ast.Str('screenshot-%d.png'),
+                                op=ast.Mod(),
+                                right=ast.BinOp(
+                                    left=ast_call(func="time"),
+                                    op=ast.Mult(),
+                                    right=ast.Num(1000)))])))
                 action_elements.append(ast_call(
-                            func=ast_attr("self.driver.save_screenshot"),
-                            args=[ast.Name(id="filename")]))
+                    func=ast_attr("self.driver.save_screenshot"),
+                    args=[ast.Name(id="filename")]))
 
         if not action_elements:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
