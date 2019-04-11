@@ -996,9 +996,55 @@ class ApiritifScriptGenerator(object):
                             "perform"))))
         return elements
 
-    def _gen_mngr(self, atype, tag, selector):
-        actions = []
-        return actions
+    def _gen_assert_store_mngr(self, atype, tag, param, selector):
+        elements = []
+        if tag == 'title':
+            if atype.startswith('assert'):
+                elements.append(ast_call(
+                    func=ast_attr("self.assertEqual"),
+                    args=[ast_attr("self.driver.title"), self._gen_tpl(selector)]))
+            else:
+                elements.append(self._gen_store(
+                    name=param.strip(),
+                    value=self._gen_tpl(ast_attr("self.driver.title"))))
+        elif atype == 'store' and tag == 'string':
+            elements.append(self._gen_store(
+                name=param.strip(),
+                value=self._gen_tpl(selector.strip())))
+        else:
+            if atype in ['asserttext', 'storetext']:
+                target = "innerText"
+            elif atype in ['assertvalue', 'storevalue']:
+                target = "value"
+            else:
+                return []
+
+            locator_attr = ast_call(
+                func=ast_attr(
+                    fields=(
+                        self._gen_locator(tag, selector),
+                        "get_attribute")),
+                args=[ast.Str(target)])
+
+            if atype.startswith('assert'):
+                elements.append(ast_call(
+                    func=ast_attr(fields="self.assertEqual"),
+                    args=[
+                        ast_call(
+                            func=ast_attr(
+                                fields=(
+                                    self._gen_tpl(locator_attr),
+                                    "strip"))),
+                        ast_call(
+                            func=ast_attr(
+                                fields=(
+                                    self._gen_tpl(param),
+                                    "strip")))]))
+            elif atype.startswith('store'):
+                elements.append(self._gen_store(
+                    name=param.strip(),
+                    value=self._gen_tpl(locator_attr)))
+        return elements
 
     def _gen_mngr(self, atype, tag, selector):
         actions = []
@@ -1047,52 +1093,7 @@ class ApiritifScriptGenerator(object):
                         "select_by_visible_text")),
                 args=[self._gen_tpl(param)]))
         elif atype.startswith('assert') or atype.startswith('store'):
-            if tag == 'title':
-                if atype.startswith('assert'):
-                    action_elements.append(ast_call(
-                        func=ast_attr("self.assertEqual"),
-                        args=[ast_attr("self.driver.title"), self._gen_tpl(selector)]))
-                else:
-                    action_elements.append(self._gen_store(
-                        name=param.strip(),
-                        value=self._gen_tpl(ast_attr("self.driver.title"))))
-            elif atype == 'store' and tag == 'string':
-                action_elements.append(self._gen_store(
-                    name=param.strip(),
-                    value=self._gen_tpl(selector.strip())))
-            else:
-                if atype in ['asserttext', 'storetext']:
-                    target = "innerText"
-                elif atype in ['assertvalue', 'storevalue']:
-                    target = "value"
-                else:
-                    return []
-
-                locator_attr = ast_call(
-                    func=ast_attr(
-                        fields=(
-                            self._gen_locator(tag, selector),
-                            "get_attribute")),
-                    args=[ast.Str(target)])
-
-                if atype.startswith('assert'):
-                    action_elements.append(ast_call(
-                        func=ast_attr(fields="self.assertEqual"),
-                        args=[
-                            ast_call(
-                                func=ast_attr(
-                                    fields=(
-                                        self._gen_tpl(locator_attr),
-                                        "strip"))),
-                            ast_call(
-                                func=ast_attr(
-                                    fields=(
-                                        self._gen_tpl(param),
-                                        "strip")))]))
-                elif atype.startswith('store'):
-                    action_elements.append(self._gen_store(
-                        name=param.strip(),
-                        value=self._gen_tpl(locator_attr)))
+            action_elements.append(self._gen_assert_store_mngr(atype, tag, param, selector))
 
         elif atype in ('click', 'type', 'keys', 'submit'):
 
