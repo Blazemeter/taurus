@@ -332,6 +332,13 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "go(http:\\blazemeter.com)",
                             {"editContentById(editor)": "lo-la-lu"},
 
+                            # print, wait, pause, clearcookies, screenshot
+                            "echoString(${red_pill})",
+                            {"waitByName('toPort')": "visible"},
+                            "pauseFor(4.6s)",
+                            "clearCookies()",
+                            "screenshot('screen.png')",
+                            "screenshot()"
                         ]}]}}})
 
         self.obj.prepare()
@@ -358,7 +365,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "self.vars['hEaDeR'] = self.template(self.driver.title)",
             "self.vars['Final'] = self.template('Title_Basic_By')",
             "self.vars['Basic'] = self.template(%s.get_attribute('innerText'))" % locator2_1,
-            "self.assertEqual(self.template(self.driver.find_element(By.ID, self.template('address'))." 
+            "self.assertEqual(self.template(self.driver.find_element(By.ID, self.template('address'))."
                 "get_attribute('value')).strip(), self.template('123 Beautiful st.').strip())",
             "self.driver.find_element(By.NAME, self.template('toPort')).clear()",
             "self.driver.find_element(By.NAME, self.template('toPort')).send_keys(self.template('B'))",
@@ -374,8 +381,15 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "self.driver.execute_script(('arguments[0].innerHTML = %s;' % self.template.str_"
                 "repr(self.template('lo-la-lu'))), self.driver.find_element(By.ID, 'editor'))",
             "else:",
-            "raise NoSuchElementException(('The element (By.%s, %r) is not contenteditable element' % ('ID', 'editor')))"
-
+            "raise NoSuchElementException(('The element (By.%s, %r) is not contenteditable element' % ('ID', 'editor')))",
+            "print(self.template('${red_pill}'))",
+            "WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, self.template("
+                "'toPort'))), \"Element 'toPort' failed to appear within 3.5s\")",
+            "sleep(4.6)",
+            "self.driver.delete_all_cookies()",
+            "self.driver.save_screenshot(self.template('screen.png'))",
+            "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), ('screenshot-%d.png' % (time() * 1000)))",
+            "self.driver.save_screenshot(filename)"
         ]
 
         for line in target_lines:

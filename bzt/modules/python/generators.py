@@ -1145,29 +1145,87 @@ class ApiritifScriptGenerator(object):
         elif atype == 'echo' and tag == 'string':
             if len(selector) > 0 and not param:
                 action_elements.append(
-                    self.gen_statement("print(self.template(%r))" % selector.strip(), indent=indent))
-        elif atype == 'wait':
-            tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, self.template(%r))), %r)"
-            mode = "visibility" if param == 'visible' else 'presence'
+                    ast.Expr(
+                        ast_call(
+                            func="print",
+                            args=[self._gen_tpl(selector.strip())])))
+        elif atype == 'wait':   # todo: 'econd'?
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
-            action_elements.append(self.gen_statement(tpl % (timeout, mode, bys[tag], selector, errmsg), indent=indent))
+            action_elements.append(
+                ast.Expr(
+                    ast_call(
+                        func=ast_attr(
+                            fields=(
+                                ast_call(
+                                    func="WebDriverWait",
+                                    args=[
+                                        ast_attr("self.driver"),
+                                        ast.Num(timeout)]),
+                                "until")),
+                        args=[
+                            ast_call(
+                                func=ast_attr("econd.visibility_of_element_located"),
+                                args=[
+                                    ast.Tuple(
+                                        elts=[
+                                            ast_attr("By.%s" % bys[tag]),
+                                            self._gen_tpl(selector)])]),
+                            ast.Str(errmsg)])))
         elif atype == 'pause' and tag == 'for':
-            tpl = "sleep(%g)"
-            action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
+            action_elements.append(
+                ast.Expr(
+                    ast_call(
+                        func="sleep",
+                        args=[ast.Num(dehumanize_time(selector))])))
         elif atype == 'clear' and tag == 'cookies':
-            action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
+            action_elements.append(
+                ast.Expr(
+                    ast_call(func=ast_attr("self.driver.delete_all_cookies"))))
         elif atype == 'screenshot':
             if selector:
-                filename = selector
-                action_elements.append(self.gen_statement('self.driver.save_screenshot(self.template(%r))' % filename,
-                                                          indent=indent))
+                action_elements.append(
+                    ast.Expr(
+                        ast_call(
+                            func=ast_attr("self.driver.save_screenshot"),
+                            args=[self._gen_tpl(selector)])))
             else:
-                filename = "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), " \
-                           "'screenshot-%d.png' % (time() * 1000))"
-                action_elements.append(self.gen_statement(filename, indent=indent))
-                action_elements.append(self.gen_statement('self.driver.save_screenshot(filename)', indent=indent))
+                action_elements.append(
+                    ast.Expr(
+                        ast.Assign(
+                            targets=[ast.Name(id="filename")],
+                            value=ast_call(
+                                func=ast_attr("os.path.join"),
+                                args=[
+                                    ast_call(
+                                        func=ast_attr("os.getenv"),
+                                        args=[ast.Str('TAURUS_ARTIFACTS_DIR')]
+                                    ),
+                                    ast.BinOp(
+                                        left=ast.Str('screenshot-%d.png'),
+                                        op=ast.Mod(),
+                                        right=ast.BinOp(
+                                            left=ast_call(func="time"),
+                                            op=ast.Mult(),
+                                            right=ast.Num(1000)
+                                        )
+                                    )
+                                ]
+
+                            ),
+                        )
+                    )
+                )
+                action_elements.append(
+                    ast.Expr(
+                        ast_call(
+                            func=ast_attr("self.driver.save_screenshot"),
+                            args=[ast.Name(id="filename")])))
+                #filename = "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), " \
+                #           "'screenshot-%d.png' % (time() * 1000))"
+                #action_elements.append(self.gen_statement(filename, indent=indent))
+                #action_elements.append(self.gen_statement('self.driver.save_screenshot(filename)', indent=indent))
 
         if not action_elements:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
