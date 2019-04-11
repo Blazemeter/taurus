@@ -2,6 +2,7 @@ import os
 import time
 from subprocess import CalledProcessError
 
+from bzt import ManualShutdown
 from bzt.engine import Service
 from bzt.modules.shellexec import ShellExecutor
 from bzt.utils import BetterDict, is_windows, temp_file
@@ -38,7 +39,7 @@ class TestBlockingTasks(TaskTestCase):
         file_name = temp_file()
         if is_windows():
             task = "type "
-            buf_len = 2 ** 10 * 4    # 4K
+            buf_len = 2 ** 10 * 4  # 4K
         else:
             task = "tail "
             buf_len = 2 ** 10 * 64  # 64K
@@ -92,9 +93,24 @@ class TestNonBlockingTasks(TaskTestCase):
         task = {"command": "sleep 1", "background": True}
         blocking_task = {"command": "sleep 2", "background": False}
         self.obj.parameters.merge({"prepare": [task, blocking_task]})
+        if is_windows():
+            varspec = '%TAURUS_EXIT_CODE%'
+        else:
+            varspec = "$TAURUS_EXIT_CODE"
+        self.obj.parameters.merge({"shutdown": ["echo " + varspec]})
+        self.obj.parameters.merge({"post-process": ["echo " + varspec]})
         self.obj.prepare()
+        self.obj.shutdown()
+        getvalue = self.log_recorder.debug_buff.getvalue()
+        self.log_recorder.debug_buff.truncate(0)
+        self.log_recorder.debug_buff.seek(0)
+        self.assertIn("Output for echo " + varspec + ":\n0", getvalue)
+
+        self.obj.engine.stopping_reason = ManualShutdown()
         self.obj.post_process()
-        self.assertIn("Task was finished with exit code 0: sleep 1", self.log_recorder.debug_buff.getvalue())
+        buff_getvalue = self.log_recorder.debug_buff.getvalue()
+        self.assertIn("Task was finished with exit code 0: sleep 1", buff_getvalue)
+        self.assertIn("Output for echo " + varspec + ":\n2", buff_getvalue)
 
     def test_background_task_output(self):
         temp = temp_file()

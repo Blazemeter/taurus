@@ -1,5 +1,7 @@
 # ShellExec Service
 
+This service module is used to call arbitrary commands during test execution stages.
+
 Sample configuration:
 ```yaml
 services:
@@ -58,6 +60,7 @@ Notes:
  - Background tasks will be shut down forcefully on mirror stages (see [Lifecycle](Lifecycle.md)) if they were not finished yet.
  - Background tasks on Check stage will not start until same previous task completed.
  - Special environment variable `TAURUS\_ARTIFACTS\_DIR` is set for every command, containing path to current artifacts directory
+ - Special environment variables `TAURUS\_EXIT\_CODE` and `TAURUS\_STOPPING\_REASON` is set for every command after Taurus begins shutdown, containing exit code and possible failure explanation
  - There is module setting `default-cwd` for `shellexec` module that allows to change `cwd` default value for all tasks
  - There is module setting `env` which contains dictionary for additional environment variables for commands
 
