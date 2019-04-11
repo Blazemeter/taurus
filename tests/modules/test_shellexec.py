@@ -94,23 +94,23 @@ class TestNonBlockingTasks(TaskTestCase):
         blocking_task = {"command": "sleep 2", "background": False}
         self.obj.parameters.merge({"prepare": [task, blocking_task]})
         if is_windows():
-            self.obj.parameters.merge({"shutdown": ["echo %TAURUS_EXIT_CODE%"]})
-            self.obj.parameters.merge({"post-process": ["echo %TAURUS_EXIT_CODE%"]})
+            varspec = '%TAURUS_EXIT_CODE%'
         else:
-            self.obj.parameters.merge({"shutdown": ["echo $TAURUS_EXIT_CODE"]})
-            self.obj.parameters.merge({"post-process": ["echo $TAURUS_EXIT_CODE"]})
+            varspec = "$TAURUS_EXIT_CODE"
+        self.obj.parameters.merge({"shutdown": ["echo " + varspec]})
+        self.obj.parameters.merge({"post-process": ["echo " + varspec]})
         self.obj.prepare()
         self.obj.shutdown()
         getvalue = self.log_recorder.debug_buff.getvalue()
         self.log_recorder.debug_buff.truncate(0)
         self.log_recorder.debug_buff.seek(0)
-        self.assertIn("TAURUS_EXIT_CODE:\n0", getvalue)
+        self.assertIn("Output for echo " + varspec + ":\n0", getvalue)
 
         self.obj.engine.stopping_reason = ManualShutdown()
         self.obj.post_process()
         buff_getvalue = self.log_recorder.debug_buff.getvalue()
         self.assertIn("Task was finished with exit code 0: sleep 1", buff_getvalue)
-        self.assertIn("TAURUS_EXIT_CODE:\n2", buff_getvalue)
+        self.assertIn("Output for echo " + varspec + ":\n2", buff_getvalue)
 
     def test_background_task_output(self):
         temp = temp_file()
