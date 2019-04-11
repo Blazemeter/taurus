@@ -93,8 +93,12 @@ class TestNonBlockingTasks(TaskTestCase):
         task = {"command": "sleep 1", "background": True}
         blocking_task = {"command": "sleep 2", "background": False}
         self.obj.parameters.merge({"prepare": [task, blocking_task]})
-        self.obj.parameters.merge({"shutdown": ["echo $TAURUS_EXIT_CODE"]})
-        self.obj.parameters.merge({"post-process": ["echo $TAURUS_EXIT_CODE"]})
+        if is_windows():
+            self.obj.parameters.merge({"shutdown": ["echo %TAURUS_EXIT_CODE%"]})
+            self.obj.parameters.merge({"post-process": ["echo %TAURUS_EXIT_CODE%"]})
+        else:
+            self.obj.parameters.merge({"shutdown": ["echo $TAURUS_EXIT_CODE"]})
+            self.obj.parameters.merge({"post-process": ["echo $TAURUS_EXIT_CODE"]})
         self.obj.prepare()
         self.obj.shutdown()
         getvalue = self.log_recorder.debug_buff.getvalue()
