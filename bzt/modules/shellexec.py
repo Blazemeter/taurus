@@ -122,12 +122,10 @@ class ShellExecutor(Service):
             task.start()
 
         for task in self.check_tasks + self.startup_tasks:
-            self._set_stop_reason_vars(task)
             task.shutdown()
 
     def post_process(self):
         for task in self.shutdown_tasks + self.check_tasks + self.startup_tasks + self.prepare_tasks:
-            self._set_stop_reason_vars(task)
             task.shutdown()
 
         for task in self.postprocess_tasks:
