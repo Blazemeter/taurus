@@ -104,13 +104,13 @@ class TestNonBlockingTasks(TaskTestCase):
         getvalue = self.log_recorder.debug_buff.getvalue()
         self.log_recorder.debug_buff.truncate(0)
         self.log_recorder.debug_buff.seek(0)
-        self.assertIn("Output for echo $TAURUS_EXIT_CODE:\n0", getvalue)
+        self.assertIn("TAURUS_EXIT_CODE:\n0", getvalue)
 
         self.obj.engine.stopping_reason = ManualShutdown()
         self.obj.post_process()
         buff_getvalue = self.log_recorder.debug_buff.getvalue()
         self.assertIn("Task was finished with exit code 0: sleep 1", buff_getvalue)
-        self.assertIn("Output for echo $TAURUS_EXIT_CODE:\n2", buff_getvalue)
+        self.assertIn("TAURUS_EXIT_CODE:\n2", buff_getvalue)
 
     def test_background_task_output(self):
         temp = temp_file()
