@@ -786,6 +786,13 @@ class ApiritifScriptGenerator(object):
         'bylinktext': "LINK_TEXT"
     }
 
+    ACTION_CHAINS = {
+        'doubleclick': "double_click",
+        'mousedown': "click_and_hold",
+        'mouseup': "release",
+        'mousemove': "move_to_element"
+    }
+
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
     IMPORTS_SELENIUM = """import unittest
@@ -915,15 +922,15 @@ class ApiritifScriptGenerator(object):
 
     @staticmethod
     def _gen_window_mngr(atype, selector):
-        actions = []
+        elements = []
         if atype == "switch":
-            actions.append(ast_call(
+            elements.append(ast_call(
                 func=ast_attr("self.wnd_mng.switch"),
                 args=[ast_call(
                     func=ast_attr("self.template"),
                     args=[ast.Str(selector)])]))
         elif atype == "open":
-            actions.append(ast_call(
+            elements.append(ast_call(
                 func=ast_attr("self.driver.execute_script"),
                 args=[ast_call(
                     func=ast_attr("self.template"),
@@ -936,33 +943,84 @@ class ApiritifScriptGenerator(object):
                 args.append(ast_call(
                     func=ast_attr("self.template"),
                     args=[ast.Str(selector)]))
-            actions.append(ast_call(
+            elements.append(ast_call(
                 func=ast_attr("self.wnd_mng.close"),
                 args=args))
-        return actions
+        return elements
 
     def _gen_frame_mngr(self, tag, selector):
-        actions = []    # todo: byid/byidx disambiguation?
+        elements = []    # todo: byid/byidx disambiguation?
         if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
             if tag == "byidx":
                 selector = "index=%s" % selector
 
-            actions.append(ast_call(
+            elements.append(ast_call(
                 func=ast_attr("self.frm_mng.switch"),
                 args=[ast.Str(selector)]))
         else:
-            actions.append(ast_call(
+            elements.append(ast_call(
                 func=ast_attr("self.frm_mng.switch"),
                 args=[self._gen_locator(tag, selector)]))
+        return elements
+
+    def _gen_chain_mngr(self, atype, tag, param, selector):
+        elements = []
+        if atype in self.ACTION_CHAINS:
+            operator = ast_attr(fields=(
+                ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
+                self.ACTION_CHAINS[atype]))
+            elements.append(ast_call(
+                func=ast_attr(
+                    fields=(
+                        ast_call(
+                            func=operator,
+                            args=[self._gen_locator(tag, selector)]),
+                        "perform"))))
+        elif atype == "drag":
+            drop_action = self._parse_action(param)
+            if drop_action and drop_action[0] == "element" and not drop_action[2]:
+                drop_tag, drop_selector = (drop_action[1], drop_action[3])
+                operator = ast_attr(
+                    fields=(
+                        ast_call(
+                            func="ActionChains",
+                            args=[ast_attr("self.driver")]),
+                        "drag_and_drop"))
+                elements.append(ast_call(
+                    func=ast_attr(
+                        fields=(
+                            ast_call(
+                                func=operator,
+                                args=[self._gen_locator(tag, selector),
+                                      self._gen_locator(drop_tag, drop_selector)]),
+                            "perform"))))
+        return elements
+
+    def _gen_mngr(self, atype, tag, selector):
+        actions = []
         return actions
 
-    def _gen_mngr(self):
+    def _gen_mngr(self, atype, tag, selector):
         actions = []
         return actions
-    def _gen_mngr(self):
+
+    def _gen_mngr(self, atype, tag, selector):
         actions = []
         return actions
-    def _gen_mngr(self):
+
+    def _gen_mngr(self, atype, tag, selector):
+        actions = []
+        return actions
+
+    def _gen_mngr(self, atype, tag, selector):
+        actions = []
+        return actions
+
+    def _gen_mngr(self, atype, tag, selector):
+        actions = []
+        return actions
+
+    def _gen_mngr(self, atype, tag, selector):
         actions = []
         return actions
 
@@ -975,47 +1033,12 @@ class ApiritifScriptGenerator(object):
 
         action_elements = []
 
-        action_chains = {
-            'doubleclick': "double_click",
-            'mousedown': "click_and_hold",
-            'mouseup': "release",
-            'mousemove': "move_to_element"
-        }
-
         if tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, selector))
         elif atype == "switchframe":
             action_elements.extend(self._gen_frame_mngr(tag, selector))
-        elif atype in action_chains:
-            operator = ast_attr(fields=(
-                ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
-                action_chains[atype]))
-            action_elements.append(ast_call(
-                func=ast_attr(
-                    fields=(
-                        ast_call(
-                            func=operator,
-                            args=[self._gen_locator(tag, selector)]),
-                        "perform"))))
-
-        elif atype == "drag":
-            drop_action = self._parse_action(param)
-            if drop_action and drop_action[0] == "element" and not drop_action[2]:
-                drop_tag, drop_selector = (drop_action[1], drop_action[3])
-                operator = ast_attr(
-                    fields=(
-                        ast_call(
-                            func="ActionChains",
-                            args=[ast_attr("self.driver")]),
-                        "drag_and_drop"))
-                action_elements.append(ast_call(
-                    func=ast_attr(
-                        fields=(
-                            ast_call(
-                                func=operator,
-                                args=[self._gen_locator(tag, selector),
-                                      self._gen_locator(drop_tag, drop_selector)]),
-                            "perform"))))
+        elif atype in self.ACTION_CHAINS or atype == "drag":
+            action_elements.append(self._gen_chain_mngr(atype, tag, param, selector))
         elif atype == "select":
             action_elements.append(ast_call(
                 func=ast_attr(
