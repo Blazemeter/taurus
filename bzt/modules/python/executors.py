@@ -113,7 +113,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
                 generate_markers=generate_markers,
                 capabilities=capabilities,
-                wd_addr=remote)
+                wd_addr=remote, test_mode="selenium")
 
         builder.build_source_code()
         builder.save(filename)

@@ -189,38 +189,6 @@ class JMeterExprCompiler(object):
 
 
 class SeleniumScriptBuilder(PythonGenerator):
-    IMPORTS_SELENIUM = """import unittest
-import os
-import re
-from time import sleep, time
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import NoAlertPresentException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support import expected_conditions as econd
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.common.keys import Keys
-
-import apiritif
-"""
-    IMPORTS_APPIUM = """import unittest
-import os
-import re
-from time import sleep, time
-from appium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import NoAlertPresentException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support import expected_conditions as econd
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.common.keys import Keys
-
-import apiritif
-"""
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
@@ -270,27 +238,22 @@ import apiritif
         return transaction_contents
 
     def build_source_code(self):
-        self.log.debug("Generating Test Case test methods")
-
-        test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
+        self.log.debug("Generating Test Case test methods")                                 #
+        test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])       #
         test_class.append(self.gen_setup_method())
-        test_class.append(self.gen_teardown_method())
-
+        test_class.append(self.gen_teardown_method())                                       #
         requests = self.scenario.get_requests(require_url=False)
         test_method = self.gen_test_method('test_requests')
         self.gen_setup(test_method)
-
         for i, req in enumerate(requests, 1):
             self._fill_test_method(req, test_method)
             if i != len(requests):
                 test_method.append(self.gen_new_line())
-
         test_class.append(test_method)
-
         self.root.append(self.gen_statement("# coding=utf-8", indent=0))
-        self.root.append(self.add_imports())
+        self.root.append(self.add_imports())                                                #
         self.root.append(test_class)
-        self.root.append(self.add_utilities())
+        self.root.append(self.add_utilities())                                              #
 
     def _fill_test_method(self, req, test_method):
         if req.label:
@@ -352,6 +315,7 @@ import apiritif
             test_method.append(self.gen_statement("else:", indent=self.INDENT_STEP * 2))
             test_method.append(self.gen_statement(marker % (repr('success'), repr('')), indent=self.INDENT_STEP * 3))
 
+    # migrated
     def add_imports(self):
         imports = super(SeleniumScriptBuilder, self).add_imports()
         if self.appium:
@@ -503,6 +467,7 @@ import apiritif
         test_method = self.gen_method_definition(name, ["self"])
         return test_method
 
+    # migrated
     def gen_teardown_method(self):
         self.log.debug("Generating tearDown test method")
         tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
@@ -795,37 +760,18 @@ class ApiritifScriptGenerator(object):
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
-    IMPORTS_SELENIUM = """import unittest
+    IMPORTS = """import unittest
     import os
     import re
     from time import sleep, time
-    from selenium import webdriver
-    from selenium.common.exceptions import NoSuchElementException
-    from selenium.common.exceptions import NoAlertPresentException
+    from %s import webdriver
+    from selenium.common.exceptions import NoSuchElementException    
     from selenium.webdriver.common.by import By
     from selenium.webdriver.common.action_chains import ActionChains
     from selenium.webdriver.support.ui import Select
     from selenium.webdriver.support import expected_conditions as econd
     from selenium.webdriver.support.wait import WebDriverWait
     from selenium.webdriver.common.keys import Keys
-
-    import apiritif
-    """
-    IMPORTS_APPIUM = """import unittest
-    import os
-    import re
-    from time import sleep, time
-    from appium import webdriver
-    from selenium.common.exceptions import NoSuchElementException
-    from selenium.common.exceptions import NoAlertPresentException
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.common.action_chains import ActionChains
-    from selenium.webdriver.support.ui import Select
-    from selenium.webdriver.support import expected_conditions as econd
-    from selenium.webdriver.support.wait import WebDriverWait
-    from selenium.webdriver.common.keys import Keys
-
-    import apiritif
     """
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
@@ -836,7 +782,8 @@ class ApiritifScriptGenerator(object):
 
     def __init__(self, engine, scenario, label, parent_log,
                  wdlog=None, utils_file=None,
-                 ignore_unknown_actions=False, generate_markers=None, capabilities=None, wd_addr=None):
+                 ignore_unknown_actions=False, generate_markers=None,
+                 capabilities=None, wd_addr=None, test_mode="apiritif"):
         self.scenario = scenario
         self.engine = engine
         self.data_sources = list(scenario.get_data_sources())
@@ -852,10 +799,12 @@ class ApiritifScriptGenerator(object):
         self.capabilities = capabilities or {}
         self.window_size = None
         self.wdlog = wdlog
+        self.browser = None
         self.appium = False
         self.utils_file = utils_file
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
+        self.test_mode = test_mode
 
     def _parse_action(self, action_config):
         if isinstance(action_config, string_types):
@@ -1160,7 +1109,7 @@ class ApiritifScriptGenerator(object):
                         "until")),
                 args=[
                     ast_call(
-                        func=ast_attr("econd.visibility_of_element_located"),   # todo: 'econd'?
+                        func=ast_attr("econd.visibility_of_element_located"),
                         args=[
                             ast.Tuple(
                                 elts=[
@@ -1241,8 +1190,99 @@ class ApiritifScriptGenerator(object):
     def _gen_empty_line_stmt():
         return ast.Expr(value=ast.Name(id=""))  # hacky, but works
 
+    def _check_platform(self):
+        mobile_browsers = ["chrome", "safari"]
+        mobile_platforms = ["android", "ios"]
+
+        browser = self.capabilities.get("browserName", "")
+        browser = self.scenario.get("browser", browser)
+        browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
+
+        browser_platform = None
+        if browser:
+            browser_split = browser.split("-")
+            browser = browser_split[0]
+            browsers = ["firefox", "chrome", "ie", "opera"] + mobile_browsers
+            if browser not in browsers:
+                raise TaurusConfigError("Unsupported browser name: %s" % browser)
+            if len(browser_split) > 1:
+                browser_platform = browser_split[1]
+
+        if self.remote_address:
+            if browser and browser != "remote":
+                msg = "Forcing browser to Remote, because of remote WebDriver address, use '%s' as browserName"
+                self.log.warning(msg % browser)
+                self.capabilities["browserName"] = browser
+            browser = "remote"
+            if self.generate_markers is None:  # if not set by user - set to true
+                self.generate_markers = True
+        elif browser in mobile_browsers and browser_platform in mobile_platforms:
+            self.appium = True
+            self.remote_address = "http://localhost:4723/wd/hub"
+            self.capabilities["platformName"] = browser_platform
+            self.capabilities["browserName"] = browser
+            browser = "remote"  # Force to use remote web driver
+        elif not browser:
+            browser = "firefox"
+
+        return browser
+
+    def _selenium_setup(self):
+        self.log.debug("Generating setUp test method")
+        browser = self._check_platform()
+
+        headless = self.scenario.get("headless", False)
+        if headless:
+            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
+
+        setup_method_def = self.gen_method_definition("setUp", ["self"])
+        setup_method_def.extend(self.gen_global_vars())
+
+        if browser == 'firefox':
+            setup_method_def.append(self.gen_statement("options = webdriver.FirefoxOptions()"))
+            if headless:
+                setup_method_def.append(self.gen_statement("options.set_headless()"))
+            setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
+            statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
+            log_set = self.gen_statement(statement)
+            setup_method_def.append(log_set)
+            tmpl = "self.driver = webdriver.Firefox(profile, firefox_options=options)"
+            setup_method_def.append(self.gen_statement(tmpl))
+        elif browser == 'chrome':
+            setup_method_def.append(self.gen_statement("options = webdriver.ChromeOptions()"))
+            if headless:
+                setup_method_def.append(self.gen_statement("options.set_headless()"))
+            statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
+            setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
+        elif browser == 'remote':
+            setup_method_def.append(self._gen_remote_driver())
+        else:
+            if headless:
+                self.log.warning("Browser %r doesn't support headless mode")
+            setup_method_def.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
+
+        scenario_timeout = self.scenario.get("timeout", "30s")
+        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
+
+        setup_method_def.append(self.gen_statement("self.wnd_mng = WindowManager(self.driver)"))
+        setup_method_def.append(self.gen_statement("self.frm_mng = FrameManager(self.driver)"))
+
+        if self.window_size:  # FIXME: unused in fact
+            statement = self.gen_statement("self.driver.set_window_position(0, 0)")
+            setup_method_def.append(statement)
+
+            args = (self.window_size[0], self.window_size[1])
+            statement = self.gen_statement("self.driver.set_window_size(%s, %s)" % args)
+            setup_method_def.append(statement)
+        else:
+            pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
+            # but maximize_window does not work on virtual displays. Bummer
+
+        setup_method_def.append(self.gen_new_line())
+        return setup_method_def
+
     def _gen_module(self):
-        stmts = [self._gen_imports()]
+        stmts = self._gen_imports()
 
         if self.verbose:
             stmts.extend(self._gen_logging())
@@ -1250,10 +1290,16 @@ class ApiritifScriptGenerator(object):
         stmts.extend(self._gen_data_source_readers())
         stmts.extend(self._gen_module_setup())
         stmts.append(self._gen_classdef())
+
+        if self.test_mode == "selenium":
+            with open(self.utils_file) as fds:
+                utilities_source_lines = fds.read()
+            stmts.extend(ast.parse(utilities_source_lines))
+
         return ast.Module(body=stmts)
 
     def _gen_imports(self):
-        return [
+        imports = [
             ast.Import(names=[ast.alias(name='logging', asname=None)]),
             ast.Import(names=[ast.alias(name='random', asname=None)]),
             ast.Import(names=[ast.alias(name='string', asname=None)]),
@@ -1263,6 +1309,16 @@ class ApiritifScriptGenerator(object):
             self._gen_empty_line_stmt(),
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
             self._gen_empty_line_stmt()]
+
+        if self.test_mode == "selenium":
+            if self.appium:
+                source = "appium"
+            else:
+                source = "selenium"
+
+            imports.extend(ast.parse(self.IMPORTS % source))
+
+        return imports
 
     def _gen_module_setup(self):
         target_init = self._gen_target()
@@ -1342,6 +1398,9 @@ class ApiritifScriptGenerator(object):
 
     def _gen_classdef(self):
         class_body = [self._gen_class_setup()]
+        if self.test_mode == "selenium":
+            class_body.append(self._gen_class_teardown())
+
         class_body.extend(self._gen_test_methods())
 
         return ast.ClassDef(
@@ -1355,12 +1414,24 @@ class ApiritifScriptGenerator(object):
 
     def _gen_class_setup(self):
         fields = ast.Tuple(elts=[ast.Name(id="self.%s" % var) for var in self.stored_vars])
-        get_call = ast_call(func=ast_attr("apiritif.get_from_thread_store"))
 
-        get_expr = ast.Assign(targets=[fields], value=get_call)
+        body = [ast.Assign(
+            targets=[fields],
+            value=ast_call(func=ast_attr("apiritif.get_from_thread_store")))]
+
+        if self.test_mode == "selenium":
+            body.extend(self._selenium_setup())
+
+        return ast.FunctionDef(
+            name="setUp",
+            args=[ast.Name(id="self")],
+            body=body)
+
+    @staticmethod
+    def _gen_class_teardown():
+        body = [ast_call(func=ast_attr("self.driver.quit"))]
         args = ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None)
-
-        return ast.FunctionDef(name="setUp", args=args, body=[get_expr], decorator_list=[])
+        return ast.FunctionDef(name="tearDown", args=args, body=body)
 
     def _gen_test_methods(self):
         requests = self.scenario.get_requests(parser=HierarchicRequestParser, require_url=False)
