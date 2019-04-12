@@ -83,7 +83,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         scenario = self.get_scenario()
 
         if test_mode == "apiritif":
-            builder = ApiritifScriptGenerator(self.engine, scenario, self.label, self.log)
+            builder = ApiritifScriptGenerator(self.engine, scenario, self.label, self.log, test_mode=test_mode)
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
@@ -113,7 +113,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
                 generate_markers=generate_markers,
                 capabilities=capabilities,
-                wd_addr=remote, test_mode="selenium")
+                wd_addr=remote, test_mode=test_mode)
 
         builder.build_source_code()
         builder.save(filename)

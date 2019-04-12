@@ -324,6 +324,7 @@ class SeleniumScriptBuilder(PythonGenerator):
             imports.text = self.IMPORTS_SELENIUM
         return imports
 
+    # migrated
     def add_utilities(self):
         with open(self.utils_file) as fds:
             utilities_source_lines = fds.read()
@@ -331,6 +332,7 @@ class SeleniumScriptBuilder(PythonGenerator):
         utils.text = "\n" + utilities_source_lines
         return utils
 
+    # migrated
     def gen_global_vars(self):
         variables = self.scenario.get("variables")
         stmts = [
@@ -761,18 +763,18 @@ class ApiritifScriptGenerator(object):
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
     IMPORTS = """import unittest
-    import os
-    import re
-    from time import sleep, time
-    from %s import webdriver
-    from selenium.common.exceptions import NoSuchElementException    
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.common.action_chains import ActionChains
-    from selenium.webdriver.support.ui import Select
-    from selenium.webdriver.support import expected_conditions as econd
-    from selenium.webdriver.support.wait import WebDriverWait
-    from selenium.webdriver.common.keys import Keys
-    """
+import os
+import re
+from time import sleep, time
+from %s import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support import expected_conditions as econd
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.keys import Keys
+"""
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
@@ -783,7 +785,7 @@ class ApiritifScriptGenerator(object):
     def __init__(self, engine, scenario, label, parent_log,
                  wdlog=None, utils_file=None,
                  ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="apiritif"):
+                 capabilities=None, wd_addr=None, test_mode="selenium"):
         self.scenario = scenario
         self.engine = engine
         self.data_sources = list(scenario.get_data_sources())
@@ -1235,51 +1237,55 @@ class ApiritifScriptGenerator(object):
         if headless:
             self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
 
-        setup_method_def = self.gen_method_definition("setUp", ["self"])
-        setup_method_def.extend(self.gen_global_vars())
+        body = []
 
         if browser == 'firefox':
-            setup_method_def.append(self.gen_statement("options = webdriver.FirefoxOptions()"))
+            body.append(ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(
+                    func=ast_attr("webdriver.FirefoxOptions"))))
+                        #("options = webdriver.FirefoxOptions()"))
+
+            return body
             if headless:
-                setup_method_def.append(self.gen_statement("options.set_headless()"))
-            setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
+                body.append(self.gen_statement("options.set_headless()"))
+            body.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
             statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
             log_set = self.gen_statement(statement)
-            setup_method_def.append(log_set)
+            body.append(log_set)
             tmpl = "self.driver = webdriver.Firefox(profile, firefox_options=options)"
-            setup_method_def.append(self.gen_statement(tmpl))
+            body.append(self.gen_statement(tmpl))
         elif browser == 'chrome':
-            setup_method_def.append(self.gen_statement("options = webdriver.ChromeOptions()"))
+            body.append(self.gen_statement("options = webdriver.ChromeOptions()"))
             if headless:
-                setup_method_def.append(self.gen_statement("options.set_headless()"))
+                body.append(self.gen_statement("options.set_headless()"))
             statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
-            setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
+            body.append(self.gen_statement(statement % repr(self.wdlog)))
         elif browser == 'remote':
-            setup_method_def.append(self._gen_remote_driver())
+            body.append(self._gen_remote_driver())
         else:
             if headless:
                 self.log.warning("Browser %r doesn't support headless mode")
-            setup_method_def.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
+            body.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
 
         scenario_timeout = self.scenario.get("timeout", "30s")
-        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
+        body.append(self.gen_impl_wait(scenario_timeout))
 
-        setup_method_def.append(self.gen_statement("self.wnd_mng = WindowManager(self.driver)"))
-        setup_method_def.append(self.gen_statement("self.frm_mng = FrameManager(self.driver)"))
+        body.append(self.gen_statement("self.wnd_mng = WindowManager(self.driver)"))
+        body.append(self.gen_statement("self.frm_mng = FrameManager(self.driver)"))
 
         if self.window_size:  # FIXME: unused in fact
             statement = self.gen_statement("self.driver.set_window_position(0, 0)")
-            setup_method_def.append(statement)
+            body.append(statement)
 
             args = (self.window_size[0], self.window_size[1])
             statement = self.gen_statement("self.driver.set_window_size(%s, %s)" % args)
-            setup_method_def.append(statement)
+            body.append(statement)
         else:
             pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
             # but maximize_window does not work on virtual displays. Bummer
 
-        setup_method_def.append(self.gen_new_line())
-        return setup_method_def
+        return body
 
     def _gen_module(self):
         stmts = self._gen_imports()
@@ -1292,9 +1298,10 @@ class ApiritifScriptGenerator(object):
         stmts.append(self._gen_classdef())
 
         if self.test_mode == "selenium":
+            stmts.append(self._gen_empty_line_stmt())
             with open(self.utils_file) as fds:
                 utilities_source_lines = fds.read()
-            stmts.extend(ast.parse(utilities_source_lines))
+            stmts.append(ast.parse(utilities_source_lines))
 
         return ast.Module(body=stmts)
 
@@ -1316,7 +1323,7 @@ class ApiritifScriptGenerator(object):
             else:
                 source = "selenium"
 
-            imports.extend(ast.parse(self.IMPORTS % source))
+            imports.append(ast.parse(self.IMPORTS % source).body)
 
         return imports
 
@@ -1422,16 +1429,12 @@ class ApiritifScriptGenerator(object):
         if self.test_mode == "selenium":
             body.extend(self._selenium_setup())
 
-        return ast.FunctionDef(
-            name="setUp",
-            args=[ast.Name(id="self")],
-            body=body)
+        return ast.FunctionDef(name="setUp", args=[ast.Name(id="self")], body=body, decorator_list=[])
 
     @staticmethod
     def _gen_class_teardown():
-        body = [ast_call(func=ast_attr("self.driver.quit"))]
-        args = ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None)
-        return ast.FunctionDef(name="tearDown", args=args, body=body)
+        body = [ast.Expr(ast_call(func=ast_attr("self.driver.quit")))]
+        return ast.FunctionDef(name="tearDown", args=[ast.Name(id="self")], body=body, decorator_list=[])
 
     def _gen_test_methods(self):
         requests = self.scenario.get_requests(parser=HierarchicRequestParser, require_url=False)
@@ -1481,23 +1484,11 @@ class ApiritifScriptGenerator(object):
     @staticmethod
     def _gen_test_method(name, body):
         # 'test_01_get_posts'
-
-        method = ast.FunctionDef(
+        return ast.FunctionDef(
             name=name,
-            args=ast.arguments(
-                args=[ast.Name(id='self', ctx=ast.Param())],
-                defaults=[],
-                vararg=None,
-                kwonlyargs=[],
-                kw_defaults=[],
-                kwarg=None,
-                returns=None,
-            ),
+            args=[ast.Name(id='self', ctx=ast.Param())],
             body=body,
-            decorator_list=[],
-        )
-
-        return method
+            decorator_list=[])
 
     def gen_expr(self, value):
         return self.expr_compiler.gen_expr(value)

@@ -395,6 +395,40 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         for line in target_lines:
             self.assertIn(line, content, line)
 
+    def test_modern_setup_generator(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "default-address": "http://blazedemo.com",
+                    "variables": {
+                        "red_pill": "take_it",
+                        "name": "Name"
+                    },
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "bla.com",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+
+                        }]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [1
+        ]
+
+        for line in target_lines:
+            self.assertIn(line, content, line)
+
     def test_build_script(self):
         self.configure({
             "execution": [{
