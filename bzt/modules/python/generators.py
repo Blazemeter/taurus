@@ -1273,7 +1273,7 @@ from selenium.webdriver.common.keys import Keys
         elif browser == 'remote':
             capabilities = {key: str(self.capabilities[key]) for key in self.capabilities}
             body.append(ast.Assign(
-                targets=ast_attr("self.driver"),
+                targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.Remote"),
                     keywords=[

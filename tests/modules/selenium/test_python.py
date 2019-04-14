@@ -438,10 +438,12 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "executor": "selenium",
                 "hold-for": "4m",
                 "ramp-up": "3m",
+                "remote": "http-b",
+                "capabilities": {"o1": "o2", "r1": "r2"},
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
-                    "browser": "Chrome",
+                    #"browser": "Safari",
                     "default-address": "http://blazedemo.com",
                     "variables": {
                         "red_pill": "take_it",
