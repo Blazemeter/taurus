@@ -1227,17 +1227,27 @@ from selenium.webdriver.common.keys import Keys
                 targets=[ast.Name(id="options")],
                 value=ast_call(
                     func=ast_attr("webdriver.FirefoxOptions"))))
-                        #("options = webdriver.FirefoxOptions()"))
-
-            return body
             if headless:
-                body.append(self.gen_statement("options.set_headless()"))
-            body.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
-            statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
-            log_set = self.gen_statement(statement)
-            body.append(log_set)
-            tmpl = "self.driver = webdriver.Firefox(profile, firefox_options=options)"
-            body.append(self.gen_statement(tmpl))
+                body.append(ast.Expr(
+                    ast_call(func=ast_attr("options.set_headless"))))
+            body.append(ast.Assign(
+                targets=[ast.Name(id="profile")],
+                value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))))
+            body.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("profile.set_preference"),
+                    args=[ast.Str("webdriver.log.file"), ast.Str(self.wdlog)])))
+
+            body.append(ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Firefox"),
+                    args=[ast.Name(id="profile")],
+                    keywords=[ast.keyword(
+                        arg="firefox_options",
+                        value=ast.Name(id="options"))])))
+            return body
+
         elif browser == 'chrome':
             body.append(self.gen_statement("options = webdriver.ChromeOptions()"))
             if headless:
@@ -1756,12 +1766,8 @@ from selenium.webdriver.common.keys import Keys
 
     def save(self, filename):
         with open(filename, 'wt') as fds:
-            source = astunparse.unparse(self.tree)
-            # because astunparse on Python 2 adds extra comma+space
-            class_name = create_class_name(self.label)
-            source = source.replace('class %s(unittest.TestCase, )' % class_name,
-                                    'class %s(unittest.TestCase)' % class_name)
-            fds.write(source)
+            fds.write("# coding=utf-8\n")
+            fds.write(astunparse.unparse(self.tree))
 
     def _gen_logging(self):
         set_log = ast.Assign(

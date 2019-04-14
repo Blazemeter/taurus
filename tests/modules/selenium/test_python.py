@@ -401,6 +401,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
+                    "headless": True,
                     "default-address": "http://blazedemo.com",
                     "variables": {
                         "red_pill": "take_it",
@@ -420,11 +421,16 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target_lines = [1
+        target_lines = [
+            "options = webdriver.FirefoxOptions()",
+            "options.set_headless()",
+            "profile = webdriver.FirefoxProfile()",
+            "profile.set_preference('webdriver.log.file', '",
+            "self.driver = webdriver.Firefox(profile, firefox_options=options)"
         ]
 
-        for line in target_lines:
-            self.assertIn(line, content, line)
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
     def test_build_script(self):
         self.configure({
