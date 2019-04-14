@@ -392,7 +392,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-    def test_modern_setup_generator(self):
+    def test_firefox_setup_generator(self):
         self.configure({
             "execution": [{
                 "executor": "selenium",
@@ -427,6 +427,46 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "profile = webdriver.FirefoxProfile()",
             "profile.set_preference('webdriver.log.file', '",
             "self.driver = webdriver.Firefox(profile, firefox_options=options)"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_chrome_setup_generator(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Chrome",
+                    "default-address": "http://blazedemo.com",
+                    "variables": {
+                        "red_pill": "take_it",
+                        "name": "Name"
+                    },
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "bla.com",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+
+                        }]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.set_headless()", content)
+
+        target_lines = [
+            "options = webdriver.ChromeOptions()",
+            "self.driver = webdriver.Chrome(service_log_path='",
+            "', chrome_options=options)"
         ]
 
         for idx in range(len(target_lines)):

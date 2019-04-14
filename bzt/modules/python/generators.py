@@ -240,7 +240,7 @@ class SeleniumScriptBuilder(PythonGenerator):
     def build_source_code(self):
         self.log.debug("Generating Test Case test methods")                                 #
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])       #
-        test_class.append(self.gen_setup_method())
+        test_class.append(self.gen_setup_method())                                          #
         test_class.append(self.gen_teardown_method())                                       #
         requests = self.scenario.get_requests(require_url=False)
         test_method = self.gen_test_method('test_requests')
@@ -361,6 +361,7 @@ class SeleniumScriptBuilder(PythonGenerator):
         test_method.append(self.gen_impl_wait(scenario_timeout))
         test_method.append(self.gen_new_line())
 
+    # migrated
     def _check_platform(self):
         mobile_browsers = ["chrome", "safari"]
         mobile_platforms = ["android", "ios"]
@@ -398,6 +399,7 @@ class SeleniumScriptBuilder(PythonGenerator):
 
         return browser
 
+    # migrated
     def gen_setup_method(self):
         self.log.debug("Generating setUp test method")
         browser = self._check_platform()
@@ -452,6 +454,7 @@ class SeleniumScriptBuilder(PythonGenerator):
         setup_method_def.append(self.gen_new_line())
         return setup_method_def
 
+    # migrated
     def _gen_remote_driver(self):
         # avoid versions and other number values
         capabilities = {key: str(self.capabilities[key]) for key in self.capabilities}
@@ -461,6 +464,7 @@ class SeleniumScriptBuilder(PythonGenerator):
 
         return self.gen_statement(cmd)
 
+    # migrated
     def gen_impl_wait(self, timeout, indent=None):
         return self.gen_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout), indent=indent)
 
@@ -1217,8 +1221,11 @@ from selenium.webdriver.common.keys import Keys
         browser = self._check_platform()
 
         headless = self.scenario.get("headless", False)
+        headless_setup = []
         if headless:
             self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
+            headless_setup = [ast.Expr(
+                ast_call(func=ast_attr("options.set_headless")))]
 
         body = []
 
@@ -1227,9 +1234,7 @@ from selenium.webdriver.common.keys import Keys
                 targets=[ast.Name(id="options")],
                 value=ast_call(
                     func=ast_attr("webdriver.FirefoxOptions"))))
-            if headless:
-                body.append(ast.Expr(
-                    ast_call(func=ast_attr("options.set_headless"))))
+            body.extend(headless_setup)
             body.append(ast.Assign(
                 targets=[ast.Name(id="profile")],
                 value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))))
@@ -1246,39 +1251,84 @@ from selenium.webdriver.common.keys import Keys
                     keywords=[ast.keyword(
                         arg="firefox_options",
                         value=ast.Name(id="options"))])))
-            return body
 
         elif browser == 'chrome':
-            body.append(self.gen_statement("options = webdriver.ChromeOptions()"))
-            if headless:
-                body.append(self.gen_statement("options.set_headless()"))
-            statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
-            body.append(self.gen_statement(statement % repr(self.wdlog)))
+            body.append(ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(
+                    func=ast_attr("webdriver.ChromeOptions"))))
+            body.extend(headless_setup)
+            body.append(ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Chrome"),
+                    keywords=[
+                        ast.keyword(
+                            arg="service_log_path",
+                            value=ast.Str(self.wdlog)),
+                        ast.keyword(
+                            arg="chrome_options",
+                            value=ast.Name(id="options"))])))
+            return body
         elif browser == 'remote':
-            body.append(self._gen_remote_driver())
+            capabilities = {key: str(self.capabilities[key]) for key in self.capabilities}
+            body.append(ast.Assign(
+                targets=ast_attr("self.driver"),
+                value=ast_call(
+                    func=ast_attr("webdriver.Remote"),
+                    keywords=[
+                        ast.keyword(
+                            arg="command_executor",
+                            value=ast.Str(self.remote_address)),
+                        ast.keyword(
+                            arg="desired_capabilities",
+                            value=ast.Str(json.dumps(capabilities, sort_keys=True)))])))
         else:
             if headless:
-                self.log.warning("Browser %r doesn't support headless mode")
-            body.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
+                self.log.warning("Browser %r doesn't support headless mode" % browser)
+
+            body.append(ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
 
         scenario_timeout = self.scenario.get("timeout", "30s")
         body.append(self.gen_impl_wait(scenario_timeout))
 
-        body.append(self.gen_statement("self.wnd_mng = WindowManager(self.driver)"))
-        body.append(self.gen_statement("self.frm_mng = FrameManager(self.driver)"))
+        body.append(ast.Assign(
+            targets=[ast_attr("self.wnd_mng")],
+            value=ast_call(
+                func=ast.Name(id="WindowManager"),
+                args=[ast_attr("self.driver")])))
+        body.append(ast.Assign(
+            targets=[ast_attr("self.frm_mng")],
+            value=ast_call(
+                func=ast.Name(id="FrameManager"),
+                args=[ast_attr("self.driver")])))
 
-        if self.window_size:  # FIXME: unused in fact
-            statement = self.gen_statement("self.driver.set_window_position(0, 0)")
-            body.append(statement)
+        if self.window_size:  # FIXME: unused in fact ?
+            body.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("self.driver.set_window_position"),
+                    args=[ast.Num(0), ast.Num(0)])))
 
-            args = (self.window_size[0], self.window_size[1])
-            statement = self.gen_statement("self.driver.set_window_size(%s, %s)" % args)
-            body.append(statement)
+            body.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("self.driver.set_window_position"),
+                    args=[ast.Num(self.window_size[0]), ast.Num(self.window_size[1])])))
+
         else:
             pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
             # but maximize_window does not work on virtual displays. Bummer
 
         return body
+
+    @staticmethod
+    def gen_impl_wait(timeout):
+        return ast.Expr(
+            ast_call(
+                func=ast_attr("self.driver.implicitly_wait"),
+                args=[ast.Num(dehumanize_time(timeout))]))
 
     def _gen_module(self):
         stmts = self._gen_imports()
