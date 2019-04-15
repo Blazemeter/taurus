@@ -194,7 +194,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                     self.log.info(report_template, failed_samples_count, sample_label)
 
     def __console_safe_encode(self, text):
-        return text.encode(locale.getpreferredencoding(), errors='replace').decode('unicode_escape')
+        return text.encode(locale.getpreferredencoding(), errors='replace').decode('utf-8')
 
     def __get_sample_element(self, sample, label_name):
         failed_samples_count = sample['fail']
