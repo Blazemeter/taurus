@@ -240,17 +240,17 @@ class SeleniumScriptBuilder(PythonGenerator):
     def build_source_code(self):
         self.log.debug("Generating Test Case test methods")                                 #
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])       #
-        test_class.append(self.gen_setup_method())
+        test_class.append(self.gen_setup_method())                                          #
         test_class.append(self.gen_teardown_method())                                       #
         requests = self.scenario.get_requests(require_url=False)
         test_method = self.gen_test_method('test_requests')
         self.gen_setup(test_method)
         for i, req in enumerate(requests, 1):
             self._fill_test_method(req, test_method)
-            if i != len(requests):
-                test_method.append(self.gen_new_line())
+            if i != len(requests):                                                          #
+                test_method.append(self.gen_new_line())                                     #
         test_class.append(test_method)
-        self.root.append(self.gen_statement("# coding=utf-8", indent=0))
+        self.root.append(self.gen_statement("# coding=utf-8", indent=0))                    #
         self.root.append(self.add_imports())                                                #
         self.root.append(test_class)
         self.root.append(self.add_utilities())                                              #
@@ -361,6 +361,7 @@ class SeleniumScriptBuilder(PythonGenerator):
         test_method.append(self.gen_impl_wait(scenario_timeout))
         test_method.append(self.gen_new_line())
 
+    # migrated
     def _check_platform(self):
         mobile_browsers = ["chrome", "safari"]
         mobile_platforms = ["android", "ios"]
@@ -398,6 +399,7 @@ class SeleniumScriptBuilder(PythonGenerator):
 
         return browser
 
+    # migrated
     def gen_setup_method(self):
         self.log.debug("Generating setUp test method")
         browser = self._check_platform()
@@ -452,6 +454,7 @@ class SeleniumScriptBuilder(PythonGenerator):
         setup_method_def.append(self.gen_new_line())
         return setup_method_def
 
+    # migrated
     def _gen_remote_driver(self):
         # avoid versions and other number values
         capabilities = {key: str(self.capabilities[key]) for key in self.capabilities}
@@ -461,6 +464,7 @@ class SeleniumScriptBuilder(PythonGenerator):
 
         return self.gen_statement(cmd)
 
+    # migrated
     def gen_impl_wait(self, timeout, indent=None):
         return self.gen_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout), indent=indent)
 
@@ -853,15 +857,7 @@ from selenium.webdriver.common.keys import Keys
             func=ast_attr("self.driver.find_element"),
             args=[
                 ast_attr("By.%s" % self.BYS[tag]),
-                self._gen_tpl(selector)])
-
-    @staticmethod
-    def _gen_tpl(selector):
-        if isinstance(selector, string_types):
-            selector = ast.Str(selector)
-        return ast_call(
-            func=ast_attr("self.template"),
-            args=[selector])
+                self._gen_expr(selector)])
 
     @staticmethod
     def _gen_store(name, value):
@@ -871,29 +867,22 @@ from selenium.webdriver.common.keys import Keys
                 slice=ast.Str(name))],
             value=value)
 
-    @staticmethod
-    def _gen_window_mngr(atype, selector):
+    def _gen_window_mngr(self, atype, selector):
         elements = []
         if atype == "switch":
             elements.append(ast_call(
                 func=ast_attr("self.wnd_mng.switch"),
-                args=[ast_call(
-                    func=ast_attr("self.template"),
-                    args=[ast.Str(selector)])]))
+                args=[self._gen_expr(selector)]))
         elif atype == "open":
             elements.append(ast_call(
                 func=ast_attr("self.driver.execute_script"),
-                args=[ast_call(
-                    func=ast_attr("self.template"),
-                    args=[ast_call(
+                args=[self._gen_expr(ast_call(
                         func=ast_attr("window.open"),
-                        args=[ast.Str(selector)])])]))
+                        args=[ast.Str(selector)]))]))
         elif atype == "close":
             args = []
             if selector:
-                args.append(ast_call(
-                    func=ast_attr("self.template"),
-                    args=[ast.Str(selector)]))
+                args.append(self._gen_expr(selector))
             elements.append(ast_call(
                 func=ast_attr("self.wnd_mng.close"),
                 args=args))
@@ -953,15 +942,15 @@ from selenium.webdriver.common.keys import Keys
             if atype.startswith('assert'):
                 elements.append(ast_call(
                     func=ast_attr("self.assertEqual"),
-                    args=[ast_attr("self.driver.title"), self._gen_tpl(selector)]))
+                    args=[ast_attr("self.driver.title"), self._gen_expr(selector)]))
             else:
                 elements.append(self._gen_store(
                     name=param.strip(),
-                    value=self._gen_tpl(ast_attr("self.driver.title"))))
+                    value=self._gen_expr(ast_attr("self.driver.title"))))
         elif atype == 'store' and tag == 'string':
             elements.append(self._gen_store(
                 name=param.strip(),
-                value=self._gen_tpl(selector.strip())))
+                value=self._gen_expr(selector.strip())))
         else:
             target = None
             
@@ -985,17 +974,17 @@ from selenium.webdriver.common.keys import Keys
                             ast_call(
                                 func=ast_attr(
                                     fields=(
-                                        self._gen_tpl(locator_attr),
+                                        self._gen_expr(locator_attr),
                                         "strip"))),
                             ast_call(
                                 func=ast_attr(
                                     fields=(
-                                        self._gen_tpl(param),
+                                        self._gen_expr(param),
                                         "strip")))]))
                 elif atype.startswith('store'):
                     elements.append(self._gen_store(
                         name=param.strip(),
-                        value=self._gen_tpl(locator_attr)))
+                        value=self._gen_expr(locator_attr)))
                 
         return elements
 
@@ -1019,7 +1008,7 @@ from selenium.webdriver.common.keys import Keys
             if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
                 args = [ast_attr("Keys.%s" % param.split("KEY_")[1])]
             else:
-                args = [self._gen_tpl(str(param))]
+                args = [self._gen_expr(str(param))]
         
         if action:
             elements.append(ast_call(
@@ -1048,9 +1037,7 @@ from selenium.webdriver.common.keys import Keys
                                       ast.BinOp(
                                           left=ast.Str("arguments[0].innerHTML = %s;"),
                                           op=ast.Mod(),
-                                          right=ast_call(
-                                              func=ast_attr("self.template.str_repr"),
-                                              args=[self._gen_tpl(param.strip())])),
+                                          right=self._gen_expr(param.strip())),
                                       short_locator]))],
             orelse=[
                 ast.Raise(
@@ -1072,7 +1059,7 @@ from selenium.webdriver.common.keys import Keys
         if selector:
             elements.append(ast_call(
                 func=ast_attr("self.driver.save_screenshot"),
-                args=[self._gen_tpl(selector)]))
+                args=[self._gen_expr(selector)]))
         else:
             elements.append(ast.Assign(
                 targets=[ast.Name(id="filename")],
@@ -1094,7 +1081,7 @@ from selenium.webdriver.common.keys import Keys
                 args=[ast.Name(id="filename")]))
         return elements
 
-    def _gen_wait_speep_mngr(self, atype, tag, selector):
+    def _gen_wait_sleep_mngr(self, atype, tag, selector):
         elements = []
         if atype == 'wait':
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
@@ -1116,7 +1103,7 @@ from selenium.webdriver.common.keys import Keys
                             ast.Tuple(
                                 elts=[
                                     ast_attr("By.%s" % self.BYS[tag]),
-                                    self._gen_tpl(selector)])]),
+                                    self._gen_expr(selector)])]),
                     ast.Str(errmsg)]))
 
         elif atype == 'pause' and tag == 'for':
@@ -1132,7 +1119,7 @@ from selenium.webdriver.common.keys import Keys
                 fields=(
                     ast_call(func="Select", args=[self._gen_locator(tag, selector)]),
                     "select_by_visible_text")),
-            args=[self._gen_tpl(param)]))
+            args=[self._gen_expr(param)]))
         return [element]
 
     def gen_action(self, action_config):
@@ -1162,21 +1149,21 @@ from selenium.webdriver.common.keys import Keys
             if len(selector) > 0 and not param:
                 action_elements.append(ast_call(
                     func="print",
-                    args=[self._gen_tpl(selector.strip())]))
+                    args=[self._gen_expr(selector.strip())]))
 
         elif atype == "script" and tag == "eval":
             action_elements.append(ast_call(func=ast_attr("self.driver.execute_script"),
-                                            args=[self._gen_tpl(selector)]))
+                                            args=[self._gen_expr(selector)]))
         elif atype == "rawcode":
             action_elements.append(ast.parse(param))
         elif atype == 'go':
             if selector and not param:
                 action_elements.append(ast_call(func=ast_attr("self.driver.get"),
-                                                args=[self._gen_tpl(selector.strip())]))
+                                                args=[self._gen_expr(selector.strip())]))
         elif atype == "editcontent":  # todo: check it functionally (possibly broken)
             action_elements.extend(self._gen_edit_mngr(tag, param, selector))
         elif atype in ('wait', 'pause'):
-            action_elements.extend(self._gen_wait_speep_mngr(atype, tag, selector))
+            action_elements.extend(self._gen_wait_sleep_mngr(atype, tag, selector))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(ast_call(
                 func=ast_attr("self.driver.delete_all_cookies")))
@@ -1234,8 +1221,11 @@ from selenium.webdriver.common.keys import Keys
         browser = self._check_platform()
 
         headless = self.scenario.get("headless", False)
+        headless_setup = []
         if headless:
             self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
+            headless_setup = [ast.Expr(
+                ast_call(func=ast_attr("options.set_headless")))]
 
         body = []
 
@@ -1244,48 +1234,101 @@ from selenium.webdriver.common.keys import Keys
                 targets=[ast.Name(id="options")],
                 value=ast_call(
                     func=ast_attr("webdriver.FirefoxOptions"))))
-                        #("options = webdriver.FirefoxOptions()"))
+            body.extend(headless_setup)
+            body.append(ast.Assign(
+                targets=[ast.Name(id="profile")],
+                value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))))
+            body.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("profile.set_preference"),
+                    args=[ast.Str("webdriver.log.file"), ast.Str(self.wdlog)])))
 
-            return body
-            if headless:
-                body.append(self.gen_statement("options.set_headless()"))
-            body.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
-            statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
-            log_set = self.gen_statement(statement)
-            body.append(log_set)
-            tmpl = "self.driver = webdriver.Firefox(profile, firefox_options=options)"
-            body.append(self.gen_statement(tmpl))
+            body.append(ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Firefox"),
+                    args=[ast.Name(id="profile")],
+                    keywords=[ast.keyword(
+                        arg="firefox_options",
+                        value=ast.Name(id="options"))])))
+
         elif browser == 'chrome':
-            body.append(self.gen_statement("options = webdriver.ChromeOptions()"))
-            if headless:
-                body.append(self.gen_statement("options.set_headless()"))
-            statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
-            body.append(self.gen_statement(statement % repr(self.wdlog)))
+            body.append(ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(
+                    func=ast_attr("webdriver.ChromeOptions"))))
+            body.extend(headless_setup)
+            body.append(ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Chrome"),
+                    keywords=[
+                        ast.keyword(
+                            arg="service_log_path",
+                            value=ast.Str(self.wdlog)),
+                        ast.keyword(
+                            arg="chrome_options",
+                            value=ast.Name(id="options"))])))
+            return body
         elif browser == 'remote':
-            body.append(self._gen_remote_driver())
+            capabilities = {key: str(self.capabilities[key]) for key in self.capabilities}
+            body.append(ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Remote"),
+                    keywords=[
+                        ast.keyword(
+                            arg="command_executor",
+                            value=ast.Str(self.remote_address)),
+                        ast.keyword(
+                            arg="desired_capabilities",
+                            value=ast.Str(json.dumps(capabilities, sort_keys=True)))])))
         else:
             if headless:
-                self.log.warning("Browser %r doesn't support headless mode")
-            body.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
+                self.log.warning("Browser %r doesn't support headless mode" % browser)
+
+            body.append(ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
 
         scenario_timeout = self.scenario.get("timeout", "30s")
         body.append(self.gen_impl_wait(scenario_timeout))
 
-        body.append(self.gen_statement("self.wnd_mng = WindowManager(self.driver)"))
-        body.append(self.gen_statement("self.frm_mng = FrameManager(self.driver)"))
+        body.append(ast.Assign(
+            targets=[ast_attr("self.wnd_mng")],
+            value=ast_call(
+                func=ast.Name(id="WindowManager"),
+                args=[ast_attr("self.driver")])))
+        body.append(ast.Assign(
+            targets=[ast_attr("self.frm_mng")],
+            value=ast_call(
+                func=ast.Name(id="FrameManager"),
+                args=[ast_attr("self.driver")])))
 
-        if self.window_size:  # FIXME: unused in fact
-            statement = self.gen_statement("self.driver.set_window_position(0, 0)")
-            body.append(statement)
+        if self.window_size:  # FIXME: unused in fact ?
+            body.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("self.driver.set_window_position"),
+                    args=[ast.Num(0), ast.Num(0)])))
 
-            args = (self.window_size[0], self.window_size[1])
-            statement = self.gen_statement("self.driver.set_window_size(%s, %s)" % args)
-            body.append(statement)
+            body.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("self.driver.set_window_position"),
+                    args=[ast.Num(self.window_size[0]), ast.Num(self.window_size[1])])))
+
         else:
             pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
             # but maximize_window does not work on virtual displays. Bummer
 
         return body
+
+    @staticmethod
+    def gen_impl_wait(timeout):
+        return ast.Expr(
+            ast_call(
+                func=ast_attr("self.driver.implicitly_wait"),
+                args=[ast.Num(dehumanize_time(timeout))]))
 
     def _gen_module(self):
         stmts = self._gen_imports()
@@ -1476,7 +1519,7 @@ from selenium.webdriver.common.keys import Keys
         res = []
         for name in sorted(request.mapping.keys()):
             res.append(ast.Assign(
-                targets=[self.gen_expr("${%s}" % name)],
+                targets=[self._gen_expr("${%s}" % name)],
                 value=ast.Str(s="%s" % request.mapping[name])))
 
         return res
@@ -1490,13 +1533,13 @@ from selenium.webdriver.common.keys import Keys
             body=body,
             decorator_list=[])
 
-    def gen_expr(self, value):
+    def _gen_expr(self, value):
         return self.expr_compiler.gen_expr(value)
 
     def _gen_target_setup(self, key, value):
         return ast.Expr(ast_call(
             func=ast_attr("target.%s" % key),
-            args=[self.gen_expr(value)]))
+            args=[self._gen_expr(value)]))
 
     def _access_method(self):
         keepalive = self.scenario.get("keepalive", None)
@@ -1543,7 +1586,7 @@ from selenium.webdriver.common.keys import Keys
 
         target_call = ast_call(
             func=ast_attr("apiritif.http.target"),
-            args=[self.gen_expr(default_address)])
+            args=[self._gen_expr(default_address)])
 
         target = ast.Assign(
             targets=[ast.Name(id="target", ctx=ast.Store())],
@@ -1569,19 +1612,19 @@ from selenium.webdriver.common.keys import Keys
         headers.update(req.headers)
 
         if headers:
-            named_args['headers'] = self.gen_expr(headers)
+            named_args['headers'] = self._gen_expr(headers)
 
         merged_headers = dict([(key.lower(), value) for key, value in iteritems(headers)])
         content_type = merged_headers.get("content-type")
 
         if content_type == 'application/json' and isinstance(req.body, (dict, list)):  # json request body
-            named_args['json'] = self.gen_expr(req.body)
+            named_args['json'] = self._gen_expr(req.body)
         elif req.method.lower() == "get" and isinstance(req.body, dict):  # request URL params (?a=b&c=d)
-            named_args['params'] = self.gen_expr(req.body)
+            named_args['params'] = self._gen_expr(req.body)
         elif isinstance(req.body, dict):  # form data
-            named_args['data'] = self.gen_expr(list(iteritems(req.body)))
+            named_args['data'] = self._gen_expr(list(iteritems(req.body)))
         elif isinstance(req.body, string_types):
-            named_args['data'] = self.gen_expr(req.body)
+            named_args['data'] = self._gen_expr(req.body)
         elif req.body:
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(req.body), req.body))
@@ -1600,7 +1643,7 @@ from selenium.webdriver.common.keys import Keys
         transaction = ast.With(
             context_expr=ast_call(
                 func=ast_attr("apiritif.transaction"),
-                args=[self.gen_expr(trans_conf.label)]),
+                args=[self._gen_expr(trans_conf.label)]),
             optional_vars=None,
             body=body)
 
@@ -1618,12 +1661,12 @@ from selenium.webdriver.common.keys import Keys
 
             requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
 
-            keywords = [ast.keyword(arg=name, value=self.gen_expr(value)) for name, value in iteritems(named_args)]
+            keywords = [ast.keyword(arg=name, value=self._gen_expr(value)) for name, value in iteritems(named_args)]
             lines.append(ast.Assign(
                 targets=[ast.Name(id="response")],
                 value=ast_call(
                     func=ast.Attribute(value=requestor, attr=method, ctx=ast.Load()),
-                    args=[self.gen_expr(req.url)],
+                    args=[self._gen_expr(req.url)],
                     keywords=keywords)))
         elif "actions" not in req.config:
             raise TaurusConfigError("'url' and/or 'actions' are mandatory for request but not found: '%s'", req.config)
@@ -1641,7 +1684,7 @@ from selenium.webdriver.common.keys import Keys
             lines.append(ast.Expr(
                 ast_call(
                     func=ast_attr("time.sleep"),
-                    args=[self.gen_expr(think_time)])))
+                    args=[self._gen_expr(think_time)])))
 
         return lines
 
@@ -1677,7 +1720,7 @@ from selenium.webdriver.common.keys import Keys
                     stmts.append(ast.Expr(
                         ast_call(
                             func=ast_attr("response.%s" % method),
-                            args=[self.gen_expr(member)])))
+                            args=[self._gen_expr(member)])))
 
             elif subject == Scenario.FIELD_RESP_CODE:
                 for member in assertion["contains"]:
@@ -1685,7 +1728,7 @@ from selenium.webdriver.common.keys import Keys
                     stmts.append(ast.Expr(
                         ast_call(
                             func=ast_attr("response.%s" % method),
-                            args=[self.gen_expr(member)])))
+                            args=[self._gen_expr(member)])))
         return stmts
 
     def _gen_jsonpath_assertions(self, request):
@@ -1700,8 +1743,8 @@ from selenium.webdriver.common.keys import Keys
             stmts.append(ast.Expr(
                 ast_call(
                     func=ast_attr("response.%s" % method),
-                    args=[self.gen_expr(query)],
-                    keywords=[ast.keyword(arg="expected_value", value=self.gen_expr(expected))])))
+                    args=[self._gen_expr(query)],
+                    keywords=[ast.keyword(arg="expected_value", value=self._gen_expr(expected))])))
 
         return stmts
 
@@ -1718,9 +1761,9 @@ from selenium.webdriver.common.keys import Keys
             stmts.append(ast.Expr(
                 ast_call(
                     func=ast_attr("response.%s" % method),
-                    args=[self.gen_expr(query)],
-                    keywords=[ast.keyword(arg="parser_type", value=self.gen_expr(parser_type)),
-                              ast.keyword(arg="validate", value=self.gen_expr(validate))])))
+                    args=[self._gen_expr(query)],
+                    keywords=[ast.keyword(arg="parser_type", value=self._gen_expr(parser_type)),
+                              ast.keyword(arg="validate", value=self._gen_expr(validate))])))
         return stmts
 
     def _gen_extractors(self, request):
@@ -1732,7 +1775,7 @@ from selenium.webdriver.common.keys import Keys
                 targets=[self.expr_compiler.gen_var_accessor(varname, ast.Store())],
                 value=ast_call(
                     func=ast_attr("response.extract_jsonpath"),
-                    args=[self.gen_expr(cfg['jsonpath']), self.gen_expr(cfg.get('default', 'NOT_FOUND'))])))
+                    args=[self._gen_expr(cfg['jsonpath']), self._gen_expr(cfg.get('default', 'NOT_FOUND'))])))
 
         extractors = request.config.get("extract-regexp")
         for varname in extractors:
@@ -1742,7 +1785,7 @@ from selenium.webdriver.common.keys import Keys
                 targets=[self.expr_compiler.gen_var_accessor(varname, ast.Store())],
                 value=ast_call(
                     func=ast_attr("response.extract_regex"),
-                    args=[self.gen_expr(cfg['regexp']), self.gen_expr(cfg.get('default', 'NOT_FOUND'))])))
+                    args=[self._gen_expr(cfg['regexp']), self._gen_expr(cfg.get('default', 'NOT_FOUND'))])))
 
         # TODO: css/jquery extractor?
 
@@ -1755,7 +1798,7 @@ from selenium.webdriver.common.keys import Keys
                 targets=[self.expr_compiler.gen_var_accessor(varname, ast.Store())],
                 value=ast_call(
                     func=ast_attr("response.extract_xpath"),
-                    args=[self.gen_expr(cfg['xpath'])],
+                    args=[self._gen_expr(cfg['xpath'])],
                     keywords=[ast.keyword(arg="default", value=cfg.get('default', 'NOT_FOUND')),
                               ast.keyword(arg="parser_type", value=parser_type),
                               ast.keyword(arg="validate", value=validate)])))
@@ -1773,12 +1816,8 @@ from selenium.webdriver.common.keys import Keys
 
     def save(self, filename):
         with open(filename, 'wt') as fds:
-            source = astunparse.unparse(self.tree)
-            # because astunparse on Python 2 adds extra comma+space
-            class_name = create_class_name(self.label)
-            source = source.replace('class %s(unittest.TestCase, )' % class_name,
-                                    'class %s(unittest.TestCase)' % class_name)
-            fds.write(source)
+            fds.write("# coding=utf-8\n")
+            fds.write(astunparse.unparse(self.tree))
 
     def _gen_logging(self):
         set_log = ast.Assign(

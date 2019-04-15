@@ -281,7 +281,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
     def test_modern_actions_generator(self):
         self.configure({
             "execution": [{
-                "executor": "selenium",
+                "executor": "apiritif",
                 "hold-for": "4m",
                 "ramp-up": "3m",
                 "scenario": "loc_sc"}],
@@ -345,57 +345,54 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        locator0 = "self.driver.find_element(By.NAME, self.template('my_frame'))"
-        locator1 = "self.driver.find_element(By.XPATH, self.template('/html/body/div[3]/form/select[1]'))"
-        locator2_1 = "self.driver.find_element(By.ID, self.template('address'))"
-        locator2_2 = "self.driver.find_element(By.NAME, self.template('toPort'))"
+        locator0 = "self.driver.find_element(By.NAME, 'my_frame')"
+        locator1 = "self.driver.find_element(By.XPATH, '/html/body/div[3]/form/select[1]')"
+        locator2_1 = "self.driver.find_element(By.ID, 'address')"
+        locator2_2 = "self.driver.find_element(By.NAME, 'toPort')"
 
         target_lines = [
-            "self.wnd_mng.switch(self.template('0'))",
-            "self.driver.execute_script(self.template(window.open('some.url')))",
+            "self.wnd_mng.switch('0')",
+            "self.driver.execute_script(window.open('some.url'))",
             "self.wnd_mng.close()",
-            "self.wnd_mng.close(self.template('win_ser_local'))",
+            "self.wnd_mng.close('win_ser_local')",
             "self.frm_mng.switch('index=1')",
             "self.frm_mng.switch('relative=parent')",
             "self.frm_mng.switch(%s)" % locator0,
             "ActionChains(self.driver).click_and_hold(%s).perform()" % locator1,
             "ActionChains(self.driver).drag_and_drop(%s, %s).perform()" % (locator2_1, locator2_2),
-            "Select(%s).select_by_visible_text(self.template('London'))" % locator0,
-            "self.assertEqual(self.driver.title, self.template('BlazeDemo'))",
-            "self.vars['hEaDeR'] = self.template(self.driver.title)",
-            "self.vars['Final'] = self.template('Title_Basic_By')",
-            "self.vars['Basic'] = self.template(%s.get_attribute('innerText'))" % locator2_1,
-            "self.assertEqual(self.template(self.driver.find_element(By.ID, self.template('address'))."
-                "get_attribute('value')).strip(), self.template('123 Beautiful st.').strip())",
-            "self.driver.find_element(By.NAME, self.template('toPort')).clear()",
-            "self.driver.find_element(By.NAME, self.template('toPort')).send_keys(self.template('B'))",
-            "self.driver.execute_script(self.template(\"alert('This is Sparta');\"))",
-
+            "Select(%s).select_by_visible_text('London')" % locator0,
+            "self.assertEqual(self.driver.title, 'BlazeDemo')",
+            "self.vars['hEaDeR'] = self.driver.title",
+            "self.vars['Final'] = 'Title_Basic_By'",
+            "self.vars['Basic'] = %s.get_attribute('innerText')" % locator2_1,
+            "self.assertEqual(self.driver.find_element(By.ID, 'address')."
+                "get_attribute('value').strip(), '123 Beautiful st.'.strip())",
+            "self.driver.find_element(By.NAME, 'toPort').clear()",
+            "self.driver.find_element(By.NAME, 'toPort').send_keys('B')",
+            "self.driver.execute_script(\"alert('This is Sparta');\")",
             "for i in range(10):",
             "if ((i % 2) == 0):",
             "print(i)",
-
-            "self.driver.get(self.template('http:\\\\blazemeter.com'))",
-
+            "self.driver.get('http:\\\\blazemeter.com')",
             "if self.driver.find_element(By.ID, 'editor').get_attribute('contenteditable'):",
-            "self.driver.execute_script(('arguments[0].innerHTML = %s;' % self.template.str_"
-                "repr(self.template('lo-la-lu'))), self.driver.find_element(By.ID, 'editor'))",
+            "self.driver.execute_script(('arguments[0].innerHTML = %s;' % 'lo-la-lu'), "
+            "self.driver.find_element(By.ID, 'editor'))",
             "else:",
             "raise NoSuchElementException(('The element (By.%s, %r) is not contenteditable element' % ('ID', 'editor')))",
-            "print(self.template('${red_pill}'))",
-            "WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, self.template("
-                "'toPort'))), \"Element 'toPort' failed to appear within 3.5s\")",
+            "print(self.vars['red_pill'])",
+            "WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, "
+                "'toPort')), \"Element 'toPort' failed to appear within 3.5s\")",
             "sleep(4.6)",
             "self.driver.delete_all_cookies()",
-            "self.driver.save_screenshot(self.template('screen.png'))",
+            "self.driver.save_screenshot('screen.png')",
             "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), ('screenshot-%d.png' % (time() * 1000)))",
             "self.driver.save_screenshot(filename)"
         ]
 
-        for line in target_lines:
-            self.assertIn(line, content, line)
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-    def test_modern_setup_generator(self):
+    def test_firefox_setup_generator(self):
         self.configure({
             "execution": [{
                 "executor": "selenium",
@@ -404,6 +401,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
+                    "headless": True,
                     "default-address": "http://blazedemo.com",
                     "variables": {
                         "red_pill": "take_it",
@@ -423,11 +421,58 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target_lines = [1
+        target_lines = [
+            "options = webdriver.FirefoxOptions()",
+            "options.set_headless()",
+            "profile = webdriver.FirefoxProfile()",
+            "profile.set_preference('webdriver.log.file', '",
+            "self.driver = webdriver.Firefox(profile, firefox_options=options)"
         ]
 
-        for line in target_lines:
-            self.assertIn(line, content, line)
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_chrome_setup_generator(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "remote": "http-b",
+                "capabilities": {"o1": "o2", "r1": "r2"},
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    #"browser": "Safari",
+                    "default-address": "http://blazedemo.com",
+                    "variables": {
+                        "red_pill": "take_it",
+                        "name": "Name"
+                    },
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "bla.com",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+
+                        }]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.set_headless()", content)
+
+        target_lines = [
+            "options = webdriver.ChromeOptions()",
+            "self.driver = webdriver.Chrome(service_log_path='",
+            "', chrome_options=options)"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
     def test_build_script(self):
         self.configure({
