@@ -113,6 +113,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
                 tool.install()
 
     def prepare(self):
+        super(SeleniumExecutor, self).prepare()
         self.install_required_tools()
         for driver in self.webdrivers:
             self.env.add_path({"PATH": driver.get_driver_dir()})

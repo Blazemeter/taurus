@@ -38,6 +38,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         self.scenario = None
 
     def prepare(self):
+        super(MolotovExecutor, self).prepare()
         self.install_required_tools()
 
         self.stdout = open(self.engine.create_artifact("molotov", ".out"), 'w')
@@ -84,7 +85,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         self.env.set({"MOLOTOV_TAURUS_REPORT": self.report_file_name})
         self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
-        self.process = self.execute(cmdline)
+        self.process = self._execute(cmdline)
 
     def check(self):
         ret_code = self.process.poll()

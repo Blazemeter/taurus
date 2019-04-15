@@ -7,6 +7,7 @@ class DummyExecutor(ScenarioExecutor):
         self.n_times = 5
 
     def prepare(self):
+        super(DummyExecutor, self).prepare()
         self.log.info("I am a dummy executor preparing for work")
 
     def startup(self):
@@ -26,4 +27,3 @@ class DummyExecutor(ScenarioExecutor):
 
     def post_process(self):
         self.log.info("I am a dummy executor post-processing my work")
-

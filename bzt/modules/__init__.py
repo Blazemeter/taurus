@@ -17,7 +17,6 @@ limitations under the License.
 """
 import abc
 import os
-import time
 
 from bzt import ToolError
 from bzt.engine import ScenarioExecutor, FileLister, SelfDiagnosable
@@ -105,6 +104,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
 
     All executors must implement the following interface.
     """
+
     def __init__(self):
         super(SubprocessedExecutor, self).__init__()
         TransactionProvider.__init__(self)
@@ -113,12 +113,13 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
         self.widget = None
 
     def prepare(self):
+        super(SubprocessedExecutor, self).prepare()
         prefix = self.execution.get("executor", "executor")
         self.stdout = open(self.engine.create_artifact(prefix, ".out"), "wt")
         self.stderr = open(self.engine.create_artifact(prefix, ".err"), "wt")
 
     def _start_subprocess(self, cmdline, **kwargs):
-        self.process = self.execute(cmdline, **kwargs)
+        self.process = self._execute(cmdline, **kwargs)
 
     def resource_files(self):
         script = self.get_script_path()

@@ -40,6 +40,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         self.scenario = None
 
     def prepare(self):
+        super(SiegeExecutor, self).prepare()
         self.scenario = self.get_scenario()
         self.install_required_tools()
 
@@ -125,7 +126,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
             args += ['--header', "%s: %s" % (key, val)]
 
         self.env.set({"SIEGERC": self.__rc_name})
-        self.process = self.execute(args)
+        self.process = self._execute(args)
 
     def check(self):
         ret_code = self.process.poll()
@@ -224,4 +225,3 @@ class Siege(RequiredTool):
             out += err
         self.log.debug("%s output: %s", self.tool_name, out)
         return True
-

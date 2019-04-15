@@ -15,7 +15,7 @@ limitations under the License.
 """
 from subprocess import CalledProcessError, PIPE
 
-from bzt import TaurusConfigError
+from bzt import TaurusConfigError, RCProvider
 from bzt.six import communicate
 from bzt.engine import Service
 from bzt.utils import ensure_is_dict, Environment, shutdown_process, shell_exec
@@ -24,6 +24,11 @@ from bzt.utils import ensure_is_dict, Environment, shutdown_process, shell_exec
 class ShellExecutor(Service):
     """
     :type env: Environment
+    :type prepare_tasks: list[Task]
+    :type startup_tasks: list[Task]
+    :type check_tasks: list[Task]
+    :type shutdown_tasks: list[Task]
+    :type postprocess_tasks: list[Task]
     """
 
     def __init__(self):
@@ -113,6 +118,7 @@ class ShellExecutor(Service):
 
     def shutdown(self):
         for task in self.shutdown_tasks:
+            self._set_stop_reason_vars(task)
             task.start()
 
         for task in self.check_tasks + self.startup_tasks:
@@ -123,16 +129,37 @@ class ShellExecutor(Service):
             task.shutdown()
 
         for task in self.postprocess_tasks:
+            self._set_stop_reason_vars(task)
             task.start()
             task.shutdown()
+
+    def _set_stop_reason_vars(self, task):
+        if isinstance(self.engine.stopping_reason, RCProvider):
+            rc = self.engine.stopping_reason.get_rc()
+            task.env.set({
+                "TAURUS_STOPPING_REASON": str(self.engine.stopping_reason)
+            })
+        elif self.engine.stopping_reason:
+            rc = 1
+        else:
+            rc = 0
+
+        task.env.set({
+            "TAURUS_EXIT_CODE": rc,
+            "TAURUS_STOPPING_REASON": str(self.engine.stopping_reason)
+        })
 
 
 class Task(object):
     """
     :type process: subprocess.Popen
+    :type env: Environment
     """
 
     def __init__(self, config, parent_log, working_dir, env):
+        """
+        :type env: Environment
+        """
         self.log = parent_log.getChild(self.__class__.__name__)
         self.working_dir = working_dir
         self.env = env

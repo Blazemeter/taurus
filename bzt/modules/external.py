@@ -36,6 +36,7 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
         self._file_check_ts = time.time()
 
     def prepare(self):
+        super(ExternalResultsLoader, self).prepare()
         self._read_options()
         assert self._data_file_pattern or self.data_file, "Option is required: data-file or data-file-pattern"
         self.label = self.data_file

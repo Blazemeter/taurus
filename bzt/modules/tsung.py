@@ -15,11 +15,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import logging
 import os
 import re
 import traceback
-import copy
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import FileLister, ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
@@ -45,6 +45,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         self.tsung_artifacts_basedir = None
 
     def prepare(self):
+        super(TsungExecutor, self).prepare()
         scenario = self.get_scenario()
         self.install_required_tools()
 
@@ -101,7 +102,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
             '-w', '0',
             'start',
         ]
-        self.process = self.execute(args)
+        self.process = self._execute(args)
 
     def check(self):
         ret_code = self.process.poll()

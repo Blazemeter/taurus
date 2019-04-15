@@ -1227,7 +1227,11 @@ class ScenarioExecutor(EngineModule):
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self.label if self.label else id(self))
 
-    def execute(self, args, **kwargs):
+    def prepare(self):
+        super(ScenarioExecutor, self).prepare()
+        self.env.set(self.execution.get("env"))
+
+    def _execute(self, args, **kwargs):
         self.preprocess_args(args)
 
         # for compatibility with other executors

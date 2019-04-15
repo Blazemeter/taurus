@@ -43,6 +43,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.log_file = None
 
     def prepare(self):
+        super(LocustIOExecutor, self).prepare()
         self.stdout = open(self.engine.create_artifact("locust", ".out"), 'w')
         self.stderr = open(self.engine.create_artifact("locust", ".err"), 'w')
 
@@ -111,7 +112,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         if host:
             args.append('--host=%s' % host)
 
-        self.process = self.execute(args)
+        self.process = self._execute(args)
 
     def get_widget(self):
         """

@@ -82,7 +82,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         }})
 
         self.obj.prepare()
-        with mock.patch('bzt.modules.locustio.LocustIOExecutor.execute') as m:
+        with mock.patch('bzt.modules.locustio.LocustIOExecutor._execute') as m:
             self.obj.startup()
             # Extract the hatch-rate cmdline arg that bzt passed to locust.
             hatch = [
