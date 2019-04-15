@@ -26,7 +26,7 @@ import astunparse
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
-from bzt.six import parse, string_types, iteritems, text_type, etree
+from bzt.six import parse, string_types, iteritems, text_type, etree, PY2
 from bzt.utils import PythonGenerator, dehumanize_time, ensure_is_dict
 from .jmeter_functions import Base64DecodeFunction, UrlEncodeFunction, UuidFunction
 from .jmeter_functions import TimeFunction, RandomFunction, RandomStringFunction, Base64EncodeFunction
@@ -256,22 +256,7 @@ class SeleniumScriptBuilder(PythonGenerator):
         self.root.append(self.add_utilities())                                              #
 
     def _fill_test_method(self, req, test_method):
-        if req.label:
-            label = req.label
-        elif req.url:
-            label = req.url
-        else:
-            raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
-
-        if self.generate_markers:
-            test_method.append(self.gen_statement("try:", indent=self.INDENT_STEP * 2))
-            indent = 3
-            marker = "self.driver.execute_script('/* FLOW_MARKER test-case-start */', " \
-                     "{'testCaseName': %r, 'testSuiteName': %r})" % (label, self.label)
-            test_method.append(self.gen_statement(marker, indent=self.INDENT_STEP * indent))
-            test_method.append(self.gen_new_line())
-        else:
-            indent = 2
+        indent = 0
 
         test_method.append(self.gen_statement('with apiritif.transaction_logged(self.template(%r)):' % label,
                                               indent=self.INDENT_STEP * indent))
@@ -299,21 +284,6 @@ class SeleniumScriptBuilder(PythonGenerator):
         test_method.append(self.gen_new_line())
 
         test_method.extend(self.gen_think_time(req.get_think_time(), indent=self.INDENT_STEP * indent))
-
-        if self.generate_markers:
-            marker = "self.driver.execute_script('/* FLOW_MARKER test-case-stop */', " \
-                     "{'status': %s, 'message': %s})"
-
-            test_method.append(self.gen_statement("except AssertionError as exc:", indent=self.INDENT_STEP * 2))
-            test_method.append(self.gen_statement(marker % (repr('failed'), 'str(exc)'), indent=self.INDENT_STEP * 3))
-            test_method.append(self.gen_statement("raise", indent=self.INDENT_STEP * 3))
-
-            test_method.append(self.gen_statement("except BaseException as exc:", indent=self.INDENT_STEP * 2))
-            test_method.append(self.gen_statement(marker % (repr('broken'), 'str(exc)'), indent=self.INDENT_STEP * 3))
-            test_method.append(self.gen_statement("raise", indent=self.INDENT_STEP * 3))
-
-            test_method.append(self.gen_statement("else:", indent=self.INDENT_STEP * 2))
-            test_method.append(self.gen_statement(marker % (repr('success'), repr('')), indent=self.INDENT_STEP * 3))
 
     # migrated
     def add_imports(self):
@@ -1042,7 +1012,7 @@ from selenium.webdriver.common.keys import Keys
                                           right=self._gen_expr(param.strip())),
                                       short_locator]))],
             orelse=[
-                ast.Raise(
+                ast.Raise(  # todo: customize params set for py2
                     exc=ast_call(
                         func="NoSuchElementException",
                         args=[ast.BinOp(
@@ -1481,6 +1451,55 @@ from selenium.webdriver.common.keys import Keys
         body = [ast.Expr(ast_call(func=ast_attr("self.driver.quit")))]
         return ast.FunctionDef(name="tearDown", args=[ast.Name(id="self")], body=body, decorator_list=[])
 
+    def _add_markers(self, body, label):
+        def marker(case=None, suite=None, status=None, exc_msg=None):
+            if case and suite:
+                marker_msg = "/* FLOW_MARKER test-case-start */"
+                keys = [ast.Str("testCaseName"), ast.Str("testSuiteName")]
+                values = [ast.Str(case), ast.Str(suite)]
+            else:
+                marker_msg = "/* FLOW_MARKER test-case-stop */"
+                if exc_msg is None:
+                    exc_msg = ast_call(func="str", args=[ast.Name(id="exc")])
+                else:
+                    exc_msg = ast.Str(exc_msg)
+
+                keys = [ast.Str("status"), ast.Str("message")]
+                values = [ast.Str(status), exc_msg]
+
+            return ast.Expr(ast_call(
+                func=ast_attr("self.driver.execute_script"),
+                args=[
+                    ast.Str(marker_msg),
+                    ast.Dict(keys=keys, values=values)]))
+
+        start_marker = marker(case=label, suite=self.label)
+        kwargs = {"body": [start_marker] + body}
+
+        if PY2:
+            ast_try = ast.TryExcept
+            name = ast.Str("exc")
+            reraise = ast.Raise(type=None, inst=None, tback=None)
+        else:
+            ast_try = ast.Try
+            name = "exc"
+            reraise = ast.Raise(exc=None, cause=None)
+            kwargs["finalbody"] = []
+
+        kwargs["handlers"] = [
+            ast.ExceptHandler(
+                type=ast.Name(id="AssertionError"),
+                name=name,
+                body=[marker(status="failed"), reraise]),
+            ast.ExceptHandler(
+                type=ast.Name(id="BaseException"),
+                name=name,
+                body=[marker(status="broken"), reraise])]
+
+        kwargs["orelse"] = [marker(status="success", exc_msg="")]
+
+        return ast_try(**kwargs)
+
     def _gen_test_methods(self):
         requests = self.scenario.get_requests(parser=HierarchicRequestParser, require_url=False)
 
@@ -1503,6 +1522,8 @@ from selenium.webdriver.common.keys import Keys
             if isinstance(request, TransactionBlock):
                 body = [self._gen_transaction(request)]
                 label = create_method_name(request.label[:40])
+                if self.generate_markers:
+                    body = self._add_markers(body=body, label=request.label)
             elif isinstance(request, SetVariables):
                 body = self._gen_set_vars(request)
                 label = request.config.get("label", "set_variables")

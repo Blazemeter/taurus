@@ -443,7 +443,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
-                    #"browser": "Safari",
+                    'generate-flow-markers': True,
                     "default-address": "http://blazedemo.com",
                     "variables": {
                         "red_pill": "take_it",
