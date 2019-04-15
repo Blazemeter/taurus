@@ -242,17 +242,17 @@ class SeleniumScriptBuilder(PythonGenerator):
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])       #
         test_class.append(self.gen_setup_method())                                          #
         test_class.append(self.gen_teardown_method())                                       #
-        requests = self.scenario.get_requests(require_url=False)
-        test_method = self.gen_test_method('test_requests')
-        self.gen_setup(test_method)
-        for i, req in enumerate(requests, 1):
+        requests = self.scenario.get_requests(require_url=False)                            #
+        test_method = self.gen_test_method('test_requests')                                 #
+        self.gen_setup(test_method)                                                         #
+        for i, req in enumerate(requests, 1):                                               #
             self._fill_test_method(req, test_method)
             if i != len(requests):                                                          #
                 test_method.append(self.gen_new_line())                                     #
-        test_class.append(test_method)
+        test_class.append(test_method)                                                      #
         self.root.append(self.gen_statement("# coding=utf-8", indent=0))                    #
         self.root.append(self.add_imports())                                                #
-        self.root.append(test_class)
+        self.root.append(test_class)                                                        #
         self.root.append(self.add_utilities())                                              #
 
     def _fill_test_method(self, req, test_method):
@@ -345,6 +345,7 @@ class SeleniumScriptBuilder(PythonGenerator):
         stmts.append("")
         return [self.gen_statement(stmt) for stmt in stmts]
 
+    # orphan, ignored
     def _add_url_request(self, default_address, req, test_method):
         parsed_url = parse.urlparse(req.url)
         if default_address is not None and not parsed_url.netloc:
@@ -355,6 +356,7 @@ class SeleniumScriptBuilder(PythonGenerator):
             test_method.append(self.gen_impl_wait(req.timeout))
         test_method.append(self.gen_statement("self.driver.get(self.template(%r))" % url))
 
+    # duplicate of setUp, ignored
     def gen_setup(self, test_method):
         timeout = self.scenario.get("timeout", "30s")
         scenario_timeout = dehumanize_time(timeout)
@@ -370,7 +372,7 @@ class SeleniumScriptBuilder(PythonGenerator):
         browser = self.scenario.get("browser", browser)
         browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
 
-        browser_platform = None
+        platform = None
         if browser:
             browser_split = browser.split("-")
             browser = browser_split[0]
@@ -378,20 +380,20 @@ class SeleniumScriptBuilder(PythonGenerator):
             if browser not in browsers:
                 raise TaurusConfigError("Unsupported browser name: %s" % browser)
             if len(browser_split) > 1:
-                browser_platform = browser_split[1]
+                platform = browser_split[1]
 
         if self.remote_address:
-            if browser and browser != "remote":
+            if browser:
                 msg = "Forcing browser to Remote, because of remote WebDriver address, use '%s' as browserName"
                 self.log.warning(msg % browser)
                 self.capabilities["browserName"] = browser
             browser = "remote"
             if self.generate_markers is None:  # if not set by user - set to true
                 self.generate_markers = True
-        elif browser in mobile_browsers and browser_platform in mobile_platforms:
+        elif browser in mobile_browsers and platform in mobile_platforms:
             self.appium = True
             self.remote_address = "http://localhost:4723/wd/hub"
-            self.capabilities["platformName"] = browser_platform
+            self.capabilities["platformName"] = platform
             self.capabilities["browserName"] = browser
             browser = "remote"  # Force to use remote web driver
         elif not browser:
