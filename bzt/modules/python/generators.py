@@ -247,10 +247,10 @@ class SeleniumScriptBuilder(PythonGenerator):
         self.gen_setup(test_method)
         for i, req in enumerate(requests, 1):
             self._fill_test_method(req, test_method)
-            if i != len(requests):
-                test_method.append(self.gen_new_line())
+            if i != len(requests):                                                          #
+                test_method.append(self.gen_new_line())                                     #
         test_class.append(test_method)
-        self.root.append(self.gen_statement("# coding=utf-8", indent=0))
+        self.root.append(self.gen_statement("# coding=utf-8", indent=0))                    #
         self.root.append(self.add_imports())                                                #
         self.root.append(test_class)
         self.root.append(self.add_utilities())                                              #
@@ -1081,7 +1081,7 @@ from selenium.webdriver.common.keys import Keys
                 args=[ast.Name(id="filename")]))
         return elements
 
-    def _gen_wait_speep_mngr(self, atype, tag, selector):
+    def _gen_wait_sleep_mngr(self, atype, tag, selector):
         elements = []
         if atype == 'wait':
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
@@ -1163,7 +1163,7 @@ from selenium.webdriver.common.keys import Keys
         elif atype == "editcontent":  # todo: check it functionally (possibly broken)
             action_elements.extend(self._gen_edit_mngr(tag, param, selector))
         elif atype in ('wait', 'pause'):
-            action_elements.extend(self._gen_wait_speep_mngr(atype, tag, selector))
+            action_elements.extend(self._gen_wait_sleep_mngr(atype, tag, selector))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(ast_call(
                 func=ast_attr("self.driver.delete_all_cookies")))
