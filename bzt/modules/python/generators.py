@@ -206,8 +206,7 @@ class ApiritifScriptGenerator(object):
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
-    IMPORTS = """import unittest
-import os
+    IMPORTS = """import os
 import re
 from %s import webdriver
 from selenium.common.exceptions import NoSuchElementException
@@ -1243,6 +1242,11 @@ from selenium.webdriver.common.keys import Keys
                 assert_message += 'not '
             assert_message += 'found in BODY'
 
+            if reverse:
+                method = "self.assertNot"
+            else:
+                method = "self.assert"
+
             if regexp:
                 assertion_elements.append(
                     ast.Assign(
@@ -1251,14 +1255,9 @@ from selenium.webdriver.common.keys import Keys
                             func=ast_attr("re.compile"),
                             args=[ast.Str(val)])))
 
-                if reverse:
-                    method = ast_attr("self.assertNotEqual")
-                else:
-                    method = ast_attr("self.assertEqual")
-
                 assertion_elements.append(ast.Expr(
                     ast_call(
-                        func=ast.Name(id=method),
+                        func=ast_attr(method + "Equal"),
                         args=[
                             ast.Num(0),
                             ast_call(
@@ -1269,15 +1268,10 @@ from selenium.webdriver.common.keys import Keys
                             ast.Str("Assertion: %s" % assert_message)])))
 
             else:
-                if reverse:
-                    method = ast_attr("self.assertNotIn")
-                else:
-                    method = ast_attr("self.assertIn")
-
                 assertion_elements.append(
                     ast.Expr(
                         ast_call(
-                            func=ast.Name(id=method),
+                            func=ast_attr(method + "In"),
                             args=[
                                 ast.Str(val),
                                 ast.Str("Assertion: %s" % assert_message)])))
