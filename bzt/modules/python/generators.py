@@ -1105,7 +1105,7 @@ from selenium.webdriver.common.keys import Keys
             args=[self._gen_expr(param)]))
         return [element]
 
-    def gen_action(self, action_config):
+    def _gen_action(self, action_config):
         action = self._parse_action(action_config)
         if action:
             atype, tag, param, selector = action
@@ -1276,7 +1276,7 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
 
         scenario_timeout = self.scenario.get("timeout", "30s")
-        body.append(self.gen_impl_wait(scenario_timeout))
+        body.append(self._gen_impl_wait(scenario_timeout))
 
         body.append(ast.Assign(
             targets=[ast_attr("self.wnd_mng")],
@@ -1307,7 +1307,7 @@ from selenium.webdriver.common.keys import Keys
         return body
 
     @staticmethod
-    def gen_impl_wait(timeout):
+    def _gen_impl_wait(timeout):
         return ast.Expr(
             ast_call(
                 func=ast_attr("self.driver.implicitly_wait"),
@@ -1706,7 +1706,7 @@ from selenium.webdriver.common.keys import Keys
             raise TaurusConfigError("'url' and/or 'actions' are mandatory for request but not found: '%s'", req.config)
 
         for action in req.config.get("actions"):
-            lines.extend(self.gen_action(action))
+            lines.extend(self._gen_action(action))
 
         lines.extend(self._gen_assertions(req))
         lines.extend(self._gen_jsonpath_assertions(req))
