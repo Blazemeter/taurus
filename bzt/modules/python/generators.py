@@ -1693,29 +1693,41 @@ from selenium.webdriver.common.keys import Keys
         think_time = dehumanize_time(req.get_think_time())
 
         if req.url:
-            method = req.method.lower()
-            named_args = self._extract_named_args(req)
-            target = ast.Name(id='self.target', ctx=ast.Load())
-            apiritif_http = ast_attr("apiritif.http")
+            if self.test_mode == "selenium":
+                pass
+                # todo: selenium request
+            else:
+                method = req.method.lower()
+                named_args = self._extract_named_args(req)
 
-            requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
+                if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET:
+                    requestor = ast_attr("self.target")
+                else:
+                    requestor = ast_attr("apiritif.http")
 
-            keywords = [ast.keyword(arg=name, value=self._gen_expr(value)) for name, value in iteritems(named_args)]
-            lines.append(ast.Assign(
-                targets=[ast.Name(id="response")],
-                value=ast_call(
-                    func=ast.Attribute(value=requestor, attr=method, ctx=ast.Load()),
-                    args=[self._gen_expr(req.url)],
-                    keywords=keywords)))
+                keywords = [ast.keyword(
+                    arg=name,
+                    value=self._gen_expr(value)) for name, value in iteritems(named_args)]
+
+                lines.append(ast.Assign(
+                    targets=[ast.Name(id="response")],
+                    value=ast_call(
+                        func=ast_attr((requestor, method)),
+                        args=[self._gen_expr(req.url)],
+                        keywords=keywords)))
+
         elif "actions" not in req.config:
             raise TaurusConfigError("'url' and/or 'actions' are mandatory for request but not found: '%s'", req.config)
 
-        for action in req.config.get("actions"):
-            lines.extend(self._gen_action(action))
+        if self.test_mode == "selenium":
+            for action in req.config.get("actions"):
+                lines.extend(self._gen_action(action))
 
-        lines.extend(self._gen_assertions(req))
-        lines.extend(self._gen_jsonpath_assertions(req))
-        lines.extend(self._gen_xpath_assertions(req))
+            # todo: selenium assertions
+        else:
+            lines.extend(self._gen_assertions(req))
+            lines.extend(self._gen_jsonpath_assertions(req))
+            lines.extend(self._gen_xpath_assertions(req))
 
         lines.extend(self._gen_extractors(req))
 
