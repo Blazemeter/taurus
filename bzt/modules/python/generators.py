@@ -205,6 +205,7 @@ class SeleniumScriptBuilder(PythonGenerator):
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
 
+    # migrated
     def gen_asserts(self, config, indent=None):
         test_method = []
         if "assert" in config:
@@ -224,6 +225,7 @@ class SeleniumScriptBuilder(PythonGenerator):
                 test_method.append(self.gen_new_line())
         return test_method
 
+    # migrated
     def gen_request(self, req, indent=None):
         default_address = self.scenario.get("default-address")
         transaction_contents = []
@@ -441,6 +443,7 @@ class SeleniumScriptBuilder(PythonGenerator):
     def gen_impl_wait(self, timeout, indent=None):
         return self.gen_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout), indent=indent)
 
+    # unused
     def gen_test_method(self, name):
         self.log.debug("Generating test method %s", name)
         test_method = self.gen_method_definition(name, ["self"])
@@ -1694,8 +1697,20 @@ from selenium.webdriver.common.keys import Keys
 
         if req.url:
             if self.test_mode == "selenium":
-                pass
-                # todo: selenium request
+                if req.timeout:
+                    lines.append(self._gen_impl_wait(req.timeout))
+                default_address = self.scenario.get("default-address")
+                parsed_url = parse.urlparse(req.url)
+                if default_address and not parsed_url.netloc:
+                    url = default_address + req.url
+                else:
+                    url = req.url
+
+                lines.append(ast.Expr(
+                    ast_call(
+                        func=ast_attr("self.driver.get"),
+                        args=[self._gen_expr(url)])))
+
             else:
                 method = req.method.lower()
                 named_args = self._extract_named_args(req)
@@ -1723,7 +1738,13 @@ from selenium.webdriver.common.keys import Keys
             for action in req.config.get("actions"):
                 lines.extend(self._gen_action(action))
 
-            # todo: selenium assertions
+            if "assert" in req.config:
+                lines.append(ast.Assign(
+                    targets=[ast.Name(id="body")],
+                    value=ast_attr("self.driver.page_source")))
+                for assert_config in req.config.get("assert"):
+                    lines.extend(self._gen_sel_assertion(assert_config))
+
         else:
             lines.extend(self._gen_assertions(req))
             lines.extend(self._gen_jsonpath_assertions(req))
@@ -1738,6 +1759,39 @@ from selenium.webdriver.common.keys import Keys
                     args=[self._gen_expr(think_time)])))
 
         return lines
+
+    def _gen_sel_assertion(self, assertion_config):
+        self.log.debug("Generating assertion, config: %s", assertion_config)
+        assertion_elements = []
+
+        if isinstance(assertion_config, string_types):
+            assertion_config = {"contains": [assertion_config]}
+
+        for val in assertion_config["contains"]:
+            regexp = assertion_config.get("regexp", True)
+            reverse = assertion_config.get("not", False)
+            subject = assertion_config.get("subject", "body")
+            if subject != "body":
+                raise TaurusConfigError("Only 'body' subject supported ")
+
+            assert_message = "'%s' " % val
+            if not reverse:
+                assert_message += 'not '
+            assert_message += 'found in BODY'
+
+            if regexp:
+                assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
+                assertion_elements.append(self.gen_statement("re_pattern = re.compile(r'%s')" % val, indent=indent))
+
+                method = '%s(0, len(re.findall(re_pattern, body)), "Assertion: %s")'
+                method %= assert_method, assert_message
+                assertion_elements.append(self.gen_statement(method, indent=indent))
+            else:
+                assert_method = "self.assertNotIn" if reverse else "self.assertIn"
+                method = '%s("%s", body, "Assertion: %s")'
+                method %= assert_method, val, assert_message
+                assertion_elements.append(self.gen_statement(method, indent=indent))
+        return assertion_elements
 
     def _gen_default_vars(self):
         variables = self.scenario.get("variables")
