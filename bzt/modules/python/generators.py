@@ -1244,17 +1244,46 @@ from selenium.webdriver.common.keys import Keys
             assert_message += 'found in BODY'
 
             if regexp:
-                assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
-                assertion_elements.append(self.gen_statement("re_pattern = re.compile(r'%s')" % val, indent=indent))
+                assertion_elements.append(
+                    ast.Assign(
+                        targets=[ast.Name(id="re_pattern")],
+                        value=ast_call(
+                            func=ast_attr("re.compile"),
+                            args=[ast.Str(val)])))
 
-                method = '%s(0, len(re.findall(re_pattern, body)), "Assertion: %s")'
-                method %= assert_method, assert_message
-                assertion_elements.append(self.gen_statement(method, indent=indent))
+                if reverse:
+                    method = ast_attr("self.assertNotEqual")
+                else:
+                    method = ast_attr("self.assertEqual")
+
+                assertion_elements.append(ast.Expr(
+                    ast_call(
+                        func=ast.Name(id=method),
+                        args=[
+                            ast.Num(0),
+                            ast_call(
+                                func=ast.Name(id="len"),
+                                args=[ast_call(
+                                    func=ast_attr("re.findall"),
+                                    args=[ast.Name(id="re_pattern"), ast.Name(id="body")]
+                                )]
+                            ),
+                            ast.Str("Assertion: %s" % assert_message)])))
+
             else:
-                assert_method = "self.assertNotIn" if reverse else "self.assertIn"
-                method = '%s("%s", body, "Assertion: %s")'
-                method %= assert_method, val, assert_message
-                assertion_elements.append(self.gen_statement(method, indent=indent))
+                if reverse:
+                    method = ast_attr("self.assertNotIn")
+                else:
+                    method = ast_attr("self.assertIn")
+
+                assertion_elements.append(
+                    ast.Expr(
+                        ast_call(
+                            func=ast.Name(id=method),
+                            args=[
+                                ast.Str(val),
+                                ast.Str("Assertion: %s" % assert_message)])))
+
         return assertion_elements
 
     def _gen_default_vars(self):

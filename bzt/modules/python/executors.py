@@ -29,7 +29,7 @@ from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type
 from bzt.utils import FileReader, get_full_path, RESOURCES_DIR, BZT_DIR
-from .generators import ApiritifScriptGenerator, SeleniumScriptBuilder
+from .generators import ApiritifScriptGenerator
 from .tools import TaurusPytestRunner, TaurusRobotRunner, Robot
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
