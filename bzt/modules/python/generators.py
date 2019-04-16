@@ -214,6 +214,7 @@ class SeleniumScriptBuilder(PythonGenerator):
                     test_method.append(elm)
         return test_method
 
+    # migrated
     def gen_think_time(self, think_time, indent=None):
         test_method = []
         if think_time is not None:
@@ -741,7 +742,6 @@ class ApiritifScriptGenerator(object):
     IMPORTS = """import unittest
 import os
 import re
-from time import sleep, time
 from %s import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
@@ -1337,8 +1337,13 @@ from selenium.webdriver.common.keys import Keys
             ast.Import(names=[ast.alias(name='random', asname=None)]),
             ast.Import(names=[ast.alias(name='string', asname=None)]),
             ast.Import(names=[ast.alias(name='sys', asname=None)]),
-            ast.Import(names=[ast.alias(name='time', asname=None)]),
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
+            ast.ImportFrom(
+                module="time",
+                names=[
+                    ast.alias(name="time", asname=None),
+                    ast.alias(name="sleep", asname=None)],
+                level=0),
             self._gen_empty_line_stmt(),
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
             self._gen_empty_line_stmt()]
@@ -1717,7 +1722,7 @@ from selenium.webdriver.common.keys import Keys
         if think_time:
             lines.append(ast.Expr(
                 ast_call(
-                    func=ast_attr("time.sleep"),
+                    func=ast_attr("sleep"),
                     args=[self._gen_expr(think_time)])))
 
         return lines
