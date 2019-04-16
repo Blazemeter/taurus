@@ -992,6 +992,27 @@ from selenium.webdriver.common.keys import Keys
         return elements
 
     def _gen_edit_mngr(self, tag, param, selector):
+        exc_type = "NoSuchElementException"
+        msg = ast.BinOp(
+            left=ast.Str("The element (By.%s, %r) is not contenteditable element"),
+            op=ast.Mod(),
+            right=ast.Tuple(
+                elts=[
+                    ast.Str(self.BYS[tag]),
+                    ast.Str(selector)]))
+        if PY2:
+            raise_kwargs = {
+                "type": ast.Name(id=exc_type),
+                "inst": msg,
+                "tback": None
+            }
+        else:
+            raise_kwargs = {
+                "exc": ast_call(
+                    func=exc_type,
+                    args=[msg]),
+                "cause": None}
+
         short_locator = ast_call(
             func=ast_attr("self.driver.find_element"),
             args=[
@@ -1012,17 +1033,7 @@ from selenium.webdriver.common.keys import Keys
                                           right=self._gen_expr(param.strip())),
                                       short_locator]))],
             orelse=[
-                ast.Raise(  # todo: customize params set for py2
-                    exc=ast_call(
-                        func="NoSuchElementException",
-                        args=[ast.BinOp(
-                            left=ast.Str("The element (By.%s, %r) is not contenteditable element"),
-                            op=ast.Mod(),
-                            right=ast.Tuple(
-                                elts=[
-                                    ast.Str(self.BYS[tag]),
-                                    ast.Str(selector)]))]),
-                    cause=None)])
+                ast.Raise(**raise_kwargs)])
 
         return [element]
 

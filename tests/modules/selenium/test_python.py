@@ -5,6 +5,7 @@ import tempfile
 import time
 
 from bzt import TaurusConfigError
+from bzt.six import PY2
 from bzt.engine import ScenarioExecutor
 from bzt.modules import ConsolidatingAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -350,6 +351,14 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         locator2_1 = "self.driver.find_element(By.ID, 'address')"
         locator2_2 = "self.driver.find_element(By.NAME, 'toPort')"
 
+        msg = "('The element (By.%s, %r) is not contenteditable element' % ('ID', 'editor'))"
+        if PY2:
+            print_i = "print i"
+            no_such_elt = "raise NoSuchElementException, %s" % msg
+        else:
+            print_i = "print(i)"
+            no_such_elt = "raise NoSuchElementException(%s)" % msg,
+
         target_lines = [
             "self.wnd_mng.switch('0')",
             "self.driver.execute_script(window.open('some.url'))",
@@ -372,13 +381,13 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "self.driver.execute_script(\"alert('This is Sparta');\")",
             "for i in range(10):",
             "if ((i % 2) == 0):",
-            "print(i)",
+            print_i,
             "self.driver.get('http:\\\\blazemeter.com')",
             "if self.driver.find_element(By.ID, 'editor').get_attribute('contenteditable'):",
             "self.driver.execute_script(('arguments[0].innerHTML = %s;' % 'lo-la-lu'), "
             "self.driver.find_element(By.ID, 'editor'))",
             "else:",
-            "raise NoSuchElementException(('The element (By.%s, %r) is not contenteditable element' % ('ID', 'editor')))",
+            no_such_elt,
             "print(self.vars['red_pill'])",
             "WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, "
                 "'toPort')), \"Element 'toPort' failed to appear within 3.5s\")",
