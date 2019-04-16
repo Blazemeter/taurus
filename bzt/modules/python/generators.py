@@ -26,8 +26,8 @@ import astunparse
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
-from bzt.six import parse, string_types, iteritems, text_type, etree, PY2
-from bzt.utils import PythonGenerator, dehumanize_time, ensure_is_dict
+from bzt.six import parse, string_types, iteritems, text_type, PY2
+from bzt.utils import dehumanize_time, ensure_is_dict
 from .jmeter_functions import Base64DecodeFunction, UrlEncodeFunction, UuidFunction
 from .jmeter_functions import TimeFunction, RandomFunction, RandomStringFunction, Base64EncodeFunction
 
@@ -1265,9 +1265,7 @@ from selenium.webdriver.common.keys import Keys
                                 func=ast.Name(id="len"),
                                 args=[ast_call(
                                     func=ast_attr("re.findall"),
-                                    args=[ast.Name(id="re_pattern"), ast.Name(id="body")]
-                                )]
-                            ),
+                                    args=[ast.Name(id="re_pattern"), ast.Name(id="body")])]),
                             ast.Str("Assertion: %s" % assert_message)])))
 
             else:
