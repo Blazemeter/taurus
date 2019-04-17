@@ -121,26 +121,6 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEquals(1, len(results))
         self.assertFalse(results[0][DataPoint.CUMULATIVE][''][KPISet.ERRORS])  # error msg
 
-    def test_from_extension_reuse(self):
-        self.configure({ScenarioExecutor.EXEC: {
-            "executor": "selenium",
-            "iterations": 1,
-            "scenario": {"script": RESOURCES_DIR + "selenium/python/reuse_after_extension.py"}
-        }})
-        self.obj.prepare()
-        self.obj.get_widget()
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-        results = list(self.obj.runner.reader.datapoints(final_pass=True))
-
-        self.obj.runner._tailer.close()
-        self.obj.runner.reader.underlings[0].csvreader.file.close()
-
-        self.assertEquals(1, len(results))
-        self.assertFalse(results[0][DataPoint.CUMULATIVE][''][KPISet.ERRORS])  # error msg
-
     def test_requests(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()

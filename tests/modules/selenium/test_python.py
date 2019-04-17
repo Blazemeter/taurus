@@ -984,7 +984,7 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("time.sleep(1.5)", test_script)
+        self.assertIn("sleep(1.5)", test_script)
 
     def test_methods(self):
         self.configure({
@@ -1628,7 +1628,7 @@ class TestApiritifScriptGenerator(ExecutorTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
-        self.assertIn("class TestAPI(unittest.TestCase)", test_script)
+        self.assertIn("class TestAPI(unittest.TestCase", test_script)
 
 
 class TestPyTestExecutor(ExecutorTestCase):
