@@ -314,9 +314,7 @@ from selenium.webdriver.common.keys import Keys
         elif atype == "open":
             elements.append(ast_call(
                 func=ast_attr("self.driver.execute_script"),
-                args=[self._gen_expr(ast_call(
-                    func=ast_attr("window.open"),
-                    args=[ast.Str(selector)]))]))
+                args=[self._gen_expr("window.open('%s');" % selector)]))
         elif atype == "close":
             args = []
             if selector:
@@ -459,13 +457,8 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_edit_mngr(self, tag, param, selector):
         exc_type = "NoSuchElementException"
-        msg = ast.BinOp(
-            left=ast.Str("The element (By.%s, %r) is not contenteditable element"),
-            op=ast.Mod(),
-            right=ast.Tuple(
-                elts=[
-                    ast.Str(self.BYS[tag]),
-                    ast.Str(selector)]))
+        msg = ast.Str("The element (By.%s, %r) is not contenteditable element" % (self.BYS[tag], selector))
+
         if PY2:
             raise_kwargs = {
                 "type": ast.Name(id=exc_type),
@@ -530,8 +523,10 @@ from selenium.webdriver.common.keys import Keys
                 args=[ast.Name(id="filename")]))
         return elements
 
-    def _gen_wait_sleep_mngr(self, atype, tag, selector):
+    def _gen_wait_sleep_mngr(self, atype, tag, param, selector):
         elements = []
+        mode = "visibility" if param == 'visible' else 'presence'
+
         if atype == 'wait':
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
@@ -547,7 +542,7 @@ from selenium.webdriver.common.keys import Keys
                         "until")),
                 args=[
                     ast_call(
-                        func=ast_attr("econd.visibility_of_element_located"),
+                        func=ast_attr("econd.%s_of_element_located" % mode),
                         args=[
                             ast.Tuple(
                                 elts=[
@@ -612,7 +607,7 @@ from selenium.webdriver.common.keys import Keys
         elif atype == "editcontent":  # todo: check it functionally (possibly broken)
             action_elements.extend(self._gen_edit_mngr(tag, param, selector))
         elif atype in ('wait', 'pause'):
-            action_elements.extend(self._gen_wait_sleep_mngr(atype, tag, selector))
+            action_elements.extend(self._gen_wait_sleep_mngr(atype, tag, param, selector))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(ast_call(
                 func=ast_attr("self.driver.delete_all_cookies")))
