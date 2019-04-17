@@ -820,7 +820,10 @@ from selenium.webdriver.common.keys import Keys
         return imports
 
     def _gen_module_setup(self):
-        target_init = self._gen_target()
+        if self.test_mode == "apiritif":
+            target_init = self._gen_target()
+        else:
+            target_init = []
 
         data_sources = [self._gen_default_vars()]
         for idx in range(len(self.data_sources)):
@@ -1238,12 +1241,11 @@ from selenium.webdriver.common.keys import Keys
                 assert_message += 'not '
             assert_message += 'found in BODY'
 
-            if reverse:
-                method = "self.assertNot"
-            else:
-                method = "self.assert"
-
             if regexp:
+                if reverse:
+                    method = "self.assertEqual"
+                else:
+                    method = "self.assertNotEqual"
                 assertion_elements.append(
                     ast.Assign(
                         targets=[ast.Name(id="re_pattern")],
@@ -1253,7 +1255,7 @@ from selenium.webdriver.common.keys import Keys
 
                 assertion_elements.append(ast.Expr(
                     ast_call(
-                        func=ast_attr(method + "Equal"),
+                        func=ast_attr(method),
                         args=[
                             ast.Num(0),
                             ast_call(
@@ -1264,10 +1266,14 @@ from selenium.webdriver.common.keys import Keys
                             ast.Str("Assertion: %s" % assert_message)])))
 
             else:
+                if reverse:
+                    method = "self.assertNotIn"
+                else:
+                    method = "self.assertIn"
                 assertion_elements.append(
                     ast.Expr(
                         ast_call(
-                            func=ast_attr(method + "In"),
+                            func=ast_attr(method),
                             args=[
                                 ast.Str(val),
                                 ast.Str("Assertion: %s" % assert_message)])))
