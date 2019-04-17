@@ -1195,7 +1195,8 @@ from selenium.webdriver.common.keys import Keys
                         keywords=keywords)))
 
         elif "actions" not in req.config:
-            raise TaurusConfigError("'url' and/or 'actions' are mandatory for request but not found: '%s'", req.config)
+            self.log.warning("'url' and/or 'actions' are mandatory for request but not found: '%s'", req.config)
+            return [ast.Pass()]
 
         if self.test_mode == "selenium":
             for action in req.config.get("actions"):
