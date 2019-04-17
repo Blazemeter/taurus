@@ -315,8 +315,8 @@ from selenium.webdriver.common.keys import Keys
             elements.append(ast_call(
                 func=ast_attr("self.driver.execute_script"),
                 args=[self._gen_expr(ast_call(
-                        func=ast_attr("window.open"),
-                        args=[ast.Str(selector)]))]))
+                    func=ast_attr("window.open"),
+                    args=[ast.Str(selector)]))]))
         elif atype == "close":
             args = []
             if selector:
@@ -327,7 +327,7 @@ from selenium.webdriver.common.keys import Keys
         return elements
 
     def _gen_frame_mngr(self, tag, selector):
-        elements = []    # todo: byid/byidx disambiguation?
+        elements = []  # todo: byid/byidx disambiguation?
         if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
             if tag == "byidx":
                 selector = "index=%s" % selector
@@ -391,12 +391,12 @@ from selenium.webdriver.common.keys import Keys
                 value=self._gen_expr(selector.strip())))
         else:
             target = None
-            
+
             if atype in ["asserttext", "storetext"]:
                 target = "innerText"
             elif atype in ["assertvalue", "storevalue"]:
-                target = "value"            
-            
+                target = "value"
+
             if target:
                 locator_attr = ast_call(
                     func=ast_attr(
@@ -423,14 +423,14 @@ from selenium.webdriver.common.keys import Keys
                     elements.append(self._gen_store(
                         name=param.strip(),
                         value=self._gen_expr(locator_attr)))
-                
+
         return elements
 
     def _gen_keys_mngr(self, atype, tag, param, selector):
         elements = []
         args = []
         action = None
-        
+
         if atype == "click":
             action = "click"
         elif atype == "submit":
@@ -447,7 +447,7 @@ from selenium.webdriver.common.keys import Keys
                 args = [ast_attr("Keys.%s" % param.split("KEY_")[1])]
             else:
                 args = [self._gen_expr(str(param))]
-        
+
         if action:
             elements.append(ast_call(
                 func=ast_attr(
