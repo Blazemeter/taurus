@@ -715,7 +715,8 @@ from selenium.webdriver.common.keys import Keys
                             value=ast.Name(id="options"))])))
             return body
         elif browser == 'remote':
-            capabilities = {key: str(self.capabilities[key]) for key in self.capabilities}
+            keys = sorted(self.capabilities.keys())
+            values = [str(self.capabilities[key]) for key in keys]
             body.append(ast.Assign(
                 targets=[ast_attr("self.driver")],
                 value=ast_call(
@@ -726,7 +727,9 @@ from selenium.webdriver.common.keys import Keys
                             value=ast.Str(self.remote_address)),
                         ast.keyword(
                             arg="desired_capabilities",
-                            value=ast.Str(json.dumps(capabilities, sort_keys=True)))])))
+                            value=ast.Dict(
+                                keys=[ast.Str(key) for key in keys],
+                                values=[ast.Str(value) for value in values]))])))
         else:
             if headless:
                 self.log.warning("Browser %r doesn't support headless mode" % browser)
@@ -775,7 +778,7 @@ from selenium.webdriver.common.keys import Keys
                 args=[ast.Num(dehumanize_time(timeout))]))
 
     def _gen_module(self):
-        stmts = self._gen_imports()
+        stmts = []
 
         if self.verbose:
             stmts.extend(self._gen_logging())
@@ -783,6 +786,8 @@ from selenium.webdriver.common.keys import Keys
         stmts.extend(self._gen_data_source_readers())
         stmts.extend(self._gen_module_setup())
         stmts.append(self._gen_classdef())
+
+        stmts = self._gen_imports() + stmts     # todo: order is important (with classdef) because of self.appium setup
 
         if self.test_mode == "selenium":
             stmts.append(self._gen_empty_line_stmt())
