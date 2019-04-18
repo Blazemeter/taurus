@@ -351,17 +351,17 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         locator2_1 = "self.driver.find_element(By.ID, 'address')"
         locator2_2 = "self.driver.find_element(By.NAME, 'toPort')"
 
-        msg = "('The element (By.%s, %r) is not contenteditable element' % ('ID', 'editor'))"
+        msg = '"The element (By.%s, %r) is not contenteditable element"' % ('ID', 'editor')
         if PY2:
             print_i = "print i"
             no_such_elt = "raise NoSuchElementException, %s" % msg
         else:
             print_i = "print(i)"
-            no_such_elt = "raise NoSuchElementException(%s)" % msg,
+            no_such_elt = "raise NoSuchElementException(%s)" % msg
 
         target_lines = [
             "self.wnd_mng.switch('0')",
-            "self.driver.execute_script(window.open('some.url'))",
+            """self.driver.execute_script("window.open('some.url');")""",
             "self.wnd_mng.close()",
             "self.wnd_mng.close('win_ser_local')",
             "self.frm_mng.switch('index=1')",
@@ -764,7 +764,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = '"browserName": "chrome"'
+        target = "'browserName': 'chrome'"
         self.assertIn(target, content)
 
     def test_build_script_remote_browser(self):
@@ -789,7 +789,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = '"browserName": "chrome"'
+        target = "'browserName': 'chrome'"
         self.assertIn(target, content)
 
     def test_build_script_remote_Firefox_browser(self):
@@ -813,7 +813,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = '"browserName": "firefox"'
+        target = "'browserName': 'firefox'"
         self.assertIn(target, content)
 
     def test_build_script_flow_markers(self):

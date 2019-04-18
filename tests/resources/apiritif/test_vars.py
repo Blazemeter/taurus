@@ -24,7 +24,7 @@ def setup():
     apiritif.put_into_thread_store(vars, target)
 
 
-class TestAPI(unittest.TestCase, ):
+class TestAPI(unittest.TestCase):
 
     def setUp(self):
         (self.vars, self.target) = apiritif.get_from_thread_store()

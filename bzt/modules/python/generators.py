@@ -695,7 +695,6 @@ from selenium.webdriver.common.keys import Keys
                     keywords=[ast.keyword(
                         arg="firefox_options",
                         value=ast.Name(id="options"))])))
-
         elif browser == 'chrome':
             body.append(ast.Assign(
                 targets=[ast.Name(id="options")],
@@ -713,7 +712,6 @@ from selenium.webdriver.common.keys import Keys
                         ast.keyword(
                             arg="chrome_options",
                             value=ast.Name(id="options"))])))
-            return body
         elif browser == 'remote':
             keys = sorted(self.capabilities.keys())
             values = [str(self.capabilities[key]) for key in keys]
