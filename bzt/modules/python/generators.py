@@ -961,7 +961,7 @@ from selenium.webdriver.common.keys import Keys
 
         if PY2:
             ast_try = ast.TryExcept
-            name = ast.Str("exc")
+            name = ast.Name(id="exc")
             reraise = ast.Raise(type=None, inst=None, tback=None)
         else:
             ast_try = ast.Try
