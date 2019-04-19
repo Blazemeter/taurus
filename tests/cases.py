@@ -53,9 +53,8 @@ class BZTestCase(TestCase):
             self.captured_logger.removeHandler(self.log_recorder)
             self.log_recorder.close()
 
-    def assertFilesEqual(self, expected, actual, replace_str="", replace_with="", python_files=False):
-        # import shutil; shutil.copy(actual, expected)
-
+    @staticmethod
+    def assertFilesEqual(expected, actual, replace_str="", replace_with="", python_files=False):
         with open(expected) as exp, open(actual) as act:
             act_lines = [x.replace(replace_str, replace_with).rstrip() for x in act.readlines()]
             exp_lines = [x.replace(replace_str, replace_with).rstrip() for x in exp.readlines()]
@@ -66,8 +65,8 @@ class BZTestCase(TestCase):
             diff = list(difflib.unified_diff(exp_lines, act_lines))
             if diff:
                 ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
-                msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
-                raise AssertionError(msg + "\n".join(diff))
+                msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
+                raise AssertionError(msg % (actual, expected, "\n".join(diff)))
 
     def assertPathsEqual(self, p1, p2):
         if not isinstance(p1, list):
