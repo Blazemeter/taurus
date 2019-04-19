@@ -1,4 +1,3 @@
-dist: xenial
 sudo: false
 language: python
 cache: pip  # use caching for pip's packages to speed up builds
