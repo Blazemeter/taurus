@@ -30,7 +30,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.prepare()
 
         exp_file = RESOURCES_DIR + "apiritif/test_transactions.py"
-        self.assertFilesEqual(exp_file, self.obj.script)
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
     def test_keepalive_default(self):
         self.configure({
@@ -487,7 +487,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + 'apiritif/test_codegen.py'
         # import shutil; shutil.copy2(self.obj.script, exp_file)  # keep this comment to ease updates
-        self.assertFilesEqual(exp_file, self.obj.script)
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
     def test_jmeter_functions_time(self):
         self.configure({
@@ -708,7 +708,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
 
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "/apiritif/test_data_sources.py"
-        self.assertFilesEqual(exp_file, self.obj.script)
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
     def test_vars(self):
         self.configure({
@@ -745,7 +745,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         })
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "/apiritif/test_codegen_requests.py"
-        self.assertFilesEqual(exp_file, self.obj.script)
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
     def test_generator_crash(self):
         self.configure({
