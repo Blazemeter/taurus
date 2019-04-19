@@ -79,12 +79,12 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         locator2_2 = "self.driver.find_element(By.NAME, 'toPort')"
 
         msg = '"The element (By.%s, %r) is not contenteditable element"' % ('ID', 'editor')
+        no_such_elt = "raise NoSuchElementException(%s)" % msg
+
         if PY2:
             print_i = "print i"
-            no_such_elt = "raise NoSuchElementException, %s" % msg
         else:
             print_i = "print(i)"
-            no_such_elt = "raise NoSuchElementException(%s)" % msg
 
         target_lines = [
             "self.wnd_mng.switch('0')",
