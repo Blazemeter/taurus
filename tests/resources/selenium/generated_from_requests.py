@@ -22,8 +22,8 @@ from selenium.webdriver.common.keys import Keys
 
 def setup():
     vars = {
-        'red_pill': 'take_it',
         'name': 'Name',
+        'red_pill': 'take_it',
     }
 
     apiritif.put_into_thread_store(vars)

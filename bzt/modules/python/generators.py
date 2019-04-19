@@ -1284,11 +1284,14 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_default_vars(self):
         variables = self.scenario.get("variables")
-        values = ast.Dict(
-            keys=[self.expr_compiler.gen_expr(key) for key, _ in iteritems(variables)],
-            values=[self.expr_compiler.gen_expr(value) for _, value in iteritems(variables)])
+        names = sorted(variables.keys())
+        values = [variables[name] for name in names]
 
-        return ast.Assign(targets=[ast.Name(id='vars', ctx=ast.Store())], value=values)
+        return ast.Assign(
+            targets=[ast.Name(id='vars', ctx=ast.Store())],
+            value=ast.Dict(
+                keys=[self._gen_expr(name) for name in names],
+                values=[self._gen_expr(val) for val in values]))
 
     def _gen_assertions(self, request):
         stmts = []
