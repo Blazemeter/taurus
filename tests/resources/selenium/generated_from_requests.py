@@ -80,7 +80,7 @@ class TestLocSc(unittest.TestCase, ):
             
             for i in range(10):
                 if ((i % 2) == 0):
-                    print i
+                    print(i)
             ActionChains(self.driver).drag_and_drop(self.driver.find_element(By.ID, 'address'), self.driver.find_element(By.NAME, 'toPort')).perform()
             self.frm_mng.switch(self.driver.find_element(By.NAME, 'my_frame'))
             self.frm_mng.switch('index=1')
@@ -89,7 +89,7 @@ class TestLocSc(unittest.TestCase, ):
             if self.driver.find_element(By.ID, 'editor').get_attribute('contenteditable'):
                 self.driver.execute_script(('arguments[0].innerHTML = %s;' % 'lo-la-lu'), self.driver.find_element(By.ID, 'editor'))
             else:
-                raise NoSuchElementException, "The element (By.ID, 'editor') is not contenteditable element"
+                raise NoSuchElementException("The element (By.ID, 'editor') is not contenteditable element")
             sleep(3.5)
             self.driver.delete_all_cookies()
             self.driver.find_element(By.LINK_TEXT, 'destination of the week! The Beach!').click()
