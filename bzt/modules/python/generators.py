@@ -15,7 +15,6 @@ limitations under the License.
 """
 
 import ast
-import json
 import math
 import re
 import string

@@ -1,5 +1,7 @@
 import logging
 import difflib
+import ast
+import astunparse
 import sys
 from io import StringIO
 from logging import Handler
@@ -51,12 +53,16 @@ class BZTestCase(TestCase):
             self.captured_logger.removeHandler(self.log_recorder)
             self.log_recorder.close()
 
-    def assertFilesEqual(self, expected, actual, replace_str="", replace_with=""):
+    def assertFilesEqual(self, expected, actual, replace_str="", replace_with="", python_files=False):
         # import shutil; shutil.copy(actual, expected)
 
         with open(expected) as exp, open(actual) as act:
             act_lines = [x.replace(replace_str, replace_with).rstrip() for x in act.readlines()]
             exp_lines = [x.replace(replace_str, replace_with).rstrip() for x in exp.readlines()]
+            if python_files:
+                act_lines = astunparse.unparse(ast.parse('\n'.join(act_lines))).split('\n')
+                exp_lines = astunparse.unparse(ast.parse('\n'.join(exp_lines))).split('\n')
+
             diff = list(difflib.unified_diff(exp_lines, act_lines))
             if diff:
                 ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
