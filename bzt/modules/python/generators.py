@@ -455,20 +455,20 @@ from selenium.webdriver.common.keys import Keys
         return elements
 
     def _gen_edit_mngr(self, tag, param, selector):
-        exc_type = "NoSuchElementException"
-        msg = ast.Str("The element (By.%s, %r) is not contenteditable element" % (self.BYS[tag], selector))
+        msg = "The element (By.%s, %r) is not contenteditable element"
+        exc_type = ast_call(
+            func="NoSuchElementException",
+            args=[ast.Str(msg % (self.BYS[tag], selector))])
 
         if PY2:
             raise_kwargs = {
-                "type": ast.Name(id=exc_type),
-                "inst": msg,
+                "type": exc_type,
+                "inst": None,
                 "tback": None
             }
         else:
             raise_kwargs = {
-                "exc": ast_call(
-                    func=exc_type,
-                    args=[msg]),
+                "exc": exc_type,
                 "cause": None}
 
         short_locator = ast_call(
