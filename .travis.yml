@@ -33,7 +33,7 @@ addons:
   firefox: "65.0.1"
   apt:
     packages:
-    - oracle-java8-set-default
+    - openjdk-8-jdk
     - mono-complete
 
 install:
