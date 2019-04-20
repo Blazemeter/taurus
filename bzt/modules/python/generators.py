@@ -1278,6 +1278,7 @@ from selenium.webdriver.common.keys import Keys
                             func=ast_attr(method),
                             args=[
                                 ast.Str(val),
+                                ast.Name(id="body"),
                                 ast.Str("Assertion: %s" % assert_message)])))
 
         return assertion_elements
