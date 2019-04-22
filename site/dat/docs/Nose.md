@@ -12,15 +12,6 @@ execution:
     script: tests/
 ```
 
-## Apiritif mode
-You can use [Apiritif test framework](https://github.com/Blazemeter/apiritif) for scenario execution with `test-mode` option:
-
-```yaml
-execution:
-- executor: nose
-  test-mode: apiritif
-```
-
 It allows you to use some logic blocks:
 - `transactions`: collect requests in one block
 - `set-variables`: set/change value of variable
@@ -50,7 +41,6 @@ scenario:
       variable-names: id,name  # delimiter-separated list of variable names, empty by default
 ```
 
-
 ## Supported file types:
 
 It is valid to specify both single Python module (single .py file) and a Python package (folder with Python modules
@@ -70,7 +60,16 @@ modules:
 Nose executor supports building test script from the `requests` option of `scenario`. In that case Taurus will
 generate a Python script that will be launched with `nose`.
 
-Supported features:
+With `Nose` executor you can use [Apiritif test framework](https://github.com/Blazemeter/apiritif) for scenario execution (by default) or ask for Selenium browser test with `test-mode` option:
+
+```yaml
+execution:
+- executor: nose
+  test-mode: selenium
+```
+
+In `Selenium` mode follow request features (`actions`) are supported:
+
   - select browser Chrome, Firefox, Ie, Opera, Android-Chome, iOS-Safari, Remote
   - local webdriver, local remote webdriver or remote webdriver (selenium grid or others)
   - capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
@@ -120,29 +119,7 @@ Action names are built as `<action>By<selector type>(<selector>)`. Sometimes act
 
 There is special action `pauseFor(<time>)` which makes script to sleep for specified amount of time. Also, calling action `clearCookies()` will force `delete\_all\_cookies` method to be called on WebDriver object.
 
-#### Reporting
-It is recommended to incorporate the use of the `final-stats` module with the option enabled `summary-labels` to have a better vision of results.
-It will allow to visualize the status of the tests, the average time per transaction and to visualize the errors that may occur in webdriver and other components involved in the test.
-
-Sample configuration:
-```yaml
-reporting:
-- module: final-stats
-  summary-labels: true
-```
-Sample output:
-```
-+-----------------+--------+---------+----------+-------+
-| label           | status | success | avg time | error |
-+-----------------+--------+---------+----------+-------+
-| Find Flights    |   OK   | 100.00% |  10.581  |       |
-| Reserve Flight  |   OK   | 100.00% |  1.276   |       |
-| Purchase Flight |   OK   | 100.00% |  4.951   |       |
-| Thanks          |   OK   | 100.00% |  0.062   |       |
-+-----------------+--------+---------+----------+-------+
-```
-
-#### Window managment
+### Window managment
 To manage windows or tabs, the `switchWindow(<value>)` and `closeWindow(<value>)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
@@ -154,7 +131,7 @@ These actions require a value parameter, the possible values are:
 
 **Note**: When any action command opens a new window (like click over a link with target window assigned), the action of selecting the window must always be declared, otherwise the actions executed by the execution were performed on the default window or the last one used with selectWindow command.
 
-#### Frame managmment
+### Frame managmment
 When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command to activate the frame before perform any action.
 
 Sample usage
@@ -176,7 +153,7 @@ scenario:
 
 **Disclaimer**: Currently there are problems in the support of this functionality by geckodriver and chromedriver, depending on the case to test some of these methods can generate a failure, mainly in cases where you have nested frames or frames mixed between frame and iframes.
 
-#### Sample request scenario:
+### Sample request scenario:
 ```yaml
 scenarios:
   request_example:
@@ -375,4 +352,26 @@ modules:
   nose:
     generate-flow-markers: true  # global setting
 
+```
+
+## Reporting
+It is recommended to incorporate the use of the `final-stats` module with the option enabled `summary-labels` to have a better vision of results.
+It will allow to visualize the status of the tests, the average time per transaction and to visualize the errors that may occur in webdriver and other components involved in the test.
+
+Sample configuration:
+```yaml
+reporting:
+- module: final-stats
+  summary-labels: true
+```
+Sample output:
+```
++-----------------+--------+---------+----------+-------+
+| label           | status | success | avg time | error |
++-----------------+--------+---------+----------+-------+
+| Find Flights    |   OK   | 100.00% |  10.581  |       |
+| Reserve Flight  |   OK   | 100.00% |  1.276   |       |
+| Purchase Flight |   OK   | 100.00% |  4.951   |       |
+| Thanks          |   OK   | 100.00% |  0.062   |       |
++-----------------+--------+---------+----------+-------+
 ```
