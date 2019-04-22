@@ -32,22 +32,18 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         exp_file = RESOURCES_DIR + "apiritif/test_transactions.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
-    def test_keepalive_default(self):
+    def test_keepalive_only(self):
         self.configure({
             "execution": [{
                 "test-mode": "apiritif",
                 "scenario": {
-                    "default-address": "http://blazedemo.com",
+                    "keepalive": True,
                     "requests": [
-                        "/",
-                    ]
-                }
-            }]
-        })
+                        "http://blazedemo.com/"]}}]})
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("target.keep_alive(True)", test_script)
+        self.assertIn("target = apiritif.http.target('')", test_script)
 
     def test_keepalive(self):
         self.configure({
