@@ -15,7 +15,6 @@ limitations under the License.
 """
 
 import ast
-import json
 import math
 import re
 import string
@@ -26,10 +25,35 @@ import astunparse
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
-from bzt.six import parse, string_types, iteritems, text_type, etree
-from bzt.utils import PythonGenerator, dehumanize_time, ensure_is_dict
+from bzt.six import parse, string_types, iteritems, text_type, PY2
+from bzt.utils import dehumanize_time, ensure_is_dict
 from .jmeter_functions import Base64DecodeFunction, UrlEncodeFunction, UuidFunction
 from .jmeter_functions import TimeFunction, RandomFunction, RandomStringFunction, Base64EncodeFunction
+
+
+def ast_attr(fields):
+    """ fields is string of attrs (e.g. 'self.call.me.now') or list of ast args"""
+    if isinstance(fields, string_types):
+        if "." in fields:
+            fields_list = fields.split(".")
+            return ast.Attribute(attr=fields_list[-1], value=ast_attr(".".join(fields_list[:-1])))
+
+        return ast.Name(id=fields)
+    else:
+        if len(fields) == 1:
+            if isinstance(fields[0], string_types):
+                return ast.Name(id=fields[0])
+            else:
+                return fields[0]
+
+        return ast.Attribute(attr=fields[-1], value=ast_attr(fields[:-1]))  # join ast expressions
+
+
+def ast_call(func, args=None, keywords=None):
+    args = args or []
+    if isinstance(func, string_types):
+        func = ast.Name(id=func)
+    return ast.Call(func=func, args=args, starargs=None, kwargs=None, keywords=keywords or [])
 
 
 def normalize_class_name(text):
@@ -94,17 +118,12 @@ class JMeterExprCompiler(object):
                 if len(format_args) == 1 and value == "{}":
                     result = format_args[0]
                 else:
-                    result = ast.Call(
+                    result = ast_call(
                         func=ast.Attribute(
                             value=ast.Str(s=value),
                             attr='format',
-                            ctx=ast.Load(),
-                        ),
-                        args=format_args,
-                        keywords=[],
-                        starargs=None,
-                        kwargs=None
-                    )
+                            ctx=ast.Load()),
+                        args=format_args)
             else:
                 result = ast.Str(s=value)
             return result
@@ -168,555 +187,67 @@ class JMeterExprCompiler(object):
         return result
 
 
-class SeleniumScriptBuilder(PythonGenerator):
-    """
-    :type window_size: tuple[int,int]
-    """
+class ApiritifScriptGenerator(object):
+    BYS = {
+        'byxpath': "XPATH",
+        'bycss': "CSS_SELECTOR",
+        'byname': "NAME",
+        'byid': "ID",
+        'bylinktext': "LINK_TEXT"
+    }
 
-    IMPORTS_SELENIUM = """import unittest
-import os
+    ACTION_CHAINS = {
+        'doubleclick': "double_click",
+        'mousedown': "click_and_hold",
+        'mouseup': "release",
+        'mousemove': "move_to_element"
+    }
+
+    # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
+
+    IMPORTS = """import os
 import re
-from time import sleep, time
-from selenium import webdriver
+from %s import webdriver
 from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import NoAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-
-import apiritif
-"""
-    IMPORTS_APPIUM = """import unittest
-import os
-import re
-from time import sleep, time
-from appium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import NoAlertPresentException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support import expected_conditions as econd
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.common.keys import Keys
-
-import apiritif
 """
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
-    def __init__(self, scenario, parent_logger, wdlog, utils_file,
-                 ignore_unknown_actions=False, generate_markers=None, capabilities=None, label='', wd_addr=None):
-        super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
+    ACCESS_TARGET = 'target'
+    ACCESS_PLAIN = 'plain'
+    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables)
+
+    def __init__(self, engine, scenario, label, parent_log,
+                 wdlog=None, utils_file=None,
+                 ignore_unknown_actions=False, generate_markers=None,
+                 capabilities=None, wd_addr=None, test_mode="selenium"):
+        self.scenario = scenario
+        self.engine = engine
+        self.data_sources = list(scenario.get_data_sources())
         self.label = label
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.tree = None
+        self.verbose = False
+        self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
+        self.stored_vars = []
+        self.service_methods = []
+
         self.remote_address = wd_addr
         self.capabilities = capabilities or {}
         self.window_size = None
         self.wdlog = wdlog
+        self.browser = None
         self.appium = False
         self.utils_file = utils_file
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
-
-    def gen_asserts(self, config, indent=None):
-        test_method = []
-        if "assert" in config:
-            test_method.append(self.gen_statement("body = self.driver.page_source", indent=indent))
-            for assert_config in config.get("assert"):
-                for elm in self.gen_assertion(assert_config, indent=indent):
-                    test_method.append(elm)
-        return test_method
-
-    def gen_think_time(self, think_time, indent=None):
-        test_method = []
-        if think_time is not None:
-            delay = dehumanize_time(think_time)
-            if delay > 0:
-                test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time), indent=indent))
-                test_method.append(self.gen_new_line())
-        return test_method
-
-    def gen_request(self, req, indent=None):
-        default_address = self.scenario.get("default-address")
-        transaction_contents = []
-        if req.url is not None:
-            parsed_url = parse.urlparse(req.url)
-            if default_address and not parsed_url.netloc:
-                url = default_address + req.url
-            else:
-                url = req.url
-            transaction_contents.append(
-                self.gen_statement("self.driver.get(self.template(%r))" % url, indent=indent))
-            transaction_contents.append(self.gen_new_line())
-        return transaction_contents
-
-    def build_source_code(self):
-        self.log.debug("Generating Test Case test methods")
-
-        test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
-        test_class.append(self.gen_setup_method())
-        test_class.append(self.gen_teardown_method())
-
-        requests = self.scenario.get_requests(require_url=False)
-        test_method = self.gen_test_method('test_requests')
-        self.gen_setup(test_method)
-
-        for i, req in enumerate(requests, 1):
-            self._fill_test_method(req, test_method)
-            if i != len(requests):
-                test_method.append(self.gen_new_line())
-
-        test_class.append(test_method)
-
-        self.root.append(self.gen_statement("# coding=utf-8", indent=0))
-        self.root.append(self.add_imports())
-        self.root.append(test_class)
-        self.root.append(self.add_utilities())
-
-    def _fill_test_method(self, req, test_method):
-        if req.label:
-            label = req.label
-        elif req.url:
-            label = req.url
-        else:
-            raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
-
-        if self.generate_markers:
-            test_method.append(self.gen_statement("try:", indent=self.INDENT_STEP * 2))
-            indent = 3
-            marker = "self.driver.execute_script('/* FLOW_MARKER test-case-start */', " \
-                     "{'testCaseName': %r, 'testSuiteName': %r})" % (label, self.label)
-            test_method.append(self.gen_statement(marker, indent=self.INDENT_STEP * indent))
-            test_method.append(self.gen_new_line())
-        else:
-            indent = 2
-
-        test_method.append(self.gen_statement('with apiritif.transaction_logged(self.template(%r)):' % label,
-                                              indent=self.INDENT_STEP * indent))
-        transaction_contents = []
-
-        transaction_contents.extend(self.gen_request(req, indent=self.INDENT_STEP * (indent + 1)))
-        if req.url is not None and req.timeout is not None:
-            test_method.append(self.gen_impl_wait(req.timeout, indent=self.INDENT_STEP * (indent + 1)))
-
-        action_append = False
-        for action_config in req.config.get("actions", []):
-            action = self.gen_action(action_config, indent=self.INDENT_STEP * (indent + 1))
-            if action:
-                transaction_contents.extend(action)
-                action_append = True
-        if action_append:
-            transaction_contents.append(self.gen_new_line())
-
-        transaction_contents.extend(self.gen_asserts(req.config, indent=self.INDENT_STEP * (indent + 1)))
-
-        if transaction_contents:
-            test_method.extend(transaction_contents)
-        else:
-            test_method.append(self.gen_statement('pass', indent=self.INDENT_STEP * (indent + 1)))
-        test_method.append(self.gen_new_line())
-
-        test_method.extend(self.gen_think_time(req.get_think_time(), indent=self.INDENT_STEP * indent))
-
-        if self.generate_markers:
-            marker = "self.driver.execute_script('/* FLOW_MARKER test-case-stop */', " \
-                     "{'status': %s, 'message': %s})"
-
-            test_method.append(self.gen_statement("except AssertionError as exc:", indent=self.INDENT_STEP * 2))
-            test_method.append(self.gen_statement(marker % (repr('failed'), 'str(exc)'), indent=self.INDENT_STEP * 3))
-            test_method.append(self.gen_statement("raise", indent=self.INDENT_STEP * 3))
-
-            test_method.append(self.gen_statement("except BaseException as exc:", indent=self.INDENT_STEP * 2))
-            test_method.append(self.gen_statement(marker % (repr('broken'), 'str(exc)'), indent=self.INDENT_STEP * 3))
-            test_method.append(self.gen_statement("raise", indent=self.INDENT_STEP * 3))
-
-            test_method.append(self.gen_statement("else:", indent=self.INDENT_STEP * 2))
-            test_method.append(self.gen_statement(marker % (repr('success'), repr('')), indent=self.INDENT_STEP * 3))
-
-    def add_imports(self):
-        imports = super(SeleniumScriptBuilder, self).add_imports()
-        if self.appium:
-            imports.text = self.IMPORTS_APPIUM
-        else:
-            imports.text = self.IMPORTS_SELENIUM
-        return imports
-
-    def add_utilities(self):
-        with open(self.utils_file) as fds:
-            utilities_source_lines = fds.read()
-        utils = etree.Element("utilities")
-        utils.text = "\n" + utilities_source_lines
-        return utils
-
-    def gen_global_vars(self):
-        variables = self.scenario.get("variables")
-        stmts = [
-            "self.vars = {}",
-            "self.template = Template(self.vars)"
-        ]
-
-        for key in sorted(variables.keys()):
-            stmts.append("self.vars['%s'] = %r" % (key, variables[key]))
-        stmts.append("")
-        return [self.gen_statement(stmt) for stmt in stmts]
-
-    def _add_url_request(self, default_address, req, test_method):
-        parsed_url = parse.urlparse(req.url)
-        if default_address is not None and not parsed_url.netloc:
-            url = default_address + req.url
-        else:
-            url = req.url
-        if req.timeout is not None:
-            test_method.append(self.gen_impl_wait(req.timeout))
-        test_method.append(self.gen_statement("self.driver.get(self.template(%r))" % url))
-
-    def gen_setup(self, test_method):
-        timeout = self.scenario.get("timeout", "30s")
-        scenario_timeout = dehumanize_time(timeout)
-        test_method.append(self.gen_impl_wait(scenario_timeout))
-        test_method.append(self.gen_new_line())
-
-    def _check_platform(self):
-        mobile_browsers = ["chrome", "safari"]
-        mobile_platforms = ["android", "ios"]
-
-        browser = self.capabilities.get("browserName", "")
-        browser = self.scenario.get("browser", browser)
-        browser = browser.lower()   # todo: whether we should take browser as is? (without lower case)
-
-        browser_platform = None
-        if browser:
-            browser_split = browser.split("-")
-            browser = browser_split[0]
-            browsers = ["firefox", "chrome", "ie", "opera"] + mobile_browsers
-            if browser not in browsers:
-                raise TaurusConfigError("Unsupported browser name: %s" % browser)
-            if len(browser_split) > 1:
-                browser_platform = browser_split[1]
-
-        if self.remote_address:
-            if browser and browser != "remote":
-                msg = "Forcing browser to Remote, because of remote WebDriver address, use '%s' as browserName"
-                self.log.warning(msg % browser)
-                self.capabilities["browserName"] = browser
-            browser = "remote"
-            if self.generate_markers is None:  # if not set by user - set to true
-                self.generate_markers = True
-        elif browser in mobile_browsers and browser_platform in mobile_platforms:
-            self.appium = True
-            self.remote_address = "http://localhost:4723/wd/hub"
-            self.capabilities["platformName"] = browser_platform
-            self.capabilities["browserName"] = browser
-            browser = "remote"  # Force to use remote web driver
-        elif not browser:
-            browser = "firefox"
-
-        return browser
-
-    def gen_setup_method(self):
-        self.log.debug("Generating setUp test method")
-        browser = self._check_platform()
-
-        headless = self.scenario.get("headless", False)
-        if headless:
-            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
-
-        setup_method_def = self.gen_method_definition("setUp", ["self"])
-        setup_method_def.extend(self.gen_global_vars())
-
-        if browser == 'firefox':
-            setup_method_def.append(self.gen_statement("options = webdriver.FirefoxOptions()"))
-            if headless:
-                setup_method_def.append(self.gen_statement("options.set_headless()"))
-            setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
-            statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
-            log_set = self.gen_statement(statement)
-            setup_method_def.append(log_set)
-            tmpl = "self.driver = webdriver.Firefox(profile, firefox_options=options)"
-            setup_method_def.append(self.gen_statement(tmpl))
-        elif browser == 'chrome':
-            setup_method_def.append(self.gen_statement("options = webdriver.ChromeOptions()"))
-            if headless:
-                setup_method_def.append(self.gen_statement("options.set_headless()"))
-            statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
-            setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
-        elif browser == 'remote':
-            setup_method_def.append(self._gen_remote_driver())
-        else:
-            if headless:
-                self.log.warning("Browser %r doesn't support headless mode")
-            setup_method_def.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
-
-        scenario_timeout = self.scenario.get("timeout", "30s")
-        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
-
-        setup_method_def.append(self.gen_statement("self.wnd_mng = WindowManager(self.driver)"))
-        setup_method_def.append(self.gen_statement("self.frm_mng = FrameManager(self.driver)"))
-
-        if self.window_size:  # FIXME: unused in fact
-            statement = self.gen_statement("self.driver.set_window_position(0, 0)")
-            setup_method_def.append(statement)
-
-            args = (self.window_size[0], self.window_size[1])
-            statement = self.gen_statement("self.driver.set_window_size(%s, %s)" % args)
-            setup_method_def.append(statement)
-        else:
-            pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
-            # but maximize_window does not work on virtual displays. Bummer
-
-        setup_method_def.append(self.gen_new_line())
-        return setup_method_def
-
-    def _gen_remote_driver(self):
-        # avoid versions and other number values
-        capabilities = {key: str(self.capabilities[key]) for key in self.capabilities}
-
-        tpl = "self.driver = webdriver.Remote(command_executor={command_executor}, desired_capabilities={caps})"
-        cmd = tpl.format(command_executor=repr(self.remote_address), caps=json.dumps(capabilities, sort_keys=True))
-
-        return self.gen_statement(cmd)
-
-    def gen_impl_wait(self, timeout, indent=None):
-        return self.gen_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout), indent=indent)
-
-    def gen_test_method(self, name):
-        self.log.debug("Generating test method %s", name)
-        test_method = self.gen_method_definition(name, ["self"])
-        return test_method
-
-    def gen_teardown_method(self):
-        self.log.debug("Generating tearDown test method")
-        tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
-        tear_down_method_def.append(self.gen_statement("self.driver.quit()"))
-        tear_down_method_def.append(self.gen_new_line())
-        return tear_down_method_def
-
-    def gen_assertion(self, assertion_config, indent=None):
-        self.log.debug("Generating assertion, config: %s", assertion_config)
-        assertion_elements = []
-
-        if isinstance(assertion_config, string_types):
-            assertion_config = {"contains": [assertion_config]}
-
-        for val in assertion_config["contains"]:
-            regexp = assertion_config.get("regexp", True)
-            reverse = assertion_config.get("not", False)
-            subject = assertion_config.get("subject", "body")
-            if subject != "body":
-                raise TaurusConfigError("Only 'body' subject supported ")
-
-            assert_message = "'%s' " % val
-            if not reverse:
-                assert_message += 'not '
-            assert_message += 'found in BODY'
-
-            if regexp:
-                assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
-                assertion_elements.append(self.gen_statement("re_pattern = re.compile(r'%s')" % val, indent=indent))
-
-                method = '%s(0, len(re.findall(re_pattern, body)), "Assertion: %s")'
-                method %= assert_method, assert_message
-                assertion_elements.append(self.gen_statement(method, indent=indent))
-            else:
-                assert_method = "self.assertNotIn" if reverse else "self.assertIn"
-                method = '%s("%s", body, "Assertion: %s")'
-                method %= assert_method, val, assert_message
-                assertion_elements.append(self.gen_statement(method, indent=indent))
-        return assertion_elements
-
-    def gen_action(self, action_config, indent=None):
-        action = self._parse_action(action_config)
-        if action:
-            atype, tag, param, selector = action
-        else:
-            return
-
-        action_elements = []
-
-        bys = {
-            'byxpath': "XPATH",
-            'bycss': "CSS_SELECTOR",
-            'byname': "NAME",
-            'byid': "ID",
-            'bylinktext': "LINK_TEXT"
-        }
-        action_chains = {
-            'doubleclick': "double_click",
-            'mousedown': "click_and_hold",
-            'mouseup': "release",
-            'mousemove': "move_to_element"
-        }
-
-        if tag == "window":
-            if atype == "switch":
-                cmd = 'self.wnd_mng.switch(self.template(%r))' % selector
-                action_elements.append(self.gen_statement(cmd, indent=indent))
-            elif atype == "open":
-                script = "window.open('%s');" % selector
-                cmd = 'self.driver.execute_script(self.template(%r))' % script
-                action_elements.append(self.gen_statement(cmd, indent=indent))
-            elif atype == "close":
-                if selector:
-                    cmd = 'self.wnd_mng.close(self.template(%r))' % selector
-                else:
-                    cmd = 'self.wnd_mng.close()'
-                action_elements.append(self.gen_statement(cmd, indent=indent))
-
-        elif atype == "switchframe":
-            if tag == "byidx":
-                cmd = "self.frm_mng.switch(%r)" % int(selector)
-            elif selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
-                cmd = "self.frm_mng.switch(%r)" % selector
-            else:
-                frame = "self.driver.find_element(By.%s, self.template(%r))" % (bys[tag], selector)
-                cmd = "self.frm_mng.switch(%s)" % frame
-
-            action_elements.append(self.gen_statement(cmd, indent=indent))
-
-        elif atype in action_chains:
-            tpl = "self.driver.find_element(By.%s, self.template(%r))"
-            action = action_chains[atype]
-            action_elements.append(self.gen_statement(
-                "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
-                indent=indent))
-        elif atype == 'drag':
-            drop_action = self._parse_action(param)
-            if drop_action and drop_action[0] == "element" and not drop_action[2]:
-                drop_tag, drop_selector = (drop_action[1], drop_action[3])
-                tpl = "self.driver.find_element(By.%s, self.template(%r))"
-                action = "drag_and_drop"
-                drag_element = tpl % (bys[tag], selector)
-                drop_element = tpl % (bys[drop_tag], drop_selector)
-                action_elements.append(self.gen_statement(
-                    "ActionChains(self.driver).%s(%s, %s).perform()" % (action, drag_element, drop_element),
-                    indent=indent))
-        elif atype == 'select':
-            tpl = "self.driver.find_element(By.%s, self.template(%r))"
-            action = "select_by_visible_text(self.template(%r))" % param
-            action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
-                                                      indent=indent))
-        elif atype.startswith('assert') or atype.startswith('store'):
-            if tag == 'title':
-                if atype.startswith('assert'):
-                    action_elements.append(
-                        self.gen_statement("self.assertEqual(self.driver.title, self.template(%r))"
-                                           % selector, indent=indent))
-                else:
-                    action_elements.append(self.gen_statement(
-                        "self.vars['%s'] = self.template(self.driver.title)" % param.strip(), indent=indent
-                    ))
-            elif atype == 'store' and tag == 'string':
-                action_elements.append(self.gen_statement(
-                    "self.vars['%s'] = self.template('%s')" % (param.strip(), selector.strip()), indent=indent
-                ))
-            else:
-                tpl = "self.driver.find_element(By.%s, self.template(%r)).%s"
-                if atype in ['asserttext', 'storetext']:
-                    action = "get_attribute('innerText')"
-                elif atype in ['assertvalue', 'storevalue']:
-                    action = "get_attribute('value')"
-                if atype.startswith('assert'):
-                    action_elements.append(
-                        self.gen_statement("self.assertEqual(self.template(%s).strip(), self.template(%r).strip())" %
-                                           (tpl % (bys[tag], selector, action), param),
-                                           indent=indent))
-                elif atype.startswith('store'):
-                    action_elements.append(
-                        self.gen_statement("self.vars['%s'] = self.template(%s)" %
-                                           (param.strip(), tpl % (bys[tag], selector, action)),
-                                           indent=indent))
-        elif atype in ('click', 'type', 'keys', 'submit'):
-            tpl = "self.driver.find_element(By.%s, self.template(%r)).%s"
-            action = None
-            if atype == 'click':
-                action = "click()"
-            elif atype == 'submit':
-                action = "submit()"
-            elif atype in ['keys', 'type']:
-                if atype == 'type':
-                    action_elements.append(self.gen_statement(
-                        tpl % (bys[tag], selector, "clear()"), indent=indent))
-                action = "send_keys(self.template(%r))" % str(param)
-                if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
-                    action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
-
-            action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
-
-        elif atype == "script" and tag == "eval":
-            cmd = 'self.driver.execute_script(self.template(%r))' % selector
-            action_elements.append(self.gen_statement(cmd, indent=indent))
-        elif atype == "rawcode":
-            lines = param.split('\n')
-            for line in lines:
-                action_elements.append(self.gen_statement(line, indent=indent))
-        elif atype == 'go':
-            if selector and not param:
-                cmd = "self.driver.get(self.template(%r))" % selector.strip()
-                action_elements.append(self.gen_statement(cmd, indent=indent))
-        elif atype == "editcontent":
-            element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
-            editable_error = "The element (By.%s, %r) " \
-                             "is not contenteditable element" % (bys[tag], selector)
-            editable_script_tpl = "arguments[0].innerHTML = %s;"
-            editable_script_tpl_argument = "self.template.str_repr(self.template(%r))" % param.strip()
-            editable_script = "%r %% %s" % \
-                              (editable_script_tpl, editable_script_tpl_argument)
-            action_elements.extend([
-                self.gen_statement(
-                    "if %s.get_attribute('contenteditable'):" % element,
-                    indent=indent),
-                self.gen_statement(
-                    "self.driver.execute_script(",
-                    indent=indent + self.INDENT_STEP),
-                self.gen_statement(
-                    "%s," % editable_script,
-                    indent=indent + self.INDENT_STEP * 2),
-                self.gen_statement(
-                    element,
-                    indent=indent + self.INDENT_STEP * 2),
-                self.gen_statement(
-                    ")",
-                    indent=indent + self.INDENT_STEP),
-                self.gen_statement(
-                    "else:", indent=indent),
-                self.gen_statement(
-                    "raise NoSuchElementException(%r)" % editable_error,
-                    indent=indent + self.INDENT_STEP)
-            ])
-        elif atype == 'echo' and tag == 'string':
-            if len(selector) > 0 and not param:
-                action_elements.append(
-                    self.gen_statement("print(self.template(%r))" % selector.strip(), indent=indent))
-        elif atype == 'wait':
-            tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, self.template(%r))), %r)"
-            mode = "visibility" if param == 'visible' else 'presence'
-            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
-            timeout = dehumanize_time(self.scenario.get("timeout", exc))
-            errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
-            action_elements.append(self.gen_statement(tpl % (timeout, mode, bys[tag], selector, errmsg), indent=indent))
-        elif atype == 'pause' and tag == 'for':
-            tpl = "sleep(%g)"
-            action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
-        elif atype == 'clear' and tag == 'cookies':
-            action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
-        elif atype == 'screenshot':
-            if selector:
-                filename = selector
-                action_elements.append(self.gen_statement('self.driver.save_screenshot(self.template(%r))' % filename,
-                                                          indent=indent))
-            else:
-                filename = "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), " \
-                           "'screenshot-%d.png' % (time() * 1000))"
-                action_elements.append(self.gen_statement(filename, indent=indent))
-                action_elements.append(self.gen_statement('self.driver.save_screenshot(filename)', indent=indent))
-
-        if not action_elements:
-            raise TaurusInternalException("Could not build code for action: %s" % action_config)
-
-        return action_elements
+        self.test_mode = test_mode
 
     def _parse_action(self, action_config):
         if isinstance(action_config, string_types):
@@ -758,33 +289,493 @@ import apiritif
             selector = ""
         return atype, tag, param, selector
 
+    def _gen_locator(self, tag, selector):
+        return ast_call(
+            func=ast_attr("self.driver.find_element"),
+            args=[
+                ast_attr("By.%s" % self.BYS[tag]),
+                self._gen_expr(selector)])
 
-class ApiritifScriptGenerator(PythonGenerator):
-    # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
+    @staticmethod
+    def _gen_store(name, value):
+        return ast.Assign(
+            targets=[ast.Subscript(
+                value=ast_attr("self.vars"),
+                slice=ast.Str(name))],
+            value=value)
 
-    ACCESS_TARGET = 'target'
-    ACCESS_PLAIN = 'plain'
-    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables)
+    def _gen_window_mngr(self, atype, selector):
+        elements = []
+        if atype == "switch":
+            elements.append(ast_call(
+                func=ast_attr("self.wnd_mng.switch"),
+                args=[self._gen_expr(selector)]))
+        elif atype == "open":
+            elements.append(ast_call(
+                func=ast_attr("self.driver.execute_script"),
+                args=[self._gen_expr("window.open('%s');" % selector)]))
+        elif atype == "close":
+            args = []
+            if selector:
+                args.append(self._gen_expr(selector))
+            elements.append(ast_call(
+                func=ast_attr("self.wnd_mng.close"),
+                args=args))
+        return elements
 
-    def __init__(self, engine, scenario, label, parent_log):
-        super(ApiritifScriptGenerator, self).__init__(scenario, parent_log)
-        self.scenario = scenario
-        self.engine = engine
-        self.data_sources = list(scenario.get_data_sources())
-        self.label = label
-        self.log = parent_log.getChild(self.__class__.__name__)
-        self.tree = None
-        self.verbose = False
-        self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
-        self.stored_vars = []
-        self.service_methods = []
+    def _gen_frame_mngr(self, tag, selector):
+        elements = []  # todo: byid/byidx disambiguation?
+        if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
+            if tag == "byidx":
+                selector = "index=%s" % selector
+
+            elements.append(ast_call(
+                func=ast_attr("self.frm_mng.switch"),
+                args=[ast.Str(selector)]))
+        else:
+            elements.append(ast_call(
+                func=ast_attr("self.frm_mng.switch"),
+                args=[self._gen_locator(tag, selector)]))
+        return elements
+
+    def _gen_chain_mngr(self, atype, tag, param, selector):
+        elements = []
+        if atype in self.ACTION_CHAINS:
+            operator = ast_attr(fields=(
+                ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
+                self.ACTION_CHAINS[atype]))
+            elements.append(ast_call(
+                func=ast_attr(
+                    fields=(
+                        ast_call(
+                            func=operator,
+                            args=[self._gen_locator(tag, selector)]),
+                        "perform"))))
+        elif atype == "drag":
+            drop_action = self._parse_action(param)
+            if drop_action and drop_action[0] == "element" and not drop_action[2]:
+                drop_tag, drop_selector = (drop_action[1], drop_action[3])
+                operator = ast_attr(
+                    fields=(
+                        ast_call(
+                            func="ActionChains",
+                            args=[ast_attr("self.driver")]),
+                        "drag_and_drop"))
+                elements.append(ast_call(
+                    func=ast_attr(
+                        fields=(
+                            ast_call(
+                                func=operator,
+                                args=[self._gen_locator(tag, selector),
+                                      self._gen_locator(drop_tag, drop_selector)]),
+                            "perform"))))
+        return elements
+
+    def _gen_assert_store_mngr(self, atype, tag, param, selector):
+        elements = []
+        if tag == 'title':
+            if atype.startswith('assert'):
+                elements.append(ast_call(
+                    func=ast_attr("self.assertEqual"),
+                    args=[ast_attr("self.driver.title"), self._gen_expr(selector)]))
+            else:
+                elements.append(self._gen_store(
+                    name=param.strip(),
+                    value=self._gen_expr(ast_attr("self.driver.title"))))
+        elif atype == 'store' and tag == 'string':
+            elements.append(self._gen_store(
+                name=param.strip(),
+                value=self._gen_expr(selector.strip())))
+        else:
+            target = None
+
+            if atype in ["asserttext", "storetext"]:
+                target = "innerText"
+            elif atype in ["assertvalue", "storevalue"]:
+                target = "value"
+
+            if target:
+                locator_attr = ast_call(
+                    func=ast_attr(
+                        fields=(
+                            self._gen_locator(tag, selector),
+                            "get_attribute")),
+                    args=[ast.Str(target)])
+
+                if atype.startswith("assert"):
+                    elements.append(ast_call(
+                        func=ast_attr(fields="self.assertEqual"),
+                        args=[
+                            ast_call(
+                                func=ast_attr(
+                                    fields=(
+                                        self._gen_expr(locator_attr),
+                                        "strip"))),
+                            ast_call(
+                                func=ast_attr(
+                                    fields=(
+                                        self._gen_expr(param),
+                                        "strip")))]))
+                elif atype.startswith('store'):
+                    elements.append(self._gen_store(
+                        name=param.strip(),
+                        value=self._gen_expr(locator_attr)))
+
+        return elements
+
+    def _gen_keys_mngr(self, atype, tag, param, selector):
+        elements = []
+        args = []
+        action = None
+
+        if atype == "click":
+            action = "click"
+        elif atype == "submit":
+            action = "submit"
+        elif atype in ["keys", "type"]:
+            if atype == "type":
+                elements.append(ast_call(
+                    func=ast_attr(
+                        fields=(
+                            self._gen_locator(tag, selector),
+                            "clear"))))
+            action = "send_keys"
+            if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
+                args = [ast_attr("Keys.%s" % param.split("KEY_")[1])]
+            else:
+                args = [self._gen_expr(str(param))]
+
+        if action:
+            elements.append(ast_call(
+                func=ast_attr(
+                    fields=(
+                        self._gen_locator(tag, selector),
+                        action)),
+                args=args))
+        return elements
+
+    def _gen_edit_mngr(self, tag, param, selector):
+        msg = "The element (By.%s, %r) is not contenteditable element"
+        exc_type = ast_call(
+            func="NoSuchElementException",
+            args=[ast.Str(msg % (self.BYS[tag], selector))])
+
+        if PY2:
+            raise_kwargs = {
+                "type": exc_type,
+                "inst": None,
+                "tback": None
+            }
+        else:
+            raise_kwargs = {
+                "exc": exc_type,
+                "cause": None}
+
+        short_locator = ast_call(
+            func=ast_attr("self.driver.find_element"),
+            args=[
+                ast_attr("By.%s" % self.BYS[tag]),
+                ast.Str(selector)])
+
+        element = ast.If(
+            test=ast_call(
+                func=ast_attr(
+                    fields=(short_locator, "get_attribute")),
+                args=[ast.Str("contenteditable")]),
+            body=[  # self.driver.execute_script(editable_script)
+                ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
+                                  args=[
+                                      ast.BinOp(
+                                          left=ast.Str("arguments[0].innerHTML = %s;"),
+                                          op=ast.Mod(),
+                                          right=self._gen_expr(param.strip())),
+                                      short_locator]))],
+            orelse=[
+                ast.Raise(**raise_kwargs)])
+
+        return [element]
+
+    def _gen_screenshot_mngr(self, selector):
+        elements = []
+        if selector:
+            elements.append(ast_call(
+                func=ast_attr("self.driver.save_screenshot"),
+                args=[self._gen_expr(selector)]))
+        else:
+            elements.append(ast.Assign(
+                targets=[ast.Name(id="filename")],
+                value=ast_call(
+                    func=ast_attr("os.path.join"),
+                    args=[
+                        ast_call(
+                            func=ast_attr("os.getenv"),
+                            args=[ast.Str('TAURUS_ARTIFACTS_DIR')]),
+                        ast.BinOp(
+                            left=ast.Str('screenshot-%d.png'),
+                            op=ast.Mod(),
+                            right=ast.BinOp(
+                                left=ast_call(func="time"),
+                                op=ast.Mult(),
+                                right=ast.Num(1000)))])))
+            elements.append(ast_call(
+                func=ast_attr("self.driver.save_screenshot"),
+                args=[ast.Name(id="filename")]))
+        return elements
+
+    def _gen_wait_sleep_mngr(self, atype, tag, param, selector):
+        elements = []
+        mode = "visibility" if param == 'visible' else 'presence'
+
+        if atype == 'wait':
+            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
+            timeout = dehumanize_time(self.scenario.get("timeout", exc))
+            errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
+            elements.append(ast_call(
+                func=ast_attr(
+                    fields=(
+                        ast_call(
+                            func="WebDriverWait",
+                            args=[
+                                ast_attr("self.driver"),
+                                ast.Num(timeout)]),
+                        "until")),
+                args=[
+                    ast_call(
+                        func=ast_attr("econd.%s_of_element_located" % mode),
+                        args=[
+                            ast.Tuple(
+                                elts=[
+                                    ast_attr("By.%s" % self.BYS[tag]),
+                                    self._gen_expr(selector)])]),
+                    ast.Str(errmsg)]))
+
+        elif atype == 'pause' and tag == 'for':
+            elements.append(ast_call(
+                func="sleep",
+                args=[ast.Num(dehumanize_time(selector))]))
+
+        return elements
+
+    def _gen_select_mngr(self, tag, param, selector):
+        element = (ast_call(
+            func=ast_attr(
+                fields=(
+                    ast_call(func="Select", args=[self._gen_locator(tag, selector)]),
+                    "select_by_visible_text")),
+            args=[self._gen_expr(param)]))
+        return [element]
+
+    def _gen_action(self, action_config):
+        action = self._parse_action(action_config)
+        if action:
+            atype, tag, param, selector = action
+        else:
+            atype = tag = param = selector = None
+
+        action_elements = []
+
+        if tag == "window":
+            action_elements.extend(self._gen_window_mngr(atype, selector))
+        elif atype == "switchframe":
+            action_elements.extend(self._gen_frame_mngr(tag, selector))
+        elif atype in self.ACTION_CHAINS or atype == "drag":
+            action_elements.extend(self._gen_chain_mngr(atype, tag, param, selector))
+        elif atype == "select":
+            action_elements.extend(self._gen_select_mngr(tag, param, selector))
+        elif atype.startswith("assert") or atype.startswith("store"):
+            action_elements.extend(self._gen_assert_store_mngr(atype, tag, param, selector))
+
+        elif atype in ("click", "type", "keys", "submit"):
+            action_elements.extend(self._gen_keys_mngr(atype, tag, param, selector))
+
+        elif atype == 'echo' and tag == 'string':
+            if len(selector) > 0 and not param:
+                action_elements.append(ast_call(
+                    func="print",
+                    args=[self._gen_expr(selector.strip())]))
+
+        elif atype == "script" and tag == "eval":
+            action_elements.append(ast_call(func=ast_attr("self.driver.execute_script"),
+                                            args=[self._gen_expr(selector)]))
+        elif atype == "rawcode":
+            action_elements.append(ast.parse(param))
+        elif atype == 'go':
+            if selector and not param:
+                action_elements.append(ast_call(func=ast_attr("self.driver.get"),
+                                                args=[self._gen_expr(selector.strip())]))
+        elif atype == "editcontent":  # todo: check it functionally (possibly broken)
+            action_elements.extend(self._gen_edit_mngr(tag, param, selector))
+        elif atype in ('wait', 'pause'):
+            action_elements.extend(self._gen_wait_sleep_mngr(atype, tag, param, selector))
+        elif atype == 'clear' and tag == 'cookies':
+            action_elements.append(ast_call(
+                func=ast_attr("self.driver.delete_all_cookies")))
+        elif atype == 'screenshot':
+            action_elements.extend(self._gen_screenshot_mngr(selector))
+
+        if not action_elements:
+            raise TaurusInternalException("Could not build code for action: %s" % action_config)
+
+        return [ast.Expr(element) for element in action_elements]
 
     @staticmethod
     def _gen_empty_line_stmt():
         return ast.Expr(value=ast.Name(id=""))  # hacky, but works
 
+    def _check_platform(self):
+        mobile_browsers = ["chrome", "safari"]
+        mobile_platforms = ["android", "ios"]
+
+        browser = self.capabilities.get("browserName", "")
+        browser = self.scenario.get("browser", browser)
+        browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
+
+        browser_platform = None
+        if browser:
+            browser_split = browser.split("-")
+            browser = browser_split[0]
+            browsers = ["firefox", "chrome", "ie", "opera"] + mobile_browsers
+            if browser not in browsers:
+                raise TaurusConfigError("Unsupported browser name: %s" % browser)
+            if len(browser_split) > 1:
+                browser_platform = browser_split[1]
+
+        if self.remote_address:
+            if browser and browser != "remote":
+                msg = "Forcing browser to Remote, because of remote WebDriver address, use '%s' as browserName"
+                self.log.warning(msg % browser)
+                self.capabilities["browserName"] = browser
+            browser = "remote"
+            if self.generate_markers is None:  # if not set by user - set to true
+                self.generate_markers = True
+        elif browser in mobile_browsers and browser_platform in mobile_platforms:
+            self.appium = True
+            self.remote_address = "http://localhost:4723/wd/hub"
+            self.capabilities["platformName"] = browser_platform
+            self.capabilities["browserName"] = browser
+            browser = "remote"  # Force to use remote web driver
+        elif not browser:
+            browser = "firefox"
+
+        return browser
+
+    def _selenium_setup(self):
+        self.log.debug("Generating setUp test method")
+        browser = self._check_platform()
+
+        headless = self.scenario.get("headless", False)
+        headless_setup = []
+        if headless:
+            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
+            headless_setup = [ast.Expr(
+                ast_call(func=ast_attr("options.set_headless")))]
+
+        body = []
+
+        if browser == 'firefox':
+            body.append(ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(
+                    func=ast_attr("webdriver.FirefoxOptions"))))
+            body.extend(headless_setup)
+            body.append(ast.Assign(
+                targets=[ast.Name(id="profile")],
+                value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))))
+            body.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("profile.set_preference"),
+                    args=[ast.Str("webdriver.log.file"), ast.Str(self.wdlog)])))
+
+            body.append(ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Firefox"),
+                    args=[ast.Name(id="profile")],
+                    keywords=[ast.keyword(
+                        arg="firefox_options",
+                        value=ast.Name(id="options"))])))
+        elif browser == 'chrome':
+            body.append(ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(
+                    func=ast_attr("webdriver.ChromeOptions"))))
+            body.extend(headless_setup)
+            body.append(ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Chrome"),
+                    keywords=[
+                        ast.keyword(
+                            arg="service_log_path",
+                            value=ast.Str(self.wdlog)),
+                        ast.keyword(
+                            arg="chrome_options",
+                            value=ast.Name(id="options"))])))
+        elif browser == 'remote':
+            keys = sorted(self.capabilities.keys())
+            values = [str(self.capabilities[key]) for key in keys]
+            body.append(ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Remote"),
+                    keywords=[
+                        ast.keyword(
+                            arg="command_executor",
+                            value=ast.Str(self.remote_address)),
+                        ast.keyword(
+                            arg="desired_capabilities",
+                            value=ast.Dict(
+                                keys=[ast.Str(key) for key in keys],
+                                values=[ast.Str(value) for value in values]))])))
+        else:
+            if headless:
+                self.log.warning("Browser %r doesn't support headless mode" % browser)
+
+            body.append(ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
+
+        scenario_timeout = self.scenario.get("timeout", "30s")
+        body.append(self._gen_impl_wait(scenario_timeout))
+
+        body.append(ast.Assign(
+            targets=[ast_attr("self.wnd_mng")],
+            value=ast_call(
+                func=ast.Name(id="WindowManager"),
+                args=[ast_attr("self.driver")])))
+        body.append(ast.Assign(
+            targets=[ast_attr("self.frm_mng")],
+            value=ast_call(
+                func=ast.Name(id="FrameManager"),
+                args=[ast_attr("self.driver")])))
+
+        if self.window_size:  # FIXME: unused in fact ?
+            body.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("self.driver.set_window_position"),
+                    args=[ast.Num(0), ast.Num(0)])))
+
+            body.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("self.driver.set_window_position"),
+                    args=[ast.Num(self.window_size[0]), ast.Num(self.window_size[1])])))
+
+        else:
+            pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
+            # but maximize_window does not work on virtual displays. Bummer
+
+        return body
+
+    @staticmethod
+    def _gen_impl_wait(timeout):
+        return ast.Expr(
+            ast_call(
+                func=ast_attr("self.driver.implicitly_wait"),
+                args=[ast.Num(dehumanize_time(timeout))]))
+
     def _gen_module(self):
-        stmts = [self._gen_imports()]
+        stmts = []
 
         if self.verbose:
             stmts.extend(self._gen_logging())
@@ -792,49 +783,68 @@ class ApiritifScriptGenerator(PythonGenerator):
         stmts.extend(self._gen_data_source_readers())
         stmts.extend(self._gen_module_setup())
         stmts.append(self._gen_classdef())
+
+        stmts = self._gen_imports() + stmts     # todo: order is important (with classdef) because of self.appium setup
+
+        if self.test_mode == "selenium":
+            stmts.append(self._gen_empty_line_stmt())
+            with open(self.utils_file) as fds:
+                utilities_source_lines = fds.read()
+            stmts.append(ast.parse(utilities_source_lines))
+
         return ast.Module(body=stmts)
 
     def _gen_imports(self):
-        return [
+        imports = [
             ast.Import(names=[ast.alias(name='logging', asname=None)]),
             ast.Import(names=[ast.alias(name='random', asname=None)]),
             ast.Import(names=[ast.alias(name='string', asname=None)]),
             ast.Import(names=[ast.alias(name='sys', asname=None)]),
-            ast.Import(names=[ast.alias(name='time', asname=None)]),
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
+            ast.ImportFrom(
+                module="time",
+                names=[
+                    ast.alias(name="time", asname=None),
+                    ast.alias(name="sleep", asname=None)],
+                level=0),
             self._gen_empty_line_stmt(),
-            ast.Import(names=[ast.alias(name='apiritif', asname=None)]),    # or "from apiritif import http, utils"?
+            ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
             self._gen_empty_line_stmt()]
 
+        if self.test_mode == "selenium":
+            if self.appium:
+                source = "appium"
+            else:
+                source = "selenium"
+
+            imports.append(ast.parse(self.IMPORTS % source).body)
+
+        return imports
+
     def _gen_module_setup(self):
-        target_init = self._gen_target()
+        if self.test_mode == "apiritif":
+            target_init = self._gen_target()
+        else:
+            target_init = []
 
         data_sources = [self._gen_default_vars()]
         for idx in range(len(self.data_sources)):
-            reader = "reader_%s" % (idx + 1)
-            func = ast.Attribute(value=ast.Name(id=reader), attr="read_vars")
-            read_vars = ast.Call(func=func, args=[], starargs=None, kwargs=None, keywords=[])
-            data_sources.append(ast.Expr(read_vars))
+            data_sources.append(ast.Expr(ast_call(func=ast_attr("reader_%s.read_vars" % (idx + 1)))))
 
         for idx in range(len(self.data_sources)):
-            reader_get_vars = ast.Attribute(value=ast.Name(id="reader_%s" % (idx + 1)), attr="get_vars")
-            get_vars = ast.Call(func=reader_get_vars, args=[], starargs=None, kwargs=None,keywords=[])
-
-            update = ast.Attribute(attr="update", value=ast.Name(id="vars"))
-
-            extend_vars = ast.Call(func=update, args=[get_vars], starargs=None, kwargs=None, keywords=[])
+            extend_vars = ast_call(
+                func=ast_attr("vars.update"),
+                args=[ast_call(
+                    func=ast_attr("reader_%s.get_vars" % (idx + 1)))])
             data_sources.append(ast.Expr(extend_vars))
 
         self.stored_vars = ['vars']
         if target_init:
             self.stored_vars.append('target')
 
-        store_call = ast.Call(
-                func=ast.Attribute(attr="put_into_thread_store", value=ast.Name(id="apiritif")),
-                args=[ast.Name(id=var) for var in self.stored_vars],
-                starargs=None,
-                kwargs=None,
-                keywords=[])
+        store_call = ast_call(
+            func=ast_attr("apiritif.put_into_thread_store"),
+            args=[ast.Name(id=var) for var in self.stored_vars])
 
         store_block = [self._gen_empty_line_stmt(), ast.Expr(store_call)]
 
@@ -878,11 +888,9 @@ class ApiritifScriptGenerator(PythonGenerator):
             csv_file = self.engine.find_file(source["path"])
             reader = ast.Assign(
                 targets=[ast.Name(id="reader_%s" % idx)],
-                value=ast.Call(
-                    func=ast.Name(id="apiritif.CSVReaderPerThread"),
+                value=ast_call(
+                    func=ast_attr("apiritif.CSVReaderPerThread"),
                     args=[ast.Str(s=csv_file)],
-                    starargs=None,
-                    kwargs=None,
                     keywords=keywords))
 
             readers.append(reader)
@@ -894,13 +902,14 @@ class ApiritifScriptGenerator(PythonGenerator):
 
     def _gen_classdef(self):
         class_body = [self._gen_class_setup()]
+        if self.test_mode == "selenium":
+            class_body.append(self._gen_class_teardown())
+
         class_body.extend(self._gen_test_methods())
 
-        class_name = create_class_name(self.label)
-        base = ast.Attribute(value=ast.Name(id='unittest', ctx=ast.Load()), attr='TestCase', ctx=ast.Load())
         return ast.ClassDef(
-            name=class_name,
-            bases=[base],
+            name=create_class_name(self.label),
+            bases=[ast_attr("unittest.TestCase")],
             body=class_body,
             keywords=[],
             starargs=None,
@@ -909,16 +918,72 @@ class ApiritifScriptGenerator(PythonGenerator):
 
     def _gen_class_setup(self):
         fields = ast.Tuple(elts=[ast.Name(id="self.%s" % var) for var in self.stored_vars])
-        get_func = ast.Attribute(attr="get_from_thread_store", value=ast.Name(id="apiritif"))
-        get_call = ast.Call(func=get_func, args=[], starargs=None, kwargs=None, keywords=[])
 
-        get_expr = ast.Assign(targets=[fields], value=get_call)
-        args = ast.arguments(args=[ast.Name(id="self")], defaults=[], vararg=None, kwarg=None)
+        body = [ast.Assign(
+            targets=[fields],
+            value=ast_call(func=ast_attr("apiritif.get_from_thread_store")))]
 
-        return ast.FunctionDef(name="setUp", args=args, body=[get_expr], decorator_list=[])
+        if self.test_mode == "selenium":
+            body.extend(self._selenium_setup())
+
+        return ast.FunctionDef(name="setUp", args=[ast.Name(id="self")], body=body, decorator_list=[])
+
+    @staticmethod
+    def _gen_class_teardown():
+        body = [ast.Expr(ast_call(func=ast_attr("self.driver.quit")))]
+        return ast.FunctionDef(name="tearDown", args=[ast.Name(id="self")], body=body, decorator_list=[])
+
+    def _add_markers(self, body, label):
+        def marker(case=None, suite=None, status=None, exc_msg=None):
+            if case and suite:
+                marker_msg = "/* FLOW_MARKER test-case-start */"
+                keys = [ast.Str("testCaseName"), ast.Str("testSuiteName")]
+                values = [ast.Str(case), ast.Str(suite)]
+            else:
+                marker_msg = "/* FLOW_MARKER test-case-stop */"
+                if exc_msg is None:
+                    exc_msg = ast_call(func="str", args=[ast.Name(id="exc")])
+                else:
+                    exc_msg = ast.Str(exc_msg)
+
+                keys = [ast.Str("status"), ast.Str("message")]
+                values = [ast.Str(status), exc_msg]
+
+            return ast.Expr(ast_call(
+                func=ast_attr("self.driver.execute_script"),
+                args=[
+                    ast.Str(marker_msg),
+                    ast.Dict(keys=keys, values=values)]))
+
+        start_marker = marker(case=label, suite=self.label)
+        kwargs = {"body": [start_marker] + body}
+
+        if PY2:
+            ast_try = ast.TryExcept
+            name = ast.Name(id="exc")
+            reraise = ast.Raise(type=None, inst=None, tback=None)
+        else:
+            ast_try = ast.Try
+            name = "exc"
+            reraise = ast.Raise(exc=None, cause=None)
+            kwargs["finalbody"] = []
+
+        kwargs["handlers"] = [
+            ast.ExceptHandler(
+                type=ast.Name(id="AssertionError"),
+                name=name,
+                body=[marker(status="failed"), reraise]),
+            ast.ExceptHandler(
+                type=ast.Name(id="BaseException"),
+                name=name,
+                body=[marker(status="broken"), reraise])]
+
+        kwargs["orelse"] = [marker(status="success", exc_msg="")]
+
+        return ast_try(**kwargs)
 
     def _gen_test_methods(self):
-        requests = self.scenario.get_requests(parser=HierarchicRequestParser)
+        requests = self.scenario.get_requests(parser=HierarchicRequestParser, require_url=False)
 
         number_of_digits = int(math.log10(len(requests))) + 1
         for index, request in enumerate(requests, start=1):
@@ -939,6 +1004,8 @@ class ApiritifScriptGenerator(PythonGenerator):
             if isinstance(request, TransactionBlock):
                 body = [self._gen_transaction(request)]
                 label = create_method_name(request.label[:40])
+                if self.generate_markers:
+                    body = self._add_markers(body=body, label=request.label)
             elif isinstance(request, SetVariables):
                 body = self._gen_set_vars(request)
                 label = request.config.get("label", "set_variables")
@@ -949,7 +1016,7 @@ class ApiritifScriptGenerator(PythonGenerator):
             method_name = 'test_' + counter + '_' + label
 
             if isinstance(request, SetVariables):
-                self.service_methods.append(method_name)    # for sample excluding
+                self.service_methods.append(method_name)  # for sample excluding
 
             yield self._gen_test_method(method_name, body)
 
@@ -957,7 +1024,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         res = []
         for name in sorted(request.mapping.keys()):
             res.append(ast.Assign(
-                targets=[self.gen_expr("${%s}" % name)],
+                targets=[self._gen_expr("${%s}" % name)],
                 value=ast.Str(s="%s" % request.mapping[name])))
 
         return res
@@ -965,35 +1032,19 @@ class ApiritifScriptGenerator(PythonGenerator):
     @staticmethod
     def _gen_test_method(name, body):
         # 'test_01_get_posts'
-
-        method = ast.FunctionDef(
+        return ast.FunctionDef(
             name=name,
-            args=ast.arguments(
-                args=[ast.Name(id='self', ctx=ast.Param())],
-                defaults=[],
-                vararg=None,
-                kwonlyargs=[],
-                kw_defaults=[],
-                kwarg=None,
-                returns=None,
-            ),
+            args=[ast.Name(id='self', ctx=ast.Param())],
             body=body,
-            decorator_list=[],
-        )
+            decorator_list=[])
 
-        return method
-
-    def gen_expr(self, value):
+    def _gen_expr(self, value):
         return self.expr_compiler.gen_expr(value)
 
     def _gen_target_setup(self, key, value):
-        return ast.Expr(value=ast.Call(
-            func=ast.Attribute(value=ast.Name(id='target', ctx=ast.Load()), attr=key, ctx=ast.Load()),
-            args=[self.gen_expr(value)],
-            keywords=[],
-            starargs=None,
-            kwargs=None
-        ))
+        return ast.Expr(ast_call(
+            func=ast_attr("target.%s" % key),
+            args=[self._gen_expr(value)]))
 
     def _access_method(self):
         keepalive = self.scenario.get("keepalive", None)
@@ -1038,17 +1089,9 @@ class ApiritifScriptGenerator(PythonGenerator):
     def _init_target(self):
         default_address = self.scenario.get("default-address", None)
 
-        http = ast.Attribute(
-            value=ast.Name(id='apiritif', ctx=ast.Load()),
-            attr='http',
-            ctx=ast.Load())
-
-        target_call = ast.Call(
-            func=ast.Attribute(value=http, attr='target', ctx=ast.Load()),
-            args=[self.gen_expr(default_address)],
-            keywords=[],
-            starargs=None,
-            kwargs=None)
+        target_call = ast_call(
+            func=ast_attr("apiritif.http.target"),
+            args=[self._gen_expr(default_address)])
 
         target = ast.Assign(
             targets=[ast.Name(id="target", ctx=ast.Store())],
@@ -1074,19 +1117,19 @@ class ApiritifScriptGenerator(PythonGenerator):
         headers.update(req.headers)
 
         if headers:
-            named_args['headers'] = self.gen_expr(headers)
+            named_args['headers'] = self._gen_expr(headers)
 
         merged_headers = dict([(key.lower(), value) for key, value in iteritems(headers)])
         content_type = merged_headers.get("content-type")
 
         if content_type == 'application/json' and isinstance(req.body, (dict, list)):  # json request body
-            named_args['json'] = self.gen_expr(req.body)
+            named_args['json'] = self._gen_expr(req.body)
         elif req.method.lower() == "get" and isinstance(req.body, dict):  # request URL params (?a=b&c=d)
-            named_args['params'] = self.gen_expr(req.body)
+            named_args['params'] = self._gen_expr(req.body)
         elif isinstance(req.body, dict):  # form data
-            named_args['data'] = self.gen_expr(list(iteritems(req.body)))
+            named_args['data'] = self._gen_expr(list(iteritems(req.body)))
         elif isinstance(req.body, string_types):
-            named_args['data'] = self.gen_expr(req.body)
+            named_args['data'] = self._gen_expr(req.body)
         elif req.body:
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(req.body), req.body))
@@ -1103,13 +1146,9 @@ class ApiritifScriptGenerator(PythonGenerator):
                 body.append(self._gen_http_request(request))
 
         transaction = ast.With(
-            context_expr=ast.Call(
-                func=ast.Attribute(value=ast.Name(id='apiritif'), attr="transaction"),
-                args=[self.gen_expr(trans_conf.label)],
-                keywords=[],
-                starargs=None,
-                kwargs=None
-            ),
+            context_expr=ast_call(
+                func=ast_attr("apiritif.transaction"),
+                args=[self._gen_expr(trans_conf.label)]),
             optional_vars=None,
             body=body)
 
@@ -1117,54 +1156,143 @@ class ApiritifScriptGenerator(PythonGenerator):
 
     def _gen_http_request(self, req):
         lines = []
-        method = req.method.lower()
         think_time = dehumanize_time(req.get_think_time())
-        named_args = self._extract_named_args(req)
-        target = ast.Name(id='self.target', ctx=ast.Load())
-        apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
 
-        requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
+        if req.url:
+            if self.test_mode == "selenium":
+                if req.timeout:
+                    lines.append(self._gen_impl_wait(req.timeout))
+                default_address = self.scenario.get("default-address")
+                parsed_url = parse.urlparse(req.url)
+                if default_address and not parsed_url.netloc:
+                    url = default_address + req.url
+                else:
+                    url = req.url
 
-        lines.append(ast.Assign(
-            targets=[
-                ast.Name(id="response")
-            ],
-            value=ast.Call(
-                func=ast.Attribute(value=requestor, attr=method, ctx=ast.Load()),
-                args=[self.gen_expr(req.url)],
-                keywords=[ast.keyword(arg=name, value=self.gen_expr(value))
-                          for name, value in iteritems(named_args)],
-                starargs=None,
-                kwargs=None
-            )))
+                lines.append(ast.Expr(
+                    ast_call(
+                        func=ast_attr("self.driver.get"),
+                        args=[self._gen_expr(url)])))
 
-        lines.extend(self._gen_assertions(req))
-        lines.extend(self._gen_jsonpath_assertions(req))
-        lines.extend(self._gen_xpath_assertions(req))
+            else:
+                method = req.method.lower()
+                named_args = self._extract_named_args(req)
+
+                if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET:
+                    requestor = ast_attr("self.target")
+                else:
+                    requestor = ast_attr("apiritif.http")
+
+                keywords = [ast.keyword(
+                    arg=name,
+                    value=self._gen_expr(value)) for name, value in iteritems(named_args)]
+
+                lines.append(ast.Assign(
+                    targets=[ast.Name(id="response")],
+                    value=ast_call(
+                        func=ast_attr((requestor, method)),
+                        args=[self._gen_expr(req.url)],
+                        keywords=keywords)))
+
+        elif "actions" not in req.config:
+            self.log.warning("'url' and/or 'actions' are mandatory for request but not found: '%s'", req.config)
+            return [ast.Pass()]
+
+        if self.test_mode == "selenium":
+            for action in req.config.get("actions"):
+                lines.extend(self._gen_action(action))
+
+            if "assert" in req.config:
+                lines.append(ast.Assign(
+                    targets=[ast.Name(id="body")],
+                    value=ast_attr("self.driver.page_source")))
+                for assert_config in req.config.get("assert"):
+                    lines.extend(self._gen_sel_assertion(assert_config))
+
+        else:
+            lines.extend(self._gen_assertions(req))
+            lines.extend(self._gen_jsonpath_assertions(req))
+            lines.extend(self._gen_xpath_assertions(req))
 
         lines.extend(self._gen_extractors(req))
 
         if think_time:
-            lines.append(
-                ast.Expr(
-                    ast.Call(
-                        func=ast.Attribute(
-                            value=ast.Name(id="time", ctx=ast.Load()),
-                            attr="sleep",
-                            ctx=ast.Load()),
-                        args=[self.gen_expr(think_time)],
-                        keywords=[],
-                        starargs=None,
-                        kwargs=None)))
+            lines.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("sleep"),
+                    args=[self._gen_expr(think_time)])))
+
         return lines
+
+    def _gen_sel_assertion(self, assertion_config):
+        self.log.debug("Generating assertion, config: %s", assertion_config)
+        assertion_elements = []
+
+        if isinstance(assertion_config, string_types):
+            assertion_config = {"contains": [assertion_config]}
+
+        for val in assertion_config["contains"]:
+            regexp = assertion_config.get("regexp", True)
+            reverse = assertion_config.get("not", False)
+            subject = assertion_config.get("subject", "body")
+            if subject != "body":
+                raise TaurusConfigError("Only 'body' subject supported ")
+
+            assert_message = "'%s' " % val
+            if not reverse:
+                assert_message += 'not '
+            assert_message += 'found in BODY'
+
+            if regexp:
+                if reverse:
+                    method = "self.assertEqual"
+                else:
+                    method = "self.assertNotEqual"
+                assertion_elements.append(
+                    ast.Assign(
+                        targets=[ast.Name(id="re_pattern")],
+                        value=ast_call(
+                            func=ast_attr("re.compile"),
+                            args=[ast.Str(val)])))
+
+                assertion_elements.append(ast.Expr(
+                    ast_call(
+                        func=ast_attr(method),
+                        args=[
+                            ast.Num(0),
+                            ast_call(
+                                func=ast.Name(id="len"),
+                                args=[ast_call(
+                                    func=ast_attr("re.findall"),
+                                    args=[ast.Name(id="re_pattern"), ast.Name(id="body")])]),
+                            ast.Str("Assertion: %s" % assert_message)])))
+
+            else:
+                if reverse:
+                    method = "self.assertNotIn"
+                else:
+                    method = "self.assertIn"
+                assertion_elements.append(
+                    ast.Expr(
+                        ast_call(
+                            func=ast_attr(method),
+                            args=[
+                                ast.Str(val),
+                                ast.Name(id="body"),
+                                ast.Str("Assertion: %s" % assert_message)])))
+
+        return assertion_elements
 
     def _gen_default_vars(self):
         variables = self.scenario.get("variables")
-        values = ast.Dict(
-            keys=[self.expr_compiler.gen_expr(key) for key, _ in iteritems(variables)],
-            values=[self.expr_compiler.gen_expr(value) for _, value in iteritems(variables)])
+        names = sorted(variables.keys())
+        values = [variables[name] for name in names]
 
-        return ast.Assign(targets=[ast.Name(id='vars', ctx=ast.Store())], value=values)
+        return ast.Assign(
+            targets=[ast.Name(id='vars', ctx=ast.Store())],
+            value=ast.Dict(
+                keys=[self._gen_expr(name) for name in names],
+                values=[self._gen_expr(val) for val in values]))
 
     def _gen_assertions(self, request):
         stmts = []
@@ -1188,34 +1316,17 @@ class ApiritifScriptGenerator(PythonGenerator):
                     }
                     method = func_table[(subject, assertion.get('regexp', True), assertion.get('not', False))]
                     stmts.append(ast.Expr(
-                        ast.Call(
-                            func=ast.Attribute(
-                                value=ast.Name(id="response", ctx=ast.Load()),
-                                attr=method,
-                                ctx=ast.Load()
-                            ),
-                            args=[self.gen_expr(member)],
-                            keywords=[],
-                            starargs=None,
-                            kwargs=None
-                        )
-                    ))
+                        ast_call(
+                            func=ast_attr("response.%s" % method),
+                            args=[self._gen_expr(member)])))
+
             elif subject == Scenario.FIELD_RESP_CODE:
                 for member in assertion["contains"]:
                     method = "assert_status_code" if not assertion.get('not', False) else "assert_not_status_code"
                     stmts.append(ast.Expr(
-                        ast.Call(
-                            func=ast.Attribute(
-                                value=ast.Name(id="response", ctx=ast.Load()),
-                                attr=method,
-                                ctx=ast.Load()
-                            ),
-                            args=[self.gen_expr(member)],
-                            keywords=[],
-                            starargs=None,
-                            kwargs=None
-                        )
-                    ))
+                        ast_call(
+                            func=ast_attr("response.%s" % method),
+                            args=[self._gen_expr(member)])))
         return stmts
 
     def _gen_jsonpath_assertions(self, request):
@@ -1228,18 +1339,10 @@ class ApiritifScriptGenerator(PythonGenerator):
             expected = assertion.get('expected-value', None)
             method = "assert_not_jsonpath" if assertion.get('invert', False) else "assert_jsonpath"
             stmts.append(ast.Expr(
-                ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="response", ctx=ast.Load()),
-                        attr=method,
-                        ctx=ast.Load()
-                    ),
-                    args=[self.gen_expr(query)],
-                    keywords=[ast.keyword(arg="expected_value", value=self.gen_expr(expected))],
-                    starargs=None,
-                    kwargs=None
-                )
-            ))
+                ast_call(
+                    func=ast_attr("response.%s" % method),
+                    args=[self._gen_expr(query)],
+                    keywords=[ast.keyword(arg="expected_value", value=self._gen_expr(expected))])))
 
         return stmts
 
@@ -1254,20 +1357,11 @@ class ApiritifScriptGenerator(PythonGenerator):
             validate = assertion.get('validate-xml', False)
             method = "assert_not_xpath" if assertion.get('invert', False) else "assert_xpath"
             stmts.append(ast.Expr(
-                ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="response", ctx=ast.Load()),
-                        attr=method,
-                        ctx=ast.Load()
-                    ),
-                    args=[self.gen_expr(query)],
-                    keywords=[ast.keyword(arg="parser_type", value=self.gen_expr(parser_type)),
-                              ast.keyword(arg="validate", value=self.gen_expr(validate))],
-                    starargs=None,
-                    kwargs=None
-                )
-            ))
-
+                ast_call(
+                    func=ast_attr("response.%s" % method),
+                    args=[self._gen_expr(query)],
+                    keywords=[ast.keyword(arg="parser_type", value=self._gen_expr(parser_type)),
+                              ast.keyword(arg="validate", value=self._gen_expr(validate))])))
         return stmts
 
     def _gen_extractors(self, request):
@@ -1277,18 +1371,9 @@ class ApiritifScriptGenerator(PythonGenerator):
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
             stmts.append(ast.Assign(
                 targets=[self.expr_compiler.gen_var_accessor(varname, ast.Store())],
-                value=ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="response", ctx=ast.Load()),
-                        attr="extract_jsonpath",
-                        ctx=ast.Load()
-                    ),
-                    args=[self.gen_expr(cfg['jsonpath']), self.gen_expr(cfg.get('default', 'NOT_FOUND'))],
-                    keywords=[],
-                    starargs=None,
-                    kwargs=None
-                )
-            ))
+                value=ast_call(
+                    func=ast_attr("response.extract_jsonpath"),
+                    args=[self._gen_expr(cfg['jsonpath']), self._gen_expr(cfg.get('default', 'NOT_FOUND'))])))
 
         extractors = request.config.get("extract-regexp")
         for varname in extractors:
@@ -1296,18 +1381,9 @@ class ApiritifScriptGenerator(PythonGenerator):
             # TODO: support non-'body' value of 'subject'
             stmts.append(ast.Assign(
                 targets=[self.expr_compiler.gen_var_accessor(varname, ast.Store())],
-                value=ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="response", ctx=ast.Load()),
-                        attr="extract_regex",
-                        ctx=ast.Load()
-                    ),
-                    args=[self.gen_expr(cfg['regexp']), self.gen_expr(cfg.get('default', 'NOT_FOUND'))],
-                    keywords=[],
-                    starargs=None,
-                    kwargs=None
-                )
-            ))
+                value=ast_call(
+                    func=ast_attr("response.extract_regex"),
+                    args=[self._gen_expr(cfg['regexp']), self._gen_expr(cfg.get('default', 'NOT_FOUND'))])))
 
         # TODO: css/jquery extractor?
 
@@ -1318,24 +1394,15 @@ class ApiritifScriptGenerator(PythonGenerator):
             validate = cfg.get('validate-xml', False)
             stmts.append(ast.Assign(
                 targets=[self.expr_compiler.gen_var_accessor(varname, ast.Store())],
-                value=ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="response", ctx=ast.Load()),
-                        attr="extract_xpath",
-                        ctx=ast.Load()
-                    ),
-                    args=[self.gen_expr(cfg['xpath'])],
+                value=ast_call(
+                    func=ast_attr("response.extract_xpath"),
+                    args=[self._gen_expr(cfg['xpath'])],
                     keywords=[ast.keyword(arg="default", value=cfg.get('default', 'NOT_FOUND')),
                               ast.keyword(arg="parser_type", value=parser_type),
-                              ast.keyword(arg="validate", value=validate)],
-                    starargs=None,
-                    kwargs=None,
-                )
-            ))
-
+                              ast.keyword(arg="validate", value=validate)])))
         return stmts
 
-    def build_tree(self):
+    def _build_tree(self):
         mod = self._gen_module()
         mod.lineno = 0
         mod.col_offset = 0
@@ -1343,46 +1410,27 @@ class ApiritifScriptGenerator(PythonGenerator):
         return mod
 
     def build_source_code(self):
-        self.tree = self.build_tree()
+        self.tree = self._build_tree()
 
     def save(self, filename):
         with open(filename, 'wt') as fds:
-            source = astunparse.unparse(self.tree)
-            # because astunparse on Python 2 adds extra comma+space
-            class_name = create_class_name(self.label)
-            source = source.replace('class %s(unittest.TestCase, )' % class_name,
-                                    'class %s(unittest.TestCase)' % class_name)
-            fds.write(source)
+            fds.write("# coding=utf-8\n")
+            fds.write(astunparse.unparse(self.tree))
 
     def _gen_logging(self):
-        set_log = ast.Assign(targets=[ast.Name(id="log")], value=ast.Call(
-                func=ast.Attribute(
-                    value=ast.Name(id="logging"),
-                    attr="getLogger"),
-                args=[ast.Str(s="apiritif.http")],
-                keywords=[],
-                starargs=None,
-                kwargs=None))
-        add_handler = ast.Call(
-            func=ast.Attribute(
-                value=ast.Name(id="log"),
-                attr="addHandler"),
-            args=[ast.Call(
-                    func=ast.Attribute(value=ast.Name(id="logging"), attr="StreamHandler"),
-                    args=[ast.Attribute(value=ast.Name(id="sys"), attr="stdout")],
-                    keywords=[],
-                    starargs=None,
-                    kwargs=None)],
-            keywords=[],
-            starargs=None,
-            kwargs=None
-        )
-        set_level = ast.Call(
-            func=ast.Attribute(value=ast.Name(id="log"), attr="setLevel"),
-            args=[ast.Attribute(value=ast.Name(id="logging"), attr="DEBUG")],
-            keywords=[],
-            starargs=None,
-            kwargs=None)
+        set_log = ast.Assign(
+            targets=[ast.Name(id="log")],
+            value=ast_call(
+                func=ast_attr("logging.getLogger"),
+                args=[ast.Str(s="apiritif.http")]))
+        add_handler = ast_call(
+            func=ast_attr("log.addHandler"),
+            args=[ast_call(
+                func=ast_attr("logging.StreamHandler"),
+                args=[ast_attr("sys.stdout")])])
+        set_level = ast_call(
+            func=ast_attr("log.setLevel"),
+            args=[ast_attr("logging.DEBUG")])
 
         return [set_log, self._gen_empty_line_stmt(), add_handler,
                 self._gen_empty_line_stmt(), set_level, self._gen_empty_line_stmt()]
