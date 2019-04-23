@@ -126,8 +126,9 @@ class TestJUnitTester(BZTestCase):
         # just download geckodriver & chromedriver with selenium
         selenium = SeleniumExecutor()
         selenium.engine = engine_obj
-        selenium.execution.merge({"scenario": {"requests": ["req"]}})
-        selenium.prepare()
+        selenium.install_required_tools()
+        for driver in selenium.webdrivers:
+            selenium.env.add_path({"PATH": driver.get_driver_dir()})
 
         self.obj = JUnitTester()
         self.obj.env = selenium.env

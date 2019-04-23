@@ -150,8 +150,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         iterations = try_convert(iterations, default=0)
         steps = try_convert(steps, default=0)
 
-        if duration and not iterations:
-            iterations = 0  # which means infinite
+        if not iterations:
+            if duration:
+                iterations = 0  # which means infinite
+            else:
+                iterations = 1
 
         return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
                              iterations=iterations, duration=duration, steps=steps)

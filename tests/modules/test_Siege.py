@@ -73,6 +73,7 @@ class TestSiegeExecutor(ExecutorTestCase):
     def test_repetition_exceptions(self):
         self.configure({"execution": {
             "concurrency": 2,
+            "ramp-up": "1h",
             "scenario": {
                 "requests": [
                     "http://blazedemo.com",

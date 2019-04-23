@@ -340,7 +340,7 @@ class TestScenarioExecutor(ExecutorTestCase):
         else:
             self.assertEqual(2, len(results))
 
-    def test_get_load_short(self):
+    def test_get_load(self):
         self.configure({ScenarioExecutor.EXEC:{
             "ramp-up": "1", "concurrency": "2", "throughput": "3"}})
         self.assertEqual(self.obj.execution.get("ramp-up"), "1")
@@ -350,6 +350,7 @@ class TestScenarioExecutor(ExecutorTestCase):
         self.assertEqual(load.ramp_up, 1)
         self.assertEqual(load.concurrency, 2)
         self.assertEqual(load.throughput, 3)
+        self.assertEqual(load.iterations, 0)
 
         self.assertEqual(self.obj.execution.get("ramp-up"), "1")
         self.assertEqual(self.obj.execution.get("concurrency"), {"local": "2"})
@@ -359,6 +360,18 @@ class TestScenarioExecutor(ExecutorTestCase):
         load = self.obj.get_load()
         self.assertEqual(load.concurrency, 22)
         self.assertEqual(self.obj.execution.get("concurrency"), {"local": "22"})
+
+    def test_get_load_defaults(self):
+        self.configure({ScenarioExecutor.EXEC: {}})
+        self.assertFalse(self.obj.execution.get("ramp-up"))
+        self.assertFalse(self.obj.execution.get("concurrency"))
+        self.assertFalse(self.obj.execution.get("throughput"))
+        self.assertFalse(self.obj.execution.get("iterations"))
+        load = self.obj.get_load()
+        self.assertEqual(load.ramp_up, None)
+        self.assertEqual(load.concurrency, 0)
+        self.assertEqual(load.throughput, 0)
+        self.assertEqual(load.iterations, 1)
 
     def test_get_load_str(self):
         self.configure({ScenarioExecutor.EXEC: {

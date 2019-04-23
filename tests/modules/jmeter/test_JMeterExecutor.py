@@ -2766,6 +2766,15 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.settings.merge({"version": 3.3})
         self.obj.prepare()
 
+    def test_load_defaults(self):
+        self.configure({"execution": {}})
+        load = self.obj.get_load()
+        self.assertEqual(load.throughput, None)
+        self.assertEqual(load.ramp_up, None)
+        self.assertEqual(load.hold, 0)
+        self.assertEqual(load.duration, 0)
+        self.assertEqual(load.iterations, 1)
+
     def test_smartparse_property_expressions(self):
         self.configure({
             "execution": {
