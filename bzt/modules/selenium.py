@@ -111,12 +111,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             if not tool.check_if_installed():
                 self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
+            self.env.add_path({"PATH": tool.get_driver_dir()})
 
     def prepare(self):
         super(SeleniumExecutor, self).prepare()
         self.install_required_tools()
-        for driver in self.webdrivers:
-            self.env.add_path({"PATH": driver.get_driver_dir()})
 
         if self.get_load().concurrency and self.get_load().concurrency > 1:
             msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
