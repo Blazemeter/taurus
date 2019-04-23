@@ -1198,8 +1198,11 @@ class ScenarioExecutor(EngineModule):
             ramp_up = dehumanize_time(raw_load.ramp_up)
             duration = hold + ramp_up
 
-        if duration and not iterations:
-            iterations = 0  # infinite
+        if not iterations:
+            if duration:
+                iterations = 0  # infinite
+            else:
+                iterations = 1
 
         msg = ''
         if not isinstance(concurrency, numeric_types + (type(None),)):
