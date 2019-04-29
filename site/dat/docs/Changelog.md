@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.13.5<sup>next</sup>
+- default `iterations` are now `1` as opposed to `infinity` in the past 
+- add `env` option reading for each execution
+- set special env vars for ShellExec commands, containing Taurus exit code
+- fix TST having 0 as start value in case test is very long
+- add check and warning for Java version used with Gatling
+- add jartool options (version, path, download_link)
+- don't pass null address to Apiritif
+- share webdriver instance between test methods of Selenium script
+- store browser in lowercase
+- send capabilities to webdriver as is
+- check capabilities for 'browser' option
+- avoid explicit RemoteDriver request
+
 ## 1.13.4<sup>31 mar 2019</sup>
 
 - bump up default JMeter version to 5.1.1

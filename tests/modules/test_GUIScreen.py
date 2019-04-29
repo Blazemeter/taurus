@@ -6,6 +6,7 @@ from urwid.canvas import Canvas
 from bzt.engine import ManualShutdown
 from bzt.modules.console import TaurusConsole
 from bzt.utils import DummyScreen
+from tests import BZTestCase
 
 try:
     from bzt.modules.screen import GUIScreen as Screen
@@ -32,7 +33,7 @@ class TestCanvas(Canvas):
         pass
 
 
-class TestGUIScreen(TestCase):
+class TestGUIScreen(BZTestCase):
     def test_draw_screen(self):
         lines = [((x[0], None, "%s\n" % x[0]),) for x in TaurusConsole.palette]
         canvas = TestCanvas(lines)
