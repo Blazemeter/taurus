@@ -659,7 +659,7 @@ from selenium.webdriver.common.keys import Keys
 
         return browser
 
-    def _selenium_setup(self):
+    def _gen_webdriver(self):
         self.log.debug("Generating setUp test method")
         browser = self._check_platform()
 
@@ -687,7 +687,7 @@ from selenium.webdriver.common.keys import Keys
                     args=[ast.Str("webdriver.log.file"), ast.Str(self.wdlog)])))
 
             body.append(ast.Assign(
-                targets=[ast_attr("self.driver")],
+                targets=[ast.Name(id="driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.Firefox"),
                     args=[ast.Name(id="profile")],
@@ -701,7 +701,7 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("webdriver.ChromeOptions"))))
             body.extend(headless_setup)
             body.append(ast.Assign(
-                targets=[ast_attr("self.driver")],
+                targets=[ast.Name(id="driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.Chrome"),
                     keywords=[
@@ -715,7 +715,7 @@ from selenium.webdriver.common.keys import Keys
             keys = sorted(self.capabilities.keys())
             values = [str(self.capabilities[key]) for key in keys]
             body.append(ast.Assign(
-                targets=[ast_attr("self.driver")],
+                targets=[ast.Name(id="driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.Remote"),
                     keywords=[
@@ -732,33 +732,36 @@ from selenium.webdriver.common.keys import Keys
                 self.log.warning("Browser %r doesn't support headless mode" % browser)
 
             body.append(ast.Assign(
-                targets=[ast_attr("self.driver")],
+                targets=[ast.Name(id="driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
 
         scenario_timeout = self.scenario.get("timeout", "30s")
-        body.append(self._gen_impl_wait(scenario_timeout))
+        body.append(ast.Expr(
+            ast_call(
+                func=ast_attr("driver.implicitly_wait"),
+                args=[ast.Num(dehumanize_time(scenario_timeout))])))
 
         body.append(ast.Assign(
-            targets=[ast_attr("self.wnd_mng")],
+            targets=[ast.Name(id="wnd_mng")],
             value=ast_call(
                 func=ast.Name(id="WindowManager"),
-                args=[ast_attr("self.driver")])))
+                args=[ast.Name(id="driver")])))
         body.append(ast.Assign(
-            targets=[ast_attr("self.frm_mng")],
+            targets=[ast.Name(id="frm_mng")],
             value=ast_call(
                 func=ast.Name(id="FrameManager"),
-                args=[ast_attr("self.driver")])))
+                args=[ast.Name(id="driver")])))
 
         if self.window_size:  # FIXME: unused in fact ?
             body.append(ast.Expr(
                 ast_call(
-                    func=ast_attr("self.driver.set_window_position"),
+                    func=ast_attr("target.set_window_position"),
                     args=[ast.Num(0), ast.Num(0)])))
 
             body.append(ast.Expr(
                 ast_call(
-                    func=ast_attr("self.driver.set_window_position"),
+                    func=ast_attr("target.set_window_position"),
                     args=[ast.Num(self.window_size[0]), ast.Num(self.window_size[1])])))
 
         else:
@@ -782,12 +785,15 @@ from selenium.webdriver.common.keys import Keys
 
         stmts.extend(self._gen_data_source_readers())
         stmts.extend(self._gen_module_setup())
+
+        if self.test_mode == "selenium":
+            stmts.append(self._gen_module_teardown())
+
         stmts.append(self._gen_classdef())
 
         stmts = self._gen_imports() + stmts     # todo: order is important (with classdef) because of self.appium setup
 
         if self.test_mode == "selenium":
-            stmts.append(self._gen_empty_line_stmt())
             with open(self.utils_file) as fds:
                 utilities_source_lines = fds.read()
             stmts.append(ast.parse(utilities_source_lines))
@@ -823,9 +829,9 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_module_setup(self):
         if self.test_mode == "apiritif":
-            target_init = self._gen_target()
+            target_init = self._gen_api_target()
         else:
-            target_init = []
+            target_init = self._gen_webdriver()
 
         data_sources = [self._gen_default_vars()]
         for idx in range(len(self.data_sources)):
@@ -840,13 +846,16 @@ from selenium.webdriver.common.keys import Keys
 
         self.stored_vars = ['vars']
         if target_init:
-            self.stored_vars.append('target')
+            if self.test_mode == "apiritif":
+                self.stored_vars.append("target")
+            else:
+                self.stored_vars.extend(["driver", "wnd_mng", "frm_mng"])
 
         store_call = ast_call(
             func=ast_attr("apiritif.put_into_thread_store"),
             args=[ast.Name(id=var) for var in self.stored_vars])
 
-        store_block = [self._gen_empty_line_stmt(), ast.Expr(store_call)]
+        store_block = [ast.Expr(store_call)]
 
         setup = ast.FunctionDef(
             name="setup",
@@ -902,9 +911,6 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_classdef(self):
         class_body = [self._gen_class_setup()]
-        if self.test_mode == "selenium":
-            class_body.append(self._gen_class_teardown())
-
         class_body.extend(self._gen_test_methods())
 
         return ast.ClassDef(
@@ -923,15 +929,24 @@ from selenium.webdriver.common.keys import Keys
             targets=[fields],
             value=ast_call(func=ast_attr("apiritif.get_from_thread_store")))]
 
-        if self.test_mode == "selenium":
-            body.extend(self._selenium_setup())
-
         return ast.FunctionDef(name="setUp", args=[ast.Name(id="self")], body=body, decorator_list=[])
 
-    @staticmethod
-    def _gen_class_teardown():
-        body = [ast.Expr(ast_call(func=ast_attr("self.driver.quit")))]
-        return ast.FunctionDef(name="tearDown", args=[ast.Name(id="self")], body=body, decorator_list=[])
+    def _gen_module_teardown(self):
+        fields = []
+        for var in self.stored_vars:
+            if var == "driver":
+                fields.append(var)
+            else:
+                fields.append("_")
+
+        ast_fields = ast.Tuple(elts=[ast.Name(id="%s" % var) for var in fields])
+
+        body = [ast.Assign(
+            targets=[ast_fields],
+            value=ast_call(func=ast_attr("apiritif.get_from_thread_store")))]
+
+        body.append(ast.Expr(ast_call(func=ast_attr("driver.quit"))))
+        return ast.FunctionDef(name="teardown", args=[], body=body, decorator_list=[])
 
     def _add_markers(self, body, label):
         def marker(case=None, suite=None, status=None, exc_msg=None):
@@ -1056,7 +1071,7 @@ from selenium.webdriver.common.keys import Keys
         else:
             return ApiritifScriptGenerator.ACCESS_PLAIN
 
-    def _gen_target(self):
+    def _gen_api_target(self):
         keepalive = self.scenario.get("keepalive", None)
         base_path = self.scenario.get("base-path", None)
         auto_assert_ok = self.scenario.get("auto-assert-ok", True)
