@@ -104,7 +104,11 @@ class SeleniumServer(JarTool):
         download_link = config.get("download-link", self.URL)
         download_link = download_link.format(remote_addr=self.REMOTE_ADDR, remote_path=remote_path)
 
-        super(JarTool, self).__init__(tool_path=local_path, download_link=download_link, version=version, **kwargs)
+        super(JarTool, self).__init__(
+            tool_path=local_path,
+            download_link=download_link,
+            version=full_version,
+            **kwargs)
 
     def check_if_installed(self):
         self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)

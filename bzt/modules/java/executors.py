@@ -65,8 +65,9 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
     def _add_jar_tool(self, req_tool_class, **kwargs):
         if "local_path" in kwargs:
-            config = {"path": kwargs.pop("local_path")}
-            kwargs["config"] = BetterDict.from_dict(config)
+            local_path = kwargs.pop("local_path")
+            if local_path:
+                kwargs["config"] = BetterDict.from_dict({"config": local_path})
         req_tool = self._get_tool(req_tool_class, **kwargs)
         self._tools.append(req_tool)
         self.class_path.append(req_tool.tool_path)
