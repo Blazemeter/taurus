@@ -76,7 +76,7 @@ class JavaC(RequiredTool):
         return True
 
 
-class SeleniumServer(JarTool):
+class SeleniumServer(RequiredTool):
     VERSION = "3.141"
     REMOTE_ADDR = "http://selenium-release.storage.googleapis.com/"
     REMOTE_PATH = "{short_version}/selenium-server-standalone-{full_version}.jar"
@@ -98,13 +98,13 @@ class SeleniumServer(JarTool):
         tool_file = config.get("tool-file", self.TOOL_FILE)
         tool_file = tool_file.format(version=full_version)
 
-        local_path = config.get("path", self.LOCAL_PATH)
+        local_path = config.get("path", JarTool.LOCAL_PATH)
         local_path = local_path.format(tool_file=tool_file)
 
-        download_link = config.get("download-link", self.URL)
+        download_link = config.get("download-link", JarTool.URL)
         download_link = download_link.format(remote_addr=self.REMOTE_ADDR, remote_path=remote_path)
 
-        super(JarTool, self).__init__(
+        super(SeleniumServer, self).__init__(
             tool_path=local_path,
             download_link=download_link,
             version=full_version,
