@@ -20,29 +20,30 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
+
 def setup():
+    options = webdriver.FirefoxOptions()
+    profile = webdriver.FirefoxProfile()
+    profile.set_preference('webdriver.log.file', '<somewhere>webdriver.log')
+    driver = webdriver.Firefox(profile, firefox_options=options)
+    driver.implicitly_wait(3.5)
+    wnd_mng = WindowManager(driver)
+    frm_mng = FrameManager(driver)
     vars = {
         'name': 'Name',
         'red_pill': 'take_it',
     }
+    apiritif.put_into_thread_store(vars, driver, wnd_mng, frm_mng)
 
-    apiritif.put_into_thread_store(vars)
+
+def teardown():
+    (_, driver, _, _) = apiritif.get_from_thread_store()
+    driver.quit()
 
 
 class TestLocSc(unittest.TestCase, ):
-
     def setUp(self):
-        (self.vars,) = apiritif.get_from_thread_store()
-        options = webdriver.FirefoxOptions()
-        profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', '<somewhere>webdriver.log')
-        self.driver = webdriver.Firefox(profile, firefox_options=options)
-        self.driver.implicitly_wait(3.5)
-        self.wnd_mng = WindowManager(self.driver)
-        self.frm_mng = FrameManager(self.driver)
-
-    def tearDown(self):
-        self.driver.quit()
+        (self.vars, self.driver, self.wnd_mng, self.frm_mng) = apiritif.get_from_thread_store()
 
     def test_1_(self):
         with apiritif.transaction('/'):
