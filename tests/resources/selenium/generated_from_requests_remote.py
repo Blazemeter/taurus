@@ -21,33 +21,35 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 def setup():
+    driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub',
+                                   desired_capabilities={
+                                       'app': '',
+                                       'browserName': 'firefox',
+                                       'deviceName': '',
+                                       'javascriptEnabled': 'True',
+                                       'platformName': 'linux',
+                                       'platformVersion': '',
+                                       'seleniumVersion': '',
+                                       'version': '54.0',
+                                   })
+    driver.implicitly_wait(3.5)
+    wnd_mng = WindowManager(driver)
+    frm_mng = FrameManager(driver)
     vars = {
 
     }
+    apiritif.put_into_thread_store(vars, driver, wnd_mng, frm_mng)
 
-    apiritif.put_into_thread_store(vars)
+
+def teardown():
+    (_, driver, _, _) = apiritif.get_from_thread_store()
+    driver.quit()
 
 
 class TestLocScRemote(unittest.TestCase):
 
     def setUp(self):
-        (self.vars,) = apiritif.get_from_thread_store()
-        self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub', desired_capabilities={
-            'app': '',
-            'browserName': 'firefox',
-            'deviceName': '',
-            'javascriptEnabled': 'True',
-            'platformName': 'linux',
-            'platformVersion': '',
-            'seleniumVersion': '',
-            'version': '54.0',
-        })
-        self.driver.implicitly_wait(3.5)
-        self.wnd_mng = WindowManager(self.driver)
-        self.frm_mng = FrameManager(self.driver)
-
-    def tearDown(self):
-        self.driver.quit()
+        (self.vars, self.driver, self.wnd_mng, self.frm_mng) = apiritif.get_from_thread_store()
 
     def test_1_(self):
         try:
