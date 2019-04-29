@@ -14,9 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import re
-import subprocess
 
-from bzt.utils import shell_exec, sync_run, RequiredTool, parse_java_version, CALL_PROBLEMS
+from bzt.utils import RequiredTool, parse_java_version, CALL_PROBLEMS, BetterDict
 
 
 class JarTool(RequiredTool):
@@ -27,18 +26,26 @@ class JarTool(RequiredTool):
     LOCAL_PATH = "~/.bzt/selenium-taurus/{tool_file}"
     TOOL_FILE = ""
 
-    def __init__(self, local_path="", **kwargs):
+    def __init__(self, config=None, **kwargs):
+        if config is None:
+            config = BetterDict()
 
-        remote_path = self.REMOTE_PATH.format(version=self.VERSION)
+        if not isinstance(config, dict):
+            config = BetterDict.from_dict({"path": config})
 
-        if not local_path:
-            local_path = self.LOCAL_PATH
+        version = config.get("version", self.VERSION)
 
-        tool_file = self.TOOL_FILE.format(version=self.VERSION)
+        tool_file = self.TOOL_FILE.format(version=version)
+
+        local_path = config.get("path", self.LOCAL_PATH)
         local_path = local_path.format(tool_file=tool_file)
 
-        download_link = self.URL.format(remote_addr=self.REMOTE_ADDR, remote_path=remote_path)
-        super(JarTool, self).__init__(tool_path=local_path, download_link=download_link, **kwargs)
+        download_link = config.get("download-link", self.URL)
+
+        remote_path = self.REMOTE_PATH.format(version=version)
+        download_link = download_link.format(remote_addr=self.REMOTE_ADDR, remote_path=remote_path)
+
+        super(JarTool, self).__init__(tool_path=local_path, download_link=download_link, version=version, **kwargs)
 
 
 class JavaC(RequiredTool):
@@ -69,11 +76,39 @@ class JavaC(RequiredTool):
         return True
 
 
-class SeleniumServer(JarTool):
-    VERSION = "3.6"
+class SeleniumServer(RequiredTool):
+    VERSION = "3.141"
     REMOTE_ADDR = "http://selenium-release.storage.googleapis.com/"
-    REMOTE_PATH = "{version}/selenium-server-standalone-{version}.0.jar"
+    REMOTE_PATH = "{short_version}/selenium-server-standalone-{full_version}.jar"
     TOOL_FILE = "selenium-server-{version}.jar"
+
+    def __init__(self, config, **kwargs):
+        if not isinstance(config, dict):
+            config = BetterDict.from_dict({"path": config})
+
+        version = config.get("version", self.VERSION)
+        version = str(version).split('.')
+        version.extend(['0'] * (3 - len(version)))
+        short_version = '.'.join(version[:2])   # 2 elements
+        full_version = '.'.join(version)        # 3+ elements
+
+        remote_path = config.get("remote-path", self.REMOTE_PATH)
+        remote_path = remote_path.format(short_version=short_version, full_version=full_version)
+
+        tool_file = config.get("tool-file", self.TOOL_FILE)
+        tool_file = tool_file.format(version=full_version)
+
+        local_path = config.get("path", JarTool.LOCAL_PATH)
+        local_path = local_path.format(tool_file=tool_file)
+
+        download_link = config.get("download-link", JarTool.URL)
+        download_link = download_link.format(remote_addr=self.REMOTE_ADDR, remote_path=remote_path)
+
+        super(SeleniumServer, self).__init__(
+            tool_path=local_path,
+            download_link=download_link,
+            version=full_version,
+            **kwargs)
 
     def check_if_installed(self):
         self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
