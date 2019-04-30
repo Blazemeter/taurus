@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Threading;
 using System.Xml;
 
 using Mono.Options;
@@ -13,11 +16,21 @@ namespace NUnitRunner
 {
     public class NUnitRunner
     {
+
+        //List of Report Items
+        public static List<List<ReportItem>> reportItemsList = new List<List<ReportItem>>();
+
+        public static ITestEngine engine { get; set; }
+        public static TestPackage package { get; set; }
+        public static RunnerOptions opts { get; set; }
+        public static RecordingListener listener { get; set; }
+       
         public class RunnerOptions
         {
             public string reportFile = "report.ldjson";
             public int iterations = 0;
             public int durationLimit = 0;
+            public int concurrency = 0;
             public string targetAssembly = null;
             public bool shouldShowHelp = false;
         }
@@ -37,9 +50,23 @@ namespace NUnitRunner
         public class RecordingListener : ITestEventListener
         {
 			public string reportFile { get; set; }
-            public StreamWriter writer; 
+            public StreamWriter writer;
+            public List<ReportItem> reportItems;
 
-            public RecordingListener(string reportFile)
+            public ITestRunner runner { get; set; }
+
+            public RecordingListener()
+            {
+                reportItems = new List<ReportItem>();
+                runner = engine.GetRunner(package);
+            }
+
+            public void UpdateGlobalList()
+            {
+                lock (reportItemsList) { reportItemsList.Add(reportItems); }
+            }
+
+            public void OpenFile(string reportFile)
             {
                 this.reportFile = reportFile;
                 this.writer = new StreamWriter(reportFile)
@@ -152,8 +179,8 @@ namespace NUnitRunner
 						}
                         else
                             Console.WriteLine(report);
-                        
-						WriteReport(item);
+
+                        lock (reportItems) { reportItems.Add(item); }
                     }
                 }
 				catch (Exception e)
@@ -170,6 +197,7 @@ namespace NUnitRunner
             Console.WriteLine("\t <executable> ARGS");
             Console.WriteLine("\t --iterations N - number of iterations over test suite to make");
 			Console.WriteLine("\t --duration T - duration limit of test suite execution");
+            Console.WriteLine("\t --concurrency N - number of concurrent users");
             Console.WriteLine("\t --report-file REPORT_FILE - filename of report file");
             Console.WriteLine("\t --target TARGET_ASSEMBLY - assembly which will be used to load tests from");
             Console.WriteLine("\t --help - show this message and exit");
@@ -183,6 +211,7 @@ namespace NUnitRunner
 			var optionSet = new OptionSet {
 				{ "i|iterations=", "number of iterations over test suite to make.", (int n) => opts.iterations = n },
                 { "d|duration=", "duration of test suite execution.", (int d) => opts.durationLimit = d },
+                { "c|concurrency=", "number of concurrent users.", (int c) => opts.concurrency = c },
 				{ "r|report-file=", "Name of report file", r => opts.reportFile = r },
                 { "t|target=", "Test suite", t => opts.targetAssembly = t },
 				{ "h|help", "show this message and exit", h => opts.shouldShowHelp = h != null },
@@ -202,55 +231,104 @@ namespace NUnitRunner
 				else
                     opts.iterations = 1;
 
+            if (opts.concurrency == 0)
+                opts.concurrency = 1;
+
 			Console.WriteLine("Iterations: {0}", opts.iterations);
             Console.WriteLine("Hold for: {0}", opts.durationLimit);
+            Console.WriteLine("Current users: {0}", opts.concurrency);
             Console.WriteLine("Report file: {0}", opts.reportFile);
             Console.WriteLine("Target: {0}", opts.targetAssembly);
 
 			return opts;
 		}
 
-		public static void Main(string[] args)
+        public static void Main(string[] args)
         {
-
-            RunnerOptions opts = null;
-			try
-			{
+            opts = null;
+            try
+            {
                 opts = ParseOptions(args);
-			}
-			catch (OptionException e)
-			{
-				Console.WriteLine(e.Message);
-				Console.WriteLine("Try running with '--help' for more information.");
+            }
+            catch (OptionException e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine("Try running with '--help' for more information.");
                 Environment.Exit(1);
-			}
+            }
 
-            RecordingListener listener = new RecordingListener(opts.reportFile);
+            engine = TestEngineActivator.CreateInstance(true);
+            package = new TestPackage(opts.targetAssembly);
 
-			ITestEngine engine = TestEngineActivator.CreateInstance();
-            TestPackage package = new TestPackage(opts.targetAssembly);
-			ITestRunner runner = engine.GetRunner(package);
+            listener = new RecordingListener();
 
-            int testCount = runner.CountTestCases(TestFilter.Empty);
+            int testCount = listener.runner.CountTestCases(TestFilter.Empty);
             if (testCount < 1)
                 throw new ArgumentException("Nothing to run, no tests were loaded");
 
+            if (opts.iterations != int.MaxValue)
+            {
+                opts.iterations = opts.iterations / opts.concurrency;
+            }
+
+            WaitHandle[] waitHandles = new WaitHandle[opts.concurrency];
+
+            for (int i = 0; i < opts.concurrency; i++)
+            {
+                var handle = new EventWaitHandle(false, EventResetMode.ManualReset);
+
+                var thread = new Thread(()=>
+                                        {
+                                            RunTest();
+                                            handle.Set();
+                                        });
+                thread.Start();
+
+                waitHandles[i] = handle;
+
+                Thread.Sleep(500);
+            }
+
+            WaitHandle.WaitAll(waitHandles);
+
+            Thread.Sleep(2000);
+            
+            listener.OpenFile(opts.reportFile);
+
+            foreach (var list in reportItemsList)
+            {
+                foreach (var item in list)
+                {
+                    listener.WriteReport(item);
+                }
+            }
+
+            listener.CloseFile();
+
+            Environment.Exit(0);
+		}
+
+        static void RunTest()
+        {
             try
             {
                 DateTime startTime = DateTime.Now;
-                for (int i = 0; i < opts.iterations; i++)
+                var threadListener = new RecordingListener();
+
+                for (int t = 0; t < opts.iterations; t++)
                 {
-                    runner.Run(listener, TestFilter.Empty);
+                    threadListener.runner.Run(threadListener, TestFilter.Empty);
                     TimeSpan offset = DateTime.Now - startTime;
                     if (opts.durationLimit > 0 && offset.TotalSeconds > opts.durationLimit)
                         break;
                 }
+
+                threadListener.UpdateGlobalList();
             }
-            finally
+            catch (Exception e)
             {
-                listener.CloseFile();
+                Console.WriteLine("EXCEPTION: {0}", e.ToString()); ;
             }
-            Environment.Exit(0);
-		}
+        }
     }
 }
