@@ -1,6 +1,7 @@
 # Changelog
 
-## 1.13.5<sup>next</sup>
+## 1.13.5<sup>30 apr 2019</sup>
+
 - default `iterations` are now `1` as opposed to `infinity` in the past 
 - add `env` option reading for each execution
 - set special env vars for ShellExec commands, containing Taurus exit code
@@ -13,6 +14,8 @@
 - send capabilities to webdriver as is
 - check capabilities for 'browser' option
 - avoid explicit RemoteDriver request
+- roll back Gatling script changes for Windows
+
 
 ## 1.13.4<sup>31 mar 2019</sup>
 
