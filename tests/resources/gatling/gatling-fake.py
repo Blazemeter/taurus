@@ -1,5 +1,6 @@
 import os
 import sys
+import platform
 
 print("Fake gatling output")
 print("dir:")
@@ -13,7 +14,9 @@ java_opts = os.environ.get("JAVA_OPTS", "").strip() + " "
 res_dir_opt = "gatling.core.directory.resources"
 start_res_dir = java_opts.find(res_dir_opt) + len(res_dir_opt) + 1
 res_dir_str = java_opts[start_res_dir:]
-res_dir = res_dir_str[:res_dir_str.find(" -D")][1:-1]
+res_dir = res_dir_str[:res_dir_str.find(" -D")]
+if platform.system() != "Windows":
+    res_dir = res_dir[1:-1]
 
 scala_files = [fname for fname in os.listdir(res_dir) if fname.endswith('scala')]
 if len(scala_files) > 1:

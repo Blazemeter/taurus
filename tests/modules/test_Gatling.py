@@ -530,8 +530,14 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj._execute = lambda *args, **kwargs: None
         self.obj.prepare()
         self.obj.startup()
-        self.assertIn("gatling.http.ahc.allowPoolingConnections='true'", self.obj.env.get("JAVA_OPTS"))
-        self.assertIn("gatling.http.ahc.keepAlive='true'", self.obj.env.get("JAVA_OPTS"))
+
+        if is_windows():
+            form = '%s'
+        else:
+            form = '%r'
+
+        self.assertIn("gatling.http.ahc.allowPoolingConnections=" + form % 'true', self.obj.env.get("JAVA_OPTS"))
+        self.assertIn("gatling.http.ahc.keepAlive=" + form % 'true', self.obj.env.get("JAVA_OPTS"))
 
     def test_properties_2levels(self):
         self.obj.settings.merge({
@@ -552,8 +558,14 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj._execute = lambda *args, **kwargs: None
         self.obj.prepare()
         self.obj.startup()
-        self.assertIn("-Dscenlevel='scenval'", self.obj.env.get("JAVA_OPTS"))
-        self.assertIn("-Dsettlevel='settval'", self.obj.env.get("JAVA_OPTS"))
+
+        if is_windows():
+            form = '%s'
+        else:
+            form = '%r'
+
+            self.assertIn("-Dscenlevel=" + form % 'scenval', self.obj.env.get("JAVA_OPTS"))
+            self.assertIn("-Dsettlevel=" + form % 'settval', self.obj.env.get("JAVA_OPTS"))
         self.assertIn("-Doverride=2", self.obj.env.get("JAVA_OPTS"))
 
 
