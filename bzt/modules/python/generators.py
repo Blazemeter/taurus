@@ -1087,8 +1087,7 @@ from selenium.webdriver.common.keys import Keys
         return target
 
     def _init_target(self):
-        # todo: allow empty address in apiritif (HTTPTarget.__init__)
-        default_address = self.scenario.get("default-address", "")
+        default_address = self.scenario.get("default-address", None)
 
         target_call = ast_call(
             func=ast_attr("apiritif.http.target"),
