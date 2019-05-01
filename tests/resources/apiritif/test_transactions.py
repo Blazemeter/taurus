@@ -1,11 +1,10 @@
-# coding=utf-8
 
 import logging
 import random
 import string
 import sys
+import time
 import unittest
-from time import time, sleep
 
 import apiritif
 
@@ -18,7 +17,7 @@ def setup():
     apiritif.put_into_thread_store(vars)
 
 
-class TestAPI(unittest.TestCase, ):
+class TestAPI(unittest.TestCase):
 
     def setUp(self):
         (self.vars,) = apiritif.get_from_thread_store()
@@ -38,7 +37,7 @@ class TestAPI(unittest.TestCase, ):
     def test_3_t2(self):
         with apiritif.transaction('t_2'):
             response = apiritif.http.get('url_2.0')
-            sleep(2.0)
+            time.sleep(2.0)
             with apiritif.transaction('t_22'):
                 response = apiritif.http.get('url_22.0')
-                sleep(3.0)
+                time.sleep(3.0)

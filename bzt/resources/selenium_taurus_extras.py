@@ -1,6 +1,22 @@
 # Utility functions and classes for Taurus Selenium tests
 
+from string import Template as StrTemplate
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
+
+
+class Template:
+    def __init__(self, variables):
+        self.variables = variables
+
+    def apply(self, template):
+        tmpl = StrTemplate(b''.decode() + template)
+        return tmpl.safe_substitute(self.variables)
+
+    __call__ = apply
+
+    @staticmethod
+    def str_repr(text):
+        return repr(text)[1:] if repr(text)[0] == "u" else repr(text)
 
 
 class FrameManager:

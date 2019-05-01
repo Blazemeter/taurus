@@ -110,7 +110,7 @@ reporting:
 
 ## Requests Scenario
 
-Selenium executor supports building test script from the `requests` option of `scenario`. Look at [Nose executor manual page](Nose.md#Request-Scenario) for more information. Note: it that case `test-mode` will be equal `selenium`
+Selenium executor supports building test script from the `requests` option of `scenario`. Look at [Nose executor manual page](Nose.md#Request-Scenario) for more information. 
 
 ## Automatic Installation of Web Driver
 

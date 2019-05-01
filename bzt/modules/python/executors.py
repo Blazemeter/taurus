@@ -29,7 +29,7 @@ from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type
 from bzt.utils import FileReader, get_full_path, RESOURCES_DIR, BZT_DIR
-from .generators import ApiritifScriptGenerator
+from .generators import ApiritifScriptGenerator, SeleniumScriptBuilder
 from .tools import TaurusPytestRunner, TaurusRobotRunner, Robot
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -83,7 +83,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         scenario = self.get_scenario()
 
         if test_mode == "apiritif":
-            builder = ApiritifScriptGenerator(self.engine, scenario, self.label, self.log, test_mode=test_mode)
+            builder = ApiritifScriptGenerator(self.engine, scenario, self.label, self.log)
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
@@ -107,13 +107,14 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             remote = self.execution.get("remote", remote)
             remote = scenario.get("remote", remote)
 
-            builder = ApiritifScriptGenerator(
-                self.engine, scenario, self.label, self.log, wdlog,
+            builder = SeleniumScriptBuilder(
+                scenario, self.log, wdlog,
                 utils_file=os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py"),
                 ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
                 generate_markers=generate_markers,
                 capabilities=capabilities,
-                wd_addr=remote, test_mode=test_mode)
+                label=self.label,
+                wd_addr=remote)
 
         builder.build_source_code()
         builder.save(filename)

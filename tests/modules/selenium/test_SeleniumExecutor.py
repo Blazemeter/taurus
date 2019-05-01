@@ -27,26 +27,6 @@ class LDJSONReaderEmul(object):
             yield line
 
 
-class TestSeleniumExecutor(SeleniumTestCase):
-    def test_data_source_in_action(self):
-        self.configure({
-            ScenarioExecutor.EXEC: {
-                "executor": "selenium",
-                "iterations": 1,
-                "scenario": {
-                    "data-sources": [RESOURCES_DIR + "selenium/data-sources/data.csv"],
-                    "requests": [{
-                        "label": "exec_it",
-                        "assert": ["Simple Travel Agency"],
-                        "actions": ["go(${host}/${page})"]}]}}})
-        self.obj.prepare()
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-        self.obj.post_process()
-
-
 class TestSeleniumStuff(SeleniumTestCase):
     def test_empty_scenario(self):
         """
@@ -127,6 +107,26 @@ class TestSeleniumStuff(SeleniumTestCase):
 
     def test_from_extension(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
+        self.obj.prepare()
+        self.obj.get_widget()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        results = list(self.obj.runner.reader.datapoints(final_pass=True))
+
+        self.obj.runner._tailer.close()
+        self.obj.runner.reader.underlings[0].csvreader.file.close()
+
+        self.assertEquals(1, len(results))
+        self.assertFalse(results[0][DataPoint.CUMULATIVE][''][KPISet.ERRORS])  # error msg
+
+    def test_from_extension_reuse(self):
+        self.configure({ScenarioExecutor.EXEC: {
+            "executor": "selenium",
+            "iterations": 1,
+            "scenario": {"script": RESOURCES_DIR + "selenium/python/reuse_after_extension.py"}
+        }})
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
@@ -228,7 +228,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.prepare()
         with open(os.path.join(self.obj.engine.artifacts_dir, os.path.basename(self.obj.script))) as fds:
             script = fds.read()
-        urls = re.findall(r"\.get\('(.+)'\)", script)
+        urls = re.findall(r"get\(.+'(.+)'.+\)", script)
         self.assertEqual("http://blazedemo.com/", urls[0])
         self.assertEqual("http://absolute.address.com/somepage", urls[1])
         self.assertEqual("http://blazedemo.com/reserve.php", urls[2])
