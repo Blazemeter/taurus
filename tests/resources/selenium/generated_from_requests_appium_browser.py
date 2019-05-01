@@ -21,29 +21,28 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 def setup():
-    driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={
-        'browserName': 'chrome',
-        'deviceName': '',
-        'platformName': 'android',
-    })
-    driver.implicitly_wait(3.5)
-    wnd_mng = WindowManager(driver)
-    frm_mng = FrameManager(driver)
     vars = {
         
     }
-    apiritif.put_into_thread_store(vars, driver, wnd_mng, frm_mng)
-
-
-def teardown():
-    (_, driver, _, _) = apiritif.get_from_thread_store()
-    driver.quit()
+    
+    apiritif.put_into_thread_store(vars)
 
 
 class TestLocScAppium(unittest.TestCase, ):
 
     def setUp(self):
-        (self.vars, self.driver, self.wnd_mng, self.frm_mng) = apiritif.get_from_thread_store()
+        (self.vars,) = apiritif.get_from_thread_store()
+        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={
+            'browserName': 'chrome',
+            'deviceName': '',
+            'platformName': 'android',
+        })
+        self.driver.implicitly_wait(3.5)
+        self.wnd_mng = WindowManager(self.driver)
+        self.frm_mng = FrameManager(self.driver)
+
+    def tearDown(self):
+        self.driver.quit()
 
     def test_1_(self):
         with apiritif.transaction('/'):

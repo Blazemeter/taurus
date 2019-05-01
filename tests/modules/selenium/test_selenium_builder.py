@@ -162,7 +162,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "options.set_headless()",
             "profile = webdriver.FirefoxProfile()",
             "profile.set_preference('webdriver.log.file', '",
-            "driver = webdriver.Firefox(profile, firefox_options=options)"
+            "self.driver = webdriver.Firefox(profile, firefox_options=options)"
         ]
 
         for idx in range(len(target_lines)):
@@ -204,7 +204,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         target_lines = [
             "options = webdriver.ChromeOptions()",
-            "driver = webdriver.Chrome(service_log_path='",
+            "self.driver = webdriver.Chrome(service_log_path='",
             "', chrome_options=options)"
         ]
 
