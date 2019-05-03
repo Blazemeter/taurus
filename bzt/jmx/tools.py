@@ -122,7 +122,8 @@ class LoadSettingsProcessor(object):
 
             concurrency_list = []
             for group in groups:
-                concurrency_list.append(group.get_concurrency(raw=raw))
+                concurrency = group.get_concurrency(raw=raw)
+                concurrency_list.append(concurrency or 0)
 
             if not raw:  # divide numeric concurrency
                 self._divide_concurrency(concurrency_list)
