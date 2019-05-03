@@ -1161,9 +1161,13 @@ from selenium.webdriver.common.keys import Keys
             else:
                 body.append(self._gen_http_request(request))
 
+        transaction_class = "apiritif.transaction"
+        if self.test_mode == "selenium":
+            transaction_class += "_logged"
+
         transaction = ast.With(
             context_expr=ast_call(
-                func=ast_attr("apiritif.transaction"),
+                func=ast_attr(transaction_class),
                 args=[self._gen_expr(trans_conf.label)]),
             optional_vars=None,
             body=body)

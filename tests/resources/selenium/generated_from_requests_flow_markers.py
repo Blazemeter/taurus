@@ -48,7 +48,7 @@ class TestLocSc(unittest.TestCase):
                 'testCaseName': '/',
                 'testSuiteName': 'loc_sc',
             })
-            with apiritif.transaction('/'):
+            with apiritif.transaction_logged('/'):
                 self.driver.get('http://blazedemo.com/')
                 WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, "//input[@type='submit']")), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
                 self.assertEqual(self.driver.title, 'BlazeDemo')
@@ -79,7 +79,7 @@ class TestLocSc(unittest.TestCase):
                 'testCaseName': 'empty',
                 'testSuiteName': 'loc_sc',
             })
-            with apiritif.transaction('empty'):
+            with apiritif.transaction_logged('empty'):
                 pass
         except AssertionError as exc:
             self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
