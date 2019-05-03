@@ -25,6 +25,11 @@ class TestLoadSettingsProcessor(BZTestCase):
                 groupset.append(group)
         return groupset
 
+    def test_empty_concuurency(self):
+        self.configure(load={"concurrency": 22}, jmx_file=RESOURCES_DIR + 'jmeter/jmx/empty_concurrency.jmx')
+        self.obj.modify(self.jmx)
+        self.assertFalse(self.get_groupset())     # disabled
+
     def test_keep_original(self):
         self.configure(jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no duration
