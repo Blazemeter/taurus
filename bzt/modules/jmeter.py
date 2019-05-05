@@ -1465,20 +1465,16 @@ class JMeter(RequiredTool):
         try:
             out, err = self.call(cmd_line)
         except CALL_PROBLEMS as exc:
-            self.log.debug("JMeter check failed: %s", exc)
+            msg = "JMeter check failed: %s" % exc
+            if os.path.exists(self.tool_path):
+                raise ToolError(msg)
+
+            self.log.debug(msg)
             return False
         finally:
             jmlog.close()
 
         self.log.debug("JMeter check: %s / %s", out, err)
-
-        if "is too low to run JMeter" in out:
-            raise ToolError("Java version is too low to run JMeter")
-
-        if "Error:" in out:
-            self.log.warning("JMeter output: \n%s", out)
-            raise ToolError("Unable to run JMeter, see error above")
-
         return True
 
     def _pmgr_call(self, params):
