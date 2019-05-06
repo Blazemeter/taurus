@@ -71,7 +71,13 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")))
+        api_log = os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")
+        nose_log = os.path.join(self.obj.engine.artifacts_dir, "nose.out")
+        self.assertTrue(os.path.exists(api_log))
+        with open(nose_log) as fds:
+            content = fds.read()
+            self.assertIn("Transaction started::", content)
+            self.assertIn("Transaction ended::", content)
 
     def test_runner_fail_no_test_found(self):
         """
