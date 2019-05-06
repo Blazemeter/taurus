@@ -1,0 +1,1 @@
+- fix Gatling getting `u` prefix to simulation name (and other properties)

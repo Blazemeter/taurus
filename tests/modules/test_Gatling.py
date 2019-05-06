@@ -1,7 +1,7 @@
 # coding=utf-8
 import os
-import sys
 import shutil
+import sys
 import time
 
 from bzt import ToolError, TaurusConfigError
@@ -542,7 +542,8 @@ class TestGatlingExecutor(ExecutorTestCase):
     def test_properties_2levels(self):
         self.obj.settings.merge({
             "properties": {
-                "settlevel": "settval",
+                "settlevel": u"settval",
+                "unc": u"Ä",
                 "override": 1,
             },
         })
