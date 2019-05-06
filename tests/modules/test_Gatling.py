@@ -1,10 +1,8 @@
 # coding=utf-8
 import os
-import sys
 import shutil
+import sys
 import time
-
-import yaml
 
 from bzt import ToolError, TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet
