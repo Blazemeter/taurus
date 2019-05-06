@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.13.6<sup>6 may 2019</sup>
+
+- fix issues of pip package for previous version
+- default empty concurrency in JMeter JMX as 1
+- handle JMeter install check failures properly
+- fix OSX mouse wheel binding, document dashboard scaling
+- fix Gatling getting `u` prefix to simulation name (and other properties)
+- handle quitting event from locust to ignore restrictions on teardown
+
+
 ## 1.13.5<sup>30 apr 2019</sup>
 
 - default `iterations` are now `1` as opposed to `infinity` in the past 
