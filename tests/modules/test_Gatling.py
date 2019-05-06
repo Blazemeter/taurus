@@ -4,6 +4,8 @@ import sys
 import shutil
 import time
 
+import yaml
+
 from bzt import ToolError, TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
@@ -542,7 +544,8 @@ class TestGatlingExecutor(ExecutorTestCase):
     def test_properties_2levels(self):
         self.obj.settings.merge({
             "properties": {
-                "settlevel": "settval",
+                "settlevel": u"settval",
+                "unc": u"Ä",
                 "override": 1,
             },
         })
