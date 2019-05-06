@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.13.7<sup>next</sup>
+- filter out `included-configs` from cloud YAML
+
 ## 1.13.6<sup>6 may 2019</sup>
 
 - fix issues of pip package for previous version

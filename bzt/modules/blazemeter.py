@@ -61,6 +61,7 @@ CLOUD_CONFIG_BLACK_LIST = {
         "proxy": True,
         "check-updates": True
     },
+    "included-configs": True,
     "cli": True,
     "cli-aliases": True,
     "install-id": True,
