@@ -1,1 +1,0 @@
-handle quitting event from locust to ignore restrictions on teardown
