@@ -28,7 +28,7 @@ class TestLoadSettingsProcessor(BZTestCase):
     def test_empty_concuurency(self):
         self.configure(load={"concurrency": 22}, jmx_file=RESOURCES_DIR + 'jmeter/jmx/empty_concurrency.jmx')
         self.obj.modify(self.jmx)
-        self.assertFalse(self.get_groupset())     # disabled
+        self.assertEqual("22", self.get_groupset()[0].get_concurrency(raw=True))
 
     def test_keep_original(self):
         self.configure(jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
