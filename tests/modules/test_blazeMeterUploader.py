@@ -4,6 +4,7 @@ import math
 import os
 import shutil
 import time
+from tempfile import NamedTemporaryFile
 from io import BytesIO
 
 from bzt import TaurusException
@@ -420,12 +421,21 @@ class TestBlazeMeterClientUnicode(BZTestCase):
         session.upload_file(RESOURCES_DIR + "jmeter/unicode_file")
 
     def test_binary_unicode_error(self):
-        session = Session(data={'id': 1})
-        mock = BZMock(session)
-        mock.mock_post['https://data.blazemeter.com/api/v4/image/1/files?signature=None'] = {"result": 1}
-        with open(RESOURCES_DIR + "jmeter/jmeter-dist-2.13.zip", 'rb') as fds:
-            zip_content = fds.read()
-        session.upload_file("jtls_and_more.zip", zip_content)
+        with NamedTemporaryFile() as log_fds:
+            file_handler = logging.FileHandler(log_fds.name, encoding="utf-8")
+            file_handler.setLevel(logging.DEBUG)
+
+            try:
+                ROOT_LOGGER.addHandler(file_handler)
+                session = Session(data={'id': 1})
+                mock = BZMock(session)
+                mock.mock_post['https://data.blazemeter.com/api/v4/image/1/files?signature=None'] = {"result": 1}
+                with open(RESOURCES_DIR + "jmeter/jmeter-dist-2.13.zip", 'rb') as fds:
+                    zip_content = fds.read()
+                session.upload_file("jtls_and_more.zip", zip_content)
+
+            finally:
+                ROOT_LOGGER.removeHandler(file_handler)
 
 
 class DummyHttpResponse(object):
