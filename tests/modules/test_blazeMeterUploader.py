@@ -436,7 +436,9 @@ class TestBlazeMeterClientUnicode(BZTestCase):
             session.upload_file("jtls_and_more.zip", zip_content)
         finally:
             ROOT_LOGGER.removeHandler(file_handler)
+            file_handler.close()
             os.remove(fname)
+
 
 class DummyHttpResponse(object):
     def __init__(self):
