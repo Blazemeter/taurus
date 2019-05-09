@@ -402,9 +402,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             prop = props[key]
             val_tpl = "%s"
 
-            # extend properties support (contained separators/quotes/etc.) on lin/mac
-            if not is_windows() and isinstance(prop, string_types):
-                val_tpl = "%r"
+            if isinstance(prop, string_types):
+                if not is_windows():    # extend properties support (contained separators/quotes/etc.) on lin/mac
+                    val_tpl = "%r"
                 if PY2:
                     prop = prop.encode("utf-8", 'ignore')  # to convert from unicode into str
 
