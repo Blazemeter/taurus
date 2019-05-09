@@ -1,0 +1,1 @@
+string props must be encoded for py2 (even on win) 
