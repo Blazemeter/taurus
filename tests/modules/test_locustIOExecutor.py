@@ -155,10 +155,10 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.configure({"execution": {
             "scenario": {"script": RESOURCES_DIR + "locust/simple.py"}}})
         self.obj.prepare()
-        self.obj.reader = SlavesReader(RESOURCES_DIR + "locust/locust-slaves.ldjson", 1, ROOT_LOGGER)
+        self.obj.reader = SlavesReader(RESOURCES_DIR + "locust/locust-slaves.ldjson", 2, ROOT_LOGGER)
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.engine.aggregator.add_underling(self.obj.reader)
-        self.assertEqual(3, list(self.obj.engine.aggregator.datapoints(final_pass=True)))
+        self.assertEqual(1, len(list(self.obj.engine.aggregator.datapoints(final_pass=True))))
 
     def test_resource_files_requests(self):
         self.configure({"execution": {
