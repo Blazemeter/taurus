@@ -280,11 +280,13 @@ namespace NUnitRunner
 
             for (int i = 0; i < opts.concurrency; i++)
             {
+                var reducedTime = userStepTime * i;
+
                 var handle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
                 var thread = new Thread(()=>
                                         {
-                                            RunTest();
+                                            RunTest(reducedTime);
                                             handle.Set();
                                         });
                 thread.Start();
@@ -313,7 +315,7 @@ namespace NUnitRunner
             Environment.Exit(0);
 		}
 
-        static void RunTest()
+        static void RunTest(int reducedTime)
         {
             try
             {
@@ -324,8 +326,10 @@ namespace NUnitRunner
                 {
                     threadListener.runner.Run(threadListener, TestFilter.Empty);
                     TimeSpan offset = DateTime.Now - startTime;
-                    if (opts.durationLimit > 0 && offset.TotalSeconds > opts.durationLimit)
+                    if ((opts.durationLimit - reducedTime) > 0 && offset.TotalSeconds > (opts.durationLimit - reducedTime))
+                    {
                         break;
+                    }
                 }
 
                 threadListener.UpdateGlobalList();
