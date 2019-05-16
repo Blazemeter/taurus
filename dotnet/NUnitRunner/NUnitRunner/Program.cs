@@ -266,11 +266,6 @@ namespace NUnitRunner
             if (testCount < 1)
                 throw new ArgumentException("Nothing to run, no tests were loaded");
 
-            if (opts.iterations != int.MaxValue)
-            {
-                opts.iterations = opts.iterations / opts.concurrency;
-            }
-
             WaitHandle[] waitHandles = new WaitHandle[opts.concurrency];
 
             for (int i = 0; i < opts.concurrency; i++)
