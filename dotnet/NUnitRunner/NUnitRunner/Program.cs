@@ -31,6 +31,7 @@ namespace NUnitRunner
             public int iterations = 0;
             public int durationLimit = 0;
             public int concurrency = 0;
+            public int ramp_up = 0;
             public string targetAssembly = null;
             public bool shouldShowHelp = false;
         }
@@ -198,6 +199,7 @@ namespace NUnitRunner
             Console.WriteLine("\t --iterations N - number of iterations over test suite to make");
 			Console.WriteLine("\t --duration T - duration limit of test suite execution");
             Console.WriteLine("\t --concurrency N - number of concurrent users");
+            Console.WriteLine("\t --ramp_up L - time to ramp all concurrent users");
             Console.WriteLine("\t --report-file REPORT_FILE - filename of report file");
             Console.WriteLine("\t --target TARGET_ASSEMBLY - assembly which will be used to load tests from");
             Console.WriteLine("\t --help - show this message and exit");
@@ -212,6 +214,7 @@ namespace NUnitRunner
 				{ "i|iterations=", "number of iterations over test suite to make.", (int n) => opts.iterations = n },
                 { "d|duration=", "duration of test suite execution.", (int d) => opts.durationLimit = d },
                 { "c|concurrency=", "number of concurrent users.", (int c) => opts.concurrency = c },
+                { "l|ramp_up=", "time to ramp all concurrent users.", (int l) => opts.ramp_up = l},
 				{ "r|report-file=", "Name of report file", r => opts.reportFile = r },
                 { "t|target=", "Test suite", t => opts.targetAssembly = t },
 				{ "h|help", "show this message and exit", h => opts.shouldShowHelp = h != null },
@@ -234,9 +237,13 @@ namespace NUnitRunner
             if (opts.concurrency == 0)
                 opts.concurrency = 1;
 
+            if (opts.ramp_up == 0)
+                opts.ramp_up = 1;
+
 			Console.WriteLine("Iterations: {0}", opts.iterations);
             Console.WriteLine("Hold for: {0}", opts.durationLimit);
             Console.WriteLine("Current users: {0}", opts.concurrency);
+            Console.WriteLine("Ramp period: {0}", opts.ramp_up);
             Console.WriteLine("Report file: {0}", opts.reportFile);
             Console.WriteLine("Target: {0}", opts.targetAssembly);
 
@@ -268,6 +275,9 @@ namespace NUnitRunner
 
             WaitHandle[] waitHandles = new WaitHandle[opts.concurrency];
 
+            //Calculate add new user thread time
+            var userStepTime = opts.ramp_up / opts.concurrency;
+
             for (int i = 0; i < opts.concurrency; i++)
             {
                 var handle = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -281,7 +291,7 @@ namespace NUnitRunner
 
                 waitHandles[i] = handle;
 
-                Thread.Sleep(500);
+                Thread.Sleep(userStepTime * 1000);
             }
 
             WaitHandle.WaitAll(waitHandles);
