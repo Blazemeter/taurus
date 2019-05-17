@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Threading;
@@ -217,24 +216,38 @@ namespace NUnitRunner
             optionSet.Parse(args);
 
 			if (opts.shouldShowHelp)
-				ShowHelp();
+            {
+                ShowHelp();
+            }
 
-			if (opts.targetAssembly == null)
-				throw new Exception("Target test suite wasn't provided. Is your file actually NUnit test DLL?");
+            if (opts.targetAssembly == null)
+            {
+                throw new Exception("Target test suite wasn't provided. Is your file actually NUnit test DLL?");
+            }
 
             if (opts.iterations == 0)
-				if (opts.durationLimit > 0)
+            {
+                if (opts.durationLimit > 0)
+                {
                     opts.iterations = int.MaxValue;
-				else
+                }
+                else
+                {
                     opts.iterations = 1;
+                }
+            }
 
             if (opts.concurrency == 0)
+            {
                 opts.concurrency = 1;
+            }
 
             if (opts.ramp_up == 0)
+            {
                 opts.ramp_up = 1;
+            }
 
-			Console.WriteLine("Iterations: {0}", opts.iterations);
+            Console.WriteLine("Iterations: {0}", opts.iterations);
             Console.WriteLine("Hold for: {0}", opts.durationLimit);
             Console.WriteLine("Current users: {0}", opts.concurrency);
             Console.WriteLine("Ramp period: {0}", opts.ramp_up);
@@ -265,7 +278,9 @@ namespace NUnitRunner
 
             int testCount = listener.runner.CountTestCases(TestFilter.Empty);
             if (testCount < 1)
+            {
                 throw new ArgumentException("Nothing to run, no tests were loaded");
+            }
 
             if (opts.ramp_up > 1 && opts.durationLimit > 0)
             {
