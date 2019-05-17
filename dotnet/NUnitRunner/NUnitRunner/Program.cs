@@ -302,16 +302,16 @@ namespace NUnitRunner
 
             for (int i = 0; i < opts.concurrency; i++)
             {
-                var handle = new EventWaitHandle(false, EventResetMode.ManualReset);
+                var workerHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
-                var thread = new Thread(()=>
+                var workerThread = new Thread(()=>
                                         {
                                             RunTest(startTime);
-                                            handle.Set();
+                                            workerHandle.Set();
                                         });
-                thread.Start();
+                workerThread.Start();
 
-                waitHandles[i] = handle;
+                waitHandles[i] = workerHandle;
 
                 Thread.Sleep(userStepTime * 1000);
             }
@@ -334,9 +334,7 @@ namespace NUnitRunner
             {
                 Thread.Sleep(1000);
 
-                ReportItem item;
-
-                while (blockedCollection.TryTake(out item, 100))
+                while (blockedCollection.TryTake(out ReportItem item, 100))
                 {
                     listener.WriteReport(item);
                 }
