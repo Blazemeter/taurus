@@ -16,10 +16,7 @@ namespace NUnitRunner
 {
     public class NUnitRunner
     {
-
-        //List of Report Items
-        public static List<List<ReportItem>> reportItemsList = new List<List<ReportItem>>();
-
+        public static BlockingCollection<ReportItem> blockedCollection = new BlockingCollection<ReportItem>();
         public static ITestEngine engine { get; set; }
         public static TestPackage package { get; set; }
         public static RunnerOptions opts { get; set; }
@@ -59,13 +56,7 @@ namespace NUnitRunner
 
             public RecordingListener()
             {
-                reportItems = new List<ReportItem>();
                 runner = engine.GetRunner(package);
-            }
-
-            public void UpdateGlobalList()
-            {
-                lock (reportItemsList) { reportItemsList.Add(reportItems); }
             }
 
             public void OpenFile(string reportFile)
@@ -184,8 +175,7 @@ namespace NUnitRunner
                             Console.WriteLine(report);
                         }
 
-                        reportItems.Add(item);
-                        //lock (reportItems) { reportItems.Add(item); }
+                        blockedCollection.Add(item);
                     }
                 }
 				catch (Exception e)
@@ -284,10 +274,8 @@ namespace NUnitRunner
 
             WaitHandle[] waitHandles = new WaitHandle[opts.concurrency];
 
-            //Calculate add new user thread time
             var userStepTime = opts.ramp_up / opts.concurrency;
 
-            // Start writer thread
             testRunning = true;
             var writerThread = new Thread(() =>
                                             {
@@ -331,21 +319,11 @@ namespace NUnitRunner
             {
                 Thread.Sleep(1000);
 
-                lock (reportItemsList)
-                {
-                    if (reportItemsList.Count > 0)
-                    {
-                        foreach (var list in reportItemsList)
-                        {
-                            foreach (var item in list)
-                            {
-                                listener.WriteReport(item);
-                            }
+                ReportItem item;
 
-                            list.Clear();
-                        }
-                        reportItemsList.Clear();
-                    }
+                while (blockedCollection.TryTake(out item, 100))
+                {
+                    listener.WriteReport(item);
                 }
             }
         }
@@ -364,10 +342,7 @@ namespace NUnitRunner
                     {
                         break;
                     }
-                    threadListener.UpdateGlobalList();
                 }
-
-                threadListener.UpdateGlobalList();
             }
             catch (Exception e)
             {
