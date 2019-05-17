@@ -332,7 +332,7 @@ namespace NUnitRunner
 
             while (testRunning)
             {
-                Thread.Sleep(1000);
+                Thread.Sleep(3000);
 
                 while (blockedCollection.TryTake(out ReportItem item, 100))
                 {
