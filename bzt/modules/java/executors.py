@@ -263,6 +263,7 @@ class JUnitTester(JavaTestRunner):
                 fds.write("{name}={val}\n".format(name=name, val=val))
 
         props = get_assembled_value(configs=[self.settings, self.get_scenario(), self.execution], key="properties")
+        props = props or BetterDict()
 
         junit_version = str(self.settings.get("junit-version", "4"))
         if junit_version == "5":
