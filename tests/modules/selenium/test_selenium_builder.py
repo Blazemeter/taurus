@@ -173,9 +173,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "execution": [{
                 "executor": "selenium",
                 "hold-for": "4m",
-                "ramp-up": "3m",
-                # "remote": "http-b",
-                "capabilities": {"o1": "o2", "r1": "r2"},
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
@@ -389,6 +386,50 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             gen_contents = generated.read()
 
         self.assertNotIn("options.set_headless()", gen_contents)
+
+    def test_capabilities_order(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "scenario": "loc_sc_remote",
+                "capabilities": {
+                    "name2": "execution",
+                    "name4": "execution",
+                    "name5": "execution"}}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "name3": "scenario",
+                        "name4": "scenario",
+                        "name6": "scenario"},
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "actions": ["assertTitle(BlazeDemo)"]}]}},
+            "modules": {
+                "selenium": {
+                    "capabilities": {
+                        "name1": "settings",
+                        "name2": "settings",
+                        "name3": "settings"}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "'name1': 'settings'",
+            "'name2': 'execution'",
+            "'name3': 'scenario'",
+            "'name4': 'execution'",
+            "'name5': 'execution'",
+            "'name6': 'scenario'"]
+
+        for line in target_lines:
+            self.assertIn(line, content)
 
     def test_build_script_remote(self):
         self.configure({
