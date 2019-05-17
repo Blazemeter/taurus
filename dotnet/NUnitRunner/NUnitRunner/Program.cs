@@ -24,7 +24,8 @@ namespace NUnitRunner
         public static TestPackage package { get; set; }
         public static RunnerOptions opts { get; set; }
         public static RecordingListener listener { get; set; }
-       
+        public static bool testRunning { get; set; }
+
         public class RunnerOptions
         {
             public string reportFile = "report.ldjson";
@@ -179,9 +180,12 @@ namespace NUnitRunner
                                 item.ErrorMessage = reasonNode.SelectSingleNode("message").InnerText.Trim();
 						}
                         else
+                        {
                             Console.WriteLine(report);
+                        }
 
-                        lock (reportItems) { reportItems.Add(item); }
+                        reportItems.Add(item);
+                        //lock (reportItems) { reportItems.Add(item); }
                     }
                 }
 				catch (Exception e)
@@ -273,20 +277,33 @@ namespace NUnitRunner
             if (testCount < 1)
                 throw new ArgumentException("Nothing to run, no tests were loaded");
 
+            if (opts.ramp_up > 1 && opts.durationLimit > 0)
+            {
+                opts.durationLimit = opts.durationLimit + opts.ramp_up;
+            }
+
             WaitHandle[] waitHandles = new WaitHandle[opts.concurrency];
 
             //Calculate add new user thread time
             var userStepTime = opts.ramp_up / opts.concurrency;
 
+            // Start writer thread
+            testRunning = true;
+            var writerThread = new Thread(() =>
+                                            {
+                                                WriteResults();
+                                            });
+            writerThread.Start();
+
+            DateTime startTime = DateTime.Now;
+
             for (int i = 0; i < opts.concurrency; i++)
             {
-                var reducedTime = userStepTime * i;
-
                 var handle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
                 var thread = new Thread(()=>
                                         {
-                                            RunTest(reducedTime);
+                                            RunTest(startTime);
                                             handle.Set();
                                         });
                 thread.Start();
@@ -298,38 +315,56 @@ namespace NUnitRunner
 
             WaitHandle.WaitAll(waitHandles);
 
-            Thread.Sleep(2000);
-            
-            listener.OpenFile(opts.reportFile);
-
-            foreach (var list in reportItemsList)
-            {
-                foreach (var item in list)
-                {
-                    listener.WriteReport(item);
-                }
-            }
+            testRunning = false;
+            writerThread.Join();
 
             listener.CloseFile();
-
+            
             Environment.Exit(0);
 		}
 
-        static void RunTest(int reducedTime)
+        static void WriteResults()
+        {
+            listener.OpenFile(opts.reportFile);
+
+            while (testRunning)
+            {
+                Thread.Sleep(1000);
+
+                lock (reportItemsList)
+                {
+                    if (reportItemsList.Count > 0)
+                    {
+                        foreach (var list in reportItemsList)
+                        {
+                            foreach (var item in list)
+                            {
+                                listener.WriteReport(item);
+                            }
+
+                            list.Clear();
+                        }
+                        reportItemsList.Clear();
+                    }
+                }
+            }
+        }
+
+        static void RunTest(DateTime startTime)
         {
             try
             {
-                DateTime startTime = DateTime.Now;
                 var threadListener = new RecordingListener();
 
                 for (int t = 0; t < opts.iterations; t++)
                 {
                     threadListener.runner.Run(threadListener, TestFilter.Empty);
                     TimeSpan offset = DateTime.Now - startTime;
-                    if ((opts.durationLimit - reducedTime) > 0 && offset.TotalSeconds > (opts.durationLimit - reducedTime))
+                    if (opts.durationLimit > 0 && offset.TotalSeconds > opts.durationLimit)
                     {
                         break;
                     }
+                    threadListener.UpdateGlobalList();
                 }
 
                 threadListener.UpdateGlobalList();
