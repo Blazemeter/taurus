@@ -55,7 +55,7 @@ import requests.adapters
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from urwid import BaseScreen
 
-from bzt import TaurusInternalException, TaurusNetworkError, ToolError
+from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
 from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname, communicate
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, numeric_types
 
@@ -1691,6 +1691,41 @@ def guess_delimiter(path):
             delimiter = ","  # default value
 
     return delimiter
+
+
+def get_assembled_value(configs, key, protect=False):
+    """
+    Joins values from several configs, "the last is the most important" (strings, lists or dictionaries).
+
+    :param configs: list of dicts with target configs
+    :param key: name of target config
+    :param protect: use safely, make deepcopy
+    """
+    target_configs = []
+    for config in configs:
+        target_config = config.get(key)
+        if target_config:
+            if protect:
+                target_config = copy.deepcopy(target_config)
+            target_configs.append(target_config)
+
+    if not target_configs:
+        return
+
+    res = target_configs.pop(0)
+
+    if all(isinstance(config, dict) for config in target_configs):
+        for config in target_configs:
+            res.merge(config)
+    elif all(isinstance(config, list) for config in target_configs):
+        for config in target_configs:
+            res.extend(config)
+    elif all(isinstance(config, (numeric_types, string_types)) for config in target_configs):
+        res = target_configs[-1]
+    else:
+        raise TaurusConfigError("Incorrect type of '%s' found." % key)
+
+    return res
 
 
 def parse_think_time(think_time, full=False):
