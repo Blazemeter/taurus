@@ -718,6 +718,7 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_default_iteartions(self):
         self.configure({'execution': {
+            'concurrency': 1,
             'scenario': {
                 'requests': ['http://blazedemo.com']}}})
         self.obj.prepare()
