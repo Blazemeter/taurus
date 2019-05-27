@@ -119,8 +119,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             self.env.add_path({"PATH": driver.get_driver_dir()})
 
         if self.get_load().concurrency and self.get_load().concurrency > 1:
-            msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
-            msg += 'For details look at http://gettaurus.org/docs/Cloud.md'
+            msg = 'Selenium does not support concurrency > 1\n'
             self.log.warning(msg)
 
         self.create_runner()
