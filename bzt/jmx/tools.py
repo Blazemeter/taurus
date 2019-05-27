@@ -77,6 +77,8 @@ class LoadSettingsProcessor(object):
     def __init__(self, executor):
         self.log = executor.log.getChild(self.__class__.__name__)
         self.load = executor.get_specific_load()
+        self.raw_load = executor.get_raw_load()
+        self.log.debug("Load: %s", self.load)
         self.tg = self._detect_thread_group(executor)
         self.tg_handler = ThreadGroupHandler(self.log)
 
@@ -107,7 +109,7 @@ class LoadSettingsProcessor(object):
         return tg
 
     def modify(self, jmx):
-        if not (self.load.iterations or self.load.concurrency or self.load.duration):
+        if not (self.raw_load.iterations or self.raw_load.concurrency or self.load.duration):
             self.log.debug('No iterations/concurrency/duration found, thread group modification is skipped')
             return
 

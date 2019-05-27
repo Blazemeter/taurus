@@ -150,12 +150,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         iterations = try_convert(iterations, default=0)
         steps = try_convert(steps, default=0)
 
-        if not iterations:
-            if duration:
-                iterations = 0  # which means infinite
-            else:
-                iterations = 1
-
         return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
                              iterations=iterations, duration=duration, steps=steps)
 
@@ -184,8 +178,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         iterations = try_convert(raw_load.iterations)
         steps = try_convert(raw_load.steps)
 
-        if duration and not iterations:
-            iterations = 0  # which means infinite
+        if not iterations:
+            if duration:
+                iterations = 0  # which means infinite
+            else:
+                iterations = 1
 
         return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
                              iterations=iterations, duration=duration, steps=steps)
@@ -577,7 +574,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             - to collect detailed errors/trace info
         :return: path to artifact
         """
-        self.log.debug("Load: %s", self.get_specific_load())
         jmx = JMX(original)
 
         if self.get_scenario().get("disable-listeners", not self.settings.get("gui", False)):
