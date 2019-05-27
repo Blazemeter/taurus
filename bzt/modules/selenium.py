@@ -118,10 +118,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         for driver in self.webdrivers:
             self.env.add_path({"PATH": driver.get_driver_dir()})
 
-        if self.get_load().concurrency and self.get_load().concurrency > 1:
-            msg = 'Selenium does not support concurrency > 1\n'
-            self.log.warning(msg)
-
         self.create_runner()
         self.runner.prepare()
         self.script = self.runner.script
