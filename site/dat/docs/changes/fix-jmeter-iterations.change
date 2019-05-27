@@ -1,1 +1,0 @@
-fix iterations default in jmeter to 1 (instead of infinity)

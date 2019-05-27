@@ -1,3 +1,0 @@
-fix locust slave reader results
-
-datapoints must have id of source, so let's add it to datapoints
