@@ -15,8 +15,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import json
 import codecs
+import json
 import os
 import re
 import time
@@ -28,10 +28,10 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.six import string_types, numeric_types
+from bzt.six import string_types, numeric_types, PY2
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 from bzt.utils import simple_body_dict, CALL_PROBLEMS
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
 class GatlingScriptBuilder(object):
@@ -402,9 +402,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             prop = props[key]
             val_tpl = "%s"
 
-            # extend properties support (contained separators/quotes/etc.) on lin/mac
-            if not is_windows() and isinstance(prop, string_types):
-                val_tpl = "%r"
+            if isinstance(prop, string_types):
+                if not is_windows():    # extend properties support (contained separators/quotes/etc.) on lin/mac
+                    val_tpl = "%r"
+                if PY2:
+                    prop = prop.encode("utf-8", 'ignore')  # to convert from unicode into str
 
             self.env.add_java_param({"JAVA_OPTS": ("-D%s=" + val_tpl) % (key, prop)})
 

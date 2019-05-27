@@ -2,7 +2,7 @@ body {
     color: #565866;
     background-color: #f9f9f9;
     font-family: 'Open Sans', sans-serif;
-    font-size: 16px;
+    font-size: 14px;
 }
 
 .header {
@@ -119,6 +119,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* WIKI */
 table.wiki {
+    table-layout: fixed;
     width: 100%;
 }
 
@@ -139,7 +140,7 @@ table.wiki pre, table.wiki tt {
 
 table.wiki pre {
     padding: 1em;
-    overflow: hidden;
+    overflow: auto;
     font-size: 0.8em;
 }
 
@@ -156,6 +157,7 @@ table.wiki .sidebar {
     border-radius: 0.3em;
     white-space: nowrap;
     padding: 2em;
+    width: 30%;
 }
 
 table.wiki .sidebar sup, table.wiki .sidebar font {
@@ -164,7 +166,7 @@ table.wiki .sidebar sup, table.wiki .sidebar font {
 
 table.wiki .toc-list {
     margin-bottom: 0.75em;
-    white-space: nowrap;
+    white-space: normal;
     list-style-type: decimal;
     font-size: 14px;
 }
@@ -207,7 +209,7 @@ table.wiki img {
 }
 
 .stick {
-    position: fixed;
+    position: sticky;
     top: 2em;
     display: block;
 }
@@ -344,4 +346,10 @@ table.wiki img {
 
 .gitter-button i {
     font-size: 1.2em;
+}
+
+@media (min-width: 1500px){
+    .container {
+        width: 1500px;
+    }
 }

@@ -46,7 +46,7 @@ class TestLocScAppium(unittest.TestCase, ):
         (self.vars, self.driver, self.wnd_mng, self.frm_mng) = apiritif.get_from_thread_store()
 
     def test_1_(self):
-        with apiritif.transaction('/'):
+        with apiritif.transaction_logged('/'):
             self.driver.get('http://blazedemo.com/')
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, "//input[@type='submit']")), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
             self.assertEqual(self.driver.title, 'BlazeDemo')
@@ -55,7 +55,7 @@ class TestLocScAppium(unittest.TestCase, ):
             self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
 
     def test_2_empty(self):
-        with apiritif.transaction('empty'):
+        with apiritif.transaction_logged('empty'):
             pass
 
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
