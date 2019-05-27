@@ -716,6 +716,18 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual("100.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
+    def test_default_iteartions(self):
+        self.configure({'execution': {
+            'concurrency': 1,
+            'scenario': {
+                'requests': ['http://blazedemo.com']}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+
+        path = './/stringProp[@name="LoopController.loops"]'
+        iterations = int(xml_tree.find(path).text)
+        self.assertEqual(1, iterations)
+
     def test_add_cookies(self):
         self.configure({'execution': {
             'scenario': {
