@@ -28,7 +28,7 @@ from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSampl
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type
-from bzt.utils import FileReader, get_full_path, RESOURCES_DIR, BZT_DIR
+from bzt.utils import FileReader, get_full_path, RESOURCES_DIR, BZT_DIR, get_assembled_value
 from .generators import ApiritifScriptGenerator
 from .tools import TaurusPytestRunner, TaurusRobotRunner, Robot
 
@@ -91,21 +91,17 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             generate_markers = self.settings.get('generate-flow-markers', None)
             generate_markers = scenario.get('generate-flow-markers', generate_markers)
 
-            capabilities = copy.deepcopy(self.settings.get("capabilities"))
-            capabilities.merge(copy.deepcopy(self.execution.get("capabilities")))
-
-            scenario_caps = copy.deepcopy(scenario.get("capabilities"))
+            scenario_caps = scenario.get("capabilities")
 
             # todo: just for legacy support, remove it later
             if isinstance(scenario_caps, list):
                 self.log.warning("Obsolete format of capabilities found (list), should be dict")
-                scenario_caps = {item.keys()[0]: item.values()[0] for item in scenario_caps}
+                scenario["capabilities"] = {item.keys()[0]: item.values()[0] for item in scenario_caps}
 
-            capabilities.merge(scenario_caps)
+            configs = (self.settings, scenario, self.execution)
 
-            remote = self.settings.get("remote", None)
-            remote = self.execution.get("remote", remote)
-            remote = scenario.get("remote", remote)
+            capabilities = get_assembled_value(configs, "capabilities")
+            remote = get_assembled_value(configs, "remote")
 
             builder = ApiritifScriptGenerator(
                 self.engine, scenario, self.label, self.log, wdlog,
