@@ -1234,6 +1234,8 @@ class JMX(object):
         :type path: str
         :type delimiter: str
         :type is_quoted: bool
+        :type loop: bool
+        :type variable_names: string
         :return:
         """
         element = etree.Element("CSVDataSet", guiclass="TestBeanGUI",
@@ -1244,6 +1246,39 @@ class JMX(object):
         element.append(JMX._bool_prop("recycle", loop))
         element.append(JMX._bool_prop("stopThread", not loop))
         element.append(JMX._string_prop("variableNames", variable_names))
+
+        return element
+
+    @staticmethod
+    def _get_csv_config_random(path, delimiter, loop, variable_names, random_order, encoding, same_list):
+        """
+
+        :type path: str
+        :type delimiter: str
+        :type loop: bool
+        :type variable_names: string
+        :type random_order: bool
+        :type encoding: str
+        :type same_list: bool
+        :return:
+        """
+        element = etree.Element("com.blazemeter.jmeter.RandomCSVDataSetConfig",
+                                guiclass="com.blazemeter.jmeter.RandomCSVDataSetConfigGui",
+                                testclass="com.blazemeter.jmeter.RandomCSVDataSetConfig",
+                                testname="bzm - Random CSV Data Set Config")
+        element.append(JMX._string_prop("filename", path))
+        element.append(JMX._string_prop("fileEncoding", encoding))
+        element.append(JMX._string_prop("delimiter", delimiter))
+        element.append(JMX._string_prop("variableNames", variable_names))
+        element.append(JMX._bool_prop("randomOrder", random_order))
+
+        if variable_names:
+            element.append(JMX._bool_prop("ignoreFirstLine", False))
+        else:
+            element.append(JMX._bool_prop("ignoreFirstLine", True))
+
+        element.append(JMX._bool_prop("rewindOnTheEndOfList", loop))
+        element.append(JMX._bool_prop("independentListPerThread", not same_list))
 
         return element
 
