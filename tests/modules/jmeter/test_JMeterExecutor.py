@@ -2316,8 +2316,7 @@ class TestJMeterExecutor(ExecutorTestCase):
                         "path": RESOURCES_DIR + "test1.csv",
                         "variable-names": "first,second",
                         "random-order": True,
-                        "loop": False,
-                        "same-vals-for-all": False}],
+                        "loop": False}],
                     "requests": [
                         "http://example.com/${test1}"]}}})
         self.obj.prepare()
@@ -2334,8 +2333,6 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual(ignore_first_line.text, "false")
         rewind_list_end = dataset.find('boolProp[@name="rewindOnTheEndOfList"]')
         self.assertEqual(rewind_list_end.text, "false")
-        independent_list = dataset.find('boolProp[@name="independentListPerThread"]')
-        self.assertEqual(independent_list.text, "true")
 
     def test_data_sources_jmx_gen_stop(self):
         self.configure({
