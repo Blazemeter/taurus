@@ -225,24 +225,24 @@ It's possible to use follow specific values for choosing of `think-time`:
 * poisson(10s, 3s): poisson distribution, mean is 10s and range of values starts from 3s.
 
 ### Data sources
-Data sampling happens with help of CSV file, the name of which must be put after the `path` keyword.
-Here is the full list of options with the comments, which shows how to use them:
+Taurus allowes you to use external CSV files for testing purposes.     
+Here is a full list of options for this:
 ```yaml
 scenarios:
   quick-test:
     requests:
-    - http://blazedemo.com/${id}-{name}
+    - http://blazedemo.com/${id}-${name}
     data-sources:
-    - path: path/to/another.csv  # this is full form, path option is required
+    - path: path/to/another.csv  # this is full form, the only one required option
       delimiter: ';'  # CSV delimiter, auto-detected by default
       quoted: false  # allow quoted data; ignored when random-order is true
-      loop: true  # loop over in case of end-of-file reached if true, stop executing if false
+      loop: true  # loop over in case of end-of-file reached if true, stop executing if false; true by default
       variable-names: id,name  # delimiter-separated list of variable names, empty by default
-      random-order: true # enables randomizing plugin; required option for this mode
+      random-order: true # enables randomizing plugin; false by default
 ```
-When `random-order` is `false`, data extraction willl proceed in direct manner. Data lines, which contain delimeters, will be read from the top down to the bottom, just the way they were written. Otherwise, the data will be extracted in a random way. 
+When `random-order` is `false`, data extraction will proceed in direct manner. Data lines, which contain delimeters, will be read from the top down to the bottom, just the way they were written. Otherwise, the data will be extracted in a random way. 
 
-Also `variable-names` can be ommited. In such case the first line of CSV file will be used as a header.
+Also `variable-names` can be ommited. In such case the first line of CSV file will be used as variable names.
 
 ### Requests
 

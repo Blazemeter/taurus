@@ -678,15 +678,12 @@ class JMeterScenarioBuilder(JMX):
                 if not delimiter:
                     delimiter = guess_delimiter(source_path)
 
-            random_parameter = source.get("random-order")
-            if not random_parameter:
-                config = JMX._get_csv_config(source_path, delimiter, source.get("quoted", False),
-                                             source.get("loop", True), source.get("variable-names", ""))
+            if not source.get("random-order"):
+                config = JMX._get_csv_config(source_path, delimiter, source.get("loop", True),
+                                             source.get("variable-names", ""),  source.get("quoted", False))
             else:
                 config = JMX._get_csv_config_random(source_path, delimiter, source.get("loop", True),
-                                                    source.get("variable-names", ""), random_parameter,
-                                                    source.get("encoding", "UTF-8"),
-                                                    source.get("same-vals-for-all", True))
+                                                    source.get("variable-names", ""), True)
             elements.append(config)
             elements.append(etree.Element("hashTree"))
         return elements

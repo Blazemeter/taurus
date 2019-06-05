@@ -1228,7 +1228,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_csv_config(path, delimiter, is_quoted, loop, variable_names):
+    def _get_csv_config(path, delimiter, loop, variable_names, is_quoted):
         """
 
         :type path: str
@@ -1250,7 +1250,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_csv_config_random(path, delimiter, loop, variable_names, random_order, encoding, same_list):
+    def _get_csv_config_random(path, delimiter, loop, variable_names, random_order):
         """
 
         :type path: str
@@ -1267,18 +1267,13 @@ class JMX(object):
                                 testclass="com.blazemeter.jmeter.RandomCSVDataSetConfig",
                                 testname="bzm - Random CSV Data Set Config")
         element.append(JMX._string_prop("filename", path))
-        element.append(JMX._string_prop("fileEncoding", encoding))
+        element.append(JMX._string_prop("fileEncoding", "UTF-8"))
         element.append(JMX._string_prop("delimiter", delimiter))
         element.append(JMX._string_prop("variableNames", variable_names))
         element.append(JMX._bool_prop("randomOrder", random_order))
-
-        if variable_names:
-            element.append(JMX._bool_prop("ignoreFirstLine", False))
-        else:
-            element.append(JMX._bool_prop("ignoreFirstLine", True))
-
+        element.append(JMX._bool_prop("ignoreFirstLine", False if variable_names else True))
         element.append(JMX._bool_prop("rewindOnTheEndOfList", loop))
-        element.append(JMX._bool_prop("independentListPerThread", not same_list))
+        element.append(JMX._bool_prop("independentListPerThread", False))
 
         return element
 
