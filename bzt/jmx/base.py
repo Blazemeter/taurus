@@ -1250,16 +1250,13 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_csv_config_random(path, delimiter, loop, variable_names, random_order):
+    def _get_csv_config_random(path, delimiter, loop, variable_names):
         """
 
         :type path: str
         :type delimiter: str
         :type loop: bool
         :type variable_names: string
-        :type random_order: bool
-        :type encoding: str
-        :type same_list: bool
         :return:
         """
         element = etree.Element("com.blazemeter.jmeter.RandomCSVDataSetConfig",
@@ -1270,7 +1267,7 @@ class JMX(object):
         element.append(JMX._string_prop("fileEncoding", "UTF-8"))
         element.append(JMX._string_prop("delimiter", delimiter))
         element.append(JMX._string_prop("variableNames", variable_names))
-        element.append(JMX._bool_prop("randomOrder", random_order))
+        element.append(JMX._bool_prop("randomOrder", True))
         element.append(JMX._bool_prop("ignoreFirstLine", False if variable_names else True))
         element.append(JMX._bool_prop("rewindOnTheEndOfList", loop))
         element.append(JMX._bool_prop("independentListPerThread", False))
