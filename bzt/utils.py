@@ -1121,9 +1121,9 @@ class HTTPClient(object):
     def download_file(self, url, filename, reporthook=None, data=None, timeout=None):
         headers = None
         try:
-            with self.session.get(url, stream=True, data=data, timeout=timeout) as conn:
-                self._save_file_from_connection(conn, filename, reporthook=reporthook)
-                headers = conn.headers
+            conn = self.session.get(url, stream=True, data=data, timeout=timeout)
+            self._save_file_from_connection(conn, filename, reporthook=reporthook)
+            headers = conn.headers
         except requests.exceptions.RequestException as exc:
             resp = exc.response
             self.log.debug("File download resulted in exception: %s", traceback.format_exc())
