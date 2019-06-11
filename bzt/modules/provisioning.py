@@ -35,8 +35,9 @@ class Local(Provisioning):
 
     def __init__(self):
         super(Local, self).__init__()
-        self.finished_modules = []
         self.start_time = None
+        self.available_slots = None
+        self.finished_modules = []
 
     def _get_start_shift(self, shift):
         if not shift:
@@ -73,40 +74,33 @@ class Local(Provisioning):
 
     def startup(self):
         self.start_time = time.time()
-        prev_executor = 0
-        for executor in self.executors:
-            if self.settings.get("sequential", False):
-                executor.delay = prev_executor
-            else:
-                start_at = executor.execution.get('start-at', 0)
-                start_shift = self._get_start_shift(start_at)
-                delay = dehumanize_time(executor.execution.get('delay', 0))
-                executor.delay = delay + start_shift
-                msg = "Delay setup for %s: %s(start-at) + %s(delay) = %s"
-                self.log.debug(msg, executor, start_shift, delay, executor.delay)
 
-            prev_executor = executor
+        self.available_slots = self.settings.get("capacity", None)
+        if self.available_slots is None:
+            if self.settings.get("sequential", False):
+                self.available_slots = 1
+            self.available_slots = sys.maxsize      # no limit
+
+        for executor in self.executors:
+            start_at = executor.execution.get('start-at', 0)
+            start_shift = self._get_start_shift(start_at)
+            delay = dehumanize_time(executor.execution.get('delay', 0))
+            executor.delay = delay + start_shift
+            msg = "Delay setup for %s: %s(start-at) + %s(delay) = %s"
+            self.log.debug(msg, executor, start_shift, delay, executor.delay)
 
     def _start_modules(self):
-        prev_executor = None
         for executor in self.executors:
             if executor in self.engine.prepared and executor not in self.engine.started:  # needs to start
                 self.engine.logging_level_up()
-                if isinstance(executor.delay, numeric_types):
-                    timed_start = time.time() >= self.start_time + executor.delay
-                else:
-                    timed_start = False
 
-                relies_on_prev = prev_executor and executor.delay == prev_executor
-                start_from_prev = relies_on_prev and prev_executor in self.finished_modules
-                if not executor.delay or start_from_prev or timed_start:
-                    if start_from_prev or self.settings.get("sequential", False):
+                if self.available_slots:
+                    if time.time() >= self.start_time + executor.delay:
                         self.log.info("Starting next sequential execution: %s", executor)
-                    executor.startup()
-                    self.engine.started.append(executor)
+                        executor.startup()
+                        self.engine.started.append(executor)
+                        self.available_slots -= 1
                 self.engine.logging_level_down()
-
-            prev_executor = executor
 
     def check(self):
         """
@@ -125,6 +119,7 @@ class Local(Provisioning):
 
             if executor.check():
                 self.finished_modules.append(executor)
+                self.available_slots += 1
                 self.log.debug("%s finished", executor)
             else:
                 finished = False
