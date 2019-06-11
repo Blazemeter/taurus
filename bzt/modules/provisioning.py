@@ -23,7 +23,6 @@ import traceback
 
 from bzt import ToolError
 from bzt.engine import Provisioning, SelfDiagnosable
-from bzt.six import numeric_types
 from bzt.six import reraise
 from bzt.utils import dehumanize_time
 
@@ -76,7 +75,7 @@ class Local(Provisioning):
         self.start_time = time.time()
 
         self.available_slots = self.settings.get("capacity", None)
-        if self.available_slots is None:
+        if not self.available_slots:
             if self.settings.get("sequential", False):
                 self.available_slots = 1
             self.available_slots = sys.maxsize      # no limit
@@ -96,10 +95,11 @@ class Local(Provisioning):
                 try:
                     self.engine.logging_level_up()
                     if time.time() >= self.start_time + executor.delay:
-                        self.log.info("Starting next execution: %s, available slots: %s", executor, self.available_slots)
                         executor.startup()
                         self.started_modules.append(executor)
                         self.available_slots -= 1
+                        msg = "Starting execution: %s, rest of available slots: %s"
+                        self.log.debug(msg, executor, self.available_slots)
                         if not self.available_slots:
                             break
                 finally:
