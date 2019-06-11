@@ -1,6 +1,7 @@
 #!/bin/sh
 
 COMPILER_CLASSPATH=
+GATLING_CLASSPATH=
 
 if [ -n "$GATLING_HOME" ]; then
   GATLING_DIR=${GATLING_HOME}/gatling

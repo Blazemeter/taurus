@@ -155,8 +155,10 @@ class TestGatlingExecutor(ExecutorTestCase):
                 self.assertTrue(line.startswith('eval'))
             if line.startswith('set COMPILER_CLASSPATH='):  # win
                 self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
-            if line.startswith('COMPILER_CLASSPATH='):  # linux
-                self.assertTrue('${COMPILATION_CLASSPATH}"\n')
+            if line.startswith('COMPILER_CLASSPATH'):  # linux
+                self.assertTrue(line.endswith('${COMPILATION_CLASSPATH}"\n'))
+            if line.startswith('GATLING_CLASSPATH'):  # linux
+                self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
 
     def test_install_Gatling(self):
         path = os.path.abspath(BUILD_DIR + "gatling-taurus/bin/gatling" + EXE_SUFFIX)
