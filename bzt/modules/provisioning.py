@@ -78,7 +78,8 @@ class Local(Provisioning):
         if not self.available_slots:
             if self.settings.get("sequential", False):
                 self.available_slots = 1
-            self.available_slots = sys.maxsize      # no limit
+            else:
+                self.available_slots = sys.maxsize      # no limit
 
         for executor in self.executors:
             start_at = executor.execution.get('start-at', 0)
@@ -92,18 +93,17 @@ class Local(Provisioning):
         if self.available_slots:
             non_started_executors = [e for e in self.executors if e not in self.started_modules]
             for executor in non_started_executors:
-                try:
-                    self.engine.logging_level_up()
-                    if time.time() >= self.start_time + executor.delay:
-                        executor.startup()
-                        self.started_modules.append(executor)
-                        self.available_slots -= 1
-                        msg = "Starting execution: %s, rest of available slots: %s"
-                        self.log.debug(msg, executor, self.available_slots)
-                        if not self.available_slots:
-                            break
-                finally:
-                    self.engine.logging_level_down()
+                self.engine.logging_level_up()
+                if time.time() >= self.start_time + executor.delay:
+                    executor.startup()
+                    self.started_modules.append(executor)
+                    self.available_slots -= 1
+                    msg = "Starting execution: %s, rest of available slots: %s"
+                    self.log.debug(msg, executor, self.available_slots)
+                    if not self.available_slots:
+                        break
+
+                self.engine.logging_level_down()
 
     def check(self):
         """
