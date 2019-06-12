@@ -191,6 +191,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         prov = Local()
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
+        prov.started_modules = [self.obj]
         self.obj.engine.provisioning = prov
         self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
