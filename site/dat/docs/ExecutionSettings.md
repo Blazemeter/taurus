@@ -123,6 +123,7 @@ modules:
     capacity: 3  # no limit by default
 ```
 It means "don't start forth executor until one of the previous finished"
+
 Note: `sequential` is equivalent to `capacity: 1`    
 
 You can run different executions at different times with `delay` option:
