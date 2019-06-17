@@ -481,15 +481,23 @@ class TestGatlingExecutor(ExecutorTestCase):
             os.chdir(curdir)
 
     def test_data_sources(self):
+        csv1 = RESOURCES_DIR + "test1.csv"
+        csv2 = RESOURCES_DIR + "test2.csv"
+
         self.obj.execution.merge({
             "scenario": {
                 "data-sources": [{
-                    "path": RESOURCES_DIR + "test1.csv",
+                    "path": csv1,
+                    "loop": False,
                     "delimiter": ","
-                }],
+                }, csv2],
                 "requests": ["http://blazedemo.com/?tag=${col1}"],
             }
         })
+
+        path = os.path.abspath(RESOURCES_DIR + "gatling/gatling3" + EXE_SUFFIX)
+        self.obj.settings.merge({"path": path, "version": "3.1"})
+
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
         self.assertFilesEqual(RESOURCES_DIR + "gatling/generated_data_sources.scala", scala_file,
