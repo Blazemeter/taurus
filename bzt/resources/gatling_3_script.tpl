@@ -15,9 +15,9 @@ class %(class_name)s extends Simulation {
 
   var httpConf = http.baseUrl%(httpConf)s
   var testScenario = scenario("Taurus Scenario")
+%(feeders)s
+  var execution = %(scenarioFeeds)s%(_exec)s
 
-  var execution = %(_exec)s
-%(feeders)s%(scenarioFeeds)s
   if (iterationLimit == null)
     testScenario = testScenario.forever{execution}
   else

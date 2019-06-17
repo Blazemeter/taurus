@@ -211,6 +211,9 @@ class GatlingScriptBuilder(object):
                 line += '.circular'
             feeder_defs += line + '\n'
 
+        if feeder_defs:
+            feeder_defs = '\n' + feeder_defs
+
         return feeder_defs
 
     def _get_scenario_feeds(self):
@@ -219,7 +222,8 @@ class GatlingScriptBuilder(object):
             source_path = source["path"]
             source_name = os.path.basename(source_path)
             varname = self._get_feeder_name(source_name)
-            feeds += self.indent(".feed(%s)" % varname, level=2) + '\n'
+            feeds += "feed(%s)." % varname
+
         return feeds
 
     def gen_test_case(self):
