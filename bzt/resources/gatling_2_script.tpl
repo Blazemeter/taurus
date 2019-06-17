@@ -13,12 +13,11 @@ class %(class_name)s extends Simulation {
 
   val durationLimit = rampUpTime + holdForTime
 
-%(feeders)s
   var httpConf = http.baseURL%(httpConf)s
   var testScenario = scenario("Taurus Scenario")
-%(scenarioFeeds)s
-  var execution = %(_exec)s
 
+  var execution = %(_exec)s
+%(feeders)s%(scenarioFeeds)s
   if (iterationLimit == null)
     testScenario = testScenario.forever{execution}
   else
