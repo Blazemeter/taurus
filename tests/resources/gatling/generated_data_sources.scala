@@ -13,16 +13,18 @@ class SIMNAME extends Simulation {
 
   val durationLimit = rampUpTime + holdForTime
 
-  val test1Feed = separatedValues("test1.csv", ',').circular
-
   var httpConf = http.baseURL("")
 
   var testScenario = scenario("Taurus Scenario")
-    .feed(test1Feed)
 
   var execution = exec(
     http("http://blazedemo.com/?tag=${col1}").get("http://blazedemo.com/?tag=${col1}")
   )
+
+  val test1Feed = separatedValues("test1.csv", ',')
+  val test2Feed = csv("test2.csv").circular
+
+  execution = feed(test1Feed).feed(test2Feed).execution
 
   if (iterationLimit == null)
     testScenario = testScenario.forever{execution}

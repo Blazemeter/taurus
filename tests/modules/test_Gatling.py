@@ -481,12 +481,16 @@ class TestGatlingExecutor(ExecutorTestCase):
             os.chdir(curdir)
 
     def test_data_sources(self):
+        csv1 = RESOURCES_DIR + "test1.csv"
+        csv2 = RESOURCES_DIR + "test2.csv"
+
         self.obj.execution.merge({
             "scenario": {
                 "data-sources": [{
-                    "path": RESOURCES_DIR + "test1.csv",
+                    "path": csv1,
+                    "loop": False,
                     "delimiter": ","
-                }],
+                }, csv2],
                 "requests": ["http://blazedemo.com/?tag=${col1}"],
             }
         })
