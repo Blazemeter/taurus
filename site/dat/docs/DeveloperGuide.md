@@ -7,18 +7,21 @@
  1. All changes must be covered with unit tests, no broken tests in master ![](https://api.travis-ci.org/Blazemeter/taurus.svg?branch=master&ext=.svg)  ![](https://ci.appveyor.com/api/projects/status/github/Blazemeter/taurus?svg=true&ext=.svg) 
  
 # Release Process
- - make sure you're on master and did `git pull && git push`
- - Compile [Changelog.md](Changelog) record from `.change` files, send announce if needed
- - ... code freeze ... 
+ - make sure you're on up-to-date master
+ - Compile [Changelog.md](Changelog) record 
+   - use `.change` files, remove them later
+   - set version and date
  - make sure DockerHub image builds for master
- - make sure you're on master and did `git pull`
- - Modify [Changelog.md](Changelog), set version and date
+ - send announce if needed 
+ - ... code freeze ... 
  - Set correct version in `bzt/\_\_init\_\_.py`
+ - Set `Release <version>` as commit name
  - publish release to PyPi: `./dockerized-release.sh`
  - Create git tag, make `git push`, including tag
  - site is updated automatically by Jenkins
  - make sure DockerHub image for release tag is built
  - notify all interested parties (Twitter, mailing lists)
+ - build and deploy brew formula
  
 # Debugging Project Website 
 
