@@ -1616,10 +1616,13 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         for index, reporter in enumerate(reporting):
             exc = TaurusConfigError("'module' attribute not found in %s" % reporter)
             cls = reporter.get('module', exc)
-            if cls == 'blazemeter':
+            if cls == "blazemeter":
                 self.log.warning("Explicit blazemeter reporting is skipped for cloud")
+            elif cls == "passfail":
+                self.log.warning("Passfail has no effect for cloud, skipped")
             else:
                 new_reporting.append(reporter)
+
         self.engine.config[Reporter.REP] = new_reporting
 
     @staticmethod
