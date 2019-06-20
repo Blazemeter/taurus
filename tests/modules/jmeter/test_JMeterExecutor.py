@@ -2675,7 +2675,16 @@ class TestJMeterExecutor(ExecutorTestCase):
             }
         })
         self.obj.prepare()
-        self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
+        new_sc_name = "TestSuite 1-index"
+        self.assertIn(new_sc_name, self.obj.engine.config["scenarios"])
+
+        # update execution.scenario
+        self.assertEqual(new_sc_name, self.obj.execution["scenario"])
+
+        # don't parse soapui xml twice
+        self.obj.engine.config["scenarios"]["project.xml"]["script"] = ""
+        new_sc = self.obj.get_scenario()
+        self.assertIn("requests", new_sc)
 
     def test_soapui_renaming(self):
         self.configure({
