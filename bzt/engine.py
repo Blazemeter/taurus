@@ -18,10 +18,8 @@ limitations under the License.
 import codecs
 import copy
 import datetime
-import hashlib
 import json
 import logging
-import math
 import os
 import pkgutil
 import re
@@ -32,22 +30,23 @@ import time
 import traceback
 import uuid
 from abc import abstractmethod
-from collections import namedtuple, defaultdict
+from collections import defaultdict
 from distutils.version import LooseVersion
 from json import encoder
 
+import math
 import yaml
 from yaml import SafeDumper
 from yaml.representer import SafeRepresenter
 
 import bzt
+from bzt.names import EXEC
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
-from bzt import ToolError
 from bzt.requests_model import RequestParser
-from bzt.six import numeric_types, string_types, text_type, PY2, UserDict, parse, reraise
-from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
+from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
-from bzt.utils import str_representer, Environment, RequiredTool, parse_think_time
+from bzt.utils import shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
+from bzt.utils import str_representer, Environment, parse_think_time
 
 TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
 
@@ -135,10 +134,10 @@ class Engine(object):
         return merged_config
 
     def unify_config(self):
-        executions = self.config.get(ScenarioExecutor.EXEC, [])
+        executions = self.config.get(EXEC, [])
         if isinstance(executions, dict):
             executions = [executions]
-            self.config[ScenarioExecutor.EXEC] = executions
+            self.config[EXEC] = executions
 
         settings = self.config.get(SETTINGS)
         default_executor = settings.get("default-executor", None)
@@ -996,6 +995,7 @@ class Provisioning(EngineModule):
 
     def __init__(self):
         super(Provisioning, self).__init__()
+        self.extend_configs = False
         self.executors = []
         self.disallow_empty_execution = True
 
@@ -1007,7 +1007,7 @@ class Provisioning(EngineModule):
         super(Provisioning, self).prepare()
 
         exc = TaurusConfigError("No 'execution' is configured. Did you forget to pass config files?")
-        executions = self.engine.config.get(ScenarioExecutor.EXEC, [])
+        executions = self.engine.config.get(EXEC, [])
         if not executions and self.disallow_empty_execution:
             raise exc
 
@@ -1015,7 +1015,6 @@ class Provisioning(EngineModule):
             instance = self.engine.instantiate_module(execution.get("executor"))
             instance.provisioning = self
             instance.execution = execution
-            assert isinstance(instance, ScenarioExecutor)
             self.executors.append(instance)
 
 
@@ -1032,232 +1031,6 @@ class FileLister(object):
         :rtype: list
         """
         pass
-
-
-class ScenarioExecutor(EngineModule):
-    """
-    :type provisioning: engine.Provisioning
-    :type execution: BetterDict
-    """
-
-    RAMP_UP = "ramp-up"
-    HOLD_FOR = "hold-for"
-    CONCURR = "concurrency"
-    THRPT = "throughput"
-    EXEC = "execution"
-    STEPS = "steps"
-    LOAD_FMT = namedtuple("LoadSpec", "concurrency throughput ramp_up hold iterations duration steps")
-
-    def __init__(self):
-        super(ScenarioExecutor, self).__init__()
-        self.env = Environment(log=self.log)
-        self.provisioning = None
-        self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
-        self.__scenario = None
-        self.label = None
-        self.widget = None
-        self.reader = None
-        self.stdout = None
-        self.stderr = None
-        self.delay = None
-        self.start_time = None
-        self.preprocess_args = lambda x: None
-
-    def _get_tool(self, tool, **kwargs):
-        instance = tool(env=self.env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
-        assert isinstance(instance, RequiredTool)
-
-        return instance
-
-    def has_results(self):
-        if self.reader and self.reader.buffer:
-            return True
-        else:
-            return False
-
-    def get_script_path(self, required=False, scenario=None):
-        """
-        :type required: bool
-        :type scenario: Scenario
-        """
-        if scenario is None:
-            scenario = self.get_scenario()
-
-        if required:
-            exc = TaurusConfigError("You must provide script for %s" % self)
-            script = scenario.get(Scenario.SCRIPT, exc)
-        else:
-            script = scenario.get(Scenario.SCRIPT)
-
-        if script:
-            script = self.engine.find_file(script)
-            scenario[Scenario.SCRIPT] = script
-
-        return script
-
-    def get_scenario(self, name=None, cache_scenario=True):
-        """
-        Returns scenario dict, extract if scenario is inlined
-
-        :return: DictOfDicts
-        """
-        if name is None and self.__scenario is not None:
-            return self.__scenario
-
-        scenarios = self.engine.config.get("scenarios", force_set=True)
-
-        if name is None:  # get current scenario
-            exc = TaurusConfigError("Scenario is not found in execution: %s" % self.execution)
-            label = self.execution.get('scenario', exc)
-
-            is_script = isinstance(label, string_types) and label not in scenarios and \
-                        os.path.exists(self.engine.find_file(label))
-            if isinstance(label, list):
-                msg = "Invalid content of scenario, list type instead of dict or string: %s"
-                raise TaurusConfigError(msg % label)
-            if isinstance(label, dict) or is_script:
-                self.log.debug("Extract %s into scenarios" % label)
-                if isinstance(label, string_types):
-                    scenario = BetterDict.from_dict({Scenario.SCRIPT: label})
-                else:
-                    scenario = label
-
-                path = self.get_script_path(scenario=Scenario(self.engine, scenario))
-                if path:
-                    label = os.path.basename(path)
-                if not path or label in scenarios:
-                    hash_str = str(hashlib.md5(to_json(scenario).encode()).hexdigest())
-                    label = 'autogenerated_' + hash_str[-10:]
-
-                scenarios[label] = scenario
-                self.execution['scenario'] = label
-
-            self.label = label
-        else:  # get scenario by name
-            label = name
-
-        exc = TaurusConfigError("Scenario '%s' not found in scenarios: %s" % (label, scenarios.keys()))
-        scenario = scenarios.get(label, exc)
-        scenario_obj = Scenario(self.engine, scenario)
-
-        if name is None and cache_scenario:
-            self.__scenario = scenario_obj
-
-        return scenario_obj
-
-    def get_raw_load(self):
-        prov_type = self.engine.config.get(Provisioning.PROV)
-
-        for param in (ScenarioExecutor.THRPT, ScenarioExecutor.CONCURR):
-            ensure_is_dict(self.execution, param, prov_type)
-
-        throughput = self.execution.get(ScenarioExecutor.THRPT).get(prov_type, None)
-        concurrency = self.execution.get(ScenarioExecutor.CONCURR).get(prov_type, None)
-
-        iterations = self.execution.get("iterations", None)
-
-        steps = self.execution.get(ScenarioExecutor.STEPS, None)
-
-        hold = self.execution.get(ScenarioExecutor.HOLD_FOR, None)
-        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
-
-        return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
-                             iterations=iterations, duration=None, steps=steps)
-
-    def get_load(self):
-        """
-        Helper method to read load specification
-        """
-
-        def eval_int(value):
-            try:
-                return int(value)
-            except (ValueError, TypeError):
-                return value
-
-        def eval_float(value):
-            try:
-                return int(value)
-            except (ValueError, TypeError):
-                return value
-
-        raw_load = self.get_raw_load()
-
-        iterations = eval_int(raw_load.iterations)
-        ramp_up = raw_load.ramp_up
-
-        throughput = eval_float(raw_load.throughput or 0)
-        concurrency = eval_int(raw_load.concurrency or 0)
-
-        steps = eval_int(raw_load.steps)
-        hold = dehumanize_time(raw_load.hold or 0)
-
-        if ramp_up is None:
-            duration = hold
-        else:
-            ramp_up = dehumanize_time(raw_load.ramp_up)
-            duration = hold + ramp_up
-
-        if not iterations:
-            if duration:
-                iterations = 0  # infinite
-            else:
-                iterations = 1
-
-        msg = ''
-        if not isinstance(concurrency, numeric_types + (type(None),)):
-            msg += "Invalid concurrency value[%s]: %s " % (type(concurrency).__name__, concurrency)
-        if not isinstance(throughput, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(throughput).__name__, throughput)
-        if not isinstance(steps, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(steps).__name__, steps)
-        if not isinstance(iterations, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(iterations).__name__, iterations)
-
-        if msg:
-            raise TaurusConfigError(msg)
-
-        return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
-                             iterations=iterations, duration=duration, steps=steps)
-
-    def get_resource_files(self):
-        files_list = []
-        if isinstance(self, FileLister):
-            files_list.extend(self.resource_files())
-        files_list.extend(self.execution.get("files", []))
-        return files_list
-
-    def __repr__(self):
-        return "%s/%s" % (self.execution.get("executor", None), self.label if self.label else id(self))
-
-    def prepare(self):
-        super(ScenarioExecutor, self).prepare()
-        self.env.set(self.execution.get("env"))
-
-    def _execute(self, args, **kwargs):
-        self.preprocess_args(args)
-
-        # for compatibility with other executors
-        kwargs["stdout"] = kwargs.get("stdout", self.stdout) or PIPE
-        kwargs["stderr"] = kwargs.get("stderr", self.stderr) or PIPE
-
-        kwargs["cwd"] = kwargs.get("cwd", None)
-        kwargs["env"] = self.env
-
-        self.start_time = time.time()
-
-        try:
-            process = self.engine.start_subprocess(args=args, **kwargs)
-        except OSError as exc:
-            raise ToolError("Failed to start %s: %s (%s)" % (self.__class__.__name__, exc, args))
-        return process
-
-    def post_process(self):
-        if self.stdout:
-            self.stdout.close()
-        if self.stderr:
-            self.stderr.close()
-        super(ScenarioExecutor, self).post_process()
 
 
 class Reporter(EngineModule):

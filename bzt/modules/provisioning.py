@@ -34,6 +34,7 @@ class Local(Provisioning):
 
     def __init__(self):
         super(Local, self).__init__()
+        self.extend_configs = True
         self.start_time = None
         self.available_slots = None
         self.finished_modules = []
