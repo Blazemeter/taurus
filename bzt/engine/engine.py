@@ -40,17 +40,14 @@ from yaml import SafeDumper
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt.names import EXEC
+from .names import EXEC, TAURUS_ARTIFACTS_DIR, SETTINGS
+from .modules import Provisioning, Reporter, Service, Aggregator, EngineModule
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
 from bzt.requests_model import RequestParser
 from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import str_representer, Environment, parse_think_time
-
-TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
-
-SETTINGS = "settings"
 
 
 class Engine(object):
@@ -917,107 +914,6 @@ else:
     pass  # TODO: how to implement it?
 
 
-class EngineModule(object):
-    """
-    Base class for any BZT engine module
-
-    :type engine: Engine
-    :type settings: BetterDict
-    """
-
-    def __init__(self):
-        self.log = logging.getLogger('')
-        self.engine = None
-        self.settings = BetterDict()
-        self.parameters = BetterDict()
-
-    def prepare(self):
-        """
-        Preparation stage, at which configuration is being read, configs
-        and tools being prepared. All long preparations and checks should be
-        made here, to make `startup` stage as fast as possible.
-        """
-        pass
-
-    def startup(self):
-        """
-        Startup should be as fast as possible. Launch background processes,
-        do some API calls for initiation of actual work. Consider making all
-        checks and preparations on `prepare` stage.
-        """
-        pass
-
-    def check(self):
-        """
-        Check if work should be finished
-
-        :rtype: bool
-        :return: True if should be finished
-        """
-        return False
-
-    def shutdown(self):
-        """
-        Stop all processes that were started in `startup` stage.
-        Should also be as fast as possible, deferring all long operations to
-        `post_process` stage.
-        """
-        pass
-
-    def post_process(self):
-        """
-        Do all possibly long analysis and processing on run results
-        """
-        pass
-
-    def _should_run(self):
-        """
-        Returns True if provisioning matches run-at
-        """
-        prov = self.engine.config.get(Provisioning.PROV)
-        runat = self.parameters.get("run-at", None)
-        if runat is not None and prov != runat:
-            self.log.debug("Should not run because of non-matching prov: %s != %s", prov, runat)
-            return False
-        return True
-
-
-class Provisioning(EngineModule):
-    """
-    Base class for any provisioning type. Provisioning is the way to
-    get the resources that will run the job. For example, local provisoning
-    means using local machine to run executors, remote means using
-    remote machines with BZT API nodes on them.
-
-    :type executors: list[ScenarioExecutor]
-    """
-    PROV = "provisioning"
-
-    def __init__(self):
-        super(Provisioning, self).__init__()
-        self.extend_configs = False
-        self.executors = []
-        self.disallow_empty_execution = True
-
-    def prepare(self):
-        """
-        Preparation in provisioning begins with reading executions list
-        and instantiating ScenarioExecutor classes for them
-        """
-        super(Provisioning, self).prepare()
-
-        exc = TaurusConfigError("No 'execution' is configured. Did you forget to pass config files?")
-        executions = self.engine.config.get(EXEC, [])
-        if not executions and self.disallow_empty_execution:
-            raise exc
-
-        for execution in executions:
-            instance = self.engine.instantiate_module(execution.get("executor"))
-            instance.provisioning = self
-            instance.execution = execution
-            self.executors.append(instance)
-
-
 class FileLister(object):
     """
     A mixin to get required files info from executor
@@ -1031,36 +927,6 @@ class FileLister(object):
         :rtype: list
         """
         pass
-
-
-class Reporter(EngineModule):
-    """
-    This type of modules is responsible for
-    in-test and post-test results analysis
-    """
-
-    REP = "reporting"
-
-    def should_run(self):
-        return self._should_run()
-
-
-class Service(EngineModule):
-    """
-    This type of modules is responsible for
-    in-test and post-test results analysis
-    """
-
-    SERV = "services"
-
-    def should_run(self):
-        return self._should_run()
-
-
-class Aggregator(EngineModule):
-    def __init__(self, is_functional):
-        super(Aggregator, self).__init__()
-        self.is_functional = is_functional
 
 
 class Scenario(UserDict, object):

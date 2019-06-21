@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import codecs
+import logging
 import hashlib
 import os
 import time
@@ -23,12 +24,144 @@ from collections import namedtuple
 
 from bzt import TaurusConfigError
 from bzt import ToolError
-from bzt.engine import EngineModule, Scenario, Provisioning, FileLister
+from .engine import Scenario, FileLister
+from .names import EXEC
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.six import numeric_types, string_types
 from bzt.utils import Environment, RequiredTool
 from bzt.utils import PIPE
 from bzt.utils import to_json, BetterDict, ensure_is_dict, dehumanize_time
+
+
+class EngineModule(object):
+    """
+    Base class for any BZT engine module
+
+    :type engine: Engine
+    :type settings: BetterDict
+    """
+
+    def __init__(self):
+        self.log = logging.getLogger('')
+        self.engine = None
+        self.settings = BetterDict()
+        self.parameters = BetterDict()
+
+    def prepare(self):
+        """
+        Preparation stage, at which configuration is being read, configs
+        and tools being prepared. All long preparations and checks should be
+        made here, to make `startup` stage as fast as possible.
+        """
+        pass
+
+    def startup(self):
+        """
+        Startup should be as fast as possible. Launch background processes,
+        do some API calls for initiation of actual work. Consider making all
+        checks and preparations on `prepare` stage.
+        """
+        pass
+
+    def check(self):
+        """
+        Check if work should be finished
+
+        :rtype: bool
+        :return: True if should be finished
+        """
+        return False
+
+    def shutdown(self):
+        """
+        Stop all processes that were started in `startup` stage.
+        Should also be as fast as possible, deferring all long operations to
+        `post_process` stage.
+        """
+        pass
+
+    def post_process(self):
+        """
+        Do all possibly long analysis and processing on run results
+        """
+        pass
+
+    def _should_run(self):
+        """
+        Returns True if provisioning matches run-at
+        """
+        prov = self.engine.config.get(Provisioning.PROV)
+        runat = self.parameters.get("run-at", None)
+        if runat is not None and prov != runat:
+            self.log.debug("Should not run because of non-matching prov: %s != %s", prov, runat)
+            return False
+        return True
+
+
+class Provisioning(EngineModule):
+    """
+    Base class for any provisioning type. Provisioning is the way to
+    get the resources that will run the job. For example, local provisoning
+    means using local machine to run executors, remote means using
+    remote machines with BZT API nodes on them.
+
+    :type executors: list[ScenarioExecutor]
+    """
+    PROV = "provisioning"
+
+    def __init__(self):
+        super(Provisioning, self).__init__()
+        self.extend_configs = False
+        self.executors = []
+        self.disallow_empty_execution = True
+
+    def prepare(self):
+        """
+        Preparation in provisioning begins with reading executions list
+        and instantiating ScenarioExecutor classes for them
+        """
+        super(Provisioning, self).prepare()
+
+        exc = TaurusConfigError("No 'execution' is configured. Did you forget to pass config files?")
+        executions = self.engine.config.get(EXEC, [])
+        if not executions and self.disallow_empty_execution:
+            raise exc
+
+        for execution in executions:
+            instance = self.engine.instantiate_module(execution.get("executor"))
+            instance.provisioning = self
+            instance.execution = execution
+            self.executors.append(instance)
+
+
+class Reporter(EngineModule):
+    """
+    This type of modules is responsible for
+    in-test and post-test results analysis
+    """
+
+    REP = "reporting"
+
+    def should_run(self):
+        return self._should_run()
+
+
+class Service(EngineModule):
+    """
+    This type of modules is responsible for
+    in-test and post-test results analysis
+    """
+
+    SERV = "services"
+
+    def should_run(self):
+        return self._should_run()
+
+
+class Aggregator(EngineModule):
+    def __init__(self, is_functional):
+        super(Aggregator, self).__init__()
+        self.is_functional = is_functional
 
 
 class ScenarioExecutor(EngineModule):

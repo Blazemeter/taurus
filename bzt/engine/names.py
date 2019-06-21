@@ -17,3 +17,6 @@ limitations under the License.
 """
 
 EXEC = "execution"
+SETTINGS = "settings"
+TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
+

@@ -31,7 +31,7 @@ from cssselect import GenericTranslator
 from bzt import TaurusInternalException
 from bzt.cli import CLI
 from bzt.engine import Configuration
-from bzt.names import EXEC
+from bzt.engine import EXEC
 from bzt.jmx import JMX
 from bzt.six import string_types
 from bzt.utils import get_full_path
