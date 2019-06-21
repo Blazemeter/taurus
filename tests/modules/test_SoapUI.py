@@ -1,4 +1,4 @@
-from bzt.modules.soapui import SoapUIScriptConverter
+from bzt.utils import SoapUIScriptConverter
 from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 
 

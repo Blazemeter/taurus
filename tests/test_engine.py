@@ -4,7 +4,7 @@ import sys
 import yaml
 
 from bzt import TaurusConfigError
-from bzt.engine import ScenarioExecutor, Configuration
+from bzt.engine import Configuration, EXEC
 from bzt.six import string_types, communicate
 from bzt.utils import BetterDict, is_windows
 from tests import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase
@@ -303,7 +303,7 @@ class TestScenarioExecutor(ExecutorTestCase):
         self.assertIn(scenario, config['scenarios'])
 
     def test_scenario_not_found(self):
-        self.configure({ScenarioExecutor.EXEC: {
+        self.configure({EXEC: {
             "execution": {
                 "scenario": "non-existent"
             }}})
@@ -341,7 +341,7 @@ class TestScenarioExecutor(ExecutorTestCase):
             self.assertEqual(2, len(results))
 
     def test_get_load(self):
-        self.configure({ScenarioExecutor.EXEC:{
+        self.configure({EXEC:{
             "ramp-up": "1", "concurrency": "2", "throughput": "3"}})
         self.assertEqual(self.obj.execution.get("ramp-up"), "1")
         self.assertEqual(self.obj.execution.get("concurrency"), "2")
@@ -362,7 +362,7 @@ class TestScenarioExecutor(ExecutorTestCase):
         self.assertEqual(self.obj.execution.get("concurrency"), {"local": "22"})
 
     def test_get_load_defaults(self):
-        self.configure({ScenarioExecutor.EXEC: {}})
+        self.configure({EXEC: {}})
         self.assertFalse(self.obj.execution.get("ramp-up"))
         self.assertFalse(self.obj.execution.get("concurrency"))
         self.assertFalse(self.obj.execution.get("throughput"))
@@ -374,7 +374,7 @@ class TestScenarioExecutor(ExecutorTestCase):
         self.assertEqual(load.iterations, 1)
 
     def test_get_load_str(self):
-        self.configure({ScenarioExecutor.EXEC: {
+        self.configure({EXEC: {
             "concurrency": "2",
             "hold-for": "3",
             "ramp-up": "4",
@@ -391,5 +391,5 @@ class TestScenarioExecutor(ExecutorTestCase):
         self.assertEquals(7, load.steps)
 
     def test_get_load_str_fail(self):
-        self.configure({ScenarioExecutor.EXEC: {"concurrency": "2VU"}})
+        self.configure({EXEC: {"concurrency": "2VU"}})
         self.assertRaises(TaurusConfigError, self.obj.get_load)

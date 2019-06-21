@@ -7,7 +7,7 @@ from io import StringIO
 from logging import Handler
 from unittest.case import TestCase
 
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, EXEC
 from bzt.engine import SelfDiagnosable
 from bzt.six import u
 from bzt.utils import get_full_path
@@ -92,7 +92,7 @@ class ExecutorTestCase(BZTestCase):
         self.obj.engine.config.merge({"settings": {"default-executor": "mock"}})
         self.obj.engine.config.merge(config)
         self.obj.engine.unify_config()
-        self.obj.execution = self.obj.engine.config.get(ScenarioExecutor.EXEC)[0]
+        self.obj.execution = self.obj.engine.config.get(EXEC)[0]
 
     def tearDown(self):
         if self.obj.stdout:

@@ -31,9 +31,10 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
+
 from bzt import ManualShutdown, NormalShutdown, RCProvider, TaurusException, AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError, ToolError
-from bzt.engine import Engine, Configuration, ScenarioExecutor, SETTINGS
+from bzt.engine import Engine, Configuration, SETTINGS, EXEC
 from bzt.linter import ConfigurationLinter
 from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
 from bzt.utils import is_int, BetterDict, is_url, RESOURCES_DIR
@@ -353,7 +354,7 @@ class CLI(object):
 
             for jmx_file in jmxes:
                 piece = BetterDict.from_dict({"executor": "jmeter", "scenario": {"script": jmx_file}})
-                config.get(ScenarioExecutor.EXEC, [], force_set=True).append(piece)  # Does it brake single execution?
+                config.get(EXEC, [], force_set=True).append(piece)  # Does it brake single execution?
 
             config.dump(fname, Configuration.JSON)
 
@@ -383,7 +384,7 @@ class CLI(object):
 
             for jtl in jtls:
                 piece = BetterDict.from_dict({"executor": "external-results-loader", "data-file": jtl})
-                config.get(ScenarioExecutor.EXEC, [], force_set=True).append(piece)
+                config.get(EXEC, [], force_set=True).append(piece)
 
             config.dump(fname, Configuration.JSON)
 

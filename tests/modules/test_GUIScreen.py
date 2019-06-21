@@ -1,9 +1,9 @@
 import time
-from unittest import TestCase, skipIf
+from unittest import skipIf
 
 from urwid.canvas import Canvas
 
-from bzt.engine import ManualShutdown
+from bzt import ManualShutdown
 from bzt.modules.console import TaurusConsole
 from bzt.utils import DummyScreen
 from tests import BZTestCase

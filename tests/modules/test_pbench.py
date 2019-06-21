@@ -9,7 +9,7 @@ import yaml
 
 from os.path import join
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor
+from bzt.engine import EXEC
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchGenerator
 from bzt.six import parse, b
@@ -49,7 +49,7 @@ class TestPBenchExecutor(TestPBench):
     def test_simple(self):
         self.configure({
             "provisioning": "test",
-            ScenarioExecutor.EXEC: {
+            EXEC: {
                 "log-responses": "proto_error",
                 # "iterations": 5000000,
                 "concurrency": 10,
@@ -97,7 +97,7 @@ class TestPBenchExecutor(TestPBench):
     def test_widget(self):
         self.configure({
             "provisioning": "test",
-            ScenarioExecutor.EXEC: [
+            EXEC: [
                 {
                     "throughput": 10,
                     "hold-for": 30,
@@ -144,7 +144,7 @@ class TestPBenchExecutor(TestPBench):
 
     def test_pbench_script(self):
         self.configure({
-            ScenarioExecutor.EXEC: {
+            EXEC: {
                 "executor": "pbench",
                 "scenario": {"script": join(RESOURCES_DIR, "pbench", "pbench.src")}
             },
@@ -157,7 +157,7 @@ class TestPBenchExecutor(TestPBench):
         """Verify that enhanced pbench preserves relative script path"""
         script_path = join(RESOURCES_DIR, "pbench", "pbench.src")
         self.configure({
-            ScenarioExecutor.EXEC: {
+            EXEC: {
                 "executor": "pbench",
                 "scenario": {"script": script_path}
             },
@@ -173,7 +173,7 @@ class TestPBenchExecutor(TestPBench):
 
     def test_pbench_payload_py3_crash(self):
         self.configure({
-            ScenarioExecutor.EXEC: {
+            EXEC: {
                 "executor": "pbench",
                 "scenario": {"requests": ["test%d" % i for i in range(20)]}
             },
@@ -184,7 +184,7 @@ class TestPBenchExecutor(TestPBench):
     def test_diagnostics(self):
         self.configure({
             "provisioning": "test",
-            ScenarioExecutor.EXEC: [
+            EXEC: [
                 {
                     "throughput": 10,
                     "hold-for": 30,
@@ -218,7 +218,7 @@ class TestScheduler(TestPBench):
         rampup = 12
         self.configure({
             "provisioning": "test",
-            ScenarioExecutor.EXEC: {"throughput": rps, "ramp-up": rampup, "steps": 3, "hold-for": 0}})
+            EXEC: {"throughput": rps, "ramp-up": rampup, "steps": 3, "hold-for": 0}})
         scheduler = self.get_scheduler(b("4 test\ntest\n"))
 
         cnt = 0
@@ -237,7 +237,7 @@ class TestScheduler(TestPBench):
         ROOT_LOGGER.debug("RPS: %s", currps)
 
     def test_schedule_with_no_rampup(self):
-        self.configure({ScenarioExecutor.EXEC: {"concurrency": 10, "ramp-up": None, "steps": 3, "hold-for": 10}})
+        self.configure({EXEC: {"concurrency": 10, "ramp-up": None, "steps": 3, "hold-for": 10}})
         # this line shouln't throw an exception
         self.get_scheduler(b("4 test\ntest\n"))
 
@@ -250,7 +250,7 @@ class TestScheduler(TestPBench):
         self.assertEqual(1, len(items))
 
     def test_schedule_concurrency(self):
-        self.configure({ScenarioExecutor.EXEC: {"concurrency": 5, "ramp-up": 10, "hold-for": 5}})
+        self.configure({EXEC: {"concurrency": 5, "ramp-up": 10, "hold-for": 5}})
         scheduler = self.get_scheduler(b("5 test1\ntest1\n5 test2\ntest2\n"))
         items = list(scheduler.generate())
         self.assertEqual(8, len(items))
@@ -258,13 +258,13 @@ class TestScheduler(TestPBench):
         self.assertEqual(Scheduler.REC_TYPE_LOOP_START, items[6][5])  # looped payload
 
     def test_schedule_throughput_only(self):
-        self.configure({ScenarioExecutor.EXEC: {"throughput": 5}})
+        self.configure({EXEC: {"throughput": 5}})
         scheduler = self.get_scheduler(b("5 test1\ntest1\n5 test2\ntest2\n"))
         items = list(scheduler.generate())
         self.assertTrue(len(items) > 0)
 
     def test_schedule_concurrency_steps(self):
-        self.configure({ScenarioExecutor.EXEC: {"concurrency": 5, "ramp-up": 10, "steps": 3}})
+        self.configure({EXEC: {"concurrency": 5, "ramp-up": 10, "steps": 3}})
         scheduler = self.get_scheduler(b("5 test1\ntest1\n5 test2\ntest2\n"))
         items = list(scheduler.generate())
         self.assertEqual(8, len(items))
@@ -275,7 +275,7 @@ class TestScheduler(TestPBench):
 class TestSchedulerSize(TestPBench):
     def check_schedule_size_estimate(self, execution):
         self.configure({
-            ScenarioExecutor.EXEC: execution,
+            EXEC: execution,
             "provisioning": "local",
         })
         load = self.obj.get_load()
