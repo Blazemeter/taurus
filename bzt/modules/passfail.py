@@ -29,7 +29,7 @@ from bzt.engine import Reporter
 from bzt.modules.aggregator import KPISet, DataPoint, AggregatorListener, ResultsProvider
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.six import string_types, viewvalues, iteritems
-from bzt.utils import load_class, dehumanize_time, BetterDict
+from bzt.utils import load_class, dehumanize_time, get_bytes_count, BetterDict
 
 
 class CriteriaProcessor(AggregatorListener):
@@ -166,11 +166,12 @@ class FailCriterion(object):
         self.config = config
         self.agg_buffer = OrderedDict()
         self.percentage = str(config['threshold']).endswith('%')
+        self.bytes = get_bytes_count(config.get('threshold', 0)) if config['subject'] == 'bytes' else 0
         self.get_value = self._get_field_functor(config['subject'], self.percentage)
         self.window_logic = config.get('logic', 'for')
         self.agg_logic = self._get_aggregator_functor(self.window_logic, config['subject'])
         self.condition = self._get_condition_functor(config.get('condition', '>', force_set=True))
-        self.threshold = dehumanize_time(config['threshold'])
+        self.threshold = dehumanize_time(config['threshold']) if config['subject'] != 'bytes' else 0
         self.stop = config.get('stop', True)
         self.fail = config.get('fail', True)
         self.message = config.get('message', None)
@@ -353,6 +354,10 @@ class DataCriterion(FailCriterion):
             if percentage:
                 raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
             return lambda x: x[KPISet.SAMPLE_COUNT]
+        elif subject == 'bytes':
+            if percentage:
+                raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
+            return lambda x: x[KPISet.BYTE_COUNT]
         elif subject.startswith('succ'):
             if percentage:
                 return lambda x: 100.0 * x[KPISet.SUCCESSES] / x[KPISet.SAMPLE_COUNT]
