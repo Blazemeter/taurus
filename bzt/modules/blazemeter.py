@@ -41,6 +41,7 @@ from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_REC
 from bzt.engine import Reporter, Provisioning, Configuration, Service
 from bzt.engine import Singletone, SETTINGS
 from bzt.modules.base import ScenarioExecutor
+from bzt.names import EXEC
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
@@ -1580,7 +1581,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         config.filter(CLOUD_CONFIG_BLACK_LIST, black_list=True)
 
-        for execution in config[ScenarioExecutor.EXEC]:
+        for execution in config[EXEC]:
             if execution.get("files") == []:
                 del execution["files"]
 
