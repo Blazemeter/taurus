@@ -1894,6 +1894,40 @@ class SoapUIScriptConverter(object):
         config = test_step.find('./con:config', namespaces=self.NAMESPACES)
         method = config.get('method')
 
+        params = self._parse_parent_resources(config)
+
+        url = self._calc_base_address(test_step) + config.get('resourcePath')
+
+        for param_name in copy.copy(list(params.keys())):
+            template = "{" + param_name + "}"
+            if template in url:
+                param_value = params.pop(param_name)
+                url = url.replace(template, param_value)
+
+        request = {"url": url, "label": label}
+
+        if method is not None and method != "GET":
+            request["method"] = method
+
+        headers = self._extract_headers(config)
+        assertions = self._extract_assertions(config)
+
+        if headers:
+            request["headers"] = headers
+
+        if assertions:
+            request["assert"] = assertions
+
+        body = {}
+        for key, value in iteritems(params):
+            body[key] = value
+
+        if body:
+            request["body"] = body
+
+        return request
+
+    def _parse_parent_resources(self, config):
         method_name = config.get('methodName')
         method_obj = self.interface.find('.//con:method[@name="%s"]' % method_name, namespaces=self.NAMESPACES)
         params = BetterDict()
@@ -1911,40 +1945,10 @@ class SoapUIScriptConverter(object):
 
                 parent = parent.getparent()
 
-        url = self._calc_base_address(test_step) + config.get('resourcePath')
-        headers = self._extract_headers(config)
-        assertions = self._extract_assertions(config)
+        for entry in config.findall('./con:restRequest/con:parameters/con:entry', namespaces=self.NAMESPACES):
+            params.merge({entry.get("key"): entry.get("value")})
 
-        params.merge({
-            entry.get("key"): entry.get("value")
-            for entry in config.findall('./con:restRequest/con:parameters/con:entry', namespaces=self.NAMESPACES)
-        })
-
-        for param_name in copy.copy(list(params.keys())):
-            template = "{" + param_name + "}"
-            if template in url:
-                param_value = params.pop(param_name)
-                url = url.replace(template, param_value)
-
-        request = {"url": url, "label": label}
-
-        if method is not None and method != "GET":
-            request["method"] = method
-
-        if headers:
-            request["headers"] = headers
-
-        if assertions:
-            request["assert"] = assertions
-
-        body = {}
-        for key, value in iteritems(params):
-            body[key] = value
-
-        if body:
-            request["body"] = body
-
-        return request
+        return params
 
     def _extract_properties(self, block, key_prefix=""):
         properties = block.findall('./con:properties/con:property', namespaces=self.NAMESPACES)
