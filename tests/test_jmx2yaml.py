@@ -3,7 +3,7 @@ import os
 import sys
 import yaml
 
-from bzt.engine import ScenarioExecutor
+from bzt.engine import EXEC
 from bzt.jmx2yaml import JMX2YAML
 from bzt.utils import get_full_path, FileReader, temp_file
 
@@ -256,9 +256,9 @@ class TestConverter(BZTestCase):
         expected = {"expect-null": True, "invert": True, "jsonpath": '$(":input")', "validate": True, "regexp": True}
         self.assertEqual(expected, tg_two_req_one_jp[0])
         #  test concurrency, ramp-up, iterations in execution
-        tg_one_exec = yml.get(ScenarioExecutor.EXEC)[0]
-        tg_two_exec = yml.get(ScenarioExecutor.EXEC)[1]
-        tg_three_exec = yml.get(ScenarioExecutor.EXEC)[2]
+        tg_one_exec = yml.get(EXEC)[0]
+        tg_two_exec = yml.get(EXEC)[1]
+        tg_three_exec = yml.get(EXEC)[2]
         self.assertEqual(tg_one_exec.get("concurrency"), 10)
         self.assertEqual(tg_two_exec.get("concurrency"), 15)
         self.assertEqual(tg_three_exec.get("concurrency"), 1)
@@ -384,9 +384,9 @@ class TestConverter(BZTestCase):
         self.configure(RESOURCES_DIR + "yaml/converter/duration.jmx")
         self.obj.process()
         yml = yaml.load(open(self.obj.dst_file).read())
-        tg_one = yml.get(ScenarioExecutor.EXEC)[0]
-        tg_two = yml.get(ScenarioExecutor.EXEC)[1]
-        tg_three = yml.get(ScenarioExecutor.EXEC)[2]
+        tg_one = yml.get(EXEC)[0]
+        tg_two = yml.get(EXEC)[1]
+        tg_three = yml.get(EXEC)[2]
         self.assertEqual("10s", tg_one.get("ramp-up"))
         self.assertEqual("60s", tg_one.get("hold-for"))
         self.assertEqual("10s", tg_one.get("ramp-up"))
@@ -422,7 +422,7 @@ class TestConverter(BZTestCase):
         self.configure(RESOURCES_DIR + "yaml/converter/default.jmx")
         self.obj.process()
         yml = yaml.load(open(self.obj.dst_file).read())
-        execution = yml.get(ScenarioExecutor.EXEC)[0]
+        execution = yml.get(EXEC)[0]
         self.assertEqual("60s", execution.get("ramp-up"))
         self.assertEqual("60s", execution.get("hold-for"))
         self.assertEqual(1, execution.get("concurrency"))
@@ -447,7 +447,7 @@ class TestConverter(BZTestCase):
         self.configure(RESOURCES_DIR + "yaml/converter/default.jmx")
         self.obj.process()
         yml = yaml.load(open(self.obj.dst_file).read())
-        execution = yml.get(ScenarioExecutor.EXEC)[0]
+        execution = yml.get(EXEC)[0]
         scenarios = yml.get("scenarios")
         scenario = scenarios[execution.get("scenario")]
         self.assertNotIn("variables", scenario)
