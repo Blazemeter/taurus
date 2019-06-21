@@ -1,1 +1,1 @@
-#from bzt.utils import SoapUIScriptConverter     # backward compatibility
+# from bzt.utils import SoapUIScriptConverter     # backward compatibility

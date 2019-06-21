@@ -28,7 +28,6 @@ import yaml
 from yaml import SafeDumper
 from yaml.representer import SafeRepresenter
 
-import bzt
 from bzt import TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
 from bzt.requests_model import RequestParser
 from bzt.six import string_types, text_type, PY2, UserDict
