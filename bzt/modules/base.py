@@ -143,8 +143,8 @@ class ScenarioExecutor(EngineModule):
                     script_content = fds.read()
                 if "con:soapui-project" in script_content:
                     self.log.info("SoapUI project detected")
-                    new_scenario_name, new_scenario = self._extract_scenario_from_soapui(scenario_obj, script)
-                    self.engine.config["scenarios"].merge({new_scenario_name: new_scenario})
+                    new_scenario_name, scenario_dict = self._extract_scenario_from_soapui(scenario_obj, script)
+                    self.engine.config["scenarios"].merge({new_scenario_name: scenario_dict})
                     self.execution["scenario"] = new_scenario_name
 
         scenario_obj = Scenario(self.engine, scenario_dict)
