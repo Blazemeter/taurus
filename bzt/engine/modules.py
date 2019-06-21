@@ -171,7 +171,7 @@ class ScenarioExecutor(EngineModule):
     :type execution: BetterDict
     """
 
-    # EXEC = EXEC     # backward compatibility
+    EXEC = EXEC     # backward compatibility
     RAMP_UP = "ramp-up"
     HOLD_FOR = "hold-for"
     CONCURR = "concurrency"

@@ -50,7 +50,8 @@ setup(
     platform='any',
     docs_url='http://gettaurus.org/docs/',
     install_requires=requires,
-    packages=['bzt', 'bzt.six', 'bzt.jmx', 'bzt.modules', 'bzt.modules.java', 'bzt.modules.python', 'bzt.resources'],
+    packages=['bzt', 'bzt.engine', 'bzt.six', 'bzt.jmx', 'bzt.modules',
+              'bzt.modules.java', 'bzt.modules.python', 'bzt.resources'],
     entry_points={
         'console_scripts': [
             'bzt=bzt.cli:main',
