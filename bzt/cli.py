@@ -31,10 +31,10 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt.names import EXEC
+
 from bzt import ManualShutdown, NormalShutdown, RCProvider, TaurusException, AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError, ToolError
-from bzt.engine import Engine, Configuration, SETTINGS
+from bzt.engine import Engine, Configuration, SETTINGS, EXEC
 from bzt.linter import ConfigurationLinter
 from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
 from bzt.utils import is_int, BetterDict, is_url, RESOURCES_DIR

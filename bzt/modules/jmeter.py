@@ -32,8 +32,7 @@ from itertools import dropwhile
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import Scenario, FileLister, HavingInstallableTools
-from bzt.modules.base import ScenarioExecutor
+from bzt.engine import Scenario, FileLister, HavingInstallableTools, ScenarioExecutor
 from bzt.engine import SelfDiagnosable, SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet

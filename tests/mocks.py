@@ -9,8 +9,7 @@ from random import random
 import requests
 
 from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools, Singletone, Service, SelfDiagnosable
-from bzt.engine import Provisioning, Reporter
-from bzt.modules.base import ScenarioExecutor
+from bzt.engine import Provisioning, Reporter, ScenarioExecutor
 from bzt.modules import TransactionListener
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.aggregator import ResultsReader, AggregatorListener

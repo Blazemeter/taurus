@@ -7,8 +7,7 @@ from io import StringIO
 from logging import Handler
 from unittest.case import TestCase
 
-from bzt.modules.base import ScenarioExecutor
-from bzt.names import EXEC
+from bzt.engine import ScenarioExecutor, EXEC
 from bzt.engine import SelfDiagnosable
 from bzt.six import u
 from bzt.utils import get_full_path

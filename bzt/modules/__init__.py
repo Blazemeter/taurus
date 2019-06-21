@@ -19,8 +19,7 @@ import abc
 import os
 
 from bzt import ToolError
-from bzt.engine import FileLister, SelfDiagnosable
-from .base import ScenarioExecutor
+from bzt.engine import FileLister, SelfDiagnosable, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader

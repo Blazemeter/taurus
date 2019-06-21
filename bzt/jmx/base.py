@@ -22,7 +22,8 @@ import traceback
 from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException, TaurusConfigError
-from bzt.engine import Scenario, BetterDict
+from bzt.engine import Scenario
+from bzt.utils import BetterDict
 from bzt.requests_model import has_variable_pattern
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types, integer_types
 

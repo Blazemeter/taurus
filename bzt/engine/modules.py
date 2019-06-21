@@ -24,13 +24,14 @@ from collections import namedtuple
 
 from bzt import TaurusConfigError
 from bzt import ToolError
-from .engine import Scenario, FileLister
-from .names import EXEC
-from bzt.modules.soapui import SoapUIScriptConverter
+
 from bzt.six import numeric_types, string_types
-from bzt.utils import Environment, RequiredTool
-from bzt.utils import PIPE
+from bzt.utils import Environment, RequiredTool, PIPE, SoapUIScriptConverter
 from bzt.utils import to_json, BetterDict, ensure_is_dict, dehumanize_time
+
+from .templates import FileLister
+from .dicts import Scenario
+from .names import EXEC
 
 
 class EngineModule(object):

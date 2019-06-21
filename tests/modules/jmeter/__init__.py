@@ -1,4 +1,3 @@
-from tests.mocks import EngineEmul
 from bzt.modules.jmeter import JMeter, JMeterExecutor
 from bzt.utils import HTTPClient
 
