@@ -245,9 +245,14 @@ class ScenarioExecutor(EngineModule):
 
         if self.engine.provisioning.extend_configs:
             script = self.get_script_path(required=False, scenario=scenario_dict)
-            if script:
-                with codecs.open(script, encoding="UTF-8") as fds:
-                    script_content = fds.read()
+            if script and script.lower().endswith('xml'):
+                script_content = ''
+                try:
+                    with codecs.open(script, encoding="UTF-8") as fds:
+                        script_content = fds.read()
+                except UnicodeDecodeError:
+                    pass
+
                 if "con:soapui-project" in script_content:
                     scenario_obj = self._convert_soap_scenario(scenario_obj, script)
 
