@@ -18,5 +18,6 @@ limitations under the License.
 
 EXEC = "execution"
 SETTINGS = "settings"
+SCENARIO = "scenario"
 TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
 

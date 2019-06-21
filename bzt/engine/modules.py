@@ -31,7 +31,7 @@ from bzt.utils import to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 from .templates import FileLister
 from .dicts import Scenario
-from .names import EXEC
+from .names import EXEC, SCENARIO
 
 
 class EngineModule(object):
@@ -249,16 +249,24 @@ class ScenarioExecutor(EngineModule):
                 with codecs.open(script, encoding="UTF-8") as fds:
                     script_content = fds.read()
                 if "con:soapui-project" in script_content:
-                    self.log.info("SoapUI project detected")
-                    new_scenario_name, scenario_dict = self._extract_scenario_from_soapui(scenario_obj, script)
-                    self.engine.config["scenarios"].merge({new_scenario_name: scenario_dict})
-                    self.execution["scenario"] = new_scenario_name
-                    scenario_obj = Scenario(self.engine, scenario_dict)
+                    scenario_obj = self._convert_soap_scenario(scenario_obj, script)
 
         if name is None:
             self._cached_scenario = scenario_obj
 
         return scenario_obj
+
+    def _convert_soap_scenario(self, scenario_obj, script):
+        self.log.info("SoapUI project detected")
+        new_scenario_name, scenario_dict = self._extract_scenario_from_soapui(scenario_obj, script)
+        self.engine.config["scenarios"].merge({new_scenario_name: scenario_dict})
+        prev_scenario_name = self.execution["scenario"]
+        self.execution["scenario"] = new_scenario_name
+        for execution in self.engine.config.get(EXEC):
+            if execution.get(SCENARIO) == prev_scenario_name:
+                execution[SCENARIO] = new_scenario_name
+
+        return Scenario(self.engine, scenario_dict)
 
     def _get_scenario_label(self, name, scenarios):
         if name is None:  # get current scenario

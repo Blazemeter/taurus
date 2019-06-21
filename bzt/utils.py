@@ -1793,20 +1793,19 @@ class SoapUIScriptConverter(object):
         return assertions
 
     def _extract_http_request(self, test_step):
-        label = test_step.get('name')
         config = test_step.find('./con:config', namespaces=self.NAMESPACES)
-        method = config.get('method')
-        endpoint = config.find('.//con:endpoint', namespaces=self.NAMESPACES)
-        url = endpoint.text
-        headers = self._extract_headers(config)
-        assertions = self._extract_assertions(config)
-        body = config.findtext('./con:request', namespaces=self.NAMESPACES)
-        params = config.findall('./con:parameters/con:parameter', namespaces=self.NAMESPACES)
 
-        request = {"url": url, "label": label}
+        request = {
+            "label": test_step.get('name'),
+            "url": config.find('.//con:endpoint', namespaces=self.NAMESPACES).text}
+
+        method = config.get('method')
 
         if method is not None and method != "GET":
             request["method"] = method
+
+        headers = self._extract_headers(config)
+        assertions = self._extract_assertions(config)
 
         if headers:
             request["headers"] = headers
@@ -1814,8 +1813,12 @@ class SoapUIScriptConverter(object):
         if assertions:
             request["assert"] = assertions
 
+        body = config.findtext('./con:request', namespaces=self.NAMESPACES)
+
         if body is not None:
             request["body"] = body
+
+        params = config.findall('./con:parameters/con:parameter', namespaces=self.NAMESPACES)
 
         if params:
             body = {}
@@ -1890,7 +1893,6 @@ class SoapUIScriptConverter(object):
         return service
 
     def _extract_rest_request(self, test_step):
-        label = test_step.get('name')
         config = test_step.find('./con:config', namespaces=self.NAMESPACES)
         method = config.get('method')
 
@@ -1904,7 +1906,7 @@ class SoapUIScriptConverter(object):
                 param_value = params.pop(param_name)
                 url = url.replace(template, param_value)
 
-        request = {"url": url, "label": label}
+        request = {"url": url, "label": test_step.get('name')}
 
         if method is not None and method != "GET":
             request["method"] = method
