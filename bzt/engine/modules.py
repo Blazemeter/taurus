@@ -237,6 +237,30 @@ class ScenarioExecutor(EngineModule):
 
         scenarios = self.engine.config.get("scenarios", force_set=True)
 
+        label = self._get_scenario_label(name, scenarios)
+
+        exc = TaurusConfigError("Scenario '%s' not found in scenarios: %s" % (label, scenarios.keys()))
+        scenario_dict = scenarios.get(label, exc)
+        scenario_obj = Scenario(self.engine, scenario_dict)
+
+        if self.engine.provisioning.extend_configs:
+            script = self.get_script_path(required=False, scenario=scenario_dict)
+            if script:
+                with codecs.open(script, encoding="UTF-8") as fds:
+                    script_content = fds.read()
+                if "con:soapui-project" in script_content:
+                    self.log.info("SoapUI project detected")
+                    new_scenario_name, scenario_dict = self._extract_scenario_from_soapui(scenario_obj, script)
+                    self.engine.config["scenarios"].merge({new_scenario_name: scenario_dict})
+                    self.execution["scenario"] = new_scenario_name
+                    scenario_obj = Scenario(self.engine, scenario_dict)
+
+        if name is None:
+            self._cached_scenario = scenario_obj
+
+        return scenario_obj
+
+    def _get_scenario_label(self, name, scenarios):
         if name is None:  # get current scenario
             exc = TaurusConfigError("Scenario is not found in execution: %s" % self.execution)
             label = self.execution.get('scenario', exc)
@@ -267,27 +291,7 @@ class ScenarioExecutor(EngineModule):
         else:  # get scenario by name
             label = name
 
-        exc = TaurusConfigError("Scenario '%s' not found in scenarios: %s" % (label, scenarios.keys()))
-        scenario_dict = scenarios.get(label, exc)
-        scenario_obj = Scenario(self.engine, scenario_dict)
-
-        if self.engine.provisioning.extend_configs:
-            script = self.get_script_path(required=False, scenario=scenario_dict)
-            if script:
-                with codecs.open(script, encoding="UTF-8") as fds:
-                    script_content = fds.read()
-                if "con:soapui-project" in script_content:
-                    self.log.info("SoapUI project detected")
-                    new_scenario_name, scenario_dict = self._extract_scenario_from_soapui(scenario_obj, script)
-                    self.engine.config["scenarios"].merge({new_scenario_name: scenario_dict})
-                    self.execution["scenario"] = new_scenario_name
-
-        scenario_obj = Scenario(self.engine, scenario_dict)
-
-        if name is None:
-            self._cached_scenario = scenario_obj
-
-        return scenario_obj
+        return label
 
     def _extract_scenario_from_soapui(self, base_scenario, script_path):
         test_case = base_scenario.get("test-case", None)
