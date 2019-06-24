@@ -15,7 +15,10 @@ limitations under the License.
 """
 
 import ast
+import re
 from abc import abstractmethod
+
+from bzt.six import string_types, iteritems
 
 
 class JMeterFunction(object):
@@ -184,3 +187,109 @@ class UuidFunction(JMeterFunction):
             starargs=None,
             kwargs=None
         )
+
+
+
+class JMeterExprCompiler(object):
+    def __init__(self, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+
+    @staticmethod
+    def gen_var_accessor(varname, ctx=None):
+        if ctx is None:
+            ctx = ast.Load()
+
+        return ast.Subscript(
+            value=ast.Name(id="self.vars", ctx=ast.Load()),
+            slice=ast.Index(value=ast.Str(s=varname)),
+            ctx=ctx
+        )
+
+    def gen_expr(self, value):
+        if isinstance(value, bool):
+            return ast.Name(id="True" if value else "False", ctx=ast.Load())
+        elif isinstance(value, (int, float)):
+            return ast.Num(n=value)
+        elif isinstance(value, string_types):
+            # if is has interpolation - break it into either a `"".format(args)` form or a Name node
+            # otherwise - it's a string literal
+            parts = re.split(r'(\$\{.*?\})', value)
+            format_args = []
+            for item in parts:
+                if item:
+                    if item.startswith("${") and item.endswith("}"):
+                        value = value.replace(item, "{}")
+                        compiled = self.translate_jmeter_expr(item[2:-1])
+                        format_args.append(compiled)
+            if format_args:
+                if len(format_args) == 1 and value == "{}":
+                    result = format_args[0]
+                else:
+                    result = ast_call(
+                        func=ast.Attribute(
+                            value=ast.Str(s=value),
+                            attr='format',
+                            ctx=ast.Load()),
+                        args=format_args)
+            else:
+                result = ast.Str(s=value)
+            return result
+        elif isinstance(value, type(None)):
+            return ast.Name(id="None", ctx=ast.Load())
+        elif isinstance(value, dict):
+            items = sorted(list(iteritems(value)))
+            return ast.Dict(keys=[self.gen_expr(k) for k, _ in items],
+                            values=[self.gen_expr(v) for _, v in items])
+        elif isinstance(value, list):
+            return ast.List(elts=[self.gen_expr(val) for val in value], ctx=ast.Load())
+        elif isinstance(value, tuple):
+            return ast.Tuple(elts=[self.gen_expr(val) for val in value], ctx=ast.Load())
+        elif isinstance(value, ast.AST):
+            return value
+        else:
+            return value
+
+    def translate_jmeter_expr(self, expr):
+        """
+        Translates JMeter expression into Apiritif-based Python expression.
+        :type expr: str
+        :return:
+        """
+        self.log.debug("Attempting to translate JMeter expression %r", expr)
+        functions = {
+            '__time': TimeFunction,
+            '__Random': RandomFunction,
+            '__RandomString': RandomStringFunction,
+            '__base64Encode': Base64EncodeFunction,
+            '__base64Decode': Base64DecodeFunction,
+            '__urlencode': UrlEncodeFunction,
+            '__UUID': UuidFunction,
+        }
+        regexp = r"(\w+)\((.*?)\)"
+        args_re = r'(?<!\\),'
+        match = re.match(regexp, expr)
+        if match is None:  # doesn't look like JMeter func, translate as a var
+            return self.gen_var_accessor(expr)
+
+        varname, arguments = match.groups()
+
+        if arguments is None:  # plain variable
+            result = self.gen_var_accessor(varname)
+        else:  # function call
+            if not arguments:
+                args = []
+            else:
+                # parse arguments: split by ',' but not '\,'
+                args = [arg.strip() for arg in re.split(args_re, arguments)]
+
+            if varname not in functions:  # unknown function
+                return ast.Name(id=varname, ctx=ast.Load())
+
+            self.log.debug("Translating function %s with arguments %s", varname, arguments)
+            func = functions[varname](self)
+            result = func.to_python(args)
+            if result is None:
+                result = ast.Name(id=varname, ctx=ast.Load())
+        self.log.debug("Compile: %r -> %r", expr, result)
+        return result
+
