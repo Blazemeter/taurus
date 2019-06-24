@@ -43,8 +43,8 @@ install:
   else
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
-- nvm install 10.16.0
-- nvm use 10.16.0
+- nvm install 10.13.0
+- nvm use 10.13.0
 - gem install rspec
 - $PIP_INSTALL --upgrade pip
 - $PIP_INSTALL "pyyaml<5.1"
