@@ -18,7 +18,6 @@ import os
 import re
 import shlex
 import sys
-import copy
 
 import yaml
 
@@ -83,7 +82,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         scenario = self.get_scenario()
 
         if test_mode == "apiritif":
-            builder = ApiritifScriptGenerator(self.engine, scenario, self.label, self.log, test_mode=test_mode)
+            builder = ApiritifScriptGenerator(scenario, self.label, test_mode=test_mode)
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
@@ -104,7 +103,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             remote = get_assembled_value(configs, "remote")
 
             builder = ApiritifScriptGenerator(
-                self.engine, scenario, self.label, self.log, wdlog,
+                scenario, self.label, wdlog,
                 utils_file=os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py"),
                 ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
                 generate_markers=generate_markers,

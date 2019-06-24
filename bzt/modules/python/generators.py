@@ -223,15 +223,13 @@ from selenium.webdriver.common.keys import Keys
     ACCESS_PLAIN = 'plain'
     SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables)
 
-    def __init__(self, engine, scenario, label, parent_log,
-                 wdlog=None, utils_file=None,
+    def __init__(self, scenario, label, wdlog=None, utils_file=None,
                  ignore_unknown_actions=False, generate_markers=None,
                  capabilities=None, wd_addr=None, test_mode="selenium"):
         self.scenario = scenario
-        self.engine = engine
         self.data_sources = list(scenario.get_data_sources())
         self.label = label
-        self.log = parent_log.getChild(self.__class__.__name__)
+        self.log = self.scenario.engine.log.getChild(self.__class__.__name__)
         self.tree = None
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
@@ -894,7 +892,7 @@ from selenium.webdriver.common.keys import Keys
                 delimiter.value = ast.Str(s=source.get("delimiter"))
                 keywords.append(delimiter)
 
-            csv_file = self.engine.find_file(source["path"])
+            csv_file = self.scenario.engine.find_file(source["path"])
             reader = ast.Assign(
                 targets=[ast.Name(id="reader_%s" % idx)],
                 value=ast_call(
