@@ -287,6 +287,21 @@ class TestPassFailStatus(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
+    def test_bytes(self):
+        self.configure({"criteria": [
+            "bytes>10 for 1s, stop as failed",
+        ]})
+        self.obj.prepare()
+        self.assertGreater(len(self.obj.criteria), 0)
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            self.obj.aggregated_second(point)
+            self.obj.check()
+
+        self.obj.shutdown()
+        self.assertFalse(self.obj.criteria[0].is_triggered)
+
     def test_executor_level(self):
         executor = ModuleMock()
         executor.engine = self.obj.engine
