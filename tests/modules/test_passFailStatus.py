@@ -290,9 +290,9 @@ class TestPassFailStatus(BZTestCase):
     def test_bytes(self):
         self.configure({"criteria": [
             "bytes>10 for 1s, stop as failed",
+            "bytes<10mib for 1s, stop as successful",
         ]})
         self.obj.prepare()
-        self.assertGreater(len(self.obj.criteria), 0)
 
         for n in range(0, 10):
             point = random_datapoint(n)
@@ -301,6 +301,7 @@ class TestPassFailStatus(BZTestCase):
 
         self.obj.shutdown()
         self.assertFalse(self.obj.criteria[0].is_triggered)
+        self.assertFalse(self.obj.criteria[1].is_triggered)
 
     def test_executor_level(self):
         executor = ModuleMock()
