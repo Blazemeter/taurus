@@ -483,6 +483,7 @@ class TestGatlingExecutor(ExecutorTestCase):
     def test_data_sources(self):
         csv1 = RESOURCES_DIR + "test1.csv"
         csv2 = RESOURCES_DIR + "test2.csv"
+        csv3 = RESOURCES_DIR + "files/test2.csv"
 
         self.obj.execution.merge({
             "scenario": {
@@ -490,7 +491,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                     "path": csv1,
                     "loop": False,
                     "delimiter": ","
-                }, csv2],
+                }, csv2, csv3],
                 "requests": ["http://blazedemo.com/?tag=${col1}"],
             }
         })
@@ -499,10 +500,18 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.settings.merge({"path": path, "version": "3.1"})
 
         self.obj.prepare()
-        scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
-        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated_data_sources.scala", scala_file,
-                              self.obj.get_scenario().get('simulation'), "SIMNAME")
-        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, 'test1.csv')))
+
+        original_scala = RESOURCES_DIR + "gatling/generated_data_sources.scala"
+        generated_scala = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
+
+        replace_str = self.obj.get_scenario().get('simulation'), csv1, csv2, csv3
+
+        replace_with = "SIMNAME", os.path.basename(csv1), os.path.basename(csv2), os.path.basename(csv3)
+
+        self.assertFilesEqual(original_scala, generated_scala, replace_str, replace_with)
+
+        # don't copy csv to artifacts dir
+        self.assertFalse(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, 'test1.csv')))
 
     def test_resource_files_data_sources(self):
         csv_path = RESOURCES_DIR + "test1.csv"

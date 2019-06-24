@@ -39,6 +39,7 @@ class GatlingScriptBuilder(object):
         super(GatlingScriptBuilder, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
+        self.feeder_names = {}
         self.scenario = scenario
         self.class_name = class_name
         if gatling_version is None:
@@ -188,9 +189,20 @@ class GatlingScriptBuilder(object):
 
         return check_result
 
-    @staticmethod
-    def _get_feeder_name(source_filename):
-        return re.sub(r'[^A-Za-z0-9_]', '', ".".join(source_filename.split(".")[:-1])) + "Feed"
+    def _get_feeder_name(self, source_filename):
+        base_feeder_name = ".".join(os.path.basename(source_filename).split(".")[:-1])
+        base_feeder_name = re.sub(r'[^A-Za-z0-9_]', '', base_feeder_name) + "Feed"
+
+        index = 0
+        feeder_name = base_feeder_name
+        while feeder_name in self.feeder_names and self.feeder_names[feeder_name] != source_filename:
+            index += 1
+            feeder_name = base_feeder_name + "_%s" % index
+
+        if feeder_name not in self.feeder_names:
+            self.feeder_names[feeder_name] = source_filename
+
+        return feeder_name
 
     def _get_feeders(self):
         feeders_def = ""
