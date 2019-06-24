@@ -30,7 +30,7 @@ matrix:
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
 addons:
-  firefox: "65.0.1"
+  firefox: "67.0.3"
   apt:
     packages:
     - openjdk-8-jdk
@@ -43,8 +43,8 @@ install:
   else
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
-- nvm install 6.11
-- nvm use 6.11
+- nvm install 10.16.0
+- nvm use 10.16.0
 - gem install rspec
 - $PIP_INSTALL --upgrade pip
 - $PIP_INSTALL "pyyaml<5.1"
