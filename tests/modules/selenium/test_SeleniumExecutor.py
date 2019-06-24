@@ -6,7 +6,7 @@ import time
 import yaml
 
 from bzt import ToolError, TaurusConfigError
-from bzt.engine import ScenarioExecutor
+from bzt.engine import EXEC
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
@@ -30,7 +30,7 @@ class LDJSONReaderEmul(object):
 class TestSeleniumExecutor(SeleniumTestCase):
     def test_data_source_in_action(self):
         self.configure({
-            ScenarioExecutor.EXEC: {
+            EXEC: {
                 "executor": "selenium",
                 "iterations": 1,
                 "scenario": {
@@ -53,7 +53,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         Raise runtime error when no scenario provided
         :return:
         """
-        self.configure({ScenarioExecutor.EXEC: {"executor": "selenium"}})
+        self.configure({EXEC: {"executor": "selenium"}})
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_javac_fail(self):
@@ -62,7 +62,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         :return:
         """
         self.configure({
-            ScenarioExecutor.EXEC: {
+            EXEC: {
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/invalid.java"}
             }
@@ -74,7 +74,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         Test RuntimeError raised when no files of known types were found.
         :return:
         """
-        self.configure({ScenarioExecutor.EXEC: {
+        self.configure({EXEC: {
             "executor": "selenium",
             "scenario": {"script": RESOURCES_DIR + "selenium/invalid/not_found"}
         }})
@@ -85,7 +85,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         Test exact number of tests when java annotations used
         :return:
         """
-        self.configure({ScenarioExecutor.EXEC: {
+        self.configure({EXEC: {
             "executor": "selenium",
             "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SeleniumTest.java"}
         }})
@@ -100,7 +100,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         Test exact number of tests when test class extends JUnit TestCase
         :return:
         """
-        self.configure({ScenarioExecutor.EXEC: {
+        self.configure({EXEC: {
             "executor": "selenium",
             "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"}
         }})
@@ -115,7 +115,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         Test exact number of tests when annotations used and no "test" in class name
         :return:
         """
-        self.configure({ScenarioExecutor.EXEC: {
+        self.configure({EXEC: {
             "executor": "selenium",
             "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
         }})

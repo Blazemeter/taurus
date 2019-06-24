@@ -3,7 +3,7 @@ import time
 import datetime
 
 from bzt import ToolError
-from bzt.engine import ScenarioExecutor
+from bzt.engine import EXEC
 from bzt.modules.provisioning import Local
 from tests import BZTestCase
 from tests.mocks import EngineEmul
@@ -105,7 +105,7 @@ class LocalProvisioningTest(BZTestCase):
         local = Local()
         local.settings["sequential"] = True
         local.engine = EngineEmul()
-        local.engine.config.merge({ScenarioExecutor.EXEC: [{}, {}]})
+        local.engine.config.merge({EXEC: [{}, {}]})
         local.engine.config.get("settings")["default-executor"] = "mock"
         local.engine.unify_config()
         local.prepare()
@@ -128,7 +128,7 @@ class LocalProvisioningTest(BZTestCase):
         local = Local()
         local.settings["capacity"] = 2
         local.engine = EngineEmul()
-        local.engine.config.merge({ScenarioExecutor.EXEC: [{}, {}, {}, {}, {}]})
+        local.engine.config.merge({EXEC: [{}, {}, {}, {}, {}]})
         local.engine.config.get("settings")["default-executor"] = "mock"
         local.engine.unify_config()
         local.prepare()
@@ -150,7 +150,7 @@ class LocalProvisioningTest(BZTestCase):
     def test_exception(self):
         local = Local()
         local.engine = EngineEmul()
-        local.engine.config.merge({ScenarioExecutor.EXEC: [{}]})
+        local.engine.config.merge({EXEC: [{}]})
         local.engine.config.get("settings")["default-executor"] = "mock"
         local.engine.unify_config()
         local.prepare()
