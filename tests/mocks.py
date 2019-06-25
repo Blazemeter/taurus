@@ -52,7 +52,7 @@ def random_datapoint(n):
     overall[KPISet.SAMPLE_COUNT] = int(100 * r(1000)) + 1
     overall[KPISet.SUCCESSES] = int(overall[KPISet.SAMPLE_COUNT] * random())
     overall[KPISet.FAILURES] = overall[KPISet.SAMPLE_COUNT] - overall[KPISet.SUCCESSES]
-    overall[KPISet.BYTE_COUNT] = int((r(1000) - 1) * 1000)
+    overall[KPISet.BYTE_COUNT] = int((r(1000) - 1) * 1000) + 1
     overall[KPISet.PERCENTILES]['25.0'] = r(10)
     overall[KPISet.PERCENTILES]['50.0'] = r(20)
     overall[KPISet.PERCENTILES]['75.0'] = r(30)
