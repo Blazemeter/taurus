@@ -316,7 +316,7 @@ class NPMPackage(RequiredTool):
         package_name = self.package_name
         if self.version:
             package_name += "@" + self.version
-        cmdline = [self.npm.tool_path, 'install', package_name, '--prefix', self.tools_dir, '--no-save']
+        cmdline = [self.npm.tool_path, 'install', package_name, '--prefix', self.tools_dir]
 
         try:
             out, err = self.call(cmdline)
