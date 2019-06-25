@@ -692,7 +692,7 @@ class CumulativeStats(LineBox):
 
         if not self._start_time:
             self._start_time = data.get('ts')
-        duration = humanize_time(time.time() - self._start_time)
+        duration = humanize_time(data.get('ts') - self._start_time)
 
         self.title_widget.set_text(self.title + " %s " % duration)
 
