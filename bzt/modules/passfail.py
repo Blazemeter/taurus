@@ -166,12 +166,15 @@ class FailCriterion(object):
         self.config = config
         self.agg_buffer = OrderedDict()
         self.percentage = str(config['threshold']).endswith('%')
-        self.bytes = get_bytes_count(config.get('threshold', 0)) if config['subject'] == 'bytes' else 0
+        if config['subject'] == 'bytes':
+            self.threshold = get_bytes_count(config['threshold'])
+        else:
+            self.threshold = dehumanize_time(config['threshold'])
+
         self.get_value = self._get_field_functor(config['subject'], self.percentage)
         self.window_logic = config.get('logic', 'for')
         self.agg_logic = self._get_aggregator_functor(self.window_logic, config['subject'])
         self.condition = self._get_condition_functor(config.get('condition', '>', force_set=True))
-        self.threshold = dehumanize_time(config['threshold']) if config['subject'] != 'bytes' else 0
         self.stop = config.get('stop', True)
         self.fail = config.get('fail', True)
         self.message = config.get('message', None)

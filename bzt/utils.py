@@ -211,18 +211,18 @@ def get_bytes_count(bytes_count):
     if not bytes_count:
         return 0
 
-    parser = re.compile(r'([\d\.\-infa]+)([a-zA-Z]*)')
+    parser = re.compile(r'([\d\.]+)([a-zA-Z]*)')
     parts = parser.findall(str(bytes_count).replace(' ', ''))
 
     if len(parts) != 1:
         msg = "String format not supported: %s"
-        raise TaurusInternalException(msg % bytes_count)
+        raise TaurusConfigError(msg % bytes_count)
 
     value, unit = parts[0]
     try:
         value = float(value)
     except ValueError:
-        raise TaurusInternalException("Unsupported float string: %r" % value)
+        raise TaurusConfigError("Unsupported float string: %r" % value)
 
     unit = unit.lower()
     if unit in ('', 'b'):
@@ -233,7 +233,7 @@ def get_bytes_count(bytes_count):
         result = value * 1024 * 1024
     else:
         msg = "String contains unsupported unit %s: %s"
-        raise TaurusInternalException(msg % (unit, bytes_count))
+        raise TaurusConfigError(msg % (unit, bytes_count))
     return result
 
 
