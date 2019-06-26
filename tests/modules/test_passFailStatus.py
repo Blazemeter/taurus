@@ -297,9 +297,9 @@ class TestPassFailStatus(BZTestCase):
         ]})
         self.obj.prepare()
 
-        self.assertTrue(self.obj.processors[0].criteria[1].threshold, 1024)  # conversion check
-        self.assertTrue(self.obj.processors[0].criteria[2].threshold, 1024*1024)
-        self.assertTrue(self.obj.processors[0].criteria[3].threshold, 1)
+        self.assertEqual(self.obj.processors[0].criteria[1].threshold, 1024)  # conversion check
+        self.assertEqual(self.obj.processors[0].criteria[2].threshold, 1024*1024)
+        self.assertEqual(self.obj.processors[0].criteria[3].threshold, 1)
 
         for n in range(0, 10):
             point = random_datapoint(n)
