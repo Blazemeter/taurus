@@ -207,16 +207,16 @@ def dehumanize_time(str_time):
     return result
 
 
-def get_bytes_count(bytes_count):
-    if not bytes_count:
+def get_bytes_count(str_bytes):
+    if not str_bytes:
         return 0
 
     parser = re.compile(r'([\d\.]+)([a-zA-Z]*)')
-    parts = parser.findall(str(bytes_count).replace(' ', ''))
+    parts = parser.findall(str(str_bytes).replace(' ', ''))
 
     if len(parts) != 1:
         msg = "String format not supported: %s"
-        raise TaurusConfigError(msg % bytes_count)
+        raise TaurusConfigError(msg % str_bytes)
 
     value, unit = parts[0]
     try:
@@ -233,7 +233,7 @@ def get_bytes_count(bytes_count):
         result = value * 1024 * 1024
     else:
         msg = "String contains unsupported unit %s: %s"
-        raise TaurusConfigError(msg % (unit, bytes_count))
+        raise TaurusConfigError(msg % (unit, str_bytes))
     return result
 
 

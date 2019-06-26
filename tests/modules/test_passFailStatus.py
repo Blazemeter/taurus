@@ -288,14 +288,18 @@ class TestPassFailStatus(BZTestCase):
         self.obj.post_process()
 
     def test_bytes(self):
-        self.configure({"criteria": [
-            "bytes>1 for 1s, continue as successful",
+        self.configure({"criteria": [  # bytes number can only be generated in range from 1 to 1000
+            "bytes>0 for 1s, continue as successful",
             "bytes<1kb for 1s, continue as successful",
             "bytes<1mib for 1s, continue as successful",
             "bytes<1b for 1s, continue as failed",
             "bytes>1024 for 1s, continue as failed",
         ]})
         self.obj.prepare()
+
+        self.assertTrue(self.obj.processors[0].criteria[1].threshold, 1024)  # conversion check
+        self.assertTrue(self.obj.processors[0].criteria[2].threshold, 1024*1024)
+        self.assertTrue(self.obj.processors[0].criteria[3].threshold, 1)
 
         for n in range(0, 10):
             point = random_datapoint(n)

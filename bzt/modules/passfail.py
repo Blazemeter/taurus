@@ -167,9 +167,9 @@ class FailCriterion(object):
         self.agg_buffer = OrderedDict()
         self.percentage = str(config['threshold']).endswith('%')
         if config['subject'] == 'bytes':
-            self.threshold = get_bytes_count(config['threshold'])
+            self.threshold = get_bytes_count(config.get('threshold'))
         else:
-            self.threshold = dehumanize_time(config['threshold'])
+            self.threshold = dehumanize_time(config.get('threshold'))
 
         self.get_value = self._get_field_functor(config['subject'], self.percentage)
         self.window_logic = config.get('logic', 'for')
