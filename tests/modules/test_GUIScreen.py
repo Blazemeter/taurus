@@ -51,12 +51,19 @@ class TestGUIScreen(BZTestCase):
 
         if hasattr(obj, 'font'):
             old_font_size = obj.font['size']
-            obj.root.event_generate("<Control-MouseWheel>", delta=120)
-            if old_font_size > 0:
-                self.assertGreater(obj.font['size'], old_font_size)
+            self.assertGreater(old_font_size, 0)
+
+            if is_linux():
+                obj.root.event_generate("<Control-4>")
             else:
-                self.assertLess(obj.font['size'], old_font_size)
-            obj.root.event_generate("<Control-MouseWheel>", delta=-120)
+                obj.root.event_generate("<Control-MouseWheel>", delta=120)
+
+            self.assertGreater(obj.font['size'], old_font_size)
+
+            if is_linux():
+                obj.root.event_generate("<Control-5>")
+            else:
+                obj.root.event_generate("<Control-MouseWheel>", delta=-120)
 
             self.assertEqual(obj.font['size'], old_font_size)
 

@@ -1,5 +1,6 @@
 sudo: false
 language: python
+dist: xenial
 cache: pip  # use caching for pip's packages to speed up builds
 
 branches:
@@ -35,6 +36,8 @@ addons:
     packages:
     - openjdk-8-jdk
     - mono-complete
+    - python-tk
+    - python3-tk
 
 install:
 - |
