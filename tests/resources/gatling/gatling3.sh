@@ -10,6 +10,6 @@ else
 fi
 
 JAVA="echo me"
-"$JAVA"
+bash -c "$JAVA"
 
 GATLING_HOME="$GATLING_HOME" COMPILATION_CLASSPATH="$COMPILATION_CLASSPATH" python -u ${GATLING_DIR}/gatling-fake.py $@
