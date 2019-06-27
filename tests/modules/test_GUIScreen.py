@@ -33,6 +33,7 @@ class TestCanvas(Canvas):
         pass
 
 
+@skipIf(Screen is DummyScreen, "skip test if GUI window isn't available")
 class TestGUIScreen(BZTestCase):
     def test_draw_screen(self):
         lines = [((x[0], None, "%s\n" % x[0]),) for x in TaurusConsole.palette]
@@ -45,12 +46,14 @@ class TestGUIScreen(BZTestCase):
         obj.register_palette(TaurusConsole.palette)
 
         obj.start()
+
         for _ in range(1, 10):
             obj.draw_screen((1, 1), canvas)
             time.sleep(0.5)
 
         if hasattr(obj, 'font'):
-            old_font_size = obj.font['size']
+            old_font_size = 10
+            obj.font['size'] = old_font_size
             self.assertGreater(old_font_size, 0)
 
             if is_linux():
@@ -69,7 +72,6 @@ class TestGUIScreen(BZTestCase):
 
         obj.stop()
 
-    @skipIf(Screen is DummyScreen, "skip test if GUI window isn't available")
     def test_window_closed(self):
         lines = [((x[0], None, "%s\n" % x[0]),) for x in TaurusConsole.palette]
         canvas = TestCanvas(lines)
