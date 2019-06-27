@@ -10,7 +10,7 @@ from bzt.engine import EXEC
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
-from bzt.modules.python import ApiritifNoseExecutor
+from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.six import BytesIO
 from bzt.utils import LDJSONReader, FileReader
 from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER

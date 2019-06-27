@@ -1550,10 +1550,10 @@ class PythonGenerator(object):
     IMPORTS = ''
     INDENT_STEP = 4
 
-    def __init__(self, scenario, parent_logger):
+    def __init__(self, scenario):
         self.root = etree.Element("PythonCode")
         self.tree = etree.ElementTree(self.root)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.log = scenario.engine.log.getChild(self.__class__.__name__)
         self.scenario = scenario
 
     def add_imports(self):

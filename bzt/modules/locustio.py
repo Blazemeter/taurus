@@ -144,7 +144,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("generated_locust", ".py")
-        locust_test = LocustIOScriptBuilder(self.scenario, self.log)
+        locust_test = LocustIOScriptBuilder(self.scenario)
         locust_test.build_source_code()
         locust_test.save(filename)
         return filename
