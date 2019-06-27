@@ -31,7 +31,6 @@ matrix:
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
 addons:
-  firefox: latest
   apt:
     packages:
     - openjdk-8-jdk

@@ -1,17 +1,13 @@
 import time
-from unittest import skipIf
 
 from urwid.canvas import Canvas
 
 from bzt import ManualShutdown
 from bzt.modules.console import TaurusConsole
-from bzt.utils import DummyScreen, is_linux
+from bzt.utils import is_linux
 from tests import BZTestCase
 
-try:
-    from bzt.modules.screen import GUIScreen as Screen
-except:
-    Screen = DummyScreen
+from bzt.modules.screen import GUIScreen as Screen
 
 
 class TestCanvas(Canvas):
@@ -33,7 +29,6 @@ class TestCanvas(Canvas):
         pass
 
 
-@skipIf(Screen is DummyScreen, "skip test if GUI window isn't available")
 class TestGUIScreen(BZTestCase):
     def test_draw_screen(self):
         lines = [((x[0], None, "%s\n" % x[0]),) for x in TaurusConsole.palette]
