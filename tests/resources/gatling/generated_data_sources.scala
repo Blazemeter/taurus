@@ -19,8 +19,9 @@ class SIMNAME extends Simulation {
 
   val test1Feed = separatedValues("test1.csv", ',')
   val test2Feed = csv("test2.csv").circular
+  val test2Feed_1 = csv("test2.csv").circular
 
-  var execution = feed(test1Feed).feed(test2Feed).exec(
+  var execution = feed(test1Feed).feed(test2Feed).feed(test2Feed_1).exec(
     http("http://blazedemo.com/?tag=${col1}").get("http://blazedemo.com/?tag=${col1}")
   )
 
