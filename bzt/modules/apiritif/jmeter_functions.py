@@ -20,6 +20,8 @@ from abc import abstractmethod
 
 from bzt.six import string_types, iteritems
 
+from .ast_helpers import ast_call
+
 
 class JMeterFunction(object):
     def __init__(self, arg_names, compiler):
