@@ -1,0 +1,5 @@
+* bring travis tests to xenial
+* remove brocken choco dependency
+* update node support to v8+
+* fix tkinter tests
+* fix gatling launcher test

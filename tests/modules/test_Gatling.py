@@ -119,7 +119,7 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertIn(jars[1], self.obj.env.get(var))
 
         for line in modified_lines:
-            if not is_windows() and '"$JAVA"' in line:
+            if not is_windows() and '"$JAVA"' in line and not line.startswith("bash"):
                 self.assertTrue(line.startswith('eval'))
             self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))  # win
             if line.startswith('COMPILATION_CLASSPATH='):  # linux
@@ -151,7 +151,7 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertIn(jars[1], self.obj.env.get(var))
 
         for line in modified_lines:
-            if not is_windows() and '"$JAVA"' in line:
+            if not is_windows() and '"$JAVA"' in line and not line.startswith("bash"):
                 self.assertTrue(line.startswith('eval'))
             if line.startswith('set COMPILER_CLASSPATH='):  # win
                 self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
