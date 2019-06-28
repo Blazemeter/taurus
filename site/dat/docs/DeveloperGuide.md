@@ -1,5 +1,3 @@
-
-
 # Rules for Contributing
  1. All contributions go via pull requests and code review
  1. Most of pylint warnings should be fixed ![](https://api.codacy.com/project/badge/Grade/9ed495a3e5df4ba2ad05e19a690121d2?ext=.svg)
@@ -9,13 +7,19 @@
  1. All changes must be covered with unit tests, no broken tests in master ![](https://api.travis-ci.org/Blazemeter/taurus.svg?branch=master&ext=.svg)  ![](https://ci.appveyor.com/api/projects/status/github/Blazemeter/taurus?svg=true&ext=.svg)
 
 # Release Process
- - Modify [Changelog.md](Changelog), set version and date
- - Set correct version in `bzt/\_\_init\_\_.py`, commit
+ - make sure you're on up-to-date master
+ - Compile [Changelog.md](Changelog) record
+   - use `.change` files, remove them later
+   - set version and date
+ - make sure DockerHub image builds for master
+ - send announce if needed
+ - ... code freeze ...
+ - Set correct version in `bzt/\_\_init\_\_.py`
+ - Set `Release <version>` as commit name
+ - publish release to PyPi: `./dockerized-release.sh`
  - Create git tag, make `git push`, including tag
- - Build source distribution: ./build-sdist.sh
- - Upload to PyPi: `python ./setup.py upload`
- - rebuild and publish Docker image (how?)
  - site is updated automatically by Jenkins
+ - make sure DockerHub image for release tag is built
  - notify all interested parties (Twitter, mailing lists)
 
 # Deploying Project Website
@@ -51,6 +55,7 @@ Restart Apache webserver
 ```
  sudo service apache2 restart
 ```
+
 Open [http://localhost:8002](http://localhost:8002) in your browser, you should see our website.
 
 # Developing Taurus Extensions

@@ -716,6 +716,18 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual("100.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
+    def test_default_iteartions(self):
+        self.configure({'execution': {
+            'concurrency': 1,
+            'scenario': {
+                'requests': ['http://blazedemo.com']}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+
+        path = './/stringProp[@name="LoopController.loops"]'
+        iterations = int(xml_tree.find(path).text)
+        self.assertEqual(1, iterations)
+
     def test_add_cookies(self):
         self.configure({'execution': {
             'scenario': {
@@ -1190,6 +1202,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         prov = Local()
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
+        prov.started_modules = [self.obj]
         self.obj.engine.provisioning = prov
         self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
@@ -2270,6 +2283,58 @@ class TestJMeterExecutor(ExecutorTestCase):
         stop = dataset.find('boolProp[@name="stopThread"]')
         self.assertEqual(stop.text, "false")
 
+    def test_data_sources_jmx_gen_random_defaults(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "data-sources": [{
+                        "path": RESOURCES_DIR + "test1.csv",
+                        "random-order": True}],
+                    "requests": [
+                        "http://example.com/${test1}"]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        dataset = xml_tree.find('.//hashTree[@type="tg"]/com.blazemeter.jmeter.RandomCSVDataSetConfig')
+        self.assertIsNotNone(dataset)
+        filename = dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(RESOURCES_DIR + "test1.csv"))
+        encoding = dataset.find('stringProp[@name="fileEncoding"]')
+        self.assertEqual(encoding.text, "UTF-8")
+        random_order = dataset.find('boolProp[@name="randomOrder"]')
+        self.assertEqual(random_order.text, "true")
+        ignore_first_line = dataset.find('boolProp[@name="ignoreFirstLine"]')
+        self.assertEqual(ignore_first_line.text, "true")
+        rewind_list_end = dataset.find('boolProp[@name="rewindOnTheEndOfList"]')
+        self.assertEqual(rewind_list_end.text, "true")
+        independent_list = dataset.find('boolProp[@name="independentListPerThread"]')
+        self.assertEqual(independent_list.text, "false")
+
+    def test_data_sources_jmx_gen_random_reversed(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "data-sources": [{
+                        "path": RESOURCES_DIR + "test1.csv",
+                        "variable-names": "first,second",
+                        "random-order": True,
+                        "loop": False}],
+                    "requests": [
+                        "http://example.com/${test1}"]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        dataset = xml_tree.find('.//hashTree[@type="tg"]/com.blazemeter.jmeter.RandomCSVDataSetConfig')
+        self.assertIsNotNone(dataset)
+        filename = dataset.find('stringProp[@name="filename"]')
+        self.assertEqual(filename.text, get_full_path(RESOURCES_DIR + "test1.csv"))
+        variable_names = dataset.find('stringProp[@name="variableNames"]')
+        self.assertEqual(variable_names.text, "first,second")
+        random_order = dataset.find('boolProp[@name="randomOrder"]')
+        self.assertEqual(random_order.text, "true")
+        ignore_first_line = dataset.find('boolProp[@name="ignoreFirstLine"]')
+        self.assertEqual(ignore_first_line.text, "false")
+        rewind_list_end = dataset.find('boolProp[@name="rewindOnTheEndOfList"]')
+        self.assertEqual(rewind_list_end.text, "false")
+
     def test_data_sources_jmx_gen_stop(self):
         self.configure({
             'execution': {
@@ -2610,7 +2675,16 @@ class TestJMeterExecutor(ExecutorTestCase):
             }
         })
         self.obj.prepare()
-        self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
+        new_sc_name = "TestSuite 1-index"
+        self.assertIn(new_sc_name, self.obj.engine.config["scenarios"])
+
+        # update execution.scenario
+        self.assertEqual(new_sc_name, self.obj.execution["scenario"])
+
+        # don't parse soapui xml twice
+        self.obj.engine.config["scenarios"]["project.xml"]["script"] = ""
+        new_sc = self.obj.get_scenario()
+        self.assertIn("requests", new_sc)
 
     def test_soapui_renaming(self):
         self.configure({

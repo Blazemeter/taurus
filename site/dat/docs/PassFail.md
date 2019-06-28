@@ -14,6 +14,7 @@ reporting:
   - avg-rt of IndexPage>150ms for 10s, stop as failed
   - fail of CheckoutPage>50% for 10s, stop as failed
 ```
+Limitation: passfail module has no effect for [`Cloud`](Cloud.md) mode.
 
 The above example use short form for criteria, its general format is
 `subject of label{condition}threshold {logic} timeframe, action as status`, where:

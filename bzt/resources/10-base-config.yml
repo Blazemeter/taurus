@@ -27,7 +27,7 @@ modules:
   selenium:
     class: bzt.modules.selenium.SeleniumExecutor
   nose:
-    class: bzt.modules.python.ApiritifNoseExecutor
+    class: bzt.modules.apiritif.ApiritifNoseExecutor
   junit:
     class: bzt.modules.java.JUnitTester
   testng:
@@ -39,15 +39,15 @@ modules:
   nunit:
     class: bzt.modules.csharp.NUnitExecutor
   pytest:
-    class: bzt.modules.python.PyTestExecutor
+    class: bzt.modules.pytest.PyTestExecutor
   wdio:
     class: bzt.modules.javascript.WebdriverIOExecutor
   robot:
-    class: bzt.modules.python.RobotExecutor
+    class: bzt.modules.robot.RobotExecutor
   newman:
     class: bzt.modules.javascript.NewmanExecutor
   apiritif:
-    class: bzt.modules.python.ApiritifNoseExecutor
+    class: bzt.modules.apiritif.ApiritifNoseExecutor
 
   # service & infra modules
   local:

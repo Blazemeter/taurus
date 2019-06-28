@@ -1,7 +1,18 @@
 # Changelog
 
-## 1.13.7<sup>next</sup>
+## 1.13.8<sup>next</sup>
+
+
+## 1.13.7<sup>29 may 2019</sup>
+
+- update default gatling version to 3.1.2
+- set iteration default for Jmeter into 1
+- fix gatling props encoding
+- fix locust aggregation bug
+- fix order of capabilities assembling
 - filter out `included-configs` from cloud YAML
+- fix site styles
+
 
 ## 1.13.6<sup>6 may 2019</sup>
 

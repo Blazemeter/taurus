@@ -10,7 +10,7 @@ except ImportError:
 from bzt import ToolError
 from bzt.utils import dehumanize_time
 from bzt.modules.jmeter import JTLReader
-from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from bzt.modules.provisioning import Local
 
@@ -151,6 +151,15 @@ class TestLocustIOExecutor(ExecutorTestCase):
         resource_files = self.obj.resource_files()
         self.assertEqual(1, len(resource_files))
 
+    def test_slave_aggregation(self):
+        self.configure({"execution": {
+            "scenario": {"script": RESOURCES_DIR + "locust/simple.py"}}})
+        self.obj.prepare()
+        self.obj.reader = SlavesReader(RESOURCES_DIR + "locust/locust-slaves.ldjson", 2, ROOT_LOGGER)
+        self.obj.engine.aggregator = ConsolidatingAggregator()
+        self.obj.engine.aggregator.add_underling(self.obj.reader)
+        self.assertEqual(1, len(list(self.obj.engine.aggregator.datapoints(final_pass=True))))
+
     def test_resource_files_requests(self):
         self.configure({"execution": {
             "concurrency": 1,
@@ -182,6 +191,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         prov = Local()
         prov.engine = self.obj.engine
         prov.executors = [self.obj]
+        prov.started_modules = [self.obj]
         self.obj.engine.provisioning = prov
         self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 

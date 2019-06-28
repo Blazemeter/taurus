@@ -8,7 +8,7 @@ from os.path import exists, join, dirname
 
 import yaml
 
-from bzt.engine import ScenarioExecutor
+from bzt.engine import EXEC
 from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader
 from bzt.modules.java import JUnitTester, TestNGTester
@@ -467,7 +467,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         :return:
         """
         self.configure({
-            ScenarioExecutor.EXEC: {
+            EXEC: {
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/NotJUnittest.java"}}})
         self.obj.prepare()

@@ -22,7 +22,7 @@ from optparse import OptionParser
 from bzt import TaurusInternalException
 from bzt.cli import CLI
 from bzt.engine import Configuration
-from bzt.modules.soapui import SoapUIScriptConverter
+from bzt.utils import SoapUIScriptConverter
 from bzt.six import iteritems
 
 
