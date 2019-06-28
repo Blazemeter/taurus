@@ -61,14 +61,3 @@ modules:
   hello:
     class: bzt_plugin_hello.hello.HelloService
 ```
-
-# Python Egg Snapshots
-
-Download and install it like this:
-```bash
-pip install bzt-150.tar.gz
-```
-
-----
-
-<downloads-dir:snapshots>
