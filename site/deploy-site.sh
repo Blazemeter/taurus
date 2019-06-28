@@ -5,8 +5,9 @@ gcloud config set project ${PROJECT_ID}
 gcloud config set compute/zone us-central1-a
 
 GOOGLE_STORAGE="https:\/\/storage.cloud.google.com\/taurus-site\/"
-UNSTABLE_SNAPSHOT=""
 TAURUS_VERSION=$(python -c 'import bzt; print(bzt.VERSION)')
+STABLE_SNAPSHOT="${GOOGLE_STORAGE}releases\/TaurusInstaller_${TAURUS_VERSION}_x64.exe"
+UNSTABLE_SNAPSHOT=""
 
 if [ "$1" = "true" ]; then
     gsutil cp build/nsis/*.exe gs://taurus-site/releases/
@@ -20,8 +21,8 @@ else
     gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
 fi
 
-sed -ri "s/RELEASE_SNAPSHOT/${GOOGLE_STORAGE}releases\/TaurusInstaller_${TAURUS_VERSION}_x64.exe/" site/dat/docs/Installation.md
-sed -ri "s/UNSTABLE_SNAPSHOT/${UNSTABLE_SNAPSHOT}/" site/dat/docs/Installation.md
+sed -ri 's/RELEASE_SNAPSHOT/"$STABLE_SNAPSHOT"/' site/dat/docs/Installation.md
+sed -ri 's/UNSTABLE_SNAPSHOT/"$UNSTABLE_SNAPSHOT"/' site/dat/docs/Installation.md
 
 python site/Taurus/kwindexer.py site/dat/docs site/dat/docs/KeywordIndex.md
 #cp site/dat/docs/img/*.png site/img/
