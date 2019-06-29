@@ -17,6 +17,7 @@ RUN cp vendor/undera/pwe/.htaccess ./
 ADD Taurus ./Taurus
 ADD dat ./dat
 ADD img ./img
+ADD builds ./builds
 ADD learn ./learn
 
 #RUN apt install -y mc bash-completion
