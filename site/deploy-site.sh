@@ -8,20 +8,33 @@ GOOGLE_STORAGE="https:\/\/storage.cloud.google.com\/taurus-site\/"
 UNSTABLE_SNAPSHOT=""
 TAURUS_VERSION=$(python -c 'import bzt; print(bzt.VERSION)')
 
+mkdir site/builds
+PREFIX="\/builds\/"
+
 if [ "$1" = "true" ]; then
     gsutil cp build/nsis/*.exe gs://taurus-site/releases/
 else
     gsutil cp -s regional dist/*.whl gs://taurus-site/snapshots/
     gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
 
+    # copy unstable snapshots into site
+    cp dist/*.whl site/builds
+    cp build/nsis/*.exe site/builds
+
+    # prepare content for installation docs
     SNAPSHOT_HEADER="## Latest Unstable Snapshots"
-    WHL_SNAPSHOT="Python wheel package: [bzt-${TAURUS_VERSION}-py2.py3-none-any.whl](${GOOGLE_STORAGE}snapshots\/bzt-${TAURUS_VERSION}-py2.py3-none-any.whl)"
-    EXE_SNAPSHOT="Windows installer: [TaurusInstaller_${TAURUS_VERSION}_x64.exe](${GOOGLE_STORAGE}snapshots\/TaurusInstaller_${TAURUS_VERSION}_x64.exe)"
+    WHL_SNAPSHOT="Python wheel package: [bzt-${TAURUS_VERSION}-py2.py3-none-any.whl](${PREFIX}bzt-${TAURUS_VERSION}-py2.py3-none-any.whl)"
+    EXE_SNAPSHOT="Windows installer: [TaurusInstaller_${TAURUS_VERSION}_x64.exe](${PREFIX}TaurusInstaller_${TAURUS_VERSION}_x64.exe)"
     UNSTABLE_SNAPSHOT=${SNAPSHOT_HEADER}\\n\\n${WHL_SNAPSHOT}\\n\\n${EXE_SNAPSHOT}
+
+    # cut BUILD_NUMBER off
     TAURUS_VERSION=${TAURUS_VERSION%.*}
 fi
 
-RELEASE_SNAPSHOT="${GOOGLE_STORAGE}releases\/TaurusInstaller_${TAURUS_VERSION}_x64.exe"
+STABLE_EXE=TaurusInstaller_${TAURUS_VERSION}_x64.exe
+gsutil cp gs://taurus-site/releases/${STABLE_EXE} site/builds
+RELEASE_SNAPSHOT="${PREFIX}${STABLE_EXE}"
+
 sed -ri "s/RELEASE_SNAPSHOT/${RELEASE_SNAPSHOT}/" site/dat/docs/Installation.md
 sed -ri "s/UNSTABLE_SNAPSHOT/${UNSTABLE_SNAPSHOT}/" site/dat/docs/Installation.md
 
