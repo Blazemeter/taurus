@@ -271,6 +271,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.obj.modify(self.jmx)
 
+        self.assertEqual(5, len(self.get_groupset()))
         for group in self.get_groupset():
             self.assertEqual(1, group.get_concurrency())
             self.assertEqual("false", group.element.find(".//*[@name='ThreadGroup.scheduler']").text)
