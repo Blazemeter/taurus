@@ -132,6 +132,40 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual("variable", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
         self.assertEqual("RESULT", xml_tree.findall(".//stringProp[@name='Scope.variable']")[0].text)
 
+    def test_def_load(self):
+        self.configure({"execution":
+            {"scenario":
+                {"requests": [{
+                    "url": "http://localhost"}]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        self.assertEqual("false", xml_tree.findall(".//boolProp[@name='ThreadGroup.scheduler']")[0].text)
+        self.assertEqual("1", xml_tree.findall(".//stringProp[@name='LoopController.loops']")[0].text)
+
+    def test_gen_load1(self):
+        self.configure({
+            "execution": {
+                "hold-for": "5m",
+                "scenario":
+                    {"requests": [{"url": "http://localhost"}]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        self.assertEqual("-1", xml_tree.findall(".//stringProp[@name='LoopController.loops']")[0].text)
+        self.assertEqual("true", xml_tree.findall(".//boolProp[@name='ThreadGroup.scheduler']")[0].text)
+        self.assertEqual("300", xml_tree.findall(".//stringProp[@name='ThreadGroup.duration']")[0].text)
+
+    def test_gen_load2(self):
+        self.configure({
+            "execution": {
+                "ramp-up": "3m",
+                "scenario":
+                    {"requests": [{"url": "http://localhost"}]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        self.assertEqual("-1", xml_tree.findall(".//stringProp[@name='LoopController.loops']")[0].text)
+        self.assertEqual("false", xml_tree.findall(".//boolProp[@name='ThreadGroup.scheduler']")[0].text)
+        self.assertEqual("180", xml_tree.findall(".//stringProp[@name='ThreadGroup.ramp_time']")[0].text)
+
     def test_boundary_extractors(self):
         self.configure({"execution":
             {"scenario":
