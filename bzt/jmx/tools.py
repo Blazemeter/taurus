@@ -150,9 +150,11 @@ class LoadSettingsProcessor(object):
         total_old_concurrency = sum(concurrency_list)
 
         for idx, concurrency in enumerate(concurrency_list):
-            if total_old_concurrency:
+            if total_old_concurrency and concurrency_list[idx] != 0:
                 part_of_load = 1.0 * self.load.concurrency * concurrency / total_old_concurrency
                 concurrency_list[idx] = int(round(part_of_load))
+                if concurrency_list[idx] == 0:
+                    concurrency_list[idx] = 1
             else:
                 concurrency_list[idx] = 0
 
