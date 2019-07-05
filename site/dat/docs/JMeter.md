@@ -864,7 +864,6 @@ There are generally two scenarios for client certificate based authentication.
 ```yaml
 modules:
   jmeter:
-    properties:
     system-properties:
       javax.net.ssl.keyStore: ${BASE_DIR}/test-data/my-client-certificates.p12
       javax.net.ssl.keyStorePassword: MyClientCertificatePassword
