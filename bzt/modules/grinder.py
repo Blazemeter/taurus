@@ -206,7 +206,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         :return: script
         """
         script = self.engine.create_artifact("grinder_requests", ".py")
-        builder = GrinderScriptBuilder(self.get_scenario(), self.log)
+        builder = GrinderScriptBuilder(self.get_scenario())
         builder.label = self.label
         builder.build_source_code()
         builder.save(script)
@@ -485,8 +485,8 @@ from net.grinder.plugin.http import HTTPRequest, HTTPPluginControl, HTTPUtilitie
 from HTTPClient import NVPair
 """
 
-    def __init__(self, scenario, parent_logger):
-        super(GrinderScriptBuilder, self).__init__(scenario, parent_logger)
+    def __init__(self, scenario):
+        super(GrinderScriptBuilder, self).__init__(scenario)
         self.label = "BZT Requests"
 
     def build_source_code(self):

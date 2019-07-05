@@ -1,5 +1,6 @@
 sudo: false
 language: python
+dist: xenial
 cache: pip  # use caching for pip's packages to speed up builds
 
 branches:
@@ -30,11 +31,13 @@ matrix:
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
 addons:
-  firefox: "65.0.1"
+  firefox: latest
   apt:
     packages:
     - openjdk-8-jdk
     - mono-complete
+    - python-tk
+    - python3-tk
 
 install:
 - |
@@ -43,8 +46,6 @@ install:
   else
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
-- nvm install 6.11
-- nvm use 6.11
 - gem install rspec
 - $PIP_INSTALL --upgrade pip
 - $PIP_INSTALL "pyyaml<5.1"
@@ -52,7 +53,7 @@ install:
 - $PIP_INSTALL -r tests/ci/requirements.txt
 
 before_script:
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then sh -e /etc/init.d/xvfb start; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then nohup bash -c "Xvfb :99 &"; fi
 - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
 - python tests/resources/httpserver/start.py &
 

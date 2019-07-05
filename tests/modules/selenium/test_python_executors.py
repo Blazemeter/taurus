@@ -3,10 +3,12 @@ import os
 
 import time
 
-from bzt.engine import ScenarioExecutor
+from bzt.engine import EXEC
 from bzt.modules import ConsolidatingAggregator
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
-from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor
+from bzt.modules.apiritif import ApiritifNoseExecutor
+from bzt.modules.pytest import PyTestExecutor
+from bzt.modules.robot import RobotExecutor
 from tests import RESOURCES_DIR, ExecutorTestCase
 from tests.modules.selenium import SeleniumTestCase
 
@@ -85,7 +87,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         :return:
         """
         self.configure({
-            ScenarioExecutor.EXEC: {
+            EXEC: {
                 "iterations": 1,
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/dummy.py"}

@@ -105,6 +105,34 @@ execution:
   scenario: my_jmx_file.jmx         # shortest form: only script file name  
 ```
 
+Another way to execute something is asking for script:
+```yaml
+scenarios:
+  with_script:
+    script: some_special_file
+```
+
+### SoapUI Integration
+
+You can specify SoapUI projects in place of script. The executor will convert them into 
+Taurus scenarios and handle with correspond executor.
+
+Example:
+```yaml
+execution:
+- concurrency: 10
+  executor: jmeter
+  hold-for: 5m
+  scenario: soapui-project
+
+scenarios:
+  soapui-project:
+    script: project.xml
+    test-case: TestIndex
+```
+
+You can read more on that [here](SoapUI.md).
+
 ## Startup Schedule
 
 By default, Taurus runs items under `execution` in parallel. 

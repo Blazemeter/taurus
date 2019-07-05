@@ -30,7 +30,7 @@ from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException
 from bzt.cli import CLI
-from bzt.engine import Configuration, ScenarioExecutor
+from bzt.engine import Configuration, EXEC
 from bzt.jmx import JMX
 from bzt.six import string_types
 from bzt.utils import get_full_path
@@ -91,7 +91,7 @@ class JMXasDict(JMX):
         super(JMXasDict, self).__init__()
         self.log = log.getChild(self.__class__.__name__)
         self.global_objects = []
-        self.scenario = {ScenarioExecutor.EXEC: None, "scenarios": None}
+        self.scenario = {EXEC: None, "scenarios": None}
         self.additional_files = {}  # dict(filename -> file content)
 
     def load(self, original):
@@ -1565,7 +1565,7 @@ class Converter(object):
         :rtype: dict
         """
         self.dialect.load(file_to_convert)
-        base_script = {"scenarios": {}, ScenarioExecutor.EXEC: []}
+        base_script = {"scenarios": {}, EXEC: []}
         self.log.debug("Processing thread groups...")
         tg_etree_elements = self.dialect.tree.findall(".//ThreadGroup")
         if not tg_etree_elements:
@@ -1577,7 +1577,7 @@ class Converter(object):
             for tg_etree_element in tg_etree_elements:
                 td_executions_dict, tg_scenario_dict = self.dialect.process_tg(tg_etree_element)
                 base_script["scenarios"].update(tg_scenario_dict)
-                base_script[ScenarioExecutor.EXEC].append(td_executions_dict)
+                base_script[EXEC].append(td_executions_dict)
                 self.log.debug("Done processing thread group %s", tg_etree_element.get("testname"))
 
             if dump_modified_jmx_to:

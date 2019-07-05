@@ -22,7 +22,8 @@ import traceback
 from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException, TaurusConfigError
-from bzt.engine import Scenario, BetterDict
+from bzt.engine import Scenario
+from bzt.utils import BetterDict
 from bzt.requests_model import has_variable_pattern
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types, integer_types
 
@@ -583,13 +584,6 @@ class JMX(object):
         else:
             enabled = "true"
 
-        if not iterations:
-            iterations = -1
-
-        scheduler = False
-        if hold or (rampup and (iterations == -1)):
-            scheduler = True
-
         if not hold:
             duration = rampup
         elif not rampup:
@@ -601,6 +595,17 @@ class JMX(object):
 
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
                             testclass="ThreadGroup", testname=testname, enabled=enabled)
+
+        if not iterations:
+            if duration:
+                iterations = -1
+            else:
+                iterations = 1
+
+        scheduler = False
+        if hold or (rampup and (iterations == -1)):
+            scheduler = True
+
         if on_error is not None:
             trg.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
         loop = etree.Element("elementProp",

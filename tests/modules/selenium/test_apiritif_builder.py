@@ -4,8 +4,8 @@ import tempfile
 from bzt import TaurusConfigError
 from bzt.modules import ConsolidatingAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.python import ApiritifNoseExecutor
-from bzt.modules.python.executors import ApiritifLoadReader, ApiritifFuncReader
+from bzt.modules.apiritif import ApiritifNoseExecutor
+from bzt.modules.apiritif.executor import ApiritifLoadReader, ApiritifFuncReader
 from tests import RESOURCES_DIR, ExecutorTestCase
 from tests.mocks import EngineEmul
 

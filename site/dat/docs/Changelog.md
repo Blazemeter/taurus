@@ -1,6 +1,19 @@
 # Changelog
 
-## 1.13.8<sup>next</sup>
+## 1.13.9<sup>next</sup>
+
+
+## 1.13.8<sup>29 may 2019</sup>
+
+- add random CSV feeder to JMX generator
+- expand on-the-fly convertion of soapui to all executors
+- fix Gatling classpath in generated launcher
+- add provisioning capacity feature
+- add support of new Node.js (8+)
+- fix Gatling csv handling
+- fix Jmeter load defaults
+- fix cumulative time stats on dashboard
+- fix site deploying flow
 
 
 ## 1.13.7<sup>29 may 2019</sup>

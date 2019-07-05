@@ -864,7 +864,6 @@ There are generally two scenarios for client certificate based authentication.
 ```yaml
 modules:
   jmeter:
-    properties:
     system-properties:
       javax.net.ssl.keyStore: ${BASE_DIR}/test-data/my-client-certificates.p12
       javax.net.ssl.keyStorePassword: MyClientCertificatePassword
@@ -991,26 +990,6 @@ modules:
   jmeter:
     memory-xmx: 4G  # allow JMeter to use up to 4G of memory
 ```
-
-## SoapUI Integration
-
-You can specify SoapUI projects in place of JMX scripts for JMeter executor. The executor will convert them into
-Taurus scenarios and execute them with JMeter.
-
-Example:
-```yaml
-execution:
-- concurrency: 10
-  hold-for: 5m
-  scenario: soapui-project
-
-scenarios:
-  soapui-project:
-    script: project.xml
-    test-case: TestIndex
-```
-
-You can read more on that [here](SoapUI.md).
 
 ## Protocol Handlers
 

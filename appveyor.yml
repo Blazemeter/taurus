@@ -16,7 +16,7 @@ platform:
   - x64
 
 install:
-  - choco install firefox --version 65.0.1
+  #- choco install firefox --version 67.0.3
   - ps: Install-Product node $env:NODEJS_VERSION
   - "%PYTHON%\\python.exe -m pip install pip wheel --upgrade"
   - "%PYTHON%\\python.exe -m pip install pyyaml==3.12"

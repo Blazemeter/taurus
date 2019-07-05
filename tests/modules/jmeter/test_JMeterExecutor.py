@@ -132,6 +132,41 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual("variable", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
         self.assertEqual("RESULT", xml_tree.findall(".//stringProp[@name='Scope.variable']")[0].text)
 
+    def test_default_load(self):
+        self.configure({"execution":
+            {"scenario":
+                {"requests": [{
+                    "url": "http://localhost"}]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        self.assertEqual("false", xml_tree.findall(".//boolProp[@name='ThreadGroup.scheduler']")[0].text)
+        self.assertEqual("1", xml_tree.findall(".//stringProp[@name='LoopController.loops']")[0].text)
+
+    def test_gen_load1(self):
+        self.configure({
+            "execution": {
+                "hold-for": "5m",
+                "scenario":
+                    {"requests": [{"url": "http://localhost"}]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        self.assertEqual("-1", xml_tree.findall(".//stringProp[@name='LoopController.loops']")[0].text)
+        self.assertEqual("true", xml_tree.findall(".//boolProp[@name='ThreadGroup.scheduler']")[0].text)
+        self.assertEqual("300", xml_tree.findall(".//stringProp[@name='ThreadGroup.duration']")[0].text)
+
+    def test_gen_load2(self):
+        self.configure({
+            "execution": {
+                "ramp-up": "3m",
+                "scenario":
+                    {"requests": [{"url": "http://localhost"}]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        self.assertEqual("-1", xml_tree.findall(".//stringProp[@name='LoopController.loops']")[0].text)
+        self.assertEqual("true", xml_tree.findall(".//boolProp[@name='ThreadGroup.scheduler']")[0].text)
+        self.assertEqual("180", xml_tree.findall(".//stringProp[@name='ThreadGroup.ramp_time']")[0].text)
+        self.assertEqual("180", xml_tree.findall(".//stringProp[@name='ThreadGroup.duration']")[0].text)
+
     def test_boundary_extractors(self):
         self.configure({"execution":
             {"scenario":
@@ -2675,7 +2710,16 @@ class TestJMeterExecutor(ExecutorTestCase):
             }
         })
         self.obj.prepare()
-        self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
+        new_sc_name = "TestSuite 1-index"
+        self.assertIn(new_sc_name, self.obj.engine.config["scenarios"])
+
+        # update execution.scenario
+        self.assertEqual(new_sc_name, self.obj.execution["scenario"])
+
+        # don't parse soapui xml twice
+        self.obj.engine.config["scenarios"]["project.xml"]["script"] = ""
+        new_sc = self.obj.get_scenario()
+        self.assertIn("requests", new_sc)
 
     def test_soapui_renaming(self):
         self.configure({
