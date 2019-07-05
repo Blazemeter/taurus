@@ -1,1 +1,0 @@
-Fixed Gatling classpath in generated Gatling launcher (for complex Jar scripts and additional classpath)
