@@ -287,6 +287,32 @@ class TestPassFailStatus(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
+    def test_bytes(self):
+        self.configure({"criteria": [  # bytes number can only be generated in range from 1 to 1000
+            "bytes>0 for 1s, continue as successful",
+            "bytes<1kb for 1s, continue as successful",
+            "bytes<1mib for 1s, continue as successful",
+            "bytes<1b for 1s, continue as failed",
+            "bytes>1024 for 1s, continue as failed",
+        ]})
+        self.obj.prepare()
+
+        self.assertEqual(self.obj.processors[0].criteria[1].threshold, 1024)  # conversion check
+        self.assertEqual(self.obj.processors[0].criteria[2].threshold, 1024*1024)
+        self.assertEqual(self.obj.processors[0].criteria[3].threshold, 1)
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            self.obj.aggregated_second(point)
+            self.obj.check()
+
+        self.obj.shutdown()
+        self.assertTrue(self.obj.criteria[0].is_triggered)
+        self.assertTrue(self.obj.criteria[1].is_triggered)
+        self.assertTrue(self.obj.criteria[2].is_triggered)
+        self.assertFalse(self.obj.criteria[3].is_triggered)
+        self.assertFalse(self.obj.criteria[4].is_triggered)
+
     def test_executor_level(self):
         executor = ModuleMock()
         executor.engine = self.obj.engine

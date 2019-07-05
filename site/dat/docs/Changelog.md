@@ -9,6 +9,7 @@
 - expand on-the-fly convertion of soapui to all executors
 - fix Gatling classpath in generated launcher
 - add provisioning capacity feature
+- add `bytes` passfail criteria
 - add support of new Node.js (8+)
 - fix Gatling csv handling
 - fix Jmeter load defaults

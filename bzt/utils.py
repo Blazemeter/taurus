@@ -207,6 +207,36 @@ def dehumanize_time(str_time):
     return result
 
 
+def get_bytes_count(str_bytes):
+    if not str_bytes:
+        return 0
+
+    parser = re.compile(r'([\d\.]+)([a-zA-Z]*)')
+    parts = parser.findall(str(str_bytes).replace(' ', ''))
+
+    if len(parts) != 1:
+        msg = "String format not supported: %s"
+        raise TaurusConfigError(msg % str_bytes)
+
+    value, unit = parts[0]
+    try:
+        value = float(value)
+    except ValueError:
+        raise TaurusConfigError("Unsupported float string: %r" % value)
+
+    unit = unit.lower()
+    if unit in ('', 'b'):
+        result = value
+    elif unit in ('k', 'kb', 'kib'):
+        result = value * 1024
+    elif unit in ('m', 'mb', 'mib'):
+        result = value * 1024 * 1024
+    else:
+        msg = "String contains unsupported unit %s: %s"
+        raise TaurusConfigError(msg % (unit, str_bytes))
+    return result
+
+
 class BetterDict(defaultdict):
     """
     Wrapper for defaultdict that able to deep merge other dicts into itself

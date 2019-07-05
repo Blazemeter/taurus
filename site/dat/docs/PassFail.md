@@ -32,11 +32,12 @@ Any non-required parameters might be omitted, the minimal form is `subject{condi
 
 Possible subjects are:
  - `avg-rt` - average response time, e.g. `avg-rt>2s500ms`
- - `avg-lt`- average latency, e.g. `avg-lt for mylabel>2`
+ - `avg-lt`- average latency, e.g. `avg-lt for my-label>2`
  - `avg-ct` - average connect time, e.g. `avg-ct>100ms`
  - `stdev-rt` - standard deviation for full response time, e.g. `stdev-rt>0.5`
  - `p...` - percentile timing, e.g. `p90>1s for 10s`, `p99.9>10s, stop as failed`
  - `hits` - number of responses, e.g. `hits for my-label>100 for 5s, stop as non-failed`
+ - `bytes` - response data size, e.g. `bytes for my-label>10MB`, possible types are B, kB and MB
  - `succ` or `success` - successful responses, supports percentage threshold, e.g. `succ\<100%` 
  - `fail` or `failures` - failed responses, supports percentage threshold, e.g. `failures>50% for 5s, stop as failed`
  - `rc...` - response codes criteria, supports percentage threshold, response code may be specified using wildcards `?` and `\*`, e.g. `rc500>20 for 5s, stop as failed`, `rc4??>20%`, `rc\*>=10 for 1m`, `rcException>99% for 1m, continue as failed`, 

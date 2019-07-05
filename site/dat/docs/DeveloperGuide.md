@@ -40,7 +40,7 @@ loads all its components.
 Additionally, Taurus has a mechanism for automatically detecting configuration files for Taurus plugins.
 Here's the conditions:
 1. Your plugin has to be a Python package installed with the same Python that you're using to run Taurus.
-1. You plugin has to have a `bzt-configs.json` file in the project dir (right next to `__init__.py`).
+1. You plugin has to have a `bzt-configs.json` file in the project dir (right next to `_\_init\_\_.py`).
 1. In this file should be a JSON list of configuration file names that your project uses to define Taurus modules.
 
 For example, you are developing a Taurus extension with the following structure:
