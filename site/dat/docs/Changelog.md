@@ -3,7 +3,7 @@
 ## 1.13.9<sup>next</sup>
 
 
-## 1.13.8<sup>29 may 2019</sup>
+## 1.13.8<sup>07 jul 2019</sup>
 
 - add random CSV feeder to JMX generator
 - expand on-the-fly convertion of soapui to all executors
