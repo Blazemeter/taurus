@@ -2,7 +2,7 @@
 
 ## Windows
 
-There are two ways two install Taurus on Windows. The recommended way is to use the prebuilt installer
+There are two ways to install Taurus on Windows. The recommended way is to use the prebuilt installer
 that will install latest Taurus on your PC. However, if you already have Python installed,
 you can install Taurus manually with pip, Python package manager.
 

@@ -130,7 +130,7 @@ scenarios:
     browser: Chrome
     timeout: 10s
     think-time: 3s
-    default-address requests: http://blazedemo.com
+    default-address: http://blazedemo.com
     requests:
     - url: /purchase.php
       actions:
