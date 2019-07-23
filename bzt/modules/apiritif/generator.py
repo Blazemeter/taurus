@@ -1105,6 +1105,17 @@ from selenium.webdriver.common.keys import Keys
 
         lines.extend(self._gen_extractors(req))
 
+        raw_requests = req.scenario.get('requests')
+        for key in range(len(raw_requests)):
+            req = ensure_is_dict(raw_requests, key, "url")
+            if 'action' in req:
+                action_type = req['action']
+                if action_type == 'pause':
+                    pause_duration = req['pause-duration']
+                    lines.append(ast.Expr(
+                        ast_call(
+                            func=ast_attr("sleep"),
+                            args=[self._gen_expr(dehumanize_time(pause_duration))])))
         if think_time:
             lines.append(ast.Expr(
                 ast_call(
