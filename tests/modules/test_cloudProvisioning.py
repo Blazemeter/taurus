@@ -1705,8 +1705,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(reqs[13]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
         self.assertEqual(reqs[13]['method'], 'PATCH')
         data = json.loads(reqs[13]['data'])
-        plugins = data['configuration']['plugins']
-        self.assertEqual(plugins["reportEmail"], {"enabled": False})
+        self.assertEqual(data["shouldSendReportEmail"], False)
 
     def test_send_report_email(self):
         self.configure(engine_cfg={EXEC: {"executor": "mock"}}, get={
@@ -1729,8 +1728,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(reqs[13]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
         self.assertEqual(reqs[13]['method'], 'PATCH')
         data = json.loads(reqs[13]['data'])
-        plugins = data['configuration']['plugins']
-        self.assertEqual(plugins["reportEmail"], {"enabled": True})
+        self.assertEqual(data['shouldSendReportEmail'], True)
 
     def test_multi_account_choice(self):
         with open(RESOURCES_DIR + "json/blazemeter-api-accounts.json") as fhd:

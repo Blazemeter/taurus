@@ -1174,7 +1174,7 @@ class CloudTaurusTest(BaseCloudTest):
         self._test.upload_files(taurus_config, rfiles)
         self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
         self._test.update_props({
-            'configuration': {'plugins': {'reportEmail': {"enabled": self.send_report_email}}}
+            "shouldSendReportEmail": self.send_report_email
         })
 
     def launch_test(self):
