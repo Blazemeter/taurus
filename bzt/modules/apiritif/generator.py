@@ -24,7 +24,7 @@ import astunparse
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
-from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
+from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables, ActionBlock
 from bzt.six import parse, string_types, iteritems, text_type, PY2
 from bzt.utils import dehumanize_time, ensure_is_dict
 from .ast_helpers import ast_attr, ast_call
@@ -92,7 +92,7 @@ from selenium.webdriver.common.keys import Keys
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
-    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables)
+    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, ActionBlock)
 
     def __init__(self, scenario, label, wdlog=None, utils_file=None,
                  ignore_unknown_actions=False, generate_markers=None,
@@ -893,6 +893,12 @@ from selenium.webdriver.common.keys import Keys
             elif isinstance(request, SetVariables):
                 body = self._gen_set_vars(request)
                 label = request.config.get("label", "set_variables")
+            elif isinstance(request, ActionBlock):
+                if request.action == "pause":
+                    body = [self._get_action_pause(request)]
+                    label = create_method_name(request.action)
+                else:
+                    continue
             else:
                 return
 
@@ -911,6 +917,15 @@ from selenium.webdriver.common.keys import Keys
                 targets=[self._gen_expr("${%s}" % name)],
                 value=ast.Str(s="%s" % request.mapping[name])))
 
+        return res
+
+    def _get_action_pause(self, request):
+        res = []
+        pause_duration = request.duration
+        res.append(ast.Expr(
+            ast_call(
+                func=ast_attr("sleep"),
+                args=[self._gen_expr(dehumanize_time(pause_duration))])))
         return res
 
     @staticmethod
@@ -1105,17 +1120,6 @@ from selenium.webdriver.common.keys import Keys
 
         lines.extend(self._gen_extractors(req))
 
-        raw_requests = req.scenario.get('requests')
-        for key in range(len(raw_requests)):
-            req = ensure_is_dict(raw_requests, key, "url")
-            if 'action' in req:
-                action_type = req['action']
-                if action_type == 'pause':
-                    pause_duration = req['pause-duration']
-                    lines.append(ast.Expr(
-                        ast_call(
-                            func=ast_attr("sleep"),
-                            args=[self._gen_expr(dehumanize_time(pause_duration))])))
         if think_time:
             lines.append(ast.Expr(
                 ast_call(
