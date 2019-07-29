@@ -21,41 +21,17 @@ RUN apt-get -y update \
   && apt-get -y install --no-install-recommends tzdata \
   && dpkg-reconfigure --frontend noninteractive tzdata \
   && apt-get -y install --no-install-recommends \
-    language-pack-en \
-    mc \
-    kmod \
-    unzip \
-    build-essential \
-    libxslt1-dev \
-    libffi-dev \
-    libxi6 \
-    libgconf-2-4 \
-    libexif12 \
-    udev \
-    openjdk-8-jdk \
-    xvfb \
-    libyaml-dev \
-    siege \
-    tsung \
-    apache2-utils \
-    phantom \
-    phantom-ssl \
-    firefox \
-    google-chrome-stable \
-    pepperflashplugin-nonfree \
-    flashplugin-installer \
-    # phantomjs \
-    ruby ruby-dev \
-    nodejs \
-    mono-complete nuget \
-    net-tools \
-    gcc-mingw-w64-x86-64 \
+    language-pack-en mc kmod unzip build-essential \
+    libxslt1-dev libffi-dev libxi6 libgconf-2-4 libexif12 libyaml-dev \
+    udev openjdk-8-jdk xvfb siege tsung apache2-utils phantom phantom-ssl \
+    firefox google-chrome-stable pepperflashplugin-nonfree flashplugin-installer \
+    ruby ruby-dev nodejs mono-complete nuget net-tools gcc-mingw-w64-x86-64 \
   && apt-get -y install --no-install-recommends python-dev python-pip \
-  && python2 -m pip install pip setuptools wheel twine \
+  && python2 -m pip install pip setuptools \
+  && python2 -m pip install locustio robotframework robotframework-seleniumlibrary wheel twine \
   && apt-get -y install --no-install-recommends python3-dev python3-pip \
-  && python3 -m pip install setuptools pip wheel \
-  && python2 -m pip install locustio robotframework robotframework-seleniumlibrary \
-  && python3 -m pip  install "molotov!=1.5" \
+  && python3 -m pip install setuptools pip \
+  && python3 -m pip  install wheel "molotov!=1.5" \
   && ln -sf /usr/bin/pip2 /usr/local/bin/pip \
   && gem install rspec rake \
   && gem install selenium-webdriver \
