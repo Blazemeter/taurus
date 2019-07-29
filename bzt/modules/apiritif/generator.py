@@ -905,7 +905,7 @@ from selenium.webdriver.common.keys import Keys
             counter = str(index).zfill(number_of_digits)
             method_name = 'test_' + counter + '_' + label
 
-            if isinstance(request, SetVariables):
+            if isinstance(request, SetVariables) or isinstance(request, ActionBlock):
                 self.service_methods.append(method_name)  # for sample excluding
 
             yield self._gen_test_method(method_name, body)
