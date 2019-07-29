@@ -260,7 +260,7 @@ scenarios:
       assert:
       - contains:
         - 'Thank you for your purchase today!'
-    - url: vacation.html
+    - url: /vacation.html
       actions:
       - waitByCSS(div.container img): visible
 ```
