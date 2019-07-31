@@ -55,6 +55,20 @@ class BZTestCase(TestCase):
 
     @staticmethod
     def assertFilesEqual(expected, actual, replace_str="", replace_with="", python_files=False):
+        def equal_by_content(difference):
+            diff_act, diff_exp = [], []
+            for line in difference:
+                if line[0] == '-':
+                    act_line = line[2:line.rfind('"')+1].split(" ")[1:]
+                    act_line.sort()
+                    diff_act.append(act_line)
+                elif line[0] == '+':
+                    diff_exp.append(line[2:line.rfind('"')+1].split(" ")[1:])
+            if diff_act == diff_exp:
+                return True
+            else:
+                return False
+        
         if isinstance(replace_str, str):
             replace_str = [replace_str]
         if isinstance(replace_with, str):
@@ -73,10 +87,11 @@ class BZTestCase(TestCase):
             exp_lines = astunparse.unparse(ast.parse('\n'.join(exp_lines))).split('\n')
 
         diff = list(difflib.unified_diff(exp_lines, act_lines))
-        if diff:
-            ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
-            msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
-            raise AssertionError(msg % (actual, expected, "\n".join(diff)))
+
+        if diff and not equal_by_content(diff[5:]):
+                ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
+                msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
+                raise AssertionError(msg % (actual, expected, "\n".join(diff)))
 
     def assertPathsEqual(self, p1, p2):
         if not isinstance(p1, list):
