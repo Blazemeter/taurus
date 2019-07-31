@@ -37,6 +37,7 @@ namespace NUnitRunner
         {
             public long StartTime;
             public double Duration;
+            public string ThreadName;
             public string TestCase;
             public string TestSuite;
             public string Status;
@@ -77,6 +78,7 @@ namespace NUnitRunner
 				var sample = new Dictionary<object, object>
                 {
                     { "start_time", item.StartTime },
+                    { "ThreadName", item.ThreadName },
                     { "duration", item.Duration },
                     { "test_case", item.TestCase },
 					{ "test_suite", item.TestSuite },
@@ -173,6 +175,8 @@ namespace NUnitRunner
                         {
                             Console.WriteLine(report);
                         }
+
+                        item.ThreadName = Thread.CurrentThread.Name;
 
                         blockedCollection.Add(item);
                     }
@@ -282,10 +286,10 @@ namespace NUnitRunner
                 throw new ArgumentException("Nothing to run, no tests were loaded");
             }
 
-            if (opts.ramp_up > 1 && opts.durationLimit > 0)
-            {
-                opts.durationLimit = opts.durationLimit + opts.ramp_up;
-            }
+            //if (opts.ramp_up > 1 && opts.durationLimit > 0)
+            //{
+            //    opts.durationLimit = opts.durationLimit + opts.ramp_up;
+            //}
 
             WaitHandle[] waitHandles = new WaitHandle[opts.concurrency];
 
@@ -296,6 +300,8 @@ namespace NUnitRunner
                                             {
                                                 WriteResults();
                                             });
+
+            writerThread.Name = "WriterThread";
             writerThread.Start();
 
             DateTime startTime = DateTime.Now;
@@ -309,6 +315,8 @@ namespace NUnitRunner
                                             RunTest(startTime);
                                             workerHandle.Set();
                                         });
+
+                workerThread.Name = $"Worker-{i}";
                 workerThread.Start();
 
                 waitHandles[i] = workerHandle;
