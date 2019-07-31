@@ -73,10 +73,22 @@ class BZTestCase(TestCase):
             exp_lines = astunparse.unparse(ast.parse('\n'.join(exp_lines))).split('\n')
 
         diff = list(difflib.unified_diff(exp_lines, act_lines))
+
+        def compare_by_content(first, second):
+            for i in range(len(first)):
+                if first[i] != second[i]:
+                    first_line = first[i].replace(">", "").split(" ")
+                    second_line = second[i].replace(">", "").split(" ")
+                    first_line.sort()
+                    if first_line != second_line:
+                        return False
+            return True
+
         if diff:
-            ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
-            msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
-            raise AssertionError(msg % (actual, expected, "\n".join(diff)))
+            if not compare_by_content(exp_lines, act_lines):
+                ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
+                msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
+                raise AssertionError(msg % (actual, expected, "\n".join(diff)))
 
     def assertPathsEqual(self, p1, p2):
         if not isinstance(p1, list):
