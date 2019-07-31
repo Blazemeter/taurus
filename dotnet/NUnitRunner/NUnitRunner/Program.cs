@@ -286,10 +286,10 @@ namespace NUnitRunner
                 throw new ArgumentException("Nothing to run, no tests were loaded");
             }
 
-            //if (opts.ramp_up > 1 && opts.durationLimit > 0)
-            //{
-            //    opts.durationLimit = opts.durationLimit + opts.ramp_up;
-            //}
+            if (opts.ramp_up > 1 && opts.durationLimit > 0)
+            {
+                opts.durationLimit = opts.durationLimit + opts.ramp_up;
+            }
 
             WaitHandle[] waitHandles = new WaitHandle[opts.concurrency];
 
