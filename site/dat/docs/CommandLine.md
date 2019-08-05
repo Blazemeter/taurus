@@ -76,9 +76,10 @@ And if you need to pass a string with quotations, you have to add an escaped lev
 bzt -o modules.jmeter.properties.name='"\"string with quotes\""' script.yaml
 ```
 
-If you need to recursively override a value by giving only chile node of the key:
+If you need to recursively override a value by giving only child node of the key:
 ```bash
 # this will set all properties of 'default-address' under `scenario` to value `newValue`.
+# (note that the replace works only on dictonaries and list of dictonaries)
 bzt -o scenarios.*default-address='newValue' script.yaml
 ```
 
