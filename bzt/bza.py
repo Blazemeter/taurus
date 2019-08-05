@@ -270,9 +270,14 @@ class Workspace(BZAObject):
         :rtype: BZAObjectsList[Project]
         """
         params = OrderedDict()
-        params.update({"workspaceId": self['id'], "limit": 1000})
+        params.update({"workspaceId": self['id']})
+
         if name:
             params.update({"name": name})
+
+        if ident:
+            params.update({"limit": 1000})
+
         res = self._request(self.address + '/api/v4/projects?' + urlencode(params))
 
         projects = BZAObjectsList()
