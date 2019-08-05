@@ -178,7 +178,19 @@ class TestNoseRunner(ExecutorTestCase):
                     "default-address": "http://blazedemo.com",
                     "requests": [
                         "/",
-                        "/reserve.php"]}}]})
+                        {"set-variables": {"name1": "val1"}},
+                        {
+                            "transaction": "second",
+                            "do": [
+                                "/other.html",
+                                "/reserve.php",
+                                {
+                                    "transaction": "third",
+                                    "do": [
+                                        "/${name1}"
+                                    ]
+                                }
+                            ]}]}}]})
 
         self.obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "test_requests.py")))
