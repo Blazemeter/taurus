@@ -169,6 +169,28 @@ class TestNoseRunner(ExecutorTestCase):
         self.assertFalse(self.obj.has_results())
         self.assertNotEquals(self.obj.process, None)
 
+    def test_new_flow(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "iterations": 1,
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "requests": [
+                        "/",
+                        "/reserve.php"]}}]})
+
+        self.obj.prepare()
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "test_requests.py")))
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.process, None)
+
     def test_apiritif_generated_requests(self):
         self.configure({
             "execution": [{
