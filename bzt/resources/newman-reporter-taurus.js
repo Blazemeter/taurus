@@ -130,7 +130,7 @@ class TaurusReporter {
             var requestHeaders = item.request.headers.toObject(false, true);
             var responseHeaders = item.response.headers.toObject(false, true);
             var requestCookies = {};
-            item.cookies.forEach(function (elem) { requestCookies[elem.name] = elem.value; });
+            item.cookies.members.forEach(function (elem) { requestCookies[elem.name] = elem.value; });
             sample.extras = {
                 responseCode: item.response.code,
                 responseMessage: item.response.status,
