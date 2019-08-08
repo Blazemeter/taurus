@@ -19,6 +19,7 @@ class TestPassFailStatus(BZTestCase):
         super(TestPassFailStatus, self).setUp()
         self.obj = PassFailStatusMock()
         self.obj.engine = EngineEmul()
+        self.obj.engine.aggregator.engine = self.obj.engine
 
     def configure(self, params):
         self.obj.parameters.merge(params)
@@ -332,3 +333,22 @@ class TestPassFailStatus(BZTestCase):
             self.fail()
         except AutomatedShutdown:
             pass
+
+    def test_monitoring(self):
+        self.configure({"criteria": [{
+            "class": "bzt.modules.monitoring.MonitoringCriteria",
+            "subject": "local/cpu",
+            "condition": ">",
+            "threshold": 90,
+            "timeframe": "5s"
+        }]})
+
+        self.obj.prepare()
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            self.obj.aggregated_second(point)
+            self.obj.check()
+
+        self.obj.shutdown()
+        self.assertFalse(self.obj.criteria[0].is_triggered)
