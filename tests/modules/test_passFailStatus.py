@@ -19,7 +19,6 @@ class TestPassFailStatus(BZTestCase):
         super(TestPassFailStatus, self).setUp()
         self.obj = PassFailStatusMock()
         self.obj.engine = EngineEmul()
-        self.obj.engine.aggregator.engine = self.obj.engine
 
     def configure(self, params):
         self.obj.parameters.merge(params)
