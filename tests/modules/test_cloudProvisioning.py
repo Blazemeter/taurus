@@ -43,7 +43,7 @@ class TestCloudProvisioning(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {"result": []},
         })
         self.mock.mock_post.update({
-            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1}},
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1, 'limit': 1000}},
             'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1, "configuration": {"type": "taurus"}}},
             'https://a.blazemeter.com/api/v4/tests/1/files': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
@@ -663,7 +663,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={EXEC: {"executor": "mock"}},
             get={
-                "https://a.blazemeter.com/api/v4/projects?workspaceId=1": {
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=1000": {
                     "result": [{"id": 1, "name": "myproject"}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {
                     "result": [{"id": 1, "name": "Taurus Cloud Test"}]
@@ -1513,7 +1513,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=1000': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
@@ -1555,7 +1555,7 @@ class TestCloudProvisioning(BZTestCase):
                     "result": {"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1,
                                "locations": [{"id": "eu-west-1"}]}
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=1000': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
@@ -1616,7 +1616,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=1000': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
@@ -1705,8 +1705,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(reqs[13]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
         self.assertEqual(reqs[13]['method'], 'PATCH')
         data = json.loads(reqs[13]['data'])
-        plugins = data['configuration']['plugins']
-        self.assertEqual(plugins["reportEmail"], {"enabled": False})
+        self.assertEqual(data["shouldSendReportEmail"], False)
 
     def test_send_report_email(self):
         self.configure(engine_cfg={EXEC: {"executor": "mock"}}, get={
@@ -1729,8 +1728,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(reqs[13]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
         self.assertEqual(reqs[13]['method'], 'PATCH')
         data = json.loads(reqs[13]['data'])
-        plugins = data['configuration']['plugins']
-        self.assertEqual(plugins["reportEmail"], {"enabled": True})
+        self.assertEqual(data['shouldSendReportEmail'], True)
 
     def test_multi_account_choice(self):
         with open(RESOURCES_DIR + "json/blazemeter-api-accounts.json") as fhd:
