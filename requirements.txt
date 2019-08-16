@@ -13,7 +13,7 @@ psutil>=5,!=5.3.0
 pytest>=3
 pyvirtualdisplay; sys_platform != 'win32'
 pyyaml
-requests>=2.11.1
+requests>=2.18.1
 selenium
 Appium-Python-Client
 urwid
