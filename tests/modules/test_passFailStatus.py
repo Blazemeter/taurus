@@ -332,3 +332,22 @@ class TestPassFailStatus(BZTestCase):
             self.fail()
         except AutomatedShutdown:
             pass
+
+    def test_monitoring(self):
+        self.configure({"criteria": [{
+            "class": "bzt.modules.monitoring.MonitoringCriteria",
+            "subject": "local/cpu",
+            "condition": ">",
+            "threshold": 90,
+            "timeframe": "5s"
+        }]})
+
+        self.obj.prepare()
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            self.obj.aggregated_second(point)
+            self.obj.check()
+
+        self.obj.shutdown()
+        self.assertFalse(self.obj.criteria[0].is_triggered)

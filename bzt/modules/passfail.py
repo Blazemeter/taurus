@@ -25,7 +25,7 @@ from collections import OrderedDict
 from urwid import Pile, Text
 
 from bzt import AutomatedShutdown, TaurusConfigError
-from bzt.engine import Reporter
+from bzt.engine import Reporter, EngineModule
 from bzt.modules.aggregator import KPISet, DataPoint, AggregatorListener, ResultsProvider
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.six import string_types, viewvalues, iteritems
@@ -39,6 +39,9 @@ class CriteriaProcessor(AggregatorListener):
 
     def __init__(self, crit_cfg_list, feeder):
         super(CriteriaProcessor, self).__init__()
+        self.engine = None
+        if isinstance(feeder, EngineModule):
+            self.engine = feeder.engine
         self.criteria = []
         self.last_datapoint = None
         self.log = logging.getLogger(__name__)
