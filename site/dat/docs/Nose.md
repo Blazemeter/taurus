@@ -22,7 +22,7 @@ scenario:
   sample:
     variables:
     var1: val1
-
+    requests:
     - http://blazedemo.com     # ordinal request
     - transaction: second   # transaction
       do:
