@@ -434,54 +434,17 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
 
         if LooseVersion(self.tool.version) > LooseVersion("3"):
-            template_path = os.path.join(RESOURCES_DIR, "gatling", "props.tpl")
-
-            with open(template_path) as template_file:
-                template_line = template_file.read()
-
-            params = {}
+            prop_lines = []
             for key in props:
                 if key.startswith("gatling."):
-                    params[key.split('.')[-1]] = props[key]
+                    prop_lines.append("%s = %s" % (key, props[key]))
 
             conf_dir = self.engine.create_artifact("conf", "")
             os.mkdir(conf_dir)
             with open(os.path.join(conf_dir, "gatling.conf"), 'w') as conf_file:
-                conf_file.write(template_line % params)
+                conf_file.write('\n'.join(prop_lines))
 
             self.env.add_path({"GATLING_CONF": conf_dir})
-
-    def _write_props(self):
-        props = BetterDict()
-
-        # todo: use config props
-        #props.merge(self.settings.get('properties'))
-        #props.merge(self.get_scenario().get("properties"))
-
-
-        props['gatling.core.outputDirectoryBaseName'] = self.dir_prefix
-        props['gatling.core.directory.resources'] = self.engine.artifacts_dir
-        props['gatling.core.directory.results'] = self.engine.artifacts_dir
-
-        props.merge(self._get_simulation_props())
-        props.merge(self._get_load_props())
-        props.merge(self._get_scenario_props())
-        for key in sorted(props.keys()):
-            prop = props[key]
-            val_tpl = "%s"
-
-            if isinstance(prop, string_types):
-                if not is_windows():    # extend properties support (contained separators/quotes/etc.) on lin/mac
-                    val_tpl = "%r"
-                if PY2:
-                    prop = prop.encode("utf-8", 'ignore')  # to convert from unicode into str
-
-            self.env.add_java_param({"JAVA_OPTS": ("-D%s=" + val_tpl) % (key, prop)})
-
-        self.env.set({"NO_PAUSE": "TRUE"})
-        self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
-
-        self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
 
     def startup(self):
         self._set_env()
