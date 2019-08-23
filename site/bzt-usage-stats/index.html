@@ -1,0 +1,54 @@
+<!doctype html>
+
+<head>
+    <title>Taurus Usage Statistic</title>
+    <link rel="icon" type="image/png" href="/img/favicon.png">
+    <style>
+        body {
+            color: #565866;
+            background-color: #f9f9f9;
+            font-family: 'Open Sans', sans-serif;
+            font-size: 14px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            font-weight: bold;
+        }
+        .chart-button {
+            background: transparent;
+            color: #78a2d8;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            font-size: 14px;
+            outline: none;
+            padding: 12px 20px;
+            cursor: pointer;
+        }
+
+        .chart-button:hover{
+            background: #f1f1f1;
+        }
+
+        .chart-button.active {
+            background: #78a2d8;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Taurus Usage Statistics</h1>
+    <form>
+        <button class="chart-button" name=day type=button>Day</button>
+        <button class="chart-button" name=week type=button>Week</button>
+        <button class="chart-button" name=month type="button">Month</button>
+        <div id="out" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+    </form>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/series-label.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="bzt_usage_stats.js"></script>
+</body>
+
+</html>
