@@ -44,6 +44,15 @@ gsutil cp gs://taurus-site/learn.zip learn.zip
 unzip -o learn.zip -d site
 rm learn.zip
 
+TODAY_DATE=$(date +'%d.%m.%Y')
+gsutil cp gs://taurus-statistic/stats_${TODAY_DATE}.csv site/bzt-usage-stats/stats_${TODAY_DATE}.csv
+gsutil cp gs://taurus-statistic/home_users.json site/bzt-usage-stats/home_users.json
+gsutil cp gs://taurus-statistic/launch_by_day.json site/bzt-usage-stats/launch_by_day.json
+gsutil cp gs://taurus-statistic/launch_by_week.json site/bzt-usage-stats/launch_by_week.json
+gsutil cp gs://taurus-statistic/launch_by_month.json site/bzt-usage-stats/launch_by_month.json
+gsutil cp gs://taurus-statistic/launch_by_platform.json site/bzt-usage-stats/launch_by_platform.json
+gsutil cp gs://taurus-statistic/new_users_by_day.json site/bzt-usage-stats/new_users_by_day.json
+
 docker build -t taurus-site.${BUILD_NUMBER} site
 
 gcloud auth --quiet configure-docker
