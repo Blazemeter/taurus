@@ -34,6 +34,10 @@ from bzt.utils import simple_body_dict, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
+def is_gatling2(ver):
+    return LooseVersion(ver) < LooseVersion("3")
+
+
 class GatlingScriptBuilder(object):
     def __init__(self, load, scenario, parent_logger, class_name, gatling_version=None):
         super(GatlingScriptBuilder, self).__init__()
@@ -231,11 +235,11 @@ class GatlingScriptBuilder(object):
         return feeders_def, feeding
 
     def gen_test_case(self):
-        if LooseVersion(self.gatling_version) < LooseVersion("3"):
+        if is_gatling2(self.gatling_version):
             version = 2
         else:
             version = 3
-        template_path = os.path.join(RESOURCES_DIR, ("gatling_%s_script.tpl" % version))
+        template_path = os.path.join(RESOURCES_DIR, "gatling", ("v%s_script.tpl" % version))
 
         with open(template_path) as template_file:
             template_line = template_file.read()
@@ -299,12 +303,18 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.log.debug("Classpath for Gatling: %s", cpath)
 
         for element in cpath:
-            self.env.add_path({"JAVA_CLASSPATH": element})
-            self.env.add_path({"COMPILATION_CLASSPATH": element})
+            if is_gatling2(self.tool.version):
+                self.env.add_path({"JAVA_CLASSPATH": element})
+                self.env.add_path({"COMPILATION_CLASSPATH": element})
+            else:
+                self.env.add_path({"GATLING_CONF": element})
 
-        new_name = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
-        self.log.debug("Building Gatling launcher: %s", new_name)
-        self.tool.build_launcher(new_name)
+        if is_gatling2(self.tool.version):
+            new_name = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
+            self.log.debug("Building Gatling launcher: %s", new_name)
+            self.tool.build_launcher(new_name)
+        else:
+            self.build_tool_config()
 
         self.script = self.get_script_path()
         if not self.script:
@@ -324,6 +334,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
+    def build_tool_config(self):
+        pass
+
     def __generate_script(self):
         simulation = "TaurusSimulation_%s" % id(self)
         file_name = self.engine.create_artifact(simulation, ".scala")
@@ -337,8 +350,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         props = {}
         if os.path.isfile(self.script):
             if self.script.endswith('.jar'):
-                self.env.add_path({"JAVA_CLASSPATH": self.script})
-                self.env.add_path({"COMPILATION_CLASSPATH": self.script})
+                if is_gatling2(self.tool.version):
+                    self.env.add_path({"JAVA_CLASSPATH": self.script})
+                    self.env.add_path({"COMPILATION_CLASSPATH": self.script})
+                else:
+                    self.env.add_path({"GATLING_CONF": self.script})
+
             else:
                 props['gatling.core.directory.simulations'] = get_full_path(self.script, step_up=1)
         else:
@@ -412,21 +429,35 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 if PY2:
                     prop = prop.encode("utf-8", 'ignore')  # to convert from unicode into str
 
-            self.env.add_java_param({"JAVA_OPTS": ("-D%s=" + val_tpl) % (key, prop)})
+            if is_gatling2(self.tool.version) or not key.startswith('gatling.'):    # send param through java_opts
+                self.env.add_java_param({"JAVA_OPTS": ("-D%s=" + val_tpl) % (key, prop)})
 
         self.env.set({"NO_PAUSE": "TRUE"})
         self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
 
         self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
 
+        if not is_gatling2(self.tool.version):  # cook prop file
+            prop_lines = []
+            for key in props:
+                if key.startswith("gatling."):
+                    prop_lines.append("%s = %s" % (key, props[key]))
+
+            conf_dir = self.engine.create_artifact("conf", "")
+            os.mkdir(conf_dir)
+            with open(os.path.join(conf_dir, "gatling.conf"), 'w') as conf_file:
+                conf_file.write('\n'.join(prop_lines))
+
+            self.env.add_path({"GATLING_CONF": conf_dir})
+
     def startup(self):
         self._set_env()
-        self.process = self._execute(self._get_cmdline())
+        self.process = self._execute(self._get_cmdline(), pgrp=False)
 
     def _get_cmdline(self):
         cmdline = [self.tool.tool_path]
 
-        if LooseVersion(self.tool.version) < LooseVersion("3"):
+        if is_gatling2(self.tool.version):
             cmdline += ["-m"]  # default for 3.0.0
 
         return cmdline
@@ -490,10 +521,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 tool.install()
 
         # old gatling compiler (zinc) is incompatible with new jre
-        old_gatling = LooseVersion('3') > LooseVersion(self.tool.version)
         new_java = java.version and int(java.version) > 8
 
-        if old_gatling and new_java:
+        if is_gatling2(self.tool.version) and new_java:
             self.log.warning('Gatling v%s is incompatible with Java %s', self.tool.version, java.version)
 
     def get_widget(self):
@@ -825,7 +855,7 @@ class Gatling(RequiredTool):
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
-    def build_launcher(self, new_name):
+    def build_launcher(self, new_name):     # legacy, for v2 only
         def convert_v2():
             modified_lines = []
             mod_success = False
@@ -850,39 +880,10 @@ class Gatling(RequiredTool):
 
             return modified_lines
 
-        def convert_v3():
-            modified_lines = []
-            mod_success = False
-
-            with open(self.tool_path) as fds:
-                for line in fds.readlines():
-                    if is_windows():
-                        if line.startswith('set COMPILER_CLASSPATH='):
-                            mod_success = True
-                            line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'  # add from env
-                        elif line.startswith('set GATLING_CLASSPATH='):
-                            mod_success = True
-                            line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
-                    else:
-                        if line.startswith('COMPILER_CLASSPATH='):
-                            mod_success = True
-                            line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
-                        elif line.startswith('GATLING_CLASSPATH='):
-                            mod_success = True
-                            line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
-                        elif line.startswith('"$JAVA"'):
-                            line = 'eval ' + line
-                    modified_lines.append(line)
-
-            if not mod_success:
-                raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
-
-            return modified_lines
-
-        if LooseVersion(self.version) < LooseVersion('3'):
+        if is_gatling2(self.version):
             converted_lines = convert_v2()
         else:
-            converted_lines = convert_v3()
+            raise RuntimeError('don\'t touch v3!')
 
         self.tool_path = new_name
 
