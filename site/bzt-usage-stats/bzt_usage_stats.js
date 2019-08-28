@@ -1,15 +1,12 @@
 document.addEventListener("DOMContentLoaded", async () => {
 
-    const respNewUsers = await fetch('./new_users_by_day.json');
-    const newUsers = await respNewUsers.json();
-
-    const respLaunchByDay = await fetch('./launch_by_day.json');
+    const respLaunchByDay = await fetch('./stats_by_day.json');
     const launchByDay = await respLaunchByDay.json();
 
-    const respLaunchByWeek = await fetch('./launch_by_week.json');
+    const respLaunchByWeek = await fetch('./stats_by_week.json');
     const launchByWeek = await respLaunchByWeek.json();
 
-    const respLaunchByMonth = await fetch('./launch_by_month.json');
+    const respLaunchByMonth = await fetch('./stats_by_month.json');
     const launchByMonth = await respLaunchByMonth.json();
 
     let form = document.querySelector("form")
@@ -20,7 +17,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         form.day.classList.add("active");
         form.week.classList.remove("active");
         form.month.classList.remove("active");
-        drawChart("Days");
+        if(launchByDay.length === 0){
+            out.innerHTML = "<p class='no-data'>No Data</p>";
+        } else {
+            drawChart("Days");
+        }
     })
 
     form.week.addEventListener("click", () => {
@@ -28,7 +29,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         form.week.classList.add("active");
         form.day.classList.remove("active");
         form.month.classList.remove("active");
-        drawChart("Week");
+        if(launchByWeek.length === 0){
+            out.innerHTML = "<p class='no-data'>No Data</p>";
+        } else {
+            drawChart("Week");
+        }
     })
 
     form.month.addEventListener("click", () => {
@@ -36,7 +41,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         form.month.classList.add("active");
         form.day.classList.remove("active");
         form.week.classList.remove("active");
-        drawChart("Month");
+        if(launchByMonth.length === 0){
+            out.innerHTML = "<p class='no-data'>No Data</p>";
+        } else {
+            drawChart("Month");
+        }
     })
 
     form.day.classList.add("active");
@@ -79,42 +88,41 @@ document.addEventListener("DOMContentLoaded", async () => {
         let cloudUsersData = [];
         let desctopUsersData = [];
         let periodName = "";
-        let currentYear = new Date().getFullYear();
-        let lastMonth = new Date().getMonth();
 
         if (period === "Days") {
             periodName = "Daily";
 
-            Object.keys(newUsers).sort().forEach(function (date) {
-                if (Number(date.split('.')[1]) === lastMonth) {
-                    categoriesArr.push(date);
-                    newUsersData.push(newUsers[date]);
-                    cloudUsersData.push(launchByDay[date].cloud_count);
-                    desctopUsersData.push(launchByDay[date].desktop_count);
-                }
-            });
+            for(let i = 1; i < 32; i++) {
+                if (i > launchByDay.length) break;
+                categoriesArr.unshift(launchByDay[launchByDay.length - i].date);
+                newUsersData.unshift(launchByDay[launchByDay.length - i].new_users);
+                cloudUsersData.unshift(launchByDay[launchByDay.length - i].cloud_launch);
+                desctopUsersData.unshift(launchByDay[launchByDay.length - i].desktop_launch);
+            }
         }
 
         if (period === "Week") {
             periodName = "Weekly";
 
-            Object.keys(launchByWeek[currentYear]).sort((a, b) => a-b).forEach(function (week) {
-                categoriesArr.push(week);
-                newUsersData.push(launchByWeek[currentYear][week].new_users_count);
-                cloudUsersData.push(launchByWeek[currentYear][week].cloud_count);
-                desctopUsersData.push(launchByWeek[currentYear][week].desktop_count);
-            });
+            for(let i = 1; i < 32; i++) {
+                if (i > launchByWeek.length) break;
+                categoriesArr.unshift(launchByWeek[launchByWeek.length - i].week);
+                newUsersData.unshift(launchByWeek[launchByWeek.length - i].new_users);
+                cloudUsersData.unshift(launchByWeek[launchByWeek.length - i].cloud_launch);
+                desctopUsersData.unshift(launchByWeek[launchByWeek.length - i].desktop_launch);
+            }
         }
 
         if (period === "Month") {
             periodName = "Monthly";
 
-            Object.keys(launchByMonth).sort((a, b)=>a-b).forEach(function (month) {
-                categoriesArr.push(month);
-                newUsersData.push(launchByMonth[month].new_users_count);
-                cloudUsersData.push(launchByMonth[month].cloud_count);
-                desctopUsersData.push(launchByMonth[month].desktop_count);
-            });
+            for(let i = 1; i < 32; i++) {
+                if (i > launchByMonth.length) break;
+                categoriesArr.unshift(launchByMonth[launchByMonth.length - i].month);
+                newUsersData.unshift(launchByMonth[launchByMonth.length - i].new_users);
+                cloudUsersData.unshift(launchByMonth[launchByMonth.length - i].cloud_launch);
+                desctopUsersData.unshift(launchByMonth[launchByMonth.length - i].desktop_launch);
+            }
         }
 
         return { period_name: periodName, categories: categoriesArr, new_users: newUsersData, cloud_users: cloudUsersData, desktop_users: desctopUsersData }
