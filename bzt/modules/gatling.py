@@ -304,7 +304,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         for element in cpath:
             if is_gatling2(self.tool.version):
-                self.env.add_path({"fASSPATH": element})
+                self.env.add_path({"JAVA_CLASSPATH": element})
                 self.env.add_path({"COMPILATION_CLASSPATH": element})
             else:
                 self.env.add_path({"GATLING_CONF": element})

@@ -6,7 +6,7 @@ import time
 
 from bzt import ToolError, TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.gatling import GatlingExecutor, DataLogReader
+from bzt.modules.gatling import GatlingExecutor, DataLogReader, is_gatling2
 from bzt.modules.provisioning import Local
 from bzt.six import u
 from bzt.utils import EXE_SUFFIX, get_full_path, is_windows
@@ -93,8 +93,13 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.settings.merge({"additional-classpath": [jars[1]]})
         self.obj.prepare()
 
+        if is_gatling2(self.obj.tool.version):
+            variables = ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH")
+        else:
+            variables = ("GATLING_CONF",)
+
         for jar in jars:
-            for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
+            for var in variables:
                 self.assertIn(jar, self.obj.env.get(var))
 
     def test_external_jar_built_launcher_v2(self):
