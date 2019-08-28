@@ -479,7 +479,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
         "shell": shell,
         "env": env
     }
-    
+
     if is_windows():
         if pgrp:
             kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
@@ -487,7 +487,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     else:
         kwargs["close_fds"] = True
         if pgrp:
-            kwargs["preexec_fn"] = os.setpgrp            
+            kwargs["preexec_fn"] = os.setpgrp
         return psutil.Popen(args, **kwargs)
         # FIXME: shouldn't we bother closing opened descriptors?
 
