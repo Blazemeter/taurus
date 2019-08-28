@@ -1,8 +1,5 @@
 #!/bin/bash -xe
 
-gcloud auth activate-service-account --key-file ${GOOGLE_CLOUD_CRED}
-gcloud config set project blazemeter-taurus-website-prod
-gcloud config set compute/zone us-central1-a
-
+YESTERDAY=$(date -d "1 day ago" '+%d.%m.%Y')
 python /var/www/html/bzt-usage-stats/aggregate_stat.py
-gsutil cp /var/www/html/bzt-usage-stats/*.json gs://taurus-statistic/
+rm /var/www/html/bzt-usage-stats/stats_${YESTERDAY}.csv
