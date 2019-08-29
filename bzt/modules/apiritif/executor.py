@@ -79,7 +79,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         scenario = self.get_scenario()
 
         if test_mode == "apiritif":
-            builder = ApiritifScriptGenerator(scenario, self.label, test_mode=test_mode)
+            builder = ApiritifScriptGenerator(scenario, self.label, test_mode=test_mode,
+                                              ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False))
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')

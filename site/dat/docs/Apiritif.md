@@ -1,4 +1,4 @@
-# Nose Executor
+# Apiritif
 Allows to run load and functional Python tests based on nose library.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
@@ -7,7 +7,7 @@ will be exceeded.
 Usage:
 ```yaml
 execution:
-- executor: nose  
+- executor: apiritif  
   scenario:
     script: tests/
 ```
@@ -18,10 +18,10 @@ It allows you to use some logic blocks:
 
 and CSV data sources. Use following format to specify them:
 ```yaml
-scenario:
+scenarios:
   sample:
     variables:
-    var1: val1
+      var1: val1
     requests:
     - http://blazedemo.com     # ordinal request
     - transaction: second   # transaction
@@ -29,7 +29,7 @@ scenario:
       - http://blazedemo.com/send
       - http://blazedemo.com/receive/${var1} # get 'receive/val2'
       - set-variables:  # change variable value
-        var1: val2
+          var1: val2
       - http://blazedemo.com/receive/${var1} # get 'receive/val2'
 
     data-sources: # list of external data sources
@@ -54,7 +54,6 @@ modules:
     working-dir: classes  # set name of runner working directory within artifacts dir
     interpreter: /home/user/interpreter/python  # path to custom interpreter.
 ```
-
 ## Request Scenario
 
 Nose executor supports building test script from the `requests` option of `scenario`. In that case Taurus will
@@ -80,35 +79,35 @@ In `Selenium` mode follow request features (`actions`) are supported:
   - selenium commands:
     - go(url) Redirect to another website
     - window handler (openWindow, switchWindow, closeWindow)
-    - frame handler (switchFrame, switchFrameBy*<sup>1</sup>)
-    - keysBy* Send keystrokes to element
-    - typeBy* Assign the value to element, cleaning it previously
+    - frame handler (switchFrame, switchFrameBy[^2])
+    - keysBy[^1] Send keystrokes to element
+    - typeBy[^1] Assign the value to element, cleaning it previously
     - editContent Change text in editable field (checks contenteditable prop)
-    - selectBy* Select value in drop down list
-    - submitBy* Send data of form by any its element
+    - selectBy[^1] Select value in drop down list
+    - submitBy[^1] Send data of form by any its element
     - scriptEval Execute JS command
     - rawCode Insert python code as-is
     - echoString(text) Print text string on the Nose output execution
-    - waitBy* 
-    - clickBy* 
-    - doubleClickBy* 
-    - mouseDownBy* 
-    - mouseUpBy*
-    - dragBy*<sup>2</sup>
-    - assertTextBy* Assert text on element
-    - assertValueBy* Assert value attribute
+    - waitBy[^1] 
+    - clickBy[^1] 
+    - doubleClickBy[^1] 
+    - mouseDownBy[^1]
+    - mouseUpBy[^1]
+    - dragBy[^3]
+    - assertTextBy[^1] Assert text on element
+    - assertValueBy[^1] Assert value attribute
     - assertTitle
     - storeTitle Store title in a variable
     - storeString Store a string or template in a variable
-    - storeTextBy* Store text from element in a variable
-    - storeValueBy* Store value from eleent in a variable
+    - storeTextBy[^1] Store text from element in a variable
+    - storeValueBy[^1] Store value from eleent in a variable
     - screenshot(filename) Take a screenshot of a viewport and save it in a file (filename is optional)
 
 **Notes**:
-  - \* selected by ID/Name/CSS/XPath.
-  - \*<sup>1</sup> In addition you can use *ByIdx selector.
-  - \*<sup>2</sup> To select the target drop element, the elementBy\* command must be used. Sample: dragByID(a): elementByID(b)
-   
+[^1]: Selected by ID/Name/CSS/XPath.
+[^2]: In addition you can use ByIdx selector.
+[^3]: To select the target drop element, the elementBy[^1] command must be used. Sample: dragByID(a): elementByID(b)   
+
 Action names are built as `<action>By<selector type>(<selector>)`. Sometimes actions can have value. Options are:
   - `waitByID`, `waitByName`, `waitByLinkText`, `waitByCSS` and `waitByXPath` - to wait until desired option becomes present on page.
   Timeout is taken from scenario-level `timeout` option. Optionally, you can specify parameter `visible` to wait
@@ -136,7 +135,7 @@ When you need to perform actions on elements that are inside a frame or iframe, 
 
 Sample usage
 ```yaml
-scenario:
+scenarios:
   sample_frame:
     requests:
     - url: http://a-frame-sample.com
@@ -161,13 +160,13 @@ scenarios:
     headless: true  # available only for Chrome/Firefox and only on Selenium 3.8.0+, disabled by default
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
-    default-address: http://demo.blazemeter.com  # specify a base address, so you can use short urls in requests
+    default-address: http://blazedemo.com/  # specify a base address, so you can use short urls in requests
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
       - waitByCSS(body)
       - clickByID(mySubmitButton)
-      - openWindow(http://blazedemo.by) # new window is created (#1)
+      - openWindow(http://blazedemo.com/vacation.html) # new window is created (#1)
       - switchWindow(1)     # switch to the second window (#0)
       - closeWindow()      # close the second window (#1)
       - pauseFor(5s)
@@ -192,7 +191,7 @@ scenarios:
 All action names are case insensitive. Despite it misprint in action names or usage of unsupported actions break your scenario execution. 
 To avoid it you can use `ignore-unknown-actions` Nose flag and taurus will show warning when unknown action occurs.
 ```yaml
-scenario:
+scenarios:
   sample:
     requests:
     - url: http://blazedemo.com
@@ -200,7 +199,7 @@ scenario:
       - definitelyUnknownAction(unknownSelector) 
 modules:
   nose:
-    ignore-unknown-action: True   # 
+    ignore-unknown-actions: True
 
 ```
 
@@ -212,7 +211,7 @@ To use it, simply in any reference to a text in the script you must declare the 
 
 The use of variables can be used in many reference locations, in selectors or in values. 
 There are also commands that allow you to store and manipulate them.
-Some of them are storeTitle, storeTextBy *, storeValueBy * and storeString
+Some of them are `storeTitle`, `storeTextBy *`, `storeValueBy *` and `storeString`.
 
 #### Sample:
 ```yaml

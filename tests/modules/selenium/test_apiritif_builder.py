@@ -785,3 +785,28 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.log.info(test_script)
         self.assertIn("class TestAPI(unittest.TestCase", test_script)
 
+    def test_unknown_action(self):
+       self.configure({
+           'execution': [{
+               'executor': 'selenium',
+               'test-mode': 'selenium',
+               'scenario': 'sample'
+           }],
+           'scenarios': {
+               'sample': {
+                   'requests': [{
+                       'url': 'http://blazedemo.com',
+                       'actions': ['definitelyUnknownAction(unknownSelector)']
+                   }]
+               }
+           },
+           'modules': {
+               'nose': {
+                   'ignore-unknown-actions': True
+               }
+           }
+       })
+       self.obj.prepare()
+       with open(self.obj.script) as fds:
+           test_script = fds.read()
+       self.assertNotIn("definitelyUnknownAction(unknownSelector)", test_script)
