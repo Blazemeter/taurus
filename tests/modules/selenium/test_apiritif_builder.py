@@ -801,7 +801,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                }
            },
            'modules': {
-               'nose': {
+               'apiritif': {
                    'ignore-unknown-actions': True
                }
            }

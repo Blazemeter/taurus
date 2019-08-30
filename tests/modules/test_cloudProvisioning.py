@@ -439,7 +439,7 @@ class TestCloudProvisioning(BZTestCase):
                     "selenium": {
                         "class": SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__,
                         "virtual-display": False},
-                    "nose": {
+                    "apiritif": {
                         "class": NoseTester.__module__ + "." + NoseTester.__name__,
                         "verbose": False
                     },
@@ -469,7 +469,7 @@ class TestCloudProvisioning(BZTestCase):
         target = BetterDict.from_dict({
             'blazemeter': {'strange_param': False},
             'selenium': {'virtual-display': False},
-            'nose': {'verbose': False},
+            'apiritif': {'verbose': False},
             'private_mod': {'class': 'tests.mocks.ModuleMock', 'send-to-blazemeter': True}
         })
 
@@ -486,7 +486,7 @@ class TestCloudProvisioning(BZTestCase):
                     "scenario": {"requests": ["http://blazedemo.com"]}}],
                 "modules": {
                     "selenium": {"class": target_selenium_class},
-                    "nose": {"class": target_nose_class}}})
+                    "apiritif": {"class": target_nose_class}}})
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
