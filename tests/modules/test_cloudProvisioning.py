@@ -477,7 +477,7 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_merge_settings(self):
         target_selenium_class = SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__
-        target_nose_class = NoseTester.__module__ + "." + NoseTester.__name__
+        target_apiritif_class = NoseTester.__module__ + "." + NoseTester.__name__
         self.configure(
             engine_cfg={
                 EXEC: [{
@@ -486,7 +486,7 @@ class TestCloudProvisioning(BZTestCase):
                     "scenario": {"requests": ["http://blazedemo.com"]}}],
                 "modules": {
                     "selenium": {"class": target_selenium_class},
-                    "apiritif": {"class": target_nose_class}}})
+                    "apiritif": {"class": target_apiritif_class}}})
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
@@ -494,10 +494,10 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.get_rfiles()  # create runners
 
         selenium_class = self.obj.engine.config.get("modules").get("selenium").get("class")
-        nose_class = self.obj.engine.config.get("modules").get("nose").get("class")
-        self.assertNotEqual(selenium_class, nose_class)
+        apiritif_class = self.obj.engine.config.get("modules").get("apiritif").get("class")
+        self.assertNotEqual(selenium_class, apiritif_class)
         self.assertEqual(selenium_class, target_selenium_class)
-        self.assertEqual(nose_class, target_nose_class)
+        self.assertEqual(apiritif_class, target_apiritif_class)
 
     def test_default_test_type_cloud(self):
         self.configure(engine_cfg={EXEC: {"executor": "mock"}}, )
