@@ -809,3 +809,32 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
        with open(self.obj.script) as fds:
            test_script = fds.read()
        self.assertNotIn("definitelyUnknownAction(unknownSelector)", test_script)
+
+    def test_set_variables(self):
+        self.configure({
+           'execution': [{
+               'executor': 'selenium',
+               'scenario': 'sample'
+           }],
+            'scenarios': {
+                'sample': {
+                    'variables': {
+                        'var1': 'val1'
+                    },
+                    'requests': [{
+                            'transaction': 'second',
+                            'do': [
+                                'http://blazedemo.com/',
+                                'http://blazedemo.com/receive/${var1}',
+                                {'set-variables': {'var1': 'val2'}},
+                            ]
+                        }
+                    ]
+                }
+            }
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("'var1': 'val1'", test_script)
+        self.assertIn("self.vars['var1'] = 'val2'", test_script)

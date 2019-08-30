@@ -125,6 +125,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     def get_runner_type(self):
         if "runner" in self.execution:
             runner = self.execution["runner"]
+            if runner == "nose":
+                msg = "'nose' keyword is deprecated and will be removed soon. Please use 'apiritif' instead."
+                self.log.warning(msg)
+                runner = "apiritif"
             if runner not in SeleniumExecutor.SUPPORTED_RUNNERS:
                 msg = "Runner '%s' is not supported. Supported runners: %s"
                 raise TaurusConfigError(msg % (runner, SeleniumExecutor.SUPPORTED_RUNNERS))
