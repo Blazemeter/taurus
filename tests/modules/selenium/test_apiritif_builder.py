@@ -789,7 +789,6 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
        self.configure({
            'execution': [{
                'executor': 'selenium',
-               'test-mode': 'selenium',
                'scenario': 'sample'
            }],
            'scenarios': {

@@ -482,7 +482,7 @@ class TestCloudProvisioning(BZTestCase):
             engine_cfg={
                 EXEC: [{
                     "executor": "selenium",
-                    "runner": "nose",
+                    "runner": "apiritif",
                     "scenario": {"requests": ["http://blazedemo.com"]}}],
                 "modules": {
                     "selenium": {"class": target_selenium_class},
