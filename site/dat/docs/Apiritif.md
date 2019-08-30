@@ -79,34 +79,34 @@ In `Selenium` mode follow request features (`actions`) are supported:
   - selenium commands:
     - go(url) Redirect to another website
     - window handler (openWindow, switchWindow, closeWindow)
-    - frame handler (switchFrame, switchFrameBy[^2])
-    - keysBy[^1] Send keystrokes to element
-    - typeBy[^1] Assign the value to element, cleaning it previously
+    - frame handler (switchFrame, switchFrameBy<sup>2</sup>)
+    - keysBy<sup>1</sup> Send keystrokes to element
+    - typeBy<sup>1</sup> Assign the value to element, cleaning it previously
     - editContent Change text in editable field (checks contenteditable prop)
-    - selectBy[^1] Select value in drop down list
-    - submitBy[^1] Send data of form by any its element
+    - selectBy<sup>1</sup> Select value in drop down list
+    - submitBy<sup>1</sup> Send data of form by any its element
     - scriptEval Execute JS command
     - rawCode Insert python code as-is
     - echoString(text) Print text string on the Nose output execution
-    - waitBy[^1] 
-    - clickBy[^1] 
-    - doubleClickBy[^1] 
-    - mouseDownBy[^1]
-    - mouseUpBy[^1]
-    - dragBy[^3]
-    - assertTextBy[^1] Assert text on element
-    - assertValueBy[^1] Assert value attribute
+    - waitBy<sup>1</sup> 
+    - clickBy<sup>1</sup> 
+    - doubleClickBy<sup>1</sup>
+    - mouseDownBy<sup>1</sup>
+    - mouseUpBy<sup>1</sup>
+    - dragBy<sup>3</sup>
+    - assertTextBy<sup>1</sup> Assert text on element
+    - assertValueBy<sup>1</sup> Assert value attribute
     - assertTitle
     - storeTitle Store title in a variable
     - storeString Store a string or template in a variable
-    - storeTextBy[^1] Store text from element in a variable
-    - storeValueBy[^1] Store value from eleent in a variable
+    - storeTextBy<sup>1</sup> Store text from element in a variable
+    - storeValueBy<sup>1</sup> Store value from eleent in a variable
     - screenshot(filename) Take a screenshot of a viewport and save it in a file (filename is optional)
 
-**Notes**:
-[^1]: Selected by ID/Name/CSS/XPath.
-[^2]: In addition you can use ByIdx selector.
-[^3]: To select the target drop element, the elementBy[^1] command must be used. Sample: dragByID(a): elementByID(b)   
+**Notes**: <br/>
+<sup>1</sup> Selected by ID/Name/CSS/XPath. <br/>
+<sup>2</sup> In addition you can use ByIdx selector. <br/>
+<sup>3</sup> To select the target drop element, the elementBy<sup>1</sup> command must be used. Sample: dragByID(a): elementByID(b)   
 
 Action names are built as `<action>By<selector type>(<selector>)`. Sometimes actions can have value. Options are:
   - `waitByID`, `waitByName`, `waitByLinkText`, `waitByCSS` and `waitByXPath` - to wait until desired option becomes present on page.
