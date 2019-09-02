@@ -1,5 +1,5 @@
 # Apiritif
-Allows to run load and functional Python tests based on nose library.
+Allows to run load and functional Python tests using [Apiritif test framework](https://github.com/Blazemeter/apiritif), which is based on nose library.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded.
@@ -50,20 +50,20 @@ Configuration options:
 
 ```yaml
 modules:
-  nose:
+  apiritif:
     working-dir: classes  # set name of runner working directory within artifacts dir
     interpreter: /home/user/interpreter/python  # path to custom interpreter.
 ```
 ## Request Scenario
 
-Nose executor supports building test script from the `requests` option of `scenario`. In that case Taurus will
-generate a Python script that will be launched with `nose`.
+Apiritif executor supports building test script from the `requests` option of `scenario`. In that case Taurus will
+generate a Python script that will be launched with `apiritif`.
 
-With `Nose` executor you can use [Apiritif test framework](https://github.com/Blazemeter/apiritif) for scenario execution (by default) or ask for Selenium browser test with `test-mode` option:
+With `Apiritif` executor you can ask for Selenium browser test with `test-mode` option:
 
 ```yaml
 execution:
-- executor: nose
+- executor: apiritif
   test-mode: selenium
 ```
 
@@ -87,7 +87,7 @@ In `Selenium` mode follow request features (`actions`) are supported:
     - submitBy<sup>1</sup> Send data of form by any its element
     - scriptEval Execute JS command
     - rawCode Insert python code as-is
-    - echoString(text) Print text string on the Nose output execution
+    - echoString(text) Print text string on the Apiritif output execution
     - waitBy<sup>1</sup> 
     - clickBy<sup>1</sup> 
     - doubleClickBy<sup>1</sup>
@@ -189,7 +189,7 @@ scenarios:
         not: false  # inverse assertion condition
 ```
 All action names are case insensitive. Despite it misprint in action names or usage of unsupported actions break your scenario execution. 
-To avoid it you can use `ignore-unknown-actions` Nose flag and taurus will show warning when unknown action occurs.
+To avoid it you can use `ignore-unknown-actions` Apiritif flag and taurus will show warning when unknown action occurs.
 ```yaml
 scenarios:
   sample:
@@ -198,7 +198,7 @@ scenarios:
       actions:
       - definitelyUnknownAction(unknownSelector) 
 modules:
-  nose:
+  apiritif:
     ignore-unknown-actions: True
 
 ```
@@ -348,7 +348,7 @@ scenarios:
       - pauseFor(5s)
 
 modules:
-  nose:
+  apiritif:
     generate-flow-markers: true  # global setting
 
 ```
