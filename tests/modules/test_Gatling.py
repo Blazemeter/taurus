@@ -93,13 +93,8 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.settings.merge({"additional-classpath": [jars[1]]})
         self.obj.prepare()
 
-        if is_gatling2(self.obj.tool.version):
-            variables = ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH")
-        else:
-            variables = ("GATLING_CONF",)
-
         for jar in jars:
-            for var in variables:
+            for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
                 self.assertIn(jar, self.obj.env.get(var))
 
     def test_external_jar_built_launcher_v2(self):
@@ -147,17 +142,25 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.startup()
         self.obj.shutdown()
 
-        # there aren't dirty hacks now
-        self.assertFalse(self.obj.tool.tool_path.startswith(self.obj.engine.artifacts_dir))
+        modified_launcher = self.obj.tool.tool_path
+        with open(modified_launcher) as modified:
+            modified_lines = modified.readlines()
 
-        if is_gatling2(self.obj.tool.version):
-            variables = ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH")
-        else:
-            variables = ("GATLING_CONF",)
-
-        for var in variables:
+        for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
             self.assertNotIn(jars[0], self.obj.env.get(var))
             self.assertIn(jars[1], self.obj.env.get(var))
+
+        for line in modified_lines:
+            if not is_windows() and '"$JAVA"' in line and not line.startswith("bash"):
+                self.assertTrue(line.startswith('eval'))
+            if line.startswith('set COMPILER_CLASSPATH='):  # win
+                self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
+            if line.startswith('set GATLING_CLASSPATH='):  # win
+                self.assertTrue(line.endswith(';%JAVA_CLASSPATH%\n'))
+            if line.startswith('COMPILER_CLASSPATH'):  # linux
+                self.assertTrue(line.endswith('${COMPILATION_CLASSPATH}"\n'))
+            if line.startswith('GATLING_CLASSPATH'):  # linux
+                self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
 
     def test_install_Gatling(self):
         path = os.path.abspath(BUILD_DIR + "gatling-taurus/bin/gatling" + EXE_SUFFIX)
