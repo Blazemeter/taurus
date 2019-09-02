@@ -16,7 +16,7 @@ from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStu
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest, FUNC_TEST_TYPE, BlazeMeterUploader
 from bzt.modules.reporting import FinalStatus
 from bzt.modules.selenium import SeleniumExecutor
-from bzt.modules.apiritif import NoseTester
+from bzt.modules.apiritif import ApiritifTester
 from bzt.utils import get_full_path, BetterDict
 from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
 from tests.mocks import EngineEmul, ModuleMock, BZMock
@@ -440,7 +440,7 @@ class TestCloudProvisioning(BZTestCase):
                         "class": SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__,
                         "virtual-display": False},
                     "apiritif": {
-                        "class": NoseTester.__module__ + "." + NoseTester.__name__,
+                        "class": ApiritifTester.__module__ + "." + ApiritifTester.__name__,
                         "verbose": False
                     },
                     "blazemeter": {
@@ -477,7 +477,7 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_merge_settings(self):
         target_selenium_class = SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__
-        target_apiritif_class = NoseTester.__module__ + "." + NoseTester.__name__
+        target_apiritif_class = ApiritifTester.__module__ + "." + ApiritifTester.__name__
         self.configure(
             engine_cfg={
                 EXEC: [{

@@ -1,1 +1,1 @@
-from .executor import NoseTester, ApiritifNoseExecutor
+from .executor import ApiritifTester, ApiritifNoseExecutor

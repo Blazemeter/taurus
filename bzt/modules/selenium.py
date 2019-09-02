@@ -60,7 +60,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     :type runner: bzt.modules.SubprocessedExecutor
     """
 
-    SUPPORTED_RUNNERS = ["apiritif", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot"]
+    SUPPORTED_RUNNERS = ["apiritif", "nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot"]
     SELENIUM_TOOLS_DIR = "~/.bzt/selenium-taurus/tools"
 
     def __init__(self):
@@ -128,7 +128,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             if runner == "nose":
                 msg = "'nose' keyword is deprecated and will be removed soon. Please use 'apiritif' instead."
                 self.log.warning(msg)
-                runner = "apiritif"
             if runner not in SeleniumExecutor.SUPPORTED_RUNNERS:
                 msg = "Runner '%s' is not supported. Supported runners: %s"
                 raise TaurusConfigError(msg % (runner, SeleniumExecutor.SUPPORTED_RUNNERS))

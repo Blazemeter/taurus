@@ -63,7 +63,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             if self.execution['executor'] == 'nose':
                 msg = "'nose' keyword is deprecated and will be removed soon. Please use 'apiritif' instead."
                 self.log.warning(msg)
-                self.execution['executor'] = 'apiritif'
         self.script = self.get_script_path()
         if not self.script:
             if "requests" in self.get_scenario():
@@ -217,7 +216,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         return executor_verbose
 
 
-class NoseTester(ApiritifNoseExecutor):
+class ApiritifTester(ApiritifNoseExecutor):
     pass
 
 
