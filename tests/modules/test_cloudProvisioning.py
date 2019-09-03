@@ -434,7 +434,18 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2},
-                    "scenario": {"requests": ["http://blazedemo.com"]}}],
+                    "scenario": {"requests": ["http://blazedemo.com"]}},
+                    {
+                        "executor": "selenium",
+                        "runner": "nose",
+                        "concurrency": {
+                            "local": 1,
+                            "cloud": 10},
+                        "locations": {
+                            "us-east-1": 1,
+                            "us-west": 2},
+                        "scenario": {"requests": ["http://blazedemo.com"]}}
+                    ],
                 "modules": {
                     "selenium": {
                         "class": SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__,
@@ -443,6 +454,11 @@ class TestCloudProvisioning(BZTestCase):
                         "class": ApiritifTester.__module__ + "." + ApiritifTester.__name__,
                         "verbose": False
                     },
+                    "nose": {
+                        "class": ApiritifTester.__module__ + "." + ApiritifTester.__name__,
+                        "verbose": True
+                    },
+
                     "blazemeter": {
                         "class": BlazeMeterUploader.__module__ + "." + BlazeMeterUploader.__name__,
                         "strange_param": False
@@ -470,6 +486,7 @@ class TestCloudProvisioning(BZTestCase):
             'blazemeter': {'strange_param': False},
             'selenium': {'virtual-display': False},
             'apiritif': {'verbose': False},
+            'nose': {'verbose': True},
             'private_mod': {'class': 'tests.mocks.ModuleMock', 'send-to-blazemeter': True}
         })
 
