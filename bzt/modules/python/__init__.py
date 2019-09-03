@@ -1,1 +1,1 @@
-from bzt.modules.apiritif import NoseTester     # backward compatibility
+from bzt.modules.apiritif import ApiritifTester     # backward compatibility

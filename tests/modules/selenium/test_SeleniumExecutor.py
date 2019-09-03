@@ -237,7 +237,7 @@ class TestSeleniumStuff(SeleniumTestCase):
     def test_force_runner(self):
         self.obj.execution.merge({
             'scenario': {'script': RESOURCES_DIR + 'selenium/junit/jar/'},
-            'runner': 'nose',
+            'runner': 'apiritif',
         })
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, ApiritifNoseExecutor)

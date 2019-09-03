@@ -12,7 +12,7 @@
     1. [Selenium Executor](Selenium.md)
     1. [JUnit Executor](JUnit.md)
     1. [TestNG Executor](TestNG.md)
-    1. [Nose Executor](Nose.md)
+    1. [Apiritif Executor](Apiritif.md)
     1. [PyTest Executor](PyTest.md)
     1. [RSpec Executor](RSpec.md)
     1. [Mocha Executor](Mocha.md)
