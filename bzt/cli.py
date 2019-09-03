@@ -485,6 +485,18 @@ class ConfigOverrider(object):
 
         dest.dump()
 
+    def __apply_mult_override(self, obj, key, replace_value):
+        if isinstance(obj, list):
+            for i in obj:
+                if isinstance(i, dict):
+                    i = self.__apply_mult_override(i, key, replace_value)
+        if isinstance(obj, dict):            
+            for k, v in obj.items():
+                obj[k] = self.__apply_mult_override(v, key, replace_value)
+        if key in obj:
+            obj[key] = replace_value
+        return obj
+
     def __apply_single_override(self, dest, name, value):
         """
         Apply single override
@@ -512,6 +524,9 @@ class ConfigOverrider(object):
                 pointer = pointer.get(part, force_set=True)
         self.__ensure_list_capacity(pointer, parts[-1])
         self.log.debug("Applying: [%s]=%s", parts[-1], value)
+        if isinstance(parts[-1], string_types) and parts[-1][0] == '*':
+            return self.__apply_mult_override(pointer, parts[-1][1:], value)
+
         if isinstance(parts[-1], string_types) and parts[-1][0] == '^':
             item = parts[-1][1:]
 

@@ -34,6 +34,10 @@ from bzt.utils import simple_body_dict, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
+def is_gatling2(ver):
+    return LooseVersion(ver) < LooseVersion("3")
+
+
 class GatlingScriptBuilder(object):
     def __init__(self, load, scenario, parent_logger, class_name, gatling_version=None):
         super(GatlingScriptBuilder, self).__init__()
@@ -231,11 +235,11 @@ class GatlingScriptBuilder(object):
         return feeders_def, feeding
 
     def gen_test_case(self):
-        if LooseVersion(self.gatling_version) < LooseVersion("3"):
+        if is_gatling2(self.gatling_version):
             version = 2
         else:
             version = 3
-        template_path = os.path.join(RESOURCES_DIR, ("gatling_%s_script.tpl" % version))
+        template_path = os.path.join(RESOURCES_DIR, "gatling", ("v%s_script.tpl" % version))
 
         with open(template_path) as template_file:
             template_line = template_file.read()
@@ -407,7 +411,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             val_tpl = "%s"
 
             if isinstance(prop, string_types):
-                if not is_windows():    # extend properties support (contained separators/quotes/etc.) on lin/mac
+                if not is_windows():  # extend properties support (contained separators/quotes/etc.) on lin/mac
                     val_tpl = "%r"
                 if PY2:
                     prop = prop.encode("utf-8", 'ignore')  # to convert from unicode into str
@@ -421,12 +425,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def startup(self):
         self._set_env()
-        self.process = self._execute(self._get_cmdline())
+        self.process = self._execute(self._get_cmdline(), pgrp=False)
 
     def _get_cmdline(self):
         cmdline = [self.tool.tool_path]
 
-        if LooseVersion(self.tool.version) < LooseVersion("3"):
+        if is_gatling2(self.tool.version):
             cmdline += ["-m"]  # default for 3.0.0
 
         return cmdline
@@ -490,10 +494,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 tool.install()
 
         # old gatling compiler (zinc) is incompatible with new jre
-        old_gatling = LooseVersion('3') > LooseVersion(self.tool.version)
         new_java = java.version and int(java.version) > 8
 
-        if old_gatling and new_java:
+        if is_gatling2(self.tool.version) and new_java:
             self.log.warning('Gatling v%s is incompatible with Java %s', self.tool.version, java.version)
 
     def get_widget(self):
@@ -825,7 +828,7 @@ class Gatling(RequiredTool):
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
-    def build_launcher(self, new_name):
+    def build_launcher(self, new_name):  # legacy, for v2 only
         def convert_v2():
             modified_lines = []
             mod_success = False
@@ -879,7 +882,7 @@ class Gatling(RequiredTool):
 
             return modified_lines
 
-        if LooseVersion(self.version) < LooseVersion('3'):
+        if is_gatling2(self.version):
             converted_lines = convert_v2()
         else:
             converted_lines = convert_v3()

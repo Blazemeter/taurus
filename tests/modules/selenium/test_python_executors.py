@@ -74,7 +74,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         api_log = os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")
-        nose_log = os.path.join(self.obj.engine.artifacts_dir, "nose.out")
+        nose_log = os.path.join(self.obj.engine.artifacts_dir, "apiritif.out")
         self.assertTrue(os.path.exists(api_log))
         with open(nose_log) as fds:
             content = fds.read()

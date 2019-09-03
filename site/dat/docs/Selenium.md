@@ -2,7 +2,7 @@
 Selenium is virtual executor provided you ability to run functional tests locally with Selenium WebDriver by choosing appropriate executor. Currently supported executors are:
 - [JUnit](JUnit.md) (Java)
 - [TestNG](TestNG.md) (Java)
-- [Nose](Nose.md) (Python)
+- [Apiritif](Apiritif.md) (Python)
 - [PyTest](PyTest.md) (Python)
 - [RSpec](RSpec.md) (Ruby)
 - [Mocha](Mocha.md) (JavaScript)
@@ -43,20 +43,20 @@ the autodetection fails - you can specify test runner explicitly with `runner` e
 Supported values:
 - `junit`: [JUnit](JUnit.md)-based Java tests
 - `testng`: [TestNG](TestNG.md)-based Java tests
-- `nose`: [Nose](Nose.md)-based Python tests
+- `apiritif`: [Apiritif](Apiritif.md)-based Python tests
 - `pytest`: [pytest](PyTest.md)-based Python tests
 - `rspec`: [RSpec](RSpec.md)-based Ruby tests
 - `mocha`: [Mocha](Mocha.md)-based JavaScript tests
 - `nunit`: [NUnit](NUnit.md)-based C# tests
 
-Note that automatic detection can't differentiate between `nose` and `pytest`-based test suites,
+Note that automatic detection can't differentiate between `apiritif` and `pytest`-based test suites,
 so if you want to run `pytest` - you have to specify it as a `runner` explicitly.
 
 Usage:
 ```yaml
 execution:
 - executor: selenium
-  runner: nose
+  runner: apiritif
   scenario:
     script: tests/
 ```
@@ -110,7 +110,7 @@ reporting:
 
 ## Requests Scenario
 
-Selenium executor supports building test script from the `requests` option of `scenario`. Look at [Nose executor manual page](Nose.md#Request-Scenario) for more information. Note: it that case `test-mode` will be equal `selenium`
+Selenium executor supports building test script from the `requests` option of `scenario`. Look at [Apiritif executor manual page](Apiritif.md#Request-Scenario) for more information. Note: it that case `test-mode` will be equal `selenium`
 
 ## Automatic Installation of Web Driver
 

@@ -42,5 +42,5 @@ group :development, :test do
   gem 'capybara'
   gem 'launchy'
   gem 'rspec', '~> 3.5.0'
-  gem 'nokogiri', '~> 1.8.2'
+  gem "nokogiri", ">= 1.10.4"
 end

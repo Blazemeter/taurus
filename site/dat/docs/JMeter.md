@@ -391,7 +391,9 @@ You can choose `scope` for applying expressions. Possible value for targets are:
   - `variable` for search in JMeter variables
 Default value of `scope` is empty, it means search in main sample only.
 
-`match-no` allows to choose the specific result from several ones. Default value is `-1` - generation of variables _varname\_1_, _varname\_2_, etc. It means if you ask for _some\_var\_name_ JMeter won't generate variable with exactly that name by default. Set `match-no` to another value if you want to change this behaviour.
+`match-no` allows to choose the specific result from several ones. Default value is 0 (random). 
+To get all values you can use `-1` - generation of variables _varname\_1_, _varname\_2_, etc. 
+It means if you ask for _some\_var\_name_ JMeter won't generate variable with exactly that name by default.
 
 Possible subjects for regexp are:
   - `body`

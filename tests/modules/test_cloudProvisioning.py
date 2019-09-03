@@ -16,7 +16,7 @@ from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStu
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest, FUNC_TEST_TYPE, BlazeMeterUploader
 from bzt.modules.reporting import FinalStatus
 from bzt.modules.selenium import SeleniumExecutor
-from bzt.modules.apiritif import NoseTester
+from bzt.modules.apiritif import ApiritifTester
 from bzt.utils import get_full_path, BetterDict
 from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
 from tests.mocks import EngineEmul, ModuleMock, BZMock
@@ -43,7 +43,7 @@ class TestCloudProvisioning(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {"result": []},
         })
         self.mock.mock_post.update({
-            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1}},
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1, 'limit': 1000}},
             'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1, "configuration": {"type": "taurus"}}},
             'https://a.blazemeter.com/api/v4/tests/1/files': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
@@ -434,15 +434,31 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2},
-                    "scenario": {"requests": ["http://blazedemo.com"]}}],
+                    "scenario": {"requests": ["http://blazedemo.com"]}},
+                    {
+                        "executor": "selenium",
+                        "runner": "nose",
+                        "concurrency": {
+                            "local": 1,
+                            "cloud": 10},
+                        "locations": {
+                            "us-east-1": 1,
+                            "us-west": 2},
+                        "scenario": {"requests": ["http://blazedemo.com"]}}
+                    ],
                 "modules": {
                     "selenium": {
                         "class": SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__,
                         "virtual-display": False},
-                    "nose": {
-                        "class": NoseTester.__module__ + "." + NoseTester.__name__,
+                    "apiritif": {
+                        "class": ApiritifTester.__module__ + "." + ApiritifTester.__name__,
                         "verbose": False
                     },
+                    "nose": {
+                        "class": ApiritifTester.__module__ + "." + ApiritifTester.__name__,
+                        "verbose": True
+                    },
+
                     "blazemeter": {
                         "class": BlazeMeterUploader.__module__ + "." + BlazeMeterUploader.__name__,
                         "strange_param": False
@@ -469,7 +485,8 @@ class TestCloudProvisioning(BZTestCase):
         target = BetterDict.from_dict({
             'blazemeter': {'strange_param': False},
             'selenium': {'virtual-display': False},
-            'nose': {'verbose': False},
+            'apiritif': {'verbose': False},
+            'nose': {'verbose': True},
             'private_mod': {'class': 'tests.mocks.ModuleMock', 'send-to-blazemeter': True}
         })
 
@@ -477,16 +494,16 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_merge_settings(self):
         target_selenium_class = SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__
-        target_nose_class = NoseTester.__module__ + "." + NoseTester.__name__
+        target_apiritif_class = ApiritifTester.__module__ + "." + ApiritifTester.__name__
         self.configure(
             engine_cfg={
                 EXEC: [{
                     "executor": "selenium",
-                    "runner": "nose",
+                    "runner": "apiritif",
                     "scenario": {"requests": ["http://blazedemo.com"]}}],
                 "modules": {
                     "selenium": {"class": target_selenium_class},
-                    "nose": {"class": target_nose_class}}})
+                    "apiritif": {"class": target_apiritif_class}}})
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
@@ -494,10 +511,10 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.get_rfiles()  # create runners
 
         selenium_class = self.obj.engine.config.get("modules").get("selenium").get("class")
-        nose_class = self.obj.engine.config.get("modules").get("nose").get("class")
-        self.assertNotEqual(selenium_class, nose_class)
+        apiritif_class = self.obj.engine.config.get("modules").get("apiritif").get("class")
+        self.assertNotEqual(selenium_class, apiritif_class)
         self.assertEqual(selenium_class, target_selenium_class)
-        self.assertEqual(nose_class, target_nose_class)
+        self.assertEqual(apiritif_class, target_apiritif_class)
 
     def test_default_test_type_cloud(self):
         self.configure(engine_cfg={EXEC: {"executor": "mock"}}, )
@@ -663,7 +680,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={EXEC: {"executor": "mock"}},
             get={
-                "https://a.blazemeter.com/api/v4/projects?workspaceId=1": {
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=1000": {
                     "result": [{"id": 1, "name": "myproject"}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {
                     "result": [{"id": 1, "name": "Taurus Cloud Test"}]
@@ -1513,7 +1530,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=1000': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
@@ -1555,7 +1572,7 @@ class TestCloudProvisioning(BZTestCase):
                     "result": {"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1,
                                "locations": [{"id": "eu-west-1"}]}
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=1000': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
@@ -1616,7 +1633,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=1000': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
