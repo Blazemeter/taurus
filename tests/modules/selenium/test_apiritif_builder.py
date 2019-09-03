@@ -838,3 +838,24 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             test_script = fds.read()
         self.assertIn("'var1': 'val1'", test_script)
         self.assertIn("self.vars['var1'] = 'val2'", test_script)
+
+
+    def test_actions(self):
+        self.configure({
+            'execution': [{
+                'executor': 'apiritif',
+                'scenario': 'sample'
+            }],
+            'scenarios': {
+                'sample': {
+                    'requests': [{
+                        'action': 'pause',
+                        'pause-duration': '2s'
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("sleep(2.0)", test_script)

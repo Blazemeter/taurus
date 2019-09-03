@@ -894,11 +894,8 @@ from selenium.webdriver.common.keys import Keys
                 body = self._gen_set_vars(request)
                 label = request.config.get("label", "set_variables")
             elif isinstance(request, ActionBlock):
-                if request.action == "pause":
-                    body = [self._get_action_pause(request)]
-                    label = create_method_name(request.action)
-                else:
-                    continue
+                body = [self._get_action(request)]
+                label = create_method_name(request.action)
             else:
                 return
 
@@ -919,13 +916,14 @@ from selenium.webdriver.common.keys import Keys
 
         return res
 
-    def _get_action_pause(self, request):
+    def _get_action(self, request):
         res = []
-        pause_duration = request.duration
-        res.append(ast.Expr(
-            ast_call(
-                func=ast_attr("sleep"),
-                args=[self._gen_expr(dehumanize_time(pause_duration))])))
+        if request.action == 'pause':
+            pause_duration = request.duration
+            res.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("sleep"),
+                    args=[self._gen_expr(dehumanize_time(pause_duration))])))
         return res
 
     @staticmethod
