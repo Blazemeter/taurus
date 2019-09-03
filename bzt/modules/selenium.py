@@ -123,16 +123,17 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.script = self.runner.script
 
     def get_runner_type(self):
-        if "runner" in self.execution:
-            runner = self.execution["runner"]
-            if runner == "nose":
-                msg = "'nose' keyword is deprecated and will be removed soon. Please use 'apiritif' instead."
-                self.log.warning(msg)
-            if runner not in SeleniumExecutor.SUPPORTED_RUNNERS:
+        runner = self.execution.get("runner")
+        if runner:
+            if runner in SeleniumExecutor.SUPPORTED_RUNNERS:
+                if runner == "nose":
+                    msg = "'nose' keyword is deprecated and will be removed soon. Please use 'apiritif' instead."
+                    self.log.warning(msg)
+                self.log.debug("Using script type: %s", runner)
+                return runner
+            else:
                 msg = "Runner '%s' is not supported. Supported runners: %s"
                 raise TaurusConfigError(msg % (runner, SeleniumExecutor.SUPPORTED_RUNNERS))
-            self.log.debug("Using script type: %s", runner)
-            return runner
 
         script_name = self.get_script_path()
         if script_name:
