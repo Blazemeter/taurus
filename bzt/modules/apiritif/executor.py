@@ -59,6 +59,10 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def prepare(self):
         super(ApiritifNoseExecutor, self).prepare()
+        if 'executor' in self.execution.keys():
+            if self.execution['executor'] == 'nose':
+                msg = "'nose' keyword is deprecated and will be removed soon. Please use 'apiritif' instead."
+                self.log.warning(msg)
         self.script = self.get_script_path()
         if not self.script:
             if "requests" in self.get_scenario():
@@ -78,8 +82,13 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         test_mode = self.execution.get("test-mode", "apiritif")
         scenario = self.get_scenario()
 
-        if test_mode == "apiritif":
-            builder = ApiritifScriptGenerator(scenario, self.label, test_mode=test_mode)
+        if test_mode == "apiritif" or test_mode == "nose":
+            if test_mode == "nose":
+                msg = "'nose' keyword is deprecated and will be removed soon. Please use 'apiritif' instead."
+                self.log.warning(msg)
+            builder = ApiritifScriptGenerator(scenario, self.label, test_mode=test_mode,
+                                              ignore_unknown_actions=self.settings.get(
+                                                  "ignore-unknown-actions", False))
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
@@ -207,7 +216,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         return executor_verbose
 
 
-class NoseTester(ApiritifNoseExecutor):
+class ApiritifTester(ApiritifNoseExecutor):
     pass
 
 

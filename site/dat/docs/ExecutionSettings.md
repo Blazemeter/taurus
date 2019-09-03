@@ -39,7 +39,7 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [Molotov](Molotov.md), executor type `molotov`
   - [JUnit](JUnit.md), executor type `junit`
   - [TestNG](TestNG.md), executor type `testng`
-  - [Nose](Nose.md), executor type `nose`
+  - [Apiritif](Apiritif.md), executor type `nose`
   - [PyTest](PyTest.md), executor type `pytest`
   - [RSpec](RSpec.md), executor type `rspec`
   - [Mocha](Mocha.md), executor type `mocha`

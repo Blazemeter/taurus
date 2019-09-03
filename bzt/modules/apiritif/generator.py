@@ -451,7 +451,7 @@ from selenium.webdriver.common.keys import Keys
             action_elements.extend(self._gen_chain_mngr(atype, tag, param, selector))
         elif atype == "select":
             action_elements.extend(self._gen_select_mngr(tag, param, selector))
-        elif atype.startswith("assert") or atype.startswith("store"):
+        elif atype is not None and (atype.startswith("assert") or atype.startswith("store")):
             action_elements.extend(self._gen_assert_store_mngr(atype, tag, param, selector))
 
         elif atype in ("click", "type", "keys", "submit"):
@@ -482,7 +482,7 @@ from selenium.webdriver.common.keys import Keys
         elif atype == 'screenshot':
             action_elements.extend(self._gen_screenshot_mngr(selector))
 
-        if not action_elements:
+        if not action_elements and not self.ignore_unknown_actions:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
@@ -1042,6 +1042,8 @@ from selenium.webdriver.common.keys import Keys
         for request in trans_conf.requests:
             if isinstance(request, TransactionBlock):
                 body.append(self._gen_transaction(request))
+            elif isinstance(request, SetVariables):
+                body = self._gen_set_vars(request)
             else:
                 body.append(self._gen_http_request(request))
 

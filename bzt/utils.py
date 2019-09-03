@@ -453,7 +453,7 @@ def exec_and_communicate(*args, **kwargs):
     return out, err
 
 
-def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
+def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None, pgrp=True):
     """
     Wrapper for subprocess starting
 
@@ -470,12 +470,25 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
         args = shlex.split(args, posix=not is_windows())
     LOG.debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
+    kwargs = {
+        "stdout": stdout,
+        "stderr": stderr,
+        "stdin": stdin,
+        "bufsize": 0,
+        "cwd": cwd,
+        "shell": shell,
+        "env": env
+    }
+
     if is_windows():
-        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
-                            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+        if pgrp:
+            kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        return psutil.Popen(args, **kwargs)
     else:
-        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
-                            preexec_fn=os.setpgrp, close_fds=True)
+        kwargs["close_fds"] = True
+        if pgrp:
+            kwargs["preexec_fn"] = os.setpgrp
+        return psutil.Popen(args, **kwargs)
         # FIXME: shouldn't we bother closing opened descriptors?
 
 

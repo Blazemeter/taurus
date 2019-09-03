@@ -60,7 +60,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     :type runner: bzt.modules.SubprocessedExecutor
     """
 
-    SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot"]
+    SUPPORTED_RUNNERS = ["apiritif", "nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot"]
     SELENIUM_TOOLS_DIR = "~/.bzt/selenium-taurus/tools"
 
     def __init__(self):
@@ -97,7 +97,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
 
         self.runner.settings = copy.deepcopy(self.settings).merge(self.runner.settings)
 
-        if runner_type == "nose":
+        if runner_type == "apiritif":
             self.runner.execution["test-mode"] = "selenium"
 
     def get_virtual_display(self):
@@ -123,20 +123,24 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.script = self.runner.script
 
     def get_runner_type(self):
-        if "runner" in self.execution:
-            runner = self.execution["runner"]
-            if runner not in SeleniumExecutor.SUPPORTED_RUNNERS:
+        runner = self.execution.get("runner")
+        if runner:
+            if runner in SeleniumExecutor.SUPPORTED_RUNNERS:
+                if runner == "nose":
+                    msg = "'nose' keyword is deprecated and will be removed soon. Please use 'apiritif' instead."
+                    self.log.warning(msg)
+                self.log.debug("Using script type: %s", runner)
+                return runner
+            else:
                 msg = "Runner '%s' is not supported. Supported runners: %s"
                 raise TaurusConfigError(msg % (runner, SeleniumExecutor.SUPPORTED_RUNNERS))
-            self.log.debug("Using script type: %s", runner)
-            return runner
 
         script_name = self.get_script_path()
         if script_name:
             return self.detect_script_type(script_name)
         else:
             if "requests" in self.get_scenario():
-                return "nose"
+                return "apiritif"
             else:
                 raise TaurusConfigError("You must specify either script or list of requests to run Selenium")
 
@@ -165,7 +169,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             else:
                 script_type = 'junit'
         elif '.py' in file_types:
-            script_type = 'nose'
+            script_type = 'apiritif'
         elif '.rb' in file_types:
             script_type = 'rspec'
         elif '.js' in file_types:
