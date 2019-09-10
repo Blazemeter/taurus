@@ -839,7 +839,6 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.assertIn("'var1': 'val1'", test_script)
         self.assertIn("self.vars['var1'] = 'val2'", test_script)
 
-
     def test_actions(self):
         self.configure({
             'execution': [{
@@ -850,7 +849,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 'sample': {
                     'requests': [{
                         'action': 'pause',
-                        'pause-duration': '2s'
+                        'pause-duration': '1ms'
                     }]
                 }
             }
@@ -858,4 +857,4 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("sleep(2.0)", test_script)
+        self.assertIn("sleep(0.001)", test_script)

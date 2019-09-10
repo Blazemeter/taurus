@@ -924,6 +924,16 @@ from selenium.webdriver.common.keys import Keys
                 ast_call(
                     func=ast_attr("sleep"),
                     args=[self._gen_expr(dehumanize_time(pause_duration))])))
+        elif request.action == 'stop':
+            stop_target = request.target
+            res.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("stop"),
+                    args=[self._gen_expr(stop_target)])))
+        elif request.action == 'continue':
+            res.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("continue_iter"))))
         return res
 
     @staticmethod
