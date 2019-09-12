@@ -24,7 +24,8 @@ import astunparse
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
-from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables, ActionBlock
+from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
+    SetVariables, ActionBlock
 from bzt.six import parse, string_types, iteritems, text_type, PY2
 from bzt.utils import dehumanize_time, ensure_is_dict
 from .ast_helpers import ast_attr, ast_call
@@ -895,7 +896,7 @@ from selenium.webdriver.common.keys import Keys
                 label = request.config.get("label", "set_variables")
             elif isinstance(request, ActionBlock):
                 body = [self._get_action(request)]
-                label = create_method_name(request.action)
+                label = "action_" + request.action
             else:
                 return
 
@@ -928,12 +929,13 @@ from selenium.webdriver.common.keys import Keys
             stop_target = request.target
             res.append(ast.Expr(
                 ast_call(
-                    func=ast_attr("stop"),
-                    args=[self._gen_expr(stop_target)])))
+                    func=ast_attr("raise BaseException"),
+                    args=[self._gen_expr('action-stop-' + stop_target)])))
         elif request.action == 'continue':
             res.append(ast.Expr(
                 ast_call(
-                    func=ast_attr("continue_iter"))))
+                    func=ast_attr("raise BaseException"),
+                    args=[self._gen_expr('action-continue')])))
         return res
 
     @staticmethod
