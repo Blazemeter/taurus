@@ -13,7 +13,6 @@ class SIMNAME extends Simulation {
 
   val durationLimit = rampUpTime + holdForTime
 
-
   var httpConf = http.baseURL("http://example.com")
     .disableCaching
 

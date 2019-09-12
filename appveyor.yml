@@ -7,6 +7,14 @@ environment:
       PYTHON_VERSION: "3.5.x"
       PYTHON_ARCH: "64"
       NODEJS_VERSION: "6"
+    - PYTHON: "C:\\Python36"
+      PYTHON_VERSION: "3.6.x"
+      PYTHON_ARCH: "64"
+      NODEJS_VERSION: "6"
+    - PYTHON: "C:\\Python37"
+      PYTHON_VERSION: "3.7.x"
+      PYTHON_ARCH: "64"
+      NODEJS_VERSION: "7"
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
@@ -16,7 +24,7 @@ platform:
   - x64
 
 install:
-  - choco install firefox --version 65.0.1
+  #- choco install firefox --version 67.0.3
   - ps: Install-Product node $env:NODEJS_VERSION
   - "%PYTHON%\\python.exe -m pip install pip wheel --upgrade"
   - "%PYTHON%\\python.exe -m pip install pyyaml==3.12"

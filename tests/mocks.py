@@ -9,7 +9,7 @@ from random import random
 import requests
 
 from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools, Singletone, Service, SelfDiagnosable
-from bzt.engine import Provisioning, ScenarioExecutor, Reporter
+from bzt.engine import Provisioning, Reporter, ScenarioExecutor
 from bzt.modules import TransactionListener
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
@@ -52,6 +52,7 @@ def random_datapoint(n):
     overall[KPISet.SAMPLE_COUNT] = int(100 * r(1000)) + 1
     overall[KPISet.SUCCESSES] = int(overall[KPISet.SAMPLE_COUNT] * random())
     overall[KPISet.FAILURES] = overall[KPISet.SAMPLE_COUNT] - overall[KPISet.SUCCESSES]
+    overall[KPISet.BYTE_COUNT] = int(random() * 1000) + 1
     overall[KPISet.PERCENTILES]['25.0'] = r(10)
     overall[KPISet.PERCENTILES]['50.0'] = r(20)
     overall[KPISet.PERCENTILES]['75.0'] = r(30)
@@ -351,9 +352,9 @@ class BZMock(object):
                 "result": [{'id': 3, 'enabled': True}]},
             'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=3': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=1000': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=1000': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=3&limit=1000': {"result": []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=myproject': {"result": []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name': {"result": []},
             'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": []},

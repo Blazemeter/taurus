@@ -3,7 +3,7 @@ import time
 import datetime
 
 from bzt import ToolError
-from bzt.engine import ScenarioExecutor
+from bzt.engine import EXEC
 from bzt.modules.provisioning import Local
 from tests import BZTestCase
 from tests.mocks import EngineEmul
@@ -24,35 +24,49 @@ class LocalProvisioningEmul(Local):
 
 
 class LocalProvisioningTest(BZTestCase):
-    def check_started_list(self, start_time, delay, prepared, started):
+    def check_started_list(self, start_time, delay, started):
         executor = ScenarioExecutorEmul()
         executor.delay = delay
         prov = LocalProvisioningEmul()
         prov.executors = [executor]
         prov.start_time = start_time
-
-        if prepared:
-            prov.engine.prepared = [executor]
-        else:
-            prov.engine.prepared = []
+        prov.available_slots = 1
 
         if started:
-            prov.engine.started = [executor]
-        else:
-            prov.engine.started = []
+            prov.started_modules = [executor]
+        elif executor in prov.started_modules:
+            return False
 
         prov._start_modules()
 
-        return executor in prov.engine.started
+        return executor in prov.started_modules
+
+    def check_slots(self, start_time, delay, slots):
+        executor = ScenarioExecutorEmul()
+        executor.delay = delay
+        prov = LocalProvisioningEmul()
+        prov.executors = [executor]
+        prov.start_time = start_time
+        prov.available_slots = slots
+
+        prov._start_modules()
+
+        if slots == 0:
+            return prov.available_slots == slots
+        else:
+            return prov.available_slots == slots - 1
 
     def test_delay_cycle(self):
         cur_time = time.time()
 
-        self.assertTrue(self.check_started_list(cur_time, 0, True, False))  # all ok
-        self.assertFalse(self.check_started_list(cur_time, 0, False, False))  # not prepared
-        self.assertTrue(self.check_started_list(cur_time - 10, 5, True, False))  # time to run
-        self.assertFalse(self.check_started_list(cur_time - 10, 20, True, False))  # too early
-        self.assertFalse(self.check_started_list(cur_time - 10, 5, False, False))  # time to run but not prepared
+        self.assertTrue(self.check_started_list(cur_time, 0, False))  # all ok
+        self.assertTrue(self.check_started_list(cur_time, 0, True))  # module is already started
+        self.assertTrue(self.check_started_list(cur_time - 10, 5, False))  # time to run
+        self.assertFalse(self.check_started_list(cur_time - 10, 20, False))  # too early
+
+        self.assertTrue(self.check_slots(cur_time, 0, 0))  # no slots available
+        self.assertTrue(self.check_slots(cur_time, 0, 1))  # 1 slot available
+        self.assertTrue(self.check_slots(cur_time, 0, 3))  # some slots available
 
     def test_start_shift(self):
         local = Local()
@@ -91,7 +105,7 @@ class LocalProvisioningTest(BZTestCase):
         local = Local()
         local.settings["sequential"] = True
         local.engine = EngineEmul()
-        local.engine.config.merge({ScenarioExecutor.EXEC: [{}, {}]})
+        local.engine.config.merge({EXEC: [{}, {}]})
         local.engine.config.get("settings")["default-executor"] = "mock"
         local.engine.unify_config()
         local.prepare()
@@ -110,10 +124,33 @@ class LocalProvisioningTest(BZTestCase):
 
         local.post_process()
 
+    def test_check_sequential_slots(self):
+        local = Local()
+        local.settings["capacity"] = 2
+        local.engine = EngineEmul()
+        local.engine.config.merge({EXEC: [{}, {}, {}, {}, {}]})
+        local.engine.config.get("settings")["default-executor"] = "mock"
+        local.engine.unify_config()
+        local.prepare()
+        local.startup()
+
+        cnt = 0
+        while not local.check():
+            cnt += 1
+
+        self.assertEqual(5, cnt)
+
+        local.shutdown()
+
+        for executor in local.executors:
+            executor.is_has_results = True
+
+        local.post_process()
+
     def test_exception(self):
         local = Local()
         local.engine = EngineEmul()
-        local.engine.config.merge({ScenarioExecutor.EXEC: [{}]})
+        local.engine.config.merge({EXEC: [{}]})
         local.engine.config.get("settings")["default-executor"] = "mock"
         local.engine.unify_config()
         local.prepare()

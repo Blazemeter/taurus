@@ -78,7 +78,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         for group in self.get_groupset():
             self.assertEqual('ThreadGroup', group.gtype)
             self.assertEqual("false", group.element.find(".//*[@name='LoopController.continue_forever']").text)
-            self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)  # no loop limit
+            self.assertEqual("1", group.element.find(".//*[@name='LoopController.loops']").text)  # no loop limit
 
             res_values[group.get_testname()] = {
                 'conc': group.get_concurrency(),
@@ -271,6 +271,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.obj.modify(self.jmx)
 
+        self.assertEqual(5, len(self.get_groupset()))
         for group in self.get_groupset():
             self.assertEqual(1, group.get_concurrency())
             self.assertEqual("false", group.element.find(".//*[@name='ThreadGroup.scheduler']").text)

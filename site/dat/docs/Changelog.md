@@ -1,7 +1,32 @@
 # Changelog
 
-## 1.13.7<sup>next</sup>
+## 1.13.9<sup>next</sup>
+
+
+## 1.13.8<sup>07 jul 2019</sup>
+
+- add random CSV feeder to JMX generator
+- expand on-the-fly convertion of soapui to all executors
+- fix Gatling classpath in generated launcher
+- add provisioning capacity feature
+- add `bytes` passfail criteria
+- add support of new Node.js (8+)
+- fix Gatling csv handling
+- fix Jmeter load defaults
+- fix cumulative time stats on dashboard
+- fix site deploying flow
+
+
+## 1.13.7<sup>29 may 2019</sup>
+
+- update default gatling version to 3.1.2
+- set iteration default for Jmeter into 1
+- fix gatling props encoding
+- fix locust aggregation bug
+- fix order of capabilities assembling
 - filter out `included-configs` from cloud YAML
+- fix site styles
+
 
 ## 1.13.6<sup>6 may 2019</sup>
 

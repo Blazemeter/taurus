@@ -144,7 +144,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("generated_locust", ".py")
-        locust_test = LocustIOScriptBuilder(self.scenario, self.log)
+        locust_test = LocustIOScriptBuilder(self.scenario)
         locust_test.build_source_code()
         locust_test.save(filename)
         return filename
@@ -239,11 +239,13 @@ class SlavesReader(ResultsProvider):
                 yield point
 
     def merge_datapoints(self, max_full_ts):
+        reader_id = self.file.name + "@" + str(id(self))
         for key in sorted(self.join_buffer.keys(), key=int):
             if int(key) <= max_full_ts:
                 sec_data = self.join_buffer.pop(key)
                 self.log.debug("Processing complete second: %s", key)
                 point = DataPoint(int(key))
+                point[DataPoint.SOURCE_ID] = reader_id
                 for sid, item in iteritems(sec_data):
                     point.merge_point(self.point_from_locust(key, sid, item))
                 point.recalculate()

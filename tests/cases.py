@@ -7,7 +7,7 @@ from io import StringIO
 from logging import Handler
 from unittest.case import TestCase
 
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, EXEC
 from bzt.engine import SelfDiagnosable
 from bzt.six import u
 from bzt.utils import get_full_path
@@ -55,15 +55,40 @@ class BZTestCase(TestCase):
 
     @staticmethod
     def assertFilesEqual(expected, actual, replace_str="", replace_with="", python_files=False):
+        def equal_by_content(difference):
+            diff_act, diff_exp = [], []
+            for line in difference:
+                if line[0] == '-':
+                    act_line = line[2:line.rfind('"')+1].split(" ")[1:]
+                    act_line.sort()
+                    diff_act.append(act_line)
+                elif line[0] == '+':
+                    diff_exp.append(line[2:line.rfind('"')+1].split(" ")[1:])
+            if diff_act == diff_exp:
+                return True
+            else:
+                return False
+        
+        if isinstance(replace_str, str):
+            replace_str = [replace_str]
+        if isinstance(replace_with, str):
+            replace_with = [replace_with]
         with open(expected) as exp, open(actual) as act:
-            act_lines = [x.replace(replace_str, replace_with).rstrip() for x in act.readlines()]
-            exp_lines = [x.replace(replace_str, replace_with).rstrip() for x in exp.readlines()]
-            if python_files:
-                act_lines = astunparse.unparse(ast.parse('\n'.join(act_lines))).split('\n')
-                exp_lines = astunparse.unparse(ast.parse('\n'.join(exp_lines))).split('\n')
+            act_lines = act.readlines()
+            exp_lines = exp.readlines()
 
-            diff = list(difflib.unified_diff(exp_lines, act_lines))
-            if diff:
+        subs = dict(zip(replace_str, replace_with))
+        for key in subs:
+            act_lines = [x.replace(key, subs[key]).rstrip() for x in act_lines]
+            exp_lines = [x.replace(key, subs[key]).rstrip() for x in exp_lines]
+
+        if python_files:
+            act_lines = astunparse.unparse(ast.parse('\n'.join(act_lines))).split('\n')
+            exp_lines = astunparse.unparse(ast.parse('\n'.join(exp_lines))).split('\n')
+
+        diff = list(difflib.unified_diff(exp_lines, act_lines))
+
+        if diff and not equal_by_content(diff[5:]):
                 ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
                 msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
                 raise AssertionError(msg % (actual, expected, "\n".join(diff)))
@@ -92,7 +117,7 @@ class ExecutorTestCase(BZTestCase):
         self.obj.engine.config.merge({"settings": {"default-executor": "mock"}})
         self.obj.engine.config.merge(config)
         self.obj.engine.unify_config()
-        self.obj.execution = self.obj.engine.config.get(ScenarioExecutor.EXEC)[0]
+        self.obj.execution = self.obj.engine.config.get(EXEC)[0]
 
     def tearDown(self):
         if self.obj.stdout:

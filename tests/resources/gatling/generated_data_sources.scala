@@ -13,14 +13,15 @@ class SIMNAME extends Simulation {
 
   val durationLimit = rampUpTime + holdForTime
 
-  val test1Feed = separatedValues("test1.csv", ',').circular
-
-  var httpConf = http.baseURL("")
+  var httpConf = http.baseUrl("")
 
   var testScenario = scenario("Taurus Scenario")
-    .feed(test1Feed)
 
-  var execution = exec(
+  val test1Feed = separatedValues("test1.csv", ',')
+  val test2Feed = csv("test2.csv").circular
+  val test2Feed_1 = csv("test2.csv").circular
+
+  var execution = feed(test1Feed).feed(test2Feed).feed(test2Feed_1).exec(
     http("http://blazedemo.com/?tag=${col1}").get("http://blazedemo.com/?tag=${col1}")
   )
 
@@ -31,7 +32,7 @@ class SIMNAME extends Simulation {
 
   val virtualUsers =
     if (rampUpTime > 0)
-      rampUsers(concurrency) over (rampUpTime seconds)
+      rampUsers(concurrency) during (rampUpTime seconds)
     else
       atOnceUsers(concurrency)
 

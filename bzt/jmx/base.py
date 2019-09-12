@@ -22,7 +22,8 @@ import traceback
 from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException, TaurusConfigError
-from bzt.engine import Scenario, BetterDict
+from bzt.engine import Scenario
+from bzt.utils import BetterDict
 from bzt.requests_model import has_variable_pattern
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types, integer_types
 
@@ -583,13 +584,6 @@ class JMX(object):
         else:
             enabled = "true"
 
-        if not iterations:
-            iterations = -1
-
-        scheduler = False
-        if hold or (rampup and (iterations == -1)):
-            scheduler = True
-
         if not hold:
             duration = rampup
         elif not rampup:
@@ -601,6 +595,17 @@ class JMX(object):
 
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
                             testclass="ThreadGroup", testname=testname, enabled=enabled)
+
+        if not iterations:
+            if duration:
+                iterations = -1
+            else:
+                iterations = 1
+
+        scheduler = False
+        if hold or (rampup and (iterations == -1)):
+            scheduler = True
+
         if on_error is not None:
             trg.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
         loop = etree.Element("elementProp",
@@ -815,7 +820,7 @@ class JMX(object):
         :rtype: lxml.etree.Element
         """
         mgr = etree.Element("CookieManager", guiclass="CookiePanel", testclass="CookieManager", testname="Cookies")
-        mgr.append(JMX._bool_prop("CookieManager.clearEachIteration", True))
+        mgr.append(JMX._bool_prop("CookieManager.clearEachIteration", False))
         mgr.append(JMX._string_prop("CookieManager.implementation",
                                     "org.apache.jmeter.protocol.http.control.HC4CookieHandler"))
 
@@ -1228,12 +1233,14 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_csv_config(path, delimiter, is_quoted, loop, variable_names):
+    def _get_csv_config(path, delimiter, loop, variable_names, is_quoted):
         """
 
         :type path: str
         :type delimiter: str
         :type is_quoted: bool
+        :type loop: bool
+        :type variable_names: string
         :return:
         """
         element = etree.Element("CSVDataSet", guiclass="TestBeanGUI",
@@ -1244,6 +1251,31 @@ class JMX(object):
         element.append(JMX._bool_prop("recycle", loop))
         element.append(JMX._bool_prop("stopThread", not loop))
         element.append(JMX._string_prop("variableNames", variable_names))
+
+        return element
+
+    @staticmethod
+    def _get_csv_config_random(path, delimiter, loop, variable_names):
+        """
+
+        :type path: str
+        :type delimiter: str
+        :type loop: bool
+        :type variable_names: string
+        :return:
+        """
+        element = etree.Element("com.blazemeter.jmeter.RandomCSVDataSetConfig",
+                                guiclass="com.blazemeter.jmeter.RandomCSVDataSetConfigGui",
+                                testclass="com.blazemeter.jmeter.RandomCSVDataSetConfig",
+                                testname="bzm - Random CSV Data Set Config")
+        element.append(JMX._string_prop("filename", path))
+        element.append(JMX._string_prop("fileEncoding", "UTF-8"))
+        element.append(JMX._string_prop("delimiter", delimiter))
+        element.append(JMX._string_prop("variableNames", variable_names))
+        element.append(JMX._bool_prop("randomOrder", True))
+        element.append(JMX._bool_prop("ignoreFirstLine", False if variable_names else True))
+        element.append(JMX._bool_prop("rewindOnTheEndOfList", loop))
+        element.append(JMX._bool_prop("independentListPerThread", False))
 
         return element
 

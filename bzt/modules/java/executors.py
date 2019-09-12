@@ -24,7 +24,7 @@ from bzt.modules import SubprocessedExecutor
 from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types
-from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, BetterDict
+from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, BetterDict, get_assembled_value
 from .tools import SeleniumServer, Hamcrest, Json, TaurusJavaHelper, JavaC, JUnitJupiterApi, JUnitJupiterEngine
 from .tools import JUnitPlatformCommons, JUnitPlatformLauncher, JUnitPlatformEngine, JUnitPlatformRunner
 from .tools import JUnitPlatformSuiteApi, JUnitVintageEngine, ApiGuardian, JUnit, OpenTest4j, TestNG
@@ -262,9 +262,9 @@ class JUnitTester(JavaTestRunner):
 
                 fds.write("{name}={val}\n".format(name=name, val=val))
 
-        props = self.settings.get("properties")
-        props.merge(self.get_scenario().get("properties"))
-        props.merge(self.execution.get("properties"))
+        props = get_assembled_value(configs=[self.settings, self.get_scenario(), self.execution], key="properties")
+        props = props or BetterDict()
+
         junit_version = str(self.settings.get("junit-version", "4"))
         if junit_version == "5":
             props.merge({"junit_version": 5})

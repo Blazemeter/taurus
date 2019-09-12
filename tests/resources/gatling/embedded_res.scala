@@ -13,7 +13,6 @@ class TaurusSimulation extends Simulation {
 
   val durationLimit = rampUpTime + holdForTime
 
-
   var httpConf = http.baseURL("")
     .inferHtmlResources(BlackList(), WhiteList("""(.*)boo(. *)"""))
 

@@ -2,7 +2,7 @@
 
 ## Windows
 
-There are two ways two install Taurus on Windows. The recommended way is to use the prebuilt installer
+There are two ways to install Taurus on Windows. The recommended way is to use the prebuilt installer
 that will install latest Taurus on your PC. However, if you already have Python installed,
 you can install Taurus manually with pip, Python package manager.
 
@@ -17,7 +17,7 @@ It is highly recommended to uninstall previously installed Taurus through the 'A
 before installing Taurus 1.12.2+.
 </div>
 
-Download an [installer](/msi/TaurusInstaller_TAURUS_VERSION_x64.exe) and run it on your system. It will install
+Download an [installer](RELEASE_SNAPSHOT) and run it on your system. It will install
 local Python 3.6 and Taurus with all its dependencies.
 
 Notes:
@@ -62,7 +62,7 @@ if that's how your Python installation handles Python packages.
 ### Upgrading Taurus
 
 To upgrade Taurus, open Command Prompt as administrator and run
-``` 
+```
 pip install --upgrade bzt
 ```
 
@@ -237,3 +237,5 @@ If you want to receive Taurus artifacts from container, just mount some director
 ```bash
 sudo docker run -it --rm -v /tmp:/bzt-configs -v /tmp/my-run-artifacts:/tmp/artifacts blazemeter/taurus
 ```
+
+UNSTABLE_SNAPSHOT

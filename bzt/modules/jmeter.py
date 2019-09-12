@@ -32,14 +32,12 @@ from itertools import dropwhile
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import Scenario, FileLister, HavingInstallableTools, ScenarioExecutor
 from bzt.engine import SelfDiagnosable, SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
-from bzt.modules.provisioning import Local
-from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
 from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
@@ -150,12 +148,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         iterations = try_convert(iterations, default=0)
         steps = try_convert(steps, default=0)
 
-        if not iterations:
-            if duration:
-                iterations = 0  # which means infinite
-            else:
-                iterations = 1
-
         return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
                              iterations=iterations, duration=duration, steps=steps)
 
@@ -184,55 +176,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         iterations = try_convert(raw_load.iterations)
         steps = try_convert(raw_load.steps)
 
-        if duration and not iterations:
-            iterations = 0  # which means infinite
+        if not iterations:
+            if duration:
+                iterations = 0  # which means infinite
+            else:
+                iterations = 1
 
         return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
                              iterations=iterations, duration=duration, steps=steps)
-
-    def get_scenario(self, name=None, cache_scenario=True):
-        scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
-
-        if not isinstance(self.engine.provisioning, Local):
-            return scenario_obj
-
-        script = self.get_script_path(required=False, scenario=scenario_obj)
-        if script:
-            with codecs.open(script, encoding="UTF-8") as fds:
-                script_content = fds.read()
-            if "con:soapui-project" in script_content:
-                self.log.info("SoapUI project detected")
-                scenario_name, merged_scenario = self._extract_scenario_from_soapui(scenario_obj, script)
-                self.engine.config["scenarios"].merge({scenario_name: merged_scenario})
-                self.execution[Scenario.SCRIPT] = scenario_name
-                return super(JMeterExecutor, self).get_scenario(name=scenario_name)
-
-        return scenario_obj
-
-    def _extract_scenario_from_soapui(self, base_scenario, script_path):
-        test_case = base_scenario.get("test-case", None)
-        converter = SoapUIScriptConverter(self.log)
-        conv_config = converter.convert_script(script_path)
-        conv_scenarios = conv_config["scenarios"]
-        scenario_name, conv_scenario = converter.find_soapui_test_case(test_case, conv_scenarios)
-
-        new_name = scenario_name
-        counter = 1
-        while new_name in self.engine.config["scenarios"]:
-            new_name = scenario_name + ("-%s" % counter)
-            counter += 1
-
-        if new_name != scenario_name:
-            self.log.info("Scenario name '%s' is already taken, renaming to '%s'", scenario_name, new_name)
-            scenario_name = new_name
-
-        merged_scenario = BetterDict.from_dict(conv_scenario)
-        merged_scenario.merge(base_scenario.data)
-        for field in [Scenario.SCRIPT, "test-case"]:
-            if field in merged_scenario:
-                merged_scenario.pop(field)
-
-        return scenario_name, merged_scenario
 
     @staticmethod
     def _get_tool_version(jmx_file):
@@ -577,7 +528,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             - to collect detailed errors/trace info
         :return: path to artifact
         """
-        self.log.debug("Load: %s", self.get_specific_load())
         jmx = JMX(original)
 
         if self.get_scenario().get("disable-listeners", not self.settings.get("gui", False)):

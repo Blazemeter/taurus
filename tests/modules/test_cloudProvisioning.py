@@ -9,15 +9,15 @@ import yaml
 
 from bzt import TaurusConfigError, TaurusException, NormalShutdown, AutomatedShutdown
 from bzt.bza import Master, Test, MultiTest
-from bzt.engine import ScenarioExecutor, Service, BetterDict
+from bzt.engine import ScenarioExecutor, Service, EXEC
 from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest, FUNC_TEST_TYPE, BlazeMeterUploader
 from bzt.modules.reporting import FinalStatus
 from bzt.modules.selenium import SeleniumExecutor
-from bzt.modules.python import NoseTester
-from bzt.utils import get_full_path
+from bzt.modules.apiritif import ApiritifTester
+from bzt.utils import get_full_path, BetterDict
 from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
 from tests.mocks import EngineEmul, ModuleMock, BZMock
 
@@ -43,7 +43,7 @@ class TestCloudProvisioning(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {"result": []},
         })
         self.mock.mock_post.update({
-            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1}},
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1, 'limit': 1000}},
             'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1, "configuration": {"type": "taurus"}}},
             'https://a.blazemeter.com/api/v4/tests/1/files': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
@@ -75,7 +75,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_old(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: [{
+                EXEC: [{
                     "executor": "mock",
                     "locations": {
                         "aws": 1},
@@ -111,7 +111,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_simple(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "executor": "mock",
                     "concurrency": 5500,
                     "locations": {
@@ -139,7 +139,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_no_results(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "executor": "mock",
                     "concurrency": 5500,
                     "locations": {
@@ -176,7 +176,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_detach(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "executor": "mock",
                     "concurrency": 55,
                     "locations": {
@@ -198,14 +198,14 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.post_process()
 
     def test_no_settings(self):
-        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
+        self.configure(engine_cfg={EXEC: {"executor": "mock"}}, )
         self.obj.prepare()
         self.assertEquals(1, self.obj.executors[0].execution['locations']['us-east-1'])
 
     def test_skip_reporting(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "executor": "mock",
                 },
                 "modules": {
@@ -277,7 +277,7 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_delete_test_files(self):
         self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
             get={
                 'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": [
                     {
@@ -311,7 +311,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_cloud_config_cleanup_simple(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "concurrency": {
                         "local": 1,
                         "cloud": 10},
@@ -351,7 +351,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_cloud_config_cleanup_short_execution(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "concurrency": 33,
                     "scenario": "sc1"},
                 "scenarios": {
@@ -379,13 +379,13 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.get_rfiles()
 
         # let's check empty files list filtration..
-        self.obj.engine.config.get(ScenarioExecutor.EXEC)[0]["files"] = []
+        self.obj.engine.config.get(EXEC)[0]["files"] = []
 
         cloud_config = self.obj.prepare_cloud_config()
         self.assertIsNone(cloud_config.get("cli", None), None)
         self.assertIsNone(cloud_config.get("cli-aliases", None), None)
 
-        cloud_execution = cloud_config.get(ScenarioExecutor.EXEC)[0]
+        cloud_execution = cloud_config.get(EXEC)[0]
         cloud_modules = cloud_config.get("modules")
 
         target_execution = {ScenarioExecutor.CONCURR: 33, "scenario": "sc1", "executor": "jmeter"}
@@ -398,7 +398,7 @@ class TestCloudProvisioning(BZTestCase):
         strange_module = "bla_ze_me_ter"
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "concurrency": {
                         "local": 1,
                         "cloud": 10}},
@@ -426,7 +426,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_cloud_config_cleanup_selenium(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: [{
+                EXEC: [{
                     "executor": "selenium",
                     "concurrency": {
                         "local": 1,
@@ -434,15 +434,31 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2},
-                    "scenario": {"requests": ["http://blazedemo.com"]}}],
+                    "scenario": {"requests": ["http://blazedemo.com"]}},
+                    {
+                        "executor": "selenium",
+                        "runner": "nose",
+                        "concurrency": {
+                            "local": 1,
+                            "cloud": 10},
+                        "locations": {
+                            "us-east-1": 1,
+                            "us-west": 2},
+                        "scenario": {"requests": ["http://blazedemo.com"]}}
+                    ],
                 "modules": {
                     "selenium": {
                         "class": SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__,
                         "virtual-display": False},
-                    "nose": {
-                        "class": NoseTester.__module__ + "." + NoseTester.__name__,
+                    "apiritif": {
+                        "class": ApiritifTester.__module__ + "." + ApiritifTester.__name__,
                         "verbose": False
                     },
+                    "nose": {
+                        "class": ApiritifTester.__module__ + "." + ApiritifTester.__name__,
+                        "verbose": True
+                    },
+
                     "blazemeter": {
                         "class": BlazeMeterUploader.__module__ + "." + BlazeMeterUploader.__name__,
                         "strange_param": False
@@ -469,7 +485,8 @@ class TestCloudProvisioning(BZTestCase):
         target = BetterDict.from_dict({
             'blazemeter': {'strange_param': False},
             'selenium': {'virtual-display': False},
-            'nose': {'verbose': False},
+            'apiritif': {'verbose': False},
+            'nose': {'verbose': True},
             'private_mod': {'class': 'tests.mocks.ModuleMock', 'send-to-blazemeter': True}
         })
 
@@ -477,16 +494,16 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_merge_settings(self):
         target_selenium_class = SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__
-        target_nose_class = NoseTester.__module__ + "." + NoseTester.__name__
+        target_apiritif_class = ApiritifTester.__module__ + "." + ApiritifTester.__name__
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: [{
+                EXEC: [{
                     "executor": "selenium",
-                    "runner": "nose",
+                    "runner": "apiritif",
                     "scenario": {"requests": ["http://blazedemo.com"]}}],
                 "modules": {
                     "selenium": {"class": target_selenium_class},
-                    "nose": {"class": target_nose_class}}})
+                    "apiritif": {"class": target_apiritif_class}}})
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
@@ -494,13 +511,13 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.get_rfiles()  # create runners
 
         selenium_class = self.obj.engine.config.get("modules").get("selenium").get("class")
-        nose_class = self.obj.engine.config.get("modules").get("nose").get("class")
-        self.assertNotEqual(selenium_class, nose_class)
+        apiritif_class = self.obj.engine.config.get("modules").get("apiritif").get("class")
+        self.assertNotEqual(selenium_class, apiritif_class)
         self.assertEqual(selenium_class, target_selenium_class)
-        self.assertEqual(nose_class, target_nose_class)
+        self.assertEqual(apiritif_class, target_apiritif_class)
 
     def test_default_test_type_cloud(self):
-        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
+        self.configure(engine_cfg={EXEC: {"executor": "mock"}}, )
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
 
@@ -508,7 +525,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.user.token = object()
         self.configure(
             add_settings=False,
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
             get={
                 'https://a.blazemeter.com/api/v4/projects?projectId=1': {'result': [{'id': 1,
                                                                                      'workspaceId': 1}]},
@@ -535,7 +552,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.user.token = object()
         self.configure(
             add_settings=False,
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
             get={
                 'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {'result': [{'id': 1,
                                                                                        'workspaceId': 1}]},
@@ -560,7 +577,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
 
     def test_detect_test_type_cloud(self):
-        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
+        self.configure(engine_cfg={EXEC: {"executor": "mock"}}, )
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
 
@@ -569,7 +586,7 @@ class TestCloudProvisioning(BZTestCase):
         self.configure(
             add_settings=False,
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "executor": "mock",
                     "concurrency": 5500,
                     "locations": {
@@ -603,14 +620,14 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.post_process()
 
     def test_create_project(self):
-        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
+        self.configure(engine_cfg={EXEC: {"executor": "mock"}}, )
         self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
         self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[6]['url'])
         self.assertEquals('POST', self.mock.requests[6]['method'])
 
     def test_create_project_test_exists(self):
-        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+        self.configure(engine_cfg={EXEC: {"executor": "mock"}}, get={
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
                 {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
             ]},
@@ -632,7 +649,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.user.token = object()
         self.configure(
             add_settings=False,
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
             get={
                 "https://a.blazemeter.com/api/v4/projects?workspaceId=1": {
                     "result": [{"id": 1, "name": "myproject"}]},
@@ -661,9 +678,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.user.token = object()
         self.configure(
             add_settings=False,
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
             get={
-                "https://a.blazemeter.com/api/v4/projects?workspaceId=1": {
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=1000": {
                     "result": [{"id": 1, "name": "myproject"}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {
                     "result": [{"id": 1, "name": "Taurus Cloud Test"}]
@@ -690,7 +707,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.user.token = object()
         self.configure(
             add_settings=False,
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
@@ -711,7 +728,7 @@ class TestCloudProvisioning(BZTestCase):
         self.configure(
             add_settings=False,
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "executor": "mock",
                     "concurrency": 5500},
                 "locations": {
@@ -740,7 +757,7 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_nonexistent_location(self):
         self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock", }, "locations": {"us-not-found": 1}},
+            engine_cfg={EXEC: {"executor": "mock", }, "locations": {"us-not-found": 1}},
         )
         self.obj.settings["use-deprecated-api"] = False
         self.assertRaises(TaurusConfigError, self.obj.prepare)
@@ -748,7 +765,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_sandbox_default_location(self):
         self.configure(
             add_settings=False,
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
         )
         self.obj.user.token = "key"
         self.obj.prepare()
@@ -759,7 +776,7 @@ class TestCloudProvisioning(BZTestCase):
         locs = [{'id': 'loc1', 'sandbox': False, 'title': 'L1'}, {'id': 'loc2', 'sandbox': False, 'title': 'L2'}, ]
         self.configure(
             add_settings=False,
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
             get={
                 'https://a.blazemeter.com/api/v4/workspaces/1': {"result": {"locations": locs}},
             }
@@ -774,7 +791,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.user.token = object()
         self.configure(
             add_settings=False,
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock", }},
+            engine_cfg={EXEC: {"executor": "mock", }},
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
@@ -798,7 +815,7 @@ class TestCloudProvisioning(BZTestCase):
         self.configure(
             add_settings=False,
             engine_cfg={
-                ScenarioExecutor.EXEC: [{
+                EXEC: [{
                     "executor": "mock",
                     "concurrency": 5500,
                     "locations": {"us-east-1": 1}}],
@@ -830,7 +847,7 @@ class TestCloudProvisioning(BZTestCase):
         self.configure(
             add_settings=False,
             engine_cfg={
-                ScenarioExecutor.EXEC: [{
+                EXEC: [{
                     "executor": "mock",
                     "concurrency": 5500,
                 }],
@@ -863,7 +880,7 @@ class TestCloudProvisioning(BZTestCase):
         self.configure(
             add_settings=False,
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "executor": "mock",
                     "concurrency": 5500,
                     "locations": {
@@ -928,7 +945,7 @@ class TestCloudProvisioning(BZTestCase):
         self.configure(
             add_settings=False,
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "executor": "mock",
                     "concurrency": 5500,
                     "locations": {
@@ -1026,7 +1043,7 @@ class TestCloudProvisioning(BZTestCase):
             self.obj.engine.file_search_paths = ['tests']  # config not in cwd
 
             # 'files' are treated similar in all executors so check only one
-            self.obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [
+            self.obj.engine.config[EXEC][0]['files'] = [
                 os.path.join(os.getcwd(), 'tests', 'test_CLI.py'),  # full path
                 files_in_home[2]['shortname'],  # path from ~
                 os.path.join('resources', 'jmeter', 'jmeter-loader.bat'),  # relative path
@@ -1115,7 +1132,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_check_interval(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: {"executor": "mock", }},
+                EXEC: {"executor": "mock", }},
             get={
                 'https://a.blazemeter.com/api/v4/masters/1/status': [
                     {"result": {"id": id(self.obj)}},
@@ -1296,7 +1313,7 @@ class TestCloudProvisioning(BZTestCase):
         self.configure(
             add_settings=False,
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "executor": "mock",
                     "concurrency": 5500,
                     "locations": {
@@ -1326,7 +1343,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_public_report(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: {
+                EXEC: {
                     "executor": "mock",
                     "concurrency": 1,
                     "locations": {
@@ -1358,7 +1375,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_functional_test_creation(self):
         self.obj.engine.aggregator = FunctionalAggregator()
 
-        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+        self.configure(engine_cfg={EXEC: {"executor": "mock"}}, get={
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
                 {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
             ]},
@@ -1383,7 +1400,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_functional_cloud_failed_shutdown(self):
         self.obj.engine.aggregator = FunctionalAggregator()
         func_summary = {"isFailed": True}
-        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+        self.configure(engine_cfg={EXEC: {"executor": "mock"}}, get={
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
                 {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
             ]},
@@ -1513,7 +1530,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=1000': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
@@ -1555,7 +1572,7 @@ class TestCloudProvisioning(BZTestCase):
                     "result": {"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1,
                                "locations": [{"id": "eu-west-1"}]}
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=1000': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
@@ -1616,7 +1633,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=1000': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
@@ -1685,7 +1702,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(16, len(self.mock.requests))
 
     def test_send_report_email_default(self):
-        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+        self.configure(engine_cfg={EXEC: {"executor": "mock"}}, get={
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
                 {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
             ]},
@@ -1705,11 +1722,10 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(reqs[13]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
         self.assertEqual(reqs[13]['method'], 'PATCH')
         data = json.loads(reqs[13]['data'])
-        plugins = data['configuration']['plugins']
-        self.assertEqual(plugins["reportEmail"], {"enabled": False})
+        self.assertEqual(data["shouldSendReportEmail"], False)
 
     def test_send_report_email(self):
-        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+        self.configure(engine_cfg={EXEC: {"executor": "mock"}}, get={
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
                 {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
             ]},
@@ -1729,15 +1745,14 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(reqs[13]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
         self.assertEqual(reqs[13]['method'], 'PATCH')
         data = json.loads(reqs[13]['data'])
-        plugins = data['configuration']['plugins']
-        self.assertEqual(plugins["reportEmail"], {"enabled": True})
+        self.assertEqual(data['shouldSendReportEmail'], True)
 
     def test_multi_account_choice(self):
         with open(RESOURCES_DIR + "json/blazemeter-api-accounts.json") as fhd:
             accs = json.loads(fhd.read())
 
         self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
             get={
                 'https://a.blazemeter.com/api/v4/accounts': accs,
             },
@@ -1751,7 +1766,7 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_cloud_failure_criteria(self):
         self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
             get={
                 'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1, "progress": 100}},
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
@@ -1777,7 +1792,7 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_cloud_failure_criteria_werent_met(self):
         self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
             get={
                 'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1, "progress": 100}},
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
@@ -1805,7 +1820,7 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_cloud_failure_criteria_default_reason(self):
         self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            engine_cfg={EXEC: {"executor": "mock"}},
             get={
                 'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1, "progress": 100}},
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
