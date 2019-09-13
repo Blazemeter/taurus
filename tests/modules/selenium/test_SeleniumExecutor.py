@@ -28,6 +28,26 @@ class LDJSONReaderEmul(object):
 
 
 class TestSeleniumExecutor(SeleniumTestCase):
+    def test_selenium_old_flow(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "iterations": 1,
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/test_old_flow.py"
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.runner.process, None)
+
     def test_data_source_in_action(self):
         self.configure({
             EXEC: {
