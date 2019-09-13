@@ -164,3 +164,22 @@ class TestScenarioBuilder(BZTestCase):
         include = xml_tree.find(".//TransactionController/boolProp[@name='TransactionController.includeTimers']")
         self.assertIsNotNone(include)
         self.assertEqual(include.text, 'true')
+
+    def test_keep_cookies(self):
+        self.configure(scenario={"requests": ["http://localhost"],
+                                 "store-cookie": True
+        })
+        self.obj.save(self.jmx)
+        xml_tree = etree.fromstring(open(self.jmx, "rb").read())
+        include = xml_tree.find(".//boolProp[@name='CookieManager.clearEachIteration']")
+        self.assertIsNotNone(include)
+        self.assertEqual(include.text, 'false')
+
+    def test_no_cookies(self):
+        self.configure(scenario={"requests": ["http://localhost"],
+                                 "store-cookie": False
+        })
+        self.obj.save(self.jmx)
+        xml_tree = etree.fromstring(open(self.jmx, "rb").read())
+        include = xml_tree.find(".//boolProp[@name='CookieManager.clearEachIteration']")
+        self.assertIsNone(include)

@@ -74,6 +74,7 @@ class Engine(object):
         self.modules = {}  # available modules
         self.provisioning = Provisioning()
         self.aggregator = Aggregator(is_functional=False)
+        self.aggregator.engine = self
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None

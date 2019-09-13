@@ -20,6 +20,18 @@ ADD img ./img
 ADD builds ./builds
 ADD learn ./learn
 
+RUN apt-get update -y && \
+	apt-get install -y \
+		cron \
+		supervisor
+
+# test crons added via crontab
+RUN echo "@midnight sh /var/www/html/bzt-usage-stats/aggregate-stat.sh" | crontab -
+
+# supervisord config file
+COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY bzt-usage-stats ./bzt-usage-stats
+RUN chmod 777 -R bzt-usage-stats/
 #RUN apt install -y mc bash-completion
 ADD *.php ./
-
+CMD ["/usr/bin/supervisord"]
