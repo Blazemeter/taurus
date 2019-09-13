@@ -1106,7 +1106,7 @@ from selenium.webdriver.common.keys import Keys
             lines.extend(self._gen_xpath_assertions(req))
 
         lines.extend(self._gen_extractors(req))
-        
+
         if think_time:
             lines.append(ast.Expr(
                 ast_call(
