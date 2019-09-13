@@ -29,15 +29,21 @@ class LDJSONReaderEmul(object):
 
 class TestSeleniumExecutor(SeleniumTestCase):
     def test_selenium_old_flow(self):
+        with open(RESOURCES_DIR + "selenium/test_old_flow.py") as script:
+            wd_log = self.obj.engine.create_artifact("webdriver", ".log")
+            script_lines = script.readlines()
+
+            new_script = self.obj.engine.create_artifact("test_old_flow", ".py")
+            with open(new_script, 'w+') as new_script_file:
+                for line in script_lines:
+                    new_script_file.write(line.replace("webdriver.log", wd_log))
+
         self.configure({
             "execution": [{
                 "test-mode": "apiritif",
                 "iterations": 1,
                 "scenario": {
-                    "script": RESOURCES_DIR + "selenium/test_old_flow.py"
-                }
-            }]
-        })
+                    "script": new_script}}]})
         self.obj.prepare()
         try:
             self.obj.startup()
@@ -47,6 +53,47 @@ class TestSeleniumExecutor(SeleniumTestCase):
             self.obj.shutdown()
         self.obj.post_process()
         self.assertNotEquals(self.obj.runner.process, None)
+
+        # transaction_logged check
+        with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.out")) as out:
+            content = out.readlines()
+
+            # todo: check for loadgen debug log ('find me!')
+
+            stages = "Transaction started", "Transaction ended"
+            names = "t1", "t2"
+
+            for stage in stages:
+                cases = [line for line in content if stage in line]
+                for name in names:
+                    self.assertIn(name, '\n'.join(cases))
+
+        with open(wd_log) as wd_file:
+            content = wd_file.read()
+
+            wd_lines = content.split("[INFO]")
+
+        flow_markers = [l for l in wd_lines if "FLOW_MARKER" in l]
+        for arg in ["t1", "start"]:
+            self.assertIn(arg, flow_markers[0])
+        for arg in ["success", "stop"]:
+            self.assertIn(arg, flow_markers[1])
+        for arg in ["t2", "start"]:
+            self.assertIn(arg, flow_markers[2])
+        for arg in ["Assertion", "failed", "stop"]:
+            self.assertIn(arg, flow_markers[3])
+
+        with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")) as sample_file:
+            samples = sample_file.readlines()
+
+        for arg in ["t1", "true"]:
+            self.assertIn(arg, samples[1])
+
+        for arg in ["t2", "Assertion"]:
+            self.assertIn(arg, samples[2])
+
+        # todo: apiritif.0.csv filled by ApiritifPlugin
+        # todo: get_error_diagnostics: only geckodriver, not chrome-?
 
     def test_data_source_in_action(self):
         self.configure({

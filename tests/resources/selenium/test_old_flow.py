@@ -23,7 +23,7 @@ from selenium.webdriver.common.keys import Keys
 
 def setup():
     options = webdriver.ChromeOptions()
-    driver = webdriver.Chrome(service_log_path='/tmp/bzt/2019-09-13_13-47-30.895106/webdriver.log',
+    driver = webdriver.Chrome(service_log_path='webdriver.log',
                               chrome_options=options)
     driver.implicitly_wait(6.0)
     wnd_mng = WindowManager(driver)
