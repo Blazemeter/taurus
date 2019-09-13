@@ -29,14 +29,22 @@ class LDJSONReaderEmul(object):
 
 class TestSeleniumExecutor(SeleniumTestCase):
     def test_selenium_old_flow(self):
-        with open(RESOURCES_DIR + "selenium/test_old_flow.py") as script:
-            wd_log = self.obj.engine.create_artifact("webdriver", ".log")
+        self.run_script("test_old_flow.py")
+
+        self.check_transaction_logged()
+        self.check_flow_markers()
+        self.check_samples()
+
+        # todo: get_error_diagnostics: only geckodriver, not chrome-?
+    def run_script(self, name):
+        with open(RESOURCES_DIR + "selenium/" + name) as script:
+            self.wd_log = self.obj.engine.create_artifact("webdriver", ".log")
             script_lines = script.readlines()
 
             new_script = self.obj.engine.create_artifact("test_old_flow", ".py")
             with open(new_script, 'w+') as new_script_file:
                 for line in script_lines:
-                    new_script_file.write(line.replace("webdriver.log", wd_log))
+                    new_script_file.write(line.replace("webdriver.log", self.wd_log))
 
         self.configure({
             "execution": [{
@@ -54,7 +62,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.obj.post_process()
         self.assertNotEquals(self.obj.runner.process, None)
 
-        # transaction_logged check
+    def check_transaction_logged(self):
         with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.out")) as out:
             content = out.readlines()
 
@@ -68,7 +76,8 @@ class TestSeleniumExecutor(SeleniumTestCase):
                 for name in names:
                     self.assertIn(name, '\n'.join(cases))
 
-        with open(wd_log) as wd_file:
+    def check_flow_markers(self):
+        with open(self.wd_log) as wd_file:
             content = wd_file.read()
 
             wd_lines = content.split("[INFO]")
@@ -83,6 +92,8 @@ class TestSeleniumExecutor(SeleniumTestCase):
         for arg in ["Assertion", "failed", "stop"]:
             self.assertIn(arg, flow_markers[3])
 
+    def check_samples(self):
+        # apiritif.0.csv filled by ApiritifPlugin
         with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")) as sample_file:
             samples = sample_file.readlines()
 
@@ -92,8 +103,11 @@ class TestSeleniumExecutor(SeleniumTestCase):
         for arg in ["t2", "Assertion"]:
             self.assertIn(arg, samples[2])
 
-        # todo: apiritif.0.csv filled by ApiritifPlugin
-        # todo: get_error_diagnostics: only geckodriver, not chrome-?
+    def test_selenium_new_flow(self):
+        self.run_script("test_new_flow.py")
+        self.check_transaction_logged()
+        self.check_flow_markers()
+        self.check_samples()
 
     def test_data_source_in_action(self):
         self.configure({
