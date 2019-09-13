@@ -19,8 +19,8 @@ scenarios:
     requests:
     - label: Test
       actions:
-      - go(https://www.demoblaze.com/)
-      - clickByID(itemc)
+      - go(http://blazedemo.com/)
+      - clickByCSS(.btn.btn-primary)
       #- clickByLinkText(HTC One M9)
       #- clickByLinkText(Add to cart)
       # WARN: Command Not yet supported. ('assertAlert:"Product added":""')
