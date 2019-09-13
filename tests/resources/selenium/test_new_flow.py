@@ -44,62 +44,53 @@ class TestSdsdsdsSelenium(unittest.TestCase):
     def setUp(self):
         (self.vars, self.driver, self.wnd_mng, self.frm_mng) = apiritif.get_from_thread_store()
 
-    def test_1_t1(self):
-        try:
-            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {
-                'testCaseName': 't1',
-                'testSuiteName': 'sdsdsds-Selenium',
-            })
-            with apiritif.transaction_logged('t1'):
-                self.driver.get('http://blazedemo.com/purchase.php')
-                self.driver.find_element(By.CSS_SELECTOR, 'input.btn.btn-primary').click()
-        except AssertionError as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'failed',
-                'message': str(exc),
-            })
-            raise
-        except BaseException as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'broken',
-                'message': str(exc),
-            })
-            raise
-        else:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'success',
-                'message': '',
-            })
+    def flow_markers(test_case, test_suite):
+        def decorator(func):
+            def wrap(self):
+                try:
+                    self.driver.execute_script('/* FLOW_MARKER test-case-start */', {
+                        'testCaseName': test_case,
+                        'testSuiteName': test_suite,
+                    })
+                    func(self)
+                except AssertionError as exc:
+                    self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
+                        'status': 'failed',
+                        'message': str(exc),
+                    })
+                    raise
+                except BaseException as exc:
+                    self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
+                        'status': 'broken',
+                        'message': str(exc),
+                    })
+                    raise
+                else:
+                    self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
+                        'status': 'success',
+                        'message': '',
+                    })
+            return wrap
 
-    def test_2_t2(self):
-        try:
-            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {
-                'testCaseName': 't2',
-                'testSuiteName': 'sdsdsds-Selenium',
-            })
-            with apiritif.transaction_logged('t2'):
-                self.driver.get('https://www.belarus.by/en/')
-                body = self.driver.page_source
-                re_pattern = re.compile('In God we trust')
-                self.assertNotEqual(0, len(re.findall(re_pattern, body)),
-                                    "Assertion: 'In God we trust' not found in BODY")
-        except AssertionError as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'failed',
-                'message': str(exc),
-            })
-            raise
-        except BaseException as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'broken',
-                'message': str(exc),
-            })
-            raise
-        else:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'success',
-                'message': '',
-            })
+        return decorator
+
+    @flow_markers("t1", "sdsdsds-Selenium")
+    def t1(self):
+        with apiritif.transaction_logged('t1'):
+            self.driver.get('http://blazedemo.com/purchase.php')
+            self.driver.find_element(By.CSS_SELECTOR, 'input.btn.btn-primary').click()
+
+    @flow_markers("t2", "sdsdsds-Selenium")
+    def t2(self):
+        with apiritif.transaction_logged('t2'):
+            self.driver.get('https://www.belarus.by/en/')
+            body = self.driver.page_source
+            re_pattern = re.compile('In God we trust')
+            self.assertNotEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'In God we trust' not found in BODY")
+
+    def test_all(self):
+        self.t1()
+        self.t2()
 
 
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException

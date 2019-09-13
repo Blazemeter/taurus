@@ -29,7 +29,7 @@ class LDJSONReaderEmul(object):
 
 class TestSeleniumExecutor(SeleniumTestCase):
     def test_selenium_old_flow(self):
-        self.run_script("test_old_flow.py")
+        self.run_script("test_old_flow")
 
         self.check_transaction_logged()
         self.check_flow_markers()
@@ -37,11 +37,11 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
         # todo: get_error_diagnostics: only geckodriver, not chrome-?
     def run_script(self, name):
-        with open(RESOURCES_DIR + "selenium/" + name) as script:
+        with open(RESOURCES_DIR + "selenium/" + name + ".py") as script:
             self.wd_log = self.obj.engine.create_artifact("webdriver", ".log")
             script_lines = script.readlines()
 
-            new_script = self.obj.engine.create_artifact("test_old_flow", ".py")
+            new_script = self.obj.engine.create_artifact(name, ".py")
             with open(new_script, 'w+') as new_script_file:
                 for line in script_lines:
                     new_script_file.write(line.replace("webdriver.log", self.wd_log))
@@ -104,7 +104,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
             self.assertIn(arg, samples[2])
 
     def test_selenium_new_flow(self):
-        self.run_script("test_new_flow.py")
+        self.run_script("test_new_flow")
         self.check_transaction_logged()
         self.check_flow_markers()
         self.check_samples()
