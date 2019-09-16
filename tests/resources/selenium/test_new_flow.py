@@ -28,21 +28,22 @@ def setup():
     driver.implicitly_wait(6.0)
     wnd_mng = WindowManager(driver)
     frm_mng = FrameManager(driver)
+    func_mode = False
     vars = {
 
     }
-    apiritif.put_into_thread_store(vars, driver, wnd_mng, frm_mng)
+    apiritif.put_into_thread_store(vars, driver, wnd_mng, frm_mng, func_mode)
 
 
 def teardown():
-    (_, driver, _, _) = apiritif.get_from_thread_store()
+    (_, driver, _, _, _) = apiritif.get_from_thread_store()
     driver.quit()
 
 
 class TestSdsdsdsSelenium(unittest.TestCase):
 
     def setUp(self):
-        (self.vars, self.driver, self.wnd_mng, self.frm_mng) = apiritif.get_from_thread_store()
+        (self.vars, self.driver, self.wnd_mng, self.frm_mng, self.func_mode) = apiritif.get_from_thread_store()
 
     def flow_markers(test_case, test_suite):
         def decorator(func):
@@ -58,13 +59,15 @@ class TestSdsdsdsSelenium(unittest.TestCase):
                         'status': 'failed',
                         'message': str(exc),
                     })
-                    raise
+                    if self.func_mode:
+                        raise
                 except BaseException as exc:
                     self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
                         'status': 'broken',
                         'message': str(exc),
                     })
-                    raise
+                    if self.func_mode:
+                        raise
                 else:
                     self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
                         'status': 'success',
@@ -88,9 +91,15 @@ class TestSdsdsdsSelenium(unittest.TestCase):
             re_pattern = re.compile('In God we trust')
             self.assertNotEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'In God we trust' not found in BODY")
 
+    @flow_markers("t3", "sdsdsds-Selenium")
+    def t3(self):
+        with apiritif.transaction_logged('t3'):
+            self.driver.get('some.strange.url')
+
     def test_all(self):
         self.t1()
         self.t2()
+        self.t3()
 
 
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException

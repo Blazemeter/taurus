@@ -39,7 +39,7 @@ def teardown():
     driver.quit()
 
 
-class TestSdsdsdsSelenium(unittest.TestCase):
+class TestScr(unittest.TestCase):
 
     def setUp(self):
         (self.vars, self.driver, self.wnd_mng, self.frm_mng) = apiritif.get_from_thread_store()
@@ -48,7 +48,7 @@ class TestSdsdsdsSelenium(unittest.TestCase):
         try:
             self.driver.execute_script('/* FLOW_MARKER test-case-start */', {
                 'testCaseName': 't1',
-                'testSuiteName': 'sdsdsds-Selenium',
+                'testSuiteName': 'scr',
             })
             with apiritif.transaction_logged('t1'):
                 self.driver.get('http://blazedemo.com/purchase.php')
@@ -75,7 +75,7 @@ class TestSdsdsdsSelenium(unittest.TestCase):
         try:
             self.driver.execute_script('/* FLOW_MARKER test-case-start */', {
                 'testCaseName': 't2',
-                'testSuiteName': 'sdsdsds-Selenium',
+                'testSuiteName': 'scr',
             })
             with apiritif.transaction_logged('t2'):
                 self.driver.get('https://www.belarus.by/en/')
@@ -83,6 +83,32 @@ class TestSdsdsdsSelenium(unittest.TestCase):
                 re_pattern = re.compile('In God we trust')
                 self.assertNotEqual(0, len(re.findall(re_pattern, body)),
                                     "Assertion: 'In God we trust' not found in BODY")
+        except AssertionError as exc:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
+                'status': 'failed',
+                'message': str(exc),
+            })
+            raise
+        except BaseException as exc:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
+                'status': 'broken',
+                'message': str(exc),
+            })
+            raise
+        else:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
+                'status': 'success',
+                'message': '',
+            })
+
+    def test_3_t3(self):
+        try:
+            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {
+                'testCaseName': 't3',
+                'testSuiteName': 'scr',
+            })
+            with apiritif.transaction_logged('t3'):
+                self.driver.get('some.strange.url')
         except AssertionError as exc:
             self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
                 'status': 'failed',

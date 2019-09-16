@@ -69,7 +69,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
             # todo: check for loadgen debug log ('find me!')
 
             stages = "Transaction started", "Transaction ended"
-            names = "t1", "t2"
+            names = "t1", "t2", "t3"
 
             for stage in stages:
                 cases = [line for line in content if stage in line]
@@ -91,6 +91,10 @@ class TestSeleniumExecutor(SeleniumTestCase):
             self.assertIn(arg, flow_markers[2])
         for arg in ["Assertion", "failed", "stop"]:
             self.assertIn(arg, flow_markers[3])
+        for arg in ["t3", "start"]:
+            self.assertIn(arg, flow_markers[4])
+        for arg in ["broken", "stop"]:
+            self.assertIn(arg, flow_markers[5])
 
     def check_samples(self):
         # apiritif.0.csv filled by ApiritifPlugin
@@ -102,6 +106,9 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
         for arg in ["t2", "Assertion"]:
             self.assertIn(arg, samples[2])
+
+        for arg in ["t3", "Exception"]:
+            self.assertIn(arg, samples[3])
 
     def test_selenium_new_flow(self):
         self.run_script("test_new_flow")
