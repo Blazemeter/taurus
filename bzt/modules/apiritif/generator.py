@@ -24,7 +24,7 @@ import astunparse
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
-from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
+from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables, IncludeScenarioBlock
 from bzt.six import parse, string_types, iteritems, text_type, PY2
 from bzt.utils import dehumanize_time, ensure_is_dict
 from .ast_helpers import ast_attr, ast_call
@@ -92,13 +92,14 @@ from selenium.webdriver.common.keys import Keys
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
-    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables)
+    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock)
 
-    def __init__(self, scenario, label, wdlog=None, utils_file=None,
+    def __init__(self, scenario, label, wdlog=None, executor=None, utils_file=None,
                  ignore_unknown_actions=False, generate_markers=None,
                  capabilities=None, wd_addr=None, test_mode="selenium"):
         self.scenario = scenario
         self.data_sources = list(scenario.get_data_sources())
+        self.executor = executor
         self.label = label
         self.log = self.scenario.engine.log.getChild(self.__class__.__name__)
         self.tree = None
@@ -885,6 +886,16 @@ from selenium.webdriver.common.keys import Keys
                     config=request.config,
                     scenario=request.scenario)
 
+            if isinstance(request, IncludeScenarioBlock):
+                included = self.executor.get_scenario(request.scenario_name)
+                included_requests = included.get_requests(parser=HierarchicRequestParser, require_url=False)
+                request = TransactionBlock(
+                    name=request.scenario_name,
+                    requests=included_requests,
+                    include_timers=[],
+                    config=included.data,
+                    scenario=included)
+
             if isinstance(request, TransactionBlock):
                 body = [self._gen_transaction(request)]
                 label = create_method_name(request.label[:40])
@@ -1028,7 +1039,7 @@ from selenium.webdriver.common.keys import Keys
             if isinstance(request, TransactionBlock):
                 body.append(self._gen_transaction(request))
             elif isinstance(request, SetVariables):
-                body = self._gen_set_vars(request)
+                body.append(self._gen_set_vars(request))
             else:
                 body.append(self._gen_http_request(request))
 

@@ -15,6 +15,7 @@ execution:
 It allows you to use some logic blocks:
 - `transactions`: collect requests in one block
 - `set-variables`: set/change value of variable
+- `include-scenario`: include scenario in another one
 
 and CSV data sources. Use following format to specify them:
 ```yaml
@@ -31,6 +32,7 @@ scenarios:
       - set-variables:  # change variable value
           var1: val2
       - http://blazedemo.com/receive/${var1} # get 'receive/val2'
+    - include-scenario: inner
 
     data-sources: # list of external data sources
     - path/to/my.csv  # this is a shorthand form
@@ -39,6 +41,12 @@ scenarios:
       quoted: false  # allow quoted data
       loop: true  # loop over in case of end-of-file reached if true, stop thread if false
       variable-names: id,name  # delimiter-separated list of variable names, empty by default
+
+  inner:
+    requests:
+    - set-variables:
+        var1: val3
+    - http://blazedemo.com/receive/${var1}
 ```
 
 ## Supported file types:
