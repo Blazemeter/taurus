@@ -271,8 +271,13 @@ class Workspace(BZAObject):
         """
         params = OrderedDict()
         params.update({"workspaceId": self['id']})
+
         if name:
             params.update({"name": name})
+
+        if ident:
+            params.update({"limit": 1000})
+
         res = self._request(self.address + '/api/v4/projects?' + urlencode(params))
 
         projects = BZAObjectsList()
@@ -429,7 +434,7 @@ class Project(BZAObject):
     def create_multi_test(self, collection_draft):
         collection_draft['projectId'] = self['id']
         url = self.address + "/api/v4/multi-tests"
-        resp = self._request(url, data=collection_draft, method="POST")
+        resp = self._request(url, data=collection_draft)
         return MultiTest(self, resp['result'])
 
 
@@ -529,7 +534,7 @@ class Master(BZAObject):
 
     def make_report_public(self):
         url = self.address + "/api/v4/masters/%s/public-token" % self['id']
-        res = self._request(url, {"publicToken": None}, method="POST")
+        res = self._request(url, data={"publicToken": None})
         public_token = res['result']['publicToken']
         report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self['id'])
         return report_link
@@ -736,19 +741,22 @@ class BZAProxy(BZAObject):
         self.delay = 5
 
     def stop(self):
-        self._request(self.address + '/api/latest/proxy/recording/stop', method='POST')
+        self._request(self._get_url("/recording/stop"), method='POST')
 
     def start(self):
-        self._request(self.address + '/api/latest/proxy/recording/start', method='POST')
+        self._request(self._get_url("/recording/start"), method='POST')
 
     def get_jmx(self, smart=False):
-        url = '/api/latest/proxy/download?format=jmx&smart=' + str(smart).lower()
-        response_url = self._request(self.address + url).get('result')
+        path = '/download?format=jmx&smart=' + str(smart).lower()
+        response_url = self._request(self._get_url(path)).get('result')
         response_content = self._request(response_url, raw_result=True, headers={"X-Api-Key": self.token})
         return response_content
 
+    def _get_url(self, path=''):
+        return self.address + "/api/latest/proxy" + path
+
     def get_addr(self):
-        response = self._request(self.address + '/api/latest/proxy')
+        response = self._request(self._get_url())
 
         proxy_info = response['result']
         if proxy_info:
@@ -764,16 +772,13 @@ class BZAProxy(BZAObject):
                 self.stop()
         else:
             self.log.info('Creating new recording proxy...')
-            response = self._request(self.address + '/api/latest/proxy', method='POST', data={'auth': False})
+            response = self._request(self._get_url(), data={'auth': False, 'shipId': None})
             proxy_info = response['result']
 
-        self._request(self.address + '/api/latest/proxy/recording/clear', method='POST')
+        self._request(self._get_url("/recording/clear"), method='POST')
 
-        return 'http://%s:%s' % (
-            proxy_info['host'],
-            proxy_info['port']
-        )
+        return 'http://%s:%s' % (proxy_info['host'], proxy_info['port'])
 
     def get_json(self):
-        response = self._request(self.address + '/api/latest/proxy/download?format=json', raw_result=True)
+        response = self._request(self._get_url("/download?format=json"), raw_result=True)
         return response

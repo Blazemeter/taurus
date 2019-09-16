@@ -50,7 +50,8 @@ setup(
     platform='any',
     docs_url='http://gettaurus.org/docs/',
     install_requires=requires,
-    packages=['bzt', 'bzt.six', 'bzt.jmx', 'bzt.modules', 'bzt.modules.java', 'bzt.modules.python', 'bzt.resources'],
+    packages=['bzt', 'bzt.engine', 'bzt.six', 'bzt.jmx', 'bzt.modules',
+              'bzt.modules.java', 'bzt.modules.apiritif', 'bzt.resources', 'bzt.modules.python'],
     entry_points={
         'console_scripts': [
             'bzt=bzt.cli:main',
@@ -80,8 +81,8 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
 )

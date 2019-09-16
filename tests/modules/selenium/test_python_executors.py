@@ -3,10 +3,12 @@ import os
 
 import time
 
-from bzt.engine import ScenarioExecutor
+from bzt.engine import EXEC
 from bzt.modules import ConsolidatingAggregator
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
-from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor
+from bzt.modules.apiritif import ApiritifNoseExecutor
+from bzt.modules.pytest import PyTestExecutor
+from bzt.modules.robot import RobotExecutor
 from tests import RESOURCES_DIR, ExecutorTestCase
 from tests.modules.selenium import SeleniumTestCase
 
@@ -71,7 +73,13 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")))
+        api_log = os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")
+        nose_log = os.path.join(self.obj.engine.artifacts_dir, "apiritif.out")
+        self.assertTrue(os.path.exists(api_log))
+        with open(nose_log) as fds:
+            content = fds.read()
+            self.assertIn("Transaction started::", content)
+            self.assertIn("Transaction ended::", content)
 
     def test_runner_fail_no_test_found(self):
         """
@@ -79,7 +87,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         :return:
         """
         self.configure({
-            ScenarioExecutor.EXEC: {
+            EXEC: {
                 "iterations": 1,
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/dummy.py"}

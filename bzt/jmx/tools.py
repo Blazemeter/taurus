@@ -77,6 +77,8 @@ class LoadSettingsProcessor(object):
     def __init__(self, executor):
         self.log = executor.log.getChild(self.__class__.__name__)
         self.load = executor.get_specific_load()
+        self.raw_load = executor.get_raw_load()
+        self.log.debug("Load: %s", self.load)
         self.tg = self._detect_thread_group(executor)
         self.tg_handler = ThreadGroupHandler(self.log)
 
@@ -107,7 +109,7 @@ class LoadSettingsProcessor(object):
         return tg
 
     def modify(self, jmx):
-        if not (self.load.iterations or self.load.concurrency or self.load.duration):
+        if not (self.raw_load.iterations or self.raw_load.concurrency or self.load.duration):
             self.log.debug('No iterations/concurrency/duration found, thread group modification is skipped')
             return
 
@@ -122,7 +124,10 @@ class LoadSettingsProcessor(object):
 
             concurrency_list = []
             for group in groups:
-                concurrency_list.append(group.get_concurrency(raw=raw))
+                concurrency = group.get_concurrency(raw=raw)
+                if concurrency is None:
+                    concurrency = 1
+                concurrency_list.append(concurrency)
 
             if not raw:  # divide numeric concurrency
                 self._divide_concurrency(concurrency_list)
@@ -145,9 +150,11 @@ class LoadSettingsProcessor(object):
         total_old_concurrency = sum(concurrency_list)
 
         for idx, concurrency in enumerate(concurrency_list):
-            if total_old_concurrency:
+            if total_old_concurrency and concurrency_list[idx] != 0:
                 part_of_load = 1.0 * self.load.concurrency * concurrency / total_old_concurrency
                 concurrency_list[idx] = int(round(part_of_load))
+                if concurrency_list[idx] == 0:
+                    concurrency_list[idx] = 1
             else:
                 concurrency_list[idx] = 0
 
@@ -673,8 +680,12 @@ class JMeterScenarioBuilder(JMX):
                 if not delimiter:
                     delimiter = guess_delimiter(source_path)
 
-            config = JMX._get_csv_config(source_path, delimiter, source.get("quoted", False), source.get("loop", True),
-                                         source.get("variable-names", ""))
+            if source.get("random-order"):
+                config = JMX._get_csv_config_random(source_path, delimiter, source.get("loop", True),
+                                                    source.get("variable-names", ""))
+            else:
+                config = JMX._get_csv_config(source_path, delimiter, source.get("loop", True),
+                                             source.get("variable-names", ""),  source.get("quoted", False))
             elements.append(config)
             elements.append(etree.Element("hashTree"))
         return elements

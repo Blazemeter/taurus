@@ -38,8 +38,8 @@ from urwid import Pile, Text
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
-from bzt.engine import Singletone, SETTINGS
+from bzt.engine import Reporter, Provisioning, Configuration, Service
+from bzt.engine import Singletone, SETTINGS, ScenarioExecutor, EXEC
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
@@ -61,6 +61,7 @@ CLOUD_CONFIG_BLACK_LIST = {
         "proxy": True,
         "check-updates": True
     },
+    "included-configs": True,
     "cli": True,
     "cli-aliases": True,
     "install-id": True,
@@ -1173,7 +1174,7 @@ class CloudTaurusTest(BaseCloudTest):
         self._test.upload_files(taurus_config, rfiles)
         self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
         self._test.update_props({
-            'configuration': {'plugins': {'reportEmail': {"enabled": self.send_report_email}}}
+            "shouldSendReportEmail": self.send_report_email
         })
 
     def launch_test(self):
@@ -1578,7 +1579,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         config.filter(CLOUD_CONFIG_BLACK_LIST, black_list=True)
 
-        for execution in config[ScenarioExecutor.EXEC]:
+        for execution in config[EXEC]:
             if execution.get("files") == []:
                 del execution["files"]
 
@@ -1615,10 +1616,13 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         for index, reporter in enumerate(reporting):
             exc = TaurusConfigError("'module' attribute not found in %s" % reporter)
             cls = reporter.get('module', exc)
-            if cls == 'blazemeter':
+            if cls == "blazemeter":
                 self.log.warning("Explicit blazemeter reporting is skipped for cloud")
+            elif cls == "passfail":
+                self.log.warning("Passfail has no effect for cloud, skipped")
             else:
                 new_reporting.append(reporter)
+
         self.engine.config[Reporter.REP] = new_reporting
 
     @staticmethod

@@ -42,7 +42,17 @@ modules:
       propname: propvalue
 ```
 
-Note: only specific names/versions of JUnit framework jars is supported. If you want to use your own bundle at first just run test without `path` and revise `~/.bzt/selenium-taurus` directory.
+Note: only specific names/versions of JUnit framework jars is supported.
+If you want to use your own bundle at first just run test without `path` and revise `~/.bzt/selenium-taurus` directory.
+For other jar tools (hamcrest, selenium-sever, etc.) extended setup is possible. You can choose follow params of them:
+```yaml
+modules:
+  junit:
+    selenium-server:
+      download-link: http://my.own.host.com/selenium-server.jar
+      version: 1.2.3
+      path: /some/place/on/disk/selenium-server.jar
+```
 
 When running tests, Taurus will automatically add `selenium-server`, `json-jar`, `hamcrest-core`, along with JUnit jar
 to the classpath. If your test suite requires additional libraries - you can specify them as a list of jars with

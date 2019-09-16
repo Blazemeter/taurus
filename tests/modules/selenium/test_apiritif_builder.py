@@ -4,8 +4,8 @@ import tempfile
 from bzt import TaurusConfigError
 from bzt.modules import ConsolidatingAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.python import ApiritifNoseExecutor
-from bzt.modules.python.executors import ApiritifLoadReader, ApiritifFuncReader
+from bzt.modules.apiritif import ApiritifNoseExecutor
+from bzt.modules.apiritif.executor import ApiritifLoadReader, ApiritifFuncReader
 from tests import RESOURCES_DIR, ExecutorTestCase
 from tests.mocks import EngineEmul
 
@@ -785,3 +785,56 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.log.info(test_script)
         self.assertIn("class TestAPI(unittest.TestCase", test_script)
 
+    def test_unknown_action(self):
+       self.configure({
+           'execution': [{
+               'executor': 'selenium',
+               'scenario': 'sample'
+           }],
+           'scenarios': {
+               'sample': {
+                   'requests': [{
+                       'url': 'http://blazedemo.com',
+                       'actions': ['definitelyUnknownAction(unknownSelector)']
+                   }]
+               }
+           },
+           'modules': {
+               'apiritif': {
+                   'ignore-unknown-actions': True
+               }
+           }
+       })
+       self.obj.prepare()
+       with open(self.obj.script) as fds:
+           test_script = fds.read()
+       self.assertNotIn("definitelyUnknownAction(unknownSelector)", test_script)
+
+    def test_set_variables(self):
+        self.configure({
+           'execution': [{
+               'executor': 'selenium',
+               'scenario': 'sample'
+           }],
+            'scenarios': {
+                'sample': {
+                    'variables': {
+                        'var1': 'val1'
+                    },
+                    'requests': [{
+                            'transaction': 'second',
+                            'do': [
+                                'http://blazedemo.com/',
+                                'http://blazedemo.com/receive/${var1}',
+                                {'set-variables': {'var1': 'val2'}},
+                            ]
+                        }
+                    ]
+                }
+            }
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("'var1': 'val1'", test_script)
+        self.assertIn("self.vars['var1'] = 'val2'", test_script)

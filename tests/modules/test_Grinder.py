@@ -95,6 +95,7 @@ class TestGrinderExecutor(ExecutorTestCase):
         self.obj.engine.provisioning = Local()
         self.obj.engine.provisioning.engine = self.obj.engine
         self.obj.engine.provisioning.executors = [self.obj]
+        self.obj.engine.provisioning.started_modules = [self.obj]
         self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
     def test_with_results(self):

@@ -25,6 +25,11 @@ class TestLoadSettingsProcessor(BZTestCase):
                 groupset.append(group)
         return groupset
 
+    def test_empty_concuurency(self):
+        self.configure(load={"concurrency": 22}, jmx_file=RESOURCES_DIR + 'jmeter/jmx/empty_concurrency.jmx')
+        self.obj.modify(self.jmx)
+        self.assertEqual("22", self.get_groupset()[0].get_concurrency(raw=True))
+
     def test_keep_original(self):
         self.configure(jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no duration
@@ -73,7 +78,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         for group in self.get_groupset():
             self.assertEqual('ThreadGroup', group.gtype)
             self.assertEqual("false", group.element.find(".//*[@name='LoopController.continue_forever']").text)
-            self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)  # no loop limit
+            self.assertEqual("1", group.element.find(".//*[@name='LoopController.loops']").text)  # no loop limit
 
             res_values[group.get_testname()] = {
                 'conc': group.get_concurrency(),
@@ -266,6 +271,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.obj.modify(self.jmx)
 
+        self.assertEqual(5, len(self.get_groupset()))
         for group in self.get_groupset():
             self.assertEqual(1, group.get_concurrency())
             self.assertEqual("false", group.element.find(".//*[@name='ThreadGroup.scheduler']").text)

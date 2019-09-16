@@ -2,8 +2,11 @@
 
 namespace Taurus;
 
+require __DIR__ . '/vendor/autoload.php';
+
 class UpdateChecker extends \PWE\Modules\PWEModule implements \PWE\Modules\Outputable
 {
+
     public function process()
     {
         $latest = $this->getLatestVersion();
@@ -12,6 +15,12 @@ class UpdateChecker extends \PWE\Modules\PWEModule implements \PWE\Modules\Outpu
             "needsUpgrade" => version_compare($latest, $_REQUEST['version'], '>')
         );
         \PWE\Core\PWELogger::warn("Check update: %s %s %s %s", $_REQUEST['version'], $resp['latest'], $resp['needsUpgrade'], $_REQUEST['installID']);
+
+        $stats_arr = array(date('d.m.Y h:i:s'),  $_REQUEST['version'], $resp['latest'], $resp['needsUpgrade'], $_REQUEST['installID']);
+        $csv_name = 'stats_'.date('d.m.Y').'.csv';
+        $file_path = getcwd() . "/bzt-usage-stats/" .  $csv_name;
+
+        $this->writeUserStatToCSV($stats_arr, $file_path);
 
         $smarty = $this->PWE->getSmarty();
         $smarty->setTemplateFile(__DIR__ . '/dat/json.tpl');
@@ -24,6 +33,21 @@ class UpdateChecker extends \PWE\Modules\PWEModule implements \PWE\Modules\Outpu
     {
         $pypi = $this->getPypiInfo();
         return $pypi['info']['version'];
+    }
+
+    public function writeUserStatToCSV($data_arr, $file_name)
+    {
+        $list = array (
+            $data_arr
+        );
+
+        $fp = fopen($file_name, 'a');
+
+        foreach ($list as $fields) {
+            fputcsv($fp, $fields);
+        }
+
+        fclose($fp);
     }
 
     public function getPypiInfo()

@@ -23,7 +23,7 @@ from urwid import BaseScreen
 
 from bzt import ManualShutdown
 from bzt.six import text_type, iteritems, PY2
-from bzt.utils import is_windows
+from bzt.utils import is_linux
 import bzt.resources as bztr
 
 if PY2:  # we have to put import logic here to avoid requiring python-tk library on linux
@@ -62,11 +62,12 @@ class GUIScreen(BaseScreen):
         self.root = tkinter.Tk()
         self.root.geometry("%sx%s" % (self.size[0] * 7, self.size[1] * 15))
         self.root.bind("<Configure>", self.resize)
-        if is_windows():
-            self.root.bind("<Control-MouseWheel>", self.change_font)
-        else:
+        if is_linux():
             self.root.bind("<Control-4>", self.change_font)
             self.root.bind("<Control-5>", self.change_font)
+        else:
+            self.root.bind("<Control-MouseWheel>", self.change_font)
+
         self.root.protocol("WM_DELETE_WINDOW", self.closed_window)
         self.text = tkinter.Text(self.root, font="TkFixedFont", wrap=tkinter.NONE, state=tkinter.DISABLED,
                                  background="black", foreground="light gray")

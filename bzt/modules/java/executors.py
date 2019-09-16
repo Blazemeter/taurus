@@ -24,7 +24,7 @@ from bzt.modules import SubprocessedExecutor
 from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types
-from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM
+from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, BetterDict, get_assembled_value
 from .tools import SeleniumServer, Hamcrest, Json, TaurusJavaHelper, JavaC, JUnitJupiterApi, JUnitJupiterEngine
 from .tools import JUnitPlatformCommons, JUnitPlatformLauncher, JUnitPlatformEngine, JUnitPlatformRunner
 from .tools import JUnitPlatformSuiteApi, JUnitVintageEngine, ApiGuardian, JUnit, OpenTest4j, TestNG
@@ -48,9 +48,9 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.report_file_suffix = ".ldjson"
 
     def install_required_tools(self):
-        self._add_jar_tool(SeleniumServer, local_path=self.settings.get("selenium-server"))
-        self._add_jar_tool(Hamcrest, local_path=self.settings.get("hamcrest-core"))
-        self._add_jar_tool(Json, local_path=self.settings.get("json-jar"))
+        self._add_jar_tool(SeleniumServer, config=self.settings.get("selenium-server"))
+        self._add_jar_tool(Hamcrest, config=self.settings.get("hamcrest-core"))
+        self._add_jar_tool(Json, config=self.settings.get("json-jar"))
         self._add_jar_tool(TaurusJavaHelper)
 
         if self._full_install or self._java_scripts:
@@ -64,6 +64,12 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self._check_tools(self._tools)
 
     def _add_jar_tool(self, req_tool_class, **kwargs):
+        # todo: it's for backward compatibility only, remove it later
+        if "local_path" in kwargs:
+            local_path = kwargs.pop("local_path")
+            if local_path:
+                kwargs["config"] = BetterDict.from_dict({"config": local_path})
+
         req_tool = self._get_tool(req_tool_class, **kwargs)
         self._tools.append(req_tool)
         self.class_path.append(req_tool.tool_path)
@@ -208,17 +214,21 @@ class JUnitTester(JavaTestRunner):
 
             path = os.path.join(path, "{tool_file}")
 
-        self._add_jar_tool(JUnitJupiterApi, local_path=path)
-        self._add_jar_tool(JUnitJupiterEngine, local_path=path)
-        self._add_jar_tool(JUnitPlatformCommons, local_path=path)
-        self._add_jar_tool(JUnitPlatformEngine, local_path=path)
-        self._add_jar_tool(JUnitPlatformLauncher, local_path=path)
-        self._add_jar_tool(JUnitPlatformRunner, local_path=path)
-        self._add_jar_tool(JUnitPlatformSuiteApi, local_path=path)
-        self._add_jar_tool(JUnitVintageEngine, local_path=path)
-        self._add_jar_tool(ApiGuardian, local_path=path)
-        self._add_jar_tool(OpenTest4j, local_path=path)
-        self._add_jar_tool(JUnit, local_path=path)
+        config = BetterDict()
+        if path:
+            config["path"] = path
+
+        self._add_jar_tool(JUnitJupiterApi, config=config)
+        self._add_jar_tool(JUnitJupiterEngine, config=config)
+        self._add_jar_tool(JUnitPlatformCommons, config=config)
+        self._add_jar_tool(JUnitPlatformEngine, config=config)
+        self._add_jar_tool(JUnitPlatformLauncher, config=config)
+        self._add_jar_tool(JUnitPlatformRunner, config=config)
+        self._add_jar_tool(JUnitPlatformSuiteApi, config=config)
+        self._add_jar_tool(JUnitVintageEngine, config=config)
+        self._add_jar_tool(ApiGuardian, config=config)
+        self._add_jar_tool(OpenTest4j, config=config)
+        self._add_jar_tool(JUnit, config=config)
 
         super(JUnitTester, self).install_required_tools()
 
@@ -252,9 +262,9 @@ class JUnitTester(JavaTestRunner):
 
                 fds.write("{name}={val}\n".format(name=name, val=val))
 
-        props = self.settings.get("properties")
-        props.merge(self.get_scenario().get("properties"))
-        props.merge(self.execution.get("properties"))
+        props = get_assembled_value(configs=[self.settings, self.get_scenario(), self.execution], key="properties")
+        props = props or BetterDict()
+
         junit_version = str(self.settings.get("junit-version", "4"))
         if junit_version == "5":
             props.merge({"junit_version": 5})

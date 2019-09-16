@@ -1,5 +1,60 @@
 # Changelog
 
+## 1.13.9<sup>next</sup>
+
+
+## 1.13.8<sup>07 jul 2019</sup>
+
+- add random CSV feeder to JMX generator
+- expand on-the-fly convertion of soapui to all executors
+- fix Gatling classpath in generated launcher
+- add provisioning capacity feature
+- add `bytes` passfail criteria
+- add support of new Node.js (8+)
+- fix Gatling csv handling
+- fix Jmeter load defaults
+- fix cumulative time stats on dashboard
+- fix site deploying flow
+
+
+## 1.13.7<sup>29 may 2019</sup>
+
+- update default gatling version to 3.1.2
+- set iteration default for Jmeter into 1
+- fix gatling props encoding
+- fix locust aggregation bug
+- fix order of capabilities assembling
+- filter out `included-configs` from cloud YAML
+- fix site styles
+
+
+## 1.13.6<sup>6 may 2019</sup>
+
+- fix issues of pip package for previous version
+- default empty concurrency in JMeter JMX as 1
+- handle JMeter install check failures properly
+- fix OSX mouse wheel binding, document dashboard scaling
+- fix Gatling getting `u` prefix to simulation name (and other properties)
+- handle quitting event from locust to ignore restrictions on teardown
+
+
+## 1.13.5<sup>30 apr 2019</sup>
+
+- default `iterations` are now `1` as opposed to `infinity` in the past 
+- add `env` option reading for each execution
+- set special env vars for ShellExec commands, containing Taurus exit code
+- fix TST having 0 as start value in case test is very long
+- add check and warning for Java version used with Gatling
+- add jartool options (version, path, download_link)
+- don't pass null address to Apiritif
+- share webdriver instance between test methods of Selenium script
+- store browser in lowercase
+- send capabilities to webdriver as is
+- check capabilities for 'browser' option
+- avoid explicit RemoteDriver request
+- roll back Gatling script changes for Windows
+
+
 ## 1.13.4<sup>31 mar 2019</sup>
 
 - bump up default JMeter version to 5.1.1

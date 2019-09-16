@@ -1,12 +1,12 @@
 # coding=utf-8
 import os
-import sys
 import shutil
+import sys
 import time
 
 from bzt import ToolError, TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.gatling import GatlingExecutor, DataLogReader
+from bzt.modules.gatling import GatlingExecutor, DataLogReader, is_gatling2
 from bzt.modules.provisioning import Local
 from bzt.six import u
 from bzt.utils import EXE_SUFFIX, get_full_path, is_windows
@@ -119,7 +119,7 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertIn(jars[1], self.obj.env.get(var))
 
         for line in modified_lines:
-            if not is_windows() and '"$JAVA"' in line:
+            if not is_windows() and '"$JAVA"' in line and not line.startswith("bash"):
                 self.assertTrue(line.startswith('eval'))
             self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))  # win
             if line.startswith('COMPILATION_CLASSPATH='):  # linux
@@ -151,12 +151,16 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertIn(jars[1], self.obj.env.get(var))
 
         for line in modified_lines:
-            if not is_windows() and '"$JAVA"' in line:
+            if not is_windows() and '"$JAVA"' in line and not line.startswith("bash"):
                 self.assertTrue(line.startswith('eval'))
             if line.startswith('set COMPILER_CLASSPATH='):  # win
                 self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
-            if line.startswith('COMPILER_CLASSPATH='):  # linux
-                self.assertTrue('${COMPILATION_CLASSPATH}"\n')
+            if line.startswith('set GATLING_CLASSPATH='):  # win
+                self.assertTrue(line.endswith(';%JAVA_CLASSPATH%\n'))
+            if line.startswith('COMPILER_CLASSPATH'):  # linux
+                self.assertTrue(line.endswith('${COMPILATION_CLASSPATH}"\n'))
+            if line.startswith('GATLING_CLASSPATH'):  # linux
+                self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
 
     def test_install_Gatling(self):
         path = os.path.abspath(BUILD_DIR + "gatling-taurus/bin/gatling" + EXE_SUFFIX)
@@ -477,20 +481,37 @@ class TestGatlingExecutor(ExecutorTestCase):
             os.chdir(curdir)
 
     def test_data_sources(self):
+        csv1 = RESOURCES_DIR + "test1.csv"
+        csv2 = RESOURCES_DIR + "test2.csv"
+        csv3 = RESOURCES_DIR + "files/test2.csv"
+
         self.obj.execution.merge({
             "scenario": {
                 "data-sources": [{
-                    "path": RESOURCES_DIR + "test1.csv",
+                    "path": csv1,
+                    "loop": False,
                     "delimiter": ","
-                }],
+                }, csv2, csv3],
                 "requests": ["http://blazedemo.com/?tag=${col1}"],
             }
         })
+
+        path = os.path.abspath(RESOURCES_DIR + "gatling/gatling3" + EXE_SUFFIX)
+        self.obj.settings.merge({"path": path, "version": "3.1"})
+
         self.obj.prepare()
-        scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
-        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated_data_sources.scala", scala_file,
-                              self.obj.get_scenario().get('simulation'), "SIMNAME")
-        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, 'test1.csv')))
+
+        original_scala = RESOURCES_DIR + "gatling/generated_data_sources.scala"
+        generated_scala = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
+
+        replace_str = self.obj.get_scenario().get('simulation'), csv1, csv2, csv3
+
+        replace_with = "SIMNAME", os.path.basename(csv1), os.path.basename(csv2), os.path.basename(csv3)
+
+        self.assertFilesEqual(original_scala, generated_scala, replace_str, replace_with)
+
+        # don't copy csv to artifacts dir
+        self.assertFalse(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, 'test1.csv')))
 
     def test_resource_files_data_sources(self):
         csv_path = RESOURCES_DIR + "test1.csv"
@@ -530,13 +551,20 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj._execute = lambda *args, **kwargs: None
         self.obj.prepare()
         self.obj.startup()
-        self.assertIn("gatling.http.ahc.allowPoolingConnections='true'", self.obj.env.get("JAVA_OPTS"))
-        self.assertIn("gatling.http.ahc.keepAlive='true'", self.obj.env.get("JAVA_OPTS"))
+
+        if is_windows():
+            form = '%s'
+        else:
+            form = '%r'
+
+        self.assertIn("gatling.http.ahc.allowPoolingConnections=" + form % 'true', self.obj.env.get("JAVA_OPTS"))
+        self.assertIn("gatling.http.ahc.keepAlive=" + form % 'true', self.obj.env.get("JAVA_OPTS"))
 
     def test_properties_2levels(self):
         self.obj.settings.merge({
             "properties": {
-                "settlevel": "settval",
+                "settlevel": u"settval",
+                "unc": u"Ä",
                 "override": 1,
             },
         })
@@ -552,8 +580,14 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj._execute = lambda *args, **kwargs: None
         self.obj.prepare()
         self.obj.startup()
-        self.assertIn("-Dscenlevel='scenval'", self.obj.env.get("JAVA_OPTS"))
-        self.assertIn("-Dsettlevel='settval'", self.obj.env.get("JAVA_OPTS"))
+
+        if is_windows():
+            form = '%s'
+        else:
+            form = '%r'
+
+            self.assertIn("-Dscenlevel=" + form % 'scenval', self.obj.env.get("JAVA_OPTS"))
+            self.assertIn("-Dsettlevel=" + form % 'settval', self.obj.env.get("JAVA_OPTS"))
         self.assertIn("-Doverride=2", self.obj.env.get("JAVA_OPTS"))
 
 

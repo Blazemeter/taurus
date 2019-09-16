@@ -15,8 +15,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import json
 import codecs
+import json
 import os
 import re
 import time
@@ -28,10 +28,14 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.six import string_types, numeric_types
+from bzt.six import string_types, numeric_types, PY2
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 from bzt.utils import simple_body_dict, CALL_PROBLEMS
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
+
+
+def is_gatling2(ver):
+    return LooseVersion(ver) < LooseVersion("3")
 
 
 class GatlingScriptBuilder(object):
@@ -39,6 +43,7 @@ class GatlingScriptBuilder(object):
         super(GatlingScriptBuilder, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
+        self.feeder_names = {}
         self.scenario = scenario
         self.class_name = class_name
         if gatling_version is None:
@@ -188,56 +193,65 @@ class GatlingScriptBuilder(object):
 
         return check_result
 
-    @staticmethod
-    def _get_feeder_name(source_filename):
-        return re.sub(r'[^A-Za-z0-9_]', '', ".".join(source_filename.split(".")[:-1])) + "Feed"
+    def _get_feeder_name(self, source_filename):
+        base_feeder_name = ".".join(os.path.basename(source_filename).split(".")[:-1])
+        base_feeder_name = re.sub(r'[^A-Za-z0-9_]', '', base_feeder_name) + "Feed"
+
+        index = 0
+        feeder_name = base_feeder_name
+        while feeder_name in self.feeder_names and self.feeder_names[feeder_name] != source_filename:
+            index += 1
+            feeder_name = base_feeder_name + "_%s" % index
+
+        if feeder_name not in self.feeder_names:
+            self.feeder_names[feeder_name] = source_filename
+
+        return feeder_name
 
     def _get_feeders(self):
-        feeder_defs = ""
+        feeders_def = ""
+        feeding = ""
 
         for source in self.scenario.get_data_sources():
-            source_path = source["path"]
-            source_name = os.path.basename(source_path)
+            path = self.scenario.engine.find_file(source["path"])
+
             delimiter = source.get('delimiter', None)
             loop_over = source.get("loop", True)
-            varname = self._get_feeder_name(source_name)
-            params = dict(varname=varname, filename=source_name, delimiter=delimiter)
+            var_name = self._get_feeder_name(path)
+            params = dict(varname=var_name, filename=path, delimiter=delimiter)
             if delimiter is not None:
-                tmpl = """val %(varname)s = separatedValues("%(filename)s", '%(delimiter)s')"""
+                tpl = """val %(varname)s = separatedValues("%(filename)s", '%(delimiter)s')"""
             else:
-                tmpl = 'val %(varname)s = csv("%(filename)s")'
-            line = self.indent(tmpl % params, level=1)
+                tpl = 'val %(varname)s = csv("%(filename)s")'
+            line = self.indent(tpl % params, level=1)
             if loop_over:
                 line += '.circular'
-            feeder_defs += line + '\n'
+            feeders_def += line + '\n'
+            feeding += "feed(%s)." % var_name
 
-        return feeder_defs
+        if feeders_def:
+            feeders_def = '\n' + feeders_def
 
-    def _get_scenario_feeds(self):
-        feeds = ''
-        for source in self.scenario.get_data_sources():
-            source_path = source["path"]
-            source_name = os.path.basename(source_path)
-            varname = self._get_feeder_name(source_name)
-            feeds += self.indent(".feed(%s)" % varname, level=2) + '\n'
-        return feeds
+        return feeders_def, feeding
 
     def gen_test_case(self):
-        if LooseVersion(self.gatling_version) < LooseVersion("3"):
+        if is_gatling2(self.gatling_version):
             version = 2
         else:
             version = 3
-        template_path = os.path.join(RESOURCES_DIR, ("gatling_%s_script.tpl" % version))
+        template_path = os.path.join(RESOURCES_DIR, "gatling", ("v%s_script.tpl" % version))
 
         with open(template_path) as template_file:
             template_line = template_file.read()
+
+        feeders_def, feeding = self._get_feeders()
 
         params = {
             'class_name': self.class_name,
             'httpConf': self._get_http(),
             '_exec': self._get_exec(),
-            'feeders': self._get_feeders(),
-            'scenarioFeeds': self._get_scenario_feeds(),
+            'feeders': feeders_def,
+            'feeding': feeding,
         }
         return template_line % params
 
@@ -300,7 +314,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         if not self.script:
             if "requests" in scenario:
                 self.get_scenario()['simulation'], self.script = self.__generate_script()
-                self.__copy_data_sources()
             else:
                 msg = "There must be a script file or requests for its generation "
                 msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
@@ -323,11 +336,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             script.write(gen_script.gen_test_case())
 
         return simulation, file_name
-
-    def __copy_data_sources(self):
-        for source in self.get_scenario().get_data_sources():
-            source_path = self.engine.find_file(source["path"])
-            self.engine.existing_artifact(source_path)
 
     def _get_simulation_props(self):
         props = {}
@@ -401,8 +409,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         for key in sorted(props.keys()):
             prop = props[key]
             val_tpl = "%s"
+
             if isinstance(prop, string_types):
-                val_tpl = "%r"
+                if not is_windows():  # extend properties support (contained separators/quotes/etc.) on lin/mac
+                    val_tpl = "%r"
+                if PY2:
+                    prop = prop.encode("utf-8", 'ignore')  # to convert from unicode into str
 
             self.env.add_java_param({"JAVA_OPTS": ("-D%s=" + val_tpl) % (key, prop)})
 
@@ -413,12 +425,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def startup(self):
         self._set_env()
-        self.process = self._execute(self._get_cmdline())
+        self.process = self._execute(self._get_cmdline(), pgrp=False)
 
     def _get_cmdline(self):
         cmdline = [self.tool.tool_path]
 
-        if LooseVersion(self.tool.version) < LooseVersion("3"):
+        if is_gatling2(self.tool.version):
             cmdline += ["-m"]  # default for 3.0.0
 
         return cmdline
@@ -482,10 +494,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 tool.install()
 
         # old gatling compiler (zinc) is incompatible with new jre
-        old_gatling = LooseVersion('3') > LooseVersion(self.tool.version)
         new_java = java.version and int(java.version) > 8
 
-        if old_gatling and new_java:
+        if is_gatling2(self.tool.version) and new_java:
             self.log.warning('Gatling v%s is incompatible with Java %s', self.tool.version, java.version)
 
     def get_widget(self):
@@ -779,7 +790,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "2.3.0"
+    VERSION = "3.1.2"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):
@@ -817,7 +828,7 @@ class Gatling(RequiredTool):
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
-    def build_launcher(self, new_name):
+    def build_launcher(self, new_name):  # legacy, for v2 only
         def convert_v2():
             modified_lines = []
             mod_success = False
@@ -852,10 +863,16 @@ class Gatling(RequiredTool):
                         if line.startswith('set COMPILER_CLASSPATH='):
                             mod_success = True
                             line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'  # add from env
+                        elif line.startswith('set GATLING_CLASSPATH='):
+                            mod_success = True
+                            line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
                     else:
                         if line.startswith('COMPILER_CLASSPATH='):
                             mod_success = True
                             line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
+                        elif line.startswith('GATLING_CLASSPATH='):
+                            mod_success = True
+                            line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
                         elif line.startswith('"$JAVA"'):
                             line = 'eval ' + line
                     modified_lines.append(line)
@@ -865,7 +882,7 @@ class Gatling(RequiredTool):
 
             return modified_lines
 
-        if LooseVersion(self.version) < LooseVersion('3'):
+        if is_gatling2(self.version):
             converted_lines = convert_v2()
         else:
             converted_lines = convert_v3()

@@ -25,6 +25,7 @@ modules:
     dummy-cols: 140  # width for dummy screen
     dummy-rows: 35   # height for dummy screen 
 ```
+Tkinter dashboard (gui mode) can be scaled with `ctrl`+`Mouse-Scroll`
 
 You can also disable this reporter by using [command-line](CommandLine.md) `-o` switch:
 ```bash

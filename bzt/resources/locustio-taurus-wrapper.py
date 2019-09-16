@@ -19,6 +19,7 @@ class LocustStarter(object):
         self.fhd = None
         self.writer = None
         self.locust_start_time = None
+        self.locust_stop_time = None
 
         self.locust_duration = sys.maxsize
         self.num_requests = sys.maxsize
@@ -33,11 +34,13 @@ class LocustStarter(object):
         if self.locust_start_time is None:
             self.locust_start_time = time.time()
 
-        if time.time() - self.locust_start_time >= self.locust_duration:
-            raise StopLocust('Duration limit reached')
+        # Only raise an exception if the actual test is running
+        if self.locust_stop_time is None:
+            if time.time() - self.locust_start_time >= self.locust_duration:
+                raise StopLocust('Duration limit reached')
 
-        if self.num_requests <= 0:
-            raise StopLocust('Request limit reached')
+            if self.num_requests <= 0:
+                raise StopLocust('Request limit reached')
 
     @staticmethod
     def __getrec(request_type, name, response_time, response_length, exc=None):
@@ -91,6 +94,9 @@ class LocustStarter(object):
             self.fhd.flush()
         self.__check_limits()
 
+    def __on_quit(self):
+        self.locust_stop_time = time.time()
+
     def execute(self):
         if os.getenv("SLAVES_LDJSON"):
             fname = os.getenv("SLAVES_LDJSON")
@@ -115,6 +121,7 @@ class LocustStarter(object):
             events.request_failure += self.__on_request_failure
             events.locust_error += self.__on_exception
             events.slave_report += self.__on_slave_report
+            events.quitting += self.__on_quit
 
             main.main()
             self.fhd.flush()

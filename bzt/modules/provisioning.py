@@ -23,7 +23,6 @@ import traceback
 
 from bzt import ToolError
 from bzt.engine import Provisioning, SelfDiagnosable
-from bzt.six import numeric_types
 from bzt.six import reraise
 from bzt.utils import dehumanize_time
 
@@ -35,8 +34,11 @@ class Local(Provisioning):
 
     def __init__(self):
         super(Local, self).__init__()
-        self.finished_modules = []
+        self.extend_configs = True
         self.start_time = None
+        self.available_slots = None
+        self.finished_modules = []
+        self.started_modules = []
 
     def _get_start_shift(self, shift):
         if not shift:
@@ -69,44 +71,40 @@ class Local(Provisioning):
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
             executor.prepare()
-            self.engine.prepared.append(executor)
 
     def startup(self):
         self.start_time = time.time()
-        prev_executor = 0
-        for executor in self.executors:
-            if self.settings.get("sequential", False):
-                executor.delay = prev_executor
-            else:
-                start_at = executor.execution.get('start-at', 0)
-                start_shift = self._get_start_shift(start_at)
-                delay = dehumanize_time(executor.execution.get('delay', 0))
-                executor.delay = delay + start_shift
-                msg = "Delay setup for %s: %s(start-at) + %s(delay) = %s"
-                self.log.debug(msg, executor, start_shift, delay, executor.delay)
 
-            prev_executor = executor
+        self.available_slots = self.settings.get("capacity", None)
+        if not self.available_slots:
+            if self.settings.get("sequential", False):
+                self.available_slots = 1
+            else:
+                self.available_slots = sys.maxsize      # no limit
+
+        for executor in self.executors:
+            start_at = executor.execution.get('start-at', 0)
+            start_shift = self._get_start_shift(start_at)
+            delay = dehumanize_time(executor.execution.get('delay', 0))
+            executor.delay = delay + start_shift
+            msg = "Delay setup for %s: %s(start-at) + %s(delay) = %s"
+            self.log.debug(msg, executor, start_shift, delay, executor.delay)
 
     def _start_modules(self):
-        prev_executor = None
-        for executor in self.executors:
-            if executor in self.engine.prepared and executor not in self.engine.started:  # needs to start
+        if self.available_slots:
+            non_started_executors = [e for e in self.executors if e not in self.started_modules]
+            for executor in non_started_executors:
                 self.engine.logging_level_up()
-                if isinstance(executor.delay, numeric_types):
-                    timed_start = time.time() >= self.start_time + executor.delay
-                else:
-                    timed_start = False
-
-                relies_on_prev = prev_executor and executor.delay == prev_executor
-                start_from_prev = relies_on_prev and prev_executor in self.finished_modules
-                if not executor.delay or start_from_prev or timed_start:
-                    if start_from_prev or self.settings.get("sequential", False):
-                        self.log.info("Starting next sequential execution: %s", executor)
+                if time.time() >= self.start_time + executor.delay:
                     executor.startup()
-                    self.engine.started.append(executor)
-                self.engine.logging_level_down()
+                    self.started_modules.append(executor)
+                    self.available_slots -= 1
+                    msg = "Starting execution: %s, rest of available slots: %s"
+                    self.log.debug(msg, executor, self.available_slots)
+                    if not self.available_slots:
+                        break
 
-            prev_executor = executor
+                self.engine.logging_level_down()
 
     def check(self):
         """
@@ -119,12 +117,13 @@ class Local(Provisioning):
             if executor in self.finished_modules:
                 continue
 
-            if executor not in self.engine.started:
+            if executor not in self.started_modules:
                 finished = False
                 continue
 
             if executor.check():
                 self.finished_modules.append(executor)
+                self.available_slots += 1
                 self.log.debug("%s finished", executor)
             else:
                 finished = False
@@ -136,18 +135,17 @@ class Local(Provisioning):
         Call shutdown on executors
         """
         exc_info = exc_value = None
-        for executor in self.executors:
-            if executor in self.engine.started:
-                self.log.debug("Shutdown %s", executor)
-                try:
-                    executor.shutdown()
-                except BaseException as exc:
-                    msg = "Exception in shutdown of %s: %s %s"
-                    self.log.debug(msg, executor.__class__.__name__, exc, traceback.format_exc())
-                    if not exc_info:
-                        exc_info = sys.exc_info()
-                    if not exc_value:
-                        exc_value = exc
+        for executor in self.started_modules:
+            self.log.debug("Shutdown %s", executor)
+            try:
+                executor.shutdown()
+            except BaseException as exc:
+                msg = "Exception in shutdown of %s: %s %s"
+                self.log.debug(msg, executor.__class__.__name__, exc, traceback.format_exc())
+                if not exc_info:
+                    exc_info = sys.exc_info()
+                if not exc_value:
+                    exc_value = exc
         if exc_info:
             reraise(exc_info, exc_value)
 
@@ -157,24 +155,23 @@ class Local(Provisioning):
         """
         exc_info = exc_value = None
         for executor in self.executors:
-            if executor in self.engine.prepared:
-                self.log.debug("Post-process %s", executor)
-                try:
-                    executor.post_process()
-                    if executor in self.engine.started and not executor.has_results():
-                        msg = "Empty results, most likely %s (%s) failed. " \
-                              "Actual reason for this can be found in logs under %s"
-                        message = msg % (executor.label, executor.__class__.__name__, self.engine.artifacts_dir)
-                        diagnostics = None
-                        if isinstance(executor, SelfDiagnosable):
-                            diagnostics = executor.get_error_diagnostics()
-                        raise ToolError(message, diagnostics)
-                except BaseException as exc:
-                    msg = "Exception in post_process of %s: %s %s"
-                    self.log.debug(msg, executor.__class__.__name__, exc, traceback.format_exc())
-                    if not exc_info:
-                        exc_info = sys.exc_info()
-                    if not exc_value:
-                        exc_value = exc
+            self.log.debug("Post-process %s", executor)
+            try:
+                executor.post_process()
+                if executor in self.started_modules and not executor.has_results():
+                    msg = "Empty results, most likely %s (%s) failed. " \
+                          "Actual reason for this can be found in logs under %s"
+                    message = msg % (executor.label, executor.__class__.__name__, self.engine.artifacts_dir)
+                    diagnostics = None
+                    if isinstance(executor, SelfDiagnosable):
+                        diagnostics = executor.get_error_diagnostics()
+                    raise ToolError(message, diagnostics)
+            except BaseException as exc:
+                msg = "Exception in post_process of %s: %s %s"
+                self.log.debug(msg, executor.__class__.__name__, exc, traceback.format_exc())
+                if not exc_info:
+                    exc_info = sys.exc_info()
+                if not exc_value:
+                    exc_value = exc
         if exc_info:
             reraise(exc_info, exc_value)

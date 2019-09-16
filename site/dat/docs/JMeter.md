@@ -212,11 +212,6 @@ scenarios:
                              # False by default
     data-sources: # list of external data sources
     - path/to/my.csv  # this is a shorthand form
-    - path: path/to/another.csv  # this is full form, path option is required
-      delimiter: ';'  # CSV delimiter, auto-detected by default
-      quoted: false  # allow quoted data
-      loop: true  # loop over in case of end-of-file reached if true, stop thread if false
-      variable-names: id,name  # delimiter-separated list of variable names, empty by default
 ```
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
@@ -228,6 +223,26 @@ It's possible to use follow specific values for choosing of `think-time`:
 * uniform(5s, 1s): random `think-time`, uniform distribution, possible values are 5±1 sec
 * gaussian(1m, 1.5s): normal distribution of random values, where mean is 60s and deviation is 1.5s
 * poisson(10s, 3s): poisson distribution, mean is 10s and range of values starts from 3s.
+
+### Data sources
+Taurus allows you to use external CSV files for testing purposes. 
+Here is a full list of options for this:
+```yaml
+scenarios:
+  quick-test:
+    requests:
+    - http://blazedemo.com/${id}-${name}
+    data-sources:
+    - path: path/to/another.csv  # this is full form; required option
+      delimiter: ';'  # CSV delimiter, auto-detected by default
+      quoted: false  # allow quoted data; ignored when random-order is true
+      loop: true  # loop over in case of end-of-file reached if true, stop executing if false
+      variable-names: id,name  # delimiter-separated list of variable names
+      random-order: true # enables randomizing plugin; false by default
+```
+When `random-order` is `false`, data extraction will proceed in direct manner. Data lines, which contain delimeters, will be read from the top down to the bottom, just the way they were written. Otherwise, the data will be extracted in a random way. 
+
+Also `variable-names` can be omitted. In such case the first line of CSV file will be used as variable names.
 
 ### Requests
 
@@ -376,7 +391,9 @@ You can choose `scope` for applying expressions. Possible value for targets are:
   - `variable` for search in JMeter variables
 Default value of `scope` is empty, it means search in main sample only.
 
-`match-no` allows to choose the specific result from several ones. Default value is `-1` - generation of variables _varname\_1_, _varname\_2_, etc. It means if you ask for _some\_var\_name_ JMeter won't generate variable with exactly that name by default. Set `match-no` to another value if you want to change this behaviour.
+`match-no` allows to choose the specific result from several ones. Default value is 0 (random). 
+To get all values you can use `-1` - generation of variables _varname\_1_, _varname\_2_, etc. 
+It means if you ask for _some\_var\_name_ JMeter won't generate variable with exactly that name by default.
 
 Possible subjects for regexp are:
   - `body`
@@ -849,7 +866,6 @@ There are generally two scenarios for client certificate based authentication.
 ```yaml
 modules:
   jmeter:
-    properties:
     system-properties:
       javax.net.ssl.keyStore: ${BASE_DIR}/test-data/my-client-certificates.p12
       javax.net.ssl.keyStorePassword: MyClientCertificatePassword
@@ -976,26 +992,6 @@ modules:
   jmeter:
     memory-xmx: 4G  # allow JMeter to use up to 4G of memory
 ```
-
-## SoapUI Integration
-
-You can specify SoapUI projects in place of JMX scripts for JMeter executor. The executor will convert them into
-Taurus scenarios and execute them with JMeter.
-
-Example:
-```yaml
-execution:
-- concurrency: 10
-  hold-for: 5m
-  scenario: soapui-project
-
-scenarios:
-  soapui-project:
-    script: project.xml
-    test-case: TestIndex
-```
-
-You can read more on that [here](SoapUI.md).
 
 ## Protocol Handlers
 
