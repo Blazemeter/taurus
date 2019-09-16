@@ -21,69 +21,67 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 
+def flow_control(test_case="", test_suite=""):
+    def decorator(func):
+        def wrap(self):
+            def send_marker(stage, params):
+                if self.flow_markers:
+                    self.driver.execute_script('/* FLOW_MARKER test-case-%s */' % stage, params)
+
+            message = ''
+            status = 'success'
+            send_marker('start', {'testCaseName': test_case, 'testSuiteName': test_suite})
+            try:
+                func(self)
+            except BaseException as exc:
+                message = str(exc)
+                if isinstance(exc, AssertionError):
+                    status = 'failed'
+                else:
+                    status = 'broken'
+
+            send_marker('stop', {'status': status, 'message': message})
+            if message and self.func_mode:
+                raise
+
+        return wrap
+
+    return decorator
+
+
 def setup():
     options = webdriver.ChromeOptions()
     driver = webdriver.Chrome(service_log_path='webdriver.log',
                               chrome_options=options)
-    driver.implicitly_wait(6.0)
+    driver.implicitly_wait(60.0)
     wnd_mng = WindowManager(driver)
     frm_mng = FrameManager(driver)
     func_mode = False
+    flow_markers = True
     vars = {
 
     }
-    apiritif.put_into_thread_store(vars, driver, wnd_mng, frm_mng, func_mode)
+    apiritif.put_into_thread_store(vars, driver, wnd_mng, frm_mng, func_mode, flow_markers)
 
 
 def teardown():
-    (_, driver, _, _, _) = apiritif.get_from_thread_store()
+    driver = apiritif.get_from_thread_store()[1]
     driver.quit()
 
 
 class TestSdsdsdsSelenium(unittest.TestCase):
 
     def setUp(self):
-        (self.vars, self.driver, self.wnd_mng, self.frm_mng, self.func_mode) = apiritif.get_from_thread_store()
+        (self.vars, self.driver, self.wnd_mng, self.frm_mng, self.func_mode, self.flow_markers) = \
+            apiritif.get_from_thread_store()
 
-    def flow_markers(test_case, test_suite):
-        def decorator(func):
-            def wrap(self):
-                try:
-                    self.driver.execute_script('/* FLOW_MARKER test-case-start */', {
-                        'testCaseName': test_case,
-                        'testSuiteName': test_suite,
-                    })
-                    func(self)
-                except AssertionError as exc:
-                    self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                        'status': 'failed',
-                        'message': str(exc),
-                    })
-                    if self.func_mode:
-                        raise
-                except BaseException as exc:
-                    self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                        'status': 'broken',
-                        'message': str(exc),
-                    })
-                    if self.func_mode:
-                        raise
-                else:
-                    self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                        'status': 'success',
-                        'message': '',
-                    })
-            return wrap
-
-        return decorator
-
-    @flow_markers("t1", "sdsdsds-Selenium")
+    @flow_control("t1", "sdsdsds-Selenium")
     def t1(self):
         with apiritif.transaction_logged('t1'):
             self.driver.get('http://blazedemo.com/purchase.php')
             self.driver.find_element(By.CSS_SELECTOR, 'input.btn.btn-primary').click()
 
-    @flow_markers("t2", "sdsdsds-Selenium")
+    @flow_control("t2", "sdsdsds-Selenium")
     def t2(self):
         with apiritif.transaction_logged('t2'):
             self.driver.get('https://www.belarus.by/en/')
@@ -91,7 +89,7 @@ class TestSdsdsdsSelenium(unittest.TestCase):
             re_pattern = re.compile('In God we trust')
             self.assertNotEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'In God we trust' not found in BODY")
 
-    @flow_markers("t3", "sdsdsds-Selenium")
+    @flow_control("t3", "sdsdsds-Selenium")
     def t3(self):
         with apiritif.transaction_logged('t3'):
             self.driver.get('some.strange.url')
