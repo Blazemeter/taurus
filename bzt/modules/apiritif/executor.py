@@ -215,9 +215,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         executor_verbose = self.settings.get("verbose", engine_verbose)
         return executor_verbose
 
-    # def get_scenario(self, scenario_name):
-    #     pass
-
 
 class ApiritifTester(ApiritifNoseExecutor):
     pass
