@@ -24,8 +24,8 @@ import astunparse
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
-from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables, \
-    IncludeScenarioBlock
+from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
+    SetVariables, IncludeScenarioBlock
 from bzt.six import parse, string_types, iteritems, text_type, PY2
 from bzt.utils import dehumanize_time, ensure_is_dict
 from .ast_helpers import ast_attr, ast_call
@@ -1031,7 +1031,8 @@ from selenium.webdriver.common.keys import Keys
         body = []
         if isinstance(trans_conf, IncludeScenarioBlock):
             included = self.executor.get_scenario(trans_conf.scenario_name)
-            included_requests = included.get_requests(parser=HierarchicRequestParser, require_url=False)
+            included_requests = included.get_requests(parser=HierarchicRequestParser,
+                                                      require_url=False)
             trans_conf = TransactionBlock(
                 name=trans_conf.scenario_name,
                 requests=included_requests,
