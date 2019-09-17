@@ -86,7 +86,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             if test_mode == "nose":
                 msg = "'nose' keyword is deprecated and will be removed soon. Please use 'apiritif' instead."
                 self.log.warning(msg)
-            builder = ApiritifScriptGenerator(scenario, self.label,  executor=self, test_mode=test_mode,
+            builder = ApiritifScriptGenerator(scenario, self.label, executor=self,
+                                              test_mode=test_mode,
                                               ignore_unknown_actions=self.settings.get(
                                                   "ignore-unknown-actions", False))
             builder.verbose = self.__is_verbose()

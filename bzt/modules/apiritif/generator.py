@@ -24,7 +24,8 @@ import astunparse
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
-from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables, IncludeScenarioBlock
+from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables, \
+    IncludeScenarioBlock
 from bzt.six import parse, string_types, iteritems, text_type, PY2
 from bzt.utils import dehumanize_time, ensure_is_dict
 from .ast_helpers import ast_attr, ast_call
