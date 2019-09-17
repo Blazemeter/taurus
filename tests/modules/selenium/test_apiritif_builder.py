@@ -786,50 +786,49 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.assertIn("class TestAPI(unittest.TestCase", test_script)
 
     def test_unknown_action(self):
-       self.configure({
-           'execution': [{
-               'executor': 'selenium',
-               'scenario': 'sample'
-           }],
-           'scenarios': {
-               'sample': {
-                   'requests': [{
-                       'url': 'http://blazedemo.com',
-                       'actions': ['definitelyUnknownAction(unknownSelector)']
-                   }]
-               }
-           },
-           'modules': {
-               'apiritif': {
-                   'ignore-unknown-actions': True
-               }
-           }
-       })
-       self.obj.prepare()
-       with open(self.obj.script) as fds:
-           test_script = fds.read()
-       self.assertNotIn("definitelyUnknownAction(unknownSelector)", test_script)
+        self.configure({
+            'execution': [{
+                'executor': 'selenium',
+                'scenario': 'sample'
+            }],
+            'scenarios': {
+                'sample': {
+                    'requests': [{
+                        'url': 'http://blazedemo.com',
+                        'actions': ['definitelyUnknownAction(unknownSelector)']
+                    }]
+                }
+            },
+            'modules': {
+                'apiritif': {
+                    'ignore-unknown-actions': True
+                }
+            }
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertNotIn("definitelyUnknownAction(unknownSelector)", test_script)
 
     def test_set_variables(self):
         self.configure({
-           'execution': [{
-               'executor': 'selenium',
-               'scenario': 'sample'
-           }],
+            'execution': [{
+                'executor': 'selenium',
+                'scenario': 'sample'
+            }],
             'scenarios': {
                 'sample': {
                     'variables': {
                         'var1': 'val1'
                     },
                     'requests': [{
-                            'transaction': 'second',
-                            'do': [
-                                'http://blazedemo.com/',
-                                'http://blazedemo.com/receive/${var1}',
-                                {'set-variables': {'var1': 'val2'}},
-                            ]
-                        }
-                    ]
+                        'transaction': 'second',
+                        'do': [
+                            'http://blazedemo.com/',
+                            'http://blazedemo.com/receive/${var1}',
+                            {'set-variables': {'var1': 'val2'}},
+                        ]
+                    }]
                 }
             }
         })
@@ -838,3 +837,61 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             test_script = fds.read()
         self.assertIn("'var1': 'val1'", test_script)
         self.assertIn("self.vars['var1'] = 'val2'", test_script)
+
+    def test_include_scenario(self):
+        self.configure({
+            "execution": [{
+                    "executor": "apiritif",
+                    "scenario": "simple"
+            }],
+            "scenarios": {
+                "simple": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/"
+                    }, {
+                        "include-scenario": "inner"
+                    }]
+                },
+                "inner": {
+                    "requests": [{
+                            "url": "http://blazedemo.com/vacation.html"
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("http://blazedemo.com/vacation.html", test_script)
+
+    def test_double_include(self):
+        self.configure({
+            "execution": [{
+                    "executor": "apiritif",
+                    "scenario": "simple"
+            }],
+            "scenarios": {
+                "simple": {
+                    "requests": [{
+                        "include-scenario": "inner"
+                    }]
+                },
+                "inner": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/"
+                    }, {
+                        "include-scenario": "inner2"
+                    }]
+                },
+                "inner2": {
+                    "requests": [{
+                            "url": "http://blazedemo.com/vacation.html"
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("http://blazedemo.com/", test_script)
+        self.assertIn("http://blazedemo.com/vacation.html", test_script)
