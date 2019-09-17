@@ -79,13 +79,15 @@ class ApiritifScriptGenerator(object):
     IMPORTS = """import os
 import re
 from %s import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, NoSuchWindowException, NoSuchFrameException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
+
+from bzt.resources.selenium_taurus.extras import FrameManager, WindowManager
 """
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
@@ -661,11 +663,6 @@ from selenium.webdriver.common.keys import Keys
         stmts.append(self._gen_classdef())
 
         stmts = self._gen_imports() + stmts     # todo: order is important (with classdef) because of self.appium setup
-
-        if self.test_mode == "selenium":
-            with open(self.utils_file) as fds:
-                utilities_source_lines = fds.read()
-            stmts.append(ast.parse(utilities_source_lines))
 
         return ast.Module(body=stmts)
 
