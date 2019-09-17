@@ -863,3 +863,35 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("http://blazedemo.com/vacation.html", test_script)
+
+    def test_double_include(self):
+        self.configure({
+            "execution": [{
+                    "executor": "apiritif",
+                    "scenario": "simple"
+            }],
+            "scenarios": {
+                "simple": {
+                    "requests": [{
+                        "include-scenario": "inner"
+                    }]
+                },
+                "inner": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/"
+                    }, {
+                        "include-scenario": "inner2"
+                    }]
+                },
+                "inner2": {
+                    "requests": [{
+                            "url": "http://blazedemo.com/vacation.html"
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("http://blazedemo.com/", test_script)
+        self.assertIn("http://blazedemo.com/vacation.html", test_script)
