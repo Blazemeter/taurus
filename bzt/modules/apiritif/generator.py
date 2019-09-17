@@ -1038,7 +1038,6 @@ from selenium.webdriver.common.keys import Keys
                 include_timers=[],
                 config=included.data,
                 scenario=included)
-            # body.append(self._gen_transaction(request))
         for request in trans_conf.requests:
             if isinstance(request, TransactionBlock) or isinstance(request, IncludeScenarioBlock):
                 body.append(self._gen_transaction(request))
