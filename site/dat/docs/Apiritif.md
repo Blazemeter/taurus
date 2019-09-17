@@ -15,7 +15,7 @@ execution:
 It allows you to use some logic blocks:
 - `transactions`: collect requests in one block
 - `set-variables`: set/change value of variable
-- `include-scenario`: include scenario in another one
+- `include-scenario`: include scenario into another one
 
 and CSV data sources. Use following format to specify them:
 ```yaml

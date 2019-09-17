@@ -828,8 +828,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                             'http://blazedemo.com/receive/${var1}',
                             {'set-variables': {'var1': 'val2'}},
                         ]
-                    }
-                    ]
+                    }]
                 }
             }
         })
@@ -844,22 +843,19 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             "execution": [{
                     "executor": "apiritif",
                     "scenario": "simple"
-                }
-            ],
+            }],
             "scenarios": {
                 "simple": {
                     "requests": [{
-                            "url": "http://blazedemo.com/"
-                        }, {
-                            "include-scenario": "inner"
-                        }
-                    ]
+                        "url": "http://blazedemo.com/"
+                    }, {
+                        "include-scenario": "inner"
+                    }]
                 },
                 "inner": {
                     "requests": [{
                             "url": "http://blazedemo.com/vacation.html"
-                        }
-                    ]
+                    }]
                 }
             }
         })
