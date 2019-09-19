@@ -36,7 +36,7 @@ namespace NUnitRunner
             var package = new TestPackage(options.TargetAssembly);
 
             var reportItems = new ConcurrentQueue<ReportItem>();
-            var testEventListener = new TestEventListener(engine, package, reportItems);
+            var testEventListener = new TestEventListener(engine, package, reportItems, string.Empty);
 
             var testCount = testEventListener.Runner.CountTestCases(TestFilter.Empty);
             if (testCount == 0)
@@ -57,7 +57,8 @@ namespace NUnitRunner
 
             for (int i = 0; i < options.Concurrency; i++)
             {
-                testTasks[i] = Task.Run(() => Test.RunTest(startTime, options, new TestEventListener(engine, package, reportItems)));              
+                var threadName = "worker_" + (i + 1);
+                testTasks[i] = Task.Run(() => Test.RunTest(startTime, options, new TestEventListener(engine, package, reportItems, threadName)));              
                 Thread.Sleep(userStepTime * 1000);
             }
 

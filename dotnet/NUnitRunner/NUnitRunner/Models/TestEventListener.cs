@@ -12,15 +12,18 @@ namespace NUnitRunner.Models
     {
         public ITestRunner Runner { get; }
         private readonly ConcurrentQueue<ReportItem> _reportItems;
+        private readonly string _threadName;
 
         public TestEventListener(
             ITestEngine engine,
             TestPackage package,
-            ConcurrentQueue<ReportItem> reportItems
+            ConcurrentQueue<ReportItem> reportItems,
+            string threadName
         )
         {
             _reportItems = reportItems;
             Runner = engine.GetRunner(package);
+            _threadName = threadName;
         }
 
         public void OnTestEvent(string report)
@@ -96,7 +99,7 @@ namespace NUnitRunner.Models
                             break;
                     }
 
-                    item.ThreadName = Thread.CurrentThread.ManagedThreadId.ToString();
+                    item.ThreadName = _threadName;
 
                     _reportItems.Enqueue(item);
                 }
