@@ -6,6 +6,7 @@
         {
             ReportFile = "report.ldjson";
             Iterations = 0;
+            Hold = 0;
             DurationLimit = 0;
             Concurrency = 0;
             RampUp = 0;
@@ -16,6 +17,8 @@
         public string ReportFile { get; set; }
 
         public int Iterations { get; set; }
+
+        public int Hold { get; set; }
 
         public int DurationLimit { get; set; }
 

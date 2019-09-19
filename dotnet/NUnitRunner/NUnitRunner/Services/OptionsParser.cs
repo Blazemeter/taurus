@@ -38,6 +38,10 @@ namespace NUnitRunner.Services
             }
 
             options.DurationLimit = options.Hold + options.RampUp;
+
+            if (options.DurationLimit == 0 && options.Iterations == 0)
+            {
+                options.Iterations = 1;
             }
 
             Console.WriteLine("Concurrent users: {0}", options.Concurrency);
