@@ -17,7 +17,7 @@ reporting:
 Limitation: passfail module has no effect for [`Cloud`](Cloud.md) mode.
 
 The above example use short form for criteria, its general format is
-`subject of [label] condition threshold [logic] [timeframe], action as status`, where:
+`subject of label{condition}threshold {logic} timeframe, action as status`, where:
 
   - `subject` is the KPI that will be compared, listed below
   - `label` is sample label, empty for overall
