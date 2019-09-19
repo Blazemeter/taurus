@@ -44,11 +44,6 @@ namespace NUnitRunner
                 throw new ArgumentException("Nothing to run, no tests were loaded");
             }
 
-            if (options.RampUp > 1 && options.DurationLimit > 0)
-            {
-                options.DurationLimit = options.DurationLimit + options.RampUp;
-            }
-
             var userStepTime = options.RampUp / options.Concurrency;
             var reportWriter = new ReportWriter(reportItems);
             var reportWriterTask = Task.Run(() => reportWriter.StartWriting(options.ReportFile));

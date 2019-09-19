@@ -10,11 +10,14 @@ namespace NUnitRunner.Models
         {
             try
             {
-                for (int t = 0; t < options.Iterations; t++)
+                int iteration = 0;
+                while (true)
                 {
                     testEventListener.Runner.Run(testEventListener, TestFilter.Empty);
                     TimeSpan offset = DateTime.UtcNow - startTime;
-                    if (options.DurationLimit > 0 && offset.TotalSeconds > options.DurationLimit)
+                    bool durationStop = ((options.DurationLimit > 0) && (offset.TotalSeconds > options.DurationLimit));
+                    bool iterationsStop = ((options.Iterations > 0) && (++iteration >= options.Iterations));
+                    if  (durationStop || iterationsStop)
                     {
                         break;
                     }

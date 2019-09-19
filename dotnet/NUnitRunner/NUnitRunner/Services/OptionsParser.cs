@@ -11,10 +11,10 @@ namespace NUnitRunner.Services
             RunnerOptions options = new RunnerOptions();
 
             var optionSet = new OptionSet {
-                { "i|iterations=", "number of iterations over test suite to make.", (int n) => options.Iterations = n },
-                { "d|duration=", "duration of test suite execution.", (int d) => options.DurationLimit = d },
-                { "c|concurrency=", "number of concurrent users.", (int c) => options.Concurrency = c },
-                { "l|ramp_up=", "time to ramp all concurrent users.", (int l) => options.RampUp = l},
+                { "i|iterations=", "number of iterations over test suite to make", (int n) => options.Iterations = n },
+                { "d|duration=", "duration of test suite execution (full load)", (int d) => options.Hold = d },
+                { "c|concurrency=", "number of concurrent users", (int c) => options.Concurrency = c },
+                { "l|ramp_up=", "time to ramp all concurrent users", (int l) => options.RampUp = l},
                 { "r|report-file=", "Name of report file", r => options.ReportFile = r },
                 { "t|target=", "Test suite", t => options.TargetAssembly = t },
                 { "h|help", "show this message and exit", h => options.ShouldShowHelp = h != null },
@@ -32,25 +32,18 @@ namespace NUnitRunner.Services
                 throw new Exception("Target test suite wasn't provided. Is your file actually NUnit test DLL?");
             }
 
-            if (options.Iterations <= 0)
-            {
-                options.Iterations = options.DurationLimit > 0 ? int.MaxValue : 1;
-            }
-
             if (options.Concurrency <= 0)
             {
                 options.Concurrency = 1;
             }
 
-            if (options.RampUp <= 0)
-            {
-                options.RampUp = 1;
+            options.DurationLimit = options.Hold + options.RampUp;
             }
 
+            Console.WriteLine("Concurrent users: {0}", options.Concurrency);
             Console.WriteLine("Iterations: {0}", options.Iterations);
-            Console.WriteLine("Hold for: {0}", options.DurationLimit);
-            Console.WriteLine("Current users: {0}", options.Concurrency);
             Console.WriteLine("Ramp period: {0}", options.RampUp);
+            Console.WriteLine("Hold for: {0}", options.Hold);
             Console.WriteLine("Report file: {0}", options.ReportFile);
             Console.WriteLine("Target: {0}", options.TargetAssembly);
 
