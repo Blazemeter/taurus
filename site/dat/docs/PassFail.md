@@ -18,19 +18,19 @@ Limitation: passfail module has no effect for [`Cloud`](Cloud.md) mode.
 
 The above example use short form for criteria, its general format is the following:
 
-`subject of [label] condition threshold [logic] [timeframe], action as status`
+`subject` of `[label]` `condition` `threshold` `[logic]` `[timeframe]`,` action` as `status`
 
 Explanation:
   - `subject` is the KPI that will be compared, listed below.
   - `[label]` is a sample label. If omitted, it is applied for overall.
-  - `condition` is the comparison operator, one of `>`, `<`, `>=`, `<=`, `=`, `==` (same as `=`). Keep in mind, that **no spaces** should surround the operator.
+  - `condition` is the comparison operator, one of `>`, `<`, `>=`, `<=`, `=`, `==` (same as `=`). Keep in mind that **no spaces** should surround the operator.
   - `threshold` is the value to compare with, some KPIs allow percentage thresholds.
   - `[logic]` is the way value is aggregated within `timeframe`, see more details [below](#Timeframe-Logic).
   - `[timeframe]` is a number of seconds the comparison must be valid; if `timeframe` is omitted, then the cumulative value for whole test will be used for comparison.
-  - `action` is one of `stop` or `continue`, default is `stop`, if you have chosen to continue, the fail status will be applied at the end of the test execution.
-  - `status` is one of `failed` (default) or `non-failed`.
+  - `action` is either `stop` or `continue`, default is `stop`, if you have chosen to continue, the fail status will be applied at the end of the test execution.
+  - `status` is either `failed` (default) or `non-failed`.
 
-Any non-required parameters might be omitted, the minimal form is `subject{condition}threshold`. 
+Any non-required parameters might be omitted, the minimal form is `subject` `[condition]` `threshold`. 
 Parameters in [square brackets] are optional. 
 
 Possible subjects are:
@@ -45,7 +45,7 @@ Possible subjects are:
  - `fail` or `failures` - failed responses, supports percentage threshold, e.g. `failures>50% for 5s, stop as failed`.
  - `rc...` - response codes criteria, supports percentage threshold, response code may be specified using wildcards `?` and `\*`, e.g. `rc500>20 for 5s, stop as failed`, `rc4??>20%`, `rc\*>=10 for 1m`, `rcException>99% for 1m, continue as failed`.
 
-## Timeframe Logic 
+### Timeframe Logic 
 
 If no timeframe logic is specified, the pass/fail rule is processed at the very end of test, against total aggregate data. 
 To apply checks in the middle of the test, please use one of possible timeframe logic options:
@@ -70,7 +70,27 @@ reporting:
     Sample Label fails too much: fail of Sample Label>50% for 10s, stop as failed
 ```
 
-## Per-Executor Criteria
+## Full Form of the Criteria 
+
+It is conducted by Taurus automatically from short form. You can also specify it as this:
+
+```yaml
+reporting:
+- module: passfail
+  criteria:
+  - subject: avg-rt  # required
+    label: 'Sample Label'  # optional, default is ''
+    condition: '>'  # required
+    threshold: 150ms  # required
+    logic: for  # optional, logic to aggregate values within timeframe. 
+                # Default 'for' means take latest, 
+                # 'within' and 'over' means take sum/avg of all values within interval
+    timeframe: 10s  # optional, default is none
+    stop: true  # optional, default is true. false for nonstop testing until the end
+    fail: true  # optional, default is true
+```
+
+# Per-Executor Criteria
 
 Failure criteria you add under `reporting` section is global. In case you use multiple `execution` items, aggregate data from all of them is used to trigger criteria. To attach criteria only to certain execution items or scenarios, use same syntax of `criteria`:
 
@@ -91,9 +111,8 @@ scenarios:
     - fail>50%   
     - p90>250ms   
 ```
- 
 
-## Monitoring-Based Failure Criteria 
+# Monitoring-Based Failure Criteria 
 
 You can use special failure criteria based on [monitoring data](Monitoring) from target servers. Most of
 parameters for criteria are same like in other fail criteria. You'll have to use full format
@@ -109,26 +128,4 @@ reporting:
     condition: '>'
     threshold: 90
     timeframe: 5s
-```
-
-## Internal Criteria Representation 
-
-The full form of the criteria is conducted by Taurus automatically from short form. You can also
-specify it as this:
-
-```yaml
-reporting:
-- module: passfail
-  criteria:
-  - subject: avg-rt  # required
-    label: 'Sample Label'  # optional, default is ''
-    condition: '>'  # required
-    threshold: 150ms  # required
-    timeframe: 10s  # optional, default is none
-    logic: for  # optional, logic to aggregate values within timeframe. 
-                # Default 'for' means take latest, 
-                # 'within' and 'over' means take sum/avg of all values within interval
-    fail: true  # optional, default is true
-    stop: true  # optional, default is true
-```
-
+``` 
