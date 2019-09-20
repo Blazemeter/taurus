@@ -374,9 +374,7 @@ class DataCriterion(FailCriterion):
                 return lambda x: 100.0 * x[KPISet.FAILURES] / x[KPISet.SAMPLE_COUNT]
             else:
                 return lambda x: x[KPISet.FAILURES]
-        elif subject.startswith('p'):
-            if not re.compile(r"p1?\d?\d(\.\d?)?").match(subject):
-                raise TaurusConfigError("Subject is malformed: %s" % subject)
+        elif subject.startswith('p') and re.compile(r"p1?\d?\d(\.\d?)?").match(subject):
             if percentage:
                 raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
             level = str(float(subject[1:]))
@@ -438,10 +436,7 @@ class DataCriterion(FailCriterion):
         if not crit_match:
             raise TaurusConfigError("Criteria string is malformed: %s" % crit_str)
         crit_groups = crit_match.groups()
-        subject = crit_groups[0]
-        if not re.compile(r"p1?\d?\d(\.\d?)?").match(subject):
-            raise TaurusConfigError("Criteria string is malformed: %s" % crit_str)
-        res["subject"] = subject
+        res["subject"] = crit_groups[0]
         res["condition"] = crit_groups[3]
         res["threshold"] = crit_groups[4]
         if crit_groups[2]:
