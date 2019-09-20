@@ -375,6 +375,8 @@ class DataCriterion(FailCriterion):
             else:
                 return lambda x: x[KPISet.FAILURES]
         elif subject.startswith('p'):
+            if not re.compile(r"p1?\d?\d(\.\d?)?").match(subject):
+                raise TaurusConfigError("Subject is malformed: %s" % subject)
             if percentage:
                 raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
             level = str(float(subject[1:]))
@@ -434,9 +436,12 @@ class DataCriterion(FailCriterion):
         crit_pat = re.compile(r"([\w?*.-]+)(\s*of\s*([\S ]+))?\s*([<>=]+)\s*(\S+)(\s+(for|within|over)\s+(\S+))?")
         crit_match = crit_pat.match(crit_str.strip())
         if not crit_match:
-            raise TaurusConfigError("Criteria string is malformed in its condition part: %s" % crit_str)
+            raise TaurusConfigError("Criteria string is malformed: %s" % crit_str)
         crit_groups = crit_match.groups()
-        res["subject"] = crit_groups[0]
+        subject = crit_groups[0]
+        if not re.compile(r"p1?\d?\d(\.\d?)?").match(subject):
+            raise TaurusConfigError("Criteria string is malformed: %s" % crit_str)
+        res["subject"] = subject
         res["condition"] = crit_groups[3]
         res["threshold"] = crit_groups[4]
         if crit_groups[2]:
