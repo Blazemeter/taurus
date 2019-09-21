@@ -40,7 +40,7 @@ namespace NUnitRunner.Services
             var sample = new Dictionary<object, object>
             {
                 { "start_time", item.StartTime },
-                { "ThreadName", item.ThreadName },
+                { "workerID", item.ThreadName },
                 { "duration", item.Duration },
                 { "test_case", item.TestCase },
                 { "test_suite", item.TestSuite },
