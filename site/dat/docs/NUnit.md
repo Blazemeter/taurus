@@ -15,6 +15,8 @@ execution:
     script: bin/Release/TestAssembly.dll  # assembly with tests
 ```
 
+Support of `concurrency` and `ramp-up` params is unstable and will be polished till next release.
+
 Taurus will run NUnit through a custom runner that will extract all tests from DLL assembly
 and pass them to NUnit to run them.
 

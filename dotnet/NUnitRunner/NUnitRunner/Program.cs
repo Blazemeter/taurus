@@ -53,7 +53,8 @@ namespace NUnitRunner
             for (int i = 0; i < options.Concurrency; i++)
             {
                 var threadName = "worker_" + (i + 1);
-                testTasks[i] = Task.Run(() => Test.RunTest(startTime, options, new TestEventListener(engine, package, reportItems, threadName)));              
+                testTasks[i] = Task.Run(() => Test.RunTest(
+                    startTime, options, new TestEventListener(engine, package, reportItems, threadName)));
                 Thread.Sleep(userStepTime * 1000);
             }
 
