@@ -64,7 +64,7 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         if load.concurrency:
             cmdline += ['--concurrency', str(int(load.concurrency))]
         if load.ramp_up:
-            cmdline =+ ['--ramp_up', str(int(load.ramp_up))]
+            cmdline += ['--ramp_up', str(int(load.ramp_up))]
         if not is_windows():
             self.env.add_path({"MONO_PATH": self.runner_dir})
 
