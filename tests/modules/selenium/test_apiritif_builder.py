@@ -750,11 +750,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 "scenario": {
                     "requests": [{
                         "url": "http://localhost:8000/",
-                        "label": 123,
-                    }]
-                }
-            }]
-        })
+                        "label": 123}]}}]})
         self.obj.prepare()
         with open(self.obj.script) as script:
             content = script.read()
