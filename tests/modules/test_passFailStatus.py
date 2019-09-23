@@ -187,6 +187,23 @@ class TestPassFailStatus(BZTestCase):
         self.obj.prepare()
         self.assertTrue(all(isinstance(obj, dict) for obj in self.obj.parameters["criteria"]))
 
+    def test_passfail_mandatory_parameters(self):
+        # proc = CriteriaProcessor(["failures>0%, stop as failed"], self)
+        #
+        # self.obj.processors.append(proc)
+        #
+        # point = DataPoint(0)
+        # point[DataPoint.CUMULATIVE] = {}
+        # point[DataPoint.CUMULATIVE][''] = {}
+        # point[DataPoint.CUMULATIVE][''][KPISet.FAILURES] = 100 * 16
+        # point[DataPoint.CUMULATIVE][''][KPISet.SAMPLE_COUNT] = 100 * 16
+        #
+        # self.obj.check()
+        # self.obj.shutdown()
+        # self.obj.aggregated_second(point)
+        # self.assertRaises(AutomatedShutdown, self.obj.post_process)
+        pass
+
     def test_percentiles_track(self):
         self.configure({"criteria": ["p90>0ms"]})
         self.obj.prepare()
