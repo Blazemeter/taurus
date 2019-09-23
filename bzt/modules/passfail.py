@@ -168,7 +168,11 @@ class FailCriterion(object):
         self.owner = owner
         self.config = config
         self.agg_buffer = OrderedDict()
+        if not 'threshold' in config:
+            raise TaurusConfigError("Criteria string is malformed in its threshold part.")
         self.percentage = str(config['threshold']).endswith('%')
+        if not 'subject' in config:
+            raise TaurusConfigError("Criteria string is malformed in its subject part.")
         if config['subject'] == 'bytes':
             self.threshold = get_bytes_count(config.get('threshold'))
         else:
@@ -177,7 +181,9 @@ class FailCriterion(object):
         self.get_value = self._get_field_functor(config['subject'], self.percentage)
         self.window_logic = config.get('logic', 'for')
         self.agg_logic = self._get_aggregator_functor(self.window_logic, config['subject'])
-        self.condition = self._get_condition_functor(config.get('condition', '>', force_set=True))
+        if not 'condition' in config:
+            raise TaurusConfigError("Criteria string is malformed in its condition part.")
+        self.condition = self._get_condition_functor(config.get('condition'))
         self.stop = config.get('stop', True)
         self.fail = config.get('fail', True)
         self.message = config.get('message', None)
