@@ -1,7 +1,7 @@
 import json
 import time
 
-from bzt import AutomatedShutdown
+from bzt import AutomatedShutdown, TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.passfail import PassFailStatus, DataCriterion, CriteriaProcessor
 from tests import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER
@@ -188,21 +188,29 @@ class TestPassFailStatus(BZTestCase):
         self.assertTrue(all(isinstance(obj, dict) for obj in self.obj.parameters["criteria"]))
 
     def test_passfail_mandatory_parameters(self):
-        # proc = CriteriaProcessor(["failures>0%, stop as failed"], self)
-        #
-        # self.obj.processors.append(proc)
-        #
-        # point = DataPoint(0)
-        # point[DataPoint.CUMULATIVE] = {}
-        # point[DataPoint.CUMULATIVE][''] = {}
-        # point[DataPoint.CUMULATIVE][''][KPISet.FAILURES] = 100 * 16
-        # point[DataPoint.CUMULATIVE][''][KPISet.SAMPLE_COUNT] = 100 * 16
-        #
-        # self.obj.check()
-        # self.obj.shutdown()
-        # self.obj.aggregated_second(point)
-        # self.assertRaises(AutomatedShutdown, self.obj.post_process)
-        pass
+        self.configure({"criteria": [{
+            # "subject": "p99",
+            "condition": ">",
+            "threshold": "400ms"
+        },
+        ]})
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
+
+        self.configure({"criteria": [{
+            "subject": "p99",
+            # "condition": ">",
+            "threshold": "400ms"
+        },
+        ]})
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
+
+        self.configure({"criteria": [{
+            "subject": "p99",
+            "condition": ">",
+            # "threshold": "400ms"
+        },
+        ]})
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_percentiles_track(self):
         self.configure({"criteria": ["p90>0ms"]})
