@@ -94,7 +94,8 @@ from selenium.webdriver.common.keys import Keys
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
 
-    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock, ActionBlock)
+    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock,
+                        ActionBlock)
 
     def __init__(self, scenario, label, wdlog=None, executor=None, utils_file=None,
                  ignore_unknown_actions=False, generate_markers=None,
