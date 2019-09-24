@@ -907,6 +907,14 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     'requests': [{
                         'action': 'pause',
                         'pause-duration': '1ms'
+                    # }, {
+                    #     'action': 'continue'
+                    # }, {
+                    #     'action': 'stop',
+                    #     'target': 'current-thread'
+                    # }, {
+                    #     'action': 'stop',
+                    #     'target': 'all-threads'
                     }]
                 }
             }
@@ -915,3 +923,5 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("sleep(0.001)", test_script)
+        # self.assertIn("sleep(0.001)", test_script)
+        # self.assertIn("sleep(0.001)", test_script)
