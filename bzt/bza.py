@@ -4,6 +4,7 @@ it may become separate library in the future. Things like imports and logging sh
 """
 import base64
 import json
+import time
 import logging
 from collections import OrderedDict
 
@@ -35,6 +36,7 @@ class BZAObject(dict):
         self.log = logging.getLogger(self.__class__.__name__)
         self.http_session = requests.Session()
         self.http_request = self.http_session.request
+        self._retry_limit = 5
 
         # copy infrastructure from prototype
         if isinstance(proto, BZAObject):
@@ -46,7 +48,7 @@ class BZAObject(dict):
                     continue
                 self.__setattr__(attr, proto.__getattribute__(attr))
 
-    def _request(self, url, data=None, headers=None, method=None, raw_result=False):
+    def _request(self, url, data=None, headers=None, method=None, raw_result=False, retry=True):
         """
         :param url: str
         :type data: Union[dict,str]
@@ -88,7 +90,21 @@ class BZAObject(dict):
 
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
 
-        response = self.http_request(method=log_method, url=url, data=data, headers=headers, timeout=self.timeout)
+        retry_limit = self._retry_limit
+
+        while True:
+            try:
+                response = self.http_request(
+                    method=log_method, url=url, data=data, headers=headers, timeout=self.timeout)
+            except requests.ReadTimeout as exc:
+                if retry and retry_limit:
+                    retry_limit -= 1
+                    msg = ("ReadTimeout: %s. Retry..." % url)
+                    self.log.warning(str(exc))
+                    continue
+                else:
+                    raise
+            break
 
         resp = response.content
         if not isinstance(resp, str):
@@ -775,6 +791,7 @@ class BZAProxy(BZAObject):
             response = self._request(self._get_url(), data={'auth': False, 'shipId': None})
             proxy_info = response['result']
 
+        self.log.info('Clear proxy...')
         self._request(self._get_url("/recording/clear"), method='POST')
 
         return 'http://%s:%s' % (proxy_info['host'], proxy_info['port'])
