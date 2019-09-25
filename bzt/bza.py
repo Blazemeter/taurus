@@ -96,14 +96,12 @@ class BZAObject(dict):
             try:
                 response = self.http_request(
                     method=log_method, url=url, data=data, headers=headers, timeout=self.timeout)
-            except requests.ReadTimeout as exc:
+            except requests.ReadTimeout:
                 if retry and retry_limit:
                     retry_limit -= 1
-                    msg = ("ReadTimeout: %s. Retry..." % url)
-                    self.log.warning(str(exc))
+                    self.log.warning("ReadTimeout: %s. Retry..." % url)
                     continue
-                else:
-                    raise
+                raise
             break
 
         resp = response.content
