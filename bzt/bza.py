@@ -4,7 +4,6 @@ it may become separate library in the future. Things like imports and logging sh
 """
 import base64
 import json
-import time
 import logging
 from collections import OrderedDict
 
