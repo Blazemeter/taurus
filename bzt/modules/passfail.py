@@ -168,7 +168,11 @@ class FailCriterion(object):
         self.owner = owner
         self.config = config
         self.agg_buffer = OrderedDict()
+        if not 'threshold' in config:
+            raise TaurusConfigError("Criteria string is malformed in its threshold part.")
         self.percentage = str(config['threshold']).endswith('%')
+        if not 'subject' in config:
+            raise TaurusConfigError("Criteria string is malformed in its subject part.")
         if config['subject'] == 'bytes':
             self.threshold = get_bytes_count(config.get('threshold'))
         else:
@@ -177,7 +181,9 @@ class FailCriterion(object):
         self.get_value = self._get_field_functor(config['subject'], self.percentage)
         self.window_logic = config.get('logic', 'for')
         self.agg_logic = self._get_aggregator_functor(self.window_logic, config['subject'])
-        self.condition = self._get_condition_functor(config.get('condition', '>', force_set=True))
+        if not 'condition' in config:
+            raise TaurusConfigError("Criteria string is malformed in its condition part.")
+        self.condition = self._get_condition_functor(config.get('condition'))
         self.stop = config.get('stop', True)
         self.fail = config.get('fail', True)
         self.message = config.get('message', None)
@@ -374,7 +380,7 @@ class DataCriterion(FailCriterion):
                 return lambda x: 100.0 * x[KPISet.FAILURES] / x[KPISet.SAMPLE_COUNT]
             else:
                 return lambda x: x[KPISet.FAILURES]
-        elif subject.startswith('p'):
+        elif subject.startswith('p') and re.compile(r"p1?\d?\d(\.\d?)?").match(subject):
             if percentage:
                 raise TaurusConfigError("Percentage threshold is not applicable for %s" % subject)
             level = str(float(subject[1:]))
@@ -434,7 +440,7 @@ class DataCriterion(FailCriterion):
         crit_pat = re.compile(r"([\w?*.-]+)(\s*of\s*([\S ]+))?\s*([<>=]+)\s*(\S+)(\s+(for|within|over)\s+(\S+))?")
         crit_match = crit_pat.match(crit_str.strip())
         if not crit_match:
-            raise TaurusConfigError("Criteria string is malformed in its condition part: %s" % crit_str)
+            raise TaurusConfigError("Criteria string is malformed: %s" % crit_str)
         crit_groups = crit_match.groups()
         res["subject"] = crit_groups[0]
         res["condition"] = crit_groups[3]
