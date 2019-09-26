@@ -1,7 +1,7 @@
 var util = require("util"),
     events = require("events"),
     fs = require("fs");
-var Launcher = require("webdriverio").Launcher;
+var Launcher = require("@wdio/cli").default;
 
 function epoch() {
     return (new Date()).getTime() / 1000.0;
@@ -154,7 +154,7 @@ function runWDIO() {
 
     var configFile = config.wdioConfig;
     var opts = {
-        reporters: [TaurusReporter],
+        // reporters: [TaurusReporter],
     };
 
     var wdio = new Launcher(configFile, opts);
