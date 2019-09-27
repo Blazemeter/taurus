@@ -174,6 +174,13 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(9, len(values.get("")))
         self.assertEqual(values.get('')[0].get("msg"), "Non HTTP response message: Connection reset")
 
+    def test_assertion_ts(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-bug1.jtl")
+        self.obj.read_file()
+        first_ts = int(list(self.obj.buffer.keys())[0])
+        values = self.obj.get_data(first_ts)
+        self.assertTrue(values)
+
     def test_short_err_message(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/error-mix.jtl")
         self.obj.read_file()
