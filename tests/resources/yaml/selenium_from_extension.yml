@@ -19,10 +19,4 @@ scenarios:
     requests:
     - label: Test
       actions:
-      - go(https://www.demoblaze.com/)
-      - clickByID(itemc)
-      #- clickByLinkText(HTC One M9)
-      #- clickByLinkText(Add to cart)
-      # WARN: Command Not yet supported. ('assertAlert:"Product added":""')
-      #- clickByID(cartur)
-      #- clickByLinkText(Home (current))
+      - go(http://127.0.0.1:8000/)

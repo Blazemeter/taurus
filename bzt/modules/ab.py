@@ -185,9 +185,9 @@ class TSVDataReader(ResultsReader):
             _url = self.url_label
             _concur = self.concurrency
             _tstamp = int(log_vals[1])  # timestamp - moment of request sending
-            _con_time = float(log_vals[2]) / 1000  # connection time
-            _etime = float(log_vals[4]) / 1000  # elapsed time
-            _latency = float(log_vals[5]) / 1000  # latency (aka waittime)
+            _con_time = float(log_vals[2]) / 1000.0  # connection time
+            _etime = float(log_vals[4]) / 1000.0  # elapsed time
+            _latency = float(log_vals[5]) / 1000.0  # latency (aka waittime)
             _bytes = None
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, '', _bytes

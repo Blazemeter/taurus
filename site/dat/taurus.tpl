@@ -218,6 +218,18 @@
                 $(".json.id-" + sw.data('id')).show();
             });
             $(".yaml-json-switch").append(toYAML.click()).append(toJSON);
+
+            let pageLink = document.URL;
+            let title = document.querySelector("title");
+            let h1Text = document.querySelector("h1").innerText;
+
+            if(pageLink.includes("/docs/") && !pageLink.includes("/docs/Index/")) {
+                title.innerText = h1Text + " | User Manual";
+            }
+
+            if(pageLink.includes("/kb/") && !pageLink.includes("/kb/Index/")) {
+                title.innerText = h1Text + " | Learning Taurus";
+            }
         });
     </script>
 </footer>
