@@ -747,9 +747,6 @@ class AvgTimesList(ListBox):
 
         self.body.append(Text(("stat-hdr", " Average Times: "), align=RIGHT))
         overall = data.get(self.key).get('', KPISet())
-        recv = overall[KPISet.AVG_RESP_TIME]
-        recv -= overall[KPISet.AVG_CONN_TIME]
-        recv -= overall[KPISet.AVG_LATENCY]
         self.body.append(
             Text(("stat-txt", "Full: %.3f" % overall[KPISet.AVG_RESP_TIME]),
                  align=RIGHT))
@@ -759,8 +756,6 @@ class AvgTimesList(ListBox):
         self.body.append(
             Text(("stat-txt", "Latency: %.3f" % overall[KPISet.AVG_LATENCY]),
                  align=RIGHT))
-        self.body.append(Text(("stat-txt", "~Receive: %.3f" % recv),
-                              align=RIGHT))
 
 
 class LabelsPile(Pile):
