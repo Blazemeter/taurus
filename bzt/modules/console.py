@@ -748,7 +748,7 @@ class AvgTimesList(ListBox):
         self.body.append(Text(("stat-hdr", " Average Times: "), align=RIGHT))
         overall = data.get(self.key).get('', KPISet())
         self.body.append(
-            Text(("stat-txt", "Full: %.3f" % overall[KPISet.AVG_RESP_TIME]),
+            Text(("stat-txt", "Elapsed: %.3f" % overall[KPISet.AVG_RESP_TIME]),
                  align=RIGHT))
         self.body.append(
             Text(("stat-txt", "Connect: %.3f" % overall[KPISet.AVG_CONN_TIME]),
