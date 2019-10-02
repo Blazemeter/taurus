@@ -52,7 +52,8 @@ class TestSdsdsdsSelenium(unittest.TestCase):
     def t1(self):
         with apiritif.smart_transaction(
                 name='t1',
-                flow={"test_case": "t1", "test_suite": "sdsdsds-Selenium"},
+                flow_markers=True,
+                test_case="t1",
                 driver=self.driver):
             self.driver.get('http://blazedemo.com/purchase.php')
             self.driver.find_element(By.CSS_SELECTOR, 'input.btn.btn-primary').click()
@@ -60,7 +61,8 @@ class TestSdsdsdsSelenium(unittest.TestCase):
     def t2(self):
         with apiritif.smart_transaction(
                 name='t2',
-                flow={"test_case": "t2", "test_suite": "sdsdsds-Selenium"},
+                flow_markers=True,
+                test_case="t2",
                 driver=self.driver):
             self.driver.get('https://www.belarus.by/en/')
             body = self.driver.page_source
@@ -70,12 +72,13 @@ class TestSdsdsdsSelenium(unittest.TestCase):
     def t3(self):
         with apiritif.smart_transaction(
                 name='t3',
-                flow={"test_case": "t3", "test_suite": "sdsdsds-Selenium"},
+                flow_markers=True,
+                test_case="t3",
                 driver=self.driver):
             self.driver.get('some.strange.url')
 
     def test_all(self):
-        self.t1()
+        #self.t1()
         self.t2()
         self.t3()
 
