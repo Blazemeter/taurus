@@ -24,6 +24,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
 
 
 def setup():
+    # todo: avoid duplicate setup calls
     options = webdriver.ChromeOptions()
     driver = webdriver.Chrome(service_log_path='webdriver.log',
                               chrome_options=options)
@@ -53,7 +54,6 @@ class TestSdsdsdsSelenium(unittest.TestCase):
         with apiritif.smart_transaction(
                 name='t1',
                 flow_markers=True,
-                test_case="t1",
                 driver=self.driver):
             self.driver.get('http://blazedemo.com/purchase.php')
             self.driver.find_element(By.CSS_SELECTOR, 'input.btn.btn-primary').click()
@@ -62,7 +62,6 @@ class TestSdsdsdsSelenium(unittest.TestCase):
         with apiritif.smart_transaction(
                 name='t2',
                 flow_markers=True,
-                test_case="t2",
                 driver=self.driver):
             self.driver.get('https://www.belarus.by/en/')
             body = self.driver.page_source
@@ -73,12 +72,11 @@ class TestSdsdsdsSelenium(unittest.TestCase):
         with apiritif.smart_transaction(
                 name='t3',
                 flow_markers=True,
-                test_case="t3",
                 driver=self.driver):
             self.driver.get('some.strange.url')
 
     def test_all(self):
-        #self.t1()
+        self.t1()
         self.t2()
         self.t3()
 
