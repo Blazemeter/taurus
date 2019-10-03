@@ -1,0 +1,1 @@
+replace "to do" in docs with an explanation about how concurrency is divided to several thread groups
