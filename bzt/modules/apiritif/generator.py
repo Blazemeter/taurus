@@ -88,7 +88,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
-from bzt.resources.selenium_taurus.extras import FrameManager, WindowManager
+from bzt.resources.selenium_extras import FrameManager, WindowManager
 """
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")

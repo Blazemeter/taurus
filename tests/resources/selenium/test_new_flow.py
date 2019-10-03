@@ -29,54 +29,36 @@ def setup():
     driver = webdriver.Chrome(service_log_path='webdriver.log',
                               chrome_options=options)
     driver.implicitly_wait(60.0)
-    wnd_mng = WindowManager(driver)
-    frm_mng = FrameManager(driver)
-    func_mode = False
-    flow_markers = True
+    func_mode = False       # don't stop after failed test case
+    flow_markers = True     # send flow markers to webdriver
     vars = {
 
     }
-    apiritif.put_into_thread_store(vars, driver, wnd_mng, frm_mng, func_mode, flow_markers)
+    apiritif.put_into_thread_store(vars=vars, driver=driver, func_mode=func_mode, flow_markers=flow_markers)
 
 
 def teardown():
-    driver = apiritif.get_from_thread_store()[1]
+    driver = apiritif.get_from_thread_store("driver")
     driver.quit()
 
 
 class TestSdsdsdsSelenium(unittest.TestCase):
 
     def setUp(self):
-        (self.vars, self.driver, self.wnd_mng, self.frm_mng, self.func_mode, self.flow_markers) = \
-            apiritif.get_from_thread_store()
+        self.vars, self.driver = apiritif.get_from_thread_store(("vars", "driver"))
+        self.wnd_mng = WindowManager(self.driver)
+        self.frm_mng = FrameManager(self.driver)
 
-    def t1(self):
-        with apiritif.smart_transaction(
-                name='t1',
-                flow_markers=True,
-                driver=self.driver):
+    def test_them_all(self):
+        with apiritif.smart_transaction(name='t1'):
             self.driver.get('http://blazedemo.com/purchase.php')
             self.driver.find_element(By.CSS_SELECTOR, 'input.btn.btn-primary').click()
 
-    def t2(self):
-        with apiritif.smart_transaction(
-                name='t2',
-                flow_markers=True,
-                driver=self.driver):
+        with apiritif.smart_transaction(name='t2'):
             self.driver.get('https://www.belarus.by/en/')
             body = self.driver.page_source
             re_pattern = re.compile('In God we trust')
             self.assertNotEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'In God we trust' not found in BODY")
 
-    def t3(self):
-        with apiritif.smart_transaction(
-                name='t3',
-                flow_markers=True,
-                driver=self.driver):
+        with apiritif.smart_transaction(name='t3'):
             self.driver.get('some.strange.url')
-
-    def test_all(self):
-        self.t1()
-        self.t2()
-        self.t3()
-
