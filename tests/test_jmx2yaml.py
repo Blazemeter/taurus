@@ -353,6 +353,14 @@ class TestConverter(BZTestCase):
             'match-no': 0,
             'default': '',
         })
+        # extract-css-jquery
+        tg_three_html_extractor = tg_three.get("extract-css-jquery")
+        self.assertEqual(tg_three_html_extractor['html_extractor'], {
+            'expression': 'input[name~=my_input]',
+            'attribute': 'value',
+            'match-no': 0,
+            'default': 'NOT_FOUND',
+        })
 
     def test_request_body(self):
         self.configure(RESOURCES_DIR + "yaml/converter/extractors.jmx")
@@ -388,7 +396,6 @@ class TestConverter(BZTestCase):
         tg_two = yml.get(EXEC)[1]
         tg_three = yml.get(EXEC)[2]
         self.assertEqual("10s", tg_one.get("ramp-up"))
-        self.assertEqual("60s", tg_one.get("hold-for"))
         self.assertEqual("10s", tg_one.get("ramp-up"))
         self.assertEqual(100, tg_one.get("throughput"))
         self.assertEqual("10s", tg_two.get("ramp-up"))
@@ -424,7 +431,6 @@ class TestConverter(BZTestCase):
         yml = yaml.load(open(self.obj.dst_file).read())
         execution = yml.get(EXEC)[0]
         self.assertEqual("60s", execution.get("ramp-up"))
-        self.assertEqual("60s", execution.get("hold-for"))
         self.assertEqual(1, execution.get("concurrency"))
         self.assertEqual(1, execution.get("iterations"))
 
@@ -574,3 +580,27 @@ class TestConverter(BZTestCase):
         first, second = requests
         self.assertEqual('forever', first['loop'])
         self.assertEqual(10, second['loop'])
+
+    def test_ctg_convert(self):
+        self.configure(RESOURCES_DIR + "yaml/converter/group-tg.jmx")
+        self.obj.process()
+        yml = yaml.load(open(self.obj.dst_file).read())
+        tg_execution = yml.get(EXEC)[0]
+        tg_execution_sch = yml.get(EXEC)[1]
+        ctg_execution = yml.get(EXEC)[2]
+
+        self.assertEqual(10, tg_execution.get("concurrency"))
+        self.assertEqual(20, tg_execution_sch.get("concurrency"))
+        self.assertEqual(12, ctg_execution.get("concurrency"))
+
+        self.assertEqual("20s", tg_execution.get("ramp-up"))
+        self.assertEqual("30s", tg_execution_sch.get("ramp-up"))
+        self.assertEqual("3600s", ctg_execution.get("ramp-up"))
+
+        self.assertIsNone(tg_execution.get("hold-for"))
+        self.assertEqual("120s", tg_execution_sch.get("hold-for"))
+        self.assertEqual("10800s", ctg_execution.get("hold-for"))
+
+        self.assertEqual(5, tg_execution.get("iterations"))
+        self.assertEqual(10, tg_execution_sch.get("iterations"))
+        self.assertIsNone(ctg_execution.get("iterations"))

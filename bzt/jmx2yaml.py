@@ -41,6 +41,7 @@ INLINE_JSR223_MAX_LEN = 10
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
               "ThreadGroup",
+              "com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup",
               "kg.apc.jmeter.threads.SteppingThreadGroup",
               "DNSCacheManager",
               "HeaderManager",
@@ -135,7 +136,10 @@ class JMXasDict(JMX):
         concurrency option in tg execution settings
         :return:
         """
-        concurrency = self._get_option_string_with_default(element, 'ThreadGroup.num_threads', "concurrency", 1)
+        if element.tag == "ThreadGroup":
+            concurrency = self._get_option_string_with_default(element, 'ThreadGroup.num_threads', "concurrency", 1)
+        else:
+            concurrency = self._get_option_string_with_default(element, 'TargetLevel', "concurrency", 1)
         self.log.debug('Got %s for concurrency in %s (%s)', concurrency, element.tag, element.get("testname"))
         return concurrency
 
@@ -145,7 +149,13 @@ class JMXasDict(JMX):
         :param element:
         :return:
         """
-        ramp_up = self._get_option_string_with_default(element, 'ThreadGroup.ramp_time', "ramp-up", 1)
+        if element.tag == "ThreadGroup":
+            ramp_up = self._get_option_string_with_default(element, 'ThreadGroup.ramp_time', "ramp-up", 1)
+        else:
+            unit = self._get_string_prop(element, "Unit")
+            ramp_up = self._get_option_string_with_default(element, 'RampUp', "ramp-up", 1)
+            if unit == "M":
+                ramp_up["ramp-up"] = ramp_up["ramp-up"] * 60
         self.log.debug('Got %s for rampup in %s (%s)', ramp_up, element.tag, element.get("testname"))
         return ramp_up
 
@@ -179,6 +189,15 @@ class JMXasDict(JMX):
         if ramp_up:
             ramp_up["ramp-up"] = str(ramp_up["ramp-up"]) + "s"
             result.update(ramp_up)
+
+        if tg_element.tag == "com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup":
+            unit = self._get_string_prop(tg_element, "Unit")
+            hold_for = self._get_option_string_with_default(tg_element, 'Hold', "hold-for", "60s")
+            if unit == "M":
+                hold_for["hold-for"] = hold_for["hold-for"] * 60
+            hold_for["hold-for"] = str(hold_for["hold-for"]) + "s"
+            result.update(hold_for)
+
         self.log.debug('Got %s for duration in %s (%s)', result, tg_element.tag, tg_element.get("testname"))
         return result
 
@@ -623,7 +642,7 @@ class JMXasDict(JMX):
 
     def _get_extractors(self, element):
         """
-        Gets xpath, jsonpath and regexp extractors
+        Gets xpath, jsonpath, regexp and html extractors
         :param element:
         :return:
         """
@@ -640,6 +659,9 @@ class JMXasDict(JMX):
         boundary_extractors = self._get_boundary_extractors(element)
         if boundary_extractors:
             extractors.update({"extract-boundary": boundary_extractors})
+        html_extractors = self._get_html_extractors(element)
+        if html_extractors:
+            extractors.update({"extract-css-jquery": html_extractors})
         self.log.debug('Got %s for extractors in %s (%s)', extractors, element.tag, element.get("testname"))
         return extractors
 
@@ -767,6 +789,61 @@ class JMXasDict(JMX):
                 boundary_extractors.update({refname: extractor_props})
 
         return boundary_extractors
+
+    def _get_html_extractors(self, element):
+        """
+        extract-css-jquery option
+        :param element:
+        :return:
+        """
+        html_extractors = {}
+        hashtree = element.getnext()
+
+        if hashtree is not None and hashtree.tag == "hashTree":
+            extractor_elements = [element for element in hashtree.iterchildren() if element.tag == "HtmlExtractor"]
+
+            for extractor_element in extractor_elements:
+                if extractor_element is None:
+                    continue
+
+                refname = self._get_string_prop(extractor_element, "HtmlExtractor.refname")
+                if refname is None:
+                    self.log.warning("refname property element not found in %s skipping", extractor_element.tag)
+                    continue
+
+                extractor_props = {}
+
+                expression_prop = self._get_string_prop(extractor_element, "HtmlExtractor.expr")
+                if expression_prop:
+                    extractor_props["expression"] = expression_prop
+                else:
+                    self.log.warning("No html expression found in %s, skipping element", extractor_element.tag)
+                    continue
+
+                attribute_prop = self._get_string_prop(extractor_element, "HtmlExtractor.attribute")
+                if attribute_prop:
+                    extractor_props["attribute"] = attribute_prop
+                else:
+                    self.log.warning("No hmtl attribute found in %s, skipping element", extractor_element.tag)
+                    continue
+
+                match_no_prop = self._get_string_prop(extractor_element, "HtmlExtractor.match_number")
+                if match_no_prop:
+                    extractor_props["match-no"] = int(match_no_prop)
+                else:
+                    self.log.warning("No match number found in %s, using default: 0", extractor_element.tag)
+                    extractor_props["match-no"] = 0
+
+                default_prop = self._get_string_prop(extractor_element, "HtmlExtractor.default")
+                if default_prop:
+                    extractor_props["default"] = default_prop
+                else:
+                    self.log.warning("No default value found in %s", extractor_element.tag)
+                    extractor_props["default"] = ""
+
+                html_extractors.update({refname: extractor_props})
+
+        return html_extractors
 
     def _get_json_path_extractors(self, element):
         """
@@ -1431,13 +1508,19 @@ class JMXasDict(JMX):
         execution_settings = {
             'concurrency': 1,
             'iterations': 1,
-            'hold-for': '60s',
             'ramp-up': '60s',
         }
         self._apply_global_tg_settings(global_execution_settings, execution_settings)
-        execution_settings.update(self._get_concurrency(tg_etree_element))
-        execution_settings.update(self._get_iterations(tg_etree_element))
-        execution_settings.update(self._get_duration(tg_etree_element))
+
+        if tg_etree_element.tag == "ThreadGroup":
+            execution_settings.update(self._get_concurrency(tg_etree_element))
+            execution_settings.update(self._get_iterations(tg_etree_element))
+            execution_settings.update(self._get_duration(tg_etree_element))
+        else:
+            execution_settings.update(self._get_concurrency(tg_etree_element))
+            execution_settings.update(self._get_duration(tg_etree_element))
+            execution_settings.pop('iterations')
+
         execution_settings.update(self._get_throughput(tg_etree_element))
 
         return execution_settings
@@ -1568,6 +1651,7 @@ class Converter(object):
         base_script = {"scenarios": {}, EXEC: []}
         self.log.debug("Processing thread groups...")
         tg_etree_elements = self.dialect.tree.findall(".//ThreadGroup")
+        tg_etree_elements.extend(self.dialect.tree.findall(".//com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup"))
         if not tg_etree_elements:
             raise TaurusInternalException("No thread groups found!")
 

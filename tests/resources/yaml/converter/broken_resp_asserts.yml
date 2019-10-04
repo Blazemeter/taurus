@@ -1,92 +1,74 @@
 ---
 execution:
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_1_1
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_1_2
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_1_3
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_1_4
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_2_1
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_2_2
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_2_3
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_2_4
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_3_1
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_3_2
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_4_1
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_4_2
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_4_3
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_4_4
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_4_5
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_4_6
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_5_1
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: tg_5_2
