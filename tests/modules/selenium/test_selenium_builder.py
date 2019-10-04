@@ -31,6 +31,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             # windows
                             "switchWindow(0)",
                             "openWindow(some.url)",
+                            "resizeWindow(750, 750)",
                             "closeWindow()",
                             "closeWindow('win_ser_local')",
 
