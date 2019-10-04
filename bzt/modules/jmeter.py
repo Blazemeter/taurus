@@ -353,7 +353,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         If JMeter is still running - let's stop it.
         """
-        max_attempts = self.settings.get("shutdown-wait", 5)
+        distr_multiplier = len(self.execution.get('distributed', [None]))  # 1 for regular, N of servers for distributed
+
+        max_attempts = self.settings.get("shutdown-wait", 5) * distr_multiplier
         if self._process_stopped(1):
             return
 
@@ -1034,7 +1036,7 @@ class FuncJTLReader(FunctionalResultsReader):
                 sample_extras[file_field] = artifact
 
     def _extract_sample(self, sample_elem):
-        tstmp = int(float(sample_elem.get("ts")) / 1000)
+        tstmp = int(float(sample_elem.get("ts")) / 1000.0)
         label = sample_elem.get("lb")
         duration = float(sample_elem.get("t")) / 1000.0
         success = sample_elem.get("s") == "true"
@@ -1235,7 +1237,7 @@ class JTLErrorsReader(object):
         """
         result = BetterDict()
         for t_stamp in sorted(self.buffer.keys()):
-            if t_stamp > max_ts:
+            if t_stamp >= max_ts + 1:
                 break
             labels = self.buffer.pop(t_stamp)
             for label, label_data in iteritems(labels):
@@ -1248,7 +1250,7 @@ class JTLErrorsReader(object):
         return result
 
     def _extract_standard(self, elem):
-        t_stamp = int(elem.get("ts")) / 1000
+        t_stamp = int(elem.get("ts")) / 1000.0
         label = elem.get("lb")
         message = elem.get('rm')
         r_code = elem.get("rc")
@@ -1273,7 +1275,7 @@ class JTLErrorsReader(object):
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
     def _extract_nonstandard(self, elem):
-        t_stamp = int(elem.findtext("timeStamp")) / 1000  # NOTE: will it be sometimes EndTime?
+        t_stamp = int(elem.findtext("timeStamp")) / 1000.0  # NOTE: will it be sometimes EndTime?
         label = elem.findtext("label")
         message = elem.findtext("responseMessage")
         r_code = elem.findtext("responseCode")
@@ -1331,7 +1333,7 @@ class XMLJTLReader(JTLErrorsReader, ResultsReader):
             yield self.items.pop(0)
 
     def _parse_element(self, elem):
-        tstmp = int(int(elem.get("ts")) / 1000)
+        tstmp = int(int(elem.get("ts")) / 1000.0)
         label = elem.get("lb")
         rtm = int(elem.get("t")) / 1000.0
         ltc = int(elem.get("lt")) / 1000.0 if "lt" in elem.attrib else 0

@@ -44,7 +44,10 @@ scenarios:
 
 or simply `bzt tests/jmx/dummy.jmx`
 
-TODO: explain how multi-thread group will accept concurrency with maintained proportion
+In case when existing JMX file have multiple thread groups with different concurrency values while yaml config has its 
+own concurrency, the main one in yaml will be divided in proportion to the concurrency values in thread groups. 
+For example, if there are concurrency values 1 and 2 in two thread groups and 30 in yaml, the main will be divided in 
+the ratio of 1:2, which means 10 to the first thread group and 20 to the second.
 
 ## JMeter Properties and Variables
 There are two places to specify JMeter properties: global at module-level and local at scenario-level. Scenario properties are merged into global properties and resulting set comes as input for JMeter, see corresponding `.properties` file in artifacts.
