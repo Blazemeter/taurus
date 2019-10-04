@@ -180,3 +180,9 @@ class WindowManager:
         if window_name:
             self.switch(window_name)
         self.driver.close()
+
+    def resize(self, line):
+        line = line.split(", ")
+        x, y = int(line[0]), int(line[1])
+        if x and y:
+            self.driver.set_window_size(x, y)
