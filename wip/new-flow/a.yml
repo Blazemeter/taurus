@@ -1,0 +1,20 @@
+execution:
+- executor: apiritif
+  scenario: sdsdsds-Selenium
+  iterations: 1
+
+scenarios:
+  sdsdsds-Selenium:
+    generate-flow-markers: true
+    headless: false
+    timeout: 60s
+    think-time: 0s
+    requests:
+    - label: t1
+      url: http://blazedemo.com/purchase.php
+    - label: t2
+      url: https://www.belarus.by/en//
+      assert:
+        - In God we trust
+    - label: t3
+      url: http://some.strange.url
