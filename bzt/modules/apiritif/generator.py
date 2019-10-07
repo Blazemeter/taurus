@@ -193,8 +193,6 @@ from selenium.webdriver.common.keys import Keys
                 args=[self._gen_expr(x), self._gen_expr(y)]))
         elif atype == "maximize":
             args = []
-            if selector:
-                args.append(self._gen_expr(selector))
             elements.append(ast_call(
                 func=ast_attr("self.driver.maximize_window"),
                 args=args))
