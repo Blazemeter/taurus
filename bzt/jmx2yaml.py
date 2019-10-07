@@ -137,9 +137,11 @@ class JMXasDict(JMX):
         :return:
         """
         if element.tag == "ThreadGroup":
-            concurrency = self._get_option_string_with_default(element, 'ThreadGroup.num_threads', "concurrency", 1)
+            concurrency_tag_name = 'ThreadGroup.num_threads'
+            concurrency = self._get_option_string_with_default(element, concurrency_tag_name, "concurrency", 1)
         else:
-            concurrency = self._get_option_string_with_default(element, 'TargetLevel', "concurrency", 1)
+            concurrency_tag_name = 'TargetLevel'
+            concurrency = self._get_option_string_with_default(element, concurrency_tag_name, "concurrency", 1)
         self.log.debug('Got %s for concurrency in %s (%s)', concurrency, element.tag, element.get("testname"))
         return concurrency
 
@@ -1650,8 +1652,9 @@ class Converter(object):
         self.dialect.load(file_to_convert)
         base_script = {"scenarios": {}, EXEC: []}
         self.log.debug("Processing thread groups...")
+        concurrency_tg = ".//com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup"
         tg_etree_elements = self.dialect.tree.findall(".//ThreadGroup")
-        tg_etree_elements.extend(self.dialect.tree.findall(".//com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup"))
+        tg_etree_elements.extend(self.dialect.tree.findall(concurrency_tg))
         if not tg_etree_elements:
             raise TaurusInternalException("No thread groups found!")
 
