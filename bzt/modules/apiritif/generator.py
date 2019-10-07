@@ -132,7 +132,7 @@ from selenium.webdriver.common.keys import Keys
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'script',
                             'editcontent', 'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
-                            'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode', 'resize'
+                            'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode', 'resize', 'maximize'
                             ])
 
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Eval|ByIdx|String"
@@ -182,14 +182,22 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("self.wnd_mng.switch"),
                 args=[self._gen_expr(selector)]))
         elif atype == "resize":
-            if not re.compile(r"\d+, \d+").match(selector):
-                if re.compile(r"\d+,\d+").match(selector):
-                    selector = selector.replace(',', ', ')
+            if not re.compile(r"\d+,\d+").match(selector):
+                if re.compile(r"\d+, \d+").match(selector):
+                    selector = selector.replace(', ', ',')
                 else:
                     return elements
+            x, y = selector.split(",")
             elements.append(ast_call(
-                func=ast_attr("self.wnd_mng.resize"),
-                args=[self._gen_expr(selector)]))
+                func=ast_attr("self.driver.set_window_size"),
+                args=[self._gen_expr(x), self._gen_expr(y)]))
+        elif atype == "maximize":
+            args = []
+            if selector:
+                args.append(self._gen_expr(selector))
+            elements.append(ast_call(
+                func=ast_attr("self.driver.maximize_window"),
+                args=args))
         elif atype == "open":
             elements.append(ast_call(
                 func=ast_attr("self.driver.execute_script"),

@@ -1,1 +1,1 @@
-add 'resizeWindow(x, y)' to selenium actions
+add 'resizeWindow(x, y)' and 'maximizeWindow()'to selenium actions
