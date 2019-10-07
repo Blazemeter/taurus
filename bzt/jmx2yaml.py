@@ -138,10 +138,9 @@ class JMXasDict(JMX):
         """
         if element.tag == "ThreadGroup":
             concurrency_tag_name = 'ThreadGroup.num_threads'
-            concurrency = self._get_option_string_with_default(element, concurrency_tag_name, "concurrency", 1)
         else:
             concurrency_tag_name = 'TargetLevel'
-            concurrency = self._get_option_string_with_default(element, concurrency_tag_name, "concurrency", 1)
+        concurrency = self._get_option_string_with_default(element, concurrency_tag_name, "concurrency", 1)
         self.log.debug('Got %s for concurrency in %s (%s)', concurrency, element.tag, element.get("testname"))
         return concurrency
 
