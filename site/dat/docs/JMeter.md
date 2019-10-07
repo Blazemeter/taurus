@@ -26,8 +26,8 @@ With `version` parameter you can ask for specific tool version or use autodetect
  taurus will analyze content of jmx file and try to guess appropriate the JMeter version.
 
 `plugins` option lets you describe list of JMeter plugins you want to use. If `plugins` option isn't found only
-following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fifo, jpgc-functions, jpgc-json, 
-jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation. 
+following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fifo, jpgc-functions, jpgc-json,
+jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation.
 If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.
 
 [JMeter Plugins Manager](#https://jmeter-plugins.org/wiki/PluginsManager/) allows you to install necessary plugins for your jmx file automatically and this feature doesn't require clean installation. You can turn it off with `detect-plugins` option. If you use your own installation of JMeter (with `path` option) make sure it includes `jmeter-plugins-manager` 0.16 or newer.
@@ -70,7 +70,7 @@ Scenario-level properties are set like this:
 
 ```yaml
 scenarios:
-  prop_example: 
+  prop_example:
     properties:
         my-hostname: www.prod.com
         log_level.jmeter: DEBUG
@@ -130,17 +130,17 @@ Distributed mode for JMeter is enabled with simple option `distributed` under ex
 
 ```yaml
 execution:
-- distributed: 
+- distributed:
   - host1.mynet.com
   - host2.mynet.com
   - host3.mynet.com
   scenario: some_scenario
-  
+
 scenarios:
   some_scenario:
     script: my-test.jmx
 ```
-For accurate load calculation don't forget to choose different hostname values for slave hosts. If you have any properties specified in settings, they will be sent to remote nodes. 
+For accurate load calculation don't forget to choose different hostname values for slave hosts. If you have any properties specified in settings, they will be sent to remote nodes.
 
 ## Shutdown Delay
 By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutdown port (this works only for non-GUI). There is option to wait for JMeter to exit before killing it forcefully, called `shutdown-wait`. By default, its value is 5 seconds. Shutdown port number is searched automatically, starting from `shutdown-port` option value, by looking for unused ports.
@@ -166,11 +166,11 @@ If selector for set-prop isn't found, taurus tries to create stringProp jmx elem
 
 ## Building Test Plan from Config
 
-Scenario that has `requests` element makes Taurus to generate the script for underlying tools automatically. For now, this is available for JMeter and partially available for some other tools. 
+Scenario that has `requests` element makes Taurus to generate the script for underlying tools automatically. For now, this is available for JMeter and partially available for some other tools.
 
 The `requests` element must contain a list of requests, each with its settings and child elements (assertions, extractors). Also there are additional configuration elements for requests-based scenario, described below.
 
-Scenario is the sequence of steps and some settings that will be used by underlying tools (JMeter, Grinder, Gatling) on execution stage. 
+Scenario is the sequence of steps and some settings that will be used by underlying tools (JMeter, Grinder, Gatling) on execution stage.
 
 Scenarios are listed in top-level `scenarios` element and referred from executions by their alias:
 
@@ -182,7 +182,7 @@ scenarios:
     - http://localhost/2
 
 execution:
-- scenario: get-requests  # alias from above is used 
+- scenario: get-requests  # alias from above is used
 ```
 
 ### Global Settings
@@ -191,7 +191,7 @@ Scenario has some global settings:
 
 ```yaml
 scenarios:
-  get-requests:  
+  get-requests:
     store-cache: true  # browser cache simulation, enabled by default
     store-cookie: true  # browser cookies simulation, enabled by default
     headers: # global headers
@@ -228,7 +228,7 @@ It's possible to use follow specific values for choosing of `think-time`:
 * poisson(10s, 3s): poisson distribution, mean is 10s and range of values starts from 3s.
 
 ### Data sources
-Taurus allows you to use external CSV files for testing purposes. 
+Taurus allows you to use external CSV files for testing purposes.
 Here is a full list of options for this:
 ```yaml
 scenarios:
@@ -243,7 +243,7 @@ scenarios:
       variable-names: id,name  # delimiter-separated list of variable names
       random-order: true # enables randomizing plugin; false by default
 ```
-When `random-order` is `false`, data extraction will proceed in direct manner. Data lines, which contain delimeters, will be read from the top down to the bottom, just the way they were written. Otherwise, the data will be extracted in a random way. 
+When `random-order` is `false`, data extraction will proceed in direct manner. Data lines, which contain delimeters, will be read from the top down to the bottom, just the way they were written. Otherwise, the data will be extracted in a random way.
 
 Also `variable-names` can be omitted. In such case the first line of CSV file will be used as variable names.
 
@@ -258,7 +258,7 @@ The base element for requests scenario is HTTP Request. In its simplest form it 
 
 ```yaml
 scenarios:
-  get-requests:  
+  get-requests:
     requests:
     - http://localhost/1
     - http://localhost/2
@@ -268,13 +268,13 @@ The full form for request is dictionary, all fields except `url` are optional:
 
 ```yaml
 scenarios:
-  my-req: 
+  my-req:
     requests:
     - url: http://blazedemo.com/  # url to hit
       method: GET  # request method (GET, POST, PUT, DELETE)
       label: homepage  # sampler label
 
-      body: 'request-body-string'  # if present, will be used as body 
+      body: 'request-body-string'  # if present, will be used as body
       body:  # generate query string based on parameters and request type
         param1: value1
         param2: value2
@@ -320,9 +320,9 @@ To specify extractors in shorthand form, use following configuration:
 
 ```yaml
 scenarios:
-  my-req: 
+  my-req:
     requests:
-    - url: http://blazedemo.com/  
+    - url: http://blazedemo.com/
       extract-regexp: # dictionary under it has form <var name>: <regular expression>
         page_title: <title>(\w+)</title>  #  must have at least one capture group
       extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
@@ -341,9 +341,9 @@ The full form for extractors is:
 
 ```yaml
 scenarios:
-  my-req: 
+  my-req:
     requests:
-    - url: http://blazedemo.com/  
+    - url: http://blazedemo.com/
       extract-regexp:
         page_title:
           regexp: <title>(\w+)</title>  # regular expression
@@ -352,7 +352,7 @@ scenarios:
           template: 1  # which capture group to take, integer or template string
           subject: body  #  subject for search
           scope: all  # check main and sub-samples
-      extract-jsonpath:   
+      extract-jsonpath:
         varname:
           jsonpath: $.jsonpath[0]  # jsonpath expression
           default: NOT_FOUND  # default value to use when jsonpath not found
@@ -378,14 +378,14 @@ scenarios:
           match-no: -1
           use-namespaces: false
           use-tolerant-parser: false
-     - url: http://blazedemo.com/${varname}.xml
-       extract-boundary:
-         pagetitle:
-           subject: body  # extractor scope. values are: body, body-unescaped, body-as-document, response-headers, request-headers, url, code, message
-           left: <title>  # left boundary to look for
-           right: </title>  # right boundary to look for
-           match-no: 1  # match number. 0 for random
-           default: DEFVAL  # default value, if nothing is matched
+    - url: http://blazedemo.com/${varname}.xml
+      extract-boundary:
+        pagetitle:
+          subject: body  # extractor scope. values are: body, body-unescaped, body-as-document, response-headers, request-headers, url, code, message
+          left: <title>  # left boundary to look for
+          right: </title>  # right boundary to look for
+          match-no: 1  # match number. 0 for random
+          default: DEFVAL  # default value, if nothing is matched
 ```
 
 You can choose `scope` for applying expressions. Possible value for targets are:
@@ -394,8 +394,8 @@ You can choose `scope` for applying expressions. Possible value for targets are:
   - `variable` for search in JMeter variables
 Default value of `scope` is empty, it means search in main sample only.
 
-`match-no` allows to choose the specific result from several ones. Default value is 0 (random). 
-To get all values you can use `-1` - generation of variables _varname\_1_, _varname\_2_, etc. 
+`match-no` allows to choose the specific result from several ones. Default value is 0 (random).
+To get all values you can use `-1` - generation of variables _varname\_1_, _varname\_2_, etc.
 It means if you ask for _some\_var\_name_ JMeter won't generate variable with exactly that name by default.
 
 Possible subjects for regexp are:
@@ -418,9 +418,9 @@ First one checks http response fields, its short form looks like this:
 
 ```yaml
 scenarios:
-  my-req: 
+  my-req:
     requests:
-    - url: http://blazedemo.com/  
+    - url: http://blazedemo.com/
       assert:  # contains list of regular expressions to check
       - .+App.+
 ```
@@ -429,12 +429,12 @@ The full form has following format:
 
 ```yaml
 scenarios:
-  my-req: 
+  my-req:
     requests:
-    - url: http://blazedemo.com/  
+    - url: http://blazedemo.com/
       assert:
        - contains:  # list of strings to check
-         - .+App.+ 
+         - .+App.+
          subject: body  # subject for search
          regexp: true  # treat string as regular expression
          not: false  # invert condition - fail if found
@@ -456,7 +456,7 @@ scenarios:
     - url: http://blazedemo.com/
       assert-jsonpath:  # contains list of options
         - "$."  # if this JSONPath not found, assert will fail
-        - "$.result[0]" # there can be multiple JSONPaths provided            
+        - "$.result[0]" # there can be multiple JSONPaths provided
 ```
 
 Full form:
@@ -502,8 +502,8 @@ scenarios:
         invert: false # invert condition
 ```
 
-If sample is broken (RC isn't 200) and cause of assertion the same time, error message will be overwritten 
-with assertion message. Sometimes both of them are important and should be saved into results file. 
+If sample is broken (RC isn't 200) and cause of assertion the same time, error message will be overwritten
+with assertion message. Sometimes both of them are important and should be saved into results file.
 For this case you can use following jmeter option:
 ```yaml
 modules:
@@ -827,7 +827,7 @@ It's the shortest form for quick setup. You can use several authorizations:
 ```yaml
 scenarios:
   multi_auth:
-    authorization:    
+    authorization:
     - url: auth_server_addr1
       name: username1
       password: pass1
@@ -856,7 +856,7 @@ Possible authorization params and their value are:
 * realm: protected space
 * mechanism: digest (default) or kerberos.
 Required of them are username & password and one of url & domain.
-For implementation of authorization Taurus uses JMeter HTTP Authorization Manager.  
+For implementation of authorization Taurus uses JMeter HTTP Authorization Manager.
 
 ### Client Certificate Based Authorization
 Taurus allows the use of client certificate based authorization using JMeter executor.
@@ -865,7 +865,7 @@ There are generally two scenarios for client certificate based authentication.
 
 #### If you require only one certificate for your whole test:
 * For this method, you can use either a certificate type of pkcs12 (*.p12) or Java Key Store (JKS)
-* Set the certificate path and the certificate password in JMeter system-properties section 
+* Set the certificate path and the certificate password in JMeter system-properties section
 ```yaml
 modules:
   jmeter:
@@ -886,7 +886,7 @@ INFO o.a.j.u.SSLManager: Total of 1 aliases loaded OK from keystore
 * Add a data-source for this CSV file for taurus to load
 * Use keystore-config to set various parameters about the keystore as shown below
     * For each iteration of execution, an alias from CSV file will be read and stored in the variable mentioned
-    * And the corresponding certificate for the alias will be used when setting up the https connection 
+    * And the corresponding certificate for the alias will be used when setting up the https connection
 ```yaml
 scenarios:
   client-cert-scenario:
@@ -899,7 +899,7 @@ scenarios:
     keystore-config:
       variable-name: certalias # variable name used in data-source element
       start-index: 0 # The index of the first key to use in Keystore, 0-based.
-      end-index: 99 # The index of the last key to use in Keystore, 0-based. 
+      end-index: 99 # The index of the last key to use in Keystore, 0-based.
       preload: true
 ```
 * Also add the JKS file and its password in the system-properties section
@@ -945,7 +945,7 @@ You can tune JTL file content with option `write-xml-jtl`. Possible values are '
 execution:
 - write-xml-jtl: full
   scenario: simple_script
-  
+
 scenarios:
   simple_script:
     script: my.jmx
@@ -979,10 +979,10 @@ modules:
       saveAssertionResultsFailureMessage: true
       bytes: true
       threadCounts: true
-      url: true      
+      url: true
 ```
 
-Remember: some logging information might be used by `[assertions](#Assertions)` so change log verbosity can affect them. 
+Remember: some logging information might be used by `[assertions](#Assertions)` so change log verbosity can affect them.
 
 ## JMeter JVM Memory Limit
 
@@ -1015,7 +1015,7 @@ scenarios:
     protocol: http  # default protocol
     requests:
     - url: http://blazedemo.com/
-    
+
 execution:
 - executor: jmeter
   scenario: protocols-demo
