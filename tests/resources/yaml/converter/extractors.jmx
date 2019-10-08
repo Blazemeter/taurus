@@ -246,6 +246,16 @@
           </com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor>
           <hashTree/>
         </hashTree>
+        <HtmlExtractor guiclass="HtmlExtractorGui" testclass="HtmlExtractor" testname="tg3h1html" enabled="true">
+          <stringProp name="HtmlExtractor.refname">html_extractor</stringProp>
+          <stringProp name="HtmlExtractor.expr">input[name~=my_input]</stringProp>
+          <stringProp name="HtmlExtractor.attribute">value</stringProp>
+          <stringProp name="HtmlExtractor.match_number">0</stringProp>
+          <stringProp name="HtmlExtractor.default">NOT_FOUND</stringProp>
+          <boolProp name="HtmlExtractor.default_empty_value">false</boolProp>
+          <stringProp name="HtmlExtractor.extractor_impl"></stringProp>
+        </HtmlExtractor>
+        <hashTree/>
       </hashTree>
       <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="global_extractor" enabled="true">
         <stringProp name="RegexExtractor.useHeaders">false</stringProp>

@@ -1,7 +1,6 @@
 ---
 execution:
 - concurrency: 1
-  hold-for: 60s
   iterations: 1
   ramp-up: 60s
   scenario: Thread Group
