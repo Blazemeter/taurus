@@ -1,7 +1,10 @@
 
 # Changelog
+
 ## 1.14.0<sup>next</sup>
+
 - turn off Python 2 support
+
 
 ## 1.13.9<sup>14 oct 2019</sup>
 
