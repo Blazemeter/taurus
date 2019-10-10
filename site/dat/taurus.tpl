@@ -185,13 +185,14 @@
 
 <footer>
     <div class="container">
-     <span>
+        <span>
          &copy; 2014-{"Y"|date} <a href="http://blazemeter.com"><img src="/img/blazemeter-mini.png"
                                                                      alt="BlazeMeter Inc."/></a>
-     </span>
+        </span>
         <span>
         Licensed under <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache 2.0 License</a>
-    </span>
+        </span>
+        <span style="float: right"><a href="/bzt-usage-stats/">Usage Statistics</a></span>
     </div>
 
     <!-- Latest compiled and minified JavaScript -->

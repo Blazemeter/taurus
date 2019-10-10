@@ -20,13 +20,17 @@ env:
   - DISPLAY=:99.0
   - PIP_INSTALL="pip install"
   - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
+  - PYTHON=python
 
 matrix:
   include:
   - os: osx
-    language: generic
+    name: "Python 3 on macOS"
+    osx_image: xcode11    # Python 3.7.4 running on macOS 10.14.4
+    language: shell
     env:
-    - PIP_INSTALL="sudo pip2 install"
+    - PYTHON=python3
+    - PIP_INSTALL="sudo pip3 install"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
@@ -55,7 +59,7 @@ install:
 before_script:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then nohup bash -c "Xvfb :99 &"; fi
 - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
-- python tests/resources/httpserver/start.py &
+- $PYTHON tests/resources/httpserver/start.py &
 
 script:
 - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
