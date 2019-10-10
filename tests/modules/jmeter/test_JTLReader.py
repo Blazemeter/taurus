@@ -18,14 +18,6 @@ class TestFuncJTLReader(BZTestCase):
         super(TestFuncJTLReader, self).setUp()
         self.obj = None
 
-    def test_just_show_python_version(self):
-        if PY2:
-            version = 2
-        else:
-            version = 3
-
-        self.fail('version: %s' % version)
-
     def configure(self, jtl_file):
         engine = EngineEmul()
         self.obj = FuncJTLReader(jtl_file, engine, ROOT_LOGGER)
