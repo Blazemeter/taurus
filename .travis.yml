@@ -25,11 +25,12 @@ env:
 matrix:
   include:
   - os: osx
+    name: "Python 3 on macOS"
     osx_image: xcode11    # Python 3.7.4 running on macOS 10.14.4
     language: shell
     env:
     - PYTHON=python3
-    - PIP_INSTALL="sudo pip install"
+    - PIP_INSTALL="sudo pip3 install"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
