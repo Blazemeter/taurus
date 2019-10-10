@@ -24,7 +24,8 @@ env:
 matrix:
   include:
   - os: osx
-    python: 3.7.1
+    osx_image: xcode11    # Python 3.7.4 running on macOS 10.14.4
+    language: shell
     env:
     - PIP_INSTALL="sudo pip install"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
