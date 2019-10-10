@@ -52,7 +52,8 @@ from bzt.utils import open_browser, BetterDict, ExceptionalDownloader, ProgressB
 from bzt.utils import to_json, dehumanize_time, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 
 TAURUS_TEST_TYPE = "taurus"
-FUNC_TEST_TYPE = "functionalApi"
+FUNC_API_TEST_TYPE = "functionalApi"
+FUNC_GUI_TEST_TYPE = "functionalGui"
 
 CLOUD_CONFIG_BLACK_LIST = {
     "settings": {
@@ -835,6 +836,7 @@ class ProjectFinder(object):
         self.user = user
         self.workspaces = workspaces
         self.is_functional = False
+        self.gui_mode = False
 
     def _find_project(self, proj_name):
         """
@@ -940,7 +942,10 @@ class ProjectFinder(object):
         is_int = isinstance(test_name, (int, float))
         is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
         if self.is_functional:
-            test_type = FUNC_TEST_TYPE
+            if self.gui_mode:
+                test_type = FUNC_GUI_TEST_TYPE
+            else:
+                test_type = FUNC_API_TEST_TYPE
         elif taurus_only:
             test_type = TAURUS_TEST_TYPE
         else:
@@ -1010,6 +1015,7 @@ class ProjectFinder(object):
         router.cloud_mode = self.settings.get("cloud-mode", None)
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
         router.is_functional = self.is_functional
+        router.gui_mode = self.gui_mode
         router.send_report_email = send_report_email
         return router
 
@@ -1061,6 +1067,7 @@ class BaseCloudTest(object):
         self.cloud_mode = None
         self.dedicated_ips = False
         self.is_functional = False
+        self.gui_mode = False
         self.send_report_email = False
 
     @abstractmethod
@@ -1149,15 +1156,24 @@ class CloudTaurusTest(BaseCloudTest):
 
         if self._test is not None:
             test_type = self._test.get("configuration").get("type")
-            should_be_func = (self.is_functional and test_type != FUNC_TEST_TYPE)
+            func_modes = FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE
+            should_be_func = (self.is_functional and (test_type not in func_modes))
             should_be_taurus = (not self.is_functional and test_type != TAURUS_TEST_TYPE)
             if should_be_func or should_be_taurus:
                 self.log.debug("Can't reuse test type %r as Taurus test, will create new one", test_type)
                 self._test = None
 
         if self._test is None:
+            if self.is_functional:
+                if self.gui_mode:
+                    test_type = FUNC_GUI_TEST_TYPE
+                else:
+                    test_type = FUNC_API_TEST_TYPE
+            else:
+                test_type = TAURUS_TEST_TYPE
+
             test_config = {
-                "type": FUNC_TEST_TYPE if self.is_functional else TAURUS_TEST_TYPE,
+                "type": test_type,
                 "plugins": {
                     "taurus": {
                         "filename": ""  # without this line it does not work
@@ -1499,7 +1515,13 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
-        finder.is_functional = self.engine.is_functional_mode()
+
+        func_mode = self.engine.is_functional_mode()
+        finder.is_functional = func_mode
+        finder.gui_mode = func_mode and (
+                (len(self.executors) == 1) and
+                isinstance(self.executors[0], SeleniumExecutor))
+
         self.router = finder.resolve_test_type()
 
         if not self.launch_existing_test:
