@@ -12,7 +12,7 @@
 - add CTG support to jmx2yaml
 - add support of Python 3.7
 - add `resizeWindow` and `maximizeWindow` to selenium actions
-- support wildcards in command line overrides
+- support wildcards (`*`) in command line overrides
 - fix cloud project choosing limitation
 - fix proxy2jmx hanging
 - fix PassFail & Monitoring interplay
