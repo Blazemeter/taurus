@@ -13,7 +13,8 @@ from bzt.engine import ScenarioExecutor, Service, EXEC
 from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
-from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest, FUNC_TEST_TYPE, BlazeMeterUploader
+from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest, BlazeMeterUploader
+from bzt.modules.blazemeter import FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE
 from bzt.modules.reporting import FinalStatus
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.modules.apiritif import ApiritifTester
@@ -1395,7 +1396,44 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(reqs[10]['url'], 'https://a.blazemeter.com/api/v4/tests')
         self.assertEqual(reqs[10]['method'], 'POST')
         data = json.loads(reqs[10]['data'])
-        self.assertEqual(data['configuration']['type'], FUNC_TEST_TYPE)
+        self.assertEqual(data['configuration']['type'], FUNC_API_TEST_TYPE)
+
+    def test_functional_gui_test_creation(self):
+        self.obj.engine.aggregator = FunctionalAggregator()
+
+        self.configure(
+            engine_cfg={
+                EXEC: {"executor": "selenium",  "scenario": {"requests": ["http://blazedemo.com"]}},
+                "modules": {
+                    "selenium": {
+                        "class": SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__,
+                        "virtual-display": False},
+                    "apiritif": {
+                        "class": ApiritifTester.__module__ + "." + ApiritifTester.__name__,
+                        "verbose": False
+                    }
+                }},
+            get={
+                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
+                    {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
+                ]},
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=1': [
+                    {'result': []},
+                    {'result': [{'id': 1}]}
+                ],
+                'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+            }, post={
+                'https://a.blazemeter.com/api/v4/tests/1/start?functionalExecution=true': {'result': {'id': 'mid'}}
+            })
+        self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
+        self.obj.prepare()
+        self.obj.startup()
+        reqs = self.mock.requests
+        self.assertEqual(reqs[10]['url'], 'https://a.blazemeter.com/api/v4/tests')
+        self.assertEqual(reqs[10]['method'], 'POST')
+        data = json.loads(reqs[10]['data'])
+        self.assertEqual(data['configuration']['type'], FUNC_GUI_TEST_TYPE)
 
     def test_functional_cloud_failed_shutdown(self):
         self.obj.engine.aggregator = FunctionalAggregator()
