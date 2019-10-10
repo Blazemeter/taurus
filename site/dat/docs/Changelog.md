@@ -23,6 +23,7 @@
 - improve cloud test mode detection (for selenium tests)
 - increase force shutdown delay for for JMeter distributed test
 - fix documentation (apiritif, passfail, jmeter)
+- fix yaml parsing (numeric labels)
 - Taurus site improvements (styles, tab titles, statistics of usage)
 - move docker image on Bionic Beaver
 - update obsolete components (nokogiri, requests)
