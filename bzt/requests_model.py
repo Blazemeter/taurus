@@ -58,7 +58,7 @@ class HTTPRequest(Request):
         super(HTTPRequest, self).__init__(config, scenario)
         msg = "Option 'url' is mandatory for request but not found in %s" % config
         self.url = self.config.get("url", TaurusConfigError(msg))
-        self.label = self.config.get("label", self.url)
+        self.label = str(self.config.get("label", self.url))
         self.method = self.config.get("method", "GET")
         if not has_variable_pattern(self.method):
             self.method = self.method.upper()
