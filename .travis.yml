@@ -33,6 +33,13 @@ matrix:
     - PIP_INSTALL="sudo pip3 install"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
+  - os: windows
+    name: "Python3 on Windows"
+    language: shell
+    before_install:
+      - choco install python --version 3.7.4
+      - python -m pip install --upgrade pip
+    env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
 
 addons:
   firefox: latest
