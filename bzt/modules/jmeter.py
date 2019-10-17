@@ -353,7 +353,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         If JMeter is still running - let's stop it.
         """
-        max_attempts = self.settings.get("shutdown-wait", 5)
+        distr_multiplier = len(self.execution.get('distributed', [None]))  # 1 for regular, N of servers for distributed
+
+        max_attempts = self.settings.get("shutdown-wait", 5) * distr_multiplier
         if self._process_stopped(1):
             return
 

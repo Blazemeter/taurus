@@ -743,6 +743,20 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         exp_file = RESOURCES_DIR + "/apiritif/test_codegen_requests.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
+    def test_numeric_label(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": [{
+                        "url": "http://localhost:8000/",
+                        "label": 123}]}}]})
+        self.obj.prepare()
+        with open(self.obj.script) as script:
+            content = script.read()
+
+        self.assertIn("123", content)
+
     def test_generator_crash(self):
         self.configure({
             "execution": [{

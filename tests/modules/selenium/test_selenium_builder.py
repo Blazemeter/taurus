@@ -31,6 +31,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             # windows
                             "switchWindow(0)",
                             "openWindow(some.url)",
+                            "resizeWindow(750, 750)",
+                            "maximizeWindow()",
                             "closeWindow()",
                             "closeWindow('win_ser_local')",
 
@@ -617,3 +619,37 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_flow_markers.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>", python_files=True)
+
+    def test_resize_window(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "concurrency": "1",
+                "iterations": "1",
+                "scenario": "window"}],
+            "scenarios": {
+                "window": {
+                    "default-address": "http://blazedemo.com",
+                    "requests": [{
+                        "url": "/",
+                        "actions": [
+                            "resizeWindow(450, 450)",
+                            "maximizeWindow()",
+                            "closeWindow()"
+                        ],
+                    },]
+                },
+            }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "self.driver.set_window_size('450', '450')",
+            "self.driver.maximize_window()"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
