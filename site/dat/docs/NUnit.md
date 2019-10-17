@@ -3,19 +3,17 @@
 This executor allows to run tests written with NUnit framework. It uses Mono under Linux and Mac OS
 and native Windows functions under Windows. There is a full support for NUnit 3.
 
-Taurus can loop test suite execution until desired number of `iterations` will complete or
-`hold-for` time will be exceeded.
+Follow execution params are possible for NUnit Executor: `concurrency`, `iterations`, `hold-for` and `ramp-up`.
 
 Usage:
 ```yaml
 execution:
 - executor: nunit
+  concurrency: 2
   iterations: 5
   scenario:
     script: bin/Release/TestAssembly.dll  # assembly with tests
 ```
-
-Support of `concurrency` and `ramp-up` params is unstable and will be polished till next release.
 
 Taurus will run NUnit through a custom runner that will extract all tests from DLL assembly
 and pass them to NUnit to run them.
