@@ -51,21 +51,33 @@ addons:
     - python3-tk
 
 install:
-- |
-  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    mono --version
-  else
-    gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
-  fi
-- gem install rspec
-- $PIP_INSTALL --upgrade pip
-- $PIP_INSTALL "pyyaml<5.1"
-- $PIP_INSTALL -r requirements.txt
-- $PIP_INSTALL -r tests/ci/requirements.txt
+  - |
+    if [ "$TRAVIS_OS_NAME" = "windows" ]; then
+    - ps: Install-Product node $env:NODEJS_VERSION
+    - "%PYTHON%\\python.exe -m pip install pip wheel --upgrade"
+    - "%PYTHON%\\python.exe -m pip install pyyaml==3.12"
+    - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
+    - "%PYTHON%\\python.exe -m pip install -r tests/ci/requirements.txt"
+    - set PATH=C:\Ruby22\bin;%PYTHON%\Scripts\;%PATH%
+    - gem install rspec
+    else
+      |
+      if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+        mono --version
+      else
+        gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
+      fi
+    - gem install rspec
+    - $PIP_INSTALL --upgrade pip
+    - $PIP_INSTALL "pyyaml<5.1"
+    - $PIP_INSTALL -r requirements.txt
+    - $PIP_INSTALL -r tests/ci/requirements.txt
+    fi
 
 before_script:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then nohup bash -c "Xvfb :99 &"; fi
 - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
+#- if [ "$TRAVIS_OS_NAME" = "windows" ]; then sudo nohup bash -c "xvfb :99 &"; fi
 - $PYTHON tests/resources/httpserver/start.py &
 
 script:
