@@ -36,6 +36,8 @@ modules:
     class: bzt.modules.ruby.RSpecTester
   mocha:
     class: bzt.modules.javascript.MochaTester
+  cypress:
+    class: bzt.modules.javascript.CypressTester
   nunit:
     class: bzt.modules.csharp.NUnitExecutor
   pytest:

@@ -60,7 +60,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     :type runner: bzt.modules.SubprocessedExecutor
     """
 
-    SUPPORTED_RUNNERS = ["apiritif", "nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot"]
+    SUPPORTED_RUNNERS = ["apiritif", "nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot", "cypress"]
     SELENIUM_TOOLS_DIR = "~/.bzt/selenium-taurus/tools"
 
     def __init__(self):
@@ -173,7 +173,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         elif '.rb' in file_types:
             script_type = 'rspec'
         elif '.js' in file_types:
-            script_type = 'mocha'
+            script_type = 'cypress'
         elif '.dll' in file_types or '.exe' in file_types:
             script_type = 'nunit'
         else:

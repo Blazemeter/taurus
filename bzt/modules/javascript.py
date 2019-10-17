@@ -259,6 +259,52 @@ class NewmanExecutor(JavaScriptExecutor):
         return cmdline
 
 
+class CypressTester(JavaScriptExecutor):
+    """
+    Cypress.io runner
+
+    :type cypress: Cypress
+    :type cypress_plugin: TaurusCypressPlugin
+    """
+
+    def __init__(self):
+        super(CypressTester, self).__init__()
+        self.tools_dir = "~/.bzt/selenium-taurus/cypress"
+        self.cypress = None
+        self.cypress_plugin = None
+
+    def prepare(self):
+        super(CypressTester, self).prepare()
+        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
+        self.script = self.get_script_path()
+        if not self.script:
+            raise TaurusConfigError("Script not passed to runner %s" % self)
+
+        self.install_required_tools()
+        self.reporting_setup(suffix='.ldjson')
+
+    def install_required_tools(self): # not needed, cypress must be installed
+        tcl_lib = self._get_tool(TclLibrary)
+        self.node = self._get_tool(Node)
+        self.npm = self._get_tool(NPM)
+        self.cypress = self._get_tool(Cypress, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
+        self.cypress_plugin = self._get_tool(TaurusCypressPlugin)
+
+        web_driver = self._get_tool(
+            JSSeleniumWebdriver, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
+
+        tools = [tcl_lib, self.node, self.npm, self.cypress, self.cypress_plugin, web_driver]
+        self._check_tools(tools)
+
+    def get_launch_cmdline(self, *args):
+        return [self.node.tool_path, self.cypress_plugin.tool_path] + list(args)
+
+    def startup(self):
+        cypress_cmdline = "npx cypress run --headed --record --spec " + self.script
+
+        self.process = self._execute(cypress_cmdline)
+
+
 class NPM(RequiredTool):
     def __init__(self, **kwargs):
         super(NPM, self).__init__(installable=False, **kwargs)
@@ -345,6 +391,10 @@ class WDIOMochaPlugin(NPMPackage):
     PACKAGE_NAME = "wdio-mocha-framework@0.5.13"
 
 
+class Cypress(NPMPackage):
+    PACKAGE_NAME = "cypress@3.5.2"
+
+
 class Newman(NPMPackage):
     PACKAGE_NAME = "newman"
 
@@ -357,6 +407,12 @@ class TaurusMochaPlugin(RequiredTool):
     def __init__(self, **kwargs):
         tool_path = os.path.join(RESOURCES_DIR, "mocha-taurus-plugin.js")
         super(TaurusMochaPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
+
+
+class TaurusCypressPlugin(RequiredTool):
+    def __init__(self, **kwargs):
+        tool_path = os.path.join(RESOURCES_DIR, "mocha-taurus-plugin.js")
+        super(TaurusCypressPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
 
 class TaurusWDIOPlugin(RequiredTool):
