@@ -173,7 +173,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         elif '.rb' in file_types:
             script_type = 'rspec'
         elif '.js' in file_types:
-            script_type = 'cypress'
+            script_type = 'mocha'
         elif '.dll' in file_types or '.exe' in file_types:
             script_type = 'nunit'
         else:
