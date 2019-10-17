@@ -176,6 +176,8 @@ scenarios:
       - clickByID(mySubmitButton)
       - openWindow(http://blazedemo.com/vacation.html) # new window is created (#1)
       - switchWindow(1)     # switch to the second window (#0)
+      - resizeWindow(750, 750) # change window size to x, y
+      - maximizeWindow() # change window size to maximum
       - closeWindow()      # close the second window (#1)
       - pauseFor(5s)
       - clearCookies()

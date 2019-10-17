@@ -1,6 +1,32 @@
 # Changelog
 
-## 1.13.9<sup>next</sup>
+## 1.14.0<sup>next</sup>
+
+- turn off Python 2 support
+
+
+## 1.13.9<sup>14 oct 2019</sup>
+
+- add support `concurrency` and `ramp-up` modifications for NUnit tests
+- add `include-scenario` feature to apiritif code generation
+- add CTG support to jmx2yaml
+- add support of Python 3.7
+- add `resizeWindow` and `maximizeWindow` to selenium actions
+- support wildcards (`*`) in command line overrides
+- fix cloud project choosing limitation
+- fix proxy2jmx hanging
+- fix PassFail & Monitoring interplay
+- fix cookies saving algorithm
+- fix Newman cookie iterator
+- fix gatling >3.1.2 hanging
+- fix JMeter errors reading
+- improve cloud test mode detection (for selenium tests)
+- increase force shutdown delay for for JMeter distributed test
+- fix documentation (apiritif, passfail, jmeter)
+- fix yaml parsing (numeric labels)
+- Taurus site improvements (styles, tab titles, statistics of usage)
+- move docker image on Bionic Beaver
+- update obsolete components (nokogiri, requests)
 
 
 ## 1.13.8<sup>07 jul 2019</sup>

@@ -1,1 +1,0 @@
-- Added concurrency support to NunitRunner, allows -concurrency command line arguement to be passed.
