@@ -94,6 +94,31 @@ class TestMolotov(ExecutorTestCase):
         self.assertTrue(exists(self.obj.report_file_name))
 
 
+class TestMolotovCmd(ExecutorTestCase):
+    EXECUTOR = MolotovExecutor
+    CMD_LINE = None
+
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
+        self.CMD_LINE = args
+
+    def test_think_time(self):
+        self.configure({
+            "execution": {
+                "scenario": "simple"},
+            "scenarios": {
+                "simple": {
+                    "think-time": 5,
+                    "script": LOADTEST_PY
+                }
+            }})
+        self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.assertTrue('--delay' in self.CMD_LINE)
+        delay_val = self.CMD_LINE[self.CMD_LINE.index('--delay')+1]
+        self.assertEqual(delay_val, '5.0')
+
+
 class TestReportReader(BZTestCase):
     def test_read(self):
         log_path = join(RESOURCES_DIR, "molotov", "molotov-report.csv")

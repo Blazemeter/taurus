@@ -102,6 +102,33 @@ class TestApacheBenchExecutor(ExecutorTestCase):
         self.assertIsNotNone(self.obj.get_error_diagnostics())
 
 
+class TestApacheBenchmarkCmd(ExecutorTestCase):
+    EXECUTOR = ApacheBenchmarkExecutor
+    CMD_LINE = None
+
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
+        self.CMD_LINE = args
+
+    def test_think_time(self):
+        self.configure({
+            "execution": {
+                "concurrency": 1,
+                "iterations": 1,
+                "scenario": "simple"},
+            "scenarios": {
+                "simple": {
+                    "timeout": 5,
+                    "requests": ["http://blazedemo.com"]
+                }
+            }})
+        self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.assertTrue('-s' in self.CMD_LINE)
+        delay_val = self.CMD_LINE[self.CMD_LINE.index('-s') + 1]
+        self.assertEqual(delay_val, '5')
+
+
 class TestDataLogReader(BZTestCase):
     def test_read(self):
         log_path = os.path.abspath(RESOURCES_DIR + "ab/ab.tsv")
