@@ -97,7 +97,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
     ACCESS_PLAIN = 'plain'
     SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock)
 
-    def __init__(self, scenario, label, wdlog=None, executor=None, utils_file=None,
+    def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
                  capabilities=None, wd_addr=None, test_mode="selenium"):
         self.scenario = scenario
@@ -117,7 +117,6 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
         self.wdlog = wdlog
         self.browser = None
         self.appium = False
-        self.utils_file = utils_file
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
         self.test_mode = test_mode
