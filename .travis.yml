@@ -37,9 +37,10 @@ matrix:
     name: "Python3 on Windows"
     language: shell
     before_install:
-      - choco install python --version 3.7.4
+#      - choco install python --version 3.7.4
       - python -m pip install --upgrade pip
-    env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
+    env:
+    - PATH=/c/Python37:/c/Python37/Scripts:$PATH
 
 addons:
   firefox: latest
@@ -52,8 +53,15 @@ addons:
 
 install:
   - if [ "$TRAVIS_OS_NAME" = "windows" ]; then
-      %PYTHON%\\python.exe -m pip install -r requirements.txt
+    - %PATH%\\python.exe -m pip install pip wheel --upgrade -r requirements.txt -r tests/ci/requirements.txt
+    - set RPATH=C:\Ruby22\bin;%PATH%\Scripts\;%RPATH%
+    - gem install rspec
     else
+      if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+        mono --version
+      else
+        gpg  --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
+      fi
     - gem install rspec
     - $PIP_INSTALL --upgrade pip
     - $PIP_INSTALL "pyyaml<5.1"

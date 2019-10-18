@@ -6,19 +6,19 @@ environment:
     - PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5.x"
       PYTHON_ARCH: "64"
-      NODEJS_VERSION: "6"
+      NODEJS_VERSION: "10"
     - PYTHON: "C:\\Python36"
       PYTHON_VERSION: "3.6.x"
       PYTHON_ARCH: "64"
-      NODEJS_VERSION: "6"
+      NODEJS_VERSION: "10"
     - PYTHON: "C:\\Python37"
       PYTHON_VERSION: "3.7.x"
       PYTHON_ARCH: "64"
-      NODEJS_VERSION: "7"
+      NODEJS_VERSION: "10"
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
-      NODEJS_VERSION: "6"
+      NODEJS_VERSION: "10"
 
 platform:
   - x64
