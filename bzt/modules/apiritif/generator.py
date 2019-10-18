@@ -80,7 +80,7 @@ class ApiritifScriptGenerator(object):
     IMPORTS = """import os
 import re
 from %s import webdriver
-from selenium.common.exceptions import NoSuchElementException, NoSuchWindowException, NoSuchFrameException
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import Select
