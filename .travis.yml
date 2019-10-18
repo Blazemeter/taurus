@@ -54,11 +54,6 @@ install:
   - if [ "$TRAVIS_OS_NAME" = "windows" ]; then
       %PYTHON%\\python.exe -m pip install -r requirements.txt
     else
-      if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-        mono --version
-      else
-        gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
-      fi
     - gem install rspec
     - $PIP_INSTALL --upgrade pip
     - $PIP_INSTALL "pyyaml<5.1"
