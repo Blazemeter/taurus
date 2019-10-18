@@ -51,17 +51,14 @@ addons:
     - python3-tk
 
 install:
-  - |
-    if [ "$TRAVIS_OS_NAME" = "windows" ]; then
-      ps: Install-Product node $env:NODEJS_VERSION
-      %PYTHON%\\python.exe -m pip install pip wheel --upgrade
-      %PYTHON%\\python.exe -m pip install pyyaml==3.12
-      %PYTHON%\\python.exe -m pip install -r requirements.txt
-      %PYTHON%\\python.exe -m pip install -r tests/ci/requirements.txt
-      set PATH=C:\Ruby22\bin;%PYTHON%\Scripts\;%PATH%
-     gem install rspec
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then
+    - %PYTHON%\\python.exe -m pip install pip wheel --upgrade
+    - %PYTHON%\\python.exe -m pip install pyyaml==3.12
+    - %PYTHON%\\python.exe -m pip install -r requirements.txt
+    - %PYTHON%\\python.exe -m pip install -r tests/ci/requirements.txt
+    - set PATH=C:\Ruby22\bin;%PYTHON%\Scripts\;%PATH%
+    - gem install rspec
     else
-      |
       if [ "$TRAVIS_OS_NAME" = "linux" ]; then
         mono --version
       else
