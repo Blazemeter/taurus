@@ -54,7 +54,7 @@ addons:
 install:
   - if [ "$TRAVIS_OS_NAME" = "windows" ]; then
     - %PATH%\\python.exe -m ensurepip
-    - %PATH%\\python.exe -m pip3 install pip wheel --upgrade -r requirements.txt -r tests/ci/requirements.txt
+    - %PATH%\\python.exe -m pip install pip wheel --upgrade -r requirements.txt -r tests/ci/requirements.txt
     - set RPATH=C:\Ruby22\bin;%PATH%\Scripts\;%RPATH%
     - gem install rspec
     else
