@@ -38,7 +38,7 @@ matrix:
     language: shell
     before_install:
 #      - choco install python --version 3.7.4
-      - python -m pip install --upgrade pip
+      - python -m pip3 install --upgrade pip
     env:
     - PATH=/c/Python37:/c/Python37/Scripts:$PATH
 
@@ -53,7 +53,7 @@ addons:
 
 install:
   - if [ "$TRAVIS_OS_NAME" = "windows" ]; then
-    - %PATH%\\python.exe -m pensurepip
+    - %PATH%\\python.exe -m ensurepip
     - %PATH%\\python.exe -m pip3 install pip wheel --upgrade -r requirements.txt -r tests/ci/requirements.txt
     - set RPATH=C:\Ruby22\bin;%PATH%\Scripts\;%RPATH%
     - gem install rspec
