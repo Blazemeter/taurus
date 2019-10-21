@@ -1,0 +1,35 @@
+execution:
+- executor: selenium
+  scenario:
+    script: test_rd.py
+  iterations: 1
+  capabilities:
+    browserName: chrome
+
+scenarios:
+  generated_by_CE:
+    #generate-flow-markers: true
+    headless: false
+    timeout: 60s
+    think-time: 0s
+    requests:
+    - include-scenario: Login
+    - label: main
+      actions:
+      - go(https://tut.by)
+    - include-scenario: Logout
+      
+  Login:
+    requests:
+    - label: login
+      actions:
+      - go(https://mail.ru)
+  Logout:
+    requests:
+    - label: logout
+      actions:
+      - go(https://google.com)
+modules:
+  blazemeter:
+    test: func-cloud.nose
+    token: fd8deb22a62a501690f6208d:b0a0e0645b2100869c5649e8e7cb18b4cb49882ab9db291d22870fdd7e2ae9d53341a8ed
