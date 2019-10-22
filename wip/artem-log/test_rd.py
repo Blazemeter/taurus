@@ -29,7 +29,7 @@ class TestSdsdsdsSelenium(unittest.TestCase):
         self.driver = None
         #options = webdriver.ChromeOptions()
         try:
-            self.driver = webdriver.Remote(command_executor='https://to:ken.env.blazemeter.net/api/v4/grid/wd/hub/')
+            self.driver = webdriver.Remote(command_executor='https://1:2@bza-v.env.blazemeter.net/api/v4/grid/wd/hub/')
         except BaseException as exc:
             raise BaseException("Prefix: %s" % str(exc))
 
