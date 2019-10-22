@@ -85,21 +85,93 @@ In `selenium` mode follow request features are supported:
 
 Here is the list of supported actions, sorted by action type.
 
-### Action objects
+### Locators
 Below you will see some actions, which look like this: `actionX`, i.e. `dragByX`, `clickBy`, etc. Here `X` means a certain
 action object. It can be one of the following: `ID`, `Name`, `LinkText`, `CSS`, `XPath`. For example, `clickByID`, 
-`waitByName`', `keysByCSS`.
+`waitByName`, `keysByCSS`.
+
+#### How to find them
+1. By ID
+
+    ```html
+    <td>
+        <h1 id="my_ID_locator">ID Locator</h1>
+    </td>
+    ```
+    Header tag has an ID attribute (`id="ID\_locator"`). For example, wait until the element is displayed `waitByID(ID\_locator)`.
+    
+2. By the attribute Name
+
+    `\<input name="inputName">`
+    This is an input element and it has attribute `name="inputName"`. 
+    
+    For example, insert text the following in the input `keysByName(inputName): first\_name`. Locator determination by the attribute `name` is often used when working with input fields.
+
+3. By CSS Selector
+    
+    CSS is used for styling different elements of an HTML webpage, to separate the content of the page and its design. 
+    The .css files define these styles, set font size, width, height etc. There are certain patterns, which act as 
+    selectors, in the CSS to apply those styles to HTML elements of the page. Selenium uses the same principle to find 
+    items.
+
+4. Using ID
+
+    Find the field for input name with `id="inputName"`
+    
+    `\<input id="inputName" placeholder="First Last" name="inputName" type="text">`
+    
+    CSS selector - `#inputName`. Fox example, add text in the field `keysByCSS(#inputName): first\_name`
+
+5. Using CLASS
+
+    Find div with input.
+    ```html
+    <div class="controls">
+        <input id="inputName" placeholder="First Last" name="inputName" type="text">
+    </div>
+    ```
+    This CSS selector .controls will select all elements with class `controls`. For example, wait until the element is displayed `waitByCSS(.controls)`.
+    Using attributes and their value
+    ```html
+     <input id="inputName" placeholder="First Last" name="inputName" type="text">
+    ```
+    
+    Find the element by `name="inputName"`. For example, `keysByCSS(\[name='inputName']): first\_name`
+
+6. Child elements
+    ```html
+    <div class="controls">
+        <input id="inputName" placeholder="First Last" name="inputName" type="text">
+    </div>
+    ```
+    Find child element INPUT with `id="inputName"` in the div with `class="controls"`. Describe as `div.controls>input#inputName`. For example, `keysByCSS(div.controls>input#inputName): first\_name`
+    
+7. By XPath
+
+    XPath is the language used for locating nodes in an XML document. As HTML can be an implementation of XML (XHTML), Selenium can use this language to find elements for the web page. One of the main reasons for using XPath is when you don't have a suitable id or name attribute for the element you wish to locate. To locate the element we can use absolute XPath or use relative path elements that have attributes id, name etc. 
+    
+    For INPUT  
+    ```html
+    <div class="controls">
+        <input placeholder="First Last" type="text">
+    </div> 
+    ```
+    
+    We can compose following XPath expressions: 
+     - `//div/input`
+     - `//div\[@class="controls"]/input`
+    
+    Any of these expressions can be used to fetch the desired element, if these attributes are unique.
+
 
 ### Assertion
 For requested page source inspection you can use the following actions:
-- `assertTextByX(X_name): "text` to assert text on element
+- `assertTextByX(X_name): "text"` to assert text on element
 - `assertValueByX(X_name): value` to assert value attribute
 - `assertTitle(title)` to assert title
 
-Don't forget to replace `X` with the right [action object](https://gettaurus.org/docs/Apiritif/#Action-objects)!
-
-See sample usage in [Frame Management](https://gettaurus.org/docs/Apiritif/#Frame-managmment) section.
-
+Don't forget to replace `X` with the right [locators](https://gettaurus.org/docs/Apiritif/#Locators). 
+See sample usage in [Frame Management](https://gettaurus.org/docs/Apiritif/#Frame-managmment) section. 
 Also, for assertion you can also use special assertion block. See example [here](https://gettaurus.org/docs/Apiritif/#Sample-scenario).
 
 ### Cookies
@@ -157,14 +229,14 @@ For mouse imitating actions you can use the following:
 - `mouseUpByX(X_name)`
 - `dragByX(X_name): elementByX(another_X_name)`
 
-`X` here is for one of [action objects](https://gettaurus.org/docs/Apiritif/#Action-objects).
+`X` here is for one of [locators](https://gettaurus.org/docs/Apiritif/#Locators).
 
 ### Pause
 For pause you can use the following actions:
 - `waitByX(X_name)` to wait for presence or `waitByX(X_name): visible` to wait for visibility
 - `pauseFor(time)`
 
-`X` here is for one of [action objects](https://gettaurus.org/docs/Apiritif/#Action-objects).
+`X` here is for one of [locators](https://gettaurus.org/docs/Apiritif/#Locators).
 
 ### Screenshot
 To take a screenshot of a viewport and save it in a file use this: `screenshot(file_name)`
@@ -172,7 +244,7 @@ To take a screenshot of a viewport and save it in a file use this: `screenshot(f
 ### Select
 To select a value use this: `selectByX(X_name)`.
 
-See documentation for `X` [here](https://gettaurus.org/docs/Apiritif/#Action-objects).
+See documentation for `X` [here](https://gettaurus.org/docs/Apiritif/#Locators).
 
 ### Store
 For storing variables use the followinf actions:
@@ -181,7 +253,7 @@ For storing variables use the followinf actions:
 - `storeTextByX(X_name): "Text"`
 - `storeValueByX(X_name): Value`
 
-See documentation for `X` [here](https://gettaurus.org/docs/Apiritif/#Action-objects).
+See documentation for `X` [here](https://gettaurus.org/docs/Apiritif/#Locators).
 
 ### Typing
 Typing actions are the following:
@@ -189,7 +261,7 @@ Typing actions are the following:
 - `submitByX(X_name)`
 - `keysByX(X_name): value` sends keystrokes to `X`. `value` can be formed like this: `KEY_ENTER`. See docs for it [here](http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys).
 
-`X` here is for one of [action objects](https://gettaurus.org/docs/Apiritif/#Action-objects).
+`X` here is for one of [locators](https://gettaurus.org/docs/Apiritif/#Locators).
 
 ### Window managment
 To manage windows or tabs, the `switchWindow(<value>)` and `closeWindow(<value>)` commands will allow you to manage them.
