@@ -146,14 +146,7 @@ Now, we've written one test, which can be run once.
 
 ### Supported Commands
 
-Taurus supports the following commands:
- 
-`waitByID`, `waitByName`, `waitByCSS` and `waitByXPath` - wait till the element is  present on the page. Find element by ID, Name, CSS or XPath. 
-
-`clickByID`, `clickByName`, `clickByCSS` and `clickByXPath` - allows to click on the object.
-
-`keysByID`, `keysByName`, `keysByCSS` and `keysByXPath` - inserts values in the found element.
-
+See full command reference  in the [Apiritif documentation](https://gettaurus.org/docs/Apiritif/#Scenario).
 
 ### Locators Reference
 
