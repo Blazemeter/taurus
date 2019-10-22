@@ -264,7 +264,7 @@ Typing actions are the following:
 `X` here is for one of [locators](https://gettaurus.org/docs/Apiritif/#Locators).
 
 ### Window managment
-To manage windows or tabs, the `switchWindow(<value>)` and `closeWindow(<value>)` commands will allow you to manage them.
+To manage windows or tabs, the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
   - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage. 
