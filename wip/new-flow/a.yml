@@ -1,5 +1,5 @@
 execution:
-- executor: apiritif
+- executor: selenium
   scenario: sdsdsds-Selenium
   iterations: 1
 

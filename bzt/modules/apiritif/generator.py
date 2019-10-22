@@ -80,7 +80,7 @@ class ApiritifScriptGenerator(object):
     IMPORTS = """import os
 import re
 from %s import webdriver
-from selenium.common.exceptions import NoSuchElementException, NoSuchWindowException, NoSuchFrameException
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import Select
@@ -823,61 +823,10 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
 
         ast_fields = ast.Tuple(elts=[ast.Name(id="%s" % var) for var in fields])
 
-        body = [ast.Assign(
-            targets=[ast_fields],
-            value=ast_call(func=ast_attr("apiritif.get_from_thread_store")))]
+        body = [ast.Assign(targets=[ast_fields], value=ast_call(func=ast_attr("apiritif.get_from_thread_store"))),
+                ast.Expr(ast_call(func=ast_attr("driver.quit")))]
 
-        body.append(ast.Expr(ast_call(func=ast_attr("driver.quit"))))
         return ast.FunctionDef(name="teardown", args=[], body=body, decorator_list=[])
-
-    def _add_markers(self, body, label):
-        def marker(case=None, suite=None, status=None, exc_msg=None):
-            if case and suite:
-                marker_msg = "/* FLOW_MARKER test-case-start */"
-                keys = [ast.Str("testCaseName"), ast.Str("testSuiteName")]
-                values = [ast.Str(case), ast.Str(suite)]
-            else:
-                marker_msg = "/* FLOW_MARKER test-case-stop */"
-                if exc_msg is None:
-                    exc_msg = ast_call(func="str", args=[ast.Name(id="exc")])
-                else:
-                    exc_msg = ast.Str(exc_msg)
-
-                keys = [ast.Str("status"), ast.Str("message")]
-                values = [ast.Str(status), exc_msg]
-
-            return ast.Expr(ast_call(
-                func=ast_attr("self.driver.execute_script"),
-                args=[
-                    ast.Str(marker_msg),
-                    ast.Dict(keys=keys, values=values)]))
-
-        start_marker = marker(case=label, suite=self.label)
-        kwargs = {"body": [start_marker] + body}
-
-        if PY2:
-            ast_try = ast.TryExcept
-            name = ast.Name(id="exc")
-            reraise = ast.Raise(type=None, inst=None, tback=None)
-        else:
-            ast_try = ast.Try
-            name = "exc"
-            reraise = ast.Raise(exc=None, cause=None)
-            kwargs["finalbody"] = []
-
-        kwargs["handlers"] = [
-            ast.ExceptHandler(
-                type=ast.Name(id="AssertionError"),
-                name=name,
-                body=[marker(status="failed"), reraise]),
-            ast.ExceptHandler(
-                type=ast.Name(id="BaseException"),
-                name=name,
-                body=[marker(status="broken"), reraise])]
-
-        kwargs["orelse"] = [marker(status="success", exc_msg="")]
-
-        return ast_try(**kwargs)
 
     def _gen_test_methods(self):
         requests = self.scenario.get_requests(parser=HierarchicRequestParser, require_url=False)
@@ -901,8 +850,6 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
             if isinstance(request, TransactionBlock):
                 body = [self._gen_transaction(request)]
                 label = create_method_name(request.label[:40])
-                if self.generate_markers:
-                    body = self._add_markers(body=body, label=request.label)
             elif isinstance(request, IncludeScenarioBlock):
                 body = [self._gen_transaction(request)]
                 label = create_method_name(request.scenario_name)
