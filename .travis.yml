@@ -29,33 +29,33 @@ env:
 
 matrix:
   include:
-  - os: linux
-    name: "Python3.5 on Linux"
-    python: 3.5
-    before_install:
-      - mono --version
-    install:
-      - gem install rspec
-      - $PIP_INSTALL "pyyaml<5.1"
-      - $PIP_INSTALL -r requirements.txt
-      - $PIP_INSTALL -r tests/ci/requirements.txt
-    before_script:
-      - nohup bash -c "Xvfb :99 &"
-      - $PYTHON tests/resources/httpserver/start.py &
-
-  - os: linux
-    name: "Python3.6 on Linux"
-    python: 3.6
-    before_install:
-      - mono --version
-    install:
-      - gem install rspec
-      - $PIP_INSTALL "pyyaml<5.1"
-      - $PIP_INSTALL -r requirements.txt
-      - $PIP_INSTALL -r tests/ci/requirements.txt
-    before_script:
-      - nohup bash -c "Xvfb :99 &"
-      - $PYTHON tests/resources/httpserver/start.py &
+#  - os: linux
+#    name: "Python3.5 on Linux"
+#    python: 3.5
+#    before_install:
+#      - mono --version
+#    install:
+#      - gem install rspec
+#      - $PIP_INSTALL "pyyaml<5.1"
+#      - $PIP_INSTALL -r requirements.txt
+#      - $PIP_INSTALL -r tests/ci/requirements.txt
+#    before_script:
+#      - nohup bash -c "Xvfb :99 &"
+#      - $PYTHON tests/resources/httpserver/start.py &
+#
+#  - os: linux
+#    name: "Python3.6 on Linux"
+#    python: 3.6
+#    before_install:
+#      - mono --version
+#    install:
+#      - gem install rspec
+#      - $PIP_INSTALL "pyyaml<5.1"
+#      - $PIP_INSTALL -r requirements.txt
+#      - $PIP_INSTALL -r tests/ci/requirements.txt
+#    before_script:
+#      - nohup bash -c "Xvfb :99 &"
+#      - $PYTHON tests/resources/httpserver/start.py &
 
   - os: linux
     name: "Python3.7 on Linux"
@@ -97,37 +97,29 @@ matrix:
     script:
       - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
 
-  - os: windows
-    name: "Python3 on Windows"
-    language: minimal
-    before_install:
-    - choco install python3
-    - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
-    install:
-    - %PATH%\\python.exe -m pip install pip wheel --upgrade
-    - %PATH%\\python.exe -m pip install pyyaml==3.12
-    - %PATH%\\python.exe -m pip install -r requirements.txt
-    - %PATH%\\python.exe -m pip install -r tests/ci/requirements.txt
-    - set R_PATH=C:\Ruby22\bin;%PATH%\Scripts\;%R_PATH%
-    - gem install rspec
-    before_test:
-      - ruby -v
-      - gem -v
-      - rspec --version
-      - node --version
-      - locust --version
-      - %PATH%\\python.exe tests/resources/httpserver/start.py
-    script:
-    - %PATH%\\python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
-
 #  - os: windows
 #    name: "Python3 on Windows"
-#    language: shell
+#    language: minimal
 #    before_install:
-#      - choco install python --version 3.7.4
-#      - python -m pip install --upgrade pip
-#    env:
-#    - PATH=/c/Python37:/c/Python37/Scripts:$PATH
+#    - choco install python --version 3.7.4
+#    - python -m pip install --upgrade pip
+#    - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+#    install:
+#    - %PATH%\\python.exe -m pip install pip wheel --upgrade
+#    - %PATH%\\python.exe -m pip install pyyaml==3.12
+#    - %PATH%\\python.exe -m pip install -r requirements.txt
+#    - %PATH%\\python.exe -m pip install -r tests/ci/requirements.txt
+#    - set R_PATH=C:\Ruby22\bin;%PATH%\Scripts\;%R_PATH%
+#    - gem install rspec
+#    before_test:
+#      - ruby -v
+#      - gem -v
+#      - rspec --version
+#      - node --version
+#      - locust --version
+#      - %PATH%\\python.exe tests/resources/httpserver/start.py
+#    script:
+#    - %PATH%\\python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
 
 addons:
   firefox: latest
