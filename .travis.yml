@@ -1,13 +1,17 @@
 sudo: false
 language: python
-dist: xenial
+group: travis_latest
 cache: pip  # use caching for pip's packages to speed up builds
 
 branches:
   only:
   - master
 
-os: linux
+#git:
+#  depth: 50
+#  quiet: true
+
+#os: linux
 
 python:
 - "2.7"
@@ -24,8 +28,26 @@ env:
 
 matrix:
   include:
+  - os: linux
+    name: "Python3.7 on Ubuntu"
+    dist: xenial
+    python: 3.7
+    before_install:
+    - mono --version
+    install:
+    - gem install rspec
+    - $PIP_INSTALL "pyyaml<5.1"
+    - $PIP_INSTALL -r requirements.txt
+    - $PIP_INSTALL -r tests/ci/requirements.txt
+    before_script:
+    - nohup bash -c "Xvfb :99 &"
+    script:
+    - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
+    after_success:
+      - coverage report -m && codecov
+
   - os: osx
-    name: "Python 3 on macOS"
+    name: "Python3 on macOS"
     osx_image: xcode11    # Python 3.7.4 running on macOS 10.14.4
     language: shell
     env:
@@ -33,14 +55,26 @@ matrix:
     - PIP_INSTALL="sudo pip3 install"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
-  - os: windows
-    name: "Python3 on Windows"
-    language: shell
     before_install:
-      - choco install python --version 3.7.4
-      - python -m pip install --upgrade pip
-    env:
-    - PATH=/c/Python37:/c/Python37/Scripts:$PATH
+    - gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
+    install:
+    - gem install rspec
+    - $PIP_INSTALL "pyyaml<5.1"
+    - $PIP_INSTALL -r requirements.txt
+    - $PIP_INSTALL -r tests/ci/requirements.txt
+    before_script:
+      - sudo nohup bash -c "xvfb :99 &"
+    script:
+      - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
+
+#  - os: windows
+#    name: "Python3 on Windows"
+#    language: shell
+#    before_install:
+#      - choco install python --version 3.7.4
+#      - python -m pip install --upgrade pip
+#    env:
+#    - PATH=/c/Python37:/c/Python37/Scripts:$PATH
 
 addons:
   firefox: latest
@@ -50,32 +84,3 @@ addons:
     - mono-complete
     - python-tk
     - python3-tk
-
-install:
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then
-      %PATH%\\python.exe -m ensurepip && \
-      %PATH%\\python.exe -m pip install pip wheel --upgrade -r requirements.txt -r tests/ci/requirements.txt && \
-      set RPATH=C:\Ruby22\bin;%PATH%\Scripts\;%RPATH% && \
-      gem install rspec
-    else
-    - gem install rspec
-    - $PIP_INSTALL --upgrade pip
-    - $PIP_INSTALL "pyyaml<5.1"
-    - $PIP_INSTALL -r requirements.txt
-    - $PIP_INSTALL -r tests/ci/requirements.txt
-    fi
-
-before_script:
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then nohup bash -c "Xvfb :99 &"; fi
-- if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
-#- if [ "$TRAVIS_OS_NAME" = "windows" ]; then sudo nohup bash -c "xvfb :99 &"; fi
-- $PYTHON tests/resources/httpserver/start.py &
-
-script:
-- coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
-
-after_success:
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m && codecov; fi
-
-
-
