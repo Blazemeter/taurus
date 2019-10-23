@@ -775,21 +775,21 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
 
         for idx in range(len(self.data_sources)):
             extend_vars = ast_call(
-                func=ast_attr("vars.update"),
+                func=ast_attr("self.vars.update"),
                 args=[ast_call(
                     func=ast_attr("reader_%s.get_vars" % (idx + 1)))])
             data_sources.append(ast.Expr(extend_vars))
 
-        stored_vars = []
+        stored_vars = {"func_mode": str(False)}   # todo: make func_mode optional
         if target_init:
-            if self.test_mode == "apiritif":
-                stored_vars.append("target")
-            else:
-                stored_vars.extend(["driver"])
+            if self.test_mode == "selenium":
+                stored_vars["driver"] = "self.driver"
+                stored_vars["flow_markers"] = str(self.generate_markers)
 
         store_call = ast_call(
             func=ast_attr("apiritif.put_into_thread_store"),
-            args=[ast.Name(id=var) for var in stored_vars])
+            keywords=[ast.keyword(arg=key, value=ast_attr(stored_vars[key])) for key in stored_vars],
+            args=[])
 
         store_block = [ast.Expr(store_call)]
 
