@@ -556,7 +556,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
             headless_setup = [ast.Expr(
                 ast_call(func=ast_attr("options.set_headless")))]
 
-        body = []
+        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
 
         if browser == 'firefox':
             body.append(ast.Assign(

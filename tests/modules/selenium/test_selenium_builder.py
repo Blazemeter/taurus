@@ -12,7 +12,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.configure(config)
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/test_new_flow.py"
-        self.assertFilesEqual(exp_file, self.obj.script, replace_str=self.obj.wdlog, replace_with="webdriver.log", python_files=True)
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+
+        self.assertFilesEqual(
+            exp_file, self.obj.script, replace_str=str_to_replace, replace_with="/tmp/", python_files=True)
 
     def test_modern_actions_generator(self):
         self.configure({
