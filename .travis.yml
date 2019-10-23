@@ -112,8 +112,8 @@ matrix:
     - node --version
     - locust --version
     - python tests/resources/httpserver/start.py
-#    script:
-#    - %PATH%\\python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
+    script:
+    - python -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
 
 addons:
   firefox: latest
