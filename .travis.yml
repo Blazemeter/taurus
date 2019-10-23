@@ -98,12 +98,12 @@ matrix:
     env:
     - PATH=/c/Python37:/c/Python37/Scripts:$PATH
     install:
-    - python -m pip install pip wheel --upgrade
-    - python -m pip install pyyaml==3.12
-#    - %PATH%\\python.exe -m pip install -r requirements.txt
-#    - %PATH%\\python.exe -m pip install -r tests/ci/requirements.txt
-#    - set R_PATH=C:\Ruby22\bin;%PATH%\Scripts\;%R_PATH%
-#    - gem install rspec
+    - python -m pip install pip wheel --upgrade pyyaml==3.12 -r requirements.txt -r tests/ci/requirements.txt
+#    - python -m pip install pyyaml==3.12
+#    - python -m pip install -r requirements.txt
+#    - python -m pip install -r tests/ci/requirements.txt
+    - set R_PATH=C:\Ruby22\bin;%PATH%\Scripts\;%R_PATH%
+    - gem install rspec
 #    before_test:
 #    - ruby -v
 #    - gem -v
