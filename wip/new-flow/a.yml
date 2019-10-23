@@ -10,9 +10,6 @@ scenarios:
     headless: false
     timeout: 60s
     think-time: 0s
-    data-sources:
-      - path: some.csv
-        variable-names: first,second
     requests:
     - label: t1
       url: http://blazedemo.com/purchase.php

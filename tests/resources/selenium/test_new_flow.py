@@ -30,17 +30,17 @@ class TestSdsdsdsSelenium(unittest.TestCase):
         self.driver = webdriver.Chrome(service_log_path='webdriver.log', chrome_options=options)
         self.driver.implicitly_wait(60.0)
 
-        apiritif.put_into_thread_store(
-            driver=self.driver,
-            func_mode=False,  # don't stop after failed test case
-            flow_markers=True)  # send flow markers to webdriver
-
         self.wnd_mng = WindowManager(self.driver)
         self.frm_mng = FrameManager(self.driver)
 
         self.vars = {
 
         }
+
+        apiritif.put_into_thread_store(
+            func_mode=False,  # don't stop after failed test case
+            driver=self.driver,
+            flow_markers=True)  # send flow markers to webdriver
 
     def tearDown(self):
         if self.driver:

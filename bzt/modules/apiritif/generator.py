@@ -1133,7 +1133,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
         values = [variables[name] for name in names]
 
         return ast.Assign(
-            targets=[ast.Name(id='vars', ctx=ast.Store())],
+            targets=[ast_attr("self.vars")],
             value=ast.Dict(
                 keys=[self._gen_expr(name) for name in names],
                 values=[self._gen_expr(val) for val in values]))

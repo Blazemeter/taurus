@@ -1,6 +1,5 @@
 import logging
 import tempfile
-import yaml
 
 from bzt import TaurusConfigError
 from bzt.modules import ConsolidatingAggregator
@@ -31,14 +30,6 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.prepare()
 
         exp_file = RESOURCES_DIR + "apiritif/test_transactions.py"
-        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
-
-    def test_new_flow_build(self):
-        config = yaml.load(open('wip/new-flow/a.yml').read())
-        self.configure(config)
-        self.obj.execution["test-mode"] = "selenium"
-        self.obj.prepare()
-        exp_file = RESOURCES_DIR + "selenium/test_new_flow.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
     def test_keepalive_only(self):
