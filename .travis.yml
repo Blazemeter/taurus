@@ -29,23 +29,33 @@ env:
 
 matrix:
   include:
-    - os: linux
-      name: "Python3.6 on Linux"
-      python: 3.6
-      before_install:
-        - mono --version
-      install:
-        - gem install rspec
-        - $PIP_INSTALL "pyyaml<5.1"
-        - $PIP_INSTALL -r requirements.txt
-        - $PIP_INSTALL -r tests/ci/requirements.txt
-      before_script:
-        - nohup bash -c "Xvfb :99 &"
-        - $PYTHON tests/resources/httpserver/start.py &
-#      script:
-#        - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
-#      after_success:
-#        - coverage report -m && codecov
+  - os: linux
+    name: "Python3.5 on Linux"
+    python: 3.5
+    before_install:
+      - mono --version
+    install:
+      - gem install rspec
+      - $PIP_INSTALL "pyyaml<5.1"
+      - $PIP_INSTALL -r requirements.txt
+      - $PIP_INSTALL -r tests/ci/requirements.txt
+    before_script:
+      - nohup bash -c "Xvfb :99 &"
+      - $PYTHON tests/resources/httpserver/start.py &
+
+  - os: linux
+    name: "Python3.6 on Linux"
+    python: 3.6
+    before_install:
+      - mono --version
+    install:
+      - gem install rspec
+      - $PIP_INSTALL "pyyaml<5.1"
+      - $PIP_INSTALL -r requirements.txt
+      - $PIP_INSTALL -r tests/ci/requirements.txt
+    before_script:
+      - nohup bash -c "Xvfb :99 &"
+      - $PYTHON tests/resources/httpserver/start.py &
 
   - os: linux
     name: "Python3.7 on Linux"
