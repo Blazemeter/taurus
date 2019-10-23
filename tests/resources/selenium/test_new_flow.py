@@ -46,16 +46,23 @@ class TestSdsdsdsSelenium(unittest.TestCase):
         if self.driver:
             self.driver.quit()
 
-    def test_them_all(self):
-        with apiritif.smart_transaction(name='t1'):
+    def t1(self):
+        with apiritif.smart_transaction('t1'):
             self.driver.get('http://blazedemo.com/purchase.php')
             self.driver.find_element(By.CSS_SELECTOR, 'input.btn.btn-primary').click()
 
-        with apiritif.smart_transaction(name='t2'):
+    def t2(self):
+        with apiritif.smart_transaction('t2'):
             self.driver.get('https://www.belarus.by/en/')
             body = self.driver.page_source
             re_pattern = re.compile('In God we trust')
             self.assertNotEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'In God we trust' not found in BODY")
 
-        with apiritif.smart_transaction(name='t3'):
+    def t3(self):
+        with apiritif.smart_transaction('t3'):
             self.driver.get('some.strange.url')
+
+    def test_sdsdsds_Selenium(self):
+        self.t1()
+        self.t2()
+        self.t3()

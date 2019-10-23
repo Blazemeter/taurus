@@ -985,8 +985,8 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
             else:
                 body.append(self._gen_http_request(request))
 
-        transaction_class = "apiritif.transaction"
-        if self.test_mode == "selenium":
+        transaction_class = "apiritif.smart_transaction"
+        if self.test_mode == "selenium":    # todo: remove it?
             transaction_class += "_logged"
 
         transaction = ast.With(
