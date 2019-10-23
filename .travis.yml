@@ -42,6 +42,8 @@ matrix:
     before_script:
       - nohup bash -c "Xvfb :99 &"
       - $PYTHON tests/resources/httpserver/start.py &
+    script:
+      - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE --with-timer --timer-top-n 30
 
   - os: linux
     name: "Python3.6 on Linux"
@@ -56,6 +58,8 @@ matrix:
     before_script:
       - nohup bash -c "Xvfb :99 &"
       - $PYTHON tests/resources/httpserver/start.py &
+    script:
+      - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE --with-timer --timer-top-n 30
 
   - os: linux
     name: "Python3.7 on Linux"
@@ -71,7 +75,7 @@ matrix:
     - nohup bash -c "Xvfb :99 &"
     - $PYTHON tests/resources/httpserver/start.py &
     script:
-    - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
+    - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE --with-timer --timer-top-n 30
     after_success:
       - coverage report -m && codecov
 
