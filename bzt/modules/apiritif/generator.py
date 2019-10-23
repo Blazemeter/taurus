@@ -809,6 +809,9 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
         return ast.FunctionDef(name="tearDown", args=[ast_attr("self")], body=body, decorator_list=[])
 
     def _gen_test_methods(self):
+        methods = []
+        slave_methods_names = []
+
         requests = self.scenario.get_requests(parser=HierarchicRequestParser, require_url=False)
 
         number_of_digits = int(math.log10(len(requests))) + 1
@@ -840,12 +843,16 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
                 return
 
             counter = str(index).zfill(number_of_digits)
-            method_name = 'test_' + counter + '_' + label
+            method_name = '_' + counter + '_' + label
 
             if isinstance(request, SetVariables):
-                self.service_methods.append(method_name)  # for sample excluding
+                self.service_methods.append(label)  # for sample excluding
 
-            yield self._gen_test_method(method_name, body)
+            methods.append(self._gen_test_method(method_name, body))
+            slave_methods_names.append(method_name)
+
+        methods.append(self._gen_master_test_method(slave_methods_names))
+        return methods
 
     def _gen_set_vars(self, request):
         res = []
@@ -855,6 +862,16 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
                 value=ast.Str(s="%s" % request.mapping[name])))
 
         return res
+
+    def _gen_master_test_method(self, slave_method_names):
+        if not slave_method_names:
+            raise TaurusConfigError("Supported trasactions not found, test is empty")
+
+        body = []
+        for slave_name in slave_method_names:
+            body.append(ast.Expr(ast_call(func=ast_attr("self." + slave_name))))
+
+        return self._gen_test_method(name=create_method_name(self.label), body=body)
 
     @staticmethod
     def _gen_test_method(name, body):
@@ -986,8 +1003,8 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
                 body.append(self._gen_http_request(request))
 
         transaction_class = "apiritif.smart_transaction"
-        if self.test_mode == "selenium":    # todo: remove it?
-            transaction_class += "_logged"
+        #if self.test_mode == "selenium":    # todo: remove it?
+        #    transaction_class += "_logged"
 
         transaction = ast.With(
             context_expr=ast_call(

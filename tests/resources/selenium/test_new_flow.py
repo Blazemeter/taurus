@@ -42,27 +42,27 @@ class TestSdsdsdsSelenium(unittest.TestCase):
             driver=self.driver,
             func_mode=False)  # don't stop after failed test case
 
-    def tearDown(self):
-        if self.driver:
-            self.driver.quit()
-
-    def t1(self):
+    def _1_t1(self):
         with apiritif.smart_transaction('t1'):
             self.driver.get('http://blazedemo.com/purchase.php')
             self.driver.find_element(By.CSS_SELECTOR, 'input.btn.btn-primary').click()
 
-    def t2(self):
+    def _2_t2(self):
         with apiritif.smart_transaction('t2'):
             self.driver.get('https://www.belarus.by/en/')
             body = self.driver.page_source
             re_pattern = re.compile('In God we trust')
             self.assertNotEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'In God we trust' not found in BODY")
 
-    def t3(self):
+    def _3_t3(self):
         with apiritif.smart_transaction('t3'):
-            self.driver.get('some.strange.url')
+            self.driver.get('http://some.strange.url')
 
     def test_sdsdsds_Selenium(self):
-        self.t1()
-        self.t2()
-        self.t3()
+        self._1_t1()
+        self._2_t2()
+        self._3_t3()
+
+    def tearDown(self):
+        if self.driver:
+            self.driver.quit()

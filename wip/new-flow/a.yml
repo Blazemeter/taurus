@@ -12,9 +12,11 @@ scenarios:
     think-time: 0s
     requests:
     - label: t1
-      url: http://blazedemo.com/purchase.php
+      actions:
+      - go(http://blazedemo.com/purchase.php)
+      - clickByCSS(input.btn.btn-primary)
     - label: t2
-      url: https://www.belarus.by/en//
+      url: https://www.belarus.by/en/
       assert:
         - In God we trust
     - label: t3
