@@ -7,19 +7,6 @@ branches:
   only:
   - master
 
-#git:
-#  depth: 50
-#  quiet: true
-
-#os: linux
-#dist: xenial
-
-#python:
-#- "2.7"
-#- "3.5"
-#- "3.6"
-#- "3.7"
-
 env:
   global:
   - DISPLAY=:99.0
@@ -77,7 +64,7 @@ matrix:
     script:
     - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE --with-timer --timer-top-n 30
     after_success:
-      - coverage report -m && codecov
+    - coverage report -m && codecov
 
   - os: osx
     name: "Python3 on macOS"
@@ -101,29 +88,29 @@ matrix:
     script:
       - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
 
-#  - os: windows
-#    name: "Python3 on Windows"
-#    language: minimal
-#    before_install:
-#    - choco install python --version 3.7.4
-#    - python -m pip install --upgrade pip
-#    - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
-#    install:
-#    - %PATH%\\python.exe -m pip install pip wheel --upgrade
-#    - %PATH%\\python.exe -m pip install pyyaml==3.12
-#    - %PATH%\\python.exe -m pip install -r requirements.txt
-#    - %PATH%\\python.exe -m pip install -r tests/ci/requirements.txt
-#    - set R_PATH=C:\Ruby22\bin;%PATH%\Scripts\;%R_PATH%
-#    - gem install rspec
-#    before_test:
-#      - ruby -v
-#      - gem -v
-#      - rspec --version
-#      - node --version
-#      - locust --version
-#      - %PATH%\\python.exe tests/resources/httpserver/start.py
-#    script:
-#    - %PATH%\\python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
+  - os: windows
+    name: "Python3 on Windows"
+    language: shell
+    before_install:
+    - choco install python --version 3.7.4
+    - python -m pip install --upgrade pip
+    - PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+    install:
+    - %PATH%\\python.exe -m pip install pip wheel --upgrade
+    - %PATH%\\python.exe -m pip install pyyaml==3.12
+    - %PATH%\\python.exe -m pip install -r requirements.txt
+    - %PATH%\\python.exe -m pip install -r tests/ci/requirements.txt
+    - set R_PATH=C:\Ruby22\bin;%PATH%\Scripts\;%R_PATH%
+    - gem install rspec
+    before_test:
+    - ruby -v
+    - gem -v
+    - rspec --version
+    - node --version
+    - locust --version
+    - %PATH%\\python.exe tests/resources/httpserver/start.py
+    script:
+    - %PATH%\\python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
 
 addons:
   firefox: latest
