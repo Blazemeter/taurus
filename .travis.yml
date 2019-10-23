@@ -90,7 +90,6 @@ matrix:
 
   - os: windows
     name: "Python3 on Windows"
-    powershell
     language: shell
     before_install:
       - choco install python --version 3.7.4
@@ -98,21 +97,22 @@ matrix:
     env:
     - PATH=/c/Python37:/c/Python37/Scripts:$PATH
     install:
-    - python pip install pip wheel --upgrade
-#    - %PATH%\\python.exe -m pip install pyyaml==3.12
-#    - %PATH%\\python.exe -m pip install -r requirements.txt
-#    - %PATH%\\python.exe -m pip install -r tests/ci/requirements.txt
-#    - set R_PATH=C:\Ruby22\bin;%PATH%\Scripts\;%R_PATH%
-#    - gem install rspec
-#    before_test:
-#    - ruby -v
-#    - gem -v
-#    - rspec --version
-#    - node --version
-#    - locust --version
-#    - %PATH%\\python.exe tests/resources/httpserver/start.py
-#    script:
-#    - %PATH%\\python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
+    - PowerShell -Command 'Install-Product node $env:NODEJS_VERSION'
+    - "%PYTHON%\\python.exe -m pip install pip wheel --upgrade"
+    - "%PYTHON%\\python.exe -m pip install pyyaml==3.12"
+    - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
+    - "%PYTHON%\\python.exe -m pip install -r tests/ci/requirements.txt"
+    - set PATH=C:\Ruby22\bin;%PYTHON%\Scripts\;%PATH%
+    - gem install rspec
+    before_test:
+    - ruby -v
+    - gem -v
+    - rspec --version
+    - node --version
+    - locust --version
+    - %PATH%\\python.exe tests/resources/httpserver/start.py
+    script:
+    - %PATH%\\python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
 
 addons:
   firefox: latest
