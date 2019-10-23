@@ -672,7 +672,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
         stmts.extend(self._gen_data_source_readers())
         stmts.append(self._gen_classdef())
 
-        stmts = self._gen_imports() + stmts     # todo: order is important (with classdef) because of self.appium setup
+        stmts = self._gen_imports() + stmts  # todo: order is important (with classdef) because of self.appium setup
 
         return ast.Module(body=stmts)
 
@@ -780,7 +780,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
                     func=ast_attr("reader_%s.get_vars" % (idx + 1)))])
             data_sources.append(ast.Expr(extend_vars))
 
-        stored_vars = {"func_mode": str(False)}   # todo: make func_mode optional
+        stored_vars = {"func_mode": str(False)}  # todo: make func_mode optional
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
@@ -1004,7 +1004,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
                 body.append(self._gen_http_request(request))
 
         transaction_class = "apiritif.smart_transaction"
-        #if self.test_mode == "selenium":    # todo: remove it?
+        # if self.test_mode == "selenium":    # todo: remove it?
         #    transaction_class += "_logged"
 
         transaction = ast.With(
