@@ -6,6 +6,7 @@ execution:
 scenarios:
   sdsdsds-Selenium:
     generate-flow-markers: true
+    browser: Chrome
     headless: false
     timeout: 60s
     think-time: 0s

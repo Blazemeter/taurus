@@ -573,7 +573,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
                     args=[ast.Str("webdriver.log.file"), ast.Str(self.wdlog)])))
 
             body.append(ast.Assign(
-                targets=[ast.Name(id="driver")],
+                targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.Firefox"),
                     args=[ast.Name(id="profile")],
@@ -587,7 +587,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
                     func=ast_attr("webdriver.ChromeOptions"))))
             body.extend(headless_setup)
             body.append(ast.Assign(
-                targets=[ast.Name(id="driver")],
+                targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.Chrome"),
                     keywords=[
@@ -601,7 +601,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
             keys = sorted(self.capabilities.keys())
             values = [str(self.capabilities[key]) for key in keys]
             body.append(ast.Assign(
-                targets=[ast.Name(id="driver")],
+                targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.Remote"),
                     keywords=[
@@ -618,26 +618,26 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
                 self.log.warning("Browser %r doesn't support headless mode" % browser)
 
             body.append(ast.Assign(
-                targets=[ast.Name(id="driver")],
+                targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
 
         scenario_timeout = self.scenario.get("timeout", "30s")
         body.append(ast.Expr(
             ast_call(
-                func=ast_attr("driver.implicitly_wait"),
+                func=ast_attr("self.driver.implicitly_wait"),
                 args=[ast.Num(dehumanize_time(scenario_timeout))])))
 
         body.append(ast.Assign(
-            targets=[ast.Name(id="wnd_mng")],
+            targets=[ast_attr("self.wnd_mng")],
             value=ast_call(
                 func=ast.Name(id="WindowManager"),
-                args=[ast.Name(id="driver")])))
+                args=[ast_attr("self.driver")])))
         body.append(ast.Assign(
-            targets=[ast.Name(id="frm_mng")],
+            targets=[ast_attr("self.frm_mng")],
             value=ast_call(
                 func=ast.Name(id="FrameManager"),
-                args=[ast.Name(id="driver")])))
+                args=[ast_attr("self.driver")])))
 
         if self.window_size:  # FIXME: unused in fact ?
             body.append(ast.Expr(
@@ -870,7 +870,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
 
     def _gen_target_setup(self, key, value):
         return ast.Expr(ast_call(
-            func=ast_attr("target.%s" % key),
+            func=ast_attr("self.target.%s" % key),
             args=[self._gen_expr(value)]))
 
     def _access_method(self):
