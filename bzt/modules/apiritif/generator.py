@@ -871,7 +871,8 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
         for slave_name in slave_method_names:
             body.append(ast.Expr(ast_call(func=ast_attr("self." + slave_name))))
 
-        return self._gen_test_method(name=create_method_name(self.label), body=body)
+        name = 'test_' + create_method_name(self.label)
+        return self._gen_test_method(name=name, body=body)
 
     @staticmethod
     def _gen_test_method(name, body):

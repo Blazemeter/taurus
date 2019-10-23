@@ -22,33 +22,27 @@ from selenium.webdriver.common.keys import Keys
 from bzt.resources.selenium_extras import FrameManager, WindowManager
 
 
-def setup():
-    driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={
-        'browserName': 'chrome',
-        'deviceName': '',
-        'platformName': 'android',
-    })
-    driver.implicitly_wait(3.5)
-    wnd_mng = WindowManager(driver)
-    frm_mng = FrameManager(driver)
-    vars = {
-        
-    }
-    apiritif.put_into_thread_store(vars, driver, wnd_mng, frm_mng)
-
-
-def teardown():
-    (_, driver, _, _) = apiritif.get_from_thread_store()
-    driver.quit()
-
 
 class TestLocScAppium(unittest.TestCase, ):
 
     def setUp(self):
-        (self.vars, self.driver, self.wnd_mng, self.frm_mng) = apiritif.get_from_thread_store()
+        self.driver = None
+        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={
+            'browserName': 'chrome',
+            'deviceName': '',
+            'platformName': 'android',
+        })
+        self.driver.implicitly_wait(3.5)
+        self.wnd_mng = WindowManager(self.driver)
+        self.frm_mng = FrameManager(self.driver)
+        self.vars = {
 
-    def test_1_(self):
-        with apiritif.transaction_logged('/'):
+        }
+
+        apiritif.put_into_thread_store(flow_markers=None, driver=self.driver, func_mode=False)
+
+    def _1_(self):
+        with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, "//input[@type='submit']")), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
             self.assertEqual(self.driver.title, 'BlazeDemo')
@@ -56,6 +50,14 @@ class TestLocScAppium(unittest.TestCase, ):
             re_pattern = re.compile('contained_text')
             self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
 
-    def test_2_empty(self):
-        with apiritif.transaction_logged('empty'):
+    def _2_empty(self):
+        with apiritif.smart_transaction('empty'):
             pass
+
+    def test_locsc(self):
+        self._1_()
+        self._2_empty()
+
+    def tearDown(self):
+        if self.driver:
+            self.driver.quit()
