@@ -13,11 +13,11 @@ branches:
 
 #os: linux
 
-python:
-- "2.7"
-- "3.5"
-- "3.6"
-- "3.7"
+#python:
+#- "2.7"
+#- "3.5"
+#- "3.6"
+#- "3.7"
 
 env:
   global:
@@ -41,6 +41,7 @@ matrix:
     - $PIP_INSTALL -r tests/ci/requirements.txt
     before_script:
     - nohup bash -c "Xvfb :99 &"
+    - $PYTHON tests/resources/httpserver/start.py &
     script:
     - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
     after_success:
@@ -64,6 +65,7 @@ matrix:
     - $PIP_INSTALL -r tests/ci/requirements.txt
     before_script:
       - sudo nohup bash -c "xvfb :99 &"
+      - $PYTHON tests/resources/httpserver/start.py &
     script:
       - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
 
