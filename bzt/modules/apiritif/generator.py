@@ -940,7 +940,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
             args=[self._gen_expr(default_address)])
 
         target = ast.Assign(
-            targets=[ast.Name(id="target", ctx=ast.Store())],
+            targets=[ast_attr("self.target")],
             value=target_call)
 
         return target
