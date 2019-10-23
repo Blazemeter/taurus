@@ -108,7 +108,6 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
         self.tree = None
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
-        self.stored_vars = []
         self.service_methods = []
 
         self.remote_address = wd_addr
@@ -671,11 +670,6 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
             stmts.extend(self._gen_logging())
 
         stmts.extend(self._gen_data_source_readers())
-        stmts.extend(self._gen_module_setup())
-
-        if self.test_mode == "selenium":
-            stmts.append(self._gen_module_teardown())
-
         stmts.append(self._gen_classdef())
 
         stmts = self._gen_imports() + stmts     # todo: order is important (with classdef) because of self.appium setup
@@ -708,43 +702,6 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
             imports.append(ast.parse(self.IMPORTS % source).body)
 
         return imports
-
-    def _gen_module_setup(self):
-        if self.test_mode == "apiritif":
-            target_init = self._gen_api_target()
-        else:
-            target_init = self._gen_webdriver()
-
-        data_sources = [self._gen_default_vars()]
-        for idx in range(len(self.data_sources)):
-            data_sources.append(ast.Expr(ast_call(func=ast_attr("reader_%s.read_vars" % (idx + 1)))))
-
-        for idx in range(len(self.data_sources)):
-            extend_vars = ast_call(
-                func=ast_attr("vars.update"),
-                args=[ast_call(
-                    func=ast_attr("reader_%s.get_vars" % (idx + 1)))])
-            data_sources.append(ast.Expr(extend_vars))
-
-        self.stored_vars = ['vars']
-        if target_init:
-            if self.test_mode == "apiritif":
-                self.stored_vars.append("target")
-            else:
-                self.stored_vars.extend(["driver", "wnd_mng", "frm_mng"])
-
-        store_call = ast_call(
-            func=ast_attr("apiritif.put_into_thread_store"),
-            args=[ast.Name(id=var) for var in self.stored_vars])
-
-        store_block = [ast.Expr(store_call)]
-
-        setup = ast.FunctionDef(
-            name="setup",
-            args=[],
-            body=target_init + data_sources + store_block,
-            decorator_list=[])
-        return [setup, self._gen_empty_line_stmt()]
 
     def _gen_data_source_readers(self):
         readers = []
@@ -794,6 +751,8 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
     def _gen_classdef(self):
         class_body = [self._gen_class_setup()]
         class_body.extend(self._gen_test_methods())
+        if self.test_mode == "selenium":
+            class_body.append(self._gen_class_teardown())
 
         return ast.ClassDef(
             name=create_class_name(self.label),
@@ -805,28 +764,49 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
             decorator_list=[])
 
     def _gen_class_setup(self):
-        fields = ast.Tuple(elts=[ast.Name(id="self.%s" % var) for var in self.stored_vars])
+        if self.test_mode == "apiritif":
+            target_init = self._gen_api_target()
+        else:
+            target_init = self._gen_webdriver()
 
-        body = [ast.Assign(
-            targets=[fields],
-            value=ast_call(func=ast_attr("apiritif.get_from_thread_store")))]
+        data_sources = [self._gen_default_vars()]
+        for idx in range(len(self.data_sources)):
+            data_sources.append(ast.Expr(ast_call(func=ast_attr("reader_%s.read_vars" % (idx + 1)))))
 
-        return ast.FunctionDef(name="setUp", args=[ast.Name(id="self")], body=body, decorator_list=[])
+        for idx in range(len(self.data_sources)):
+            extend_vars = ast_call(
+                func=ast_attr("vars.update"),
+                args=[ast_call(
+                    func=ast_attr("reader_%s.get_vars" % (idx + 1)))])
+            data_sources.append(ast.Expr(extend_vars))
 
-    def _gen_module_teardown(self):
-        fields = []
-        for var in self.stored_vars:
-            if var == "driver":
-                fields.append(var)
+        stored_vars = []
+        if target_init:
+            if self.test_mode == "apiritif":
+                stored_vars.append("target")
             else:
-                fields.append("_")
+                stored_vars.extend(["driver"])
 
-        ast_fields = ast.Tuple(elts=[ast.Name(id="%s" % var) for var in fields])
+        store_call = ast_call(
+            func=ast_attr("apiritif.put_into_thread_store"),
+            args=[ast.Name(id=var) for var in stored_vars])
 
-        body = [ast.Assign(targets=[ast_fields], value=ast_call(func=ast_attr("apiritif.get_from_thread_store"))),
-                ast.Expr(ast_call(func=ast_attr("driver.quit")))]
+        store_block = [ast.Expr(store_call)]
 
-        return ast.FunctionDef(name="teardown", args=[], body=body, decorator_list=[])
+        setup = ast.FunctionDef(
+            name="setUp",
+            args=[ast_attr("self")],
+            body=target_init + data_sources + store_block,
+            decorator_list=[])
+        return [setup, self._gen_empty_line_stmt()]
+
+    def _gen_class_teardown(self):
+        body = [
+            ast.If(
+                test=ast_attr("self.driver"),
+                body=ast.Expr(ast_call(func=ast_attr("self.driver.quit"))), orelse=[])]
+
+        return ast.FunctionDef(name="tearDown", args=[ast_attr("self")], body=body, decorator_list=[])
 
     def _gen_test_methods(self):
         requests = self.scenario.get_requests(parser=HierarchicRequestParser, require_url=False)
