@@ -1,0 +1,3648 @@
+---
+execution:
+- concurrency: 1
+  iterations: 1
+  ramp-up: 10s
+  scenario: /v3/prospects/smallgroupquote-STRESS
+scenarios:
+  /v3/prospects/smallgroupquote-STRESS:
+    requests:
+    - body: |-
+        {
+                    "createSmallGroupQuoteRequest": {
+                    "source": "QRS",
+                    "market": "SB",
+                    "businessType": "New Business",
+                    "effectiveDate": "2019-01-01",
+                    "header": {
+                    "transactionID": "ratequotesmall"
+                    },
+                    "prospectSponsor": {
+                    "name": "Small_Group",
+                    "user": "497277",
+                    "id": "1",
+                    "employerZip": "75001",
+                    "medicare": "Primary",
+                    "sicCode": "3069",
+                    "hasWorkersCompensation": "NO"
+                    },
+                    "censusSubscribers": {
+                    "subscriber": [
+                    {
+                    "dateOfBirth": "1997-01-01",
+                    "medicare": "Primary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Female",
+                    "correlId": "1",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1997-01-01",
+                    "medicare": "Primary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "2",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1997-01-01",
+                    "medicare": "Primary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Female",
+                    "correlId": "3",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1997-01-01",
+                    "medicare": "Primary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "4",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1997-01-01",
+                    "medicare": "Primary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Female",
+                    "correlId": "5",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1997-01-01",
+                    "medicare": "Primary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "6",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1997-01-01",
+                    "medicare": "Primary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Female",
+                    "correlId": "7",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1997-01-01",
+                    "medicare": "Primary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "8",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1997-01-01",
+                    "medicare": "Primary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Female",
+                    "correlId": "9",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1997-01-01",
+                    "medicare": "Primary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "10",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    }
+                    ]
+                    },
+                    "benefitQuoteRequests": {
+                    "benefitQuoteTypeRequest": [
+                    {
+
+                    "type": "Medical",
+                    "quoteProducts": {
+                    "quoteProductRequest": [
+                    {
+                    "id": "30002045",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002047",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30004450",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30004451",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "20041966",
+                    "type": "HMO"
+                    }
+                    ]
+                    },
+                    "producerCompensationType": {
+                    "compensationType":"Standard Commission"
+                    },
+                    "benefitQuoteTypeComponent": {
+                    "eligibles": "10",
+                    "subscribers": "10"
+                    }
+                    },
+                    {
+
+                    "type": "Dental",
+                    "quoteProducts": {
+                    "quoteProductRequest": [
+                    {
+                    "id": "61188",
+                    "type": "FOC"
+                    },
+                    {
+                    "id": "61190",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61192",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61835",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61837",
+                    "type": "Dental PPO"
+                    }
+                    ]
+                    },
+                    "producerCompensationType":{
+                    "compensationType":"Standard Commission"
+                    },
+                    "benefitQuoteTypeComponent": {
+                    "eligibles": "10",
+                    "subscribers": "10"
+                    },
+                    "duration": "0",
+                    "spouseWaiver": "0",
+                    "priorCoverageOption": "No Prior Coverage"
+                    }
+                    ]
+                    },
+                    "isPostUnderWriting": "NO",
+                    "userRole": "Internal",
+                    "pagination": {
+                    "perPage": "20",
+                    "page": "1"
+                    }
+                    }
+                    }
+      method: POST
+      url: https://stressapih1.aetna.com/healthcare/stress/v3/prospects/smallgroupquote
+    - body: |-
+        {
+                    "createSmallGroupQuoteRequest": {
+
+                    "source": "QRS",
+                    "market": "SB",
+                    "businessType": "New Business",
+                    "effectiveDate": "2019-01-01",
+                    "header": {
+                    "transactionID": "ratequotemedium"
+                    },
+                    "prospectSponsor": {
+                    "name": "Medium_Grp",
+                    "user": "497277",
+                    "id": "1",
+                    "employerZip": "75001",
+                    "medicare": "Secondary",
+                    "sicCode": "2326",
+                    "hasWorkersCompensation": "NO"
+                    },
+                    "censusSubscribers": {
+                    "subscriber": [
+                    {
+                    "dateOfBirth": "1983-12-11",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "1",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-12",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Female",
+                    "correlId": "2",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-13",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "3",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-14",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "4",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-15",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Female",
+                    "correlId": "5",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-16",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "6",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-17",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "7",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-18",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "8",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-19",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "9",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-20",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "10",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-21",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "11",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-22",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "12",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-23",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "13",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-24",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "14",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-25",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "15",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-26",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "16",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-27",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "17",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-28",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "18",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-29",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "19",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-30",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "20",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-31",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "21",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "22",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-02",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "23",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-03",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "24",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-04",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "25",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    }
+                    ]
+                    },
+                    "benefitQuoteRequests": {
+                    "benefitQuoteTypeRequest": [
+                    {
+
+                    "type": "Medical",
+                    "quoteProducts": {
+                    "quoteProductRequest": [
+                    {
+                    "id": "30002045",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002047",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002048",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002049",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002050",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002051",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002055",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002056",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002057",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002061",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002064",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002065",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002066",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002070",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002071",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002073",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30004450",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30004451",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "20041961",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "20041966",
+                    "type": "HMO"
+                    }
+                    ]
+                    },
+                    "producerCompensationType": {
+                    "compensationType":"Standard Commission"
+                    },
+                    "benefitQuoteTypeComponent": {
+                    "eligibles": "25",
+                    "subscribers": "25"
+                    }
+                    },
+                    {
+
+                    "type": "Dental",
+                    "quoteProducts": {
+                    "quoteProductRequest": [
+                    {
+                    "id": "61188",
+                    "type": "FOC"
+                    },
+                    {
+                    "id": "61190",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61192",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61194",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61196",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61835",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61837",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "64719",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "64721",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "69578",
+                    "type": "Dental PPO"
+                    }
+                    ]
+                    },
+                    "producerCompensationType":{
+                    "compensationType":"Standard Commission"
+                    },
+                    "benefitQuoteTypeComponent": {
+                    "eligibles": "25",
+                    "subscribers": "25"
+                    },
+                    "duration": "0",
+                    "spouseWaiver": "0",
+                    "priorCoverageOption": "No Prior Coverage"
+                    }
+                    ]
+                    },
+                    "isPostUnderWriting": "NO",
+                    "userRole": "Internal",
+                    "pagination": {
+                    "perPage": "80",
+                    "page": "1"
+                    }
+                    }
+                    }
+      method: POST
+      url: https://stressapih1.aetna.com/healthcare/stress/v3/prospects/smallgroupquote
+    - body: |-
+        {
+                    "createSmallGroupQuoteRequest": {
+
+                    "source": "QRS",
+                    "market": "SB",
+                    "businessType": "New Business",
+                    "effectiveDate": "2019-01-01",
+                    "header": {
+                    "transactionID": "ratequotelarge"
+                    },
+                    "prospectSponsor": {
+                    "name": "Large_Grp",
+                    "user": "497277",
+                    "id": "1",
+                    "employerZip": "45001",
+                    "medicare": "Secondary",
+                    "sicCode": "2326",
+                    "hasWorkersCompensation": "NO"
+                    },
+                    "censusSubscribers": {
+                    "subscriber": [
+                    {
+                    "dateOfBirth": "1983-12-11",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "1",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-12",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Female",
+                    "correlId": "2",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-13",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "3",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-14",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "4",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-15",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Female",
+                    "correlId": "5",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-16",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "6",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-17",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "7",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-18",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "8",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-19",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "9",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-20",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "10",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-21",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "11",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-22",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "12",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-23",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "13",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-24",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "14",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-25",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "15",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-26",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "16",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-27",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "17",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-28",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "18",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-29",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "19",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-30",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "20",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1983-12-31",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "21",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "22",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-02",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "23",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-03",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "24",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-04",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "25",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-05",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "26",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-06",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "27",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-07",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "28",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-08",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "29",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-09",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "30",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-10",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "31",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-11",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "32",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-12",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "33",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-13",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "34",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-14",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "35",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-15",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "36",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-16",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "37",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-17",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "38",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-18",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "39",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-19",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "40",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-20",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "41",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-21",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "42",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-22",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "43",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-23",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "44",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-24",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "45",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-25",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "46",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-26",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "47",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-27",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "48",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-28",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "49",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    },
+                    {
+                    "dateOfBirth": "1984-01-29",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "50",
+                    "cobra": "COBRA",
+                    "dentalCoverageType": "EE+SP",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "45001",
+                    "workZip": "45001"
+                    }
+                    ]
+                    },
+                    "benefitQuoteRequests": {
+                    "benefitQuoteTypeRequest": [
+                    {
+
+                    "type": "Medical",
+                    "quoteProducts": {
+                    "quoteProductRequest": [
+                    {
+                    "id": "30002045",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002046",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002047",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002048",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002049",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002050",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002051",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002052",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002053",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002054",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002055",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002056",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002057",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002058",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002059",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002060",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002061",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002062",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002063",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002064",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002065",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002066",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002068",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002070",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002071",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002072",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002073",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002074",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002075",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002076",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002077",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002961",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002963",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002243",
+                    "type": "Indemnity"
+                    },
+                    {
+                    "id": "30004450",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30004451",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30004530",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30004531",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "20041789",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "20041790",
+                    "type": "HNO"
+                    }
+                    ]
+                    },
+                    "producerCompensationType": {
+                    "compensationType":"Standard Commission"
+                    },
+                    "benefitQuoteTypeComponent": {
+                    "eligibles": "50",
+                    "subscribers": "50"
+                    }
+                    },
+                    {
+
+                    "type": "Dental",
+                    "quoteProducts": {
+                    "quoteProductRequest": [
+                    {
+                    "id": "61211",
+                    "type": "FOC"
+                    },
+                    {
+                    "id": "61213",
+                    "type": "FOC"
+                    },
+                    {
+                    "id": "61215",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61219",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61221",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61685",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "65952",
+                    "type": "FOC"
+                    },
+                    {
+                    "id": "65954",
+                    "type": "FOC"
+                    },
+                    {
+                    "id": "69497",
+                    "type": "FOC"
+                    },
+                    {
+                    "id": "69499",
+                    "type": "FOC"
+                    }
+                    ]
+                    },
+                    "producerCompensationType":{
+                    "compensationType":"Standard Commission"
+                    },
+                    "benefitQuoteTypeComponent": {
+                    "eligibles": "50",
+                    "subscribers": "50"
+                    },
+                    "duration": "0",
+                    "spouseWaiver": "0",
+                    "priorCoverageOption": "No Prior Coverage"
+                    }
+                    ]
+                    },
+                    "isPostUnderWriting": "NO",
+                    "userRole": "Internal",
+                    "pagination": {
+                    "perPage": "80",
+                    "page": "1"
+                    }
+                    }
+                    }
+      method: POST
+      url: https://stressapih1.aetna.com/healthcare/stress/v3/prospects/smallgroupquote
+    - body: |-
+        {
+                    "createSmallGroupQuoteRequest": {
+
+                    "source": "QRS",
+                    "market": "SB",
+                    "businessType": "New Business",
+                    "effectiveDate": "2019-03-15",
+                    "header": {
+                    "transactionID": "ratequotemedium"
+                    },
+                    "prospectSponsor": {
+                    "name": "Extra_Large_Grp",
+                    "user": "497277",
+                    "id": "1",
+                    "employerZip": "75001",
+                    "medicare": "Secondary",
+                    "sicCode": "2326",
+                    "hasWorkersCompensation": "NO"
+                    },
+                    "censusSubscribers": {
+                    "subscriber": [
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "1",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "2",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "3",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "4",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "5",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "6",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "7",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "8",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "9",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "10",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "11",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "12",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "13",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "14",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "15",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "16",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "17",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "18",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "19",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "20",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "21",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "22",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "23",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "24",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "25",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "26",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "27",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "28",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "29",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "30",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "31",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "32",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "33",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "34",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "35",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "36",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "37",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "38",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "39",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "40",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "41",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "42",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "43",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "44",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "45",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "46",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "47",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "48",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "49",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "50",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "51",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "52",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "53",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "54",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "55",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "56",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "57",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-01-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "58",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-20",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "59",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-21",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "60",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-22",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "61",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-23",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "62",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-24",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "63",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-25",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "64",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-26",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "65",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-27",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "66",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-28",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "67",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-29",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "68",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-30",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "69",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-03-31",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "70",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-01",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "71",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-02",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "72",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-03",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "73",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-04",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "74",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-05",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "75",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-06",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "76",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-07",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "77",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-08",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "78",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-09",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "79",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-10",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "80",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-11",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "81",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-12",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "82",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-13",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "83",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-14",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "84",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-15",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "85",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-16",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "86",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-17",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "87",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-18",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "88",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-19",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "89",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-20",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "90",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-21",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "91",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-22",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "92",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-23",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "93",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-24",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "94",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-25",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "95",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-26",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "96",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-27",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "97",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-28",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "98",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-29",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "99",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    },
+                    {
+                    "dateOfBirth": "1992-04-30",
+                    "medicare": "Secondary",
+                    "tobStatus": "No",
+                    "medicalCoverageType": "Enroll",
+                    "gender": "Male",
+                    "correlId": "100",
+                    "cobra": "Active",
+                    "dentalCoverageType": "EE",
+                    "lifeCoverageType": "Waive",
+                    "stdCoverageType": "Waive",
+                    "homeZip": "75001",
+                    "workZip": "75001"
+                    }
+                    ]
+                    },
+                    "benefitQuoteRequests": {
+                    "benefitQuoteTypeRequest": [
+                    {
+
+                    "type": "Medical",
+                    "quoteProducts": {
+                    "quoteProductRequest": [
+                    {
+                    "id": "30002177",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002178",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002179",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002180",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002181",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002182",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002183",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002184",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002185",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002186",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002187",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002188",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002189",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002190",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002191",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002192",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002193",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002194",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002195",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002196",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002197",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002198",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002199",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002200",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002201",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002202",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002203",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002204",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002205",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002206",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002207",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002208",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002209",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003552",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003553",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003554",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003555",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003556",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003557",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003558",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003559",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003560",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003561",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003562",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003563",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003564",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003565",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003566",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003567",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003568",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003569",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003570",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003579",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003580",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003581",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003582",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003583",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30003584",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30002045",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002046",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002047",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002048",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002049",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002050",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002051",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002052",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002053",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002054",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002055",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002056",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002057",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002058",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002059",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002060",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002061",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002062",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002063",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002065",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002066",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002067",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002068",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002069",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002070",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002071",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002072",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002073",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002074",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002075",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002076",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002077",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30002243",
+                    "type": "Indemnity"
+                    },
+                    {
+                    "id": "30004450",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30004451",
+                    "type": "MC"
+                    },
+                    {
+                    "id": "30004452",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30004453",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30004553",
+                    "type": "PPO"
+                    },
+                    {
+                    "id": "30004554",
+                    "type": "PPO"
+                    }
+                    ]
+                    },
+                    "producerCompensationType": {
+                    "compensationType":"Standard Commission"
+                    },
+                    "benefitQuoteTypeComponent": {
+                    "eligibles": "100",
+                    "subscribers": "100"
+                    }
+                    },
+                    {
+
+                    "type": "Dental",
+                    "quoteProducts": {
+                    "quoteProductRequest": [
+                    {
+                    "id": "61188",
+                    "type": "FOC"
+                    },
+                    {
+                    "id": "61190",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61194",
+                    "type": "Dental PPO"
+                    },
+                    {
+                    "id": "61196",
+                    "type": "Dental PPO"
+                    }
+                    ]
+                    },
+                    "producerCompensationType":{
+                    "compensationType":"Standard Commission"
+                    },
+                    "benefitQuoteTypeComponent": {
+                    "eligibles": "100",
+                    "subscribers": "100"
+                    },
+                    "duration": "0",
+                    "spouseWaiver": "0",
+                    "priorCoverageOption": "No Prior Coverage"
+                    }
+                    ]
+                    },
+                    "isPostUnderWriting": "NO",
+                    "userRole": "Internal",
+                    "pagination": {
+                    "perPage": "110",
+                    "page": "1"
+
+                    }
+                    }
+                    }
+      method: POST
+      url: https://stressapih1.aetna.com/healthcare/stress/v3/prospects/smallgroupquote
+

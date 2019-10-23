@@ -1,9 +1,21 @@
 ---
 execution:
+- concurrency: 1
+  iterations: 1
+  ramp-up: 10s
+  scenario: BlazeDemo LoadTest
 - concurrency: 10
   hold-for: 60
   scenario: TestSuite 1-index
 scenarios:
+  BlazeDemo LoadTest:
+    requests:
+    - body: null
+      method: GET
+      url: http://blazedemo.com/
+    - body: null
+      method: GET
+      url: http://blazedemo.com/reserve.php
   TestSuite 1-index:
     requests:
     - assert:
