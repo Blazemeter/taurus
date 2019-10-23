@@ -90,6 +90,7 @@ matrix:
 
   - os: windows
     name: "Python3 on Windows"
+    powershell
     language: shell
     before_install:
       - choco install python --version 3.7.4
@@ -97,7 +98,7 @@ matrix:
     env:
     - PATH=/c/Python37:/c/Python37/Scripts:$PATH
     install:
-    - "%PATH%\\python.exe -m pip install pip wheel --upgrade"
+    - python pip install pip wheel --upgrade
 #    - %PATH%\\python.exe -m pip install pyyaml==3.12
 #    - %PATH%\\python.exe -m pip install -r requirements.txt
 #    - %PATH%\\python.exe -m pip install -r tests/ci/requirements.txt
