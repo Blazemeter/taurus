@@ -112,9 +112,9 @@ matrix:
     - rspec --version
     - node --version
     - locust --version
-    - python tests/resources/httpserver/start.py
+    - $PYTHON/python.exe tests/resources/httpserver/start.py
     script:
-    - python -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
+    - $PYTHON/python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
 
 addons:
   firefox: latest
