@@ -96,13 +96,14 @@ matrix:
     - python -m ensurepip
     - python -m pip install --upgrade pip
     env:
-    - PATH=/c/Python37:/c/Python37/Scripts:$PATH
+    - PYTHON=C:\\Python37
+    - PATH=c/Python37:/c/Python37/Scripts:$PATH
     - R_PATH=C:\Ruby22\bin;
     install:
-    - $PATH/python.exe -m pip install pip wheel --upgrade
-    - $PATH/python.exe -m pip install pyyaml==3.12
-    - $PATH/python.exe -m pip install -r requirements.txt
-    - $PATH/python.exe -m pip install -r tests/ci/requirements.txt
+    - $PYTHON/python.exe -m pip install pip wheel --upgrade
+    - $PYTHON/python.exe -m pip install pyyaml==3.12
+    - $PYTHON/python.exe -m pip install -r requirements.txt
+    - $PYTHON/python.exe -m pip install -r tests/ci/requirements.txt
 #    - set R_PATH=C:\Ruby22\bin;%PATH%\Scripts\;%R_PATH%
     - gem install rspec
     before_test:
