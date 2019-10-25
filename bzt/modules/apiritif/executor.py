@@ -111,7 +111,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
             builder = ApiritifScriptGenerator(
                 scenario, self.label, wdlog, executor=self,
-                utils_file=os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py"),
                 ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
                 generate_markers=generate_markers,
                 capabilities=capabilities,
