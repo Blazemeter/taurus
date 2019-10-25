@@ -91,77 +91,77 @@ action object. It can be one of the following: `ID`, `Name`, `LinkText`, `CSS`, 
 `waitByName`, `keysByCSS`.
 
 #### How to find them
-1. By ID
+__1. By ID__
 
-    ```html
-    <td>
-        <h1 id="my_ID_locator">ID Locator</h1>
-    </td>
-    ```
-    Header tag has an ID attribute (`id="ID\_locator"`). For example, wait until the element is displayed `waitByID(ID\_locator)`.
+```html
+<td>
+    <h1 id="my_ID_locator">ID Locator</h1>
+</td>
+```
+Header tag has an ID attribute (`id="ID\_locator"`). For example, wait until the element is displayed `waitByID(ID\_locator)`.
     
-2. By the attribute Name
+__2. By the attribute Name__
 
-    `\<input name="inputName">`
-    This is an input element and it has attribute `name="inputName"`. 
-    
-    For example, insert text the following in the input `keysByName(inputName): first\_name`. Locator determination by the attribute `name` is often used when working with input fields.
+`\<input name="inputName">`
+This is an input element and it has attribute `name="inputName"`. 
 
-3. By CSS Selector
-    
-    CSS is used for styling different elements of an HTML webpage, to separate the content of the page and its design. 
-    The .css files define these styles, set font size, width, height etc. There are certain patterns, which act as 
-    selectors, in the CSS to apply those styles to HTML elements of the page. Selenium uses the same principle to find 
-    items.
+For example, insert text the following in the input `keysByName(inputName): first\_name`. Locator determination by the attribute `name` is often used when working with input fields.
 
-4. Using ID
+__3. By CSS Selector__
+    
+CSS is used for styling different elements of an HTML webpage, to separate the content of the page and its design. 
+The .css files define these styles, set font size, width, height etc. There are certain patterns, which act as 
+selectors, in the CSS to apply those styles to HTML elements of the page. Selenium uses the same principle to find 
+items.
 
-    Find the field for input name with `id="inputName"`
-    
-    `\<input id="inputName" placeholder="First Last" name="inputName" type="text">`
-    
-    CSS selector - `#inputName`. Fox example, add text in the field `keysByCSS(#inputName): first\_name`
+__4. Using ID__
 
-5. Using CLASS
+Find the field for input name with `id="inputName"`
 
-    Find div with input.
-    ```html
-    <div class="controls">
-        <input id="inputName" placeholder="First Last" name="inputName" type="text">
-    </div>
-    ```
-    This CSS selector .controls will select all elements with class `controls`. For example, wait until the element is displayed `waitByCSS(.controls)`.
-    Using attributes and their value
-    ```html
-     <input id="inputName" placeholder="First Last" name="inputName" type="text">
-    ```
-    
-    Find the element by `name="inputName"`. For example, `keysByCSS(\[name='inputName']): first\_name`
+`\<input id="inputName" placeholder="First Last" name="inputName" type="text">`
 
-6. Child elements
-    ```html
-    <div class="controls">
-        <input id="inputName" placeholder="First Last" name="inputName" type="text">
-    </div>
-    ```
-    Find child element INPUT with `id="inputName"` in the div with `class="controls"`. Describe as `div.controls>input#inputName`. For example, `keysByCSS(div.controls>input#inputName): first\_name`
-    
-7. By XPath
+CSS selector - `#inputName`. Fox example, add text in the field `keysByCSS(#inputName): first\_name`
 
-    XPath is the language used for locating nodes in an XML document. As HTML can be an implementation of XML (XHTML), Selenium can use this language to find elements for the web page. One of the main reasons for using XPath is when you don't have a suitable id or name attribute for the element you wish to locate. To locate the element we can use absolute XPath or use relative path elements that have attributes id, name etc. 
+__5. Using CLASS__
+
+Find div with input.
+```html
+<div class="controls">
+    <input id="inputName" placeholder="First Last" name="inputName" type="text">
+</div>
+```
+This CSS selector .controls will select all elements with class `controls`. For example, wait until the element is displayed `waitByCSS(.controls)`.
+Using attributes and their value
+```html
+ <input id="inputName" placeholder="First Last" name="inputName" type="text">
+```
+
+Find the element by `name="inputName"`. For example, `keysByCSS(\[name='inputName']): first\_name`
+
+__6. Child elements__
+```html
+<div class="controls">
+    <input id="inputName" placeholder="First Last" name="inputName" type="text">
+</div>
+```
+Find child element INPUT with `id="inputName"` in the div with `class="controls"`. Describe as `div.controls>input#inputName`. For example, `keysByCSS(div.controls>input#inputName): first\_name`
     
-    For INPUT  
-    ```html
-    <div class="controls">
-        <input placeholder="First Last" type="text">
-    </div> 
-    ```
-    
-    We can compose following XPath expressions: 
-     - `//div/input`
-     - `//div\[@class="controls"]/input`
-    
-    Any of these expressions can be used to fetch the desired element, if these attributes are unique.
+__7. By XPath__
+
+XPath is the language used for locating nodes in an XML document. As HTML can be an implementation of XML (XHTML), Selenium can use this language to find elements for the web page. One of the main reasons for using XPath is when you don't have a suitable id or name attribute for the element you wish to locate. To locate the element we can use absolute XPath or use relative path elements that have attributes id, name etc. 
+
+For INPUT  
+```html
+<div class="controls">
+    <input placeholder="First Last" type="text">
+</div> 
+```
+
+We can compose following XPath expressions: 
+ - `//div/input`
+ - `//div\[@class="controls"]/input`
+
+Any of these expressions can be used to fetch the desired element, if these attributes are unique.
 
 
 ### Assertion
