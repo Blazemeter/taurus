@@ -131,7 +131,7 @@ class TestApacheBenchmarkCmd(ExecutorTestCase):
         self.obj.startup()
         self.assertTrue('-s' in self.CMD_LINE)
         delay_val = self.CMD_LINE[self.CMD_LINE.index('-s') + 1]
-        self.assertEqual(delay_val, '5')
+        self.assertEqual(float(delay_val), 5.0)
 
 
 class TestDataLogReader(BZTestCase):

@@ -98,10 +98,10 @@ class TestMolotovCmd(ExecutorTestCase):
     EXECUTOR = MolotovExecutor
     CMD_LINE = None
 
-    @unittest.skipUnless(sys.version_info >= (3, 5), "enabled only on 3.5+")
     def start_subprocess(self, args, env, cwd=None, **kwargs):
         self.CMD_LINE = args
 
+    @unittest.skipUnless(sys.version_info >= (3, 5), "enabled only on 3.5+")
     def test_think_time(self):
         self.configure({
             "execution": {
