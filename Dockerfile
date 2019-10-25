@@ -24,12 +24,12 @@ RUN apt-get -y update \
     udev openjdk-8-jdk xvfb siege tsung apache2-utils phantom phantom-ssl \
     firefox google-chrome-stable pepperflashplugin-nonfree flashplugin-installer \
     ruby ruby-dev nodejs mono-complete nuget net-tools gcc-mingw-w64-x86-64 \
-  && $APT_INSTALL python-dev python-pip \
-  && python2 -m pip install pip setuptools \
-  && python2 -m pip install locustio robotframework robotframework-seleniumlibrary wheel twine \
+#  && $APT_INSTALL python-dev python-pip \
+#  && python2 -m pip install pip setuptools \
+#  && python2 -m pip install locustio robotframework robotframework-seleniumlibrary wheel twine \
   && $APT_INSTALL python3-dev python3-pip \
   && python3 -m pip install setuptools pip \
-  && python3 -m pip  install wheel "molotov!=1.5" \
+  && python3 -m pip install wheel "molotov!=1.5" \
   && gem install rspec rake \
   && gem install selenium-webdriver \
   && wget https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
@@ -44,12 +44,12 @@ RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
 
 COPY . /tmp/bzt-src
 WORKDIR /tmp/bzt-src
-RUN google-chrome-stable --version && firefox --version && mono --version && nuget | head -1 \
+RUN google-chrome-stable --version && firefox --version && mono --version && nuget | head -1
   && ./build-sdist.sh \
-  && pip2 install dist/bzt-*.tar.gz \
+  && python3 -m pip install dist/bzt-*.tar.gz \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
+  && python3 -m bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
 
 RUN mkdir /bzt-configs \
   && rm -rf /tmp/* \
