@@ -63,7 +63,7 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
 
     cfg['Python'] = {
         'bitness': 64,
-        'version': '3.6.5',
+        'version': '3.7.5',
     }
 
     wheels_list = ["%s==%s" % (package_name, version) for package_name, version in dependencies]
