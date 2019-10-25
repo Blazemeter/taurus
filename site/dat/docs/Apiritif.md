@@ -76,12 +76,12 @@ In `selenium` mode follow request features are supported:
 
   - `browser` for the following browser types: Chrome, Firefox, Ie, Opera, Android-Chrome, iOS-Safari, Remote
   - `remote` for local webdriver, local remote webdriver or [remote webdriver](https://gettaurus.org/docs/Apiritif/#Remote-WebDriver)
-  - `capabilities` of [remote webdriver](https://gettaurus.org/docs/Apiritif/#Remote-WebDriver): `browser`, `version`, 
-  `javascript`, `platform`, `os_version`, `selenium`, `device`, `app`
+  - `capabilities` of [remote webdriver](https://gettaurus.org/docs/Apiritif/#Remote-WebDriver): `browser`, `version`, `javascript`, `platform`, `os_version`, `selenium`, `device`, `app`  
   - `timeout` and `think-time` on both scenario and request levels
   - `request` only for GET method
       - `action` keyword for Selenium actions
       - `assert` (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)
+
 
 Here is the list of supported actions, sorted by action type.
 
