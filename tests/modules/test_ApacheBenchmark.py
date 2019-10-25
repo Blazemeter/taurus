@@ -106,10 +106,15 @@ class TestApacheBenchmarkCmd(ExecutorTestCase):
     EXECUTOR = ApacheBenchmarkExecutor
     CMD_LINE = None
 
+    def setUp(self):
+        super(TestApacheBenchmarkCmd, self).setUp()
+        path = os.path.abspath(RESOURCES_DIR + "ab/ab" + EXE_SUFFIX)
+        self.obj.settings.merge({"path": path})
+
     def start_subprocess(self, args, env, cwd=None, **kwargs):
         self.CMD_LINE = args
 
-    def test_think_time(self):
+    def test_timeout(self):
         self.configure({
             "execution": {
                 "concurrency": 1,
