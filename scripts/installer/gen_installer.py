@@ -120,19 +120,18 @@ def download_tkinter(archive_url, archive_filename):
         z.extractall()
 
 
-def overwrite_levenstein_wheel(wheel_dir, levenstein_wheel_link):
-    target_filename = os.path.join(wheel_dir, "python_Levenshtein-0.12.0-cp36-cp36m-win_amd64.whl")
-    if not os.path.exists(target_filename):
-        print("WARNING: Can't replace non-existent levenstein wheel")
+def add_extra_wheels(wheel_dir, links):
+    for link in links:
+        print("Downloading pre-built wheel: %s" % link)
+        r = requests.get(link, headers={'User-Agent': 'Automation'}, stream=True)
+        r.raise_for_status()
 
-    print("Downloading levenstein pre-built wheel")
-    r = requests.get(levenstein_wheel_link, headers={'User-Agent': 'Automation'}, stream=True)
-    r.raise_for_status()
-
-    with open(target_filename, 'wb') as f:
-        for chunk in r.iter_content(chunk_size=1024):
-            if chunk:  # filter out keep-alive new chunks
-                f.write(chunk)
+        file_name = link.split('/')[-1]
+        full_filename = os.path.join(wheel_dir, file_name)
+        with open(full_filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
 
 
 def main():
@@ -140,8 +139,10 @@ def main():
         print("Usage: %s <bzt-wheel>" % sys.argv[0])
         sys.exit(1)
     bzt_dist = sys.argv[1]
+
+    # todo: add to our storage
     tkinter_link = "https://github.com/mu-editor/mu_tkinter/releases/download/0.3/pynsist_tkinter_3.6_64bit.zip"
-    levenstein_wheel_link = "https://files.pythonhosted.org/packages/a1/ae/7a6fd377ab78928c3a445dcbcde43b6adfeef318713ce3a81bb05b18d2e0/python_Levenshtein_wheels-0.13.1-cp36-cp36m-win_amd64.whl"
+
     pynsist_config = "installer-gen.cfg"
     wheel_dir = "build/wheels"
     additional_packages = ['pip', 'setuptools', 'wheel']
@@ -149,7 +150,12 @@ def main():
     tkinter_archive = tempfile.NamedTemporaryFile(prefix="tkinter-libs", suffix=".zip")
     download_tkinter(tkinter_link, tkinter_archive.name)
     fetch_all_wheels(bzt_dist, wheel_dir)
-    overwrite_levenstein_wheel(wheel_dir, levenstein_wheel_link)
+    extra_links = [
+        "https://storage.googleapis.com/taurus-site/extras/fuzzyset-0.0.19-cp37-cp37m-win_amd64.whl",
+        "https://storage.googleapis.com/taurus-site/extras/python_Levenshtein-0.12.0-cp37-cp37m-win_amd64.whl"
+        "https://storage.googleapis.com/taurus-site/extras/urwid-2.0.1-cp37-cp37m-win_amd64.whl"
+    ]
+    add_extra_wheels(wheel_dir, extra_links)
     for pkg in additional_packages:
         fetch_all_wheels(pkg, wheel_dir)
     dependencies = extract_all_dependencies(wheel_dir)
