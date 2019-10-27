@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import FrameManager, WindowManager
+from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_markers
 
 
 class TestSdsdsdsSelenium(unittest.TestCase):
@@ -37,8 +37,9 @@ class TestSdsdsdsSelenium(unittest.TestCase):
 
         }
 
+        add_flow_markers()
+
         apiritif.put_into_thread_store(
-            flow_markers=True,  # send flow markers to webdriver
             driver=self.driver,
             func_mode=False)  # don't stop after failed test case
 
