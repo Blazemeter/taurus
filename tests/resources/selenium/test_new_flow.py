@@ -27,7 +27,7 @@ class TestSdsdsdsSelenium(unittest.TestCase):
     def setUp(self):
         self.driver = None
         options = webdriver.ChromeOptions()
-        self.driver = webdriver.Chrome(service_log_path='/tmp/webdriver.log', chrome_options=options)
+        self.driver = webdriver.Chrome(service_log_path='webdriver.log', chrome_options=options)
         self.driver.implicitly_wait(60.0)
 
         self.wnd_mng = WindowManager(self.driver)
@@ -56,7 +56,7 @@ class TestSdsdsdsSelenium(unittest.TestCase):
 
     def _3_t3(self):
         with apiritif.smart_transaction('t3'):
-            self.driver.get('http://some.strange.url')
+            self.driver.get('some.strange.url')
 
     def test_sdsdsds_Selenium(self):
         self._1_t1()
