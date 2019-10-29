@@ -7,16 +7,6 @@ from tests.modules.selenium import SeleniumTestCase
 
 class TestSeleniumScriptGeneration(SeleniumTestCase):
 
-    def test_new_flow_build(self):
-        config = yaml.load(open('wip/new-flow/a.yml').read())
-        self.configure(config)
-        self.obj.prepare()
-        exp_file = RESOURCES_DIR + "selenium/test_new_flow.py"
-        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-
-        self.assertFilesEqual(
-            exp_file, self.obj.script, replace_str=str_to_replace, replace_with="", python_files=True)
-
     def test_modern_actions_generator(self):
         self.configure({
             "execution": [{
