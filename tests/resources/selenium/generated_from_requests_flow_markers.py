@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import FrameManager, WindowManager
+from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_markers
 
 
 class TestLocSc(unittest.TestCase):
@@ -34,7 +34,8 @@ class TestLocSc(unittest.TestCase):
         self.vars = {
 
         }
-        apiritif.put_into_thread_store(flow_markers=True, driver=self.driver, func_mode=False)
+        add_flow_markers()
+        apiritif.put_into_thread_store(driver=self.driver, func_mode=False)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):

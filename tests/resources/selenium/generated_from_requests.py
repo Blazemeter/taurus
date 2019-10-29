@@ -38,7 +38,7 @@ class TestLocSc(unittest.TestCase, ):
             'red_pill': 'take_it',
         }
 
-        apiritif.put_into_thread_store(flow_markers=None, driver=self.driver, func_mode=False)
+        apiritif.put_into_thread_store(driver=self.driver, func_mode=False)
 
 
     def _1_(self):
