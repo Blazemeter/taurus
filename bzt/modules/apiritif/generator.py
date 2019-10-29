@@ -88,7 +88,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
-from bzt.resources.selenium_extras import FrameManager, WindowManager
+from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_markers
 """
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
@@ -780,11 +780,14 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
                     func=ast_attr("reader_%s.get_vars" % (idx + 1)))])
             data_sources.append(ast.Expr(extend_vars))
 
+        handlers = []
+        if self.generate_markers:
+            handlers.append(ast.Expr(ast_call(func="add_flow_markers")))
+
         stored_vars = {"func_mode": str(False)}  # todo: make func_mode optional
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
-                stored_vars["flow_markers"] = str(self.generate_markers)
 
         store_call = ast_call(
             func=ast_attr("apiritif.put_into_thread_store"),
@@ -796,7 +799,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager
         setup = ast.FunctionDef(
             name="setUp",
             args=[ast_attr("self")],
-            body=target_init + data_sources + store_block,
+            body=target_init + data_sources + handlers + store_block,
             decorator_list=[])
         return [setup, self._gen_empty_line_stmt()]
 
