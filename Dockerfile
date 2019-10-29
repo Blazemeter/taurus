@@ -28,8 +28,8 @@ RUN apt-get -y update \
 #  && python2 -m pip install pip setuptools \
 #  && python2 -m pip install locustio robotframework robotframework-seleniumlibrary wheel twine \
   && $APT_INSTALL python3-dev python3-pip \
-  && python3 -m pip install setuptools pip \
-  && python3 -m pip install wheel "molotov!=1.5" \
+  && python3 -m pip install --user --upgrade setuptools wheel \
+  && python3 -m pip install locustio robotframework robotframework-seleniumlibrary molotov twine \
   && gem install rspec rake \
   && gem install selenium-webdriver \
   && wget https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
@@ -44,7 +44,7 @@ RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
 
 COPY . /tmp/bzt-src
 WORKDIR /tmp/bzt-src
-RUN google-chrome-stable --version && firefox --version && mono --version && nuget | head -1
+RUN google-chrome-stable --version && firefox --version && mono --version && nuget | head -1 \
   && ./build-sdist.sh \
   && python3 -m pip install dist/bzt-*.tar.gz \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
@@ -58,4 +58,4 @@ RUN mkdir /bzt-configs \
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 WORKDIR /bzt-configs
-ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
+ENTRYPOINT ["sh", "-c", "python3 -m bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
