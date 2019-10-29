@@ -75,14 +75,14 @@ execution:
 In `selenium` mode follow request features are supported:
 
   - `browser` for the following browser types: Chrome, Firefox, Ie, Opera, Android-Chrome, iOS-Safari, Remote
-  - `remote` for local webdriver, local remote webdriver or [remote webdriver](https://gettaurus.org/docs/Apiritif/#Remote-WebDriver)
-  - `capabilities` of [remote webdriver](https://gettaurus.org/docs/Apiritif/#Remote-WebDriver): `browser`, `version`, `javascript`, `platform`, `os_version`, `selenium`, `device`, `app`  
+  - `remote` for local webdriver, local remote webdriver or [remote webdriver](#Remote-WebDriver)
+  - `capabilities` of [remote webdriver](#Remote-WebDriver): `browser`, `version`, `javascript`, `platform`, `os_version`, `selenium`, `device`, `app`  
   - `timeout` and `think-time` on both scenario and request levels
   - `request` only for GET method
       - `action` keyword for Selenium actions
       - `assert` (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)
 
-
+<a/>
 Here is the list of supported actions, sorted by action type.
 
 ### Locators
@@ -95,36 +95,27 @@ __1. By ID__
 
 ```html
 <td>
-    <h1 id="my_ID_locator">ID Locator</h1>
+    <h1 id="my_locator_ID">Locator ID</h1>
 </td>
 ```
-Header tag has an ID attribute (`id="ID\_locator"`). For example, wait until the element is displayed `waitByID(ID\_locator)`.
+Header tag has an ID attribute (`id="Locator_ID"`). For example, wait until the element is displayed `waitByID(Locator_ID)`.
     
 __2. By the attribute Name__
 
-`\<input name="inputName">`
+`<input name="inputName">`
+
 This is an input element and it has attribute `name="inputName"`. 
 
-For example, insert text the following in the input `keysByName(inputName): first\_name`. Locator determination by the attribute `name` is often used when working with input fields.
+For example, insert text the following in the input `keysByName(inputName): First_Name`. Locator determination by the attribute `Name` is often used when working with input fields.
 
 __3. By CSS Selector__
     
 CSS is used for styling different elements of an HTML webpage, to separate the content of the page and its design. 
-The .css files define these styles, set font size, width, height etc. There are certain patterns, which act as 
-selectors, in the CSS to apply those styles to HTML elements of the page. Selenium uses the same principle to find 
+The .css files define these styles, set font size, width, height, etc. There are certain patterns in the CSS, which act 
+as selectors and are applied to HTML elements of the page. Selenium uses the same principle to find 
 items.
 
-__4. Using ID__
-
-Find the field for input name with `id="inputName"`
-
-`\<input id="inputName" placeholder="First Last" name="inputName" type="text">`
-
-CSS selector - `#inputName`. Fox example, add text in the field `keysByCSS(#inputName): first\_name`
-
-__5. Using CLASS__
-
-Find div with input.
+Here is an example. This is how to find div with input.
 ```html
 <div class="controls">
     <input id="inputName" placeholder="First Last" name="inputName" type="text">
@@ -136,9 +127,18 @@ Using attributes and their value
  <input id="inputName" placeholder="First Last" name="inputName" type="text">
 ```
 
-Find the element by `name="inputName"`. For example, `keysByCSS(\[name='inputName']): first\_name`
+Find the element by `name="inputName"`. For example, `keysByCSS(#inputName): First Name`
 
-__6. Child elements__
+
+__4. Using ID__
+
+Find the field for input name with `id="inputName"`
+
+`\<input id="inputName" placeholder="First Last" name="inputName" type="text">`
+
+CSS selector - `#inputName`. Fox example, add text in the field `keysByCSS(#inputName): first\_name`
+
+__5. Child elements__
 ```html
 <div class="controls">
     <input id="inputName" placeholder="First Last" name="inputName" type="text">
@@ -146,7 +146,7 @@ __6. Child elements__
 ```
 Find child element INPUT with `id="inputName"` in the div with `class="controls"`. Describe as `div.controls>input#inputName`. For example, `keysByCSS(div.controls>input#inputName): first\_name`
     
-__7. By XPath__
+__6. By XPath__
 
 XPath is the language used for locating nodes in an XML document. As HTML can be an implementation of XML (XHTML), Selenium can use this language to find elements for the web page. One of the main reasons for using XPath is when you don't have a suitable id or name attribute for the element you wish to locate. To locate the element we can use absolute XPath or use relative path elements that have attributes id, name etc. 
 
@@ -166,13 +166,14 @@ Any of these expressions can be used to fetch the desired element, if these attr
 
 ### Assertion
 For requested page source inspection you can use the following actions:
-- `assertTextByX(X_name): "text"` to assert text on element
-- `assertValueByX(X_name): value` to assert value attribute
-- `assertTitle(title)` to assert title
+- `assertTextByX(X_name): "text"` to assert text to an element
+- `assertValueByX(X_name): value` to assert value
+- `assertTitle(title)` to assert page title
 
-Don't forget to replace `X` with the right [locators](https://gettaurus.org/docs/Apiritif/#Locators). 
-See sample usage in [Frame Management](https://gettaurus.org/docs/Apiritif/#Frame-managmment) section. 
-Also, for assertion you can also use special assertion block. See example [here](https://gettaurus.org/docs/Apiritif/#Sample-scenario).
+Don't forget to replace `X` with the right [locators](#Locators). 
+See sample usage in [Frame Management](#Frame-managmment) section. 
+
+Also, for assertion you can also use special assertion block. See example [here](#Sample-scenario).
 
 ### Cookies
 To delete all cookies use `clearCookies()` action.
@@ -193,7 +194,7 @@ scriptEval("alert('This is a JavaScript command.');")
 ```yaml
 rawCode: print('This is a python command.')
 ```
-See example [here](https://gettaurus.org/docs/Apiritif/#Sample-scenario).
+See example [here](#Sample-scenario).
 
 ### Frame managmment
 When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command 
@@ -229,14 +230,14 @@ For mouse imitating actions you can use the following:
 - `mouseUpByX(X_name)`
 - `dragByX(X_name): elementByX(another_X_name)`
 
-`X` here is for one of [locators](https://gettaurus.org/docs/Apiritif/#Locators).
+`X` here is for one of [locators](#Locators).
 
 ### Pause
 For pause you can use the following actions:
 - `waitByX(X_name)` to wait for presence or `waitByX(X_name): visible` to wait for visibility
 - `pauseFor(time)`
 
-`X` here is for one of [locators](https://gettaurus.org/docs/Apiritif/#Locators).
+`X` here is for one of [locators](#Locators).
 
 ### Screenshot
 To take a screenshot of a viewport and save it in a file use this: `screenshot(file_name)`
@@ -244,7 +245,7 @@ To take a screenshot of a viewport and save it in a file use this: `screenshot(f
 ### Select
 To select a value use this: `selectByX(X_name)`.
 
-See documentation for `X` [here](https://gettaurus.org/docs/Apiritif/#Locators).
+See documentation for `X` [here](#Locators).
 
 ### Store
 For storing variables use the followinf actions:
@@ -253,7 +254,7 @@ For storing variables use the followinf actions:
 - `storeTextByX(X_name): "Text"`
 - `storeValueByX(X_name): Value`
 
-See documentation for `X` [here](https://gettaurus.org/docs/Apiritif/#Locators).
+See documentation for `X` [here](#Locators).
 
 ### Typing
 Typing actions are the following:
@@ -261,7 +262,7 @@ Typing actions are the following:
 - `submitByX(X_name)`
 - `keysByX(X_name): value` sends keystrokes to `X`. `value` can be formed like this: `KEY_ENTER`. See docs for it [here](http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys).
 
-`X` here is for one of [locators](https://gettaurus.org/docs/Apiritif/#Locators).
+`X` here is for one of [locators](#Locators).
 
 ### Window managment
 To manage windows or tabs, the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
