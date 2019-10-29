@@ -82,7 +82,7 @@ In `selenium` mode follow request features are supported:
       - `action` keyword for Selenium actions
       - `assert` (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)
 
-
+<a/>
 Here is the list of supported actions, sorted by action type.
 
 ### Locators
