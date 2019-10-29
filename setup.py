@@ -41,7 +41,7 @@ setup(
     version=bzt.VERSION,
     description='Taurus Tool for Continuous Testing',
     long_description=open('README.md').read(),
-    # long_description_content_type='text/markdown',
+    long_description_content_type='text/markdown',
     author='Andrey Pokhilko',
     author_email='andrey@blazemeter.com',
     url='http://gettaurus.org/',
@@ -77,9 +77,9 @@ setup(
         'Operating System :: MacOS',
         'Operating System :: POSIX :: Linux',
 
-        'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
+    python_requires='>=3.5',
 )
