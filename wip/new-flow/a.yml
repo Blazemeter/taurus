@@ -20,4 +20,4 @@ scenarios:
       assert:
         - In God we trust
     - label: t3
-      url: http://some.strange.url
+      url: some.strange.url
