@@ -37,7 +37,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
             new_script = self.obj.engine.create_artifact(name, ".py")
             with open(new_script, 'w+') as new_script_file:
                 for line in script_lines:
-                    new_script_file.write(line.replace("webdriver.log", self.wd_log))
+                    new_script_file.write(line.replace("'webdriver.log'", repr(self.wd_log)))
 
         self.configure({
             "execution": [{
