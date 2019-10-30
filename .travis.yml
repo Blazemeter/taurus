@@ -21,11 +21,6 @@ matrix:
     python: 3.5
     before_install:
       - mono --version
-    install:
-      - gem install rspec
-      - $PIP_INSTALL "pyyaml<5.1"
-      - $PIP_INSTALL -r requirements.txt
-      - $PIP_INSTALL -r tests/ci/requirements.txt
     before_script:
       - nohup bash -c "Xvfb :99 &"
       - $PYTHON tests/resources/httpserver/start.py &
@@ -37,11 +32,6 @@ matrix:
     python: 3.6
     before_install:
       - mono --version
-    install:
-      - gem install rspec
-      - $PIP_INSTALL "pyyaml<5.1"
-      - $PIP_INSTALL -r requirements.txt
-      - $PIP_INSTALL -r tests/ci/requirements.txt
     before_script:
       - nohup bash -c "Xvfb :99 &"
       - $PYTHON tests/resources/httpserver/start.py &
@@ -53,11 +43,6 @@ matrix:
     python: 3.7
     before_install:
     - mono --version
-    install:
-    - gem install rspec
-    - $PIP_INSTALL "pyyaml<5.1"
-    - $PIP_INSTALL -r requirements.txt
-    - $PIP_INSTALL -r tests/ci/requirements.txt
     before_script:
     - nohup bash -c "Xvfb :99 &"
     - $PYTHON tests/resources/httpserver/start.py &
@@ -77,11 +62,6 @@ matrix:
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
     before_install:
     - gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
-    install:
-    - gem install rspec
-    - $PIP_INSTALL "pyyaml<5.1"
-    - $PIP_INSTALL -r requirements.txt
-    - $PIP_INSTALL -r tests/ci/requirements.txt
     before_script:
       - sudo nohup bash -c "xvfb :99 &"
       - $PYTHON tests/resources/httpserver/start.py &
@@ -99,13 +79,6 @@ matrix:
     - PYTHON=C:\\Python37
     - PATH=c/Python37:/c/Python37/Scripts:$PATH
     - R_PATH=C:\Ruby22\bin;
-    install:
-    - $PYTHON/python.exe -m pip install pip wheel --upgrade
-    - $PYTHON/python.exe -m pip install pyyaml==3.12
-    - $PYTHON/python.exe -m pip install -r requirements.txt
-    - $PYTHON/python.exe -m pip install -r tests/ci/requirements.txt
-#    - set R_PATH=C:\Ruby22\bin;%PATH%\Scripts\;%R_PATH%
-    - gem install rspec
     before_test:
     - ruby -v
     - gem -v
@@ -115,6 +88,13 @@ matrix:
     - $PYTHON/python.exe tests/resources/httpserver/start.py
     script:
     - $PYTHON/python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
+
+install:
+- gem install rspec
+- $PIP_INSTALL "pyyaml<5.1"
+- $PIP_INSTALL -r requirements.txt
+- $PIP_INSTALL -r tests/ci/requirements.txt
+
 
 addons:
   firefox: latest
