@@ -75,7 +75,7 @@ addons:
   apt:
     packages:
     - openjdk-8-jdk
-    - mono-completech
+    - mono-complete
     - python3-tk
 
 before_install:
