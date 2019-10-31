@@ -56,7 +56,7 @@ matrix:
     - $PYTHON/python.exe -m pip install --upgrade pip
     install:
     - $PYTHON/python.exe -m pip install pip wheel --upgrade
-    - $PYTHON/python.exe -m pip install "pyyaml==3.12"
+    - $PYTHON/python.exe -m pip install pyyaml
     - $PYTHON/python.exe -m pip install -r requirements.txt
     - $PYTHON/python.exe -m pip install -r tests/ci/requirements.txt
     - choco install nodejs.install
@@ -88,7 +88,7 @@ install:
 - $PIP_INSTALL -r tests/ci/requirements.txt
 
 before_script:
-- nohup bash -c "xvfb :99 &"
+- nohup bash -c "Xvfb :99 &"
 - $PYTHON tests/resources/httpserver/start.py &
 
 script:
