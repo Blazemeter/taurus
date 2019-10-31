@@ -42,7 +42,7 @@ matrix:
 
   - os: windows
     name: "Python3.7 on Windows"
-    language: shell # TODO: what
+    language: shell
     env:
       - PYTHON="C:\\Python37"
       - PATH=c/Python37:/c/Python37/Scripts:$PATH
@@ -59,8 +59,7 @@ matrix:
     - $PYTHON/python.exe -m pip install "pyyaml==3.12"
     - $PYTHON/python.exe -m pip install -r requirements.txt
     - $PYTHON/python.exe -m pip install -r tests/ci/requirements.txt
-    - Install-Product node $NODEJS_VERSION
-#    - choco install firefox # TODO: ruby
+    - choco install nodejs.install
     before_test:
     - ruby -v
     - gem -v
@@ -76,8 +75,7 @@ addons:
   apt:
     packages:
     - openjdk-8-jdk
-    - mono-complete
-    - python-tk
+    - mono-completech
     - python3-tk
 
 before_install:
