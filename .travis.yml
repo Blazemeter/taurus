@@ -1,11 +1,18 @@
 sudo: false
 language: python
-group: travis_latest
+dist: xenial
 cache: pip  # use caching for pip's packages to speed up builds
 
 branches:
   only:
   - master
+
+os: linux
+
+python:
+- "3.5"
+- "3.6"
+- "3.7"
 
 env:
   global:
@@ -16,41 +23,6 @@ env:
 
 matrix:
   include:
-  - os: linux
-    name: "Python3.5 on Linux"
-    python: 3.5
-    before_install:
-      - mono --version
-    before_script:
-      - nohup bash -c "Xvfb :99 &"
-      - $PYTHON tests/resources/httpserver/start.py &
-    script:
-      - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE --with-timer --timer-top-n 30
-
-  - os: linux
-    name: "Python3.6 on Linux"
-    python: 3.6
-    before_install:
-      - mono --version
-    before_script:
-      - nohup bash -c "Xvfb :99 &"
-      - $PYTHON tests/resources/httpserver/start.py &
-    script:
-      - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE --with-timer --timer-top-n 30
-
-  - os: linux
-    name: "Python3.7 on Linux"
-    python: 3.7
-    before_install:
-    - mono --version
-    before_script:
-    - nohup bash -c "Xvfb :99 &"
-    - $PYTHON tests/resources/httpserver/start.py &
-    script:
-    - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE --with-timer --timer-top-n 30
-    after_success:
-    - coverage report -m && codecov
-
   - os: osx
     name: "Python3.7 on macOS"
     osx_image: xcode11    # Python 3.7.4 running on macOS 10.14.4
@@ -70,15 +42,25 @@ matrix:
 
   - os: windows
     name: "Python3.7 on Windows"
-    language: shell
+    language: shell # TODO: what
+    env:
+      - PYTHON="C:\\Python37"
+      - PATH=c/Python37:/c/Python37/Scripts:$PATH
+      - R_PATH=C:\Ruby22\bin
+      - PYTHON_VERSION="3.7.x"
+      - PYTHON_ARCH="64"
+      - NODEJS_VERSION="10"
     before_install:
     - choco install python --version 3.7.4
     - $PYTHON/python.exe -m ensurepip
     - $PYTHON/python.exe -m pip install --upgrade pip
-    env:
-    - PYTHON=C:\\Python37
-    - PATH=c/Python37:/c/Python37/Scripts:$PATH
-    - R_PATH=C:\Ruby22\bin;
+    install:
+    - $PYTHON/python.exe -m pip install pip wheel --upgrade
+    - $PYTHON/python.exe -m pip install "pyyaml==3.12"
+    - $PYTHON/python.exe -m pip install -r requirements.txt
+    - $PYTHON/python.exe -m pip install -r tests/ci/requirements.txt
+    - Install-Product node $NODEJS_VERSION
+#    - choco install firefox # TODO: ruby
     before_test:
     - ruby -v
     - gem -v
@@ -89,13 +71,6 @@ matrix:
     script:
     - $PYTHON/python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
 
-install:
-- gem install rspec
-- $PIP_INSTALL "pyyaml<5.1"
-- $PIP_INSTALL -r requirements.txt
-- $PIP_INSTALL -r tests/ci/requirements.txt
-
-
 addons:
   firefox: latest
   apt:
@@ -104,3 +79,22 @@ addons:
     - mono-complete
     - python-tk
     - python3-tk
+
+before_install:
+- mono --version
+
+install:
+- gem install rspec
+- $PIP_INSTALL "pyyaml<5.1"
+- $PIP_INSTALL -r requirements.txt
+- $PIP_INSTALL -r tests/ci/requirements.txt
+
+before_script:
+- nohup bash -c "xvfb :99 &"
+- $PYTHON tests/resources/httpserver/start.py &
+
+script:
+- coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE --with-timer --timer-top-n 30
+
+after_success:
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m && codecov; fi
