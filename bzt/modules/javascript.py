@@ -300,7 +300,7 @@ class CypressTester(JavaScriptExecutor):
         return [self.node.tool_path, self.cypress_plugin.tool_path] + list(args)
 
     def startup(self):
-        cypress_cmdline = "npx cypress run --headed --record --spec " + self.script
+        cypress_cmdline = "npx cypress run --headed --spec " + self.script
 
         self.process = self._execute(cypress_cmdline)
 

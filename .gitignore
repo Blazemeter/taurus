@@ -26,3 +26,4 @@ node_modules
 
 bzt/resources/NUnitRunner/*
 .gradle
+/cypress/
