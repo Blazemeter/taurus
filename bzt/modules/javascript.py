@@ -411,7 +411,7 @@ class TaurusMochaPlugin(RequiredTool):
 
 class TaurusCypressPlugin(RequiredTool):
     def __init__(self, **kwargs):
-        tool_path = os.path.join(RESOURCES_DIR, "mocha-taurus-plugin.js")
+        tool_path = os.path.join(RESOURCES_DIR, "cypress-taurus-plugin.js")
         super(TaurusCypressPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
 
