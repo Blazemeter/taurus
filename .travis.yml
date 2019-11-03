@@ -36,6 +36,7 @@ matrix:
 
 addons:
   firefox: latest
+  chrome: stable
   apt:
     packages:
     - openjdk-8-jdk

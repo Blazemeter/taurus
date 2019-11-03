@@ -54,8 +54,6 @@ class TestSeleniumExecutor(SeleniumTestCase):
             self.obj.shutdown()
         self.obj.post_process()
         self.assertNotEquals(self.obj.runner.process, None)
-        with open(self.wd_log) as wd_log:
-            raise BaseException("webdriver.log:\n%s" % wd_log.read())
 
     def check_transaction_logged(self):
         with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.out")) as out:
