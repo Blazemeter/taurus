@@ -28,7 +28,7 @@ class LDJSONReaderEmul(object):
 
 
 class TestSeleniumExecutor(SeleniumTestCase):
-        # todo: get_error_diagnostics: only geckodriver, not chrome-?
+    # todo: get_error_diagnostics: only geckodriver, not chrome-?
     def run_script(self, name):
         with open(RESOURCES_DIR + "selenium/" + name + ".py") as script:
             self.wd_log = self.obj.engine.create_artifact("webdriver", ".log")
