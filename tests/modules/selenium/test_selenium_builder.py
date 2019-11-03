@@ -1,11 +1,12 @@
 import os
-
+import yaml
 from bzt.six import PY2
 from tests import RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
 
 
 class TestSeleniumScriptGeneration(SeleniumTestCase):
+
     def test_modern_actions_generator(self):
         self.configure({
             "execution": [{

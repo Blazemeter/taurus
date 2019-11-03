@@ -1,6 +1,27 @@
 # Utility functions and classes for Taurus Selenium tests
 
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
+from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store
+
+
+def add_flow_markers():
+    handlers = get_transaction_handlers()
+    handlers["enter"].append(_send_start_flow_marker)
+    handlers["exit"].append(_send_exit_flow_marker)
+    set_transaction_handlers(handlers)
+
+
+def _send_marker(stage, params):
+    driver = get_from_thread_store("driver")
+    driver.execute_script('/* FLOW_MARKER test-case-%s */' % stage, params)
+
+
+def _send_start_flow_marker(test_case, test_suite):
+    _send_marker('start', {'testCaseName': test_case, 'testSuiteName': test_suite})
+
+
+def _send_exit_flow_marker(status, message):
+    _send_marker('stop', {'status': status, 'message': message})
 
 
 class FrameManager:

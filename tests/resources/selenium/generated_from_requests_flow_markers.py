@@ -19,83 +19,43 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import FrameManager, WindowManager
-
-def setup():
-    options = webdriver.ChromeOptions()
-    driver = webdriver.Chrome(service_log_path='<somewhere>webdriver.log', chrome_options=options)
-    driver.implicitly_wait(3.5)
-    wnd_mng = WindowManager(driver)
-    frm_mng = FrameManager(driver)
-    vars = {
-
-    }
-    apiritif.put_into_thread_store(vars, driver, wnd_mng, frm_mng)
-
-
-def teardown():
-    (_, driver, _, _) = apiritif.get_from_thread_store()
-    driver.quit()
+from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_markers
 
 
 class TestLocSc(unittest.TestCase):
 
     def setUp(self):
-        (self.vars, self.driver, self.wnd_mng, self.frm_mng) = apiritif.get_from_thread_store()
+        self.driver = None
+        options = webdriver.ChromeOptions()
+        self.driver = webdriver.Chrome(service_log_path='<somewhere>webdriver.log', chrome_options=options)
+        self.driver.implicitly_wait(3.5)
+        self.wnd_mng = WindowManager(self.driver)
+        self.frm_mng = FrameManager(self.driver)
+        self.vars = {
 
-    def test_1_(self):
-        try:
-            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {
-                'testCaseName': '/',
-                'testSuiteName': 'loc_sc',
-            })
-            with apiritif.transaction_logged('/'):
-                self.driver.get('http://blazedemo.com/')
-                WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, "//input[@type='submit']")), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
-                self.assertEqual(self.driver.title, 'BlazeDemo')
-                body = self.driver.page_source
-                re_pattern = re.compile('contained_text')
-                self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
-        except AssertionError as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'failed',
-                'message': str(exc),
-            })
-            raise
-        except BaseException as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'broken',
-                'message': str(exc),
-            })
-            raise
-        else:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'success',
-                'message': '',
-            })
+        }
+        add_flow_markers()
+        apiritif.put_into_thread_store(driver=self.driver, func_mode=False)
 
-    def test_2_empty(self):
-        try:
-            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {
-                'testCaseName': 'empty',
-                'testSuiteName': 'loc_sc',
-            })
-            with apiritif.transaction_logged('empty'):
-                pass
-        except AssertionError as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'failed',
-                'message': str(exc),
-            })
-            raise
-        except BaseException as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'broken',
-                'message': str(exc),
-            })
-            raise
-        else:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {
-                'status': 'success',
-                'message': '',
-            })
+    def _1_(self):
+        with apiritif.smart_transaction('/'):
+            self.driver.get('http://blazedemo.com/')
+            WebDriverWait(self.driver, 3.5).until(
+                econd.presence_of_element_located((By.XPATH, "//input[@type='submit']")),
+                'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
+            self.assertEqual(self.driver.title, 'BlazeDemo')
+            body = self.driver.page_source
+            re_pattern = re.compile('contained_text')
+            self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
+
+    def _2_empty(self):
+        with apiritif.smart_transaction('empty'):
+            pass
+
+    def test_locsc(self):
+        self._1_()
+        self._2_empty()
+
+    def tearDown(self):
+        if self.driver:
+            self.driver.quit()
