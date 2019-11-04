@@ -28,6 +28,7 @@ RUN apt-get -y update \
 #  && python2 -m pip install pip setuptools \
 #  && python2 -m pip install locustio robotframework robotframework-seleniumlibrary wheel twine \
   && $APT_INSTALL python3-dev python3-pip \
+  && python3 -m pip install --upgrade pip \
   && python3 -m pip install --user --upgrade setuptools wheel \
   && python3 -m pip install locustio robotframework robotframework-seleniumlibrary molotov twine \
   && gem install rspec rake \
@@ -49,7 +50,7 @@ RUN google-chrome-stable --version && firefox --version && mono --version && nug
   && python3 -m pip install dist/bzt-*.tar.gz \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && python3 -m bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
+  && bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
 
 RUN mkdir /bzt-configs \
   && rm -rf /tmp/* \
@@ -58,4 +59,4 @@ RUN mkdir /bzt-configs \
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 WORKDIR /bzt-configs
-ENTRYPOINT ["sh", "-c", "python3 -m bzt.cli -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
+ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
