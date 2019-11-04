@@ -87,8 +87,6 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-
-from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_markers
 """
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
@@ -101,6 +99,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_
                  ignore_unknown_actions=False, generate_markers=None,
                  capabilities=None, wd_addr=None, test_mode="selenium"):
         self.scenario = scenario
+        self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
         self.executor = executor
         self.label = label
@@ -176,6 +175,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_
             value=value)
 
     def _gen_window_mngr(self, atype, selector):
+        self.selenium_extras.add("WindowManager")
         elements = []
         if atype == "switch":
             elements.append(ast_call(
@@ -210,6 +210,7 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_
         return elements
 
     def _gen_frame_mngr(self, tag, selector):
+        self.selenium_extras.add("FrameManager")
         elements = []  # todo: byid/byidx disambiguation?
         if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
             if tag == "byidx":
@@ -628,16 +629,21 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_
                 func=ast_attr("self.driver.implicitly_wait"),
                 args=[ast.Num(dehumanize_time(scenario_timeout))])))
 
-        body.append(ast.Assign(
-            targets=[ast_attr("self.wnd_mng")],
-            value=ast_call(
-                func=ast.Name(id="WindowManager"),
-                args=[ast_attr("self.driver")])))
-        body.append(ast.Assign(
-            targets=[ast_attr("self.frm_mng")],
-            value=ast_call(
-                func=ast.Name(id="FrameManager"),
-                args=[ast_attr("self.driver")])))
+        mgr = "WindowManager"
+        if mgr in self.selenium_extras:
+            body.append(ast.Assign(
+                targets=[ast_attr("self.wnd_mng")],
+                value=ast_call(
+                    func=ast.Name(id=mgr),
+                    args=[ast_attr("self.driver")])))
+
+        mgr = "FrameManager"
+        if mgr in self.selenium_extras:
+            body.append(ast.Assign(
+                targets=[ast_attr("self.frm_mng")],
+                value=ast_call(
+                    func=ast.Name(id=mgr),
+                    args=[ast_attr("self.driver")])))
 
         if self.window_size:  # FIXME: unused in fact ?
             body.append(ast.Expr(
@@ -700,6 +706,13 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_
                 source = "selenium"
 
             imports.append(ast.parse(self.IMPORTS % source).body)
+            if self.selenium_extras:
+                extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
+                imports.append(
+                    ast.ImportFrom(
+                        module="bzt.resources.selenium_extras",
+                        names=extra_names,
+                        level=0))
 
         return imports
 
@@ -749,8 +762,9 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_
         return readers
 
     def _gen_classdef(self):
-        class_body = [self._gen_class_setup()]
-        class_body.extend(self._gen_test_methods())
+        class_body = [self._gen_test_methods()]
+        class_body = [self._gen_class_setup()] + class_body     # order is important for selenium_extras set
+
         if self.test_mode == "selenium":
             class_body.append(self._gen_class_teardown())
 
@@ -782,7 +796,9 @@ from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_
 
         handlers = []
         if self.generate_markers:
-            handlers.append(ast.Expr(ast_call(func="add_flow_markers")))
+            func_name = "add_flow_markers"
+            self.selenium_extras.add(func_name)
+            handlers.append(ast.Expr(ast_call(func=func_name)))
 
         stored_vars = {"func_mode": str(False)}  # todo: make func_mode optional
         if target_init:
