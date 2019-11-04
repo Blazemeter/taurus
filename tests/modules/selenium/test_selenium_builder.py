@@ -1,11 +1,12 @@
 import os
-
+import yaml
 from bzt.six import PY2
 from tests import RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
 
 
 class TestSeleniumScriptGeneration(SeleniumTestCase):
+
     def test_modern_actions_generator(self):
         self.configure({
             "execution": [{
@@ -317,6 +318,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>", python_files=True)
+        with open(self.obj.script) as script:
+            self.assertIn("bzt.resources.selenium_extras", script.read())
 
     def test_headless_default(self):
         self.configure({
@@ -511,6 +514,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+        with open(self.obj.script) as script:
+            self.assertNotIn("selenium_extras", script.read())
 
     def test_build_script_remote_empty_browser(self):
         """ taurus should not wipe browserName (from capabilities) """
