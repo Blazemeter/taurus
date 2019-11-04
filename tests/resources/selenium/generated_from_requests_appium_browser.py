@@ -19,7 +19,6 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import FrameManager, WindowManager
 
 
 
@@ -33,8 +32,6 @@ class TestLocScAppium(unittest.TestCase, ):
             'platformName': 'android',
         })
         self.driver.implicitly_wait(3.5)
-        self.wnd_mng = WindowManager(self.driver)
-        self.frm_mng = FrameManager(self.driver)
         self.vars = {
 
         }

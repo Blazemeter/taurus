@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import FrameManager, WindowManager, add_flow_markers
+from bzt.resources.selenium_extras import add_flow_markers
 
 
 class TestSdsdsdsSelenium(unittest.TestCase):
@@ -29,9 +29,6 @@ class TestSdsdsdsSelenium(unittest.TestCase):
         options = webdriver.ChromeOptions()
         self.driver = webdriver.Chrome(service_log_path='webdriver.log', chrome_options=options)
         self.driver.implicitly_wait(60.0)
-
-        self.wnd_mng = WindowManager(self.driver)
-        self.frm_mng = FrameManager(self.driver)
 
         self.vars = {
 
