@@ -1,7 +1,7 @@
 require "selenium-webdriver"
 require "rspec"
 
-describe "Google Search" do
+describe "Blazedemo" do
 
   before(:each) do
     @driver = Selenium::WebDriver.for :firefox
@@ -14,7 +14,7 @@ describe "Google Search" do
     @driver.quit
   end
 
-  it "search Taurus on google" do
+  it "blazedemo.com example" do
     @driver.get(@base_url + "/purchase.php")
     @driver.find_element(:id, "inputName").clear
     @driver.find_element(:id, "inputName").send_keys "First Last"

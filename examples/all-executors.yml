@@ -99,7 +99,7 @@ execution:
   scenario:
     script: functional/mocha_example.js
 
-- executor: nose
+- executor: apiritif
   concurrency: 1
   hold-for: 10s
   iterations: 10
