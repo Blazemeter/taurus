@@ -1327,6 +1327,9 @@ class JavaVM(RequiredTool):
             return False
 
         self.version = self._get_version(err)
+
+        if err:
+            out += err
         self.log.debug("%s output: %s", self.tool_name, out)
         return True
 
