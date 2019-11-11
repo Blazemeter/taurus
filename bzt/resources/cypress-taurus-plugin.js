@@ -7,21 +7,12 @@ function epoch() {
 }
 
 function reportItem(test, err) {
-    // Test properties:
-    // "title", "fn", "body", "timedOut", "pending", "type", "file",
-    // "parent", "ctx", "callback", "timer", "skip", "duration",
-    // "state","speed"
-
-    // Test methods:
-    // "isPending", "retries", "currentRetry", "fullTitle",
-
     var stateStatus = {
         "passed": "PASSED",
         "failed": "FAILED",
         "pending": "SKIPPED"
     };
 
-    /*eslint-disable camelcase */
     return {
         test_case: test.title,
         test_suite: test.fullTitle(),
@@ -34,7 +25,6 @@ function reportItem(test, err) {
             file: test.file || null
         }
     };
-    /*eslint-enable camelcase */
 }
 
 function TaurusReporter(runner, config) {
@@ -158,12 +148,8 @@ function parseCmdline(argv) {
 }
 
 function prepareCypress(config, cypressConfig) {
-    // clear 'require' cache to avoid cypress's test rediscovery issues
-    // TODO: fix/report?
     Object.keys(require.cache).forEach(function(key) { delete require.cache[key]; });
-
     var engine = new Cypress(cypressConfig);
-
     var stat = fs.statSync(config.testSuite);
 
     if (stat.isFile(config.testSuite)) {
@@ -203,7 +189,6 @@ function loopCypress(config, cypressConfig, iterations, startTime, done) {
 function runCypress() {
     var config = parseCmdline(process.argv);
     var reportStream = fs.createWriteStream(config.reportFile || "report.ldjson");
-
     var cypressConfig = {
         reporter: TaurusReporter,
         reporterOptions: {
