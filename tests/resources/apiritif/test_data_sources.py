@@ -13,37 +13,36 @@ reader_1 = apiritif.CSVReaderPerThread('first-file.csv')
 reader_2 = apiritif.CSVReaderPerThread('/second/file.csv', loop=True, quoted=False, delimiter='-')
 
 
-def setup():
-    target = apiritif.http.target('http://localhost:8000/')
-    target.keep_alive(True)
-    target.auto_assert_ok(True)
-    target.use_cookies(True)
-    target.allow_redirects(True)
-
-    vars = {
-        'cn': 'cv',
-    }
-    reader_1.read_vars()
-    reader_2.read_vars()
-    vars.update(reader_1.get_vars())
-    vars.update(reader_2.get_vars())
-
-    apiritif.put_into_thread_store(vars, target)
-
-
 class TestAPI(unittest.TestCase, ):
 
     def setUp(self):
-        (self.vars, self.target) = apiritif.get_from_thread_store()
+        self.target = apiritif.http.target('http://localhost:8000/')
+        self.target.keep_alive(True)
+        self.target.auto_assert_ok(True)
+        self.target.use_cookies(True)
+        self.target.allow_redirects(True)
+        self.vars = {
+            'cn': 'cv'
+        }
+        reader_1.read_vars()
+        reader_2.read_vars()
+        self.vars.update(reader_1.get_vars())
+        self.vars.update(reader_2.get_vars())
+        apiritif.put_into_thread_store(func_mode=False)
 
-    def test_1_an(self):
-        with apiritif.transaction(self.vars['an']):
+    def _1_an(self):
+        with apiritif.smart_transaction(self.vars['an']):
             response = self.target.get(self.vars['an'])
 
-    def test_2_bn(self):
-        with apiritif.transaction(self.vars['bn']):
+    def _2_bn(self):
+        with apiritif.smart_transaction(self.vars['bn']):
             response = self.target.get(self.vars['bn'])
 
-    def test_3_cn(self):
-        with apiritif.transaction(self.vars['cn']):
+    def _3_cn(self):
+        with apiritif.smart_transaction(self.vars['cn']):
             response = self.target.get(self.vars['cn'])
+
+    def test_test_requests(self):
+        self._1_an()
+        self._2_bn()
+        self._3_cn()
