@@ -239,3 +239,5 @@ sudo docker run -it --rm -v /tmp:/bzt-configs -v /tmp/my-run-artifacts:/tmp/arti
 ```
 
 UNSTABLE_SNAPSHOT
+
+We have [Usage Statisctics](/bzt-usage-stats) on our website. That's why we collect the name of desktop OS, where you have run Taurus.
