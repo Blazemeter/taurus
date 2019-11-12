@@ -26,6 +26,10 @@
          class="PWE\Modules\RedirectAccepted\RedirectAccepted"
          base="http://groups.google.com/forum/#!forum/codename-taurus"/>
 
+    <url link="changelog" menu="1" title="Changelog" accept="1"
+         class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="/docs/Changelog/"
+     />
+
     <url link="updates" title="Updates Information" class="Taurus\UpdateChecker" template="empty.tpl"/>
 
     <url template="empty.tpl" link="sample-scripts" accept="1" class="PWE\Modules\SimpleWiki\SimpleWiki"
