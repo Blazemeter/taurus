@@ -1,5 +1,13 @@
 # Apiritif
-Allows to run load and functional Python tests using [Apiritif test framework](https://github.com/Blazemeter/apiritif), which is based on nose library.
+Allows to run load and functional Python tests using [Apiritif test framework](https://github.com/Blazemeter/apiritif), 
+which is based on [Nose library](https://nose.readthedocs.io/en/latest/index.html).
+You can run Nose tests the following way:
+```yaml
+execution:
+- executor: apiritif  
+  scenario:
+    script: test_nose.py
+```
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded.
