@@ -8,6 +8,7 @@ execution:
   scenario:
     script: test_nose.py
 ```
+Also, if not present, Taurus creates and stores Nose test to the artifacts directory, when Apiritif executor is used. 
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded.
