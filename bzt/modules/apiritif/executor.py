@@ -14,19 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os
 import re
 import sys
-
 
 from bzt import TaurusConfigError
 from bzt.engine import SETTINGS
 from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSamplesReader
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
-from bzt.utils import FileReader, get_full_path, RESOURCES_DIR, BZT_DIR, get_assembled_value
+from bzt.utils import FileReader, get_full_path, BZT_DIR, get_assembled_value
 from .generator import ApiritifScriptGenerator
-
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
@@ -111,7 +108,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
             builder = ApiritifScriptGenerator(
                 scenario, self.label, wdlog, executor=self,
-                utils_file=os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py"),
                 ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
                 generate_markers=generate_markers,
                 capabilities=capabilities,

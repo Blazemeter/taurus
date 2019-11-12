@@ -47,8 +47,6 @@ setup(
     url='http://gettaurus.org/',
     download_url='http://gettaurus.org/docs/DeveloperGuide/#Python-Egg-Snapshots',
     license='Apache 2.0',
-    platform='any',
-    docs_url='http://gettaurus.org/docs/',
     install_requires=requires,
     packages=['bzt', 'bzt.engine', 'bzt.six', 'bzt.jmx', 'bzt.modules',
               'bzt.modules.java', 'bzt.modules.apiritif', 'bzt.resources', 'bzt.modules.python'],
@@ -78,11 +76,9 @@ setup(
         'Operating System :: MacOS',
         'Operating System :: POSIX :: Linux',
 
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
+    python_requires='>=3.5',
 )

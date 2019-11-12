@@ -724,7 +724,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "/apiritif/test_vars.py"
-        self.assertIn("test_2_set_variables", self.obj.engine.aggregator.ignored_labels)
+        self.assertIn("set_variables", self.obj.engine.aggregator.ignored_labels)
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
     def test_codegen_requests(self):

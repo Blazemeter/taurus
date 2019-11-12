@@ -97,10 +97,11 @@ from selenium.webdriver.common.keys import Keys
     SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock,
                         ActionBlock)
 
-    def __init__(self, scenario, label, wdlog=None, executor=None, utils_file=None,
+    def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
                  capabilities=None, wd_addr=None, test_mode="selenium"):
         self.scenario = scenario
+        self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
         self.executor = executor
         self.label = label
@@ -108,7 +109,6 @@ from selenium.webdriver.common.keys import Keys
         self.tree = None
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
-        self.stored_vars = []
         self.service_methods = []
 
         self.remote_address = wd_addr
@@ -117,7 +117,6 @@ from selenium.webdriver.common.keys import Keys
         self.wdlog = wdlog
         self.browser = None
         self.appium = False
-        self.utils_file = utils_file
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
         self.test_mode = test_mode
@@ -178,6 +177,7 @@ from selenium.webdriver.common.keys import Keys
             value=value)
 
     def _gen_window_mngr(self, atype, selector):
+        self.selenium_extras.add("WindowManager")
         elements = []
         if atype == "switch":
             elements.append(ast_call(
@@ -212,6 +212,7 @@ from selenium.webdriver.common.keys import Keys
         return elements
 
     def _gen_frame_mngr(self, tag, selector):
+        self.selenium_extras.add("FrameManager")
         elements = []  # todo: byid/byidx disambiguation?
         if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
             if tag == "byidx":
@@ -558,7 +559,7 @@ from selenium.webdriver.common.keys import Keys
             headless_setup = [ast.Expr(
                 ast_call(func=ast_attr("options.set_headless")))]
 
-        body = []
+        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
 
         if browser == 'firefox':
             body.append(ast.Assign(
@@ -575,7 +576,7 @@ from selenium.webdriver.common.keys import Keys
                     args=[ast.Str("webdriver.log.file"), ast.Str(self.wdlog)])))
 
             body.append(ast.Assign(
-                targets=[ast.Name(id="driver")],
+                targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.Firefox"),
                     args=[ast.Name(id="profile")],
@@ -589,7 +590,7 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("webdriver.ChromeOptions"))))
             body.extend(headless_setup)
             body.append(ast.Assign(
-                targets=[ast.Name(id="driver")],
+                targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.Chrome"),
                     keywords=[
@@ -603,7 +604,7 @@ from selenium.webdriver.common.keys import Keys
             keys = sorted(self.capabilities.keys())
             values = [str(self.capabilities[key]) for key in keys]
             body.append(ast.Assign(
-                targets=[ast.Name(id="driver")],
+                targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.Remote"),
                     keywords=[
@@ -620,26 +621,31 @@ from selenium.webdriver.common.keys import Keys
                 self.log.warning("Browser %r doesn't support headless mode" % browser)
 
             body.append(ast.Assign(
-                targets=[ast.Name(id="driver")],
+                targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
 
         scenario_timeout = self.scenario.get("timeout", "30s")
         body.append(ast.Expr(
             ast_call(
-                func=ast_attr("driver.implicitly_wait"),
+                func=ast_attr("self.driver.implicitly_wait"),
                 args=[ast.Num(dehumanize_time(scenario_timeout))])))
 
-        body.append(ast.Assign(
-            targets=[ast.Name(id="wnd_mng")],
-            value=ast_call(
-                func=ast.Name(id="WindowManager"),
-                args=[ast.Name(id="driver")])))
-        body.append(ast.Assign(
-            targets=[ast.Name(id="frm_mng")],
-            value=ast_call(
-                func=ast.Name(id="FrameManager"),
-                args=[ast.Name(id="driver")])))
+        mgr = "WindowManager"
+        if mgr in self.selenium_extras:
+            body.append(ast.Assign(
+                targets=[ast_attr("self.wnd_mng")],
+                value=ast_call(
+                    func=ast.Name(id=mgr),
+                    args=[ast_attr("self.driver")])))
+
+        mgr = "FrameManager"
+        if mgr in self.selenium_extras:
+            body.append(ast.Assign(
+                targets=[ast_attr("self.frm_mng")],
+                value=ast_call(
+                    func=ast.Name(id=mgr),
+                    args=[ast_attr("self.driver")])))
 
         if self.window_size:  # FIXME: unused in fact ?
             body.append(ast.Expr(
@@ -672,19 +678,9 @@ from selenium.webdriver.common.keys import Keys
             stmts.extend(self._gen_logging())
 
         stmts.extend(self._gen_data_source_readers())
-        stmts.extend(self._gen_module_setup())
-
-        if self.test_mode == "selenium":
-            stmts.append(self._gen_module_teardown())
-
         stmts.append(self._gen_classdef())
 
-        stmts = self._gen_imports() + stmts     # todo: order is important (with classdef) because of self.appium setup
-
-        if self.test_mode == "selenium":
-            with open(self.utils_file) as fds:
-                utilities_source_lines = fds.read()
-            stmts.append(ast.parse(utilities_source_lines))
+        stmts = self._gen_imports() + stmts  # todo: order is important (with classdef) because of self.appium setup
 
         return ast.Module(body=stmts)
 
@@ -712,45 +708,15 @@ from selenium.webdriver.common.keys import Keys
                 source = "selenium"
 
             imports.append(ast.parse(self.IMPORTS % source).body)
+            if self.selenium_extras:
+                extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
+                imports.append(
+                    ast.ImportFrom(
+                        module="bzt.resources.selenium_extras",
+                        names=extra_names,
+                        level=0))
 
         return imports
-
-    def _gen_module_setup(self):
-        if self.test_mode == "apiritif":
-            target_init = self._gen_api_target()
-        else:
-            target_init = self._gen_webdriver()
-
-        data_sources = [self._gen_default_vars()]
-        for idx in range(len(self.data_sources)):
-            data_sources.append(ast.Expr(ast_call(func=ast_attr("reader_%s.read_vars" % (idx + 1)))))
-
-        for idx in range(len(self.data_sources)):
-            extend_vars = ast_call(
-                func=ast_attr("vars.update"),
-                args=[ast_call(
-                    func=ast_attr("reader_%s.get_vars" % (idx + 1)))])
-            data_sources.append(ast.Expr(extend_vars))
-
-        self.stored_vars = ['vars']
-        if target_init:
-            if self.test_mode == "apiritif":
-                self.stored_vars.append("target")
-            else:
-                self.stored_vars.extend(["driver", "wnd_mng", "frm_mng"])
-
-        store_call = ast_call(
-            func=ast_attr("apiritif.put_into_thread_store"),
-            args=[ast.Name(id=var) for var in self.stored_vars])
-
-        store_block = [ast.Expr(store_call)]
-
-        setup = ast.FunctionDef(
-            name="setup",
-            args=[],
-            body=target_init + data_sources + store_block,
-            decorator_list=[])
-        return [setup, self._gen_empty_line_stmt()]
 
     def _gen_data_source_readers(self):
         readers = []
@@ -798,8 +764,11 @@ from selenium.webdriver.common.keys import Keys
         return readers
 
     def _gen_classdef(self):
-        class_body = [self._gen_class_setup()]
-        class_body.extend(self._gen_test_methods())
+        class_body = [self._gen_test_methods()]
+        class_body = [self._gen_class_setup()] + class_body     # order is important for selenium_extras set
+
+        if self.test_mode == "selenium":
+            class_body.append(self._gen_class_teardown())
 
         return ast.ClassDef(
             name=create_class_name(self.label),
@@ -811,81 +780,59 @@ from selenium.webdriver.common.keys import Keys
             decorator_list=[])
 
     def _gen_class_setup(self):
-        fields = ast.Tuple(elts=[ast.Name(id="self.%s" % var) for var in self.stored_vars])
-
-        body = [ast.Assign(
-            targets=[fields],
-            value=ast_call(func=ast_attr("apiritif.get_from_thread_store")))]
-
-        return ast.FunctionDef(name="setUp", args=[ast.Name(id="self")], body=body, decorator_list=[])
-
-    def _gen_module_teardown(self):
-        fields = []
-        for var in self.stored_vars:
-            if var == "driver":
-                fields.append(var)
-            else:
-                fields.append("_")
-
-        ast_fields = ast.Tuple(elts=[ast.Name(id="%s" % var) for var in fields])
-
-        body = [ast.Assign(
-            targets=[ast_fields],
-            value=ast_call(func=ast_attr("apiritif.get_from_thread_store")))]
-
-        body.append(ast.Expr(ast_call(func=ast_attr("driver.quit"))))
-        return ast.FunctionDef(name="teardown", args=[], body=body, decorator_list=[])
-
-    def _add_markers(self, body, label):
-        def marker(case=None, suite=None, status=None, exc_msg=None):
-            if case and suite:
-                marker_msg = "/* FLOW_MARKER test-case-start */"
-                keys = [ast.Str("testCaseName"), ast.Str("testSuiteName")]
-                values = [ast.Str(case), ast.Str(suite)]
-            else:
-                marker_msg = "/* FLOW_MARKER test-case-stop */"
-                if exc_msg is None:
-                    exc_msg = ast_call(func="str", args=[ast.Name(id="exc")])
-                else:
-                    exc_msg = ast.Str(exc_msg)
-
-                keys = [ast.Str("status"), ast.Str("message")]
-                values = [ast.Str(status), exc_msg]
-
-            return ast.Expr(ast_call(
-                func=ast_attr("self.driver.execute_script"),
-                args=[
-                    ast.Str(marker_msg),
-                    ast.Dict(keys=keys, values=values)]))
-
-        start_marker = marker(case=label, suite=self.label)
-        kwargs = {"body": [start_marker] + body}
-
-        if PY2:
-            ast_try = ast.TryExcept
-            name = ast.Name(id="exc")
-            reraise = ast.Raise(type=None, inst=None, tback=None)
+        if self.test_mode == "apiritif":
+            target_init = self._gen_api_target()
         else:
-            ast_try = ast.Try
-            name = "exc"
-            reraise = ast.Raise(exc=None, cause=None)
-            kwargs["finalbody"] = []
+            target_init = self._gen_webdriver()
 
-        kwargs["handlers"] = [
-            ast.ExceptHandler(
-                type=ast.Name(id="AssertionError"),
-                name=name,
-                body=[marker(status="failed"), reraise]),
-            ast.ExceptHandler(
-                type=ast.Name(id="BaseException"),
-                name=name,
-                body=[marker(status="broken"), reraise])]
+        data_sources = [self._gen_default_vars()]
+        for idx in range(len(self.data_sources)):
+            data_sources.append(ast.Expr(ast_call(func=ast_attr("reader_%s.read_vars" % (idx + 1)))))
 
-        kwargs["orelse"] = [marker(status="success", exc_msg="")]
+        for idx in range(len(self.data_sources)):
+            extend_vars = ast_call(
+                func=ast_attr("self.vars.update"),
+                args=[ast_call(
+                    func=ast_attr("reader_%s.get_vars" % (idx + 1)))])
+            data_sources.append(ast.Expr(extend_vars))
 
-        return ast_try(**kwargs)
+        handlers = []
+        if self.generate_markers:
+            func_name = "add_flow_markers"
+            self.selenium_extras.add(func_name)
+            handlers.append(ast.Expr(ast_call(func=func_name)))
+
+        stored_vars = {"func_mode": str(False)}  # todo: make func_mode optional
+        if target_init:
+            if self.test_mode == "selenium":
+                stored_vars["driver"] = "self.driver"
+
+        store_call = ast_call(
+            func=ast_attr("apiritif.put_into_thread_store"),
+            keywords=[ast.keyword(arg=key, value=ast_attr(stored_vars[key])) for key in stored_vars],
+            args=[])
+
+        store_block = [ast.Expr(store_call)]
+
+        setup = ast.FunctionDef(
+            name="setUp",
+            args=[ast_attr("self")],
+            body=target_init + data_sources + handlers + store_block,
+            decorator_list=[])
+        return [setup, self._gen_empty_line_stmt()]
+
+    def _gen_class_teardown(self):
+        body = [
+            ast.If(
+                test=ast_attr("self.driver"),
+                body=ast.Expr(ast_call(func=ast_attr("self.driver.quit"))), orelse=[])]
+
+        return ast.FunctionDef(name="tearDown", args=[ast_attr("self")], body=body, decorator_list=[])
 
     def _gen_test_methods(self):
+        methods = []
+        slave_methods_names = []
+
         requests = self.scenario.get_requests(parser=HierarchicRequestParser, require_url=False)
 
         number_of_digits = int(math.log10(len(requests))) + 1
@@ -907,8 +854,6 @@ from selenium.webdriver.common.keys import Keys
             if isinstance(request, TransactionBlock):
                 body = [self._gen_transaction(request)]
                 label = create_method_name(request.label[:40])
-                if self.generate_markers:
-                    body = self._add_markers(body=body, label=request.label)
             elif isinstance(request, IncludeScenarioBlock):
                 body = [self._gen_transaction(request)]
                 label = create_method_name(request.scenario_name)
@@ -922,12 +867,16 @@ from selenium.webdriver.common.keys import Keys
                 return
 
             counter = str(index).zfill(number_of_digits)
-            method_name = 'test_' + counter + '_' + label
+            method_name = '_' + counter + '_' + label
 
             if isinstance(request, SetVariables) or isinstance(request, ActionBlock):
-                self.service_methods.append(method_name)  # for sample excluding
+                self.service_methods.append(label)  # for sample excluding
 
-            yield self._gen_test_method(method_name, body)
+            methods.append(self._gen_test_method(method_name, body))
+            slave_methods_names.append(method_name)
+
+        methods.append(self._gen_master_test_method(slave_methods_names))
+        return methods
 
     def _gen_set_vars(self, request):
         res = []
@@ -959,6 +908,17 @@ from selenium.webdriver.common.keys import Keys
                     args=[self._gen_expr('action-continue')])))
         return res
 
+    def _gen_master_test_method(self, slave_method_names):
+        if not slave_method_names:
+            raise TaurusConfigError("Supported trasactions not found, test is empty")
+
+        body = []
+        for slave_name in slave_method_names:
+            body.append(ast.Expr(ast_call(func=ast_attr("self." + slave_name))))
+
+        name = 'test_' + create_method_name(self.label)
+        return self._gen_test_method(name=name, body=body)
+
     @staticmethod
     def _gen_test_method(name, body):
         # 'test_01_get_posts'
@@ -973,7 +933,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_target_setup(self, key, value):
         return ast.Expr(ast_call(
-            func=ast_attr("target.%s" % key),
+            func=ast_attr("self.target.%s" % key),
             args=[self._gen_expr(value)]))
 
     def _access_method(self):
@@ -1025,7 +985,7 @@ from selenium.webdriver.common.keys import Keys
             args=[self._gen_expr(default_address)])
 
         target = ast.Assign(
-            targets=[ast.Name(id="target", ctx=ast.Store())],
+            targets=[ast_attr("self.target")],
             value=target_call)
 
         return target
@@ -1088,9 +1048,9 @@ from selenium.webdriver.common.keys import Keys
             else:
                 body.append(self._gen_http_request(request))
 
-        transaction_class = "apiritif.transaction"
-        if self.test_mode == "selenium":
-            transaction_class += "_logged"
+        transaction_class = "apiritif.smart_transaction"
+        # if self.test_mode == "selenium":    # todo: remove it?
+        #    transaction_class += "_logged"
 
         transaction = ast.With(
             context_expr=ast_call(
@@ -1236,7 +1196,7 @@ from selenium.webdriver.common.keys import Keys
         values = [variables[name] for name in names]
 
         return ast.Assign(
-            targets=[ast.Name(id='vars', ctx=ast.Store())],
+            targets=[ast_attr("self.vars")],
             value=ast.Dict(
                 keys=[self._gen_expr(name) for name in names],
                 values=[self._gen_expr(val) for val in values]))

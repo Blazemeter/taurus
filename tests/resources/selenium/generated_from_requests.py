@@ -19,34 +19,30 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-
-
-def setup():
-    options = webdriver.FirefoxOptions()
-    profile = webdriver.FirefoxProfile()
-    profile.set_preference('webdriver.log.file', '<somewhere>webdriver.log')
-    driver = webdriver.Firefox(profile, firefox_options=options)
-    driver.implicitly_wait(3.5)
-    wnd_mng = WindowManager(driver)
-    frm_mng = FrameManager(driver)
-    vars = {
-        'name': 'Name',
-        'red_pill': 'take_it',
-    }
-    apiritif.put_into_thread_store(vars, driver, wnd_mng, frm_mng)
-
-
-def teardown():
-    (_, driver, _, _) = apiritif.get_from_thread_store()
-    driver.quit()
+from bzt.resources.selenium_extras import FrameManager, WindowManager
 
 
 class TestLocSc(unittest.TestCase, ):
     def setUp(self):
-        (self.vars, self.driver, self.wnd_mng, self.frm_mng) = apiritif.get_from_thread_store()
+        self.driver = None
+        options = webdriver.FirefoxOptions()
+        profile = webdriver.FirefoxProfile()
+        profile.set_preference('webdriver.log.file', '<somewhere>webdriver.log')
+        self.driver = webdriver.Firefox(profile, firefox_options=options)
+        self.driver.implicitly_wait(3.5)
+        self.wnd_mng = WindowManager(self.driver)
+        self.frm_mng = FrameManager(self.driver)
 
-    def test_1_(self):
-        with apiritif.transaction_logged('/'):
+        self.vars = {
+            'name': 'Name',
+            'red_pill': 'take_it',
+        }
+
+        apiritif.put_into_thread_store(driver=self.driver, func_mode=False)
+
+
+    def _1_(self):
+        with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, "//input[@type='submit']")), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
             self.assertEqual(self.driver.title, 'BlazeDemo')
@@ -112,71 +108,15 @@ class TestLocSc(unittest.TestCase, ):
             re_pattern = re.compile('contained_text')
             self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
 
-    def test_2_empty(self):
-        with apiritif.transaction_logged('empty'):
+    def _2_empty(self):
+        with apiritif.smart_transaction('empty'):
             pass
 
-from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
+    def test_locsc(self):
+        self._1_()
+        self._2_empty()
 
-class FrameManager:
+    def tearDown(self):
+        if self.driver:
+            self.driver.quit()
 
-    def __init__(self, driver):
-        self.driver = driver
-
-    def switch(self, frame_name=None):
-        try:
-            if ((not frame_name) or (frame_name == 'relative=top')):
-                self.driver.switch_to_default_content()
-            elif frame_name.startswith('index='):
-                self.driver.switch_to.frame(int(frame_name.split('=')[1]))
-            elif (frame_name == 'relative=parent'):
-                self.driver.switch_to.parent_frame()
-            else:
-                self.driver.switch_to.frame(frame_name)
-        except NoSuchFrameException:
-            raise NoSuchFrameException(('Invalid Frame ID: %s' % frame_name))
-
-class WindowManager:
-
-    def __init__(self, driver):
-        self.driver = driver
-        self.windows = {
-            
-        }
-
-    def switch(self, window_name=None):
-        try:
-            if (not window_name):
-                self.driver.switch_to.window(self.driver.window_handles[(-1)])
-            elif window_name.isdigit():
-                self._switch_by_idx(int(window_name))
-            elif window_name.startswith('win_ser_'):
-                self._switch_by_win_ser(window_name)
-            else:
-                self.driver.switch_to.window(window_name)
-        except NoSuchWindowException:
-            raise NoSuchWindowException(('Invalid Window ID: %s' % window_name))
-
-    def _switch_by_idx(self, win_index):
-        wnd_handlers = self.driver.window_handles
-        if ((len(wnd_handlers) <= win_index) and (win_index >= 0)):
-            self.driver.switch_to.window(wnd_handlers[win_index])
-        else:
-            raise NoSuchWindowException(('Invalid Window ID: %s' % str(win_index)))
-
-    def _switch_by_win_ser(self, window_name):
-        if (window_name == 'win_ser_local'):
-            wnd_handlers = self.driver.window_handles
-            if (len(wnd_handlers) > 0):
-                self.driver.switch_to.window(wnd_handlers[0])
-            else:
-                raise NoSuchWindowException(('Invalid Window ID: %s' % window_name))
-        else:
-            if (window_name not in self.windows):
-                self.windows[window_name] = self.driver.window_handles[(-1)]
-            self.driver.switch_to.window(self.windows[window_name])
-
-    def close(self, window_name=None):
-        if window_name:
-            self.switch(window_name)
-        self.driver.close()

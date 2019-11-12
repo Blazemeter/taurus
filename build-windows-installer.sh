@@ -28,10 +28,10 @@ PYTHONZ_SYSTEM="/usr/local/pythonz/bin/pythonz"
 [ -f "$PYTHONZ_HOME" ] && PYTHONZ="$PYTHONZ_HOME" || PYTHONZ="$PYTHONZ_SYSTEM"
 
 # install specific version of python
-$PYTHONZ install 3.6.3
+$PYTHONZ install 3.7.5
 
 # set up python virtualenv
-virtualenv venv --python=$($PYTHONZ locate 3.6.3)
+virtualenv venv --python=$($PYTHONZ locate 3.7.5)
 
 # this is a workaround for venv bug: https://github.com/pypa/virtualenv/issues/1029
 set +u
