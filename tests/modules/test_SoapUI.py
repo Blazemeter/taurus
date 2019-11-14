@@ -8,8 +8,8 @@ class TestSoapUIConverter(BZTestCase):
         config = obj.convert_script(RESOURCES_DIR + "soapui/project.xml")
 
         self.assertIn("execution", config)
-        self.assertEqual(3, len(config["execution"]))
-        execution = config["execution"][0]
+        self.assertEqual(4, len(config["execution"]))
+        execution = config["execution"][1]
         self.assertEqual("TestSuite 1-index", execution.get("scenario"))
         self.assertEqual(60, execution.get("hold-for"))
         self.assertEqual(10, execution.get("concurrency"))
@@ -68,7 +68,7 @@ class TestSoapUIConverter(BZTestCase):
         config = obj.convert_script(RESOURCES_DIR + "soapui/project.xml")
 
         scenarios = config["scenarios"]
-        self.assertEqual(len(scenarios), 3)
+        self.assertEqual(len(scenarios), 4)
 
         target_scenario = scenarios["TestSuite 1-index"]
         found_name, found_scenario = obj.find_soapui_test_case("index", scenarios)
@@ -81,14 +81,11 @@ class TestSoapUIConverter(BZTestCase):
         config = obj.convert_script(RESOURCES_DIR + "soapui/project.xml")
 
         scenarios = config["scenarios"]
-        self.assertEqual(len(scenarios), 3)
+        self.assertEqual(len(scenarios), 4)
 
-        target_scenario = scenarios["TestSuite 1-index"]
+        target_scenario = scenarios["BlazeDemo LoadTest"]
         found_name, found_scenario = obj.find_soapui_test_case(None, scenarios)
         self.assertEqual(target_scenario, found_scenario)
-
-        self.assertIn("No `test-case` specified for SoapUI project, will use 'index'",
-                      self.log_recorder.warn_buff.getvalue())
 
     def test_skip_if_no_requests(self):
         obj = SoapUIScriptConverter(ROOT_LOGGER)
@@ -130,7 +127,7 @@ class TestSoapUIConverter(BZTestCase):
     def test_soap_conversion(self):
         obj = SoapUIScriptConverter(ROOT_LOGGER)
         config = obj.convert_script(RESOURCES_DIR + "soapui/globalweather.xml")
-        self.assertEqual(len(config["scenarios"]), 3)
+        self.assertEqual(len(config["scenarios"]), 4)
         merged = config["scenarios"]["GWSOAPMerged-Test"]
         split1 = config["scenarios"]["GWSOAPSplit-GetCities"]
         split2 = config["scenarios"]["GWSOAPSplit-GetWeather"]
@@ -151,7 +148,7 @@ class TestSoapUIConverter(BZTestCase):
     def test_rest_templated_params_interpolation(self):
         obj = SoapUIScriptConverter(ROOT_LOGGER)
         config = obj.convert_script(RESOURCES_DIR + "soapui/gmaps-sample.xml")
-        self.assertEqual(len(config["scenarios"]), 9)
+        self.assertEqual(len(config["scenarios"]), 10)
         scenario = config["scenarios"]["Directions API TestSuite-Simple Tests"]
 
         for request in scenario["requests"]:

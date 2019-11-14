@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project id="a3ed17ff-0af3-484f-b7e3-e6c0459a0a49" activeEnvironment="Default"
+  name="smart-STRESS" soapui-version="5.3.0" abortOnError="false" runType="SEQUENTIAL"
+  xmlns:con="http://eviware.com/soapui/config">
+  <con:settings />
+  <con:interface xsi:type="con:RestService" id="75cee206-897d-4989-a9b6-c37dd95fe64b"
+    wadlVersion="http://wadl.dev.java.net/2009/02" name="http://blazedemo.com/" type="rest"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <con:settings />
+    <con:definitionCache />
+    <con:endpoints>
+      <con:endpoint>http://blazedemo.com</con:endpoint>
+    </con:endpoints>
+    <con:resource name="Smallgroupquote" path="/healthcare/stress/v3/prospects/smallgroupquote"
+      id="079cd698-a538-4fb4-b1de-6e0f0a28c420">
+      <con:settings />
+      <con:parameters />
+      <con:method name="Smallgroupquote 1" id="98749841-a2a1-4475-9b2a-2dbf1d8f9334" method="POST">
+        <con:settings />
+        <con:parameters />
+        <con:representation type="REQUEST">
+          <con:mediaType>application/json</con:mediaType>
+          <con:params />
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/json</con:mediaType>
+          <con:status>200</con:status>
+          <con:params />
+          <con:element>Response</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType xsi:nil="true" />
+          <con:status>0</con:status>
+          <con:params />
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="FAULT">
+          <con:mediaType>application/json</con:mediaType>
+          <con:status>500</con:status>
+          <con:params />
+          <con:element>Fault</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/xml</con:mediaType>
+          <con:status>200</con:status>
+          <con:params />
+          <con:element>createSmallGroupQuoteResponse</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType xsi:nil="true" />
+          <con:status>0</con:status>
+          <con:params />
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType xsi:nil="true" />
+          <con:status>0</con:status>
+          <con:params />
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="FAULT">
+          <con:mediaType>text/html</con:mediaType>
+          <con:status>404</con:status>
+          <con:params />
+          <con:element xmlns:xht="http://www.w3.org/1999/xhtml">xht:html</con:element>
+        </con:representation>
+        <con:request name="GetRateQuote_Small" id="c91ab00d-fd92-48a1-856c-39ceed37cc10" mediaType="application/json"
+          postQueryString="false">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting>
+          </con:settings>
+          <con:endpoint>http://blazedemo.com/</con:endpoint>
+          <con:request>{
+                    "firstRequest": {
+                    "source": "QRS",
+                    "market": "SB",
+                    "businessType": "New Business",
+                    "effectiveDate": "2019-01-01",
+                    "header": {
+                    "transactionID": "ratequotesmall"
+                    }
+                    }
+                    }</con:request>
+          <con:originalUri>http://blazedemo.com/healthcare/stress/v3/prospects/smallgroupquote
+          </con:originalUri>
+          <con:credentials>
+            <con:selectedAuthProfile>Bswift-STRESS</con:selectedAuthProfile>
+            <con:authType>OAuth 2.0</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT" />
+          <con:jmsPropertyConfig />
+          <con:parameters />
+        </con:request>
+        <con:request name="GetRateQuote_Medium" id="c91ab00d-fd92-48a1-856c-39ceed37cc10" mediaType="application/json"
+          postQueryString="false">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting>
+          </con:settings>
+          <con:endpoint>http://blazedemo.com/</con:endpoint>
+          <con:request>{
+                    "secondRequest": {
+                    "source": "QRS",
+                    "market": "SB",
+                    "businessType": "New Business",
+                    "effectiveDate": "2019-01-01",
+                    "header": {
+                    "transactionID": "ratequotesmall"
+                    }
+                    }
+                    }</con:request>
+          <con:originalUri>http://blazedemo.com/healthcare/stress/v3/prospects/smallgroupquote
+          </con:originalUri>
+          <con:credentials>
+            <con:selectedAuthProfile>Bswift-STRESS</con:selectedAuthProfile>
+            <con:authType>OAuth 2.0</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT" />
+          <con:jmsPropertyConfig />
+          <con:parameters />
+        </con:request>
+        <con:request name="GetRateQuote_Large" id="c91ab00d-fd92-48a1-856c-39ceed37cc10" mediaType="application/json"
+          postQueryString="false">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting>
+          </con:settings>
+          <con:endpoint>http://blazedemo.com/</con:endpoint>
+          <con:request>{
+                    "thirdRequest": {
+                    "source": "QRS",
+                    "market": "SB",
+                    "businessType": "New Business",
+                    "effectiveDate": "2019-01-01",
+                    "header": {
+                    "transactionID": "ratequotesmall"
+                    }
+                    }
+                    }</con:request>
+          <con:originalUri>http://blazedemo.com/healthcare/stress/v3/prospects/smallgroupquote
+          </con:originalUri>
+          <con:credentials>
+            <con:selectedAuthProfile>Bswift-STRESS</con:selectedAuthProfile>
+            <con:authType>OAuth 2.0</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT" />
+          <con:jmsPropertyConfig />
+          <con:parameters />
+        </con:request>
+        <con:request name="GetRateQuote_ExtraLarge" id="c91ab00d-fd92-48a1-856c-39ceed37cc10"
+          mediaType="application/json" postQueryString="false">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting>
+          </con:settings>
+          <con:endpoint>http://blazedemo.com/</con:endpoint>
+          <con:request>{
+                    "fourthRequest": {
+                    "source": "QRS",
+                    "market": "SB",
+                    "businessType": "New Business",
+                    "effectiveDate": "2019-01-01",
+                    "header": {
+                    "transactionID": "ratequotesmall"
+                    }
+                    }
+                    }</con:request>
+          <con:originalUri>http://blazedemo.com/healthcare/stress/v3/prospects/smallgroupquote
+          </con:originalUri>
+          <con:credentials>
+            <con:selectedAuthProfile>Bswift-STRESS</con:selectedAuthProfile>
+            <con:authType>OAuth 2.0</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT" />
+          <con:jmsPropertyConfig />
+          <con:parameters />
+        </con:request>
+      </con:method>
+    </con:resource>
+  </con:interface>
+  <con:properties />
+  <con:wssContainer />
+  <con:oAuth2ProfileContainer>
+    <con:oAuth2Profile>
+      <con:name>Bswift-STRESS</con:name>
+      <con:clientID>65e612e0-8d46-4640-b6b0-89f4ba4283d2</con:clientID>
+      <con:clientSecret>oG3pP4rM2wB2wQ8vS2xF7vI7fH3wI7hX0aA5yV3cC8yI1bR3nN</con:clientSecret>
+      <con:accessTokenURI>http://blazedemo.com/healthcare/stress/v6/auth/oauth2/token</con:accessTokenURI>
+      <con:accessToken>
+        AAIkNjVlNjEyZTAtOGQ0Ni00NjQwLWI2YjAtODlmNGJhNDI4M2Qyswm1GEza_NSm6C9oXh-ZkUiwPqhPijdiOct8YaBjbTTTY0l5HQZ9oeNrLUJSwRTMYtEJvF3SND-glUTDn6QrLid_0nhSWjrhnqgkDsnqsxgD1SgvORaylz6ZHJxIy520SSIAsfAi-AJyqwH4OtCFqw
+      </con:accessToken>
+      <con:accessTokenPosition>HEADER</con:accessTokenPosition>
+      <con:oAuth2Flow>CLIENT_CREDENTIALS_GRANT</con:oAuth2Flow>
+      <con:refreshAccessTokenMethod>AUTOMATIC</con:refreshAccessTokenMethod>
+      <con:scope>Public NonPII</con:scope>
+      <con:accessTokenStatus>RETRIEVED_FROM_SERVER</con:accessTokenStatus>
+      <con:accessTokenStartingStatus>RETRIEVED_FROM_SERVER</con:accessTokenStartingStatus>
+      <con:accessTokenExpirationTime>3600</con:accessTokenExpirationTime>
+      <con:accessTokenIssuedTime>1557144530</con:accessTokenIssuedTime>
+    </con:oAuth2Profile>
+  </con:oAuth2ProfileContainer>
+  <con:oAuth1ProfileContainer />
+  <con:sensitiveInformation />
+</con:soapui-project>
