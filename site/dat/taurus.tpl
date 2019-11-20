@@ -159,15 +159,9 @@
                 {math assign=upper_repeats equation='x-1' x=$urlFullCount}
                 {foreach $level1 as $item1}
                     {if $item1.$a.menu}
-                        {if $item1.selected}
-                            <li role="presentation" class="active">
-                                <a href="{'../'|str_repeat:$upper_repeats}{$item1.$a.link}/">{$item1.$a.title|default:$item1.$a.link}</a>
-                            </li>
-                        {else}
-                            <li role="presentation">
-                                <a href="{'../'|str_repeat:$upper_repeats}{$item1.$a.link}/">{$item1.$a.title|default:$item1.$a.link}</a>
-                            </li>
-                        {/if}
+                        <li role="presentation">
+                            <a href="{'../'|str_repeat:$upper_repeats}{$item1.$a.link}/">{$item1.$a.title|default:$item1.$a.link}</a>
+                        </li>
                     {/if}
                 {/foreach}
                 <form action="http://www.google.com/search" class="searchform pull-right" method="get" name="searchform">
@@ -221,6 +215,7 @@
             $(".yaml-json-switch").append(toYAML.click()).append(toJSON);
 
             let pageLink = document.URL;
+            let navButtons = document.querySelectorAll('.nav-pills li');
             let title = document.querySelector("title");
             let h1Text = document.querySelector("h1").innerText;
 
@@ -230,6 +225,38 @@
 
             if(pageLink.includes("/kb/") && !pageLink.includes("/kb/Index/")) {
                 title.innerText = h1Text + " | Learning Taurus";
+            }
+
+            if (pageLink.includes("KeywordIndex") || pageLink.includes("Changelog")) {
+                for (let key in navButtons) {
+                    if (navButtons[key].firstElementChild) {
+                        let href = navButtons[key].firstElementChild.pathname;
+
+                        if (href && href.indexOf('/') !== -1) {
+                            href = href.split('/').join('');
+                        }
+
+                        if (pageLink.includes(href) && (href == "KeywordIndex" || href == "Changelog")) {
+                            navButtons[key].classList.add("active");
+                            break;
+                        }
+                    }
+                }
+            } else {
+                for (let key in navButtons) {
+                    if (navButtons[key].firstElementChild) {
+                        let href = navButtons[key].firstElementChild.pathname;
+
+                        if (href && href.indexOf('/') !== -1) {
+                            href = href.split('/').join('');
+                        }
+
+                        if (pageLink.includes(href)) {
+                            navButtons[key].classList.add("active");
+                            break;
+                        }
+                    }
+                }
             }
         });
     </script>

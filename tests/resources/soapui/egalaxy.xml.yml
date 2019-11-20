@@ -1,9 +1,34 @@
 ---
 execution:
 - concurrency: 1
+  iterations: 1
+  ramp-up: 10s
+  scenario: eGalaxy
+- concurrency: 1
   hold-for: 15
   scenario: eGalaxyTesting-TicketQuery
 scenarios:
+  eGalaxy:
+    requests:
+    - body: |-
+        {
+                            "loadTestId" : "${#TestCase#LoadTestID}",
+                            "testSuiteName" : "${#TestCase#testSuiteName}",
+                            "testCaseName" : "${#TestCase#TestCaseName}",
+                            "testStepName" : "${#TestCase#testStepName}",
+                            "environmentName" : "${#Project#EnvironmentName}",
+                            "timeTaken" : "${#TestCase#timeTaken}",
+                            "size" : "${#TestCase#size}",
+                            "executionTimestamp" : "${#TestCase#executionTimestamp}",
+                            "status" : "${#TestCase#status}",
+                            "messages" : "${#TestCase#messages}",
+                            "conversationId" : "${#TestCase#conversationID}"
+                        }
+      method: POST
+      url: http://fldcvsswa5442.wdw.disney.com:9595/soapuiservice/teststepdata
+    - body: null
+      method: GET
+      url: https://fldcvpswa6204.wdw.disney.com/PCardRepository/pe0802/rest/OneTestREST/Process/rnd_SelectCardByType/VISA/1
   eGalaxyTesting-TicketQuery:
     requests:
     - action: pause

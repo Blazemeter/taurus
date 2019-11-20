@@ -1,14 +1,14 @@
 # Apiritif
-Allows to run load and functional Python tests using [Apiritif test framework](https://github.com/Blazemeter/apiritif), 
+Allows to run load and functional Python tests using [Apiritif test framework](https://github.com/Blazemeter/apiritif),
 which is based on [Nose library](https://nose.readthedocs.io/en/latest/index.html).
 You can run Nose tests the following way:
 ```yaml
 execution:
-- executor: apiritif  
+- executor: apiritif
   scenario:
     script: test_nose.py
 ```
-Also, if not present, Taurus creates and stores Nose test to the artifacts directory, when Apiritif executor is used. 
+Also, if not present, Taurus creates and stores Nose test to the artifacts directory, when Apiritif executor is used.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded.
@@ -16,7 +16,7 @@ will be exceeded.
 Usage:
 ```yaml
 execution:
-- executor: apiritif  
+- executor: apiritif
   scenario:
     script: tests/
 ```
@@ -85,18 +85,17 @@ In `selenium` mode follow request features are supported:
 
   - `browser` for the following browser types: Chrome, Firefox, Ie, Opera, Android-Chrome, iOS-Safari, Remote
   - `remote` for local webdriver, local remote webdriver or [remote webdriver](#Remote-WebDriver)
-  - `capabilities` of [remote webdriver](#Remote-WebDriver): `browser`, `version`, `javascript`, `platform`, `os_version`, `selenium`, `device`, `app`  
-  - `timeout` and `think-time` on both scenario and request levels
+  - `capabilities` of [remote webdriver](#Remote-WebDriver): `browser`, `version`, `javascript`, `platform`, `os\_version`, `selenium`, `device`, `app`
   - `request` only for GET method
       - `action` keyword for Selenium actions
       - `assert` (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)
+  - `timeout` and `think-time` on both scenario and request levels
 
-<a/>
 Here is the list of supported actions, sorted by action type.
 
 ### Locators
 Below you will see some actions, which look like this: `actionX`, i.e. `dragByX`, `clickBy`, etc. Here `X` means a certain
-action object. It can be one of the following: `ID`, `Name`, `LinkText`, `CSS`, `XPath`. For example, `clickByID`, 
+action object. It can be one of the following: `ID`, `Name`, `LinkText`, `CSS`, `XPath`. For example, `clickByID`,
 `waitByName`, `keysByCSS`.
 
 #### How to find them
@@ -107,21 +106,23 @@ __1. By ID__
     <h1 id="my_locator_ID">Locator ID</h1>
 </td>
 ```
-Header tag has an ID attribute (`id="Locator_ID"`). For example, wait until the element is displayed `waitByID(Locator_ID)`.
-    
+Header tag has an ID attribute (`id="Locator\_ID"`). For example, wait until the element is displayed `waitByID(Locator\_ID)`.
+
 __2. By the attribute Name__
 
-`<input name="inputName">`
+```html
+<input name="inputName">
+```
 
-This is an input element and it has attribute `name="inputName"`. 
+This is an input element and it has attribute `name="inputName"`.
 
-For example, insert text the following in the input `keysByName(inputName): First_Name`. Locator determination by the attribute `Name` is often used when working with input fields.
+For example, insert text the following in the input `keysByName(inputName): First\_Name`. Locator determination by the attribute `Name` is often used when working with input fields.
 
 __3. By CSS Selector__
-    
-CSS is used for styling different elements of an HTML webpage, to separate the content of the page and its design. 
-The .css files define these styles, set font size, width, height, etc. There are certain patterns in the CSS, which act 
-as selectors and are applied to HTML elements of the page. Selenium uses the same principle to find 
+
+CSS is used for styling different elements of an HTML webpage, to separate the content of the page and its design.
+The .css files define these styles, set font size, width, height, etc. There are certain patterns in the CSS, which act
+as selectors and are applied to HTML elements of the page. Selenium uses the same principle to find
 items.
 
 Here is an example. This is how to find div with input.
@@ -154,19 +155,19 @@ __5. Child elements__
 </div>
 ```
 Find child element INPUT with `id="inputName"` in the div with `class="controls"`. Describe as `div.controls>input#inputName`. For example, `keysByCSS(div.controls>input#inputName): first\_name`
-    
+
 __6. By XPath__
 
-XPath is the language used for locating nodes in an XML document. As HTML can be an implementation of XML (XHTML), Selenium can use this language to find elements for the web page. One of the main reasons for using XPath is when you don't have a suitable id or name attribute for the element you wish to locate. To locate the element we can use absolute XPath or use relative path elements that have attributes id, name etc. 
+XPath is the language used for locating nodes in an XML document. As HTML can be an implementation of XML (XHTML), Selenium can use this language to find elements for the web page. One of the main reasons for using XPath is when you don't have a suitable id or name attribute for the element you wish to locate. To locate the element we can use absolute XPath or use relative path elements that have attributes id, name etc.
 
-For INPUT  
+For INPUT
 ```html
 <div class="controls">
     <input placeholder="First Last" type="text">
-</div> 
+</div>
 ```
 
-We can compose following XPath expressions: 
+We can compose following XPath expressions:
  - `//div/input`
  - `//div\[@class="controls"]/input`
 
@@ -175,12 +176,12 @@ Any of these expressions can be used to fetch the desired element, if these attr
 
 ### Assertion
 For requested page source inspection you can use the following actions:
-- `assertTextByX(X_name): "text"` to assert text to an element
-- `assertValueByX(X_name): value` to assert value
+- `assertTextByX(X\_name): "text"` to assert text to an element
+- `assertValueByX(X\_name): value` to assert value
 - `assertTitle(title)` to assert page title
 
-Don't forget to replace `X` with the right [locators](#Locators). 
-See sample usage in [Frame Management](#Frame-managmment) section. 
+Don't forget to replace `X` with the right [locators](#Locators).
+See sample usage in [Frame Management](#Frame-managmment) section.
 
 Also, for assertion you can also use special assertion block. See example [here](#Sample-scenario).
 
@@ -188,10 +189,10 @@ Also, for assertion you can also use special assertion block. See example [here]
 To delete all cookies use `clearCookies()` action.
 
 ### Echoing
-Use `echoString("echoed text")` to print text string on the Apiritif output execution. 
+Use `echoString("echoed text")` to print text string on the Apiritif output execution.
 
 ### Editing
-`editContentByX(X_name): "new test for X"` will help you change text in an editable field.
+`editContentByX(X\_name): "new test for X"` will help you change text in an editable field.
 
 ### Execution
 For execution of a non-yaml code you can use the following options:
@@ -206,7 +207,7 @@ rawCode: print('This is a python command.')
 See example [here](#Sample-scenario).
 
 ### Frame managmment
-When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command 
+When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command
 to activate the frame before perform any action.
 
 Sample usage:
@@ -233,26 +234,26 @@ Use `go(url)` to redirect to another website.
 
 ### Mouse actions
 For mouse imitating actions you can use the following:
-- `clickByX(X_name)`
-- `doubleClickByX(X_name)`
-- `mouseDownByX(X_name)`
-- `mouseUpByX(X_name)`
-- `dragByX(X_name): elementByX(another_X_name)`
+- `clickByX(X\_name)`
+- `doubleClickByX(X\_name)`
+- `mouseDownByX(X\_name)`
+- `mouseUpByX(X\_name)`
+- `dragByX(X\_name): elementByX(another\_X\_name)`
 
 `X` here is for one of [locators](#Locators).
 
 ### Pause
 For pause you can use the following actions:
-- `waitByX(X_name)` to wait for presence or `waitByX(X_name): visible` to wait for visibility
+- `waitByX(X\_name)` to wait for presence or `waitByX(X\_name): visible` to wait for visibility
 - `pauseFor(time)`
 
 `X` here is for one of [locators](#Locators).
 
 ### Screenshot
-To take a screenshot of a viewport and save it in a file use this: `screenshot(file_name)`
+To take a screenshot of a viewport and save it in a file use this: `screenshot(file\_name)`
 
 ### Select
-To select a value use this: `selectByX(X_name)`.
+To select a value use this: `selectByX(X\_name)`.
 
 See documentation for `X` [here](#Locators).
 
@@ -260,16 +261,16 @@ See documentation for `X` [here](#Locators).
 For storing variables use the followinf actions:
 - `storeTitle(): "Title"`
 - `storeString(variable): "String"`
-- `storeTextByX(X_name): "Text"`
-- `storeValueByX(X_name): Value`
+- `storeTextByX(X\_name): "Text"`
+- `storeValueByX(X\_name): Value`
 
 See documentation for `X` [here](#Locators).
 
 ### Typing
 Typing actions are the following:
-- `typeByX(X_name): "text_to_type"` clears `X` value and then types text.
-- `submitByX(X_name)`
-- `keysByX(X_name): value` sends keystrokes to `X`. `value` can be formed like this: `KEY_ENTER`. See docs for it [here](http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys).
+- `typeByX(X\_name): "text\_to\_type"` clears `X` value and then types text.
+- `submitByX(X\_name)`
+- `keysByX(X\_name): value` sends keystrokes to `X`. `value` can be formed like this: `KEY\_ENTER`. See docs for it [here](http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys).
 
 `X` here is for one of [locators](#Locators).
 
@@ -277,10 +278,10 @@ Typing actions are the following:
 To manage windows or tabs, the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
-  - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage. 
+  - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage.
   - `name`: The name of the window (reference to the name used in the target window attribute in a link).
-  - `win_ser_name`: In the `name` part, assign a name to the focused opened window, the next time when reference to the same window name, returns with focus to the named window selected. 
-  - `win_ser_local`: Go to the initial window.
+  - `win\_ser\_name`: In the `name` part, assign a name to the focused opened window, the next time when reference to the same window name, returns with focus to the named window selected.
+  - `win\_ser\_local`: Go to the initial window.
   - `no value`: When no value is assigned, it means that the selection action is assigned over the last created window, and if the close action is used, it will also be over the last one created.
 
 Note: When any action command opens a new window (like click over a link with target window assigned), the action of selecting the window must always be declared, otherwise the actions executed by the execution were performed on the default window or the last one used with selectWindow command.
@@ -323,7 +324,7 @@ scenarios:
         regexp: false  # treat string as regular expression
         not: false  # inverse assertion condition
 ```
-All action names are case insensitive. Despite it misprint in action names or usage of unsupported actions break your scenario execution. 
+All action names are case insensitive. Despite it misprint in action names or usage of unsupported actions break your scenario execution.
 To avoid it you can use `ignore-unknown-actions` Apiritif flag and taurus will show warning when unknown action occurs.
 ```yaml
 scenarios:
@@ -331,7 +332,7 @@ scenarios:
     requests:
     - url: http://blazedemo.com
       actions:
-      - definitelyUnknownAction(unknownSelector) 
+      - definitelyUnknownAction(unknownSelector)
 modules:
   apiritif:
     ignore-unknown-actions: True
@@ -344,9 +345,9 @@ It is possible to define variables to be used in the script, declaring them at t
 
 To use it, simply in any reference to a text in the script you must declare the insertion of the variable by using ```${name}```
 
-The use of variables can be used in many reference locations, in selectors or in values. 
+The use of variables can be used in many reference locations, in selectors or in values.
 There are also commands that allow you to store and manipulate them.
-Some of them are `storeTitle`, `storeTextBy *`, `storeValueBy *` and `storeString`.
+Some of them are `storeTitle`, `storeTextBy \*`, `storeValueBy \*` and `storeString`.
 
 Sample:
 ```yaml
@@ -430,7 +431,7 @@ scenarios:
     browser: Chrome-Android
     capabilities:
       device: id_device # set the id of the device here (adb devices)
-      remote: custom_appium_url # You can specify a custom url 
+      remote: custom_appium_url # You can specify a custom url
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
     default-address: http://demo.blazemeter.com  # specify a base address, so you can use short urls in requests
