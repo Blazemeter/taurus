@@ -75,12 +75,12 @@ class Local(Provisioning):
     def startup(self):
         self.start_time = time.time()
 
-        self.available_slots = self.settings.get("capacity", None)
-        if not self.available_slots:
-            if self.settings.get("sequential", False):
-                self.available_slots = 1
-            else:
-                self.available_slots = sys.maxsize      # no limit
+        if self.settings.get("sequential", False):
+            self.available_slots = 1
+        else:
+            self.available_slots = self.settings.get("capacity", None)
+            if not self.available_slots:
+                self.available_slots = sys.maxsize  # no limit
 
         for executor in self.executors:
             start_at = executor.execution.get('start-at', 0)
