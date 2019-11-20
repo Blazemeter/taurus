@@ -1,8 +1,50 @@
 ---
 execution:
 - concurrency: 1
+  iterations: 1
+  ramp-up: 10s
+  scenario: Flickr
+- concurrency: 1
   scenario: TestSuite-TestCase
 scenarios:
+  Flickr:
+    requests:
+    - body: null
+      method: GET
+      url: https://api.flickr.comservices
+    - body: null
+      method: GET
+      url: https://api.flickr.comservices
+    - body: null
+      method: GET
+      url: https://api.flickr.comservices
+    - body: null
+      method: GET
+      url: https://api.flickr.comservices
+    - body: null
+      method: GET
+      url: https://api.flickr.comservices
+    - body: null
+      method: GET
+      url: https://api.flickr.comservices
+    - body: null
+      method: GET
+      url: https://api.flickr.comrest
+    - body: null
+      method: GET
+      url: https://api.flickr.comrest
+    - body: null
+      method: GET
+      url: https://api.flickr.comrest
+    - body: null
+      method: GET
+      url: https://api.flickr.comrest
+    - body: null
+      method: GET
+      url: https://api.flickr.comrest
+    - body: null
+      method: GET
+      url: https://api.flickr.comrest
   TestSuite-TestCase:
     requests:
     - body:

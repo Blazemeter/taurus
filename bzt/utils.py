@@ -1977,7 +1977,12 @@ class SoapUIScriptConverter(object):
 
     def _parse_parent_resources(self, config):
         method_name = config.get('methodName')
-        method_obj = self.interface.find('.//con:method[@name="%s"]' % method_name, namespaces=self.NAMESPACES)
+
+        for interface in self.interface:
+            method_obj = interface.find('.//con:method[@name="%s"]' % method_name, namespaces=self.NAMESPACES)
+            if method_obj is not None:
+                break
+
         params = BetterDict()
         if method_obj is not None:
             parent = method_obj.getparent()
@@ -2178,6 +2183,11 @@ class SoapUIScriptConverter(object):
         scenarios = {}
 
         project_properties = self._extract_properties(project, key_prefix="#Project#")
+        project_name = project.get("name")
+
+        interface_exec, interface_scen = self._extract_interface(project_name, self.interface)
+        execution.append(interface_exec)
+        scenarios.update(interface_scen)
 
         for suite in test_suites:
             suite_props = BetterDict.from_dict(project_properties)
@@ -2218,7 +2228,7 @@ class SoapUIScriptConverter(object):
         self.log.debug("Found projects: %s", projects)
         project = projects[0]
 
-        self.interface = project.find('.//con:interface', namespaces=self.NAMESPACES)
+        self.interface = project.findall('.//con:interface', namespaces=self.NAMESPACES)
         self.log.debug("Found interface: %s", self.interface)
 
         test_suites = project.findall('.//con:testSuite', namespaces=self.NAMESPACES)
@@ -2233,6 +2243,50 @@ class SoapUIScriptConverter(object):
             self.log.warning("No load tests were extracted")
 
         return config
+
+    def _extract_interface(self, project_name, interfaces):
+        execution = {
+            "concurrency": 1,
+            "iterations": 1,
+            "ramp-up": "10s",
+            "scenario": project_name
+        }
+        scenarios = {}
+
+        interface_requests = []
+
+        for interface in interfaces:
+            try:
+                endpoint = interface.find('.//con:endpoint', namespaces=self.NAMESPACES).text
+                resources = interface.findall('.//con:resource', namespaces=self.NAMESPACES)
+                if not resources:
+                    interface_requests.append({
+                        "url": endpoint
+                    })
+                    continue
+            except AttributeError:
+                continue
+
+            for resource in resources:
+                path = resource.get("path")
+                url = endpoint + path
+
+                methods = resource.findall('.//con:method', namespaces=self.NAMESPACES)
+                for method in methods:
+                    method_type = method.get("method")
+
+                    requests = method.findall('con:request', namespaces=self.NAMESPACES)
+                    for request in requests:
+                        request_body = request.find('.//con:request', namespaces=self.NAMESPACES).text
+                        interface_requests.append({
+                            "body": request_body,
+                            "method": method_type,
+                            "url": url
+                        })
+
+        scenarios.update({project_name: {"requests": interface_requests}})
+
+        return execution, scenarios
 
     def find_soapui_test_case(self, test_case, scenarios):
         matching_scenarios = [

@@ -18,13 +18,17 @@
          class="PWE\Modules\SimpleWiki\SimpleWiki" wiki_dir="docs" img_path_prepend="/dat/docs/img/"
     />
 
-    <url link="kwindex" menu="1" title="Keyword Index"
+    <url link="KeywordIndex" menu="1" title="Keyword Index"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="/docs/KeywordIndex/"
     />
 
-    <url link="support" menu="1" title="Support Forums" accept="1"
+    <url link="support" menu="1" title="Support Forum" accept="1"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted"
          base="http://groups.google.com/forum/#!forum/codename-taurus"/>
+
+    <url link="Changelog" menu="1" title="Changelog" accept="1"
+         class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="/docs/Changelog/"
+     />
 
     <url link="updates" title="Updates Information" class="Taurus\UpdateChecker" template="empty.tpl"/>
 
