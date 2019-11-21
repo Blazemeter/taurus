@@ -24,11 +24,12 @@ import astunparse
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
+from bzt.modules.apiritif.generator_v2 import ScriptGeneratorV2
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
 from bzt.six import parse, string_types, iteritems, text_type, PY2
 from bzt.utils import dehumanize_time, ensure_is_dict
-from .ast_helpers import ast_attr, ast_call
+from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store
 from .jmeter_functions import JMeterExprCompiler
 
 
@@ -80,7 +81,7 @@ class ApiritifScriptGenerator(object):
     IMPORTS = """import os
 import re
 from %s import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import Select
@@ -97,7 +98,7 @@ from selenium.webdriver.common.keys import Keys
 
     def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="selenium"):
+                 capabilities=None, wd_addr=None, test_mode="selenium", version=1):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -118,6 +119,7 @@ from selenium.webdriver.common.keys import Keys
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
         self.test_mode = test_mode
+        self.version = version
 
     def _parse_action(self, action_config):
         if isinstance(action_config, string_types):
@@ -165,14 +167,6 @@ from selenium.webdriver.common.keys import Keys
             args=[
                 ast_attr("By.%s" % self.BYS[tag]),
                 self._gen_expr(selector)])
-
-    @staticmethod
-    def _gen_store(name, value):
-        return ast.Assign(
-            targets=[ast.Subscript(
-                value=ast_attr("self.vars"),
-                slice=ast.Str(name))],
-            value=value)
 
     def _gen_window_mngr(self, atype, selector):
         self.selenium_extras.add("WindowManager")
@@ -266,11 +260,11 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("self.assertEqual"),
                     args=[ast_attr("self.driver.title"), self._gen_expr(selector)]))
             else:
-                elements.append(self._gen_store(
+                elements.append(gen_store(
                     name=param.strip(),
                     value=self._gen_expr(ast_attr("self.driver.title"))))
         elif atype == 'store' and tag == 'string':
-            elements.append(self._gen_store(
+            elements.append(gen_store(
                 name=param.strip(),
                 value=self._gen_expr(selector.strip())))
         else:
@@ -304,7 +298,7 @@ from selenium.webdriver.common.keys import Keys
                                         self._gen_expr(param),
                                         "strip")))]))
                 elif atype.startswith('store'):
-                    elements.append(self._gen_store(
+                    elements.append(gen_store(
                         name=param.strip(),
                         value=self._gen_expr(locator_attr)))
 
@@ -373,7 +367,7 @@ from selenium.webdriver.common.keys import Keys
                 ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
                                   args=[
                                       ast.BinOp(
-                                          left=ast.Str("arguments[0].innerHTML = %s;"),
+                                          left=ast.Str("arguments[0].innerHTML = '%s';"),
                                           op=ast.Mod(),
                                           right=self._gen_expr(param.strip())),
                                       short_locator]))],
@@ -453,15 +447,26 @@ from selenium.webdriver.common.keys import Keys
         return [element]
 
     def _gen_action(self, action_config):
-        action = self._parse_action(action_config)
-        if action:
-            atype, tag, param, selector = action
+        generator_v2 = ScriptGeneratorV2(self.scenario, self.ignore_unknown_actions)
+        if self.version == 2:
+            action = generator_v2.parse_action(action_config)
+            if action:
+                atype, tag, param, selector, is_v2_action, source, target = action
         else:
+            action = self._parse_action(action_config)
+            is_v2_action = False
+            if action:
+               atype, tag, param, selector = action
+
+        if not action:
             atype = tag = param = selector = None
 
         action_elements = []
 
-        if tag == "window":
+        if is_v2_action:
+            self.selenium_extras.add("LocatorsManager")
+            action_elements.extend(generator_v2.gen_action(atype, param, selector, source, target))
+        elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, selector))
         elif atype == "switchframe":
             action_elements.extend(self._gen_frame_mngr(tag, selector))
@@ -504,10 +509,6 @@ from selenium.webdriver.common.keys import Keys
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
-
-    @staticmethod
-    def _gen_empty_line_stmt():
-        return ast.Expr(value=ast.Name(id=""))  # hacky, but works
 
     def _check_platform(self):
         mobile_browsers = ["chrome", "safari"]
@@ -645,6 +646,14 @@ from selenium.webdriver.common.keys import Keys
                     func=ast.Name(id=mgr),
                     args=[ast_attr("self.driver")])))
 
+        mgr = "LocatorsManager"
+        if mgr in self.selenium_extras:
+            body.append(ast.Assign(
+                targets=[ast_attr("self.loc_mng")],
+                value=ast_call(
+                    func=ast.Name(id=mgr),
+                    args=[ast_attr("self.driver")])))
+
         if self.window_size:  # FIXME: unused in fact ?
             body.append(ast.Expr(
                 ast_call(
@@ -695,9 +704,9 @@ from selenium.webdriver.common.keys import Keys
                     ast.alias(name="time", asname=None),
                     ast.alias(name="sleep", asname=None)],
                 level=0),
-            self._gen_empty_line_stmt(),
+            gen_empty_line_stmt(),
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
-            self._gen_empty_line_stmt()]
+            gen_empty_line_stmt()]
 
         if self.test_mode == "selenium":
             if self.appium:
@@ -757,7 +766,7 @@ from selenium.webdriver.common.keys import Keys
             readers.append(reader)
 
         if readers:
-            readers.append(self._gen_empty_line_stmt())
+            readers.append(gen_empty_line_stmt())
 
         return readers
 
@@ -817,7 +826,7 @@ from selenium.webdriver.common.keys import Keys
             args=[ast_attr("self")],
             body=target_init + data_sources + handlers + store_block,
             decorator_list=[])
-        return [setup, self._gen_empty_line_stmt()]
+        return [setup, gen_empty_line_stmt()]
 
     def _gen_class_teardown(self):
         body = [
@@ -947,7 +956,7 @@ from selenium.webdriver.common.keys import Keys
                 target.append(self._gen_target_setup('base_path', base_path))
             if timeout is not None:
                 target.append(self._gen_target_setup('timeout', dehumanize_time(timeout)))
-            target.append(self._gen_empty_line_stmt())
+            target.append(gen_empty_line_stmt())
         return target
 
     def _init_target(self):
@@ -1313,5 +1322,5 @@ from selenium.webdriver.common.keys import Keys
             func=ast_attr("log.setLevel"),
             args=[ast_attr("logging.DEBUG")])
 
-        return [set_log, self._gen_empty_line_stmt(), add_handler,
-                self._gen_empty_line_stmt(), set_level, self._gen_empty_line_stmt()]
+        return [set_log, gen_empty_line_stmt(), add_handler,
+                gen_empty_line_stmt(), set_level, gen_empty_line_stmt()]

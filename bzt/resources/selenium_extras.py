@@ -1,7 +1,10 @@
 # Utility functions and classes for Taurus Selenium tests
 
-from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
+from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, TimeoutException
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as econd
 
 
 def add_flow_markers():
@@ -85,3 +88,43 @@ class WindowManager:
         if window_name:
             self.switch(window_name)
         self.driver.close()
+
+
+class LocatorsManager:
+    BYS = {
+        'xpath': By.XPATH,
+        'css': By.CSS_SELECTOR,
+        'name': By.NAME,
+        'id': By.ID,
+        'linktext': By.LINK_TEXT
+    }
+
+    def __init__(self, driver):
+        self.driver = driver
+
+    def get_locator(self, locators):
+        """
+        :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'}, {css: 'my_cls'}]
+        :return: first valid locator from the passed List, if no locator is valid then returns the first one
+        """
+        first_locator = None
+        for locator in locators:
+            locator_type = list(locator.keys())[0]
+            locator_value = locator[locator_type]
+            if not first_locator:
+                first_locator = (locator_type, locator_value)
+                elements = self.driver.find_elements(self.BYS[locator_type.lower()], locator_value)
+            else:
+                # disable implicit wait to get the result instantly for the other locators
+                try:
+                    elements = WebDriverWait(self.driver, 0).until(
+                        econd.presence_of_all_elements_located((self.BYS[locator_type.lower()], locator_value)))
+                except TimeoutException:
+                    pass
+            if len(elements) > 0:
+                locator = (locator_type, locator_value)
+                break
+        else:
+            locator = first_locator
+
+        return locator

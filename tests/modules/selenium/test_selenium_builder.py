@@ -114,7 +114,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             print_i,
             "self.driver.get('http:\\\\blazemeter.com')",
             "if self.driver.find_element(By.ID, 'editor').get_attribute('contenteditable'):",
-            "self.driver.execute_script(('arguments[0].innerHTML = %s;' % 'lo-la-lu'), "
+            "self.driver.execute_script((\"arguments[0].innerHTML = '%s';\" % 'lo-la-lu'), "
             "self.driver.find_element(By.ID, 'editor'))",
             "else:",
             no_such_elt,

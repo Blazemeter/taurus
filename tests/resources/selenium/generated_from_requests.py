@@ -12,7 +12,7 @@ import apiritif
 import os
 import re
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import Select
@@ -38,7 +38,7 @@ class TestLocSc(unittest.TestCase, ):
             'red_pill': 'take_it',
         }
 
-        apiritif.put_into_thread_store(driver=self.driver, func_mode=False)
+        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
 
 
     def _1_(self):
@@ -84,7 +84,7 @@ class TestLocSc(unittest.TestCase, ):
             self.frm_mng.switch('relative=parent')
             
             if self.driver.find_element(By.ID, 'editor').get_attribute('contenteditable'):
-                self.driver.execute_script(('arguments[0].innerHTML = %s;' % 'lo-la-lu'), self.driver.find_element(By.ID, 'editor'))
+                self.driver.execute_script(('arguments[0].innerHTML = \'%s\';' % 'lo-la-lu'), self.driver.find_element(By.ID, 'editor'))
             else:
                 raise NoSuchElementException("The element (By.ID, 'editor') is not contenteditable element")
             sleep(3.5)
