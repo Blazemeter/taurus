@@ -150,9 +150,11 @@ modules:
   local:
     capacity: 3  # no limit by default
 ```
-It means "don't start forth executor until one of the previous finished"
+It means "don't start the 4th executor until one of the previous 3 has finished"
 
-Note: `sequential` is equivalent to `capacity: 1`    
+Note: `sequential` is equivalent to `capacity: 1`.
+
+Please do not use both `sequential` and `capacity` at the same time to prevent ambiguity in your configuration.
 
 You can run different executions at different times with `delay` option:
 ```yaml
