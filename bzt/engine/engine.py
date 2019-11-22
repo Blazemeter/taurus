@@ -655,6 +655,7 @@ class Engine(object):
                 self.log.warning(msg % mod.parameters.get("module"))
                 mod.parameters.merge(instance.parameters)
                 return True
+        return False
 
     def __prepare_aggregator(self):
         """
