@@ -331,22 +331,33 @@ class ScriptGeneratorV2(object):
             return body
 
         if actions_w_args[0].action_type == ActionType.WAIT:
-            handler = ast.ExceptHandler(type=ast.Name(id='TimeoutException', ctx=ast.Load()), name=None, body=[
-                self._gen_handlers_for_multiple_locators(locators[1:], actions_w_args)
-            ])
+            name = ast.Name(id='te', ctx=ast.Store()) if PY2 else None
+            handler = ast.ExceptHandler(type=ast.Name(id='TimeoutException', ctx=ast.Load()),
+                                        name=name, body=[
+                    self._gen_handlers_for_multiple_locators(locators[1:], actions_w_args)
+                ])
         else:
-            handler = ast.ExceptHandler(type=ast.Name(id='NoSuchElementException', ctx=ast.Load()), name="nse", body=[
-                self._gen_handlers_for_multiple_locators(locators[1:], actions_w_args)
-            ])
+            name = ast.Name(id='nse', ctx=ast.Store()) if PY2 else 'nse'
+            handler = ast.ExceptHandler(type=ast.Name(id='NoSuchElementException', ctx=ast.Load()),
+                                        name=name, body=[
+                    self._gen_handlers_for_multiple_locators(locators[1:], actions_w_args)
+                ])
 
         handlers = [handler]
 
-        return ast.Try(
-            body=[body],
-            handlers=[handlers],
-            orelse=[],
-            finalbody=[]
-        )
+        if PY2:
+            return ast.TryExcept(
+                body=[body],
+                handlers=[handlers],
+                orelse=[]
+            )
+        else:
+            return ast.Try(
+                body=[body],
+                handlers=[handlers],
+                orelse=[],
+                finalbody=[]
+            )
 
     def _gen_handlers_for_multiple_locators(self, locators, actions_w_args):
         body = [gen_empty_line_stmt(), list(map(lambda a: [
@@ -358,18 +369,29 @@ class ScriptGeneratorV2(object):
         if len(locators) > 1:
             handler_body = self._gen_handlers_for_multiple_locators(locators[1:], actions_w_args)
         else:
-            handler_body = ast.Raise(ast.Name(id="nse"), [])
+            if PY2:
+                handler_body = ast.Raise(type=ast.Name(id='TimeoutException'), inst=ast.Name(id="nse"), tback=None)
+            else:
+                handler_body = ast.Raise(ast.Name(id="nse"), [])
 
+        name = ast.Name(id='te', ctx=ast.Store()) if PY2 else None
         handlers = [
-            ast.ExceptHandler(type=ast.Name(id='TimeoutException', ctx=ast.Load()), name=None, body=[handler_body])
+            ast.ExceptHandler(type=ast.Name(id='TimeoutException'), name=name, body=[handler_body])
         ]
 
-        return ast.Try(
-            body=[body],
-            handlers=[handlers],
-            orelse=[],
-            finalbody=[]
-        )
+        if PY2:
+            return ast.TryExcept(
+                body=[body],
+                handlers=[handlers],
+                orelse=[]
+            )
+        else:
+            return ast.Try(
+                body=[body],
+                handlers=[handlers],
+                orelse=[],
+                finalbody=[]
+            )
 
     def _gen_wait_locator(self, tag, locator, mode="presence", timeout=0, err_msg=""):
         """
