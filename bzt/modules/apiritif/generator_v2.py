@@ -17,7 +17,6 @@ limitations under the License.
 """
 import ast
 import re
-from enum import Enum
 
 from bzt import TaurusConfigError
 from bzt.modules.apiritif.ast_helpers import ast_call, ast_attr, gen_empty_line_stmt, gen_subscript, gen_store
@@ -452,7 +451,7 @@ class ScriptGeneratorV2(object):
                             "strip")))])
 
 
-class ActionType(Enum):
+class ActionType(object):
     GENERIC = "GENERIC"
     STORE = "STORE"
     ASSERT = "ASSERT"
