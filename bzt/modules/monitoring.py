@@ -138,6 +138,7 @@ class LocalClient(MonitoringClient):
         else:
             self.label = 'local'
 
+        self.monitoring_logs = None
         self.monitor = None
         self.interval = None
         self.metrics = None
@@ -185,6 +186,9 @@ class LocalClient(MonitoringClient):
         self.monitor = LocalMonitor(self.log, self.metrics, self.engine)
         self.interval = dehumanize_time(self.config.get("interval", self.engine.check_interval))
 
+        if self.config.get("logging", False):
+            self.monitoring_logs = self.engine.create_artifact("monitoring_logs", ".csv")
+
     def get_data(self):
         now = time.time()
 
@@ -193,13 +197,14 @@ class LocalClient(MonitoringClient):
             self._cached_data = []
             metric_values = self._get_resource_stats()
 
-            with open(self.engine.monitoring_logs, "a") as mon_logs:
-                if not os.stat(self.engine.monitoring_logs).st_size:
+            if self.monitoring_logs:
+                with open(self.monitoring_logs, "a") as mon_logs:
+                    if not os.stat(self.monitoring_logs).st_size:
+                        logs_writer = csv.writer(mon_logs, delimiter=',')
+                        logs_writer.writerow(metric_values.keys())
+                    line = [str(metric_values[x]) for x in metric_values.keys()]
                     logs_writer = csv.writer(mon_logs, delimiter=',')
-                    logs_writer.writerow(metric_values.keys())
-                line = [str(metric_values[x]) for x in metric_values.keys()]
-                logs_writer = csv.writer(mon_logs, delimiter=',')
-                logs_writer.writerow(line)
+                    logs_writer.writerow(line)
 
             for name in self.metrics:
                 self._cached_data.append({

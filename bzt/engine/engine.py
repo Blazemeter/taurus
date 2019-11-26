@@ -64,7 +64,6 @@ class Engine(object):
         self.__artifacts = []
         self.reporters = []
         self.artifacts_dir = None
-        self.monitoring_logs = None
         self.log = parent_logger.getChild(self.__class__.__name__)
 
         self.env = Environment(self.log)  # backward compatibility
@@ -409,9 +408,6 @@ class Engine(object):
         if merged_config:
             merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
             merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
-
-        self.monitoring_logs = self.create_artifact("monitoring_logs", ".csv")
-
         for artifact in existing_artifacts:
             self.existing_artifact(artifact)
 
