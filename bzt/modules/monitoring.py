@@ -7,7 +7,7 @@ import traceback
 from abc import abstractmethod
 from collections import OrderedDict, namedtuple
 
-import psutil
+import psutil, os, csv
 from urwid import Pile, Text
 
 from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
@@ -192,6 +192,14 @@ class LocalClient(MonitoringClient):
             self._last_check = now
             self._cached_data = []
             metric_values = self._get_resource_stats()
+
+            with open(self.engine.monitoring_logs, "a") as mon_logs:
+                if not os.stat(self.engine.monitoring_logs).st_size:
+                    logs_writer = csv.writer(mon_logs, delimiter=',')
+                    logs_writer.writerow(metric_values.keys())
+                line = [str(metric_values[x]) for x in metric_values.keys()]
+                logs_writer = csv.writer(mon_logs, delimiter=',')
+                logs_writer.writerow(line)
 
             for name in self.metrics:
                 self._cached_data.append({
