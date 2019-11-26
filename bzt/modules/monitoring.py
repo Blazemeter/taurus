@@ -207,7 +207,7 @@ class LocalClient(MonitoringClient):
             if self.monitoring_logs:
                 with open(self.monitoring_logs, "a") as mon_logs:
                     line = [str(metric_values[x]) for x in metric_values.keys()]
-                    line.append(str(time.time()))
+                    line.append(str(round(time.time())))
                     logs_writer = csv.writer(mon_logs, delimiter=',')
                     logs_writer.writerow(line)
 
