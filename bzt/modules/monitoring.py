@@ -190,6 +190,11 @@ class LocalClient(MonitoringClient):
 
         if self.config.get("logging", False):
             self.monitoring_logs = self.engine.create_artifact("monitoring_logs", ".csv")
+            with open(self.monitoring_logs, "a") as mon_logs:
+                logs_writer = csv.writer(mon_logs, delimiter=',')
+                metrics = [metric for metric in good_list]
+                metrics.append('ts')
+                logs_writer.writerow(metrics)
 
     def get_data(self):
         now = time.time()
@@ -201,10 +206,8 @@ class LocalClient(MonitoringClient):
 
             if self.monitoring_logs:
                 with open(self.monitoring_logs, "a") as mon_logs:
-                    if not os.stat(self.monitoring_logs).st_size:
-                        logs_writer = csv.writer(mon_logs, delimiter=',')
-                        logs_writer.writerow(metric_values.keys())
                     line = [str(metric_values[x]) for x in metric_values.keys()]
+                    line.append(str(time.time()))
                     logs_writer = csv.writer(mon_logs, delimiter=',')
                     logs_writer.writerow(line)
 
