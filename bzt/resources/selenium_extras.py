@@ -118,7 +118,8 @@ class LocatorsManager:
                 # disable implicit wait to get the result instantly for the other locators
                 try:
                     elements = WebDriverWait(self.driver, 0).until(
-                        econd.presence_of_all_elements_located((self.BYS[locator_type.lower()], locator_value)))
+                        econd.presence_of_all_elements_located((self.BYS[locator_type.lower()],
+                                                                locator_value)))
                 except TimeoutException:
                     elements = []
             if len(elements) > 0:

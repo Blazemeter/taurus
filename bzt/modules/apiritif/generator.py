@@ -137,7 +137,7 @@ from selenium.webdriver.common.keys import Keys
             name = action_config
             param = None
         elif isinstance(action_config, dict):
-            if action_config["type"]:
+            if action_config.get("type"):
                 is_v2 = True
                 name = action_config["type"]
                 selectors = action_config.get("locators")

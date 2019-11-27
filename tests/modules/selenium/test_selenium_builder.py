@@ -91,19 +91,20 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "self.wnd_mng.close('win_ser_local')",
             "self.frm_mng.switch('index=1')",
             "self.frm_mng.switch('relative=parent')",
-            "ActionChains(self.driver).click_and_hold(self.driver.find_element(var_loc_chain[0], var_loc_chain[1]))"
-            ".perform()",
+            "ActionChains(self.driver).click_and_hold(self.driver.find_element(var_loc_chain[0], "
+            "var_loc_chain[1])).perform()",
             "ActionChains(self.driver).move_to_element_with_offset(self.driver.find_element(var_loc_chain[0],"
-            "var_loc_chain[1]), -10, -10).perform()",
-            "ActionChains(self.driver).move_to_element(self.driver.find_element(var_loc_chain[0],var_loc_chain[1]))"
-            ".perform()",
+            "var_loc_chain[1])",
+            "ActionChains(self.driver).move_to_element(self.driver.find_element(var_loc_chain[0],"
+            "var_loc_chain[1])).perform()",
             "ActionChains(self.driver).drag_and_drop(self.driver.find_element(source[0], source[1]),"
             "self.driver.find_element(target[0],target[1])).perform()",
             "Select(self.driver.find_element(var_loc_select[0],var_loc_select[1])).select_by_visible_text",
             "self.assertEqual(self.driver.title,'BlazeDemo')",
             "self.vars['hEaDeR'] = self.driver.title",
             "self.vars['Final'] = 'Title_Basic_By'",
-            "self.vars['Basic'] = self.driver.find_element(var_loc_as[0],var_loc_as[1]).get_attribute('innerText')",
+            "self.vars['Basic'] = self.driver.find_element(var_loc_as[0],var_loc_as[1])."
+            "get_attribute('innerText')",
             "self.assertEqual(self.driver.find_element(var_loc_as[0],var_loc_as[1])."
             "get_attribute('value').strip(),\'123 Beautiful st.\'.strip())",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
@@ -113,7 +114,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "if ((i % 2) == 0):",
             print_i,
             "self.driver.get('http:\\\\blazemeter.com')",
-            "ifself.driver.find_element(var_edit_content[0], var_edit_content[1]).get_attribute('contenteditable'):"
+            "ifself.driver.find_element(var_edit_content[0], var_edit_content[1])."
+            "get_attribute('contenteditable'):"
             "self.driver.execute_script((\"arguments[0].innerHTML=\'%s\';\"%\'lo-la-lu\'),"
             "self.driver.find_element(var_edit_content[0],var_edit_content[1]))"
             "else:",
@@ -125,7 +127,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "sleep(4.6)",
             "self.driver.delete_all_cookies()",
             "self.driver.save_screenshot('screen.png')",
-            "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), ('screenshot-%d.png' % (time() * 1000)))",
+            "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), "
+            "('screenshot-%d.png' % (time() * 1000)))",
             "self.driver.save_screenshot(filename)"
         ]
 
@@ -958,8 +961,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "param": "KEY_ENTER",
                                         "locators": [
                                             {"xpath": "/doc/abc"},
-                                            {"css": "body > div.container > table > tbody > tr:nth-child(1) > "
-                                                    "td:nth-child(2) > input"}
+                                            {"css": "body > div.container > table > tbody > tr:nth-child(1) "
+                                                    "> td:nth-child(2) > input"}
                                         ]
                                     },
                                     {
