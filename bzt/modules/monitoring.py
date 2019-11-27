@@ -8,7 +8,6 @@ from abc import abstractmethod
 from collections import OrderedDict, namedtuple
 
 import csv
-import os
 import psutil
 from urwid import Pile, Text
 

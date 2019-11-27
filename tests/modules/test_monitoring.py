@@ -174,6 +174,7 @@ class TestMonitoring(BZTestCase):
         config = {'logging': True, 'metrics': LocalClient.AVAILABLE_METRICS}
         obj = LocalClient(ROOT_LOGGER, 'label', config, EngineEmul())
         obj.connect()
+        obj.get_data()
         self.assertIn('logging', obj.config)
         self.assertIsNotNone(obj.monitoring_logs)
 
