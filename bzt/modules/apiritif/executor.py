@@ -77,7 +77,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
         test_mode = self.execution.get("test-mode", "apiritif")
-        version = self.execution.get("version", 1)
         scenario = self.get_scenario()
 
         if test_mode == "apiritif" or test_mode == "nose":
@@ -87,7 +86,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             builder = ApiritifScriptGenerator(scenario, self.label, executor=self,
                                               test_mode=test_mode,
                                               ignore_unknown_actions=self.settings.get(
-                                                  "ignore-unknown-actions", False), version=version)
+                                                  "ignore-unknown-actions", False))
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
@@ -112,7 +111,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
                 generate_markers=generate_markers,
                 capabilities=capabilities,
-                wd_addr=remote, test_mode=test_mode, version=version)
+                wd_addr=remote, test_mode=test_mode)
 
         builder.build_source_code()
         builder.save(filename)

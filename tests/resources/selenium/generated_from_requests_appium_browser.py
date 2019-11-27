@@ -12,17 +12,17 @@ import apiritif
 import os
 import re
 from appium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
+from bzt.resources.selenium_extras import LocatorsManager
 
 
-
-class TestLocScAppium(unittest.TestCase, ):
+class TestLocScAppium(unittest.TestCase):
 
     def setUp(self):
         self.driver = None
@@ -32,16 +32,22 @@ class TestLocScAppium(unittest.TestCase, ):
             'platformName': 'android',
         })
         self.driver.implicitly_wait(3.5)
+        self.loc_mng = LocatorsManager(self.driver)
         self.vars = {
 
         }
-
-        apiritif.put_into_thread_store(flow_markers=None, driver=self.driver, func_mode=False)
+        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
-            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, "//input[@type='submit']")), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
+
+            var_loc_wait = self.loc_mng.get_locator([{
+                'xpath': "//input[@type='submit']",
+            }])
+            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
+                var_loc_wait[0],
+                var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')
             self.assertEqual(self.driver.title, 'BlazeDemo')
             body = self.driver.page_source
             re_pattern = re.compile('contained_text')
@@ -51,7 +57,7 @@ class TestLocScAppium(unittest.TestCase, ):
         with apiritif.smart_transaction('empty'):
             pass
 
-    def test_locsc(self):
+    def test_locscappium(self):
         self._1_()
         self._2_empty()
 

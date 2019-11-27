@@ -112,7 +112,7 @@ class LocatorsManager:
             locator_type = list(locator.keys())[0]
             locator_value = locator[locator_type]
             if not first_locator:
-                first_locator = (locator_type, locator_value)
+                first_locator = (self.BYS[locator_type.lower()], locator_value)
                 elements = self.driver.find_elements(self.BYS[locator_type.lower()], locator_value)
             else:
                 # disable implicit wait to get the result instantly for the other locators
@@ -120,9 +120,9 @@ class LocatorsManager:
                     elements = WebDriverWait(self.driver, 0).until(
                         econd.presence_of_all_elements_located((self.BYS[locator_type.lower()], locator_value)))
                 except TimeoutException:
-                    pass
+                    elements = []
             if len(elements) > 0:
-                locator = (locator_type, locator_value)
+                locator = (self.BYS[locator_type.lower()], locator_value)
                 break
         else:
             locator = first_locator

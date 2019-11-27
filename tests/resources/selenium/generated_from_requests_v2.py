@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import WindowManager, LocatorsManager, FrameManager
+from bzt.resources.selenium_extras import FrameManager, LocatorsManager, WindowManager
 
 
 class TestLocSc(unittest.TestCase):
@@ -46,17 +46,28 @@ class TestLocSc(unittest.TestCase):
             self.driver.set_window_size('750', '750')
             self.wnd_mng.switch(0)
 
-            try:
-                ActionChains(self.driver).click_and_hold(self.driver.find_element(By.ID, 'invalid_id')).perform()
+            var_loc_chain = self.loc_mng.get_locator([{
+                'id': 'invalid_id',
+            }, {
+                'xpath': '/html/body/div[3]/form/select[1]',
+            }])
+            ActionChains(self.driver).click_and_hold(self.driver.find_element(
+                var_loc_chain[0],
+                var_loc_chain[1])).perform()
 
-            except NoSuchElementException as nse:
-                try:
-                    ActionChains(self.driver).click_and_hold(WebDriverWait(self.driver, 0).until(
-                        econd.presence_of_element_located((By.XPATH, '/html/body/div[3]/form/select[1]')),
-                        '')).perform()
+            var_loc_chain = self.loc_mng.get_locator([{
+                'id': 'id_123',
+            }])
+            ActionChains(self.driver).move_to_element_with_offset(self.driver.find_element(
+                var_loc_chain[0],
+                var_loc_chain[1]), -10, -10).perform()
 
-                except TimeoutException:
-                    raise nse
+            var_loc_chain = self.loc_mng.get_locator([{
+                'name': 'name_123',
+            }])
+            ActionChains(self.driver).move_to_element(self.driver.find_element(
+                var_loc_chain[0],
+                var_loc_chain[1])).perform()
 
             source = self.loc_mng.get_locator([{
                 'name': 'invalid_name',
@@ -75,111 +86,80 @@ class TestLocSc(unittest.TestCase):
                 target[0],
                 target[1])).perform()
 
-            try:
-                self.assertEqual(self.driver.find_element(By.CSS_SELECTOR, 'myclass').get_attribute('innerText'),
-                                 'Choose your departure city:'.strip())
+            var_loc_as = self.loc_mng.get_locator([{
+                'css': 'myclass',
+            }, {
+                'xpath': '/html/body/div[3]/h2',
+            }])
+            self.assertEqual(self.driver.find_element(
+                var_loc_as[0],
+                var_loc_as[1]).get_attribute('innerText').strip(), 'Choose your departure city:'.strip())
 
-            except NoSuchElementException as nse:
-                try:
-                    self.assertEqual(WebDriverWait(self.driver, 0).until(
-                        econd.presence_of_element_located((By.XPATH, '/html/body/div[3]/h2')), '').get_attribute(
-                        'innerText'), 'Choose your departure city:'.strip())
-
-                except TimeoutException:
-                    raise nse
-
-            try:
-                self.assertEqual(self.driver.find_element(By.CSS_SELECTOR, 'myclass').get_attribute('value'),
-                                 'Find Flights'.strip())
-
-            except NoSuchElementException as nse:
-                try:
-                    self.assertEqual(WebDriverWait(self.driver, 0).until(
-                        econd.presence_of_element_located((By.XPATH, '/html/body/div[3]/form/div/input')),
-                        '').get_attribute('value'), 'Find Flights'.strip())
-
-                except TimeoutException:
-                    raise nse
+            var_loc_as = self.loc_mng.get_locator([{
+                'css': 'myclass',
+            }, {
+                'xpath': '/html/body/div[3]/form/div/input',
+            }])
+            self.assertEqual(self.driver.find_element(
+                var_loc_as[0],
+                var_loc_as[1]).get_attribute('value').strip(), 'Find Flights'.strip())
             self.assertEqual(self.driver.title, 'BlazeDemo')
 
             self.vars['hEaDeR'] = self.driver.title
 
-            self.vars['Title_Basic_By'] = 'Title_Basic_By'
+            self.vars['final_var'] = 'test_text'
 
-            self.vars['Basic'] = self.driver.find_element(By.XPATH, '/html/body/div[3]/h2').get_attribute('innerText')
+            var_loc_as = self.loc_mng.get_locator([{
+                'xpath': '/html/body/div[3]/h2',
+            }])
 
-            try:
-                self.driver.find_element(By.XPATH, '/wrong/one').click()
+            self.vars['Basic'] = self.driver.find_element(
+                var_loc_as[0],
+                var_loc_as[1]).get_attribute('innerText')
 
-            except NoSuchElementException as nse:
-                try:
-                    WebDriverWait(self.driver, 0).until(
-                        econd.presence_of_element_located((By.XPATH, '/html/body/div[3]/form/div/input')), '').click()
+            var_loc_keys = self.loc_mng.get_locator([{
+                'xpath': '/wrong/one',
+            }, {
+                'xpath': '/html/body/div[3]/form/div/input',
+            }])
+            self.driver.find_element(
+                var_loc_keys[0],
+                var_loc_keys[1]).click()
 
-                except TimeoutException:
-                    raise nse
+            var_loc_keys = self.loc_mng.get_locator([{
+                'xpath': '/doc/abc',
+            }, {
+                'css': 'body > div.container > table > tbody > tr:nth-child(1) > td:nth-child(2) > input',
+            }])
+            self.driver.find_element(
+                var_loc_keys[0],
+                var_loc_keys[1]).send_keys(Keys.ENTER)
 
-            try:
-                self.driver.find_element(By.XPATH, '/doc/abc').send_keys(Keys.ENTER)
+            var_loc_keys = self.loc_mng.get_locator([{
+                'id': 'fjkafjk',
+            }, {
+                'css': 'testCss',
+            }])
+            self.driver.find_element(
+                var_loc_keys[0],
+                var_loc_keys[1]).clear()
+            self.driver.find_element(
+                var_loc_keys[0],
+                var_loc_keys[1]).send_keys('myusername')
 
-            except NoSuchElementException as nse:
-                try:
-                    WebDriverWait(self.driver, 0).until(econd.presence_of_element_located((By.CSS_SELECTOR,
-                                                                                           'body > div.container > table > tbody > tr:nth-child(1) > td:nth-child(2) > input')),
-                                                        '').send_keys(Keys.ENTER)
-
-                except TimeoutException:
-                    raise nse
-
-            try:
-                self.driver.find_element(By.ID, 'fjkafjk').clear()
-                self.driver.find_element(By.ID, 'fjkafjk').send_keys('Havel Jan')
-
-            except NoSuchElementException as nse:
-                try:
-                    WebDriverWait(self.driver, 0).until(econd.presence_of_element_located((By.CSS_SELECTOR, 'testCss')),
-                                                        '').clear()
-                    WebDriverWait(self.driver, 0).until(econd.presence_of_element_located((By.CSS_SELECTOR, 'testCss')),
-                                                        '').send_keys('Havel Jan')
-
-                except TimeoutException:
-                    try:
-                        WebDriverWait(self.driver, 0).until(
-                            econd.presence_of_element_located((By.CSS_SELECTOR, 'another')), '').clear()
-                        WebDriverWait(self.driver, 0).until(
-                            econd.presence_of_element_located((By.CSS_SELECTOR, 'another')), '').send_keys('Havel Jan')
-
-                    except TimeoutException:
-                        try:
-                            WebDriverWait(self.driver, 0).until(
-                                econd.presence_of_element_located((By.XPATH, '/invalid/xpath')), '').clear()
-                            WebDriverWait(self.driver, 0).until(
-                                econd.presence_of_element_located((By.XPATH, '/invalid/xpath')), '').send_keys(
-                                'Havel Jan')
-
-                        except TimeoutException:
-                            try:
-                                WebDriverWait(self.driver, 0).until(
-                                    econd.presence_of_element_located((By.ID, 'inputName')), '').clear()
-                                WebDriverWait(self.driver, 0).until(
-                                    econd.presence_of_element_located((By.ID, 'inputName')), '').send_keys('Havel Jan')
-
-                            except TimeoutException:
-                                raise nse
-
-            try:
-                Select(self.driver.find_element(By.CSS_SELECTOR, 'myclass')).select_by_visible_text('American Express')
-
-            except NoSuchElementException as nse:
-                try:
-                    Select(WebDriverWait(self.driver, 0).until(
-                        econd.presence_of_element_located((By.XPATH, '//*[@id="cardType"]')),
-                        '')).select_by_visible_text('American Express')
-
-                except TimeoutException:
-                    raise nse
+            var_loc_select = self.loc_mng.get_locator([{
+                'css': 'myclass',
+            }, {
+                'xpath': '//*[@id="cardType"]',
+            }])
+            Select(self.driver.find_element(
+                var_loc_select[0],
+                var_loc_select[1])).select_by_visible_text('American Express')
             self.driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
 
+            for i in range(10):
+                if ((i % 2) == 0):
+                    print(i)
             print(self.vars['red_pill'])
             sleep(4.6)
             self.driver.delete_all_cookies()
@@ -188,29 +168,29 @@ class TestLocSc(unittest.TestCase):
             filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), ('screenshot-%d.png' % (time() * 1000)))
             self.driver.save_screenshot(filename)
 
-            try:
-                WebDriverWait(self.driver, 3.5).until(
-                    econd.visibility_of_element_located((By.CSS_SELECTOR, 'invalid_css')),
-                    "Element 'css': 'invalid_css' failed to appear within 3.5s")
+            var_loc_wait = self.loc_mng.get_locator([{
+                'css': 'invalid_css',
+            }, {
+                'name': 'inputName',
+            }])
+            WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((
+                var_loc_wait[0],
+                var_loc_wait[1])), "Element 'css':'invalid_css' failed to appear within 3.5s")
 
-            except TimeoutException:
-                WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, 'inputName')),
-                                                      "Element 'name': 'inputName' failed to appear within 3.5s")
-
-            edit_content_loc = self.loc_mng.get_locator([{
+            var_edit_content = self.loc_mng.get_locator([{
                 'id': 'editor',
             }])
 
             if self.driver.find_element(
-                    edit_content_loc[0],
-                    edit_content_loc[1]).get_attribute('contenteditable'):
+                    var_edit_content[0],
+                    var_edit_content[1]).get_attribute('contenteditable'):
                 self.driver.execute_script(("arguments[0].innerHTML = '%s';" % 'lo-la-lu'), self.driver.find_element(
-                    edit_content_loc[0],
-                    edit_content_loc[1]))
+                    var_edit_content[0],
+                    var_edit_content[1]))
             else:
                 raise NoSuchElementException(('The element (%s: %r) is not a contenteditable element' % (
-                    edit_content_loc[0],
-                    edit_content_loc[1])))
+                    var_edit_content[0],
+                    var_edit_content[1])))
             sleep(4.6)
             self.driver.delete_all_cookies()
             self.driver.save_screenshot('screen.png')

@@ -24,12 +24,11 @@ import astunparse
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
-from bzt.modules.apiritif.generator_v2 import ScriptGeneratorV2
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
 from bzt.six import parse, string_types, iteritems, text_type, PY2
 from bzt.utils import dehumanize_time, ensure_is_dict
-from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store
+from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript
 from .jmeter_functions import JMeterExprCompiler
 
 
@@ -62,18 +61,28 @@ def create_method_name(label):
 
 class ApiritifScriptGenerator(object):
     BYS = {
-        'byxpath': "XPATH",
-        'bycss': "CSS_SELECTOR",
-        'byname': "NAME",
-        'byid': "ID",
-        'bylinktext': "LINK_TEXT"
+        'xpath': "XPATH",
+        'css': "CSS_SELECTOR",
+        'name': "NAME",
+        'id': "ID",
+        'linktext': "LINK_TEXT"
+    }
+
+    TO_BYS = {
+        'byxpath': "xpath",
+        'bycss': "css",
+        'byname': "name",
+        'byid': "id",
+        'bylinktext': "linktext"
     }
 
     ACTION_CHAINS = {
         'doubleclick': "double_click",
         'mousedown': "click_and_hold",
         'mouseup': "release",
-        'mousemove': "move_to_element"
+        'mousemove': "move_to_element",
+        'mouseover': "move_to_element",
+        'mouseout': "move_to_element_with_offset"
     }
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
@@ -98,7 +107,7 @@ from selenium.webdriver.common.keys import Keys
 
     def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="selenium", version=1):
+                 capabilities=None, wd_addr=None, test_mode="selenium"):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -119,25 +128,43 @@ from selenium.webdriver.common.keys import Keys
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
         self.test_mode = test_mode
-        self.version = version
 
     def _parse_action(self, action_config):
+        is_v2 = False
+        selectors = []
+        value = None
         if isinstance(action_config, string_types):
             name = action_config
             param = None
         elif isinstance(action_config, dict):
-            name, param = next(iteritems(action_config))
+            if action_config["type"]:
+                is_v2 = True
+                name = action_config["type"]
+                selectors = action_config.get("locators")
+                if action_config.get("source") and action_config.get("target"):
+                    selectors = (action_config.get("source"), action_config.get("target"))
+                param = action_config["param"]
+                value = action_config["value"]
+            else:
+                name, param = next(iteritems(action_config))
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
-                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'script',
-                            'editcontent', 'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
-                            'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode', 'resize', 'maximize'
+        actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut', 'mouseOver',
+                            'select', 'wait','keys', 'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit',
+                            'close','script', 'editcontent', 'switch', 'switchFrame', 'go', 'echo', 'type', 'element',
+                            'drag', 'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode', 'resize',
+                            'maximize'
                             ])
 
-        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Eval|ByIdx|String"
-        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (actions, tag), re.IGNORECASE)
+        base_tag = "For|Cookies|Title|Window|Eval|ByIdx|String"
+
+        if is_v2:
+            expr = re.compile("^(%s)(%s)?$" % (actions, base_tag + "|ByName"), re.IGNORECASE)
+        else:
+            tag = "|".join(self.TAGS) + "|" + base_tag
+            expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (actions, tag), re.IGNORECASE)
+
         res = expr.match(name)
         if not res:
             msg = "Unsupported action: %s" % name
@@ -149,17 +176,62 @@ from selenium.webdriver.common.keys import Keys
 
         atype = res.group(1).lower()
         tag = res.group(2).lower() if res.group(2) else ""
-        selector = res.group(4)
+        if not is_v2:
+            selector = res.group(4)
+            # hello, reviewer!
+            if selector:
+                if selector.startswith('"') and selector.endswith('"'):
+                    selector = selector[1:-1]
+                elif selector.startswith("'") and selector.endswith("'"):
+                    selector = selector[1:-1]
+            else:
+                selector = ""
 
-        # hello, reviewer!
-        if selector:
-            if selector.startswith('"') and selector.endswith('"'):
-                selector = selector[1:-1]
-            elif selector.startswith("'") and selector.endswith("'"):
-                selector = selector[1:-1]
-        else:
-            selector = ""
-        return atype, tag, param, selector
+            # Need to shuffle the variables to get the same output for both of the versions of action types
+            # This is unfortunately cumbersome as the param/value can be on different places:
+            # action_name(selector): param
+            # action_name(param)
+            # action_name(value): param, e.g. storeString(value): var_name
+            if selector:
+                if tag in self.TO_BYS.keys():
+                    tag_name = self.TO_BYS[tag]
+                    selectors = [{tag_name: selector}]
+                elif not param:
+                    param = selector
+                else:
+                    value = selector
+
+            if atype == "drag":
+                # param should be e.g. elementByXPath(/xpath)
+                element_action = self._parse_action(param)
+                selectors = (selectors, element_action[4])
+            elif atype == "switchframe":
+                # for switchFrameByName we need to get the param
+                param = selector
+
+        return atype, tag, param, value, selectors
+
+    @staticmethod
+    def _gen_dynamic_locator(var_w_locator):
+        return ast_call(
+            func=ast_attr("self.driver.find_element"),
+            args=[
+                gen_subscript(var_w_locator, 0),
+                gen_subscript(var_w_locator, 1)
+            ])
+
+    @staticmethod
+    def _gen_get_locators(var_name, locators):
+        args = []
+        for loc in locators:
+            locator_type = list(loc.keys())[0]
+            locator_value = loc[locator_type]
+            args.append(ast.Dict([ast.Str(locator_type)], [ast.Str(locator_value)]))
+
+        return ast.Assign(
+            targets=[ast.Name(id=var_name, ctx=ast.Store())],
+            value=ast_call(func="self.loc_mng.get_locator",
+                           args=[ast.List(elts=args)]))
 
     def _gen_locator(self, tag, selector):
         return ast_call(
@@ -168,20 +240,20 @@ from selenium.webdriver.common.keys import Keys
                 ast_attr("By.%s" % self.BYS[tag]),
                 self._gen_expr(selector)])
 
-    def _gen_window_mngr(self, atype, selector):
+    def _gen_window_mngr(self, atype, param):
         self.selenium_extras.add("WindowManager")
         elements = []
         if atype == "switch":
             elements.append(ast_call(
                 func=ast_attr("self.wnd_mng.switch"),
-                args=[self._gen_expr(selector)]))
+                args=[self._gen_expr(param)]))
         elif atype == "resize":
-            if not re.compile(r"\d+,\d+").match(selector):
-                if re.compile(r"\d+, \d+").match(selector):
-                    selector = selector.replace(', ', ',')
+            if not re.compile(r"\d+,\d+").match(param):
+                if re.compile(r"\d+, \d+").match(param):
+                    param = param.replace(', ', ',')
                 else:
                     return elements
-            x, y = selector.split(",")
+            x, y = param.split(",")
             elements.append(ast_call(
                 func=ast_attr("self.driver.set_window_size"),
                 args=[self._gen_expr(x), self._gen_expr(y)]))
@@ -193,11 +265,11 @@ from selenium.webdriver.common.keys import Keys
         elif atype == "open":
             elements.append(ast_call(
                 func=ast_attr("self.driver.execute_script"),
-                args=[self._gen_expr("window.open('%s');" % selector)]))
+                args=[self._gen_expr("window.open('%s');" % param)]))
         elif atype == "close":
             args = []
-            if selector:
-                args.append(self._gen_expr(selector))
+            if param:
+                args.append(self._gen_expr(param))
             elements.append(ast_call(
                 func=ast_attr("self.wnd_mng.close"),
                 args=args))
@@ -214,59 +286,73 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("self.frm_mng.switch"),
                 args=[ast.Str(selector)]))
         else:
+            if tag == "byname":
+                tag = "name"
             elements.append(ast_call(
                 func=ast_attr("self.frm_mng.switch"),
                 args=[self._gen_locator(tag, selector)]))
         return elements
 
-    def _gen_chain_mngr(self, atype, tag, param, selector):
+    def _gen_chain_mngr(self, atype, selectors):
         elements = []
         if atype in self.ACTION_CHAINS:
+            elements.append(self._gen_get_locators("var_loc_chain", selectors))
+            locator = self._gen_dynamic_locator("var_loc_chain")
             operator = ast_attr(fields=(
                 ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
-                self.ACTION_CHAINS[atype]))
+                self.ACTION_CHAINS[atype.lower()]))
+            args = [locator, ast.Num(-10), ast.Num(-10)] if atype == "mouseout" else [locator]
             elements.append(ast_call(
                 func=ast_attr(
                     fields=(
                         ast_call(
                             func=operator,
-                            args=[self._gen_locator(tag, selector)]),
+                            args=args),
                         "perform"))))
         elif atype == "drag":
-            drop_action = self._parse_action(param)
-            if drop_action and drop_action[0] == "element" and not drop_action[2]:
-                drop_tag, drop_selector = (drop_action[1], drop_action[3])
-                operator = ast_attr(
+            if not selectors or not selectors[0]:
+                raise TaurusConfigError("Can not generate action for 'drag'. Source is empty.")
+            if not selectors[1]:
+                raise TaurusConfigError("Can not generate action for 'drag'. Target is empty.")
+            source = selectors[0]
+            target = selectors[1]
+
+            elements = [self._gen_get_locators("source", source),
+                        self._gen_get_locators("target", target)]
+
+            operator = ast_attr(
+                fields=(
+                    ast_call(
+                        func="ActionChains",
+                        args=[ast_attr("self.driver")]),
+                    "drag_and_drop"))
+            elements.append(ast_call(
+                func=ast_attr(
                     fields=(
                         ast_call(
-                            func="ActionChains",
-                            args=[ast_attr("self.driver")]),
-                        "drag_and_drop"))
-                elements.append(ast_call(
-                    func=ast_attr(
-                        fields=(
-                            ast_call(
-                                func=operator,
-                                args=[self._gen_locator(tag, selector),
-                                      self._gen_locator(drop_tag, drop_selector)]),
-                            "perform"))))
+                            func=operator,
+                            args=[self._gen_dynamic_locator("source"),
+                                  self._gen_dynamic_locator("target")]),
+                        "perform"))))
         return elements
 
-    def _gen_assert_store_mngr(self, atype, tag, param, selector):
+    def _gen_assert_store_mngr(self, atype, tag, name, value, selectors):
         elements = []
+        if not name:
+            raise TaurusConfigError("Missing param for %s action." % atype)
         if tag == 'title':
             if atype.startswith('assert'):
                 elements.append(ast_call(
                     func=ast_attr("self.assertEqual"),
-                    args=[ast_attr("self.driver.title"), self._gen_expr(selector)]))
+                    args=[ast_attr("self.driver.title"), self._gen_expr(name)]))
             else:
                 elements.append(gen_store(
-                    name=param.strip(),
+                    name=name.strip(),
                     value=self._gen_expr(ast_attr("self.driver.title"))))
         elif atype == 'store' and tag == 'string':
             elements.append(gen_store(
-                name=param.strip(),
-                value=self._gen_expr(selector.strip())))
+                name=name.strip(),
+                value=self._gen_expr(value.strip())))
         else:
             target = None
 
@@ -276,10 +362,11 @@ from selenium.webdriver.common.keys import Keys
                 target = "value"
 
             if target:
+                elements.append(self._gen_get_locators("var_loc_as", selectors))
                 locator_attr = ast_call(
                     func=ast_attr(
                         fields=(
-                            self._gen_locator(tag, selector),
+                            self._gen_dynamic_locator("var_loc_as"),
                             "get_attribute")),
                     args=[ast.Str(target)])
 
@@ -295,19 +382,20 @@ from selenium.webdriver.common.keys import Keys
                             ast_call(
                                 func=ast_attr(
                                     fields=(
-                                        self._gen_expr(param),
+                                        self._gen_expr(name),
                                         "strip")))]))
                 elif atype.startswith('store'):
                     elements.append(gen_store(
-                        name=param.strip(),
+                        name=name.strip(),
                         value=self._gen_expr(locator_attr)))
 
         return elements
 
-    def _gen_keys_mngr(self, atype, tag, param, selector):
+    def _gen_keys_mngr(self, atype, param, selectors):
         elements = []
         args = []
         action = None
+        elements.append(self._gen_get_locators("var_loc_keys", selectors))
 
         if atype == "click":
             action = "click"
@@ -318,7 +406,7 @@ from selenium.webdriver.common.keys import Keys
                 elements.append(ast_call(
                     func=ast_attr(
                         fields=(
-                            self._gen_locator(tag, selector),
+                            self._gen_dynamic_locator("var_loc_keys"),
                             "clear"))))
             action = "send_keys"
             if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
@@ -330,16 +418,30 @@ from selenium.webdriver.common.keys import Keys
             elements.append(ast_call(
                 func=ast_attr(
                     fields=(
-                        self._gen_locator(tag, selector),
+                        self._gen_dynamic_locator("var_loc_keys"),
                         action)),
                 args=args))
         return elements
 
-    def _gen_edit_mngr(self, tag, param, selector):
-        msg = "The element (By.%s, %r) is not contenteditable element"
+    def _gen_edit_mngr(self, param, locators):
+        if not param:
+            raise TaurusConfigError("Missing param for editContent action.")
+        var_name = "var_edit_content"
+
+        elements = [self._gen_get_locators(var_name, locators)]
+        locator = self._gen_dynamic_locator(var_name)
+        tag = gen_subscript(var_name, 0)
+        selector = gen_subscript(var_name, 1)
+
         exc_type = ast_call(
             func="NoSuchElementException",
-            args=[ast.Str(msg % (self.BYS[tag], selector))])
+            args=[
+                ast.BinOp(
+                    left=ast.Str("The element (%s: %r) is not a contenteditable element"),
+                    op=ast.Mod(),
+                    right=ast.Tuple(elts=[tag, selector]))
+            ]
+        )
 
         if PY2:
             raise_kwargs = {
@@ -352,36 +454,31 @@ from selenium.webdriver.common.keys import Keys
                 "exc": exc_type,
                 "cause": None}
 
-        short_locator = ast_call(
-            func=ast_attr("self.driver.find_element"),
-            args=[
-                ast_attr("By.%s" % self.BYS[tag]),
-                ast.Str(selector)])
+        body = ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
+                                 args=[
+                                     ast.BinOp(
+                                         left=ast.Str("arguments[0].innerHTML = '%s';"),
+                                         op=ast.Mod(),
+                                         right=self._gen_expr(param.strip())),
+                                     locator]))
 
         element = ast.If(
             test=ast_call(
                 func=ast_attr(
-                    fields=(short_locator, "get_attribute")),
+                    fields=(locator, "get_attribute")),
                 args=[ast.Str("contenteditable")]),
-            body=[  # self.driver.execute_script(editable_script)
-                ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
-                                  args=[
-                                      ast.BinOp(
-                                          left=ast.Str("arguments[0].innerHTML = '%s';"),
-                                          op=ast.Mod(),
-                                          right=self._gen_expr(param.strip())),
-                                      short_locator]))],
-            orelse=[
-                ast.Raise(**raise_kwargs)])
+            body=[body],
+            orelse=[ast.Raise(**raise_kwargs)])
 
-        return [element]
+        elements.append(element)
+        return elements
 
-    def _gen_screenshot_mngr(self, selector):
+    def _gen_screenshot_mngr(self, param):
         elements = []
-        if selector:
+        if param:
             elements.append(ast_call(
                 func=ast_attr("self.driver.save_screenshot"),
-                args=[self._gen_expr(selector)]))
+                args=[self._gen_expr(param)]))
         else:
             elements.append(ast.Assign(
                 targets=[ast.Name(id="filename")],
@@ -403,14 +500,19 @@ from selenium.webdriver.common.keys import Keys
                 args=[ast.Name(id="filename")]))
         return elements
 
-    def _gen_wait_sleep_mngr(self, atype, tag, param, selector):
+    def _gen_wait_sleep_mngr(self, atype, tag, param, selectors):
         elements = []
         mode = "visibility" if param == 'visible' else 'presence'
 
         if atype == 'wait':
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
-            errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
+            locator_type = list(selectors[0].keys())[0]
+            locator_value = selectors[0][locator_type]
+            errmsg = "Element %r:%r failed to appear within %ss" % (locator_type, locator_value, timeout)
+
+            elements.append(self._gen_get_locators("var_loc_wait", selectors)),
+
             elements.append(ast_call(
                 func=ast_attr(
                     fields=(
@@ -426,84 +528,74 @@ from selenium.webdriver.common.keys import Keys
                         args=[
                             ast.Tuple(
                                 elts=[
-                                    ast_attr("By.%s" % self.BYS[tag]),
-                                    self._gen_expr(selector)])]),
+                                    gen_subscript("var_loc_wait", 0),
+                                    gen_subscript("var_loc_wait", 1)
+                                    ])]),
                     ast.Str(errmsg)]))
 
         elif atype == 'pause' and tag == 'for':
             elements.append(ast_call(
                 func="sleep",
-                args=[ast.Num(dehumanize_time(selector))]))
+                args=[ast.Num(dehumanize_time(param))]))
 
         return elements
 
-    def _gen_select_mngr(self, tag, param, selector):
-        element = (ast_call(
+    def _gen_select_mngr(self, param, selectors):
+        elements = [self._gen_get_locators("var_loc_select", selectors), ast_call(
             func=ast_attr(
                 fields=(
-                    ast_call(func="Select", args=[self._gen_locator(tag, selector)]),
+                    ast_call(func="Select", args=[self._gen_dynamic_locator("var_loc_select")]),
                     "select_by_visible_text")),
-            args=[self._gen_expr(param)]))
-        return [element]
+            args=[self._gen_expr(param)])]
+        return elements
 
     def _gen_action(self, action_config):
-        generator_v2 = ScriptGeneratorV2(self.scenario, self.ignore_unknown_actions)
-        if self.version == 2:
-            action = generator_v2.parse_action(action_config)
-            if action:
-                atype, tag, param, selector, is_v2_action, source, target = action
+        action = self._parse_action(action_config)
+        if action:
+           atype, tag, param, value, selectors = action
         else:
-            action = self._parse_action(action_config)
-            is_v2_action = False
-            if action:
-               atype, tag, param, selector = action
-
-        if not action:
-            atype = tag = param = selector = None
+            atype = tag = param = value = selectors = None
 
         action_elements = []
 
-        if is_v2_action:
-            self.selenium_extras.add("LocatorsManager")
-            action_elements.extend(generator_v2.gen_action(atype, param, selector, source, target))
-        elif tag == "window":
-            action_elements.extend(self._gen_window_mngr(atype, selector))
+        if tag == "window":
+            action_elements.extend(self._gen_window_mngr(atype, param))
         elif atype == "switchframe":
-            action_elements.extend(self._gen_frame_mngr(tag, selector))
+            action_elements.extend(self._gen_frame_mngr(tag, param))
         elif atype in self.ACTION_CHAINS or atype == "drag":
-            action_elements.extend(self._gen_chain_mngr(atype, tag, param, selector))
+            action_elements.extend(self._gen_chain_mngr(atype, selectors))
         elif atype == "select":
-            action_elements.extend(self._gen_select_mngr(tag, param, selector))
+            action_elements.extend(self._gen_select_mngr(param, selectors))
         elif atype is not None and (atype.startswith("assert") or atype.startswith("store")):
-            action_elements.extend(self._gen_assert_store_mngr(atype, tag, param, selector))
+            action_elements.extend(self._gen_assert_store_mngr(atype, tag, param, value, selectors))
 
         elif atype in ("click", "type", "keys", "submit"):
-            action_elements.extend(self._gen_keys_mngr(atype, tag, param, selector))
+            action_elements.extend(self._gen_keys_mngr(atype, param, selectors))
 
         elif atype == 'echo' and tag == 'string':
-            if len(selector) > 0 and not param:
+            if len(param) > 0 and not selectors:
                 action_elements.append(ast_call(
                     func="print",
-                    args=[self._gen_expr(selector.strip())]))
+                    args=[self._gen_expr(param.strip())]))
 
         elif atype == "script" and tag == "eval":
             action_elements.append(ast_call(func=ast_attr("self.driver.execute_script"),
-                                            args=[self._gen_expr(selector)]))
+                                            args=[self._gen_expr(param)]))
         elif atype == "rawcode":
             action_elements.append(ast.parse(param))
         elif atype == 'go':
-            if selector and not param:
+            if param:
                 action_elements.append(ast_call(func=ast_attr("self.driver.get"),
-                                                args=[self._gen_expr(selector.strip())]))
-        elif atype == "editcontent":  # todo: check it functionally (possibly broken)
-            action_elements.extend(self._gen_edit_mngr(tag, param, selector))
+                                                args=[self._gen_expr(param.strip())]))
+        elif atype == "editcontent":
+            action_elements.extend(self._gen_edit_mngr(param, selectors))
         elif atype in ('wait', 'pause'):
-            action_elements.extend(self._gen_wait_sleep_mngr(atype, tag, param, selector))
+            action_elements.extend(self._gen_wait_sleep_mngr(atype, tag, param, selectors))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(ast_call(
                 func=ast_attr("self.driver.delete_all_cookies")))
         elif atype == 'screenshot':
-            action_elements.extend(self._gen_screenshot_mngr(selector))
+            action_elements.extend(self._gen_screenshot_mngr(param))
 
         if not action_elements and not self.ignore_unknown_actions:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
@@ -646,13 +738,13 @@ from selenium.webdriver.common.keys import Keys
                     func=ast.Name(id=mgr),
                     args=[ast_attr("self.driver")])))
 
+        self.selenium_extras.add("LocatorsManager")
         mgr = "LocatorsManager"
-        if mgr in self.selenium_extras:
-            body.append(ast.Assign(
-                targets=[ast_attr("self.loc_mng")],
-                value=ast_call(
-                    func=ast.Name(id=mgr),
-                    args=[ast_attr("self.driver")])))
+        body.append(ast.Assign(
+            targets=[ast_attr("self.loc_mng")],
+            value=ast_call(
+                func=ast.Name(id=mgr),
+                args=[ast_attr("self.driver")])))
 
         if self.window_size:  # FIXME: unused in fact ?
             body.append(ast.Expr(
