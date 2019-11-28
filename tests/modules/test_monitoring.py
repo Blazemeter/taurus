@@ -170,6 +170,14 @@ class TestMonitoring(BZTestCase):
         for config in (config1, config2):
             self.assertTrue(all(m in metrics for m in config['metrics']))
 
+    def test_logs(self):
+        config = {'logging': True, 'metrics': LocalClient.AVAILABLE_METRICS}
+        obj = LocalClient(ROOT_LOGGER, 'label', config, EngineEmul())
+        obj.connect()
+        obj.get_data()
+        self.assertIn('logging', obj.config)
+        self.assertIsNotNone(obj.monitoring_logs)
+
     @unittest.skipUnless(PY3, "py3 only")
     def test_server_agent_encoding(self):
         obj = Monitoring()
