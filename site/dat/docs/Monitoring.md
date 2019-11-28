@@ -19,11 +19,17 @@ Following metrics are collected locally:
 - `engine-loop` - Taurus "check loop" utilization, values higher than 1.0 means you should increase `settings.check-interval`
 - `conn-all` - quantity of network connections
 
+If you want to use only your metrics, please look into 
+[merging rules](https://gettaurus.org/docs/ConfigSyntax/#Multiple-Files-Merging-Rules). For example, if you want to see
+only specific metrics, use `~` like in the example below. You can also define, whether or not you need logs for local
+monitoring via `logging` option.
+
 ```yaml
 services:
 - module: monitoring
-  local:
+  ~local:
   - interval: 20s   # polling interval
+    logging: True # local monitoring logs will be saved to "monitoring_logs.csv" in the artifacts dir
     metrics:
     - cpu
     - disk-space
