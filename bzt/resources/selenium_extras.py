@@ -104,8 +104,10 @@ class LocatorsManager:
 
     def get_locator(self, locators):
         """
-        :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'}, {css: 'my_cls'}]
-        :return: first valid locator from the passed List, if no locator is valid then returns the first one
+        :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
+        {css: 'my_cls'}]
+        :return: first valid locator from the passed List, if no locator is valid then returns the
+        first one
         """
         first_locator = None
         for locator in locators:

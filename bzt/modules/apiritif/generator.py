@@ -150,11 +150,12 @@ from selenium.webdriver.common.keys import Keys
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut', 'mouseOver',
-                            'select', 'wait','keys', 'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit',
-                            'close','script', 'editcontent', 'switch', 'switchFrame', 'go', 'echo', 'type', 'element',
-                            'drag', 'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode', 'resize',
-                            'maximize'
+        actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
+                            'mouseOver', 'select', 'wait','keys', 'pause', 'clear', 'assert',
+                            'assertText','assertValue', 'submit', 'close','script', 'editcontent',
+                            'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
+                            'storeText','storeValue', 'store', 'open', 'screenshot', 'rawCode',
+                            'resize','maximize'
                             ])
 
         base_tag = "For|Cookies|Title|Window|Eval|ByIdx|String"
@@ -187,8 +188,9 @@ from selenium.webdriver.common.keys import Keys
             else:
                 selector = ""
 
-            # Need to shuffle the variables to get the same output for both of the versions of action types
-            # This is unfortunately cumbersome as the param/value can be on different places:
+            # Need to shuffle the variables to get the same output for both of the versions of
+            # action types, this is unfortunately cumbersome as the param/value can be on different
+            # places:
             # action_name(selector): param
             # action_name(param)
             # action_name(value): param, e.g. storeString(value): var_name
@@ -509,9 +511,10 @@ from selenium.webdriver.common.keys import Keys
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
             locator_type = list(selectors[0].keys())[0]
             locator_value = selectors[0][locator_type]
-            errmsg = "Element %r:%r failed to appear within %ss" % (locator_type, locator_value, timeout)
+            errmsg = "Element %r:%r failed to appear within %ss" % (locator_type, locator_value,
+                                                                    timeout)
 
-            elements.append(self._gen_get_locators("var_loc_wait", selectors)),
+            elements.append(self._gen_get_locators("var_loc_wait", selectors))
 
             elements.append(ast_call(
                 func=ast_attr(
@@ -552,7 +555,7 @@ from selenium.webdriver.common.keys import Keys
     def _gen_action(self, action_config):
         action = self._parse_action(action_config)
         if action:
-           atype, tag, param, value, selectors = action
+            atype, tag, param, value, selectors = action
         else:
             atype = tag = param = value = selectors = None
 
