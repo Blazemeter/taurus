@@ -85,6 +85,14 @@ class ApiritifScriptGenerator(object):
         'mouseout': "move_to_element_with_offset"
     }
 
+    ACTIONS = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
+                        'mouseOver', 'select', 'wait', 'keys', 'pause', 'clear', 'assert',
+                        'assertText', 'assertValue', 'submit', 'close', 'script', 'editcontent',
+                        'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
+                        'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode',
+                        'resize', 'maximize'
+                        ])
+
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
     IMPORTS = """import os
@@ -99,7 +107,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 """
 
-    TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
+    BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
+    COMMON_TAGS = ("For", "Cookies", "Title", "Window", "Eval", "ByIdx", "String")
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
@@ -129,43 +138,7 @@ from selenium.webdriver.common.keys import Keys
         self.generate_markers = generate_markers
         self.test_mode = test_mode
 
-    def _parse_action(self, action_config):
-        is_v2 = False
-        selectors = []
-        value = None
-        if isinstance(action_config, string_types):
-            name = action_config
-            param = None
-        elif isinstance(action_config, dict):
-            if action_config.get("type"):
-                is_v2 = True
-                name = action_config["type"]
-                selectors = action_config.get("locators")
-                if action_config.get("source") and action_config.get("target"):
-                    selectors = (action_config.get("source"), action_config.get("target"))
-                param = action_config["param"]
-                value = action_config["value"]
-            else:
-                name, param = next(iteritems(action_config))
-        else:
-            raise TaurusConfigError("Unsupported value for action: %s" % action_config)
-
-        actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
-                            'mouseOver', 'select', 'wait','keys', 'pause', 'clear', 'assert',
-                            'assertText','assertValue', 'submit', 'close','script', 'editcontent',
-                            'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
-                            'storeText','storeValue', 'store', 'open', 'screenshot', 'rawCode',
-                            'resize','maximize'
-                            ])
-
-        base_tag = "For|Cookies|Title|Window|Eval|ByIdx|String"
-
-        if is_v2:
-            expr = re.compile("^(%s)(%s)?$" % (actions, base_tag + "|ByName"), re.IGNORECASE)
-        else:
-            tag = "|".join(self.TAGS) + "|" + base_tag
-            expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (actions, tag), re.IGNORECASE)
-
+    def _parse_action_params(self, expr, name):
         res = expr.match(name)
         if not res:
             msg = "Unsupported action: %s" % name
@@ -177,41 +150,78 @@ from selenium.webdriver.common.keys import Keys
 
         atype = res.group(1).lower()
         tag = res.group(2).lower() if res.group(2) else ""
-        if not is_v2:
+        selector = None
+        if len(res.groups()) > 3:
             selector = res.group(4)
-            # hello, reviewer!
-            if selector:
-                if selector.startswith('"') and selector.endswith('"'):
-                    selector = selector[1:-1]
-                elif selector.startswith("'") and selector.endswith("'"):
-                    selector = selector[1:-1]
-            else:
-                selector = ""
 
-            # Need to shuffle the variables to get the same output for both of the versions of
-            # action types, this is unfortunately cumbersome as the param/value can be on different
-            # places:
-            # action_name(selector): param
-            # action_name(param)
-            # action_name(value): param, e.g. storeString(value): var_name
-            if selector:
-                if tag in self.TO_BYS.keys():
-                    tag_name = self.TO_BYS[tag]
-                    selectors = [{tag_name: selector}]
-                elif not param:
-                    param = selector
-                else:
-                    value = selector
+        return atype, tag, selector
 
-            if atype == "drag":
-                # param should be e.g. elementByXPath(/xpath)
-                element_action = self._parse_action(param)
-                selectors = (selectors, element_action[4])
-            elif atype == "switchframe":
-                # for switchFrameByName we need to get the param
+    def _parse_string_action(self, name, param):
+        tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
+        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (self.ACTIONS, tags), re.IGNORECASE)
+        atype, tag, selector = self._parse_action_params(expr, name)
+        value = None
+        selectors = []
+        # hello, reviewer!
+        if selector:
+            if selector.startswith('"') and selector.endswith('"'):
+                selector = selector[1:-1]
+            elif selector.startswith("'") and selector.endswith("'"):
+                selector = selector[1:-1]
+        else:
+            selector = ""
+
+        # Need to shuffle the variables to get the same output for both of the versions of
+        # action types, this is unfortunately cumbersome as the param/value can be on different
+        # places:
+        # action_name(selector): param
+        # action_name(param)
+        # action_name(value): param, e.g. storeString(value): var_name
+        if selector:
+            if tag in self.TO_BYS.keys():
+                tag_name = self.TO_BYS[tag]
+                selectors = [{tag_name: selector}]
+            elif not param:
                 param = selector
+            else:
+                value = selector
+
+        if atype == "drag":
+            # param should be e.g. elementByXPath(/xpath)
+            element_action = self._parse_action(param)
+            selectors = (selectors, element_action[4])
+        elif atype == "switchframe":
+            # for switchFrameByName we need to get the param
+            param = selector
 
         return atype, tag, param, value, selectors
+
+    def _parse_dict_action(self, action_config):
+        name = action_config["type"]
+        selectors = action_config.get("locators")
+        if action_config.get("source") and action_config.get("target"):
+            selectors = (action_config.get("source"), action_config.get("target"))
+        param = action_config["param"]
+        value = action_config["value"]
+        tags = "|".join(self.COMMON_TAGS) + "|ByName"   # ByName is needed in switchFrameByName
+        expr = re.compile("^(%s)(%s)?$" % (self.ACTIONS, tags), re.IGNORECASE)
+        atype, tag, selector = self._parse_action_params(expr, name)
+
+        return atype, tag, param, value, selectors
+
+    def _parse_action(self, action_config):
+        if isinstance(action_config, string_types):
+            name = action_config
+            param = None
+        elif isinstance(action_config, dict):
+            if action_config.get("type"):
+                return self._parse_dict_action(action_config)
+            else:
+                name, param = next(iteritems(action_config))
+        else:
+            raise TaurusConfigError("Unsupported value for action: %s" % action_config)
+
+        return self._parse_string_action(name, param)
 
     @staticmethod
     def _gen_dynamic_locator(var_w_locator):
