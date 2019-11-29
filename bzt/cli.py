@@ -58,7 +58,7 @@ class CLI(object):
         self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
         self.log.debug("Command-line options: %s", self.options)
         self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
-        self.log.debug("Rev: ; OS: %s", platform.uname())
+        self.log.debug("OS: %s", platform.uname())
         self.engine = Engine(self.log)
         self.exit_code = 0
 
