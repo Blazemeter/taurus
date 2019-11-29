@@ -205,9 +205,9 @@ from selenium.webdriver.common.keys import Keys
         value = action_config["value"]
         tags = "|".join(self.COMMON_TAGS) + "|ByName"   # ByName is needed in switchFrameByName
         expr = re.compile("^(%s)(%s)?$" % (self.ACTIONS, tags), re.IGNORECASE)
-        atype, tag, selector = self._parse_action_params(expr, name)
+        action_params = self._parse_action_params(expr, name)
 
-        return atype, tag, param, value, selectors
+        return action_params[0], action_params[1], param, value, selectors
 
     def _parse_action(self, action_config):
         if isinstance(action_config, string_types):
