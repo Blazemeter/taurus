@@ -703,47 +703,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                           TestSeleniumScriptGeneration.clear_spaces(content),
                           msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-    def test_syntax2_all_multiple_locators_case_insensitive(self):
-        self.configure({
-            "execution": [{
-                "executor": "apiritif",
-                "scenario": "loc_sc"}],
-            "scenarios": {
-                "loc_sc": {
-                    "requests": [{
-                        "label": "la-la",
-                        "actions": [
-                            {
-                                "type": "type",
-                                "param": "text_to_type",
-                                "locators": [
-                                    {"css": "mycss"},
-                                    {"CSS": "anothercss"},
-                                    {"id": "myid"},
-                                    {"Xpath": "/xpath/"},
-                                    {"xPatH": "/another/Xpath"},
-                                    {"name": "myname"},
-                                    {"linkText": "linkText"}
-                                ]
-                            }
-                        ]}]}}})
-
-        self.obj.prepare()
-        with open(self.obj.script) as fds:
-            content = fds.read()
-
-        target_lines = [
-            "var_loc_keys=self.loc_mng.get_locator([{'css':'mycss',},{'CSS':'anothercss',},{'id':'myid',},"
-            "{'Xpath':'/xpath/',},{'xPatH':'/another/Xpath',},{'name':'myname',},{'linkText':'linkText',}])"
-            "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
-            "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('text_to_type')",
-        ]
-
-        for idx in range(len(target_lines)):
-            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
-                          TestSeleniumScriptGeneration.clear_spaces(content),
-                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
-
     def test_syntax2_drag_drop(self):
         self.configure({
             "execution": [{
