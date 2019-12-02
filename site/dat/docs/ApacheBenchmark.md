@@ -7,6 +7,7 @@ Taurus supports the following features of Apache Benchmark:
  - `iterations`: number of requests to make
  - `concurrency`: number of multiple requests to make at a time (defaults to 1).
  - `hold-for`: run load testing for specified duration
+ - `timeout`: maximum number of seconds to wait before the socket times out
  - `headers`: headers to attach to HTTP request
  - `keepalive`: use HTTP KeepAlive feature (you can use it on two levels - global for whole scenario and local for some requests)
 
@@ -30,7 +31,7 @@ scenarios:
     - http://blazedemo.com/
 ```
 
-Example of `hold-for` usage:
+Example of `hold-for` and `timeout` usage:
 ```yaml
 execution:
 - executor: ab
@@ -38,7 +39,8 @@ execution:
   scenario: simple
 
 scenarios:
-  simple:  
+  simple:
+    timeout: 1s
     requests:
     - http://blazedemo.com/
 ```

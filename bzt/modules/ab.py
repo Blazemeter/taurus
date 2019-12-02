@@ -86,6 +86,10 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         else:
             args += ['-n', str(load_iterations * load_concurrency)]  # ab waits for total number of iterations
 
+        timeout = self.get_scenario().get("timeout", None)
+        if timeout:
+            args += ['-s', str(ceil(dehumanize_time(timeout)))]
+
         args += ['-c', str(load_concurrency)]
         args += ['-d']  # do not print 'Processed *00 requests' every 100 requests or so
         args += ['-r']  # do not crash on socket level errors
