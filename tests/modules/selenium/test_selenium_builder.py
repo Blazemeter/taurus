@@ -1,5 +1,6 @@
 import os
-import yaml
+
+from bzt import TaurusConfigError
 from bzt.six import PY2
 from tests import RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
@@ -44,6 +45,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
                             # chains
                             "mouseDownByXPath(/html/body/div[3]/form/select[1])",
+                            "mouseOutById(id_abc)",
+                            "mouseOverByName(name_abc)",
 
                             # drag, select, assert, store
                             {"dragByID(address)": "elementByName(toPort)"},
@@ -76,14 +79,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        locator0 = "self.driver.find_element(By.NAME, 'my_frame')"
-        locator1 = "self.driver.find_element(By.XPATH, '/html/body/div[3]/form/select[1]')"
-        locator2_1 = "self.driver.find_element(By.ID, 'address')"
-        locator2_2 = "self.driver.find_element(By.NAME, 'toPort')"
-
-        msg = '"The element (By.%s, %r) is not contenteditable element"' % ('ID', 'editor')
-        no_such_elt = "raise NoSuchElementException(%s)" % msg
-
         if PY2:
             print_i = "print i"
         else:
@@ -96,40 +91,55 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "self.wnd_mng.close('win_ser_local')",
             "self.frm_mng.switch('index=1')",
             "self.frm_mng.switch('relative=parent')",
-            "self.frm_mng.switch(%s)" % locator0,
-            "ActionChains(self.driver).click_and_hold(%s).perform()" % locator1,
-            "ActionChains(self.driver).drag_and_drop(%s, %s).perform()" % (locator2_1, locator2_2),
-            "Select(%s).select_by_visible_text('London')" % locator0,
-            "self.assertEqual(self.driver.title, 'BlazeDemo')",
+            "ActionChains(self.driver).click_and_hold(self.driver.find_element(var_loc_chain[0], "
+            "var_loc_chain[1])).perform()",
+            "ActionChains(self.driver).move_to_element_with_offset(self.driver.find_element(var_loc_chain[0],"
+            "var_loc_chain[1])",
+            "ActionChains(self.driver).move_to_element(self.driver.find_element(var_loc_chain[0],"
+            "var_loc_chain[1])).perform()",
+            "ActionChains(self.driver).drag_and_drop(self.driver.find_element(source[0], source[1]),"
+            "self.driver.find_element(target[0],target[1])).perform()",
+            "Select(self.driver.find_element(var_loc_select[0],var_loc_select[1])).select_by_visible_text",
+            "self.assertEqual(self.driver.title,'BlazeDemo')",
             "self.vars['hEaDeR'] = self.driver.title",
             "self.vars['Final'] = 'Title_Basic_By'",
-            "self.vars['Basic'] = %s.get_attribute('innerText')" % locator2_1,
-            "self.assertEqual(self.driver.find_element(By.ID, 'address')."
-            "get_attribute('value').strip(), '123 Beautiful st.'.strip())",
-            "self.driver.find_element(By.NAME, 'toPort').clear()",
-            "self.driver.find_element(By.NAME, 'toPort').send_keys('B')",
+            "self.vars['Basic'] = self.driver.find_element(var_loc_as[0],var_loc_as[1])."
+            "get_attribute('innerText')",
+            "self.assertEqual(self.driver.find_element(var_loc_as[0],var_loc_as[1])."
+            "get_attribute('value').strip(),\'123 Beautiful st.\'.strip())",
+            "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
+            "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('B')",
             "self.driver.execute_script(\"alert('This is Sparta');\")",
             "for i in range(10):",
             "if ((i % 2) == 0):",
             print_i,
             "self.driver.get('http:\\\\blazemeter.com')",
-            "if self.driver.find_element(By.ID, 'editor').get_attribute('contenteditable'):",
-            "self.driver.execute_script(('arguments[0].innerHTML = %s;' % 'lo-la-lu'), "
-            "self.driver.find_element(By.ID, 'editor'))",
+            "ifself.driver.find_element(var_edit_content[0], var_edit_content[1])."
+            "get_attribute('contenteditable'):"
+            "self.driver.execute_script((\"arguments[0].innerHTML=\'%s\';\"%\'lo-la-lu\'),"
+            "self.driver.find_element(var_edit_content[0],var_edit_content[1]))"
             "else:",
-            no_such_elt,
+            "raiseNoSuchElementException((\'The element (%s : %r)is not a contenteditable element\'%"
+            "(var_edit_content[0], var_edit_content[1])))"
             "print(self.vars['red_pill'])",
-            "WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, "
-            "'toPort')), \"Element 'toPort' failed to appear within 3.5s\")",
+            "WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((var_loc_wait[0],"
+            "var_loc_wait[1])), \"Element 'name':'toPort' failed to appear within 3.5s\")",
             "sleep(4.6)",
             "self.driver.delete_all_cookies()",
             "self.driver.save_screenshot('screen.png')",
-            "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), ('screenshot-%d.png' % (time() * 1000)))",
+            "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), "
+            "('screenshot-%d.png' % (time() * 1000)))",
             "self.driver.save_screenshot(filename)"
         ]
 
         for idx in range(len(target_lines)):
-            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
+                          TestSeleniumScriptGeneration.clear_spaces(content),
+                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    @staticmethod
+    def clear_spaces(content):
+        return content.replace(" ", "").replace("\t", "").replace("\n", "")
 
     def test_firefox_setup_generator(self):
         self.configure({
@@ -514,8 +524,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
-        with open(self.obj.script) as script:
-            self.assertNotIn("selenium_extras", script.read())
 
     def test_build_script_remote_empty_browser(self):
         """ taurus should not wipe browserName (from capabilities) """
@@ -642,7 +650,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "maximizeWindow()",
                             "closeWindow()"
                         ],
-                    },]
+                    }, ]
                 },
             }
         })
@@ -658,3 +666,366 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_mix_syntax(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "type": "click",
+                                "locators": [
+                                    {"name": "btn1"},
+                                ]
+                            },
+                            {"typeById(Id_123)": "London"}
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "var_loc_keys=self.loc_mng.get_locator([{'name':'btn1',}])self.driver.find_element"
+            "(var_loc_keys[0],var_loc_keys[1]).click()",
+            "var_loc_keys=self.loc_mng.get_locator([{'id':'Id_123',}])self.driver.find_element"
+            "(var_loc_keys[0],var_loc_keys[1]).clear()",
+            "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('London')"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
+                          TestSeleniumScriptGeneration.clear_spaces(content),
+                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_syntax2_drag_drop(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "type": "drag",
+                                "source": [
+                                    {"xpath": "/xpath/to"}
+                                ],
+                                "target": [
+                                    {"css": "mycss"},
+                                    {"id": "ID"}
+                                ]
+                            }
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "source=self.loc_mng.get_locator([{'xpath':'/xpath/to',}])",
+            "target=self.loc_mng.get_locator([{'css':'mycss',},{'id':'ID',}])"
+            "ActionChains(self.driver).drag_and_drop(self.driver.find_element(source[0],source[1]),"
+            "self.driver.find_element(target[0],target[1])).perform()"
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
+                          TestSeleniumScriptGeneration.clear_spaces(content),
+                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_syntax2_drag_drop_missing_source(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "type": "drag",
+                                "source": {
+
+                                },
+                                "target": {
+                                    "locators": [
+                                        {"css": "mycss"},
+                                        {"id": "ID"}
+                                    ]
+                                }
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Can not generate action for \'drag\'. Source is empty.' in str(context.exception))
+
+    def test_syntax2_missing_param_assert_store(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "type": "assertText",
+                                "locators": [
+                                    {"css": "classname"}
+                                ]
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Missing param' in str(context.exception))
+
+    def test_syntax2_missing_param_edit(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "type": "editContent",
+                                "locators": [
+                                    {"css": "classname"}
+                                ]
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Missing param' in str(context.exception))
+
+    def test_syntax2_build_script(self):
+        self.configure(
+            {
+                "execution": [
+                    {
+                        "executor": "apiritif",
+                        "scenario": "loc_sc"
+                    }
+                ],
+                "scenarios": {
+                    "loc_sc": {
+                        "default-address": "http://blazedemo.com,",
+                        "variables": {
+                            "red_pill": "take_it,",
+                            "name": "Name"
+                        },
+                        "timeout": "3.5s",
+                        "requests": [
+                            {
+                                "label": "Test V2",
+                                "actions": [
+                                    {
+                                        "type": "go",
+                                        "param": "http://blazedemo.com"
+                                    },
+                                    {
+                                        "type": "resizeWindow",
+                                        "param": "750, 750"
+                                    },
+                                    {
+                                        "type": "switchWindow",
+                                        "param": 0
+                                    },
+                                    {
+                                        "type": "mouseDown",
+                                        "locators": [
+                                            {"id": "invalid_id"},
+                                            {"xpath": "/html/body/div[3]/form/select[1]"}
+                                        ]
+                                    },
+                                    {
+                                        "type": "mouseOut",
+                                        "locators": [{"id": "id_123"}]
+                                    },
+                                    {
+                                        "type": "mouseOver",
+                                        "locators": [{"name": "name_123"}]
+                                    },
+                                    {
+                                        "type": "drag",
+                                        "source": [
+                                            {"name": "invalid_name"},
+                                            {"xpath": "/html/body/div[2]/div/p[2]/a"}
+                                        ],
+                                        "target": [
+                                            {"css": "invalid_css"},
+                                            {"xpath": "/html/body/div[3]/form/div"}
+                                        ]
+                                    },
+                                    {
+                                        "type": "assertText",
+                                        "param": "Choose your departure city:",
+                                        "locators": [
+                                            {"css": "myclass"},
+                                            {"xpath": "/html/body/div[3]/h2"}
+                                        ]
+                                    },
+                                    {
+                                        "type": "assertValue",
+                                        "param": "Find Flights",
+                                        "locators": [
+                                            {"css": "myclass"},
+                                            {"xpath": "/html/body/div[3]/form/div/input"}
+                                        ]
+                                    },
+                                    {
+                                        "type": "assertTitle",
+                                        "param": "BlazeDemo"
+                                    },
+                                    {
+                                        "type": "storeTitle",
+                                        "param": "hEaDeR"
+                                    },
+                                    {
+                                        "type": "storeString",
+                                        "param": "final_var",
+                                        "value": "test_text"
+                                    },
+                                    {
+                                        "type": "storeText",
+                                        "param": "Basic",
+                                        "locators": [{"xpath": "/html/body/div[3]/h2"}]
+                                    },
+                                    {
+                                        "type": "click",
+                                        "locators": [
+                                            {"xpath": "/wrong/one"},
+                                            {"xpath": "/html/body/div[3]/form/div/input"}
+                                        ]
+                                    },
+                                    {
+                                        "type": "keys",
+                                        "param": "KEY_ENTER",
+                                        "locators": [
+                                            {"xpath": "/doc/abc"},
+                                            {"css": "body > div.container > table > tbody > tr:nth-child(1) "
+                                                    "> td:nth-child(2) > input"}
+                                        ]
+                                    },
+                                    {
+                                        "type": "type",
+                                        "param": "myusername",
+                                        "locators": [
+                                            {"id": "fjkafjk"},
+                                            {"css": "testCss"}
+                                        ]
+                                    },
+                                    {
+                                        "type": "select",
+                                        "param": "American Express",
+                                        "locators": [
+                                            {"css": "myclass"},
+                                            {"xpath": "//*[@id=\"cardType\"]"}
+                                        ]
+                                    },
+                                    {
+                                        "type": "scriptEval",
+                                        "param": "window.scrollTo(0, document.body.scrollHeight);"
+                                    },
+                                    {
+                                        "type": "rawCode",
+                                        "param": "for i in range(10):\n  if i % 2 == 0:\n    print(i)"
+                                    },
+                                    {
+                                        "type": "echoString",
+                                        "param": "${red_pill}"
+                                    },
+                                    {
+                                        "type": "pauseFor",
+                                        "param": "4.6s"
+                                    },
+                                    {
+                                        "type": "clearCookies"
+                                    },
+                                    {
+                                        "type": "screenshot",
+                                        "param": "screen.png"
+                                    },
+                                    {
+                                        "type": "screenshot"
+                                    },
+                                    {
+                                        "type": "wait",
+                                        "param": "visible",
+                                        "locators": [
+                                            {"css": "invalid_css"},
+                                            {"name": "inputName"}
+                                        ]
+                                    },
+                                    {
+                                        "type": "editContent",
+                                        "param": "lo-la-lu",
+                                        "locators": [{"id": "editor"}]
+                                    },
+                                    {
+                                        "type": "pauseFor",
+                                        "param": "4.6s"
+                                    },
+                                    {
+                                        "type": "clearCookies"
+                                    },
+                                    {
+                                        "type": "screenshot",
+                                        "param": "screen.png"
+                                    },
+                                    {
+                                        "type": "screenshot"
+                                    },
+                                    {
+                                        "type": "openWindow",
+                                        "param": "vacation.html"
+                                    },
+                                    {
+                                        "type": "maximizeWindow"
+                                    },
+                                    {
+                                        "type": "switchFrameByIdx",
+                                        "param": 1
+                                    },
+                                    {
+                                        "type": "switchFrame",
+                                        "param": "relative=parent"
+                                    },
+                                    {
+                                        "type": "switchFrameByName",
+                                        "param": "my_frame"
+                                    },
+                                    {
+                                        "type": "closeWindow"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        )
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_v2.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>", python_files=True)
+        with open(self.obj.script) as script:
+            self.assertIn("bzt.resources.selenium_extras", script.read())
