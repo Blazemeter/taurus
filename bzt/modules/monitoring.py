@@ -191,7 +191,7 @@ class LocalClient(MonitoringClient):
             self.monitoring_logs = self.engine.create_artifact("monitoring_logs", ".csv")
             with open(self.monitoring_logs, "a") as mon_logs:
                 logs_writer = csv.writer(mon_logs, delimiter=',')
-                metrics = ['ts'] + [metric for metric in good_list]
+                metrics = ['ts'] + sorted([metric for metric in good_list])
                 logs_writer.writerow(metrics)
 
     def get_data(self):
@@ -204,7 +204,7 @@ class LocalClient(MonitoringClient):
 
             if self.monitoring_logs:
                 with open(self.monitoring_logs, "a") as mon_logs:
-                    line = [str(round(now))] + [str(metric_values[x]) for x in metric_values.keys()]
+                    line = [str(round(now))] + [str(metric_values[x]) for x in sorted(metric_values.keys())]
                     logs_writer = csv.writer(mon_logs, delimiter=',')
                     logs_writer.writerow(line)
 
