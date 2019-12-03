@@ -3,3 +3,4 @@ execution:
   runner: cypress
   scenario:
     script: cypress_example.js
+    headed: True

@@ -49,11 +49,11 @@ RUN google-chrome-stable --version && firefox --version && mono --version && nug
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
 
-RUN mkdir /bzt-configs \
-  && rm -rf /tmp/* \
-  && mkdir /tmp/artifacts
-
-ENV LANG en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
-WORKDIR /bzt-configs
-ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
+#RUN mkdir /bzt-configs \
+#  && rm -rf /tmp/* \
+#  && mkdir /tmp/artifacts
+#
+#ENV LANG en_US.UTF-8
+#ENV LC_ALL en_US.UTF-8
+#WORKDIR /bzt-configs
+#ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
