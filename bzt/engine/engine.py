@@ -408,7 +408,6 @@ class Engine(object):
         if merged_config:
             merged_config.dump(self.create_artifact("merged", ".yml"), Configuration.YAML)
             merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
-
         for artifact in existing_artifacts:
             self.existing_artifact(artifact)
 
@@ -655,6 +654,7 @@ class Engine(object):
                 self.log.warning(msg % mod.parameters.get("module"))
                 mod.parameters.merge(instance.parameters)
                 return True
+        return False
 
     def __prepare_aggregator(self):
         """
