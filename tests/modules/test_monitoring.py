@@ -171,6 +171,7 @@ class TestMonitoring(BZTestCase):
         for config in (config1, config2):
             self.assertTrue(all(m in metrics for m in config['metrics']))
 
+    @unittest.skipUnless(PY3, "py3 only")
     def test_logs(self):
         config = {'logging': True, 'metrics': ['bytes-sent', 'mem', 'cpu']}
         obj = LocalClient(ROOT_LOGGER, 'label', config, EngineEmul())
