@@ -177,16 +177,18 @@ class TestMonitoring(BZTestCase):
         obj.connect()
         patch = obj._get_resource_stats
         obj._get_resource_stats = lambda: {'mem': '4', 'bytes-sent': '2', 'cpu': '3'}
-        obj.get_data()
-        obj._get_resource_stats = patch
+        try:
+            obj.get_data()
+        finally:
+            obj._get_resource_stats = patch
         self.assertIn('logging', obj.config)
         self.assertEqual(['bytes-sent', 'cpu', 'mem'], sorted(obj.config['metrics']))
         self.assertIsNotNone(obj.monitoring_logs)
         with open(obj.monitoring_logs) as monitoring_logs:
             logs_reader = csv.reader(monitoring_logs)
             logs_reader = list(logs_reader)
-            self.assertEqual(['ts', 'bytes-sent', 'cpu', 'mem'], logs_reader[0])
-            self.assertEqual(['2', '3', '4'], logs_reader[1][1:])
+        self.assertEqual(['ts', 'bytes-sent', 'cpu', 'mem'], logs_reader[0])
+        self.assertEqual(['2', '3', '4'], logs_reader[1][1:])
 
     @unittest.skipUnless(PY3, "py3 only")
     def test_server_agent_encoding(self):
