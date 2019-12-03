@@ -595,8 +595,8 @@ scenario:
       actions:
       - assertTextByCSS(body > div.jumbotron > div > p:nth-child(2)): ${sample}
       - storeTitle(): my_title
-      - storeTextByXPath(//your/XPath/here): my_text
-      - storeValueByXPath(//your/XPath/here): my_value
+      - storeTextByXPath(//my/XPath/here): my_text
+      - storeValueByXPath(//my/XPath/here): my_value
       - storeString(${my_title} love my ${my_text} with ${my_value}): final_text
 ```
 
