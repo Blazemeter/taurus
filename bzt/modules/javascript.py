@@ -273,20 +273,20 @@ class CypressTester(JavaScriptExecutor):
 
     def prepare(self):
         super(CypressTester, self).prepare()
-        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True) # npm
+        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to runner %s" % self)
 
         self.install_required_tools()
-        self.reporting_setup(suffix='.ldjson')
+        self.reporting_setup(suffix='.ldjson')  # todo
+        # self.cypress_logs = 
 
-    def install_required_tools(self): # not needed, cypress must be installed
+    def install_required_tools(self):
         tcl_lib = self._get_tool(TclLibrary)
         self.node = self._get_tool(Node)
         self.npm = self._get_tool(NPM)
         self.cypress = self._get_tool(Cypress, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        # self.cypress_plugin = None
 
         web_driver = self._get_tool(
             JSSeleniumWebdriver, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
@@ -294,11 +294,19 @@ class CypressTester(JavaScriptExecutor):
         tools = [tcl_lib, self.node, self.npm, self.cypress, web_driver]
         self._check_tools(tools)
 
-    def get_launch_cmdline(self, *args):
-        return [self.node.tool_path] + list(args)
+    def gen_iters(self, iters):
+        ext_file = self.script[:self.script.rfind(".")] + '_ext.js'
+        with open(ext_file, "w") as extended:
+            with open(self.script, "r") as original:
+                contents = original.readlines()
+                for i in range(iters):
+                    extended.writelines(contents)
+        return ext_file
 
     def startup(self):
-        cypress_cmdline = "npx cypress run --headed --spec " + self.script
+        script = self.gen_iters(self.execution.get("iterations", 0))
+
+        cypress_cmdline = "npx cypress run --spec " + script + " > " # + script.logs todo
 
         self.process = self._execute(cypress_cmdline)
 

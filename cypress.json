@@ -1,4 +1,4 @@
 {
   "integrationFolder": "examples/selenium/",
-  "testFiles": "cypress**.js"
+  "testFiles": "**cypress**.js"
 }
