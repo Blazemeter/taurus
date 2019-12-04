@@ -232,8 +232,7 @@ from selenium.webdriver.common.keys import Keys
                 gen_subscript(var_w_locator, 1)
             ])
 
-    @staticmethod
-    def _gen_get_locators(var_name, locators):
+    def _gen_get_locators(self, var_name, locators):
         args = []
         for loc in locators:
             locator_type = list(loc.keys())[0]
@@ -243,7 +242,7 @@ from selenium.webdriver.common.keys import Keys
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store())],
             value=ast_call(func="self.loc_mng.get_locator",
-                           args=[ast.List(elts=args)]))
+                           args=[ast.List(elts=args), ast.Str(self._get_scenario_timeout())]))
 
     def _gen_locator(self, tag, selector):
         return ast_call(
@@ -652,6 +651,9 @@ from selenium.webdriver.common.keys import Keys
 
         return browser
 
+    def _get_scenario_timeout(self):
+        return dehumanize_time(self.scenario.get("timeout", "30s"))
+
     def _gen_webdriver(self):
         self.log.debug("Generating setUp test method")
         browser = self._check_platform()
@@ -729,11 +731,10 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(
                     func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
 
-        scenario_timeout = self.scenario.get("timeout", "30s")
         body.append(ast.Expr(
             ast_call(
                 func=ast_attr("self.driver.implicitly_wait"),
-                args=[ast.Num(dehumanize_time(scenario_timeout))])))
+                args=[ast.Num(self._get_scenario_timeout())])))
 
         mgr = "WindowManager"
         if mgr in self.selenium_extras:
