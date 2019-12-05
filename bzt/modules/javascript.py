@@ -280,7 +280,7 @@ class CypressTester(JavaScriptExecutor):
 
         self.install_required_tools()
         self.reporting_setup(suffix='.ldjson')  # todo
-        # self.cypress_logs = 
+        # self.cypress_logs =
 
     def install_required_tools(self):
         tcl_lib = self._get_tool(TclLibrary)
@@ -303,11 +303,12 @@ class CypressTester(JavaScriptExecutor):
                     extended.writelines(contents)
         return ext_file
 
+    def get_launch_cmdline(self, script):
+        return "npx cypress run --spec " + script
+
     def startup(self):
         script = self.gen_iters(self.execution.get("iterations", 0))
-
-        cypress_cmdline = "npx cypress run --spec " + script + " > " # + script.logs todo
-
+        cypress_cmdline = self.get_launch_cmdline(script)  # + " > " + self.cypress_logs todo
         self.process = self._execute(cypress_cmdline)
 
 
