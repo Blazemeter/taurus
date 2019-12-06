@@ -21,7 +21,7 @@ from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.six import string_types, iteritems
 from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR
-from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time
+from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time, shutdown_process
 
 
 class JavaScriptExecutor(SubprocessedExecutor, HavingInstallableTools):
@@ -270,6 +270,8 @@ class CypressTester(JavaScriptExecutor):
         super(CypressTester, self).__init__()
         self.tools_dir = "~/.bzt/selenium-taurus/cypress"
         self.cypress = None
+        self.ext_script = None
+        self.cypress_logs = None
 
     def prepare(self):
         super(CypressTester, self).prepare()
@@ -280,7 +282,7 @@ class CypressTester(JavaScriptExecutor):
 
         self.install_required_tools()
         self.reporting_setup(suffix='.ldjson')  # todo
-        # self.cypress_logs =
+        self.cypress_logs = self.engine.create_artifact("cypress.logs", ".txt")
 
     def install_required_tools(self):
         tcl_lib = self._get_tool(TclLibrary)
@@ -307,9 +309,14 @@ class CypressTester(JavaScriptExecutor):
         return "npx cypress run --spec " + script
 
     def startup(self):
-        script = self.gen_iters(self.execution.get("iterations", 0))
-        cypress_cmdline = self.get_launch_cmdline(script)  # + " > " + self.cypress_logs todo
+        self.ext_script = self.gen_iters(self.execution.get("iterations", 0))
+        cypress_cmdline = self.get_launch_cmdline(self.ext_script) + " > " + self.cypress_logs
         self.process = self._execute(cypress_cmdline)
+
+    def shutdown(self):
+        shutdown_process(self.process, self.log)
+        os.remove(self.ext_script)
+
 
 
 class NPM(RequiredTool):

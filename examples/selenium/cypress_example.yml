@@ -1,7 +1,6 @@
 execution:
 - executor: selenium
-  iterations: 2
+  iterations: 1
   runner: cypress
   scenario:
     script: cypress_example.js
-    headed: True
