@@ -486,6 +486,9 @@ class TestRobotExecutor(ExecutorTestCase):
         lines = open(self.obj.report_file).readlines()
         self.assertEqual(5, len(lines))
 
+        self.assertIsNotNone(self.obj.output_file)
+        self.assertIsNotNone(self.obj.log_file)
+
     def test_hold(self):
         self.configure({
             "execution": [{
