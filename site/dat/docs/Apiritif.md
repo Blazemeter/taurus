@@ -261,6 +261,7 @@ Which can be written also like:
 ```yaml
 rawCode: print('This is a python command.')
 ```
+
 ```yaml
 - type: rawCode
   param: print('This is a python command.')

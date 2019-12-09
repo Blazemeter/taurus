@@ -1,3 +1,4 @@
+import csv
 import random
 import time
 import unittest
@@ -170,13 +171,25 @@ class TestMonitoring(BZTestCase):
         for config in (config1, config2):
             self.assertTrue(all(m in metrics for m in config['metrics']))
 
+    @unittest.skipUnless(PY3, "py3 only")
     def test_logs(self):
-        config = {'logging': True, 'metrics': LocalClient.AVAILABLE_METRICS}
+        config = {'logging': True, 'metrics': ['bytes-sent', 'mem', 'cpu']}
         obj = LocalClient(ROOT_LOGGER, 'label', config, EngineEmul())
         obj.connect()
-        obj.get_data()
+        patch = obj._get_resource_stats
+        obj._get_resource_stats = lambda: {'mem': '4', 'bytes-sent': '2', 'cpu': '3'}
+        try:
+            obj.get_data()
+        finally:
+            obj._get_resource_stats = patch
         self.assertIn('logging', obj.config)
+        self.assertEqual(['bytes-sent', 'cpu', 'mem'], sorted(obj.config['metrics']))
         self.assertIsNotNone(obj.monitoring_logs)
+        with open(obj.monitoring_logs) as monitoring_logs:
+            logs_reader = csv.reader(monitoring_logs)
+            logs_reader = list(logs_reader)
+        self.assertEqual(['ts', 'bytes-sent', 'cpu', 'mem'], logs_reader[0])
+        self.assertEqual(['2', '3', '4'], logs_reader[1][1:])
 
     @unittest.skipUnless(PY3, "py3 only")
     def test_server_agent_encoding(self):
