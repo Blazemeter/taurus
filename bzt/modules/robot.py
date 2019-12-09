@@ -32,6 +32,8 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
         super(RobotExecutor, self).__init__()
         self.runner_path = os.path.join(RESOURCES_DIR, "robot_runner.py")
         self.variables_file = None
+        self.output_file = None
+        self.log_file = None
         self.tags = None
 
     def resource_files(self):
@@ -49,6 +51,8 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
             raise TaurusConfigError("'script' should be present for robot executor")
 
         self.reporting_setup(suffix=".ldjson")
+        self.output_file = self.engine.create_artifact("output", ".xml")
+        self.log_file = self.engine.create_artifact("log", ".html")
 
         scenario = self.get_scenario()
         variables = scenario.get("variables")
@@ -94,6 +98,9 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
 
         if self.tags is not None:
             cmdline += ['--include', self.tags]
+
+        cmdline += ['--outputfile', self.output_file]
+        cmdline += ['--logfile', self.log_file]
 
         cmdline += [self.script]
         self.process = self._execute(cmdline)

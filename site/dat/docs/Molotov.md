@@ -32,6 +32,25 @@ execution:
     script: loadtest.py
 ```
 
+## Think-time
+
+If you need a delay between each worker run, use `think-time` option in scenario level. Note that you would have to
+move your script there as well.
+
+```yaml
+execution:
+- executor: molotov
+  concurrency: 100
+  processes: 10
+  hold-for: 5m
+  scenario: simple
+
+scenarios:
+  simple:
+    think-time: 5
+    script: molotov_example.py
+```
+
 ## Module Settings
 
 If you have installed Molotov in a non-standard location, you can use `path` option to point Taurus to the `molotov` executor:
