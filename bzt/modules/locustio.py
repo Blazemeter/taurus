@@ -331,7 +331,6 @@ from locust import HttpLocust, TaskSet, task, constant
 
         swarm_class.append(self.gen_statement('wait_time = constant(%s)' % 0, indent=self.INDENT_STEP))
         swarm_class.append(self.gen_new_line())
-        swarm_class.append(self.gen_new_line())
 
         scenario_class.append(self.gen_decorator_statement('task(1)'))
 
