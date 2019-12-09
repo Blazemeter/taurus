@@ -27,7 +27,7 @@ RUN apt-get -y update \
   && $APT_INSTALL python3-dev python3-pip \
   && python3 -m pip install --upgrade pip \
   && python3 -m pip install --user --upgrade setuptools wheel \
-  && python3 -m pip install locustio robotframework robotframework-seleniumlibrary molotov twine \
+  && python3 -m pip install robotframework robotframework-seleniumlibrary molotov twine \
   && gem install rspec rake \
   && gem install selenium-webdriver \
   && wget https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
