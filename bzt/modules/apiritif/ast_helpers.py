@@ -26,3 +26,21 @@ def ast_call(func, args=None, keywords=None):
     if isinstance(func, string_types):
         func = ast.Name(id=func)
     return ast.Call(func=func, args=args, starargs=None, kwargs=None, keywords=keywords or [])
+
+
+def gen_empty_line_stmt():
+    return ast.Expr(value=ast.Name(id="")) # hacky, but works
+
+
+def gen_subscript(var_name, index):
+    """ Generates code like variable[1]  """
+    return ast.Expr(value=ast.Subscript(value=ast.Name(id=var_name, ctx=ast.Load()),
+                                        slice=ast.Index(value=ast.Num(n=index)), ctx=ast.Load()))
+
+
+def gen_store(name, value):
+    return ast.Assign(
+        targets=[ast.Subscript(
+            value=ast_attr("self.vars"),
+            slice=ast.Str(name))],
+        value=value)

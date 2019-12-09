@@ -86,7 +86,7 @@ class TaurusListener:
         self._current_suite = None
 
 
-def run_robot(targets, report_file, iteration_limit, duration_limit, variablefile, include):
+def run_robot(targets, report_file, iteration_limit, duration_limit, variablefile, outputfile, logfile, include):
     listener = TaurusListener(report_file)
     listener.prepare()
     stdout = StringIO()
@@ -97,7 +97,7 @@ def run_robot(targets, report_file, iteration_limit, duration_limit, variablefil
         while True:
             kwargs = {
                 'listener': listener,  # pass Taurus listener
-                'output': None, 'log': None, 'report': None,  # mute default reporting
+                'output': outputfile, 'log': logfile, 'report': None,
                 'stdout': stdout, 'stderr': stderr,  # capture stdout/stderr
             }
             if variablefile is not None:
@@ -126,6 +126,8 @@ if __name__ == '__main__':
     parser.add_option('-i', '--iterations', action='store', default=0)
     parser.add_option('-d', '--duration', action='store', default=0)
     parser.add_option('-v', '--variablefile', action='store', default=None)
+    parser.add_option('-o', '--outputfile', action='store', default=None)
+    parser.add_option('-l', '--logfile', action='store', default=None)
     parser.add_option('--include', action='store', default=None)
     opts, args = parser.parse_args()
     if opts.include is not None:
@@ -139,4 +141,5 @@ if __name__ == '__main__':
         else:
             opts.iterations = 1
 
-    run_robot(args, opts.report_file, int(opts.iterations), float(opts.duration), opts.variablefile, opts.include)
+    run_robot(args, opts.report_file, int(opts.iterations), float(opts.duration), opts.variablefile,
+              opts.outputfile, opts.logfile, opts.include)

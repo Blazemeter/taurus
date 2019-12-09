@@ -173,6 +173,24 @@ We can compose following XPath expressions:
 
 Any of these expressions can be used to fetch the desired element, if these attributes are unique.
 
+### Alternative syntax supporting multiple locators
+It is possible to specify multiple locators for each action. This helps to increase script resiliency. If a locator
+fails (e.g. because of a webpage change and the script was not updated to reflect the changes) an alternative locator
+will be used. If no locator succeeds then the script fails.
+All the locators above are supported, i.e. `ID`, `Name`, `LinkText`, `CSS`, `XPath`.
+
+
+This is an example how it looks like:
+```yaml
+  - type: select  # action name
+    param: American Express # parameter for the select action
+    locators:     # list of locators for the action, these are attempted one by one from top to bottom
+      - id: select_id           # locator types are case insensitive
+      - css: another_class    
+      - xpath: absolute_xpath
+      - xpath: relative_xpath   # there may be multiple locators of the same type
+      - name: select_name
+```
 
 ### Assertion
 For requested page source inspection you can use the following actions:
@@ -181,18 +199,52 @@ For requested page source inspection you can use the following actions:
 - `assertTitle(title)` to assert page title
 
 Don't forget to replace `X` with the right [locators](#Locators).
-See sample usage in [Frame Management](#Frame-managmment) section.
+See sample usage in [Frame Management](#Frame-management) section.
 
 Also, for assertion you can also use special assertion block. See example [here](#Sample-scenario).
+
+Using the [alternative syntax](#alternative-syntax-supporting-multiple-locators): 
+```yaml
+- type: assertText
+  param: text
+  locators:
+    - id: element_id
+    - xpath: /xpath
+- type: assertValue
+  param: value
+  locators:
+    - id: element_id
+- type: assertTitle
+  param: title
+```
 
 ### Cookies
 To delete all cookies use `clearCookies()` action.
 
+The same can be written like this: 
+```yaml
+- type: clearCookies
+```
+
 ### Echoing
 Use `echoString("echoed text")` to print text string on the Apiritif output execution.
 
+Or you may use:
+```yaml
+- type: echoString
+  param: echoed text
+```
+
 ### Editing
 `editContentByX(X\_name): "new test for X"` will help you change text in an editable field.
+
+Or by using the [alternative syntax](#alternative-syntax-supporting-multiple-locators):
+```yaml
+- type: editContent
+  param: new text for X
+  locators:
+    - css: element_class
+```
 
 ### Execution
 For execution of a non-yaml code you can use the following options:
@@ -200,13 +252,25 @@ For execution of a non-yaml code you can use the following options:
 ```yaml
 scriptEval("alert('This is a JavaScript command.');")
 ```
+Which can be written also like:
+```yaml
+- type: scriptEval
+  param: alert('This is a JavaScript command.')
+```
 - `rawCode: Python code` to insert python code as it is.
 ```yaml
 rawCode: print('This is a python command.')
 ```
+
+```yaml
+- type: rawCode
+  param: print('This is a python command.')
+```
+
 See example [here](#Sample-scenario).
 
-### Frame managmment
+
+### Frame management
 When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command
 to activate the frame before perform any action.
 
@@ -229,8 +293,22 @@ Note: For first level frames, it is possible to use `switchFrameByX` and using s
 
 Disclaimer: Currently there are problems in the support of this functionality by geckodriver and chromedriver, depending on the case to test some of these methods can generate a failure, mainly in cases where you have nested frames or frames mixed between frame and iframes.
 
+It is also possible to use the alternative syntax for Frame management, however there is currently no support for multiple locators:
+```yaml
+- type: switchFrame
+  param: index=0
+- type: switchFrame
+  param: relative=parent
+- type: switchFrameByName
+  param: frame_name
+```
+
 ### Go
 Use `go(url)` to redirect to another website.
+```yaml
+- type: go
+  param: url
+```
 
 ### Mouse actions
 For mouse imitating actions you can use the following:
@@ -238,33 +316,116 @@ For mouse imitating actions you can use the following:
 - `doubleClickByX(X\_name)`
 - `mouseDownByX(X\_name)`
 - `mouseUpByX(X\_name)`
+- `mouseOutByX(X\_name)`
+- `mouseOverByX(X\_name)`
 - `dragByX(X\_name): elementByX(another\_X\_name)`
 
 `X` here is for one of [locators](#Locators).
 
+Or by using the [multiple locators](#alternative-syntax-supporting-multiple-locators) syntax:
+```yaml
+- type: click
+  locators:
+     - css: element_class
+     - xpath: /xpath/
+- type: doubleClick
+  locators:
+     - css: element_class
+     - xpath: /xpath/
+- type: mouseDown
+  locators:
+     - css: element_class
+     - xpath: /xpath/
+- type: mouseUp
+  locators:
+     - css: element_class
+     - xpath: /xpath/
+- type: mouseOut
+  locators:
+     - css: element_class
+     - xpath: /xpath/
+- type: mouseOver
+  locators:
+     - css: element_class
+     - xpath: /xpath/
+- type: drag
+  source:
+    - name: element_name
+    - xpath: /xpath/
+  target:
+    - css: element_css
+    - xpath: /xpath/
+```
+
 ### Pause
 For pause you can use the following actions:
 - `waitByX(X\_name)` to wait for presence or `waitByX(X\_name): visible` to wait for visibility
+
+You can also define wait using the [alternative syntax](#alternative-syntax-supporting-multiple-locators) to provide multiple locators:
+```yaml
+- type: wait
+  locators: 
+    - css: element_class
+    - id: element_id
+- type: wait
+  param: visible
+  locators:
+    - css: element_class    
+```
 - `pauseFor(time)`
+```yaml
+- type: pauseFor
+  param: time
+```
 
 `X` here is for one of [locators](#Locators).
 
 ### Screenshot
 To take a screenshot of a viewport and save it in a file use this: `screenshot(file\_name)`
 
+```yaml
+- type: screenshot
+  param: file_name
+```
+
 ### Select
-To select a value use this: `selectByX(X\_name)`.
+To select a value use this: `selectByX(X\_name): value`.
 
 See documentation for `X` [here](#Locators).
+
+Or by using the [alternative syntax](#alternative-syntax-supporting-multiple-locators):
+```yaml
+- type: select
+  param: value
+  locators:
+    - id: element_id
+```
 
 ### Store
-For storing variables use the followinf actions:
-- `storeTitle(): "Title"`
-- `storeString(variable): "String"`
-- `storeTextByX(X\_name): "Text"`
-- `storeValueByX(X\_name): Value`
+For storing variables use the following actions:
+- `storeTitle(): var_title`
+- `storeString(value): "var_string"`
+- `storeTextByX(X\_name): "var_text"`
+- `storeValueByX(X\_name): var_value`
 
 See documentation for `X` [here](#Locators).
+
+Or use the [alternative syntax](#alternative-syntax-supporting-multiple-locators):
+```yaml
+- type: storeTitle
+  param: var_title
+- type: storeString
+  param: var_string
+  value: value
+- type: storeText
+  param: var_text
+  locators:
+    - id: element_id  
+- type: storeValue
+  param: var_value
+  locators:
+    - id: element_id
+```
 
 ### Typing
 Typing actions are the following:
@@ -274,7 +435,23 @@ Typing actions are the following:
 
 `X` here is for one of [locators](#Locators).
 
-### Window managment
+Typing actions with [multiple locators support](#alternative-syntax-supporting-multiple-locators):
+```yaml
+- type: type
+  param: text_to_type
+  locators:
+    - css: input_css
+    - name: input_name
+- type: submit
+  locators:
+    - id: element_id
+- type: keys
+  param: KEY_ENTER
+  locators:
+    - id: element_id  
+```
+
+### Window management
 To manage windows or tabs, the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
@@ -285,6 +462,14 @@ These actions require a value parameter, the possible values are:
   - `no value`: When no value is assigned, it means that the selection action is assigned over the last created window, and if the close action is used, it will also be over the last one created.
 
 Note: When any action command opens a new window (like click over a link with target window assigned), the action of selecting the window must always be declared, otherwise the actions executed by the execution were performed on the default window or the last one used with selectWindow command.
+
+Or using the [alternative syntax](#alternative-syntax-supporting-multiple-locators):
+```yaml
+- type: switchWindow
+  param: value
+- type: closeWindow
+  param: value
+```
 
 ### Sample scenario
 ```yaml
@@ -339,6 +524,57 @@ modules:
 
 ```
 
+## Sample scenario using multiple locators
+When using multiple locators [alternative syntax](#alternative-syntax-supporting-multiple-locators) it is possible to 
+mix it with the shorter version of action definition.
+
+```yaml
+scenarios:
+  request_example:
+    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
+    headless: true  # available only for Chrome/Firefox and only on Selenium 3.8.0+, disabled by default
+    timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
+    think-time: 1s500ms  # global scenario delay between each request
+    default-address: http://blazedemo.com/  # specify a base address, so you can use short urls in requests
+    requests:
+    - url: /  # url to open, only get method is supported
+      actions:  # holds list of actions to perform
+      - type: wait
+        locators:
+          - css: body
+          - xpath: /body/
+      - type: click
+        locators:
+          - id: mySubmitButton
+          - linktext: Submit Form
+          - css: btn_primary
+      - openWindow(http://blazedemo.com/vacation.html)
+      - clearCookies()
+      - type: keys
+        param: keys_to_type
+        locators:
+          - name: myInputName
+      - type: submit
+        locators:
+          - name: myInputName
+      - type: wait
+        param: visible
+        locators:
+          - id: myObjectToAppear
+          - name: myObjectToAppearName
+      - scriptEval("alert('This is Sparta');")
+      - type: rawCode
+        param: print('It\'s Python')  # insert as-is into script file
+      assert: # assert executed after actions
+      - contains:
+        - blazemeter  # list of search patterns
+        - Trusted
+        subject: body # only body subject supported
+        regexp: false  # treat string as regular expression
+        not: false  # inverse assertion condition
+```
+
+
 ## Variables
 
 It is possible to define variables to be used in the script, declaring them at the scenario level.
@@ -360,8 +596,8 @@ scenario:
       actions:
       - assertTextByCSS(body > div.jumbotron > div > p:nth-child(2)): ${sample}
       - storeTitle(): my_title
-      - storeTextByXPath(//*[@id="elemid"]/h2): my_text
-      - storeValueByXPath(//*[@id="elemid"]/input): my_value
+      - storeTextByXPath(//my/XPath/here): my_text
+      - storeValueByXPath(//my/XPath/here): my_value
       - storeString(${my_title} love my ${my_text} with ${my_value}): final_text
 ```
 

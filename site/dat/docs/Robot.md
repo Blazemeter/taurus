@@ -1,6 +1,6 @@
 # Robot Executor
 
-`robot` executor allows to run [Robot Framework](http://robotframework.org/)-based test suites with Taurus.
+`robot` executor allows to run test suites based on [Robot Framework](http://robotframework.org/) with Taurus.
 
 Taurus will execute tests in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded. The default number of iterations is 1.

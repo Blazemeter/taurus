@@ -309,7 +309,7 @@ class LocustIOScriptBuilder(PythonGenerator):
     IMPORTS = """
 from gevent import sleep
 from re import findall, compile
-from locust import HttpLocust, TaskSet, task
+from locust import HttpLocust, TaskSet, task, constant
 """
 
     def build_source_code(self):
@@ -329,8 +329,7 @@ from locust import HttpLocust, TaskSet, task
         default_address = self.scenario.get("default-address", "")
         swarm_class.append(self.gen_statement('host = "%s"' % default_address, indent=self.INDENT_STEP))
 
-        swarm_class.append(self.gen_statement('min_wait = %s' % 0, indent=self.INDENT_STEP))
-        swarm_class.append(self.gen_statement('max_wait = %s' % 0, indent=self.INDENT_STEP))
+        swarm_class.append(self.gen_statement('wait_time = constant(%s)' % 0, indent=self.INDENT_STEP))
         swarm_class.append(self.gen_new_line())
 
         scenario_class.append(self.gen_decorator_statement('task(1)'))
