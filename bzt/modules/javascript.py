@@ -271,7 +271,6 @@ class CypressTester(JavaScriptExecutor):
         self.tools_dir = "~/.bzt/selenium-taurus/cypress"
         self.cypress = None
         self.ext_script = None
-        self.cypress_logs = None
 
     def prepare(self):
         super(CypressTester, self).prepare()
@@ -282,7 +281,6 @@ class CypressTester(JavaScriptExecutor):
 
         self.install_required_tools()
         self.reporting_setup(suffix='.ldjson')  # todo
-        self.cypress_logs = self.engine.create_artifact("cypress.logs", ".txt")
 
     def install_required_tools(self):
         tcl_lib = self._get_tool(TclLibrary)
@@ -310,13 +308,12 @@ class CypressTester(JavaScriptExecutor):
 
     def startup(self):
         self.ext_script = self.gen_iters(self.execution.get("iterations", 0))
-        cypress_cmdline = self.get_launch_cmdline(self.ext_script) + " > " + self.cypress_logs
+        cypress_cmdline = self.get_launch_cmdline(self.ext_script)
         self.process = self._execute(cypress_cmdline)
 
     def shutdown(self):
         shutdown_process(self.process, self.log)
-        os.remove(self.ext_script)
-
+        os.remove(self.ext_script)  # todo: process & eliminate error
 
 
 class NPM(RequiredTool):
