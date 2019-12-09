@@ -652,6 +652,9 @@ from selenium.webdriver.common.keys import Keys
 
         return browser
 
+    def _get_scenario_timeout(self):
+        return dehumanize_time(self.scenario.get("timeout", "30s"))
+
     def _gen_webdriver(self):
         self.log.debug("Generating setUp test method")
         browser = self._check_platform()
@@ -739,11 +742,10 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(
                     func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
 
-        scenario_timeout = self.scenario.get("timeout", "30s")
         body.append(ast.Expr(
             ast_call(
                 func=ast_attr("self.driver.implicitly_wait"),
-                args=[ast.Num(dehumanize_time(scenario_timeout))])))
+                args=[ast.Num(self._get_scenario_timeout())])))
 
         mgr = "WindowManager"
         if mgr in self.selenium_extras:
@@ -767,7 +769,7 @@ from selenium.webdriver.common.keys import Keys
             targets=[ast_attr("self.loc_mng")],
             value=ast_call(
                 func=ast.Name(id=mgr),
-                args=[ast_attr("self.driver")])))
+                args=[ast_attr("self.driver"), ast.Str(self._get_scenario_timeout())])))
 
         if self.window_size:  # FIXME: unused in fact ?
             body.append(ast.Expr(
