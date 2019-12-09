@@ -248,7 +248,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                             'contains': '\w+l1e'}]}]}}})
 
         self.obj.prepare()
-        self.assertFilesEqual(RESOURCES_DIR + "locust/generated_from_requests_1.py", self.obj.script)
+        self.assertFilesEqual(RESOURCES_DIR + "locust/generated_from_requests.py", self.obj.script)
 
     def test_build_script_none_def_addr(self):
         self.sniff_log(self.obj.log)
