@@ -97,14 +97,14 @@ class LocatorsManager:
         'linktext': By.LINK_TEXT
     }
 
-    def __init__(self, driver):
+    def __init__(self, driver, timeout=30):
         self.driver = driver
+        self.timeout = timeout
 
-    def get_locator(self, locators, timeout):
+    def get_locator(self, locators):
         """
         :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
         {css: 'my_cls'}]
-        :param timeout: the current value of implicit wait, need to be restored back after execution
         :return: first valid locator from the passed List, if no locator is valid then returns the
         first one
         """
@@ -125,5 +125,5 @@ class LocatorsManager:
             locator = first_locator
 
         # restore the implicit wait value
-        self.driver.implicitly_wait(timeout)
+        self.driver.implicitly_wait(self.timeout)
         return locator

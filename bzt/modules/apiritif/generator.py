@@ -232,7 +232,8 @@ from selenium.webdriver.common.keys import Keys
                 gen_subscript(var_w_locator, 1)
             ])
 
-    def _gen_get_locators(self, var_name, locators):
+    @staticmethod
+    def _gen_get_locators(var_name, locators):
         args = []
         for loc in locators:
             locator_type = list(loc.keys())[0]
@@ -242,7 +243,7 @@ from selenium.webdriver.common.keys import Keys
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store())],
             value=ast_call(func="self.loc_mng.get_locator",
-                           args=[ast.List(elts=args), ast.Str(self._get_scenario_timeout())]))
+                           args=[ast.List(elts=args)]))
 
     def _gen_locator(self, tag, selector):
         return ast_call(
@@ -758,7 +759,7 @@ from selenium.webdriver.common.keys import Keys
             targets=[ast_attr("self.loc_mng")],
             value=ast_call(
                 func=ast.Name(id=mgr),
-                args=[ast_attr("self.driver")])))
+                args=[ast_attr("self.driver"), ast.Str(self._get_scenario_timeout())])))
 
         if self.window_size:  # FIXME: unused in fact ?
             body.append(ast.Expr(
