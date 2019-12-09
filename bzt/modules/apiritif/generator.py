@@ -692,6 +692,16 @@ from selenium.webdriver.common.keys import Keys
                 targets=[ast.Name(id="options")],
                 value=ast_call(
                     func=ast_attr("webdriver.ChromeOptions"))))
+            body.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("options.add_argument"),
+                    args=[ast.Str("%s" % "--no-sandbox")]
+                )))
+            body.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("options.add_argument"),
+                    args=[ast.Str("%s" % "--disable-dev-shm-usage")]
+                )))
             body.extend(headless_setup)
             body.append(ast.Assign(
                 targets=[ast_attr("self.driver")],
