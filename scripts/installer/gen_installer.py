@@ -154,7 +154,8 @@ def main():
     extra_wheels = [
         "fuzzyset-0.0.19-cp37-cp37m-win_amd64.whl",
         "python_Levenshtein-0.12.0-cp37-cp37m-win_amd64.whl",
-        "urwid-2.0.1-cp37-cp37m-win_amd64.whl"]
+        "urwid-2.0.1-cp37-cp37m-win_amd64.whl",
+        "msgpack_python-0.5.6-cp37-cp37m-win_amd64.whl"]
     add_extra_wheels(wheel_dir, extra_wheels)
     for pkg in additional_packages:
         fetch_all_wheels(pkg, wheel_dir)
