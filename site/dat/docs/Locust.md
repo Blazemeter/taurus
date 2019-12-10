@@ -1,11 +1,19 @@
 # Locust.io Executor
-[Locust.io](http://locust.io/) is python-based load generating tool where you have full freedom of programming test scenario in Python language. It uses resource-efficient coroutine approach.
+[Locust.io](http://locust.io/) is python-based load generating tool 
+where you have full freedom of programming test scenario in Python 
+language. It uses resource-efficient coroutine approach.
 
-Locust package is not installed automatically by Taurus, please install it manually: `pip install locustio`
+Switch to old Locust versions (< 0.13) is impossible for 
+compatibility purposes.
 
-Make note that for Locust `iterations` option means quantity of requests, not cycles of scenario (as the last can contains more than one request). Following load profile settings has no effect for this executor: `throughput` and `steps` 
+Make note that for Locust `iterations` option means quantity of 
+requests, not cycles of scenario (as the last can contains more than 
+one request). Following load profile settings has no effect for 
+this executor: `throughput` and `steps` 
 
-Taurus appends `PYTHONPATH` with path to artifacts directory and current working directory. Make sure you have no module name clashes (for example, don't name your locustfile as `locust.py`).
+Taurus appends `PYTHONPATH` with path to artifacts directory 
+and current working directory. Make sure you have no module name 
+clashes (for example, don't name your locustfile as `locust.py`).
 
 Here's example config that uses existing locust file:
 
@@ -50,7 +58,8 @@ class WebsiteUser(HttpLocust):
 
 ## Requests Scenario
 
-LocustIO executor partially supports building scenario from requests. Supported features:
+LocustIO executor partially supports building scenario from requests. 
+Supported features:
 
  - request methods GET/POST
  - headers and body for requests
