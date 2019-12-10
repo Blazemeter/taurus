@@ -1,8 +1,19 @@
 # Changelog
 
-## 1.14.0<sup>next</sup>
+## 1.14.0<sup>10 dec 2019</sup>
 
 - turn off Python 2 support
+- many updates of selenium code generator (smart_transaction, multi locators, new actions)
+- improve SoapUI converter
+- add local monitoring dump
+- add 'think-time' to molotov and 'timeout' to ab
+- documentation fixes
+- log java version
+- fix 'sequential' param priority
+- fix taurus site bugs
+- fix Windows Installer
+- fix logging of Robot tool
+- fix locust compatibility
 
 
 ## 1.13.9<sup>14 oct 2019</sup>
