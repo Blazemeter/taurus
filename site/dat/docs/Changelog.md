@@ -12,6 +12,8 @@
 - fix 'sequential' param priority
 - fix taurus site bugs
 - fix Windows Installer
+- fix logging of Robot tool
+- fix locust compatibility
 
 
 ## 1.13.9<sup>14 oct 2019</sup>
