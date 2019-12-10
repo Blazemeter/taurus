@@ -10,8 +10,8 @@ branches:
 os: linux
 
 python:
-- "3.5"
-- "3.6"
+#- "3.5"
+#- "3.6"
 - "3.7"
 
 env:
@@ -23,22 +23,22 @@ env:
 
 matrix:
   include:
-  - os: osx
-    name: "Python3.7 on macOS"
-    osx_image: xcode11    # Python 3.7.4 running on macOS 10.14.4
-    language: shell
-    env:
-    - PYTHON=python3
-    - PIP_INSTALL="sudo pip3 install"
-    - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
-    - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
-    before_install:
-    - gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
-    before_script:
-      - sudo nohup bash -c "xvfb :99 &"
-      - $PYTHON tests/resources/httpserver/start.py &
-    script:
-      - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
+#  - os: osx
+#    name: "Python3.7 on macOS"
+#    osx_image: xcode11    # Python 3.7.4 running on macOS 10.14.4
+#    language: shell
+#    env:
+#    - PYTHON=python3
+#    - PIP_INSTALL="sudo pip3 install"
+#    - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
+#    - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
+#    before_install:
+#    - gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
+#    before_script:
+#      - sudo nohup bash -c "xvfb :99 &"
+#      - $PYTHON tests/resources/httpserver/start.py &
+#    script:
+#      - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
 
   - os: windows
     name: "Python3.7 on Windows"
