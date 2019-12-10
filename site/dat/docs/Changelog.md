@@ -13,6 +13,7 @@
 - fix taurus site bugs
 - fix Windows Installer
 
+
 ## 1.13.9<sup>14 oct 2019</sup>
 
 - add support `concurrency` and `ramp-up` modifications for NUnit tests
