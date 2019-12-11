@@ -30,7 +30,7 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
 from bzt.requests_model import RequestParser
-from bzt.six import string_types, text_type, PY2, UserDict
+from bzt.six import string_types, text_type, UserDict
 from bzt.utils import str_representer, parse_think_time
 from bzt.utils import to_json, ensure_is_dict, BetterDict
 
@@ -278,16 +278,7 @@ class Configuration(BetterDict):
 
 SafeDumper.add_representer(Configuration, SafeRepresenter.represent_dict)
 SafeDumper.add_representer(BetterDict, SafeRepresenter.represent_dict)
-if PY2:
-    SafeDumper.add_representer(text_type, SafeRepresenter.represent_unicode)
 SafeDumper.add_representer(str, str_representer)
-
-if PY2:
-    # dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
-    encoder.FLOAT_REPR = lambda o: format(o, '.3g')
-else:
-    pass  # TODO: how to implement it?
-
 
 def replace_in_config(config, samples, substitutes, log=None):
     def file_replacer(value, key, container):

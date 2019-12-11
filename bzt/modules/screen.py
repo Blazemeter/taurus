@@ -22,16 +22,12 @@ import urwid
 from urwid import BaseScreen
 
 from bzt import ManualShutdown
-from bzt.six import text_type, iteritems, PY2
+from bzt.six import text_type, iteritems
 from bzt.utils import is_linux
 import bzt.resources as bztr
 
-if PY2:  # we have to put import logic here to avoid requiring python-tk library on linux
-    import tkFont as tkfont
-    import Tkinter as tkinter
-else:
-    import tkinter as tkinter
-    from tkinter import font as tkfont
+import tkinter
+from tkinter import font as tkfont
 
 
 class GUIScreen(BaseScreen):

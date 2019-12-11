@@ -1,7 +1,6 @@
 import os
 
 from bzt import TaurusConfigError
-from bzt.six import PY2
 from tests import RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
 
@@ -79,10 +78,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        if PY2:
-            print_i = "print i"
-        else:
-            print_i = "print(i)"
+        print_i = "print(i)"
 
         target_lines = [
             "self.wnd_mng.switch('0')",

@@ -30,7 +30,7 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.six import iteritems, PY3, text_type
+from bzt.six import iteritems, text_type
 from bzt.utils import dehumanize_time, JSONConvertible
 
 log = logging.getLogger('aggregator')

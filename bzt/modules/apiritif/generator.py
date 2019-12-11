@@ -26,7 +26,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
-from bzt.six import parse, string_types, iteritems, text_type, PY2
+from bzt.six import parse, string_types, iteritems, text_type
 from bzt.utils import dehumanize_time, ensure_is_dict
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript
 from .jmeter_functions import JMeterExprCompiler
@@ -455,14 +455,7 @@ from selenium.webdriver.common.keys import Keys
             ]
         )
 
-        if PY2:
-            raise_kwargs = {
-                "type": exc_type,
-                "inst": None,
-                "tback": None
-            }
-        else:
-            raise_kwargs = {
+        raise_kwargs = {
                 "exc": exc_type,
                 "cause": None}
 

@@ -17,14 +17,7 @@ limitations under the License.
 """
 # pylint: skip-file
 import sys
-
-PY2 = sys.version_info[0] == 2
-PY3 = sys.version_info[0] == 3
-
-if PY2:
-    from bzt.six.py2 import *
-else:
-    from bzt.six.py3 import *
+from bzt.six.py3 import *
 
 try:
     from lxml import etree

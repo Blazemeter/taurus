@@ -5,7 +5,7 @@ import unittest
 
 from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria
 from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient, LocalMonitor
-from bzt.six import PY3, b
+from bzt.six import b
 from bzt.utils import BetterDict
 from tests import BZTestCase, ROOT_LOGGER
 from tests.mocks import EngineEmul, SocketEmul
@@ -171,7 +171,6 @@ class TestMonitoring(BZTestCase):
         for config in (config1, config2):
             self.assertTrue(all(m in metrics for m in config['metrics']))
 
-    @unittest.skipUnless(PY3, "py3 only")
     def test_logs(self):
         config = {'logging': True, 'metrics': ['bytes-sent', 'mem', 'cpu']}
         obj = LocalClient(ROOT_LOGGER, 'label', config, EngineEmul())
@@ -191,7 +190,6 @@ class TestMonitoring(BZTestCase):
         self.assertEqual(['ts', 'bytes-sent', 'cpu', 'mem'], logs_reader[0])
         self.assertEqual(['2', '3', '4'], logs_reader[1][1:])
 
-    @unittest.skipUnless(PY3, "py3 only")
     def test_server_agent_encoding(self):
         obj = Monitoring()
         obj.engine = EngineEmul()

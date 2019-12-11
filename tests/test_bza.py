@@ -2,13 +2,12 @@ from unittest import skipUnless
 
 from bzt import TaurusNetworkError
 from bzt.bza import User, BZAObject
-from bzt.six import PY3, text_type
+from bzt.six import text_type
 from tests import BZTestCase
 from tests.mocks import BZMock
 
 
 class TestBZAClient(BZTestCase):
-    @skipUnless(PY3, "Py3-only test")
     def test_bza_py3_unicode_token(self):
         mock = BZMock()
         mock.mock_get.update({
