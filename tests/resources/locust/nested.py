@@ -27,4 +27,4 @@ class WebsiteTasks(TaskSet):
 
 class WebsiteUser(HttpLocust):
     task_set = WebsiteTasks
-    wait_time = between(500, 1500)
+    wait_time = between(0.500, 1.500)
