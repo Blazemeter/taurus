@@ -1,6 +1,6 @@
 import yaml
 
-from bzt.six import iteritems
+from bzt.utils import iteritems
 from bzt.swagger2yaml import SwaggerConverter, Swagger, Swagger2YAML, process
 from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul

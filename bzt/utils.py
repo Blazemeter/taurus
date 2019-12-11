@@ -26,6 +26,7 @@ import json
 import locale
 import logging
 import mimetypes
+import operator
 import os
 import platform
 import random
@@ -53,18 +54,59 @@ import psutil
 import requests
 import requests.adapters
 from io import IOBase
+from lxml import etree
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from urllib import parse
 from urllib.request import url2pathname
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
-from bzt.six import stream_decode, etree, communicate
-from bzt.six import iteritems, b, numeric_types
 
 LOG = logging.getLogger("")
 CALL_PROBLEMS = (CalledProcessError, OSError)
+numeric_types = (int, float, complex)
+viewvalues = operator.methodcaller("values")
 
+
+def unicode_decode(string, errors="strict"):
+    if isinstance(string, bytes):
+        return string.decode("utf-8", errors)
+    else:
+        return string
+
+
+def communicate(proc):  # todo: replace usage of it with sync_run()
+    out, err = proc.communicate()
+    out = unicode_decode(out, errors="ignore")
+    err = unicode_decode(err, errors="ignore")
+    return out, err
+
+
+def iteritems(dictionary, **kw):
+    return iter(dictionary.items(**kw))
+
+
+def b(string):
+    return string.encode("latin-1")
+
+
+def get_stacktrace(exc):
+    return ''.join(traceback.format_tb(exc.__traceback__)).rstrip()
+
+
+def reraise(exc_info, exc=None):
+    _type, message, stacktrace = exc_info
+    if exc is None:
+        exc = _type(message)
+    exc.__traceback__ = stacktrace
+    raise exc
+
+
+def stream_decode(string):
+    if not isinstance(string, str):
+        return string.decode()
+    else:
+        return string
 
 def sync_run(args, env=None):
     output = check_output(args, env=env, stderr=STDOUT)

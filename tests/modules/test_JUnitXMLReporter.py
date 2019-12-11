@@ -8,8 +8,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus, DataCriterion, CriteriaProcessor
 from bzt.modules.reporting import JUnitXMLReporter
-from bzt.six import etree
-from bzt.utils import BetterDict
+from bzt.utils import etree, BetterDict
 from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul
 

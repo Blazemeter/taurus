@@ -5,8 +5,7 @@ import unittest
 
 from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria
 from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient, LocalMonitor
-from bzt.six import b
-from bzt.utils import BetterDict
+from bzt.utils import b, BetterDict
 from tests import BZTestCase, ROOT_LOGGER
 from tests.mocks import EngineEmul, SocketEmul
 

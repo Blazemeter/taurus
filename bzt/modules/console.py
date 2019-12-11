@@ -27,7 +27,7 @@ from itertools import groupby, islice, chain
 from io import StringIO
 
 from bzt import TaurusInternalException
-from bzt.six import numeric_types
+from bzt.utils import numeric_types
 from logging import StreamHandler
 from urwid import LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN, ProgressBar
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine

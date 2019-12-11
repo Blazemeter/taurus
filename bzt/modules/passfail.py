@@ -28,8 +28,7 @@ from bzt import AutomatedShutdown, TaurusConfigError
 from bzt.engine import Reporter, EngineModule
 from bzt.modules.aggregator import KPISet, DataPoint, AggregatorListener, ResultsProvider
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.six import viewvalues, iteritems
-from bzt.utils import load_class, dehumanize_time, get_bytes_count, BetterDict
+from bzt.utils import viewvalues, iteritems, load_class, dehumanize_time, get_bytes_count, BetterDict
 
 
 class CriteriaProcessor(AggregatorListener):

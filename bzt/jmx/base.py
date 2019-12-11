@@ -20,13 +20,13 @@ import os
 import traceback
 
 from cssselect import GenericTranslator
+from lxml import etree
 from urllib import parse
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
-from bzt.utils import BetterDict
+from bzt.utils import BetterDict, iteritems, numeric_types
 from bzt.requests_model import has_variable_pattern
-from bzt.six import etree, iteritems, numeric_types
 
 LOG = logging.getLogger("")
 

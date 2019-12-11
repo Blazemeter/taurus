@@ -34,7 +34,7 @@ from bzt.engine import ScenarioExecutor, FileLister, HavingInstallableTools, Sel
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.six import iteritems, b, viewvalues
+from bzt.utils import iteritems, b, viewvalues
 from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader, RESOURCES_DIR
 from bzt.utils import shutdown_process, BetterDict, dehumanize_time, get_full_path, CALL_PROBLEMS
 

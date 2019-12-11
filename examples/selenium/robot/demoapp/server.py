@@ -15,13 +15,8 @@ an argument from the command line.
 
 from os import chdir
 from os.path import abspath, dirname, join
-try:
-    from SocketServer import ThreadingMixIn
-    from BaseHTTPServer import HTTPServer
-    from SimpleHTTPServer import SimpleHTTPRequestHandler
-except ImportError:
-    from socketserver import ThreadingMixIn
-    from http.server import SimpleHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 
 ROOT = join(dirname(abspath(__file__)), 'html')

@@ -16,8 +16,7 @@ from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.six import iteritems, b, stream_decode
-from bzt.utils import dehumanize_time, BetterDict
+from bzt.utils import iteritems, b, stream_decode, dehumanize_time, BetterDict
 
 
 class Monitoring(Service, WidgetProvider, Singletone):

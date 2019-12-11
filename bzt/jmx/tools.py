@@ -18,6 +18,7 @@ limitations under the License.
 import os
 import re
 from distutils.version import LooseVersion
+from lxml import etree
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
@@ -25,7 +26,7 @@ from bzt.jmx import JMX
 from bzt.jmx.base import cond_int
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
 from bzt.requests_model import RequestVisitor, has_variable_pattern, HierarchicRequestParser
-from bzt.six import etree, iteritems, numeric_types
+from bzt.utils import iteritems, numeric_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, load_class, guess_delimiter
 
 

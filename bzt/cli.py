@@ -37,8 +37,7 @@ from bzt import ManualShutdown, NormalShutdown, RCProvider, TaurusException, Aut
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError, ToolError
 from bzt.engine import Engine, Configuration, SETTINGS, EXEC
 from bzt.linter import ConfigurationLinter
-from bzt.six import get_stacktrace
-from bzt.utils import is_int, BetterDict, is_url, RESOURCES_DIR
+from bzt.utils import get_stacktrace, is_int, BetterDict, is_url, RESOURCES_DIR
 
 
 class CLI(object):

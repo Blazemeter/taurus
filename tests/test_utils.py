@@ -8,9 +8,8 @@ from psutil import Popen
 from os.path import join
 
 from bzt import TaurusNetworkError
-from bzt.six import communicate
 from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient, BetterDict
-from bzt.utils import ensure_is_dict, Environment, temp_file
+from bzt.utils import ensure_is_dict, Environment, temp_file, communicate
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
 

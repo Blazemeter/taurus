@@ -25,11 +25,9 @@ import zipfile
 from urllib.request import urlopen
 from urllib.error import URLError
 
-from bzt.six import communicate
-
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import Service, HavingInstallableTools, Singletone
-from bzt.six import get_stacktrace
+from bzt.utils import get_stacktrace, communicate
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node, CALL_PROBLEMS, exec_and_communicate
 

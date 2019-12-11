@@ -25,8 +25,7 @@ from collections import namedtuple
 from bzt import TaurusConfigError
 from bzt import ToolError
 
-from bzt.six import numeric_types
-from bzt.utils import Environment, RequiredTool, PIPE, SoapUIScriptConverter
+from bzt.utils import numeric_types, Environment, RequiredTool, PIPE, SoapUIScriptConverter
 from bzt.utils import to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 from .templates import FileLister

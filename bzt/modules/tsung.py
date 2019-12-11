@@ -27,7 +27,7 @@ from bzt.engine import FileLister, ScenarioExecutor, HavingInstallableTools, Sel
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.six import etree, iteritems
+from bzt.utils import etree, iteritems
 from bzt.utils import CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, which, FileReader
 
 

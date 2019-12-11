@@ -18,7 +18,7 @@ import ast
 import re
 from abc import abstractmethod
 
-from bzt.six import iteritems
+from bzt.utils import iteritems
 
 from .ast_helpers import ast_call
 

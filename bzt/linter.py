@@ -1,6 +1,6 @@
 import traceback
 
-from bzt.six import iteritems
+from bzt.utils import iteritems
 
 
 def dameraulevenshtein(seq1, seq2):

@@ -49,8 +49,7 @@ from bzt.modules.monitoring import Monitoring, MonitoringListener, LocalClient
 from bzt.modules.services import Unpacker
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.requests_model import has_variable_pattern
-from bzt.six import iteritems, b
-from bzt.utils import open_browser, BetterDict, ExceptionalDownloader, ProgressBarContext
+from bzt.utils import iteritems, b, open_browser, BetterDict, ExceptionalDownloader, ProgressBarContext
 from bzt.utils import to_json, dehumanize_time, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 
 TAURUS_TEST_TYPE = "taurus"

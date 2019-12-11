@@ -31,6 +31,7 @@ from itertools import dropwhile
 from io import StringIO
 
 from cssselect import GenericTranslator
+from lxml import etree
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
 from bzt.engine import Scenario, FileLister, HavingInstallableTools, ScenarioExecutor
@@ -40,7 +41,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
-from bzt.six import iteritems, etree, numeric_types, unicode_decode
+from bzt.utils import iteritems, numeric_types, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
 from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, FileReader

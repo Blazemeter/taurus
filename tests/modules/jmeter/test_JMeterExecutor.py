@@ -16,8 +16,7 @@ from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JTLReader, FuncJTLReader, JMeter
 from bzt.modules.provisioning import Local
-from bzt.six import etree
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM, etree
 from tests import RESOURCES_DIR, BUILD_DIR, close_reader_file, ExecutorTestCase
 from . import MockJMeterExecutor, MockHTTPClient
 

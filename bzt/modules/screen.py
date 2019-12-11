@@ -22,8 +22,7 @@ import urwid
 from urwid import BaseScreen
 
 from bzt import ManualShutdown
-from bzt.six import iteritems
-from bzt.utils import is_linux
+from bzt.utils import is_linux, iteritems
 import bzt.resources as bztr
 
 import tkinter
