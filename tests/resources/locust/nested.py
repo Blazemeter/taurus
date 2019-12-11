@@ -1,6 +1,6 @@
 # An example on how to nest tasksets
 
-from locust import HttpLocust, TaskSet, task
+from locust import HttpLocust, TaskSet, task, between
 
 
 class ForumPage(TaskSet):
@@ -27,5 +27,4 @@ class WebsiteTasks(TaskSet):
 
 class WebsiteUser(HttpLocust):
     task_set = WebsiteTasks
-    min_wait = 500
-    max_wait = 1500
+    wait_time = between(500, 1500)
