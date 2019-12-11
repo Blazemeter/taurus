@@ -30,7 +30,7 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
 from bzt.requests_model import RequestParser
-from bzt.six import string_types, text_type, UserDict
+from collections import UserDict
 from bzt.utils import str_representer, parse_think_time
 from bzt.utils import to_json, ensure_is_dict, BetterDict
 
@@ -245,10 +245,10 @@ class Configuration(BetterDict):
         """
         Remove sensitive data from config
         """
-        if isinstance(key, string_types):
+        if isinstance(key, str):
             for suffix in ('password', 'secret', 'token',):
                 if key.lower().endswith(suffix):
-                    if value and isinstance(value, (string_types, text_type)):
+                    if value and isinstance(value, (str, str)):
                         container[key] = '*' * 8
 
     @staticmethod

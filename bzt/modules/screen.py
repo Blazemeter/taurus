@@ -22,7 +22,7 @@ import urwid
 from urwid import BaseScreen
 
 from bzt import ManualShutdown
-from bzt.six import text_type, iteritems
+from bzt.six import iteritems
 from bzt.utils import is_linux
 import bzt.resources as bztr
 
@@ -134,7 +134,7 @@ class GUIScreen(BaseScreen):
             pos = 0
             for part in row:
                 txt = part[2]
-                if not isinstance(txt, text_type):
+                if not isinstance(txt, str):
                     txt = txt.decode('utf-8')
                 strlen = len(txt)
                 self.text.insert(tkinter.END, txt)

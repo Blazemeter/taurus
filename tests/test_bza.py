@@ -2,7 +2,6 @@ from unittest import skipUnless
 
 from bzt import TaurusNetworkError
 from bzt.bza import User, BZAObject
-from bzt.six import text_type
 from tests import BZTestCase
 from tests.mocks import BZMock
 
@@ -16,7 +15,7 @@ class TestBZAClient(BZTestCase):
 
         user = User()
         mock.apply(user)
-        user.token = text_type("something:something")
+        user.token = str("something:something")
         user.ping()
 
 

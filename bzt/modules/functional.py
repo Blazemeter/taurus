@@ -17,7 +17,6 @@ from abc import abstractmethod
 
 from bzt.engine import Aggregator
 from bzt.modules.aggregator import ResultsReader
-from bzt.six import string_types
 from bzt.utils import BetterDict, iteritems, LDJSONReader
 
 
@@ -175,7 +174,7 @@ class TestReportReader(object):
 
     @staticmethod
     def process_label(label):
-        if isinstance(label, string_types):
+        if isinstance(label, str):
             parts = label.split('_', 2)  # 'test_01_feeling_good'
             if len(parts) == 3 and parts[0] == 'test' and parts[1].isdigit():
                 return parts[2]

@@ -4,6 +4,7 @@ import pprint
 import time
 import unittest
 
+from urllib import parse
 import urwid
 import yaml
 
@@ -12,7 +13,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import EXEC
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchGenerator
-from bzt.six import parse, b
+from bzt.six import b
 from bzt.utils import is_windows
 from tests import RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 from tests.cases import ExecutorTestCase

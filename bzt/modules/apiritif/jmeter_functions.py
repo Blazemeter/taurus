@@ -18,7 +18,7 @@ import ast
 import re
 from abc import abstractmethod
 
-from bzt.six import string_types, iteritems
+from bzt.six import iteritems
 
 from .ast_helpers import ast_call
 
@@ -212,7 +212,7 @@ class JMeterExprCompiler(object):
             return ast.Name(id="True" if value else "False", ctx=ast.Load())
         elif isinstance(value, (int, float)):
             return ast.Num(n=value)
-        elif isinstance(value, string_types):
+        elif isinstance(value, str):
             # if is has interpolation - break it into either a `"".format(args)` form or a Name node
             # otherwise - it's a string literal
             parts = re.split(r'(\$\{.*?\})', value)

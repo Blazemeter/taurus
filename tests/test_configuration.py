@@ -64,25 +64,12 @@ class TestConfiguration(BZTestCase):
 
     def test_unicode(self):
         obj = Configuration()
-        expected = six.u("Юникод")
+        expected = "Юникод"
         obj.merge({
             "ustr": expected,
         })
         ustr = obj.get("ustr", "nope")
         self.assertEqual(ustr, expected)
-
-    def test_save(self):
-        obj = Configuration()
-        obj.merge({
-            "str": "text",
-            "uc": six.u("ucstring")
-        })
-        fname = temp_file()
-        obj.dump(fname, Configuration.YAML)
-        with open(fname) as fh:
-            written = fh.read()
-            ROOT_LOGGER.debug("YAML:\n%s", written)
-            self.assertNotIn("unicode", written)
 
     def test_masq_sensitive(self):
         obj = Configuration()

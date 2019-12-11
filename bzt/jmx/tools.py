@@ -25,7 +25,7 @@ from bzt.jmx import JMX
 from bzt.jmx.base import cond_int
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
 from bzt.requests_model import RequestVisitor, has_variable_pattern, HierarchicRequestParser
-from bzt.six import etree, iteritems, numeric_types, string_types
+from bzt.six import etree, iteritems, numeric_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, load_class, guess_delimiter
 
 
@@ -117,7 +117,7 @@ class LoadSettingsProcessor(object):
         groups = list(self.tg_handler.groups(jmx))
 
         # user concurrency is jmeter variable, write it to tg as is
-        if isinstance(self.load.concurrency, string_types):
+        if isinstance(self.load.concurrency, str):
             target_list = [(group, self.load.concurrency) for group in groups]
         else:  # concurrency is numeric or empty
             raw = self.load.concurrency is None  # keep existed concurrency if self.load.concurrency is omitted

@@ -5,7 +5,7 @@ import yaml
 
 from bzt import TaurusConfigError
 from bzt.engine import Configuration, EXEC
-from bzt.six import string_types, communicate
+from bzt.six import communicate
 from bzt.utils import BetterDict, is_windows
 from tests import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase
 from tests.mocks import EngineEmul
@@ -299,7 +299,7 @@ class TestScenarioExecutor(ExecutorTestCase):
         self.obj.get_scenario()
         config = self.engine.config
         scenario = config['execution'][0]['scenario']
-        self.assertTrue(isinstance(scenario, string_types))
+        self.assertTrue(isinstance(scenario, str))
         self.assertIn(scenario, config['scenarios'])
 
     def test_scenario_not_found(self):

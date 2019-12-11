@@ -19,6 +19,7 @@ import math
 import re
 import string
 from collections import OrderedDict
+from urllib import parse
 
 import astunparse
 
@@ -26,7 +27,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
-from bzt.six import parse, string_types, iteritems, text_type
+from bzt.six import iteritems
 from bzt.utils import dehumanize_time, ensure_is_dict
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript
 from .jmeter_functions import JMeterExprCompiler
@@ -210,7 +211,7 @@ from selenium.webdriver.common.keys import Keys
         return action_params[0], action_params[1], param, value, selectors
 
     def _parse_action(self, action_config):
-        if isinstance(action_config, string_types):
+        if isinstance(action_config, str):
             name = action_config
             param = None
         elif isinstance(action_config, dict):
@@ -421,7 +422,7 @@ from selenium.webdriver.common.keys import Keys
                             self._gen_dynamic_locator("var_loc_keys"),
                             "clear"))))
             action = "send_keys"
-            if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
+            if isinstance(param, (str, str)) and param.startswith("KEY_"):
                 args = [ast_attr("Keys.%s" % param.split("KEY_")[1])]
             else:
                 args = [self._gen_expr(str(param))]
@@ -1112,7 +1113,7 @@ from selenium.webdriver.common.keys import Keys
             named_args['params'] = self._gen_expr(req.body)
         elif isinstance(req.body, dict):  # form data
             named_args['data'] = self._gen_expr(list(iteritems(req.body)))
-        elif isinstance(req.body, string_types):
+        elif isinstance(req.body, str):
             named_args['data'] = self._gen_expr(req.body)
         elif req.body:
             msg = "Cannot handle 'body' option of type %s: %s"
@@ -1228,7 +1229,7 @@ from selenium.webdriver.common.keys import Keys
         self.log.debug("Generating assertion, config: %s", assertion_config)
         assertion_elements = []
 
-        if isinstance(assertion_config, string_types):
+        if isinstance(assertion_config, str):
             assertion_config = {"contains": [assertion_config]}
 
         for val in assertion_config["contains"]:

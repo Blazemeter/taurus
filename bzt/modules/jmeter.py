@@ -28,6 +28,7 @@ import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from itertools import dropwhile
+from io import StringIO
 
 from cssselect import GenericTranslator
 
@@ -39,7 +40,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataP
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
-from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, unicode_decode
+from bzt.six import iteritems, etree, numeric_types, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
 from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, FileReader
@@ -191,7 +192,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         selector = 'jmeterTestPlan'
         test_plan = jmx.get(selector)[0]
         ver = test_plan.get('jmeter')
-        if isinstance(ver, string_types):
+        if isinstance(ver, str):
             index = ver.find(" ")
             if index != -1:
                 return ver[:index]
