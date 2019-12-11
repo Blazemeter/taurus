@@ -208,7 +208,7 @@ class TestGatlingExecutor(ExecutorTestCase):
             "throughput": 100,
             "scenario": {"script": RESOURCES_DIR + "gatling/" + script}}})
         self.obj.prepare()
-        self.obj.engine.artifacts_dir = u(self.obj.engine.artifacts_dir)
+        self.obj.engine.artifacts_dir = self.obj.engine.artifacts_dir
         self.obj.startup()
         self.obj.shutdown()
         with open(self.obj.stdout.name) as fds:
