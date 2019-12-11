@@ -1,7 +1,6 @@
 # coding=utf-8
 import json
 
-from bzt import six
 from bzt.engine import Configuration
 from bzt.utils import BetterDict, dehumanize_time, temp_file
 from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
