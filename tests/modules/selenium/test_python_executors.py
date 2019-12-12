@@ -102,7 +102,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         diagnostics = "\n".join(self.obj.get_error_diagnostics())
         self.assertIn("Nothing to test.", diagnostics)
 
-    def test_resource_files_collection_remote_nose(self):
+    def test_resource_files_collection_remote_apiritif(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "selenium/python/"}})
         self.assertEqual(len(self.obj.resource_files()), 1)
 
