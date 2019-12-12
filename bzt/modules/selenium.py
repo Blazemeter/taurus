@@ -60,7 +60,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     :type runner: bzt.modules.SubprocessedExecutor
     """
 
-    SUPPORTED_RUNNERS = ["apiritif", "nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot", "cypress"]
+    SUPPORTED_RUNNERS = ["apiritif", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot", "cypress"]
     SELENIUM_TOOLS_DIR = "~/.bzt/selenium-taurus/tools"
 
     def __init__(self):
@@ -126,9 +126,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         runner = self.execution.get("runner")
         if runner:
             if runner in SeleniumExecutor.SUPPORTED_RUNNERS:
-                if runner == "nose":
-                    msg = "'nose' keyword is deprecated and will be removed soon. Please use 'apiritif' instead."
-                    self.log.warning(msg)
                 self.log.debug("Using script type: %s", runner)
                 return runner
             else:

@@ -438,7 +438,7 @@ class TestCloudProvisioning(BZTestCase):
                     "scenario": {"requests": ["http://blazedemo.com"]}},
                     {
                         "executor": "selenium",
-                        "runner": "nose",
+                        "runner": "apiritif",
                         "concurrency": {
                             "local": 1,
                             "cloud": 10},
@@ -454,10 +454,6 @@ class TestCloudProvisioning(BZTestCase):
                     "apiritif": {
                         "class": ApiritifTester.__module__ + "." + ApiritifTester.__name__,
                         "verbose": False
-                    },
-                    "nose": {
-                        "class": ApiritifTester.__module__ + "." + ApiritifTester.__name__,
-                        "verbose": True
                     },
 
                     "blazemeter": {
@@ -487,7 +483,6 @@ class TestCloudProvisioning(BZTestCase):
             'blazemeter': {'strange_param': False},
             'selenium': {'virtual-display': False},
             'apiritif': {'verbose': False},
-            'nose': {'verbose': True},
             'private_mod': {'class': 'tests.mocks.ModuleMock', 'send-to-blazemeter': True}
         })
 

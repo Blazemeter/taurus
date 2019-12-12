@@ -344,7 +344,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine = engine
         obj.parameters = BetterDict()
 
-        reader = FuncSamplesReader(RESOURCES_DIR + "functional/nose.ldjson", engine, ROOT_LOGGER)
+        reader = FuncSamplesReader(RESOURCES_DIR + "functional/apiritif.ldjson", engine, ROOT_LOGGER)
         aggregator.add_underling(reader)
 
         aggregator.prepare()
