@@ -52,6 +52,7 @@ screen height :)
 collects server health stats and makes them accessible through network connection. To use it,
 you need to install and launch ServerAgent on each of your target servers and then specify
 [metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item.
+You can also define, whether or not you need logs for ServerAgent via `logging` option.
 For example: 
 ```yaml
 services:
@@ -60,6 +61,7 @@ services:
   - address: 192.168.0.1:4444
     label: target-server  # if you specify label, it will be used in reports instead of ip:port
     interval: 3s    # polling interval
+    logging: True # those logs will be saved to "SAlogs_192.168.0.1_4444.csv" in the artifacts dir
     metrics:
     - cpu
     - disks
