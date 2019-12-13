@@ -60,7 +60,7 @@ class TestMonitoring(BZTestCase):
         obj.post_process()
 
         self.assertEquals(b("test\ninterval:1\nmetrics:cpu\tdisks\nexit\n"), obj.clients[0].socket.sent_data)
-        
+
         if PY3:
             self.assertIsNotNone(obj.clients[0].serveragent_logs)
             with open(obj.clients[0].serveragent_logs) as serveragent_logs:

@@ -15,7 +15,7 @@ from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.six import iteritems, urlencode, b, stream_decode, integer_types
+from bzt.six import iteritems, urlencode, b, stream_decode, integer_types, PY3
 from bzt.utils import dehumanize_time, BetterDict
 
 
@@ -442,6 +442,9 @@ class ServerAgentClient(MonitoringClient):
             raise TaurusNetworkError(msg)
 
         if self.config.get("logging", False):
+            if not PY3:
+                self.log.warning("Logging option doesn't work on python2.")
+                return
             self.serveragent_logs = self.engine.create_artifact("SAlogs_{}_{}".format(self.address, self.port), ".csv")
             with open(self.serveragent_logs, "a", newline='') as sa_logs:
                 logs_writer = csv.writer(sa_logs, delimiter=',')
@@ -489,7 +492,7 @@ class ServerAgentClient(MonitoringClient):
                 item['source'] = source
                 res.append(item)
 
-                if self.serveragent_logs:
+                if self.serveragent_logs is not None and PY3:
                     with open(self.serveragent_logs, "a", newline='') as sa_logs:
                         line = [str(round(item['ts']))] + line[:-1].split("\t")
                         logs_writer = csv.writer(sa_logs, delimiter=',')
