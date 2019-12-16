@@ -16,7 +16,8 @@ function getDayDataFromDB()
                         ' port='. $json_cred['port'] .
                         ' dbname='. $json_cred['dbname'] .
                         ' user='. $json_cred['user'] .
-                        ' password='. $json_cred['password']);
+                        ' password='. $json_cred['password'] .
+                        ' connect_timeout=5');
 
 
     $query = "SELECT * FROM aggregate_data ORDER BY TO_DATE(date, 'DD/MM/YYYY')";

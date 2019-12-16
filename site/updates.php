@@ -42,7 +42,8 @@ class UpdateChecker extends \PWE\Modules\PWEModule implements \PWE\Modules\Outpu
                             ' port='. $json_cred['port'] .
                             ' dbname='. $json_cred['dbname'] .
                             ' user='. $json_cred['user'] .
-                            ' password='. $json_cred['password']);
+                            ' password='. $json_cred['password'] .
+                            ' connect_timeout=5');
 
         $query = "INSERT INTO raw_data VALUES ('". $data_arr[0] ."', '". $data_arr[1] ."', '". $data_arr[2] ."', '".$data_arr[6] ."')";
         pg_query($query);
