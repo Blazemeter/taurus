@@ -335,11 +335,22 @@ class GraphiteClient(MonitoringClient):
         self.interval = int(dehumanize_time(self.config.get("interval", "5s")))     # interval for client
         self._cached_data = None
         self.url = self._get_url()
+        self.graphite_logs = None
 
         if label:
             self.host_label = label
         else:
-            self.host_label = self.address
+            self.host_label = self.address.replace('http://', '').replace('/', '').replace(':', '_')
+
+        if self.config.get("logging", False):
+            if not PY3:
+                self.log.warning("Logging option doesn't work on python2.")
+            else:
+                self.graphite_logs = self.engine.create_artifact("Graphitelogs_{}".format(self.host_label), ".csv")
+                with open(self.graphite_logs, "a", newline='') as sa_logs:
+                    logs_writer = csv.writer(sa_logs, delimiter=',')
+                    metrics = ['ts'] + [metric for metric in self.config.get("metrics")]
+                    logs_writer.writerow(metrics)
 
     def _get_url(self):
         exc = TaurusConfigError('Graphite client requires metrics list')
@@ -380,6 +391,7 @@ class GraphiteClient(MonitoringClient):
             self._cached_data = []
             self._last_check = now
             json_list = self._get_response()
+            data_line = [now]
 
             for element in json_list:
                 item = {
@@ -389,9 +401,15 @@ class GraphiteClient(MonitoringClient):
                 for datapoint in reversed(element['datapoints']):
                     if datapoint[0] is not None:
                         item[element['target']] = datapoint[0]
+                        data_line.append(datapoint[0])
                         break
 
                 self._cached_data.append(item)
+
+            if self.graphite_logs is not None and PY3:
+                with open(self.graphite_logs, "a", newline='') as g_logs:
+                    logs_writer = csv.writer(g_logs, delimiter=',')
+                    logs_writer.writerow(data_line)
 
         return self._cached_data
 
