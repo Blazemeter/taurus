@@ -1,6 +1,6 @@
 # Pass/Fail Criteria
 
-Every load test you run should have pass/fail status. There is a way to set this status in Taurus, based on runtime criteria. Special `passfail` module offers this functionality. 
+Every load test you run should have pass/fail status. There is a way to set this status in Taurus, based on runtime criteria. Special `passfail` module offers this functionality.
 
 Another useful feature of pass/fail module
 is _auto-stop_ functionality, allowing to interrupt failed tests automatically, sparing the time and
@@ -18,20 +18,20 @@ Limitation: passfail module has no effect for `[Cloud](Cloud.md)` mode.
 
 The above example use short form for criteria, its general format is the following:
 
-`subject` of `[label]` `condition` `threshold` `[logic]` `[timeframe]`,` action` as `status`
+`subject` of `\[label]` `condition` `threshold` `\[logic]` `\[timeframe]`,` action` as `status`
 
 Explanation:
   - `subject` is the KPI that will be compared, listed below.
-  - `[label]` is a sample label. If omitted, it is applied for overall.
-  - `condition` is the comparison operator, one of `>`, `<`, `>=`, `<=`, `=`, `==` (same as `=`). Keep in mind that **no spaces** should surround the operator.
+  - `\[label]` is a sample label. If omitted, it is applied for overall.
+  - `condition` is the comparison operator, one of `>`, `\<`, `>=`, `\<=`, `=`, `==` (same as `=`). Keep in mind that **no spaces** should surround the operator.
   - `threshold` is the value to compare with, some KPIs allow percentage thresholds.
-  - `[logic]` is the way value is aggregated within `timeframe`, see more details [below](#Timeframe-Logic).
-  - `[timeframe]` is a number of seconds the comparison must be valid; if `timeframe` is omitted, then the cumulative value for whole test will be used for comparison.
+  - `\[logic]` is the way value is aggregated within `timeframe`, see more details [below](#Timeframe-Logic).
+  - `\[timeframe]` is a number of seconds the comparison must be valid; if `timeframe` is omitted, then the cumulative value for whole test will be used for comparison.
   - `action` is either `stop` or `continue`, default is `stop`, if you have chosen to continue, the fail status will be applied at the end of the test execution.
   - `status` is either `failed` (default) or `non-failed`.
 
-Any non-required parameters might be omitted, the minimal form is `subject` `[condition]` `threshold`. 
-Parameters in [square brackets] are optional. 
+Any non-required parameters might be omitted, the minimal form is `subject` `\[condition]` `threshold`.
+Parameters in [square brackets] are optional.
 
 Possible subjects are:
  - `avg-rt` - average response time, e.g. `avg-rt>2s500ms`.
@@ -45,9 +45,9 @@ Possible subjects are:
  - `fail` or `failures` - failed responses, supports percentage threshold, e.g. `failures>50% for 5s, stop as failed`.
  - `rc...` - percentage of specific responce code amount of all requests. Response code may be specified using wildcards `?` and `\*`, e.g. `rc500>20 for 5s, stop as failed`, `rc4??>20%`, `rc\*>=10 for 1m`, `rcException>99% for 1m, continue as failed`.
 
-### Timeframe Logic 
+## Timeframe Logic
 
-If no timeframe logic is specified, the pass/fail rule is processed at the very end of test, against total aggregate data. 
+If no timeframe logic is specified, the pass/fail rule is processed at the very end of test, against total aggregate data.
 To apply checks in the middle of the test, please use one of possible timeframe logic options:
 
 - `for` means that each value inside timeframe has to trigger the condition, for example `avg-rt>1s for 5s` means each of consecutive 5 seconds has average response time greater that 1 second.
@@ -61,7 +61,7 @@ to change the message, you can do one of:
  - set `message` field for full form of criteria.
  - set message by prepending it to criteria string, like this: `My message: avg-rt>10s`.
  - use dictionary instead of array to specify message and criteria, like this:
- 
+
 ```yaml
 reporting:
 - module: passfail
@@ -70,7 +70,7 @@ reporting:
     Sample Label fails too much: fail of Sample Label>50% for 10s, stop as failed
 ```
 
-## Full Form of the Criteria 
+## Full Form of the Criteria
 
 It is conducted by Taurus automatically from short form. You can also specify it as this:
 
@@ -82,8 +82,8 @@ reporting:
     label: 'Sample Label'  # optional, default is ''
     condition: '>'  # required
     threshold: 150ms  # required
-    logic: for  # optional, logic to aggregate values within timeframe. 
-                # Default 'for' means take latest, 
+    logic: for  # optional, logic to aggregate values within timeframe.
+                # Default 'for' means take latest,
                 # 'within' and 'over' means take sum/avg of all values within interval
     timeframe: 10s  # optional, default is none
     stop: true  # optional, default is true. false for nonstop testing until the end
@@ -108,11 +108,11 @@ scenarios:
   s2:
     script: file2.jmx
     criteria:  # this is per-scenario criteria list
-    - fail>50%   
-    - p90>250ms   
+    - fail>50%
+    - p90>250ms
 ```
 
-# Monitoring-Based Failure Criteria 
+# Monitoring-Based Failure Criteria
 
 You can use special failure criteria based on [monitoring data](Monitoring) from target servers. Most of
 parameters for criteria are same like in other fail criteria. You'll have to use full format
@@ -128,4 +128,4 @@ reporting:
     condition: '>'
     threshold: 90
     timeframe: 5s
-``` 
+```
