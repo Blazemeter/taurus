@@ -1,5 +1,4 @@
 import csv
-import random
 import time
 import unittest
 
@@ -22,6 +21,7 @@ class TestMonitoring(BZTestCase):
         obj.parameters.merge({
             "server-agent": [{
                 "address": "127.0.0.1:4444",
+                "logging": "True",
                 "metrics": [
                     "cpu",
                     "disks"
@@ -50,8 +50,8 @@ class TestMonitoring(BZTestCase):
         obj.prepare()
         obj.startup()
 
-        for _ in range(1, 10):
-            obj.clients[0].socket.recv_data += b("%s\t%s\n" % (random.random(), random.random()))
+        for i in range(1, 10):
+            obj.clients[0].socket.recv_data += b("%s\t%s\t\n" % (i, i*10))
             obj.check()
             ROOT_LOGGER.debug("Criteria state: %s", criteria)
             time.sleep(obj.engine.check_interval)
@@ -60,6 +60,15 @@ class TestMonitoring(BZTestCase):
         obj.post_process()
 
         self.assertEquals(b("test\ninterval:1\nmetrics:cpu\tdisks\nexit\n"), obj.clients[0].socket.sent_data)
+
+        if PY3:
+            self.assertIsNotNone(obj.clients[0].serveragent_logs)
+            with open(obj.clients[0].serveragent_logs) as serveragent_logs:
+                logs_reader = csv.reader(serveragent_logs)
+                logs_reader = list(logs_reader)
+            self.assertEquals(['ts', 'cpu', 'disks'], logs_reader[0])
+            for i in range(1, 10):
+                self.assertEquals([str(i), str(i * 10)], logs_reader[i][1:])
 
     def test_graphite(self):
         obj = Monitoring()
