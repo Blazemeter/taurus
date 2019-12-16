@@ -423,6 +423,9 @@ class ServerAgentClient(MonitoringClient):
         self.socket = socket.socket()
         self.select = select.select
 
+        self.config = config
+        self.serveragent_logs = None
+
         # interval for server (ServerAgent)
         self.interval = int(dehumanize_time(config.get("interval", "1s")))
 
@@ -437,6 +440,16 @@ class ServerAgentClient(MonitoringClient):
             self.log.warning("Error during connecting to agent at %s:%s: %s", self.address, self.port, exc)
             msg = "Failed to connect to serverAgent at %s:%s" % (self.address, self.port)
             raise TaurusNetworkError(msg)
+
+        if self.config.get("logging", False):
+            if not PY3:
+                self.log.warning("Logging option doesn't work on python2.")
+                return
+            self.serveragent_logs = self.engine.create_artifact("SAlogs_{}_{}".format(self.address, self.port), ".csv")
+            with open(self.serveragent_logs, "a", newline='') as sa_logs:
+                logs_writer = csv.writer(sa_logs, delimiter=',')
+                metrics = ['ts'] + sorted([metric for metric in self._result_fields])
+                logs_writer.writerow(metrics)
 
     def disconnect(self):
         self.log.debug("Closing connection with agent at %s:%s...", self.address, self.port)
@@ -478,6 +491,12 @@ class ServerAgentClient(MonitoringClient):
                 item['ts'] = now
                 item['source'] = source
                 res.append(item)
+
+                if self.serveragent_logs is not None and PY3:
+                    with open(self.serveragent_logs, "a", newline='') as sa_logs:
+                        line = [str(round(item['ts']))] + line[:-1].split("\t")
+                        logs_writer = csv.writer(sa_logs, delimiter=',')
+                        logs_writer.writerow(line)
 
         return res
 
