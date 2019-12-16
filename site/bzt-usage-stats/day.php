@@ -19,7 +19,7 @@ function getDayDataFromDB()
                         ' password='. $json_cred['password']);
 
 
-    $query = "SELECT * FROM aggregate_data";
+    $query = "SELECT * FROM aggregate_data ORDER BY TO_DATE(date, 'DD/MM/YYYY')";
 
     $contests = pg_query($query) or die('Query failed: ' . pg_last_error());
     $column_number = pg_num_fields($contests);
