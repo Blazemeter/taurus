@@ -76,6 +76,7 @@ class TestMonitoring(BZTestCase):
             "graphite": [{
                 "address": "people.com:1066",
                 "label": "Earth",
+                "logging": True,
                 "metrics": [
                     "body",
                     "brain"]}, {
@@ -99,6 +100,15 @@ class TestMonitoring(BZTestCase):
 
         obj.shutdown()
         obj.post_process()
+
+        if PY3:
+            self.assertIsNotNone(obj.clients[0].graphite_logs)
+            self.assertIsNone(obj.clients[1].graphite_logs)
+            with open(obj.clients[0].graphite_logs) as graphite_logs:
+                logs_reader = csv.reader(graphite_logs)
+                logs_reader = list(logs_reader)
+            self.assertEquals(['ts', 'body', 'brain'], logs_reader[0])
+            self.assertEquals(['2'], logs_reader[1][1:])
 
     def test_local_with_engine(self):
         config = {'interval': '5m', 'metrics': ['cpu', 'engine-loop']}
