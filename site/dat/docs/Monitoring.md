@@ -73,7 +73,8 @@ services:
 
 Graphite data source uses graphite The Render URL API to receive metrics.
 In this example you can see usage optional server `label`, `timeout` for graphite answers, `interval`
-between requests and interesting graphite data range definition with parameters `from`/`until`.
+between requests and interesting graphite data range definition with parameters `from`/`until`. You can also define, 
+whether or not you need logs for Graphite monitoring via `logging` option.
 ```yaml
 services:
 - module: monitoring
@@ -83,6 +84,7 @@ services:
     from: 100s
     until: 1s
     timeout: 2s
+    logging: True # those logs will be saved to "Graphitelogs_192.168.0.38.csv" in the artifacts dir
     metrics:
     - store.memUsage
     - test.param1
