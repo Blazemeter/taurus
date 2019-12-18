@@ -1,6 +1,6 @@
 # Utility functions and classes for Taurus Selenium tests
 
-from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
+from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store
 from selenium.webdriver.common.by import By
 
@@ -122,8 +122,11 @@ class LocatorsManager:
                 locator = (self.BYS[locator_type.lower()], locator_value)
                 break
         else:
-            locator = first_locator
+            self.driver.implicitly_wait(self.timeout)
+            # todo: report full list of locators
+            raise NoSuchElementException("Element not found: %s %s" % first_locator)
 
         # restore the implicit wait value
         self.driver.implicitly_wait(self.timeout)
+
         return locator
