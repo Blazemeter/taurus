@@ -261,6 +261,7 @@ Which can be written also like:
 ```yaml
 rawCode: print('This is a python command.')
 ```
+
 ```yaml
 - type: rawCode
   param: print('This is a python command.')
@@ -595,8 +596,8 @@ scenario:
       actions:
       - assertTextByCSS(body > div.jumbotron > div > p:nth-child(2)): ${sample}
       - storeTitle(): my_title
-      - storeTextByXPath(//*[@id="elemid"]/h2): my_text
-      - storeValueByXPath(//*[@id="elemid"]/input): my_value
+      - storeTextByXPath(//my/XPath/here): my_text
+      - storeValueByXPath(//my/XPath/here): my_value
       - storeString(${my_title} love my ${my_text} with ${my_value}): final_text
 ```
 

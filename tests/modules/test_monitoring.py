@@ -1,4 +1,4 @@
-import random
+import csv
 import time
 import unittest
 
@@ -21,6 +21,7 @@ class TestMonitoring(BZTestCase):
         obj.parameters.merge({
             "server-agent": [{
                 "address": "127.0.0.1:4444",
+                "logging": "True",
                 "metrics": [
                     "cpu",
                     "disks"
@@ -49,8 +50,8 @@ class TestMonitoring(BZTestCase):
         obj.prepare()
         obj.startup()
 
-        for _ in range(1, 10):
-            obj.clients[0].socket.recv_data += b("%s\t%s\n" % (random.random(), random.random()))
+        for i in range(1, 10):
+            obj.clients[0].socket.recv_data += b("%s\t%s\t\n" % (i, i*10))
             obj.check()
             ROOT_LOGGER.debug("Criteria state: %s", criteria)
             time.sleep(obj.engine.check_interval)
@@ -60,6 +61,15 @@ class TestMonitoring(BZTestCase):
 
         self.assertEquals(b("test\ninterval:1\nmetrics:cpu\tdisks\nexit\n"), obj.clients[0].socket.sent_data)
 
+        if PY3:
+            self.assertIsNotNone(obj.clients[0].serveragent_logs)
+            with open(obj.clients[0].serveragent_logs) as serveragent_logs:
+                logs_reader = csv.reader(serveragent_logs)
+                logs_reader = list(logs_reader)
+            self.assertEquals(['ts', 'cpu', 'disks'], logs_reader[0])
+            for i in range(1, 10):
+                self.assertEquals([str(i), str(i * 10)], logs_reader[i][1:])
+
     def test_graphite(self):
         obj = Monitoring()
         obj.engine = EngineEmul()
@@ -67,6 +77,7 @@ class TestMonitoring(BZTestCase):
             "graphite": [{
                 "address": "people.com:1066",
                 "label": "Earth",
+                "logging": True,
                 "metrics": [
                     "body",
                     "brain"]}, {
@@ -90,6 +101,15 @@ class TestMonitoring(BZTestCase):
 
         obj.shutdown()
         obj.post_process()
+
+        if PY3:
+            self.assertIsNotNone(obj.clients[0].graphite_logs)
+            self.assertIsNone(obj.clients[1].graphite_logs)
+            with open(obj.clients[0].graphite_logs) as graphite_logs:
+                logs_reader = csv.reader(graphite_logs)
+                logs_reader = list(logs_reader)
+            self.assertEquals(['ts', 'body', 'brain'], logs_reader[0])
+            self.assertEquals(['2'], logs_reader[1][1:])
 
     def test_local_with_engine(self):
         config = {'interval': '5m', 'metrics': ['cpu', 'engine-loop']}
@@ -170,13 +190,25 @@ class TestMonitoring(BZTestCase):
         for config in (config1, config2):
             self.assertTrue(all(m in metrics for m in config['metrics']))
 
+    @unittest.skipUnless(PY3, "py3 only")
     def test_logs(self):
-        config = {'logging': True, 'metrics': LocalClient.AVAILABLE_METRICS}
+        config = {'logging': True, 'metrics': ['bytes-sent', 'mem', 'cpu']}
         obj = LocalClient(ROOT_LOGGER, 'label', config, EngineEmul())
         obj.connect()
-        obj.get_data()
+        patch = obj._get_resource_stats
+        obj._get_resource_stats = lambda: {'mem': '4', 'bytes-sent': '2', 'cpu': '3'}
+        try:
+            obj.get_data()
+        finally:
+            obj._get_resource_stats = patch
         self.assertIn('logging', obj.config)
+        self.assertEqual(['bytes-sent', 'cpu', 'mem'], sorted(obj.config['metrics']))
         self.assertIsNotNone(obj.monitoring_logs)
+        with open(obj.monitoring_logs) as monitoring_logs:
+            logs_reader = csv.reader(monitoring_logs)
+            logs_reader = list(logs_reader)
+        self.assertEqual(['ts', 'bytes-sent', 'cpu', 'mem'], logs_reader[0])
+        self.assertEqual(['2', '3', '4'], logs_reader[1][1:])
 
     @unittest.skipUnless(PY3, "py3 only")
     def test_server_agent_encoding(self):

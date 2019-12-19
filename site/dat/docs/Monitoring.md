@@ -29,7 +29,7 @@ services:
 - module: monitoring
   ~local:
   - interval: 20s   # polling interval
-    logging: True # local monitoring logs will be saved to "monitoring_logs.csv" in the artifacts dir
+    logging: True # local monitoring logs will be saved to "local_monitoring_logs.csv" in the artifacts dir
     metrics:
     - cpu
     - disk-space
@@ -52,6 +52,7 @@ screen height :)
 collects server health stats and makes them accessible through network connection. To use it,
 you need to install and launch ServerAgent on each of your target servers and then specify
 [metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item.
+You can also define, whether or not you need logs for ServerAgent via `logging` option.
 For example: 
 ```yaml
 services:
@@ -60,6 +61,7 @@ services:
   - address: 192.168.0.1:4444
     label: target-server  # if you specify label, it will be used in reports instead of ip:port
     interval: 3s    # polling interval
+    logging: True # those logs will be saved to "SAlogs_192.168.0.1_4444.csv" in the artifacts dir
     metrics:
     - cpu
     - disks
@@ -71,7 +73,8 @@ services:
 
 Graphite data source uses graphite The Render URL API to receive metrics.
 In this example you can see usage optional server `label`, `timeout` for graphite answers, `interval`
-between requests and interesting graphite data range definition with parameters `from`/`until`.
+between requests and interesting graphite data range definition with parameters `from`/`until`. You can also define, 
+whether or not you need logs for Graphite monitoring via `logging` option.
 ```yaml
 services:
 - module: monitoring
@@ -81,6 +84,7 @@ services:
     from: 100s
     until: 1s
     timeout: 2s
+    logging: True # those logs will be saved to "Graphitelogs_192.168.0.38.csv" in the artifacts dir
     metrics:
     - store.memUsage
     - test.param1

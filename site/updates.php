@@ -16,11 +16,8 @@ class UpdateChecker extends \PWE\Modules\PWEModule implements \PWE\Modules\Outpu
         );
         \PWE\Core\PWELogger::warn("Check update: %s %s %s %s", $_REQUEST['version'], $resp['latest'], $resp['needsUpgrade'], $_REQUEST['installID']);
 
-        $stats_arr = array(date('d.m.Y h:i:s'),  $_REQUEST['version'], $resp['latest'], $resp['needsUpgrade'], $_REQUEST['installID']);
-        $csv_name = 'stats_'.date('d.m.Y').'.csv';
-        $file_path = getcwd() . "/bzt-usage-stats/" .  $csv_name;
-
-        $this->writeUserStatToCSV($stats_arr, $file_path);
+        $stats_arr = array(date("d.m.Y"), date("W"), date("m.Y") ,  $_REQUEST['version'], $resp['latest'], $resp['needsUpgrade'], $_REQUEST['installID']);
+        $this->writeUserStatToDB($stats_arr);
 
         $smarty = $this->PWE->getSmarty();
         $smarty->setTemplateFile(__DIR__ . '/dat/json.tpl');
@@ -35,19 +32,21 @@ class UpdateChecker extends \PWE\Modules\PWEModule implements \PWE\Modules\Outpu
         return $pypi['info']['version'];
     }
 
-    public function writeUserStatToCSV($data_arr, $file_name)
+    private function writeUserStatToDB($data_arr)
     {
-        $list = array (
-            $data_arr
-        );
+        $db_cred_path = getEnv('DB_CRED');
+        $data = file_get_contents($db_cred_path);
+        $json_cred = json_decode($data, true);
 
-        $fp = fopen($file_name, 'a');
+        $db_conn = pg_connect('host='. $json_cred['host'] .
+                            ' port='. $json_cred['port'] .
+                            ' dbname='. $json_cred['dbname'] .
+                            ' user='. $json_cred['user'] .
+                            ' password='. $json_cred['password']);
 
-        foreach ($list as $fields) {
-            fputcsv($fp, $fields);
-        }
-
-        fclose($fp);
+        $query = "INSERT INTO raw_data VALUES ('". $data_arr[0] ."', '". $data_arr[1] ."', '". $data_arr[2] ."', '".$data_arr[6] ."')";
+        pg_query($query);
+        pg_close($db_conn);
     }
 
     public function getPypiInfo()

@@ -102,7 +102,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         diagnostics = "\n".join(self.obj.get_error_diagnostics())
         self.assertIn("Nothing to test.", diagnostics)
 
-    def test_resource_files_collection_remote_nose(self):
+    def test_resource_files_collection_remote_apiritif(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "selenium/python/"}})
         self.assertEqual(len(self.obj.resource_files()), 1)
 
@@ -485,6 +485,9 @@ class TestRobotExecutor(ExecutorTestCase):
         self.assertNotEquals(self.obj.process, None)
         lines = open(self.obj.report_file).readlines()
         self.assertEqual(5, len(lines))
+
+        self.assertIsNotNone(self.obj.output_file)
+        self.assertIsNotNone(self.obj.log_file)
 
     def test_hold(self):
         self.configure({
