@@ -112,14 +112,14 @@ class LocatorsManager:
             raise NoSuchElementException("Locators list is empty")
 
         first_locator = None
-        for locator in locators.zip():
-            l_type, l_value = locator
+        for locator in locators:
+            l_type, l_value = list(locator.items())[0]
             target = self.BYS[l_type.lower()], l_value
             if first_locator:
                 # set implicit wait to 0 get the result instantly for the other locators
                 self.driver.implicitly_wait(0)
             else:
-                first_locator = locator
+                first_locator = l_type, l_value
 
             if self.driver.find_elements(*target):
                 self.driver.implicitly_wait(self.timeout)

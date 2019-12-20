@@ -3,14 +3,45 @@ import os
 
 import time
 
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
+
 from bzt.engine import EXEC
 from bzt.modules import ConsolidatingAggregator
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
 from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.modules.pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
-from tests import RESOURCES_DIR, ExecutorTestCase
+from tests import RESOURCES_DIR, ExecutorTestCase, BZTestCase
 from tests.modules.selenium import SeleniumTestCase
+from bzt.resources.selenium_extras import LocatorsManager
+
+
+class FakeDriver(object):
+    # webdriver mock for selenium_extras checking purpose
+    def __init__(self, timeout=60, content=None):
+        self.timeout = timeout
+        self.content = content if content else []
+        self.waiting_time = 0
+
+    def implicitly_wait(self, timeout):
+        self.timeout = timeout
+
+    def find_elements(self, *target):
+        self.waiting_time += self.timeout
+        return [element for element in self.content if element == target]
+
+
+class TestSeleniumExtras(BZTestCase):
+    def test_get_locators_timeout(self):
+        content = [(By.NAME, "existed_name")]
+        timeout = 30
+        driver = FakeDriver(timeout=timeout, content=content)
+        lm = LocatorsManager(driver)
+        missed_locators = [{"xpath": "xpath_not_found"}, {"css": "css_not_found_too"}]
+
+        self.assertRaises(NoSuchElementException, lm.get_locator, missed_locators)
+        self.assertEqual(timeout, driver.waiting_time)
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
