@@ -1,3 +1,5 @@
+import ast
+import astunparse
 import os
 
 from bzt import TaurusConfigError
@@ -691,14 +693,15 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "var_loc_keys=self.loc_mng.get_locator([{'name':'btn1',}])self.driver.find_element"
-            "(var_loc_keys[0],var_loc_keys[1]).click()",
-            "var_loc_keys=self.loc_mng.get_locator([{'id':'Id_123',}])self.driver.find_element"
-            "(var_loc_keys[0],var_loc_keys[1]).clear()",
+            "var_loc_keys=self.loc_mng.get_locator([{'name':'btn1',}])",
+            "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).click()",
+            "var_loc_keys=self.loc_mng.get_locator([{'id':'Id_123',}])",
+            "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('London')"
         ]
 
         for idx in range(len(target_lines)):
+            target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
             self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
                           TestSeleniumScriptGeneration.clear_spaces(content),
                           msg="\n\n%s. %s" % (idx, target_lines[idx]))
@@ -730,12 +733,13 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "source=self.loc_mng.get_locator([{'xpath':'/xpath/to',}])",
-            "target=self.loc_mng.get_locator([{'css':'mycss',},{'id':'ID',}])"
+            "source=self.loc_mng.get_locator([{'xpath':'/xpath/to'}])",
+            "target=self.loc_mng.get_locator([{'css':'mycss'},{'id':'ID'}])",
             "ActionChains(self.driver).drag_and_drop(self.driver.find_element(source[0],source[1]),"
             "self.driver.find_element(target[0],target[1])).perform()"
         ]
         for idx in range(len(target_lines)):
+            target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
             self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
                           TestSeleniumScriptGeneration.clear_spaces(content),
                           msg="\n\n%s. %s" % (idx, target_lines[idx]))
