@@ -29,7 +29,7 @@ services:
 - module: monitoring
   ~local:
   - interval: 20s   # polling interval
-    logging: True # local monitoring logs will be saved to "monitoring_logs.csv" in the artifacts dir
+    logging: True # local monitoring logs will be saved to "local_monitoring_logs.csv" in the artifacts dir
     metrics:
     - cpu
     - disk-space
