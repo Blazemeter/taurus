@@ -267,7 +267,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("params={\n                'foo': 'bar',\n            }", test_script)
+        self.assertIn("params={'foo': 'bar'}", test_script)
 
     def test_body_json(self):
         self.configure({
@@ -290,7 +290,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("json={\n                'foo': 'bar',\n            }", test_script)
+        self.assertIn("json={'foo': 'bar'}", test_script)
 
     def test_body_string(self):
         self.configure({
