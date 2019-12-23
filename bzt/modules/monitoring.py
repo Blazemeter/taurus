@@ -188,7 +188,7 @@ class LocalClient(MonitoringClient):
         self.interval = dehumanize_time(self.config.get("interval", self.engine.check_interval))
 
         if self.config.get("logging", False):
-            self.monitoring_logs = self.engine.create_artifact("local_logs", ".csv")
+            self.monitoring_logs = self.engine.create_artifact("local_monitoring_logs", ".csv")
             with open(self.monitoring_logs, "a", newline='') as mon_logs:
                 logs_writer = csv.writer(mon_logs, delimiter=',')
                 metrics = ['ts'] + sorted([metric for metric in good_list])
