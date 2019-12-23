@@ -1,5 +1,3 @@
-import ast
-import astunparse
 import os
 
 from bzt import TaurusConfigError
