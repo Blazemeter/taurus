@@ -1084,6 +1084,11 @@ class BaseCloudTest(object):
         pass
 
     @abstractmethod
+    def sanitize_test(self):
+        """Sanitize cloud test"""
+        pass
+
+    @abstractmethod
     def start_if_ready(self):
         """start cloud test if all engines are ready"""
         pass
@@ -1192,6 +1197,10 @@ class CloudTaurusTest(BaseCloudTest):
         self._test.update_props({
             "shouldSendReportEmail": self.send_report_email
         })
+
+    def sanitize_test(self):
+        self._test.update_props({'overrideExecutions': []})
+        self._test.update_props({'configuration': {'scriptType': 'taurus'}})
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
@@ -1534,6 +1543,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
             del_files = self.settings.get("delete-test-files", True)
             self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
+
+        self.router.sanitize_test()
 
         self.report_name = self.settings.get("report-name", self.report_name)
         if self.report_name == 'ask' and sys.stdin.isatty():
