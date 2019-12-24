@@ -19,8 +19,9 @@ from abc import abstractmethod
 from bzt import TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
+from bzt.modules.aggregator import ResultsReader
 from bzt.six import string_types, iteritems
-from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR
+from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR, FileReader
 from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time, shutdown_process
 
 
@@ -280,7 +281,8 @@ class CypressTester(JavaScriptExecutor):
             raise TaurusConfigError("Script not passed to runner %s" % self)
 
         self.install_required_tools()
-        self.reporting_setup(suffix='.ldjson')
+        self.reader = CypressResultsReader(self._tsv_file, self.log)
+        # self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
         tcl_lib = self._get_tool(TclLibrary)
@@ -306,14 +308,57 @@ class CypressTester(JavaScriptExecutor):
     def get_launch_cmdline(self, script):
         return "npx cypress run --spec " + script
 
+    def create_func_reader(self, report_file):
+        pass
+
     def startup(self):
         self.ext_script = self.gen_iters(self.execution.get("iterations", 0))
         cypress_cmdline = self.get_launch_cmdline(self.ext_script)
         self.process = self._execute(cypress_cmdline)
 
-    def shutdown(self):
-        shutdown_process(self.process, self.log)
+    # def shutdown(self):
+    #     shutdown_process(self.process, self.log)
+
+    def post_process(self):
+        super(CypressTester, self).post_process()
         os.remove(self.ext_script)  # todo: process & eliminate error
+
+
+class CypressResultsReader(ResultsReader):
+    def __init__(self, filename, parent_logger):
+        super(ResultsReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.skipped_header = False
+        self.concurrency = None
+        self.url_label = None
+
+    # def setup(self, concurrency, url_label):
+    #     self.concurrency = concurrency
+    #     self.url_label = url_label
+    #     return True
+
+    def _read(self, last_pass=False):
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
+
+        for line in lines:
+            if not self.skipped_header:
+                self.skipped_header = True
+                continue
+            log_vals = [val.strip() for val in line.split('\t')]
+
+            _error = None
+            _rstatus = None
+
+            _url = self.url_label
+            _concur = self.concurrency
+            _tstamp = int(log_vals[1])  # timestamp - moment of request sending
+            _con_time = float(log_vals[2]) / 1000.0  # connection time
+            _etime = float(log_vals[4]) / 1000.0  # elapsed time
+            _latency = float(log_vals[5]) / 1000.0  # latency (aka waittime)
+            _bytes = None
+
+            yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, '', _bytes
 
 
 class NPM(RequiredTool):
