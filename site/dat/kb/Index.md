@@ -12,6 +12,7 @@
  1. [How to Quickly and Easily Write Selenium Scripts on Taurus](SeleniumActions)
  1. [How to Easily Run Taurus with Bamboo](Bamboo)
  1. [Running Taurus with TeamCity](TeamCity)
+ 1. [Supporting New Load Testing Tool with Taurus](AddingExecutor)
 
 
 # Third-Party Articles
