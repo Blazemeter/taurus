@@ -103,6 +103,7 @@ class MonitoringClient(object):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.engine = engine
         self._last_check = 0  # the last check was long time ago
+        self.logs_file = None
 
     def connect(self):
         pass
@@ -139,7 +140,6 @@ class LocalClient(MonitoringClient):
         else:
             self.label = 'local'
 
-        self.monitoring_logs = None
         self.monitor = None
         self.interval = None
         self.metrics = None
@@ -188,11 +188,14 @@ class LocalClient(MonitoringClient):
         self.interval = dehumanize_time(self.config.get("interval", self.engine.check_interval))
 
         if self.config.get("logging", False):
-            self.monitoring_logs = self.engine.create_artifact("local_monitoring_logs", ".csv")
-            with open(self.monitoring_logs, "a", newline='') as mon_logs:
-                logs_writer = csv.writer(mon_logs, delimiter=',')
-                metrics = ['ts'] + sorted([metric for metric in good_list])
-                logs_writer.writerow(metrics)
+            if not PY3:
+                self.log.warning("Logging option doesn't work on python2.")
+            else:
+                self.logs_file = self.engine.create_artifact("local_monitoring_logs", ".csv")
+                with open(self.logs_file, "a", newline='') as mon_logs:
+                    logs_writer = csv.writer(mon_logs, delimiter=',')
+                    metrics = ['ts'] + sorted([metric for metric in good_list])
+                    logs_writer.writerow(metrics)
 
     def get_data(self):
         now = time.time()
@@ -202,8 +205,8 @@ class LocalClient(MonitoringClient):
             self._cached_data = []
             metric_values = self._get_resource_stats()
 
-            if self.monitoring_logs:
-                with open(self.monitoring_logs, "a", newline='') as mon_logs:
+            if self.logs_file and PY3:
+                with open(self.logs_file, "a", newline='') as mon_logs:
                     line = [str(round(now))] + [str(metric_values[x]) for x in sorted(metric_values.keys())]
                     logs_writer = csv.writer(mon_logs, delimiter=',')
                     logs_writer.writerow(line)
@@ -335,7 +338,6 @@ class GraphiteClient(MonitoringClient):
         self.interval = int(dehumanize_time(self.config.get("interval", "5s")))     # interval for client
         self._cached_data = None
         self.url = self._get_url()
-        self.graphite_logs = None
 
         if label:
             self.host_label = label
@@ -346,8 +348,8 @@ class GraphiteClient(MonitoringClient):
             if not PY3:
                 self.log.warning("Logging option doesn't work on python2.")
             else:
-                self.graphite_logs = self.engine.create_artifact("Graphitelogs_{}".format(self.host_label), ".csv")
-                with open(self.graphite_logs, "a", newline='') as sa_logs:
+                self.logs_file = self.engine.create_artifact("Graphite_logs_{}".format(self.host_label), ".csv")
+                with open(self.logs_file, "a", newline='') as sa_logs:
                     logs_writer = csv.writer(sa_logs, delimiter=',')
                     metrics = ['ts'] + [metric for metric in self.config.get("metrics")]
                     logs_writer.writerow(metrics)
@@ -406,8 +408,8 @@ class GraphiteClient(MonitoringClient):
 
                 self._cached_data.append(item)
 
-            if self.graphite_logs is not None and PY3:
-                with open(self.graphite_logs, "a", newline='') as g_logs:
+            if self.logs_file and PY3:
+                with open(self.logs_file, "a", newline='') as g_logs:
                     logs_writer = csv.writer(g_logs, delimiter=',')
                     logs_writer.writerow(data_line)
 
@@ -442,7 +444,6 @@ class ServerAgentClient(MonitoringClient):
         self.select = select.select
 
         self.config = config
-        self.serveragent_logs = None
 
         # interval for server (ServerAgent)
         self.interval = int(dehumanize_time(config.get("interval", "1s")))
@@ -462,12 +463,12 @@ class ServerAgentClient(MonitoringClient):
         if self.config.get("logging", False):
             if not PY3:
                 self.log.warning("Logging option doesn't work on python2.")
-                return
-            self.serveragent_logs = self.engine.create_artifact("SAlogs_{}_{}".format(self.address, self.port), ".csv")
-            with open(self.serveragent_logs, "a", newline='') as sa_logs:
-                logs_writer = csv.writer(sa_logs, delimiter=',')
-                metrics = ['ts'] + sorted([metric for metric in self._result_fields])
-                logs_writer.writerow(metrics)
+            else:
+                self.logs_file = self.engine.create_artifact("SAlogs_{}_{}".format(self.address, self.port), ".csv")
+                with open(self.logs_file, "a", newline='') as sa_logs:
+                    logs_writer = csv.writer(sa_logs, delimiter=',')
+                    metrics = ['ts'] + sorted([metric for metric in self._result_fields])
+                    logs_writer.writerow(metrics)
 
     def disconnect(self):
         self.log.debug("Closing connection with agent at %s:%s...", self.address, self.port)
@@ -510,8 +511,8 @@ class ServerAgentClient(MonitoringClient):
                 item['source'] = source
                 res.append(item)
 
-                if self.serveragent_logs is not None and PY3:
-                    with open(self.serveragent_logs, "a", newline='') as sa_logs:
+                if self.logs_file and PY3:
+                    with open(self.logs_file, "a", newline='') as sa_logs:
                         line = [str(round(item['ts']))] + line[:-1].split("\t")
                         logs_writer = csv.writer(sa_logs, delimiter=',')
                         logs_writer.writerow(line)

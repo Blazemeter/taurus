@@ -61,8 +61,8 @@ class TestMonitoring(BZTestCase):
         self.assertEquals(b("test\ninterval:1\nmetrics:cpu\tdisks\nexit\n"), obj.clients[0].socket.sent_data)
 
         if PY3:
-            self.assertIsNotNone(obj.clients[0].serveragent_logs)
-            with open(obj.clients[0].serveragent_logs) as serveragent_logs:
+            self.assertIsNotNone(obj.clients[0].logs_file)
+            with open(obj.clients[0].logs_file) as serveragent_logs:
                 logs_reader = csv.reader(serveragent_logs)
                 logs_reader = list(logs_reader)
             self.assertEquals(['ts', 'cpu', 'disks'], logs_reader[0])
@@ -102,9 +102,9 @@ class TestMonitoring(BZTestCase):
         obj.post_process()
 
         if PY3:
-            self.assertIsNotNone(obj.clients[0].graphite_logs)
-            self.assertIsNone(obj.clients[1].graphite_logs)
-            with open(obj.clients[0].graphite_logs) as graphite_logs:
+            self.assertIsNotNone(obj.clients[0].logs_file)
+            self.assertIsNone(obj.clients[1].logs_file)
+            with open(obj.clients[0].logs_file) as graphite_logs:
                 logs_reader = csv.reader(graphite_logs)
                 logs_reader = list(logs_reader)
             self.assertEquals(['ts', 'body', 'brain'], logs_reader[0])
@@ -201,8 +201,8 @@ class TestMonitoring(BZTestCase):
             obj._get_resource_stats = patch
         self.assertIn('logging', obj.config)
         self.assertEqual(['bytes-sent', 'cpu', 'mem'], sorted(obj.config['metrics']))
-        self.assertIsNotNone(obj.monitoring_logs)
-        with open(obj.monitoring_logs) as monitoring_logs:
+        self.assertIsNotNone(obj.logs_file)
+        with open(obj.logs_file) as monitoring_logs:
             logs_reader = csv.reader(monitoring_logs)
             logs_reader = list(logs_reader)
         self.assertEqual(['ts', 'bytes-sent', 'cpu', 'mem'], logs_reader[0])
