@@ -280,7 +280,7 @@ class CypressTester(JavaScriptExecutor):
             raise TaurusConfigError("Script not passed to runner %s" % self)
 
         self.install_required_tools()
-        self.reporting_setup(suffix='.ldjson')  # todo
+        self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
         tcl_lib = self._get_tool(TclLibrary)

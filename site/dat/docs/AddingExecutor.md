@@ -2,9 +2,9 @@
 
 Note: this article is a work-in-progress. It will be completed later.
 Feel free to ask your questions at Taurus [support channel](https://groups.google.com/forum/#!forum/codename-taurus)
-or to open a pull requst at Github.
+or to open a pull request at Github.
 
-There is good example of minimal custom executor code here: [examples/custom][https://github.com/Blazemeter/taurus/tree/master/examples/custom]
+There is good example of minimal custom executor code here: [examples/custom](https://github.com/Blazemeter/taurus/tree/master/examples/custom)
 
 So you want to support a new testing tool with Taurus. For that you'll have to write a new test executor.
 
@@ -30,7 +30,7 @@ Each executor has 5 phase methods:
 - `shutdown()` - shut down executor process
 - `post\_process()` - post-process executor, close all opened resources
 
-Note that `prepare()`-`post\_process()` and `startup()`-`post\_process()` are mirrored phases.
+Note that `prepare()`-`post\_process()` and `startup()`-`shutdown()` are mirrored phases.
 It means that if executor's `prepare()` was called - the engine will always call executor's `post\_process()`.
 
 This makes `prepare()` phase a right place to open any resources and `post\_process()` — a right place to close them.
