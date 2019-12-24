@@ -1,6 +1,6 @@
 # Utility functions and classes for Taurus Selenium tests
 
-from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException
+from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store
 from selenium.webdriver.common.by import By
 
@@ -108,25 +108,22 @@ class LocatorsManager:
         :return: first valid locator from the passed List, if no locator is valid then returns the
         first one
         """
-        if not locators:
-            raise NoSuchElementException("Locators list is empty")
-
         first_locator = None
-        for locator in locators.zip():
-            l_type, l_value = locator
-            target = self.BYS[l_type.lower()], l_value
-            if first_locator:
+        for locator in locators:
+            locator_type = list(locator.keys())[0]
+            locator_value = locator[locator_type]
+            if not first_locator:
+                first_locator = (self.BYS[locator_type.lower()], locator_value)
+            else:
                 # set implicit wait to 0 get the result instantly for the other locators
                 self.driver.implicitly_wait(0)
-            else:
-                first_locator = locator
-
-            if self.driver.find_elements(*target):
-                self.driver.implicitly_wait(self.timeout)
-                return target
-
+            elements = self.driver.find_elements(self.BYS[locator_type.lower()], locator_value)
+            if len(elements) > 0:
+                locator = (self.BYS[locator_type.lower()], locator_value)
+                break
         else:
-            self.driver.implicitly_wait(self.timeout)
-            # todo: report full list of locators
-            raise NoSuchElementException("Element not found: %s %s" % first_locator)
+            locator = first_locator
 
+        # restore the implicit wait value
+        self.driver.implicitly_wait(self.timeout)
+        return locator

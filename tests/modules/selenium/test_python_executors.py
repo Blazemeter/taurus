@@ -19,25 +19,28 @@ from bzt.resources.selenium_extras import LocatorsManager
 
 class MockWebDriver(object):
     def __init__(self, content, timeout=60):
-        self.content = content
+        self.content = []
+        for element in content:
+            key, val = list(element.items())[0]
+            self.content.append((LocatorsManager.BYS[key.lower()], val))
         self.timeout = timeout
         self.waiting_time = 0
 
     def implicitly_wait(self, timeout):
         self.timeout = timeout
 
-    def find_elements(self, target):
+    def find_elements(self, *target):
         self.waiting_time += self.timeout
-        return None     # todo: elements from content
+        return [element for element in self.content if element == target]
 
 
 class TestLocatorsMagager(BZTestCase):
     def test_get_locator_timeout(self):
-        content = []
+        content = [{'css': 'existed_css'}]
         driver = MockWebDriver(content=content)
         locators_manager = LocatorsManager(driver=driver, timeout=30)
 
-        missing_locators = []
+        missing_locators = [{'css': 'missing_css'}, {'xpath': 'missing_xpath'}]
         self.assertRaises(NoSuchElementException, locators_manager.get_locator, missing_locators)
         self.assertEqual(30, driver.waiting_time)
 
