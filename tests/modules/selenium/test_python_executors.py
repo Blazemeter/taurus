@@ -44,6 +44,11 @@ class TestLocatorsMagager(BZTestCase):
         self.assertRaises(NoSuchElementException, locators_manager.get_locator, missing_locators)
         self.assertEqual(30, driver.waiting_time)
 
+        driver.waiting_time = 0
+        existed_locators = [{'css': 'existed_css'}]
+        locators_manager.get_locator(existed_locators)
+        self.assertEqual(0, driver.waiting_time)
+
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
     def test_selenium_prepare_python_single(self):
