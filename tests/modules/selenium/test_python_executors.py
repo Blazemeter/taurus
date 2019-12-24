@@ -3,14 +3,43 @@ import os
 
 import time
 
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+
 from bzt.engine import EXEC
 from bzt.modules import ConsolidatingAggregator
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
 from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.modules.pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
-from tests import RESOURCES_DIR, ExecutorTestCase
+from tests import RESOURCES_DIR, ExecutorTestCase, BZTestCase
 from tests.modules.selenium import SeleniumTestCase
+from bzt.resources.selenium_extras import LocatorsManager
+
+
+class MockWebDriver(object):
+    def __init__(self, content, timeout=60):
+        self.content = content
+        self.timeout = timeout
+        self.waiting_time = 0
+
+    def implicitly_wait(self, timeout):
+        self.timeout = timeout
+
+    def find_elements(self, target):
+        self.waiting_time += self.timeout
+        return None     # todo: elements from content
+
+
+class TestLocatorsMagager(BZTestCase):
+    def test_get_locator_timeout(self):
+        content = []
+        driver = MockWebDriver(content=content)
+        locators_manager = LocatorsManager(driver=driver, timeout=30)
+
+        missing_locators = []
+        self.assertRaises(NoSuchElementException, locators_manager.get_locator, missing_locators)
+        self.assertEqual(30, driver.waiting_time)
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
