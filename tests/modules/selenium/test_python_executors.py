@@ -37,8 +37,9 @@ class MockWebDriver(object):
 class TestLocatorsMagager(BZTestCase):
     def test_get_locator_timeout(self):
         content = [{'css': 'existed_css'}]
-        driver = MockWebDriver(content=content)
-        locators_manager = LocatorsManager(driver=driver, timeout=30)
+        timeout = 30
+        driver = MockWebDriver(content=content, timeout=timeout)
+        locators_manager = LocatorsManager(driver=driver, timeout=timeout)
 
         missing_locators = [{'css': 'missing_css'}, {'xpath': 'missing_xpath'}]
         self.assertRaises(NoSuchElementException, locators_manager.get_locator, missing_locators)
@@ -47,7 +48,7 @@ class TestLocatorsMagager(BZTestCase):
         driver.waiting_time = 0
         existed_locators = [{'css': 'existed_css'}]
         locators_manager.get_locator(existed_locators)
-        self.assertEqual(0, driver.waiting_time)
+        self.assertEqual(30, driver.waiting_time)
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
