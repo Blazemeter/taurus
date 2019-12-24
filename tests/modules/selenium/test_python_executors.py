@@ -3,8 +3,8 @@ import os
 
 import time
 
-from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
 
 from bzt.engine import EXEC
 from bzt.modules import ConsolidatingAggregator
