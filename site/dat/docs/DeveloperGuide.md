@@ -7,21 +7,21 @@
  1. All changes must be covered with unit tests, no broken tests in master ![](https://api.travis-ci.org/Blazemeter/taurus.svg?branch=master&ext=.svg)  ![](https://ci.appveyor.com/api/projects/status/github/Blazemeter/taurus?svg=true&ext=.svg) 
  
 # Release Process
- - make sure you're on up-to-date master
+ - Make sure you're on up-to-date master
  - Compile [Changelog.md](Changelog) record 
-   - use `.change` files, remove them later
-   - set version and date
- - make sure DockerHub image builds for master
- - send announce if needed 
+   - Use `.change` files, remove them later
+   - Set version and date
+ - Make sure DockerHub image builds for master
+ - Send announce if needed 
  - ... code freeze ... 
  - Set correct version in `bzt/\_\_init\_\_.py`
  - Set `Release <version>` as commit name
- - publish release to PyPi: `./dockerized-release.sh`
+ - Publish release to PyPi: `./dockerized-release.sh`
  - Create git tag, make `git push`, including tag
- - site is updated automatically by Jenkins
- - make sure DockerHub image for release tag is built
- - notify all interested parties (Twitter, mailing lists)
- - build and deploy brew formula
+ - Site is updated automatically by Jenkins
+ - Make sure DockerHub image for release tag is built
+ - Notify all interested parties (Twitter, mailing lists)
+ - Build and deploy brew formula
  
 # Debugging Project Website 
 
@@ -61,3 +61,8 @@ modules:
   hello:
     class: bzt_plugin_hello.hello.HelloService
 ```
+
+# Adding new Executor
+
+Here is our [checklist](NewExecutorChecklist.md) for a new executor. Also, we have an [article](../kb/AddingExecutor.md) 
+about that.

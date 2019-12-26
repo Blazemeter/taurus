@@ -281,7 +281,8 @@ class CypressTester(JavaScriptExecutor):
             raise TaurusConfigError("Script not passed to runner %s" % self)
 
         self.install_required_tools()
-        self.reader = CypressResultsReader(self._tsv_file, self.log)
+
+        self.reader = CypressResultsReader('', self.log)
         # self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
