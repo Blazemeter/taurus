@@ -272,6 +272,7 @@ class CypressTester(JavaScriptExecutor):
         self.tools_dir = "~/.bzt/selenium-taurus/cypress"
         self.cypress = None
         self.ext_script = None
+        self.iters = 1
 
     def prepare(self):
         super(CypressTester, self).prepare()
@@ -281,8 +282,9 @@ class CypressTester(JavaScriptExecutor):
             raise TaurusConfigError("Script not passed to runner %s" % self)
 
         self.install_required_tools()
+        self.iters = self.execution.get("iterations", 1)
 
-        self.reader = CypressResultsReader('', self.log)
+        self.reader = CypressResultsReader('', self.log, self.engine.artifacts_dir, self.iters)
         # self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
@@ -326,40 +328,47 @@ class CypressTester(JavaScriptExecutor):
 
 
 class CypressResultsReader(ResultsReader):
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger, artifacts_dir, concur):
         super(ResultsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.file = FileReader(filename=filename, parent_logger=self.log)
         self.skipped_header = False
         self.concurrency = None
         self.url_label = None
+        self.artifacts = artifacts_dir
+        self.concurrency = concur
 
-    # def setup(self, concurrency, url_label):
-    #     self.concurrency = concurrency
-    #     self.url_label = url_label
-    #     return True
+    def process_output(self):
+        with open(os.path.join(self.artifacts, "cypress.out")) as output:
+            lines = output.readlines()
+            result_lines = {}
+
+            for i in range(len(lines)):
+                if "(Results)" in lines[i]:
+                    for y in range(i + 3, len(lines)):
+                        if "Spec Ran" in lines[y]:
+                            break
+                        line = lines[y].replace("│", "").replace(" ", "").strip().split(":")
+                        result_lines[line[0]] = line[1]
+                    break
+
+        return result_lines
 
     def _read(self, last_pass=False):
-        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
+        results = self.process_output()
 
-        for line in lines:
-            if not self.skipped_header:
-                self.skipped_header = True
-                continue
-            log_vals = [val.strip() for val in line.split('\t')]
+        _error = results['Failing']
+        _rstatus = None
 
-            _error = None
-            _rstatus = None
+        _url = self.url_label
+        _concur = self.concurrency
+        _tstamp = 0  # timestamp - moment of request sending
+        _con_time = 0
+        _latency = 0
+        _etime = int(results['Duration'].replace("seconds", ""))  # elapsed time
+        _bytes = None
 
-            _url = self.url_label
-            _concur = self.concurrency
-            _tstamp = int(log_vals[1])  # timestamp - moment of request sending
-            _con_time = float(log_vals[2]) / 1000.0  # connection time
-            _etime = float(log_vals[4]) / 1000.0  # elapsed time
-            _latency = float(log_vals[5]) / 1000.0  # latency (aka waittime)
-            _bytes = None
-
-            yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, '', _bytes
+        yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, '', _bytes
 
 
 class NPM(RequiredTool):
