@@ -3,7 +3,7 @@
 This reporter module shows full screen dashboard with some KPIs and even graphs in ASCII-art.
 Check this out:
 
-![Console Screen](img/console-rsz.png)
+![Console Screen](console-rsz.png)
 
 This reporter is enabled by default.
 

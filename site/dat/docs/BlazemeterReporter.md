@@ -6,7 +6,7 @@ be able to access test results in convenient and interactive way, compare differ
 see trends over time and collaborate with your colleagues. [BlazeMeter.com](http://blazemeter.com)
 offers such service, it has both commercial and free of charge versions.
 
-![BlazeMeter Report](img/blazemeter-rsz.png)
+![BlazeMeter Report](blazemeter-rsz.png)
 
 ## Anonymous Usage
 
