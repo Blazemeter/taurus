@@ -1420,7 +1420,7 @@ from selenium.webdriver.common.keys import Keys
         self.tree = self._build_tree()
 
     def save(self, filename):
-        with open(filename, 'wt') as fds:
+        with open(filename, 'wt', encoding='utf8') as fds:
             fds.write("# coding=utf-8\n")
             fds.write(astunparse.unparse(self.tree))
 
