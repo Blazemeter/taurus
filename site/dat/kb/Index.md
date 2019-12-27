@@ -27,6 +27,8 @@ The most recent video is: [Webinar on September 27, 2017: Automating Performance
 
 <iframe width="700" height="394" src="https://www.youtube.com/embed/EFIWFfvKolw" frameborder="0" allowfullscreen></iframe>
  
+ You can find educational videos [here](Videos.md).
+ 
 Other Videos:
  1. [Test Automation with JMeter, Jenkins and Taurus](https://www.youtube.com/watch?v=UoOcxlYDRbM)
  1. [BlazeMeter Meetup - How to Scale Test Automation with Jenkins & JMeter Using Taurus](https://www.youtube.com/watch?v=8oYzvNRRQi4)

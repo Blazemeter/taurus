@@ -1,18 +1,6 @@
 # PBench Executor 
 
-*High throughput, high precision HTTP load testing with low resource requirement*
-
-## TL;DR
-Take fresh Ubuntu 14.04 (or 16.04) and run on it:
-```bash
-sudo apt-get install software-properties-common
-sudo add-apt-repository ppa:yandex-load/main
-sudo apt-get update
-sudo apt-get install phantom phantom-ssl
-sudo dpkg -i blazemeter-pbench-extras_0.0.6.1_amd64.deb  # built from https://github.com/Blazemeter/taurus-pbench
-```
-
-Then use it like this:
+Execution example:
 ```yaml
 execution:
 - executor: pbench
@@ -26,7 +14,16 @@ scenarios:
     - /vacation.html
 ```
 
-## About
+## Tool installation
+```bash
+sudo apt-get install software-properties-common
+sudo add-apt-repository ppa:yandex-load/main
+sudo apt-get update
+sudo apt-get install phantom phantom-ssl
+sudo dpkg -i blazemeter-pbench-extras_0.0.6.1_amd64.deb  # built from https://github.com/Blazemeter/taurus-pbench
+```
+
+## About tool
 Taurus PBench executor relies on [Yandex.Phantom](https://github.com/mamchits/phantom) open source framework ([LGPL 2.1](https://github.com/mamchits/phantom/blob/master/COPYING)). That framework of C++ I/O engine, that can generate a high-throughput HTTP load with its `benchmark` module. It is Linux-only software, works perfectly on Ubuntu (other distributions possible with slight tweaking). Pre-compiled debian packages are located in Yandex-Load [Launchpad repository](https://launchpad.net/~yandex-load/+archive/ubuntu/main). There are also a support for UDP [module](https://github.com/slon/phantom-udp-benchmark) exists and possibility to implement other protocollers on C++ level.
 
 ### Stock PBench Mode

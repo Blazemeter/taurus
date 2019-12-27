@@ -1,3 +1,5 @@
+# Changelog for year 2018
+
 ## 1.13.2<sup>03 dec 2018</sup>
 
 - introduce a convention for plugin configs autodetection
