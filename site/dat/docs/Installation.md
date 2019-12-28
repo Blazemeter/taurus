@@ -1,10 +1,12 @@
 # Installing and Upgrading
 
+Keep in mind that some additional software can be required depend of test type.
+
 ## Windows
 
-There are two ways to install Taurus on Windows. The recommended way is to use the prebuilt installer
-that will install latest Taurus on your PC. However, if you already have Python installed,
-you can install Taurus manually with pip, Python package manager.
+There are two ways to install Taurus on Windows. The **recommended** way is to use the prebuilt installer
+that will install latest Taurus on your PC. Also, if you already have Python installed,
+you can install Taurus manually with pip, Python package manager, but this is not recommended.
 
 ### Installing Taurus With Prebuilt Installer
 
@@ -69,7 +71,7 @@ and to update it:
 brew upgrade bzt
 ```
 If your brew auto update is switched off don't forget to manage it manually.
-Keep in mind: some additional software can be required depend of test type.
+
 
 ## Linux
 
