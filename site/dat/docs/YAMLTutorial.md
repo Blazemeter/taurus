@@ -160,18 +160,11 @@ There's a number of tools you can use to help you to locate and fix syntactical 
 Due to the format aiming to be easy to write and read, there're some ambiguities in YAML.
 
 ### Special characters in unquoted strings
-YAML has a number of special characters you cannot use in unquoted strings. For example, parsing the following sample
-will fail:
+YAML has a number of special characters you cannot use in unquoted strings: ` [] {} : > | `.
+You should quote all strings that contain any of the following characters the following way:
 ```yaml
-unquoted-string: let me put a colon here: oops
+special-characters: "[all] {quoted} :like> this|"
 ```
-
-Quote the string value makes this value unambiguous:
-```yaml
-unquoted-string: "let me put a colon here: oops"
-```
-
-Generally, you should quote all strings that contain any of the following characters: `[] {} : > |`.
 
 ### Tabs versus spaces for indentation
 

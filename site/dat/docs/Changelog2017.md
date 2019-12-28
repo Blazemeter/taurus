@@ -1,3 +1,5 @@
+# Changelog for year 2017
+
 ## 1.10.3 <sup>22 nov 2017</sup>
  - use builtin JSON extractor in JMeter, if possible
  - fix functioning of apiritif on Mac 

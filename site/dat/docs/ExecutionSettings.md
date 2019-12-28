@@ -17,7 +17,7 @@ execution:
 ```
 
 However, users are encouraged to use array notation always to leverage the arrays auto-join capability when 
-combining multiple config files into one. See [config merge rules](CommandLine.md#configuration-files-processing) 
+combining multiple config files into one. See [config merge rules](CommandLine.md#Multiple-Files-Merging-Rules) 
 for more details on this.
 
 There are load profile and scenario settings that are common for all execution types, and each executor type can 
@@ -48,7 +48,7 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [Robot](Robot.md), executor type `robot`
   - [Postman/Newman](Postman.md), executor type `newman`
 
-Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#top-level-settings) section.
+Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#Top-Level-Settings) section.
 ```yaml
 settings:
   default-executor: jmeter

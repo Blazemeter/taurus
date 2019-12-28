@@ -191,6 +191,8 @@ This is an example how it looks like:
       - xpath: relative_xpath   # there may be multiple locators of the same type
       - name: select_name
 ```
+You can see full example [here](#Sample-scenario-using-multiple-locators).
+
 
 ### Assertion
 For requested page source inspection you can use the following actions:
@@ -203,7 +205,7 @@ See sample usage in [Frame Management](#Frame-management) section.
 
 Also, for assertion you can also use special assertion block. See example [here](#Sample-scenario).
 
-Using the [alternative syntax](#alternative-syntax-supporting-multiple-locators): 
+Using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators): 
 ```yaml
 - type: assertText
   param: text
@@ -238,7 +240,7 @@ Or you may use:
 ### Editing
 `editContentByX(X\_name): "new test for X"` will help you change text in an editable field.
 
-Or by using the [alternative syntax](#alternative-syntax-supporting-multiple-locators):
+Or by using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 ```yaml
 - type: editContent
   param: new text for X
@@ -322,7 +324,7 @@ For mouse imitating actions you can use the following:
 
 `X` here is for one of [locators](#Locators).
 
-Or by using the [multiple locators](#alternative-syntax-supporting-multiple-locators) syntax:
+Or by using the [multiple locators](#Alternative-syntax-supporting-multiple-locators) syntax:
 ```yaml
 - type: click
   locators:
@@ -361,7 +363,7 @@ Or by using the [multiple locators](#alternative-syntax-supporting-multiple-loca
 For pause you can use the following actions:
 - `waitByX(X\_name)` to wait for presence or `waitByX(X\_name): visible` to wait for visibility
 
-You can also define wait using the [alternative syntax](#alternative-syntax-supporting-multiple-locators) to provide multiple locators:
+You can also define wait using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators) to provide multiple locators:
 ```yaml
 - type: wait
   locators: 
@@ -393,7 +395,7 @@ To select a value use this: `selectByX(X\_name): value`.
 
 See documentation for `X` [here](#Locators).
 
-Or by using the [alternative syntax](#alternative-syntax-supporting-multiple-locators):
+Or by using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 ```yaml
 - type: select
   param: value
@@ -410,7 +412,7 @@ For storing variables use the following actions:
 
 See documentation for `X` [here](#Locators).
 
-Or use the [alternative syntax](#alternative-syntax-supporting-multiple-locators):
+Or use the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 ```yaml
 - type: storeTitle
   param: var_title
@@ -435,7 +437,7 @@ Typing actions are the following:
 
 `X` here is for one of [locators](#Locators).
 
-Typing actions with [multiple locators support](#alternative-syntax-supporting-multiple-locators):
+Typing actions with [multiple locators support](#Alternative-syntax-supporting-multiple-locators):
 ```yaml
 - type: type
   param: text_to_type
@@ -463,7 +465,7 @@ These actions require a value parameter, the possible values are:
 
 Note: When any action command opens a new window (like click over a link with target window assigned), the action of selecting the window must always be declared, otherwise the actions executed by the execution were performed on the default window or the last one used with selectWindow command.
 
-Or using the [alternative syntax](#alternative-syntax-supporting-multiple-locators):
+Or using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 ```yaml
 - type: switchWindow
   param: value
@@ -524,8 +526,9 @@ modules:
 
 ```
 
-## Sample scenario using multiple locators
-When using multiple locators [alternative syntax](#alternative-syntax-supporting-multiple-locators) it is possible to 
+### Sample scenario using multiple locators
+
+When using multiple locators [alternative syntax](#Alternative-syntax-supporting-multiple-locators) it is possible to 
 mix it with the shorter version of action definition.
 
 ```yaml
