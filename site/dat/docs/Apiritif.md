@@ -194,6 +194,18 @@ This is an example how it looks like:
 You can see full example [here](#Sample-scenario-using-multiple-locators).
 
 
+### Alert
+For alert handling, use the following methods:
+- `alert("OK")` to click "OK" on an alert
+- `alert("Dismiss")` to dismiss alert
+ 
+Besides, you can use [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
+
+```yaml
+- type: alert
+  param: OK
+```
+
 ### Assertion
 For requested page source inspection you can use the following actions:
 - `assertTextByX(X\_name): "text"` to assert text to an element
@@ -384,6 +396,8 @@ You can also define wait using the [alternative syntax](#Alternative-syntax-supp
 
 ### Screenshot
 To take a screenshot of a viewport and save it in a file use this: `screenshot(file\_name)`
+
+Or like this by using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 
 ```yaml
 - type: screenshot

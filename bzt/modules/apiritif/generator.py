@@ -514,7 +514,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_alert(self, param):
         elements = []
-        switch, args = "self.driver.switch_to.alert", []
+        switch, args = "self.driver.switch_to.alert.", []
         if param == "OK":
             elements.append(ast_call(
                 func=ast_attr(switch + "accept"),
