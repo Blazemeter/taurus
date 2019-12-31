@@ -52,7 +52,7 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
     }
 
     cfg['Command bzt-pip'] = {
-        'entry_point': 'pip._internal:main'
+        'entry_point': 'pip._internal.main:main'
     }
 
     cfg['Command bzt-run'] = {
