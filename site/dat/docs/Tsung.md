@@ -19,19 +19,6 @@ On Mac OS X you can install Tsung with [Homebrew](http://brew.sh/):
 $ brew install tsung
 ```
 
-### Notes For Ubuntu 14.04
-
-Ubuntu 14.04 provides Tsung 1.4.1, which is not supported by Taurus, as it lacks some important features.
-You can install more recent 1.5.1 version from [tsung-stable](https://launchpad.net/~tsung/+archive/ubuntu/stable) PPA:
-
-```bash
-$ sudo add-apt-repository ppa:tsung/stable
-$ sudo apt-get update
-$ sudo apt-get install tsung
-```
-
-More recent Ubuntu versions provide Tsung 1.5.1 by default, so `apt-get install tsung` should be enough.
-
 ## Tsung Load Generation Model
 
 When given `concurrency: N`, Tsung spawns N "virtual users" each second. Every user is actually a lightweight Erlang

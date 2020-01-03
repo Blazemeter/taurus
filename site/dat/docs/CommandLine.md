@@ -122,10 +122,11 @@ Each tool start creates _artifacts directory_ under base dir (see `settings.arti
 ## Exit codes
 
 Taurus exit code signifies the way Taurus was ended.
-*0* — No problems occured.
-*1* — Taurus finished with a generic error (networking, internal Taurus errors)
-*2* — Taurus was manually shut down (Ctrl-C by user, process received SIGKILL, etc)
-*3* — Taurus was shut down automatically (e.g. Pass/Fail criteria, cloud tests failed, etc)
+
+* _0_ — No problems occured.
+* _1_ — Taurus finished with a generic error (networking, internal Taurus errors)
+* _2_ — Taurus was manually shut down (Ctrl-C by user, process received SIGKILL, etc)
+* _3_ — Taurus was shut down automatically (e.g. Pass/Fail criteria, cloud tests failed, etc)
 
 Notice: Don't interrupt graceful shutdown after hitting `Ctrl+C` once, let the tool finish its cleanup. The tool is made to be obedient, so if you will insist on interrupting by pressing `Ctrl+C` for the second time, it will exit immediately. This will leave background processes unterminated, remote APIs will not be informed of the interrupt and, with high probability, some puppy or kitten might start crying. So let the tool shutdown gracefully, be patient.
 
