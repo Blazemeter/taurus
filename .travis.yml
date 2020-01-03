@@ -45,6 +45,7 @@ matrix:
     language: sh
     env:
       - PYTHON="C:/Python38/python.exe"
+      - PIP_INSTALL=$PYTHON "-m pip install"
       - PATH=c/Python38:/c/Python38/Scripts:$PATH
       - R_PATH=C:/Ruby22/bin
       - PYTHON_VERSION="3.8.x"
@@ -56,10 +57,10 @@ matrix:
     - $PYTHON -m ensurepip
     - $PYTHON -m pip install --upgrade pip
     install:
-    - $PYTHON -m pip install pip wheel --upgrade
-    - $PYTHON -m pip install pyyaml
-    - $PYTHON -m pip install -r requirements.txt
-    - $PYTHON -m pip install -r tests/ci/requirements.txt
+    - $PIP_INSTALL pip wheel --upgrade
+    - $PIP_INSTALL pyyaml
+    - $PIP_INSTALL -r requirements.txt
+    - $PIP_INSTALL -r tests/ci/requirements.txt
     - choco install nodejs.install
     before_test:
     - ruby -v
