@@ -44,7 +44,7 @@ matrix:
     name: "Python3.8 on Windows"
     language: sh
     env:
-      - PYTHON="C:/Python38"
+      - PYTHON="C:/Python38/python.exe"
       - PATH=c/Python38:/c/Python38/Scripts:$PATH
       - R_PATH=C:/Ruby22/bin
       - PYTHON_VERSION="3.8.x"
@@ -52,14 +52,14 @@ matrix:
 #      - NODEJS_VERSION="10"
     before_install:
     - choco install python --version 3.8.1
-    - $PYTHON/python.exe --version
-    - $PYTHON/python.exe -m ensurepip
-    - $PYTHON/python.exe -m pip install --upgrade pip
+    - $PYTHON --version
+    - $PYTHON -m ensurepip
+    - $PYTHON -m pip install --upgrade pip
     install:
-    - $PYTHON/python.exe -m pip install pip wheel --upgrade
-    - $PYTHON/python.exe -m pip install pyyaml
-    - $PYTHON/python.exe -m pip install -r requirements.txt
-    - $PYTHON/python.exe -m pip install -r tests/ci/requirements.txt
+    - $PYTHON -m pip install pip wheel --upgrade
+    - $PYTHON -m pip install pyyaml
+    - $PYTHON -m pip install -r requirements.txt
+    - $PYTHON -m pip install -r tests/ci/requirements.txt
     - choco install nodejs.install
     before_test:
     - ruby -v
@@ -67,10 +67,10 @@ matrix:
     - rspec --version
     - node --version
     - locust --version
-    before_script:
-    - $PYTHON/python.exe tests/resources/httpserver/start.py &
-    script:
-    - $PYTHON/python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
+#    before_script:
+#    - $PYTHON tests/resources/httpserver/start.py &
+#    script:
+#    - $PYTHON -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
 
 addons:
   firefox: latest
