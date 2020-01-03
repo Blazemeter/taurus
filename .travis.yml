@@ -67,6 +67,7 @@ matrix:
     - rspec --version
     - node --version
     - locust --version
+    before_script:
     - $PYTHON/python.exe tests/resources/httpserver/start.py
     script:
     - $PYTHON/python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
