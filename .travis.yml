@@ -57,7 +57,6 @@ matrix:
     - $PYTHON -m ensurepip
     - $PYTHON -m pip install --upgrade pip
     install:
-    - echo $PIP_INSTALL
     - $PIP_INSTALL pip wheel --upgrade
     - $PIP_INSTALL pyyaml
     - $PIP_INSTALL -r requirements.txt
@@ -69,10 +68,10 @@ matrix:
     - rspec --version
     - node --version
     - locust --version
-#    before_script:
-#    - $PYTHON tests/resources/httpserver/start.py &
-#    script:
-#    - $PYTHON -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
+    before_script:
+    - $PYTHON tests/resources/httpserver/start.py &
+    script:
+    - $PYTHON -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
 
 addons:
   firefox: latest
