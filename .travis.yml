@@ -45,7 +45,7 @@ matrix:
     language: sh
     env:
       - PYTHON="C:/Python38/python.exe"
-      - PIP_INSTALL=$PYTHON "-m pip install"
+      - PIP_INSTALL="C:/Python38/python.exe -m pip install"
       - PATH=c/Python38:/c/Python38/Scripts:$PATH
       - R_PATH=C:/Ruby22/bin
       - PYTHON_VERSION="3.8.x"
