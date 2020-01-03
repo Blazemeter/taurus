@@ -90,7 +90,7 @@ class ApiritifScriptGenerator(object):
                         'assertText', 'assertValue', 'submit', 'close', 'script', 'editcontent',
                         'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
                         'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode',
-                        'resize', 'maximize'
+                        'resize', 'maximize', 'alert'
                         ])
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
@@ -505,6 +505,19 @@ from selenium.webdriver.common.keys import Keys
                 args=[ast.Name(id="filename")]))
         return elements
 
+    def _gen_alert(self, param):
+        elements = []
+        switch, args = "self.driver.switch_to.alert.", []
+        if param == "OK":
+            elements.append(ast_call(
+                func=ast_attr(switch + "accept"),
+                args=args))
+        elif param == "Dismiss":
+            elements.append(ast_call(
+                func=ast_attr(switch + "dismiss"),
+                args=args))
+        return elements
+
     def _gen_wait_sleep_mngr(self, atype, tag, param, selectors):
         elements = []
         mode = "visibility" if param == 'visible' else 'presence'
@@ -602,6 +615,8 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("self.driver.delete_all_cookies")))
         elif atype == 'screenshot':
             action_elements.extend(self._gen_screenshot_mngr(param))
+        elif atype == 'alert':
+            action_elements.extend(self._gen_alert(param))
 
         if not action_elements and not self.ignore_unknown_actions:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
@@ -763,21 +778,6 @@ from selenium.webdriver.common.keys import Keys
             value=ast_call(
                 func=ast.Name(id=mgr),
                 args=[ast_attr("self.driver"), ast.Str(self._get_scenario_timeout())])))
-
-        if self.window_size:  # FIXME: unused in fact ?
-            body.append(ast.Expr(
-                ast_call(
-                    func=ast_attr("target.set_window_position"),
-                    args=[ast.Num(0), ast.Num(0)])))
-
-            body.append(ast.Expr(
-                ast_call(
-                    func=ast_attr("target.set_window_position"),
-                    args=[ast.Num(self.window_size[0]), ast.Num(self.window_size[1])])))
-
-        else:
-            pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
-            # but maximize_window does not work on virtual displays. Bummer
 
         return body
 
