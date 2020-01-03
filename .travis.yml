@@ -44,7 +44,7 @@ matrix:
     name: "Python3.7 on Windows"
     language: sh
     env:
-      - PYTHON="C:/Python37"
+      - PYTHON="C:/Python38"
       - PATH=c/Python37:/c/Python37/Scripts:$PATH
       - R_PATH=C:/Ruby22/bin
       - PYTHON_VERSION="3.7.x"
@@ -58,8 +58,9 @@ matrix:
 #    - pyenv rehash
 #    - pyenv global 3.7.2
     - $PYTHON/python.exe --version
-    - $PYTHON/python.exe -m ensurepip
-    - $PYTHON/python.exe -m pip install --upgrade pip
+    - python --version
+    - python -m ensurepip
+    - python -m pip install --upgrade pip
     install:
     - $PYTHON/python.exe -m pip install pip wheel --upgrade
     - $PYTHON/python.exe -m pip install pyyaml
