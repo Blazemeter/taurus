@@ -41,22 +41,17 @@ matrix:
 #      - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
 
   - os: windows
-    name: "Python3.7 on Windows"
+    name: "Python3.8 on Windows"
     language: sh
     env:
       - PYTHON="C:/Python38"
-      - PATH=c/Python37:/c/Python37/Scripts:$PATH
+      - PATH=c/Python38:/c/Python38/Scripts:$PATH
       - R_PATH=C:/Ruby22/bin
-      - PYTHON_VERSION="3.7.x"
+      - PYTHON_VERSION="3.8.x"
       - PYTHON_ARCH="64"
 #      - NODEJS_VERSION="10"
     before_install:
-    - choco install python
-#    - git clone https://github.com/pyenv-win/pyenv-win.git $HOME/.pyenv
-#    - export PATH="$HOME/.pyenv/pyenv-win/bin:$HOME/.pyenv/pyenv-win/shims:$PATH"
-#    - pyenv install -q 3.7.1
-#    - pyenv rehash
-#    - pyenv global 3.7.2
+    - choco install python --version 3.8.1
     - $PYTHON/python.exe --version
     - $PYTHON/python.exe -m ensurepip
     - $PYTHON/python.exe -m pip install --upgrade pip
@@ -72,9 +67,9 @@ matrix:
     - rspec --version
     - node --version
     - locust --version
-    - python tests/resources/httpserver/start.py
+    - $PYTHON/python.exe tests/resources/httpserver/start.py
     script:
-    - python -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
+    - $PYTHON/python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
 
 addons:
   firefox: latest
