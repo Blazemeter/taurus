@@ -52,7 +52,7 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
     }
 
     cfg['Command bzt-pip'] = {
-        'entry_point': 'pip._internal:main'
+        'entry_point': 'pip._internal.main:main'
     }
 
     cfg['Command bzt-run'] = {
@@ -142,7 +142,7 @@ def main():
         sys.exit(1)
     bzt_dist = sys.argv[1]
 
-    tkinter_link = STORAGE_URL + "pynsist_tkinter_3.6_64bit.zip"
+    tkinter_link = STORAGE_URL + "pynsist_tkinter_3.7_64bit.zip"
 
     pynsist_config = "installer-gen.cfg"
     wheel_dir = "build/wheels"
