@@ -57,6 +57,7 @@ matrix:
     - $PYTHON -m ensurepip
     - $PYTHON -m pip install --upgrade pip
     install:
+    - echo $PIP_INSTALL
     - $PIP_INSTALL pip wheel --upgrade
     - $PIP_INSTALL pyyaml
     - $PIP_INSTALL -r requirements.txt
