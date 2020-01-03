@@ -44,9 +44,9 @@ matrix:
     name: "Python3.7 on Windows"
     language: sh
     env:
-      - PYTHON="C:\\Python37"
+      - PYTHON="C:/Python37"
       - PATH=c/Python37:/c/Python37/Scripts:$PATH
-      - R_PATH=C:\Ruby22\bin
+      - R_PATH=C:/Ruby22/bin
       - PYTHON_VERSION="3.7.x"
       - PYTHON_ARCH="64"
 #      - NODEJS_VERSION="10"
