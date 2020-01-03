@@ -60,14 +60,13 @@ class TestMonitoring(BZTestCase):
 
         self.assertEquals(b("test\ninterval:1\nmetrics:cpu\tdisks\nexit\n"), obj.clients[0].socket.sent_data)
 
-        if PY3:
-            self.assertIsNotNone(obj.clients[0].logs_file)
-            with open(obj.clients[0].logs_file) as serveragent_logs:
-                logs_reader = csv.reader(serveragent_logs)
-                logs_reader = list(logs_reader)
-            self.assertEquals(['ts', 'cpu', 'disks'], logs_reader[0])
-            for i in range(1, 10):
-                self.assertEquals([str(i), str(i * 10)], logs_reader[i][1:])
+        self.assertIsNotNone(obj.clients[0].logs_file)
+        with open(obj.clients[0].logs_file) as serveragent_logs:
+            logs_reader = csv.reader(serveragent_logs)
+            logs_reader = list(logs_reader)
+        self.assertEquals(['ts', 'cpu', 'disks'], logs_reader[0])
+        for i in range(1, 10):
+            self.assertEquals([str(i), str(i * 10)], logs_reader[i][1:])
 
     def test_graphite(self):
         obj = Monitoring()
@@ -101,14 +100,13 @@ class TestMonitoring(BZTestCase):
         obj.shutdown()
         obj.post_process()
 
-        if PY3:
-            self.assertIsNotNone(obj.clients[0].logs_file)
-            self.assertIsNone(obj.clients[1].logs_file)
-            with open(obj.clients[0].logs_file) as graphite_logs:
-                logs_reader = csv.reader(graphite_logs)
-                logs_reader = list(logs_reader)
-            self.assertEquals(['ts', 'body', 'brain'], logs_reader[0])
-            self.assertEquals(['2'], logs_reader[1][1:])
+        self.assertIsNotNone(obj.clients[0].logs_file)
+        self.assertIsNone(obj.clients[1].logs_file)
+        with open(obj.clients[0].logs_file) as graphite_logs:
+            logs_reader = csv.reader(graphite_logs)
+            logs_reader = list(logs_reader)
+        self.assertEquals(['ts', 'body', 'brain'], logs_reader[0])
+        self.assertEquals(['2'], logs_reader[1][1:])
 
     def test_local_with_engine(self):
         config = {'interval': '5m', 'metrics': ['cpu', 'engine-loop']}
