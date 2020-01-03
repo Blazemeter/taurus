@@ -58,9 +58,8 @@ matrix:
 #    - pyenv rehash
 #    - pyenv global 3.7.2
     - $PYTHON/python.exe --version
-    - python --version
-    - python -m ensurepip
-    - python -m pip install --upgrade pip
+    - $PYTHON/python.exe -m ensurepip
+    - $PYTHON/python.exe -m pip install --upgrade pip
     install:
     - $PYTHON/python.exe -m pip install pip wheel --upgrade
     - $PYTHON/python.exe -m pip install pyyaml
