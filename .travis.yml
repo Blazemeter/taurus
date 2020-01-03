@@ -42,23 +42,29 @@ matrix:
 
   - os: windows
     name: "Python3.7 on Windows"
-    language: shell
+    language: sh
     env:
       - PYTHON="C:\\Python37"
       - PATH=c/Python37:/c/Python37/Scripts:$PATH
       - R_PATH=C:\Ruby22\bin
       - PYTHON_VERSION="3.7.x"
       - PYTHON_ARCH="64"
-      - NODEJS_VERSION="10"
+#      - NODEJS_VERSION="10"
     before_install:
-    - choco install python --version 3.7.4
-    - $PYTHON/python.exe -m ensurepip
-    - $PYTHON/python.exe -m pip install --upgrade pip
+#    - choco install python --version 3.7.4
+    - git clone https://github.com/pyenv-win/pyenv-win.git $HOME/.pyenv
+    - export PATH="$HOME/.pyenv/pyenv-win/bin:$HOME/.pyenv/pyenv-win/shims:$PATH"
+    - pyenv install -q 3.7.1
+    - pyenv rehash
+    - pyenv local 3.7.1
+    - python --version
+    - python -m ensurepip
+    - python -m pip install --upgrade pip
     install:
-    - $PYTHON/python.exe -m pip install pip wheel --upgrade
-    - $PYTHON/python.exe -m pip install pyyaml
-    - $PYTHON/python.exe -m pip install -r requirements.txt
-    - $PYTHON/python.exe -m pip install -r tests/ci/requirements.txt
+    - python -m pip install pip wheel --upgrade
+    - python -m pip install pyyaml
+    - python -m pip install -r requirements.txt
+    - python -m pip install -r tests/ci/requirements.txt
     - choco install nodejs.install
     before_test:
     - ruby -v
@@ -66,9 +72,9 @@ matrix:
     - rspec --version
     - node --version
     - locust --version
-    - $PYTHON/python.exe tests/resources/httpserver/start.py
+    - python tests/resources/httpserver/start.py
     script:
-    - $PYTHON/python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
+    - python -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
 
 addons:
   firefox: latest
