@@ -51,12 +51,12 @@ matrix:
       - PYTHON_ARCH="64"
 #      - NODEJS_VERSION="10"
     before_install:
-#    - choco install python --version 3.7.4
+    - choco install python
     - git clone https://github.com/pyenv-win/pyenv-win.git $HOME/.pyenv
     - export PATH="$HOME/.pyenv/pyenv-win/bin:$HOME/.pyenv/pyenv-win/shims:$PATH"
-    - pyenv install -q 3.7.1
-    - pyenv rehash
-    - pyenv local 3.7.1
+#    - pyenv install -q 3.7.1
+#    - pyenv rehash
+#    - pyenv global 3.7.2
     - python --version
     - python -m ensurepip
     - python -m pip install --upgrade pip
