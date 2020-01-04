@@ -71,7 +71,8 @@ matrix:
 #    before_script:
 #    - $PYTHON tests/resources/httpserver/start.py ;
     script:
-    - $PYTHON -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
+    - $PYTHON -m pip list | grep nose
+    - $PYTHON -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci
 
 addons:
   firefox: latest
