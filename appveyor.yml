@@ -34,6 +34,7 @@ before_test:
   - rspec --version
   - node --version
   - locust --version
+  - dir
   - ps: Start-Process %PYTHON%\\python.exe tests\\resources\\httpserver\\start.py
 
 test_script:
