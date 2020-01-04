@@ -28,7 +28,7 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
-from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader, CALL_PROBLEMS
+from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader
 from bzt.utils import shutdown_process, RequiredTool, dehumanize_time, RESOURCES_DIR
 
 
@@ -198,8 +198,8 @@ class LocustIO(RequiredTool):
         self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
             locust = __import__(self.tool_path)
-        except ModuleNotFoundError:
-            self.log.warning("%s check failed", self.tool_name)
+        except BaseException as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
 
         self.log.debug("%s found: %s", self.tool_name, locust.__file__)
