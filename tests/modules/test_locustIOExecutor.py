@@ -11,7 +11,7 @@ from bzt import ToolError
 from bzt.utils import dehumanize_time
 from bzt.modules.jmeter import JTLReader
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
-from bzt.modules.locustio import LocustIOExecutor, SlavesReader
+from bzt.modules.locustio import LocustIOExecutor, SlavesReader, LocustIO
 from bzt.modules.provisioning import Local
 
 from tests import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER
@@ -27,6 +27,12 @@ class TestLocustIOExecutor(ExecutorTestCase):
     def setUp(self):
         super(TestLocustIOExecutor, self).setUp()
         self.obj.engine.config['provisioning'] = 'local'
+
+    def test_locust_not_found(self):
+        tool = self.obj._get_tool(LocustIO)
+        tool.tool_path += '_wrong_module_name'
+        self.assertEqual(False, tool.check_if_installed())
+        self.assertRaises(ToolError, tool.install)
 
     def test_simple(self):
         self.configure({"execution": {
