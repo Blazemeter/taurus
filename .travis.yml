@@ -23,12 +23,12 @@ addons:
 
 install:
 - %PIP_INSTALL% --upgrade pip
-- %PIP_INSTALL% "pyyaml<5.1" 
+- %PIP_INSTALL% "pyyaml<5.1"
 - %PIP_INSTALL% -r requirements.txt
 - %PIP_INSTALL% -r tests/ci/requirements.txt
 
 
 script:
-- $PYTHON -m nose tests -v tests.modules.jmeter.test_JMX:TestJMX.test_int_udv
+- %PYTHON% -m nose tests -v tests.modules.jmeter.test_JMX:TestJMX.test_int_udv
 
 
