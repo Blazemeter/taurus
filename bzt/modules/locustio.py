@@ -197,14 +197,12 @@ class LocustIO(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
-            out, err = self.call([self.tool_path, "--version"])
-        except CALL_PROBLEMS as exc:
-            self.log.warning("%s check failed: %s", self.tool_name, exc)
+            locust = __import__(self.tool_path)
+        except ModuleNotFoundError:
+            self.log.warning("%s check failed", self.tool_name)
             return False
 
-        if err:
-            out += err
-        self.log.debug("%s output: %s", self.tool_name, out)
+        self.log.debug("%s found: %s", self.tool_name, locust.__file__)
         return True
 
 
