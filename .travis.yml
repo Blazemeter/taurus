@@ -58,21 +58,20 @@ matrix:
     - $PYTHON -m pip install --upgrade pip
     install:
     - $PIP_INSTALL pip wheel --upgrade
-    - $PIP_INSTALL pyyaml
+    - $PIP_INSTALL pyyaml==3.12
     - $PIP_INSTALL -r requirements.txt
     - $PIP_INSTALL -r tests/ci/requirements.txt
     - choco install nodejs.install
-    before_test:
+    before_script:
     - ruby -v
     - gem -v
     - rspec --version
     - node --version
     - locust --version
-#    before_script:
 #    - $PYTHON tests/resources/httpserver/start.py ;
     script:
     - dir tests
-    - nosetests -v --exclude-dir=tests/resources --exclude-dir=tests/ci
+    - $PYTHON -m nose tests --exclude-dir=tests/resources --exclude-dir=tests/ci
 
 addons:
   firefox: latest
