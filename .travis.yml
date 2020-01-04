@@ -22,10 +22,10 @@ addons:
   chrome: stable
 
 install:
-- $PIP_INSTALL --upgrade pip
-- $PIP_INSTALL "pyyaml<5.1"
-- $PIP_INSTALL -r requirements.txt
-- $PIP_INSTALL -r tests/ci/requirements.txt
+- %PIP_INSTALL% --upgrade pip
+- %PIP_INSTALL% "pyyaml<5.1"
+- %PIP_INSTALL% -r requirements.txt
+- %PIP_INSTALL% -r tests/ci/requirements.txt
 
 
 script:
