@@ -1,72 +1,34 @@
 sudo: false
 language: python
-dist: xenial
 cache: pip  # use caching for pip's packages to speed up builds
 
 branches:
   only:
   - master
 
-os: linux
+os: windows
 
 python:
-- "2.7"
-- "3.5"
-- "3.6"
 - "3.7"
 
 env:
   global:
-  - DISPLAY=:99.0
   - PIP_INSTALL="pip install"
-  - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
   - PYTHON=python
 
-matrix:
-  include:
-  - os: osx
-    name: "Python 3 on macOS"
-    osx_image: xcode11    # Python 3.7.4 running on macOS 10.14.4
-    language: shell
-    env:
-    - PYTHON=python3
-    - PIP_INSTALL="sudo pip3 install"
-    - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
-    - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
 addons:
   firefox: latest
   chrome: stable
-  apt:
-    packages:
-    - openjdk-8-jdk
-    - mono-complete
-    - python-tk
-    - python3-tk
 
 install:
-- |
-  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    mono --version
-  else
-    gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
-  fi
-- gem install rspec
 - $PIP_INSTALL --upgrade pip
 - $PIP_INSTALL "pyyaml<5.1"
 - $PIP_INSTALL -r requirements.txt
 - $PIP_INSTALL -r tests/ci/requirements.txt
 
-before_script:
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then nohup bash -c "Xvfb :99 &"; fi
-- if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
-- $PYTHON tests/resources/httpserver/start.py &
 
 script:
-- coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
-
-after_success:
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m && codecov; fi
-
+- $PYTHON -m nose tests -v tests.modules.jmeter.test_JMX:TestJMX.test_int_udv
 
 
