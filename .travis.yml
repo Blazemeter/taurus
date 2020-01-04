@@ -1,5 +1,5 @@
 sudo: false
-language: python
+language: sh
 cache: pip  # use caching for pip's packages to speed up builds
 
 branches:
