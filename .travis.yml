@@ -71,7 +71,7 @@ matrix:
 #    before_script:
 #    - $PYTHON tests/resources/httpserver/start.py ;
     script:
-    - dir
+    - dir tests
     - nosetests -v --exclude-dir=tests/resources --exclude-dir=tests/ci
 
 addons:
