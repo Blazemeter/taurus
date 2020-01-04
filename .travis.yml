@@ -12,7 +12,7 @@ os: linux
 python:
 #- "3.5"
 #- "3.6"
-- "3.8"
+- "3.7"
 
 env:
   global:
@@ -46,7 +46,7 @@ matrix:
     env:
       - PYTHON="C:/Python37/python.exe"
       - PIP_INSTALL="C:/Python37/python.exe -m pip install"
-      - PATH=c/Python38:/c/Python38/Scripts:$PATH
+      - PATH=c/Python37:/c/Python38/Scripts:$PATH
       - R_PATH=C:/Ruby22/bin
       - PYTHON_VERSION="3.7.x"
       - PYTHON_ARCH="64"
