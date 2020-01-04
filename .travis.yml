@@ -46,7 +46,7 @@ matrix:
     env:
       - PYTHON="C:/Python37/python.exe"
       - PIP_INSTALL="C:/Python37/python.exe -m pip install"
-      - PATH=c/Python37:/c/Python38/Scripts:$PATH
+      - PATH=c/Python37:/c/Python37/Scripts:$PATH
       - R_PATH=C:/Ruby22/bin
       - PYTHON_VERSION="3.7.x"
       - PYTHON_ARCH="64"
@@ -67,10 +67,9 @@ matrix:
     - ruby -v
     - gem -v
     - rspec --version
-#    - $PYTHON tests/resources/httpserver/start.py ;
+    - $PYTHON tests/resources/httpserver/start.py ;
     script:
-    - dir tests
-    - $PYTHON -m nose tests --exclude-dir=tests/resources --exclude-dir=tests/ci
+    - $PYTHON -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci -with-coverage --cover-inclusive
 
 addons:
   firefox: latest
