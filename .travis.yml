@@ -67,7 +67,6 @@ matrix:
     - ruby -v
     - gem -v
     - rspec --version
-    - locust --version
 #    - $PYTHON tests/resources/httpserver/start.py ;
     script:
     - dir tests
