@@ -13,7 +13,7 @@ python:
 
 env:
   global:
-  - PIP_INSTALL="pip install"
+  - PIP_INSTALL="python -m pip install"
   - PYTHON=python
 
 
