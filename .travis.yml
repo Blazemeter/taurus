@@ -44,30 +44,25 @@ matrix:
     name: "Python3.8 on Windows"
     language: sh
     env:
-      - PYTHON="C:/Python38/python.exe"
-      - PIP_INSTALL="C:/Python38/python.exe -m pip install"
+      - PYTHON="C:/Python37/python.exe"
+      - PIP_INSTALL="C:/Python37/python.exe -m pip install"
       - PATH=c/Python38:/c/Python38/Scripts:$PATH
       - R_PATH=C:/Ruby22/bin
-      - PYTHON_VERSION="3.8.x"
+      - PYTHON_VERSION="3.7.x"
       - PYTHON_ARCH="64"
 #      - NODEJS_VERSION="10"
     before_install:
-    - choco install python --version 3.8.1
+    - choco install python --version 3.7.6
     - $PYTHON --version
     - $PYTHON -m ensurepip
-    - $PYTHON -m pip install --upgrade pip
-    install:
+    - $PIP_INSTALL --upgrade pip
     - $PIP_INSTALL pip wheel --upgrade
-    - $PIP_INSTALL pyyaml==3.12
-    - $PIP_INSTALL -r requirements.txt
-    - $PIP_INSTALL -r tests/ci/requirements.txt
     - choco install nodejs.install
-    - gem install rspec
     before_script:
     - ruby -v
     - gem -v
     - rspec --version
-    - node --version
+    - mono --version
     - locust --version
 #    - $PYTHON tests/resources/httpserver/start.py ;
     script:
@@ -88,7 +83,7 @@ before_install:
 
 install:
 - gem install rspec
-- $PIP_INSTALL "pyyaml<5.1"
+- $PIP_INSTALL pyyaml<5.1
 - $PIP_INSTALL -r requirements.txt
 - $PIP_INSTALL -r tests/ci/requirements.txt
 
