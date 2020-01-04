@@ -35,7 +35,7 @@ before_test:
   - node --version
   - locust --version
   - dir .\tests\resources
-  - ps: Start-Process %PYTHON%\\python.exe .\tests\resources\httpserve\\start.py
+  - ps: Start-Process %PYTHON%\\python.exe .\tests\resources\httpserve\start.py
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
