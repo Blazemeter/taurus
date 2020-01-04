@@ -62,6 +62,7 @@ matrix:
     - $PIP_INSTALL -r requirements.txt
     - $PIP_INSTALL -r tests/ci/requirements.txt
     - choco install nodejs.install
+    - gem install rspec
     before_script:
     - ruby -v
     - gem -v
