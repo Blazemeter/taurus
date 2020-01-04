@@ -41,7 +41,7 @@ matrix:
 #      - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
 
   - os: windows
-    name: "Python3.8 on Windows"
+    name: "Python3.7 on Windows"
     language: sh
     env:
       - PYTHON="C:/Python37/python.exe"
@@ -67,7 +67,7 @@ matrix:
     - ruby -v
     - gem -v
     - rspec --version
-    - $PYTHON tests/resources/httpserver/start.py ;
+    - nohup bash -c "$PYTHON tests/resources/httpserver/start.py ;"
     script:
     - $PYTHON -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci -with-coverage --cover-inclusive
 
