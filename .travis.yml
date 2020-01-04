@@ -58,16 +58,15 @@ matrix:
     - $PIP_INSTALL --upgrade pip
     - $PIP_INSTALL pip wheel --upgrade
     - choco install nodejs.install
-    install:
-    - gem install rspec
-    - $PIP_INSTALL pyyaml==3.12
-    - $PIP_INSTALL -r requirements.txt
-    - $PIP_INSTALL -r tests/ci/requirements.txt
+#    install:
+#    - gem install rspec
+#    - $PIP_INSTALL pyyaml==3.13
+#    - $PIP_INSTALL -r requirements.txt
+#    - $PIP_INSTALL -r tests/ci/requirements.txt
     before_script:
     - ruby -v
     - gem -v
     - rspec --version
-    - mono --version
     - locust --version
 #    - $PYTHON tests/resources/httpserver/start.py ;
     script:
@@ -88,7 +87,7 @@ before_install:
 
 install:
 - gem install rspec
-- $PIP_INSTALL pyyaml<5.1
+- $PIP_INSTALL pyyaml==3.13
 - $PIP_INSTALL -r requirements.txt
 - $PIP_INSTALL -r tests/ci/requirements.txt
 
