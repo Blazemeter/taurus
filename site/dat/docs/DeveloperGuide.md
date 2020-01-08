@@ -23,12 +23,6 @@
  - Notify all interested parties (Twitter, mailing lists)
  - Build and deploy brew formula
  
-# Debugging Project Website 
-
-If you want to deploy project website locally to debug its content, just use Docker image from `site` directory.
-
-Open [http://localhost:8002](http://localhost:8002) in your browser, you should see our website.
-
 # Developing Taurus Extensions
 
 Taurus is an extensible project. You can develop additional modules for it (executors, services, reporters)
