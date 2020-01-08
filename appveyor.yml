@@ -6,15 +6,12 @@ environment:
     - PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5.x"
       PYTHON_ARCH: "64"
-      NODEJS_VERSION: "6"
     - PYTHON: "C:\\Python36"
       PYTHON_VERSION: "3.6.x"
       PYTHON_ARCH: "64"
-      NODEJS_VERSION: "6"
     - PYTHON: "C:\\Python37"
       PYTHON_VERSION: "3.7.x"
       PYTHON_ARCH: "64"
-      NODEJS_VERSION: "7"
 
 platform:
   - x64
@@ -37,7 +34,7 @@ before_test:
   - rspec --version
   - node --version
   - locust --version
-  - ps: Start-Process python tests/resources/httpserver/start.py
+  - ps: Start-Process $env:PYTHON\\python.exe tests/resources/httpserver/start.py
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
