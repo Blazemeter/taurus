@@ -16,7 +16,8 @@ function getMonthDataFromDB()
                         ' port='. $json_cred['port'] .
                         ' dbname='. $json_cred['dbname'] .
                         ' user='. $json_cred['user'] .
-                        ' password='. $json_cred['password']);
+                        ' password='. $json_cred['password'] .
+                        ' connect_timeout=5');
 
 
     $query = 'select month, sum(desktop_launch) AS "desktop_launch", sum(cloud_launch) AS "cloud_launch", sum(new_users) as "new_users"  from aggregate_data group by month order by month;';
