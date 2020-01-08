@@ -123,7 +123,10 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         if load.concurrency:
             cmdline += ['--concurrency', str(load.concurrency)]
 
-        cmdline += ['--iterations', str(load.iterations)]
+        if load.iterations:
+            cmdline += ['--iterations', str(load.iterations)]
+        elif self.execution.get("iterations", None) is None:
+            cmdline += ['--iterations', '0']
 
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
