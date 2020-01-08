@@ -41,7 +41,7 @@ services:
 Once you have resource monitoring enabled, you'll be presented with small sidebar widget that
 informs you on latest data from monitoring agents:
 
-[](monitoring-widget.png)
+![Monitoring screen](monitoring-widget.png)
 
 The widget will possibly not display all the metrics for the long list, that's the limitation of
 screen height :)

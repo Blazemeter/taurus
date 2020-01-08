@@ -47,7 +47,7 @@ Taurus’ default dashboard shows you key information like:
 
 You can view all of these results in real time while running your test in JMeter. If you’re running JMeter with BlazeMeter, use the “-report” command line option to send all the reports to BlazeMeter in real-time.
 
-![Console Screen](console.png)
+![Console Screen](../console.png)
 
 ## Running Post Test Analysis
 
