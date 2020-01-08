@@ -47,6 +47,8 @@ class WebsiteUser(HttpLocust):
     wait_time = between(0.100, 1.500)
 ```
 
+For files generation we use syntax of Locust 0.13+.
+
 ## Requests Scenario
 
 LocustIO executor partially supports building scenario from requests. Supported features:
