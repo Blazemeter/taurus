@@ -125,7 +125,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
         if load.iterations:
             cmdline += ['--iterations', str(load.iterations)]
-        elif self.execution.get("iterations", None) is None:
+        elif self.execution.get("iterations", None) is not None:
             cmdline += ['--iterations', '0']
 
         if load.hold:
