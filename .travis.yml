@@ -67,9 +67,9 @@ matrix:
     - ruby -v
     - gem -v
     - rspec --version
-    - nohup bash -c "$PYTHON tests/resources/httpserver/start.py ;"
+    - powershell Start-Process $PYTHON tests/resources/httpserver/start.py
     script:
-    - $PYTHON -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci -with-coverage --cover-inclusive
+    - $PYTHON -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive
 
 addons:
   firefox: latest
