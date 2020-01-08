@@ -2,13 +2,13 @@
 
 This is a checklist for adding new test executor to Taurus.
 
-There's [another guide](AddingExecutor.md) that focuses on the implementation of test executor.
+There's [another guide](../kb/AddingExecutor.md) that focuses on the implementation of test executor.
 
 ## Code
 
 * [ ] Executor class
-* [ ] (for load executors) `ResultsReader` class
-* [ ] (for functional) — test engine plugin to write test results in Taurus-compatible LDJSON
+* [ ] `ResultsReader` class (for load executors)
+* [ ] Test engine plugin to write test results in Taurus-compatible LDJSON (for functional)
 * [ ] Update `bzt/resources/base-config.yml`
 * [ ] Sidebar widget for console dashboard
 

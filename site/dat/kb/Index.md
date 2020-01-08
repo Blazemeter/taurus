@@ -1,17 +1,18 @@
 # Getting Started
 
  1. Take [Beginner's Course](/learn/)
- 1. [Getting Started with Taurus and JMeter](Basic1)
+ 1. [Getting Started with Taurus and JMeter](Basic1.md)
  
 # Articles
- 1. [Solving JMeter Test Execution Problem](JMeter1)
- 1. [Handling pre/post test actions of a load test](ShellexecHooks)
- 1. [Creating JMeter and Selenium Scripts with Taurus](Scripting)
- 1. [Reporting and Results Analysis on Taurus](Reporting)
- 1. [Integrating Taurus with Jenkins](Jenkins)
- 1. [How to Quickly and Easily Write Selenium Scripts on Taurus](SeleniumActions)
- 1. [How to Easily Run Taurus with Bamboo](Bamboo)
- 1. [Running Taurus with TeamCity](TeamCity)
+ 1. [Solving JMeter Test Execution Problem](JMeter1.md)
+ 1. [Handling pre/post test actions of a load test](ShellexecHooks.md)
+ 1. [Creating JMeter and Selenium Scripts with Taurus](Scripting.md)
+ 1. [Reporting and Results Analysis on Taurus](Reporting.md)
+ 1. [Integrating Taurus with Jenkins](Jenkins.md)
+ 1. [How to Quickly and Easily Write Selenium Scripts on Taurus](SeleniumActions.md)
+ 1. [How to Easily Run Taurus with Bamboo](Bamboo.md)
+ 1. [Running Taurus with TeamCity](TeamCity.md)
+ 1. [Supporting New Load Testing Tool with Taurus](AddingExecutor.md)
 
 
 # Third-Party Articles
@@ -27,9 +28,10 @@ The most recent video is: [Webinar on September 27, 2017: Automating Performance
 
 <iframe width="700" height="394" src="https://www.youtube.com/embed/EFIWFfvKolw" frameborder="0" allowfullscreen></iframe>
  
- You can find educational videos [here](Videos.md).
+You can find educational videos [here](Videos.md).
  
-Other Videos:
+## Other Videos:
+
  1. [Test Automation with JMeter, Jenkins and Taurus](https://www.youtube.com/watch?v=UoOcxlYDRbM)
  1. [BlazeMeter Meetup - How to Scale Test Automation with Jenkins & JMeter Using Taurus](https://www.youtube.com/watch?v=8oYzvNRRQi4)
  1. [Scaling Test Automation with Jenkins + JMeter + Taurus](https://www.youtube.com/watch?v=QuY0Qcdd90A)

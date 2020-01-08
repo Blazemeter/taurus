@@ -25,7 +25,7 @@ scenarios:
 
 Example locust file `sample.py`:
 ```python
-from locust import HttpLocust, TaskSet, task
+from locust import HttpLocust, TaskSet, task, between
 
 class WebsiteTasks(TaskSet):
     def on_start(self):
@@ -44,9 +44,10 @@ class WebsiteTasks(TaskSet):
 
 class WebsiteUser(HttpLocust):
     task_set = WebsiteTasks
-    min_wait = 100
-    max_wait = 1500
+    wait_time = between(0.100, 1.500)
 ```
+
+For files generation we use syntax of Locust 0.13+.
 
 ## Requests Scenario
 

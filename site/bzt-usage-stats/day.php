@@ -16,10 +16,11 @@ function getDayDataFromDB()
                         ' port='. $json_cred['port'] .
                         ' dbname='. $json_cred['dbname'] .
                         ' user='. $json_cred['user'] .
-                        ' password='. $json_cred['password']);
+                        ' password='. $json_cred['password'] .
+                        ' connect_timeout=5');
 
 
-    $query = "SELECT * FROM aggregate_data";
+    $query = "SELECT * FROM aggregate_data ORDER BY TO_DATE(date, 'DD/MM/YYYY')";
 
     $contests = pg_query($query) or die('Query failed: ' . pg_last_error());
     $column_number = pg_num_fields($contests);
