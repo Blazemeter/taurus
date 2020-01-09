@@ -10,7 +10,7 @@ multibranchPipelineJob('TAURUS-IMAGE-BUILDER'){
     configure {
         it / factory(class: 'org.jenkinsci.plugins.workflow.multibranch.WorkflowBranchProjectFactory') {
             owner(class: 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject', reference: '../..')
-            scriptPath("Jenkinsfile-image-builder") //Set a specific scriptPath in MultiBranchPipelineJob DSL
+            scriptPath("tests/ci/Jenkinsfile-image-builder") //Set a specific scriptPath in MultiBranchPipelineJob DSL
         }
     }
     orphanedItemStrategy {
