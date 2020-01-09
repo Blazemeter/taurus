@@ -171,16 +171,12 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
         self.assertFalse("--iterations" in self.CMD_LINE)
         self.assertTrue("--hold-for" in self.CMD_LINE)
-        iters_val = self.CMD_LINE[self.CMD_LINE.index('--hold-for') + 1]
-        self.assertEqual(iters_val, '30.0')
 
-    def test_one_iter(self):
+    def test_no_iters_is_one(self):
         self.CMD_LINE = None
         self.configure({
             EXEC: {
                 "executor": "apiritif",
-                "iterations": 1,
-                "hold-for": 30,
                 "scenario": {
                     "requests": [
                         "http://blazedemo.com"]}}})
@@ -192,7 +188,6 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.assertTrue("--iterations" in self.CMD_LINE)
         iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations') + 1]
         self.assertEqual(iters_val, '1')
-        self.assertTrue("--hold-for" in self.CMD_LINE)
 
 
 class TestSeleniumStuff(SeleniumTestCase):
