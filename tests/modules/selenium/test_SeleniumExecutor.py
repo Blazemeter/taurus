@@ -133,6 +133,67 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
+        self.CMD_LINE = args
+
+    def test_infinite_iters(self):
+        self.CMD_LINE = None
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "iterations": 0,
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+
+        self.assertTrue("--iterations" in self.CMD_LINE)
+        iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations') + 1]
+        self.assertEqual(iters_val, '0')
+
+    def test_not_infinite_iters(self):
+        self.CMD_LINE = None
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "iterations": 0,
+                "hold-for": 30,
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+
+        self.assertFalse("--iterations" in self.CMD_LINE)
+        self.assertTrue("--hold-for" in self.CMD_LINE)
+        iters_val = self.CMD_LINE[self.CMD_LINE.index('--hold-for') + 1]
+        self.assertEqual(iters_val, '30.0')
+
+    def test_one_iter(self):
+        self.CMD_LINE = None
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "iterations": 1,
+                "hold-for": 30,
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+
+        self.assertTrue("--iterations" in self.CMD_LINE)
+        iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations') + 1]
+        self.assertEqual(iters_val, '1')
+        self.assertTrue("--hold-for" in self.CMD_LINE)
+
 
 class TestSeleniumStuff(SeleniumTestCase):
     def test_empty_scenario(self):
