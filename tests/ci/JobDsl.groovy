@@ -5,7 +5,7 @@ multibranchPipelineJob('TAURUS-IMAGE-BUILDER'){
             remote('https://github.com/Blazemeter/taurus.git')
             credentialsId('github-token')
             includes('*')
-            excludes('master')
+            excludes('master,fix/*,feat/*')
         }
     }
     configure {
