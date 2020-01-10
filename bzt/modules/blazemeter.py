@@ -842,13 +842,18 @@ class ProjectFinder(object):
         """
         :rtype: bzt.bza.Project
         """
-        if proj_name:
-            if isinstance(proj_name, (int, float)):  # project id
-                proj_id = int(proj_name)
-                self.log.debug("Treating project name as ID: %s", proj_id)
-                return self.workspaces.projects(ident=proj_id, required=True).first()
-            else:
-                return self.workspaces.projects(name=proj_name).first()
+        if isinstance(proj_name, (int, float)):  # project id
+            proj_id = int(proj_name)
+            self.log.debug("Treating project name as ID: %s", proj_id)
+            project = self.workspaces.projects(ident=proj_id).first()
+            if not project:
+                raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
+        elif proj_name:
+            project = self.workspaces.projects(name=proj_name).first()
+        else:
+            project = None
+
+        return project
 
     def _ws_proj_switch(self, project):
         if project:
@@ -921,9 +926,11 @@ class ProjectFinder(object):
 
     def resolve_project(self, workspace, project_name):
         if isinstance(project_name, (int, float)):  # project id
-            proj_id = int(project_name)
-            self.log.debug("Treating project name as ID: %s", proj_id)
-            project = workspace.projects(ident=proj_id, required=True).first()
+            project_id = int(project_name)
+            self.log.debug("Treating project name as ID: %s", project_id)
+            project = workspace.projects(ident=project_id).first()
+            if not project:
+                raise TaurusConfigError("BlazeMeter project not found by ID: %s" % project_id)
         elif project_name:
             project = workspace.projects(name=project_name).first()
         else:
