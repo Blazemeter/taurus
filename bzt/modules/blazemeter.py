@@ -920,19 +920,19 @@ class ProjectFinder(object):
         return workspace
 
     def resolve_project(self, workspace, project_name):
-        if project_name:
+        if isinstance(project_name, (int, float)):  # project id
+            proj_id = int(project_name)
+            self.log.debug("Treating project name as ID: %s", proj_id)
+            project = workspace.projects(ident=proj_id, required=True).first()
+        elif project_name:
+            project = workspace.projects(name=project_name).first()
+        else:
+            project = None
 
-            if isinstance(project_name, (int, float)):  # project id
-                proj_id = int(project_name)
-                self.log.debug("Treating project name as ID: %s", proj_id)
-                return workspace.projects(ident=proj_id, required=True).first()
-            else:
-                project = workspace.projects(name=project_name).first()
+        if not project:
+            project = self._create_project_or_use_default(workspace, project_name)
 
-                if project is None:
-                    project = self._create_project_or_use_default(workspace, project_name)
-
-                return project
+        return project
 
     def resolve_test(self, project, test_name, taurus_only=False):
         test = None
