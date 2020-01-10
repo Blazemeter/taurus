@@ -318,13 +318,7 @@ class BetterDict(defaultdict):
         else:
             value = defaultdict.get(self, key, default)
 
-        if isinstance(value, str):
-            if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
-                return value
-            else:
-                return str(value)
-        else:
-            return value
+        return value
 
     def merge(self, src):
         """
@@ -845,11 +839,11 @@ class MultiPartForm(object):
 
     def form_as_bytes(self):
         """
-        represents form contents as bytes in python3 or 8-bit str in python2
+        represents form contents as bytes
         """
         result_list = []
         for item in self.__convert_to_list():
-            # if (8-bit str (2.7) or bytes (3.x), then no processing, just add, else - encode)
+            # if (bytes (3.x), then no processing, just add, else - encode)
             if isinstance(item, bytes):
                 result_list.append(item)
             elif isinstance(item, str):
