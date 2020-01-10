@@ -1017,17 +1017,6 @@ class ProjectFinder(object):
         router.send_report_email = send_report_email
         return router
 
-    def _create_project_or_use_default(self, workspace, proj_name):
-        if proj_name:
-            return workspace.create_project(proj_name)
-        else:
-            info = self.user.fetch()
-            self.log.debug("Looking for default project: %s", info['defaultProject']['id'])
-            project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
-            if not project:
-                project = workspace.create_project("Taurus Tests Project")
-            return project
-
     def _default_or_create_project(self, proj_name):
         if proj_name:
             return self.workspaces.first().create_project(proj_name)
