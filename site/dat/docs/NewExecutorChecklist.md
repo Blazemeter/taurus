@@ -6,33 +6,33 @@ There's [another guide](../kb/AddingExecutor.md) that focuses on the implementat
 
 ## Code
 
-* [ ] Executor class
-* [ ] Class `ResultsReader`, for load executors only
-* [ ] Test engine plugin to write test results in Taurus-compatible LDJSON, for functional only
-* [ ] Update `bzt/resources/base-config.yml`
-* [ ] Sidebar widget for console dashboard
+* Executor class
+* `ResultsReader` class (for load executors)
+* Test engine plugin to write test results in Taurus-compatible LDJSON (for functional)
+* Update `bzt/resources/base-config.yml`
+* Sidebar widget for console dashboard
 
 
 ## Tests
 
-* [ ] Unit tests
-* [ ] Manual testing
+* Unit tests
+* Manual testing
 
 
 ## Docs
 
-* [ ] Add new executor doc page in `site/dat/docs/`
-    * [ ] Short description
-    * [ ] List of features
-    * [ ] Configuration examples
-    * [ ] Notes and specifics
-* [ ] Mention new executor to [Index.md](Index.md) and [ExecutionSettings.md](ExecutionSettings.md) 
-* [ ] Add `.change` file to `site/dat/docs/changes/`
+* Add new executor doc page in `site/dat/docs/`
+    * Short description
+    * List of features
+    * Configuration examples
+    * Notes and specifics
+* Mention new executor to [index](Index.md) and to [execution settings](ExecutionSettings.md) 
+* Add `.change` file to `site/dat/docs/changes/`
 
 
 ## Miscellaneous
 
-* [ ] Add to `examples/all-executors.yml`
-* [ ] Update `Dockerfile` and verify that Docker build works
-* [ ] Add usage example to `examples/`
-* [ ] Update MANIFEST.in and ensure that `python setup.py sdist` includes all necessary files
+* Add to `examples/all-executors.yml`
+* Update `Dockerfile` and verify that Docker build works
+* Add usage example to `examples/`
+* Update MANIFEST.in and ensure that `python setup.py sdist` includes all necessary files
