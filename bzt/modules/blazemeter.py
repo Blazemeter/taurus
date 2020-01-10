@@ -1013,9 +1013,7 @@ class ProjectFinder(object):
                 self.log.debug("Will create a multi test")
                 test_class = CloudCollectionTest
 
-        assert test_class is not None
-        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test,
-                            self.log)
+        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test, self.log)
         router._workspaces = self.workspaces
         router.cloud_mode = self.settings.get("cloud-mode", None)
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
@@ -1458,7 +1456,6 @@ class MasterProvisioning(Provisioning):
 class CloudProvisioning(MasterProvisioning, WidgetProvider):
     """
     :type user: bzt.bza.User
-    :type results_reader: ResultsFromBZA
     :type router: BaseCloudTest
     :type _workspaces: bzt.bza.BZAObjectsList[bzt.bza.Workspace]
     """
