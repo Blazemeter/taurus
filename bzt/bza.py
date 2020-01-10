@@ -9,7 +9,7 @@ from collections import OrderedDict
 
 import requests
 
-from bzt import TaurusNetworkError, ManualShutdown, VERSION, TaurusException
+from bzt import TaurusNetworkError, ManualShutdown, VERSION, TaurusException, TaurusConfigError
 from bzt.six import string_types
 from bzt.six import text_type
 from bzt.six import urlencode
@@ -278,7 +278,7 @@ class Account(BZAObject):
 
 
 class Workspace(BZAObject):
-    def projects(self, name=None, ident=None):
+    def projects(self, name=None, ident=None, required=False):
         """
         :rtype: BZAObjectsList[Project]
         """
@@ -302,7 +302,11 @@ class Workspace(BZAObject):
                 continue
 
             projects.append(Project(self, item))
-        return BZAObjectsList(projects)
+        result = BZAObjectsList(projects)
+        if required and not result:
+            raise TaurusConfigError("BlazeMeter project (name=%s, id=%s) not found" % (name, ident))
+
+        return result
 
     def locations(self, include_private=False):
         if 'locations' not in self:

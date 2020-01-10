@@ -842,17 +842,13 @@ class ProjectFinder(object):
         """
         :rtype: bzt.bza.Project
         """
-        if isinstance(proj_name, (int, float)):  # TODO: what if it's string "123"?
-            proj_id = int(proj_name)
-            self.log.debug("Treating project name as ID: %s", proj_id)
-            project = self.workspaces.projects(ident=proj_id).first()
-            if not project:
-                raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
-            return project
-        elif proj_name is not None:
-            return self.workspaces.projects(name=proj_name).first()
-
-        return None
+        if proj_name:
+            if isinstance(proj_name, (int, float)):  # project id
+                proj_id = int(proj_name)
+                self.log.debug("Treating project name as ID: %s", proj_id)
+                return self.workspaces.projects(ident=proj_id, required=True).first()
+            else:
+                return self.workspaces.projects(name=proj_name).first()
 
     def _ws_proj_switch(self, project):
         if project:
@@ -861,18 +857,22 @@ class ProjectFinder(object):
             return self.workspaces
 
     def resolve_external_test(self):
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        proj_name = self.parameters.get("project", self.settings.get("project"))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
         project = self._find_project(proj_name)
         if not project and proj_name:
-            project = self._default_or_create_project(proj_name)
+            project = self.workspaces.first().create_project(proj_name)
 
         test = self._ws_proj_switch(project).tests(name=test_name, test_type='external').first()
 
         if not test:
             if not project:
-                project = self._default_or_create_project(proj_name)
+                info = self.user.fetch()
+                project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
+                if not project:
+                    project = self.workspaces.first().create_project("Taurus Tests Project")
+
             test = project.create_test(test_name, {"type": "external"})
 
         return test
@@ -920,21 +920,19 @@ class ProjectFinder(object):
         return workspace
 
     def resolve_project(self, workspace, project_name):
-        project = None
+        if project_name:
 
-        if isinstance(project_name, (int, float)):  # TODO: what if it's string "123"?
-            proj_id = int(project_name)
-            self.log.debug("Treating project name as ID: %s", proj_id)
-            project = workspace.projects(ident=proj_id).first()
-            if not project:
-                raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
-        elif project_name is not None:
-            project = workspace.projects(name=project_name).first()
+            if isinstance(project_name, (int, float)):  # project id
+                proj_id = int(project_name)
+                self.log.debug("Treating project name as ID: %s", proj_id)
+                return workspace.projects(ident=proj_id, required=True).first()
+            else:
+                project = workspace.projects(name=project_name).first()
 
-        if project is None:
-            project = self._create_project_or_use_default(workspace, project_name)
+                if project is None:
+                    project = self._create_project_or_use_default(workspace, project_name)
 
-        return project
+                return project
 
     def resolve_test(self, project, test_name, taurus_only=False):
         test = None
@@ -970,7 +968,7 @@ class ProjectFinder(object):
         default_location = self.settings.get("default-location", None)
         account_name = self.parameters.get("account", self.settings.get("account", None))
         workspace_name = self.parameters.get("workspace", self.settings.get("workspace", None))
-        project_name = self.parameters.get("project", self.settings.get("project", None))
+        project_name = self.parameters.get("project", self.settings.get("project"))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         launch_existing_test = self.settings.get("launch-existing-test", False)
         send_report_email = self.settings.get("send-report-email", False)
