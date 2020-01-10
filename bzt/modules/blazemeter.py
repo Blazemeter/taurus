@@ -1039,7 +1039,6 @@ class BaseCloudTest(object):
     """
 
     def __init__(self, user, test, project, test_name, default_location, launch_existing_test, parent_log):
-        self.default_test_name = "Taurus Test"
         self.log = parent_log.getChild(self.__class__.__name__)
         self.default_location = default_location
         self._test_name = test_name
