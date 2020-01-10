@@ -7,7 +7,7 @@ There's [another guide](../kb/AddingExecutor.md) that focuses on the implementat
 ## Code
 
 * [ ] Executor class
-* [ ] `ResultsReader` class (for load executors)
+* [ ] Class `ResultsReader` (for load executors)
 * [ ] Test engine plugin to write test results in Taurus-compatible LDJSON (for functional)
 * [ ] Update `bzt/resources/base-config.yml`
 * [ ] Sidebar widget for console dashboard
