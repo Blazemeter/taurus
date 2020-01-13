@@ -302,7 +302,7 @@ class TestJTLReader(BZTestCase):
 
     def test_stdev_performance(self):
         start = time.time()
-        self.configure(RESOURCES_DIR + "/jmeter/jtl/slow-stdev.jtl")
+        self.configure(RESOURCES_DIR + "jmeter/jtl/slow-stdev.jtl")
         res = list(self.obj.datapoints(final_pass=True))
         lst_json = to_json(res)
 
@@ -311,17 +311,17 @@ class TestJTLReader(BZTestCase):
         elapsed = time.time() - start
         ROOT_LOGGER.debug("Elapsed/per datapoint: %s / %s", elapsed, elapsed / len(res))
         # self.assertLess(elapsed, len(res))  # less than 1 datapoint per sec is a no-go
-        exp = [2.2144798867972773,
-               0.7207704268609725,
-               0.606834452578833,
-               0.8284089170237546,
-               0.5858142211763572,
-               0.622922628329711,
-               0.5529488620851849,
-               0.6933748292117727,
-               0.4876162181858197,
-               0.42471180222446503,
-               0.2512251128133865]
+        exp = [0.530600668897226,
+               0.3925135658101402,
+               0.3884051576290007,
+               0.5285574889071398,
+               0.3910775822401648,
+               0.3899911903088562,
+               0.3253762577386371,
+               0.4705746519819491,
+               0.27467901367529557,
+               0.23251104555698357,
+               0.08369447671201945]
         self.assertEqual(exp, [x[DataPoint.CURRENT][''][KPISet.STDEV_RESP_TIME] for x in res])
 
     def test_kpiset_trapped_getitem(self):
