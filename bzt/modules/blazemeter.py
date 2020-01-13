@@ -936,7 +936,7 @@ class ProjectFinder(object):
 
         return project
 
-    def resolve_test(self, project, test_name, taurus_only=False):
+    def resolve_test(self, project, test_name, launch_existing_test):
         test = None
 
         is_int = isinstance(test_name, (int, float))
@@ -969,12 +969,11 @@ class ProjectFinder(object):
 
         test_spec = parse_blazemeter_test_link(test_name)
         self.log.debug("Parsed test link: %s", test_spec)
-        look_for_taurus_only = not launch_existing_test
         if test_spec is not None:
             # if we're to launch existing test - look for any type, otherwise - taurus only
             account, workspace, project, test = self.user.test_by_ids(test_spec.account_id, test_spec.workspace_id,
                                                                       test_spec.project_id, test_spec.test_id,
-                                                                      taurus_only=look_for_taurus_only)
+                                                                      launch_existing_test=launch_existing_test)
             if test is None:
                 raise TaurusConfigError("Test not found: %s", test_name)
             self.log.info("Found test by link: %s", test_name)
@@ -982,7 +981,7 @@ class ProjectFinder(object):
             account = self.resolve_account(account_name)
             workspace = self.resolve_workspace(account, workspace_name)
             project = self.resolve_project(workspace, project_name)
-            test = self.resolve_test(project, test_name, taurus_only=look_for_taurus_only)
+            test = self.resolve_test(project, test_name, launch_existing_test=launch_existing_test)
 
         if isinstance(test, MultiTest):
             self.log.debug("Detected test type: multi")
