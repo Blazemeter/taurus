@@ -831,8 +831,7 @@ class ProjectFinder(object):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.user = user
         self.workspaces = workspaces
-        self.is_functional = False
-        self.gui_mode = False
+        self.test_type = None
 
     def _find_project(self, proj_name):
         """
@@ -942,27 +941,19 @@ class ProjectFinder(object):
 
         is_int = isinstance(test_name, (int, float))
         is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
-        if self.is_functional:
-            if self.gui_mode:
-                test_type = FUNC_GUI_TEST_TYPE
-            else:
-                test_type = FUNC_API_TEST_TYPE
-        elif taurus_only:
-            test_type = TAURUS_TEST_TYPE
-        else:
-            test_type = None
+
         if is_int or is_digit:
             test_id = int(test_name)
             self.log.debug("Treating project name as ID: %s", test_id)
             test = project.multi_tests(ident=test_id).first()
             if not test:
-                test = project.tests(ident=test_id, test_type=test_type).first()
+                test = project.tests(ident=test_id, test_type=self.test_type).first()
             if not test:
                 raise TaurusConfigError("BlazeMeter test not found by ID: %s" % test_id)
         elif test_name is not None:
             test = project.multi_tests(name=test_name).first()
             if not test:
-                test = project.tests(name=test_name, test_type=test_type).first()
+                test = project.tests(name=test_name, test_type=self.test_type).first()
 
         return test
 
@@ -1013,8 +1004,7 @@ class ProjectFinder(object):
         router._workspaces = self.workspaces
         router.cloud_mode = self.settings.get("cloud-mode", None)
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
-        router.is_functional = self.is_functional
-        router.gui_mode = self.gui_mode
+        router.test_type = self.test_type
         router.send_report_email = send_report_email
         return router
 
@@ -1054,8 +1044,7 @@ class BaseCloudTest(object):
         self._workspaces = None
         self.cloud_mode = None
         self.dedicated_ips = False
-        self.is_functional = False
-        self.gui_mode = False
+        self.test_type = None
         self.send_report_email = False
 
     @abstractmethod
@@ -1149,24 +1138,13 @@ class CloudTaurusTest(BaseCloudTest):
 
         if self._test is not None:
             test_type = self._test.get("configuration").get("type")
-            func_modes = FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE
-            should_be_func = (self.is_functional and (test_type not in func_modes))
-            should_be_taurus = (not self.is_functional and test_type != TAURUS_TEST_TYPE)
-            if should_be_func or should_be_taurus:
+            if test_type != self.test_type:
                 self.log.debug("Can't reuse test type %r as Taurus test, will create new one", test_type)
                 self._test = None
 
         if self._test is None:
-            if self.is_functional:
-                if self.gui_mode:
-                    test_type = FUNC_GUI_TEST_TYPE
-                else:
-                    test_type = FUNC_API_TEST_TYPE
-            else:
-                test_type = TAURUS_TEST_TYPE
-
             test_config = {
-                "type": test_type,
+                "type": self.test_type,
                 "plugins": {
                     "taurus": {
                         "filename": ""  # without this line it does not work
@@ -1192,7 +1170,7 @@ class CloudTaurusTest(BaseCloudTest):
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
-        self.master = self._test.start(as_functional=self.is_functional)
+        self.master = self._test.start(as_functional=self.test_type in (FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE))
         return self.master.address + '/app/#/masters/%s' % self.master['id']
 
     def start_if_ready(self):
@@ -1513,10 +1491,18 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         finder.default_test_name = "Taurus Cloud Test"
 
         func_mode = self.engine.is_functional_mode()
-        finder.is_functional = func_mode
-        finder.gui_mode = func_mode and (
+        gui_mode = func_mode and (
                 (len(self.executors) == 1) and
                 isinstance(self.executors[0], SeleniumExecutor))
+        if func_mode:
+            if gui_mode:
+                test_type = FUNC_GUI_TEST_TYPE
+            else:
+                test_type = FUNC_API_TEST_TYPE
+        else:
+            test_type = TAURUS_TEST_TYPE
+
+        finder.test_type = test_type
 
         self.router = finder.get_test_router()
 
