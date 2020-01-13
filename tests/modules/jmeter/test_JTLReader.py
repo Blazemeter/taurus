@@ -311,18 +311,18 @@ class TestJTLReader(BZTestCase):
         elapsed = time.time() - start
         ROOT_LOGGER.debug("Elapsed/per datapoint: %s / %s", elapsed, elapsed / len(res))
         # self.assertLess(elapsed, len(res))  # less than 1 datapoint per sec is a no-go
-        exp = [0.530600668897226,
-               0.3925135658101402,
-               0.3884051576290007,
-               0.5285574889071398,
-               0.3910775822401648,
-               0.3899911903088562,
-               0.3253762577386371,
-               0.4705746519819491,
-               0.27467901367529557,
-               0.23251104555698357,
-               0.08369447671201945]
-        self.assertEqual(exp, [x[DataPoint.CURRENT][''][KPISet.STDEV_RESP_TIME] for x in res])
+        exp = [0.53060066889723,
+               0.39251356581014,
+               0.388405157629,
+               0.52855748890714,
+               0.39107758224016,
+               0.38999119030886,
+               0.32537625773864,
+               0.47057465198195,
+               0.2746790136753,
+               0.23251104555698,
+               0.08369447671202]
+        self.assertEqual(exp, [round(x[DataPoint.CURRENT][''][KPISet.STDEV_RESP_TIME], 14) for x in res])
 
     def test_kpiset_trapped_getitem(self):
         def new():
