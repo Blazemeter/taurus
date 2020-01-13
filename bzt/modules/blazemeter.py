@@ -823,10 +823,6 @@ class DatapointSerializer(object):
 
 
 class ProjectFinder(object):
-    """
-    :type user: User
-    """
-
     def __init__(self, parameters, settings, user, workspaces, parent_log):
         super(ProjectFinder, self).__init__()
         self.default_test_name = "Taurus Test"
@@ -970,7 +966,7 @@ class ProjectFinder(object):
 
         return test
 
-    def resolve_test_type(self):
+    def get_test_router(self):
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
         account_name = self.parameters.get("account", self.settings.get("account", None))
@@ -1522,7 +1518,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 (len(self.executors) == 1) and
                 isinstance(self.executors[0], SeleniumExecutor))
 
-        self.router = finder.resolve_test_type()
+        self.router = finder.get_test_router()
 
         if not self.launch_existing_test:
             self.router.prepare_locations(self.executors, self.engine.config)
