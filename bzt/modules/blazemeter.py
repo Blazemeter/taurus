@@ -823,10 +823,6 @@ class DatapointSerializer(object):
 
 
 class ProjectFinder(object):
-    """
-    :type user: User
-    """
-
     def __init__(self, parameters, settings, user, workspaces, parent_log):
         super(ProjectFinder, self).__init__()
         self.default_test_name = "Taurus Test"
@@ -842,17 +838,18 @@ class ProjectFinder(object):
         """
         :rtype: bzt.bza.Project
         """
-        if isinstance(proj_name, (int, float)):  # TODO: what if it's string "123"?
+        if isinstance(proj_name, (int, float)):  # project id
             proj_id = int(proj_name)
             self.log.debug("Treating project name as ID: %s", proj_id)
             project = self.workspaces.projects(ident=proj_id).first()
             if not project:
                 raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
-            return project
-        elif proj_name is not None:
-            return self.workspaces.projects(name=proj_name).first()
+        elif proj_name:
+            project = self.workspaces.projects(name=proj_name).first()
+        else:
+            project = None
 
-        return None
+        return project
 
     def _ws_proj_switch(self, project):
         if project:
@@ -861,18 +858,22 @@ class ProjectFinder(object):
             return self.workspaces
 
     def resolve_external_test(self):
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        proj_name = self.parameters.get("project", self.settings.get("project"))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
         project = self._find_project(proj_name)
         if not project and proj_name:
-            project = self._default_or_create_project(proj_name)
+            project = self.workspaces.first().create_project(proj_name)
 
         test = self._ws_proj_switch(project).tests(name=test_name, test_type='external').first()
 
         if not test:
             if not project:
-                project = self._default_or_create_project(proj_name)
+                info = self.user.fetch()
+                project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
+                if not project:
+                    project = self.workspaces.first().create_project("Taurus Tests Project")
+
             test = project.create_test(test_name, {"type": "external"})
 
         return test
@@ -920,18 +921,18 @@ class ProjectFinder(object):
         return workspace
 
     def resolve_project(self, workspace, project_name):
-        project = None
-
-        if isinstance(project_name, (int, float)):  # TODO: what if it's string "123"?
-            proj_id = int(project_name)
-            self.log.debug("Treating project name as ID: %s", proj_id)
-            project = workspace.projects(ident=proj_id).first()
+        if isinstance(project_name, (int, float)):  # project id
+            project_id = int(project_name)
+            self.log.debug("Treating project name as ID: %s", project_id)
+            project = workspace.projects(ident=project_id).first()
             if not project:
-                raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
-        elif project_name is not None:
+                raise TaurusConfigError("BlazeMeter project not found by ID: %s" % project_id)
+        elif project_name:
             project = workspace.projects(name=project_name).first()
+        else:
+            project = None
 
-        if project is None:
+        if not project:
             project = self._create_project_or_use_default(workspace, project_name)
 
         return project
@@ -965,12 +966,12 @@ class ProjectFinder(object):
 
         return test
 
-    def resolve_test_type(self):
+    def get_test_router(self):
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
         account_name = self.parameters.get("account", self.settings.get("account", None))
         workspace_name = self.parameters.get("workspace", self.settings.get("workspace", None))
-        project_name = self.parameters.get("project", self.settings.get("project", None))
+        project_name = self.parameters.get("project", self.settings.get("project"))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         launch_existing_test = self.settings.get("launch-existing-test", False)
         send_report_email = self.settings.get("send-report-email", False)
@@ -1008,9 +1009,7 @@ class ProjectFinder(object):
                 self.log.debug("Will create a multi test")
                 test_class = CloudCollectionTest
 
-        assert test_class is not None
-        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test,
-                            self.log)
+        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test, self.log)
         router._workspaces = self.workspaces
         router.cloud_mode = self.settings.get("cloud-mode", None)
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
@@ -1030,16 +1029,6 @@ class ProjectFinder(object):
                 project = workspace.create_project("Taurus Tests Project")
             return project
 
-    def _default_or_create_project(self, proj_name):
-        if proj_name:
-            return self.workspaces.first().create_project(proj_name)
-        else:
-            info = self.user.fetch()
-            project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
-            if not project:
-                project = self.workspaces.first().create_project("Taurus Tests Project")
-            return project
-
 
 class BaseCloudTest(object):
     """
@@ -1051,7 +1040,6 @@ class BaseCloudTest(object):
     """
 
     def __init__(self, user, test, project, test_name, default_location, launch_existing_test, parent_log):
-        self.default_test_name = "Taurus Test"
         self.log = parent_log.getChild(self.__class__.__name__)
         self.default_location = default_location
         self._test_name = test_name
@@ -1464,7 +1452,6 @@ class MasterProvisioning(Provisioning):
 class CloudProvisioning(MasterProvisioning, WidgetProvider):
     """
     :type user: bzt.bza.User
-    :type results_reader: ResultsFromBZA
     :type router: BaseCloudTest
     :type _workspaces: bzt.bza.BZAObjectsList[bzt.bza.Workspace]
     """
@@ -1531,7 +1518,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 (len(self.executors) == 1) and
                 isinstance(self.executors[0], SeleniumExecutor))
 
-        self.router = finder.resolve_test_type()
+        self.router = finder.get_test_router()
 
         if not self.launch_existing_test:
             self.router.prepare_locations(self.executors, self.engine.config)
