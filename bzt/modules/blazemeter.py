@@ -1490,17 +1490,20 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
 
-        func_mode = self.engine.is_functional_mode()
-        gui_mode = func_mode and (
-                (len(self.executors) == 1) and
-                isinstance(self.executors[0], SeleniumExecutor))
-        if func_mode:
-            if gui_mode:
-                test_type = FUNC_GUI_TEST_TYPE
+        test_type = self.settings.get("test-type")  # user test type
+        if not test_type:
+            func_mode = self.engine.is_functional_mode()
+            gui_mode = func_mode and (
+                    (len(self.executors) == 1) and
+                    isinstance(self.executors[0], SeleniumExecutor))
+
+            if func_mode:
+                if gui_mode:
+                    test_type = FUNC_GUI_TEST_TYPE
+                else:
+                    test_type = FUNC_API_TEST_TYPE
             else:
-                test_type = FUNC_API_TEST_TYPE
-        else:
-            test_type = TAURUS_TEST_TYPE
+                test_type = TAURUS_TEST_TYPE
 
         finder.test_type = test_type
 
