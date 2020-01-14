@@ -939,6 +939,10 @@ class ProjectFinder(object):
     def resolve_test(self, project, test_name, launch_existing_test):
         test = None
 
+        if launch_existing_test:
+            filter_test_type = None
+        else:
+            filter_test_type = self.test_type
         is_int = isinstance(test_name, (int, float))
         is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
 
@@ -947,13 +951,13 @@ class ProjectFinder(object):
             self.log.debug("Treating project name as ID: %s", test_id)
             test = project.multi_tests(ident=test_id).first()
             if not test:
-                test = project.tests(ident=test_id, test_type=self.test_type).first()
+                test = project.tests(ident=test_id, test_type=filter_test_type).first()
             if not test:
                 raise TaurusConfigError("BlazeMeter test not found by ID: %s" % test_id)
         elif test_name is not None:
             test = project.multi_tests(name=test_name).first()
             if not test:
-                test = project.tests(name=test_name, test_type=self.test_type).first()
+                test = project.tests(name=test_name, test_type=filter_test_type).first()
 
         return test
 
