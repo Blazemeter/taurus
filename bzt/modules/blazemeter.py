@@ -1491,7 +1491,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
 
-        test_type = self.settings.get("test-type")  # user test type
+        test_type = self.settings.get("test-type")  # user test type. should we mention it in doc?
         if not test_type:
             func_mode = self.engine.is_functional_mode()
             gui_mode = func_mode and (
