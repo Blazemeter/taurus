@@ -125,7 +125,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
     def test_install_mocha(self):
         dummy_installation_path = get_full_path(BUILD_DIR + "selenium-taurus/nodejs")
-        mocha_link = get_full_path(RESOURCES_DIR + "selenium/mocha-3.1.0.tgz")
+        mocha_link = get_full_path(RESOURCES_DIR + "selenium/mocha-7.0.0.tgz")
         wd_link = get_full_path(RESOURCES_DIR + "selenium/selenium-webdriver-1.0.0.tgz")
 
         shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)

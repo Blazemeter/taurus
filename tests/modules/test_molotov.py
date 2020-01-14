@@ -16,6 +16,7 @@ LOADTEST_PY = join(RESOURCES_DIR, "molotov", "loadtest.py")
 
 class TestMolotov(ExecutorTestCase):
     EXECUTOR = MolotovExecutor
+    CMD_LINE = None
 
     def tearDown(self):
         if self.obj.reader:
@@ -93,16 +94,12 @@ class TestMolotov(ExecutorTestCase):
         self.assertNotEquals(self.obj.process, None)
         self.assertTrue(exists(self.obj.report_file_name))
 
-
-class TestMolotovCmd(ExecutorTestCase):
-    EXECUTOR = MolotovExecutor
-    CMD_LINE = None
-
-    def start_subprocess(self, args, env, cwd=None, **kwargs):
-        self.CMD_LINE = args
-
-    @unittest.skipUnless(sys.version_info >= (3, 5), "enabled only on 3.5+")
     def test_think_time(self):
+        def start_subprocess(args, env, cwd=None, **kwargs):
+            self.CMD_LINE = args
+
+        self.obj.settings.merge({
+            "path": TOOL_PATH})
         self.configure({
             "execution": {
                 "scenario": "simple"},
@@ -113,7 +110,7 @@ class TestMolotovCmd(ExecutorTestCase):
                 }
             }})
         self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.engine.start_subprocess = start_subprocess
         self.obj.startup()
         self.assertTrue('--delay' in self.CMD_LINE)
         delay_val = self.CMD_LINE[self.CMD_LINE.index('--delay')+1]
