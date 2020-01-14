@@ -229,7 +229,7 @@ class User(BZAObject):
         hdr = {"Content-Type": str(body.get_content_type())}
         self._request(url, body.form_as_bytes(), headers=hdr)
 
-    def test_by_ids(self, account_id=None, workspace_id=None, project_id=None, test_id=None, launch_existing_test=True):
+    def test_by_ids(self, account_id=None, workspace_id=None, project_id=None, test_id=None, test_type=None):
         account = self.accounts(ident=account_id).first()
         if not account:
             raise ValueError("Account not found: %s" % account_id)
@@ -244,9 +244,7 @@ class User(BZAObject):
 
         test = target.multi_tests(ident=test_id).first()
         if not test:
-            test_type = None if launch_existing_test else "taurus"
             test = target.tests(ident=test_id, test_type=test_type).first()
-
             if not test:
                 raise ValueError("Test wasn't found")
 

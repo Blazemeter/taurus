@@ -936,13 +936,18 @@ class ProjectFinder(object):
 
         return project
 
-    def resolve_test(self, project, test_name, launch_existing_test):
-        test = None
-
-        if launch_existing_test:
-            filter_test_type = None
+    def _create_project_or_use_default(self, workspace, proj_name):
+        if proj_name:
+            return workspace.create_project(proj_name)
         else:
-            filter_test_type = self.test_type
+            info = self.user.fetch()
+            self.log.debug("Looking for default project: %s", info['defaultProject']['id'])
+            project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
+            if not project:
+                project = workspace.create_project("Taurus Tests Project")
+            return project
+
+    def resolve_test(self, project, test_name, test_type):
         is_int = isinstance(test_name, (int, float))
         is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
 
@@ -951,13 +956,15 @@ class ProjectFinder(object):
             self.log.debug("Treating project name as ID: %s", test_id)
             test = project.multi_tests(ident=test_id).first()
             if not test:
-                test = project.tests(ident=test_id, test_type=filter_test_type).first()
+                test = project.tests(ident=test_id, test_type=test_type).first()
             if not test:
                 raise TaurusConfigError("BlazeMeter test not found by ID: %s" % test_id)
         elif test_name is not None:
             test = project.multi_tests(name=test_name).first()
             if not test:
-                test = project.tests(name=test_name, test_type=filter_test_type).first()
+                test = project.tests(name=test_name, test_type=test_type).first()
+        else:
+            test = None
 
         return test
 
@@ -969,23 +976,24 @@ class ProjectFinder(object):
         project_name = self.parameters.get("project", self.settings.get("project"))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         launch_existing_test = self.settings.get("launch-existing-test", False)
-        send_report_email = self.settings.get("send-report-email", False)
+
+        # if we're to launch existing test - don't use test_type filter (look for any type)
+        filter_test_type = None if launch_existing_test else self.test_type
 
         test_spec = parse_blazemeter_test_link(test_name)
         self.log.debug("Parsed test link: %s", test_spec)
         if test_spec is not None:
-            # if we're to launch existing test - look for any type, otherwise - taurus only
             account, workspace, project, test = self.user.test_by_ids(test_spec.account_id, test_spec.workspace_id,
                                                                       test_spec.project_id, test_spec.test_id,
-                                                                      launch_existing_test=launch_existing_test)
-            if test is None:
+                                                                      test_type=filter_test_type)
+            if not test:
                 raise TaurusConfigError("Test not found: %s", test_name)
             self.log.info("Found test by link: %s", test_name)
         else:
             account = self.resolve_account(account_name)
             workspace = self.resolve_workspace(account, workspace_name)
             project = self.resolve_project(workspace, project_name)
-            test = self.resolve_test(project, test_name, launch_existing_test=launch_existing_test)
+            test = self.resolve_test(project, test_name, test_type=filter_test_type)
 
         if isinstance(test, MultiTest):
             self.log.debug("Detected test type: multi")
@@ -993,9 +1001,10 @@ class ProjectFinder(object):
         elif isinstance(test, Test):
             self.log.debug("Detected test type: standard")
             test_class = CloudTaurusTest
-        else:
+        else:   # test not found
             if launch_existing_test:
                 raise TaurusConfigError("Can't find test for launching: %r" % test_name)
+
             if use_deprecated or self.settings.get("cloud-mode") == 'taurusCloud':
                 self.log.debug("Will create standard test")
                 test_class = CloudTaurusTest
@@ -1008,19 +1017,8 @@ class ProjectFinder(object):
         router.cloud_mode = self.settings.get("cloud-mode", None)
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
         router.test_type = self.test_type
-        router.send_report_email = send_report_email
+        router.send_report_email = self.settings.get("send-report-email", False)
         return router
-
-    def _create_project_or_use_default(self, workspace, proj_name):
-        if proj_name:
-            return workspace.create_project(proj_name)
-        else:
-            info = self.user.fetch()
-            self.log.debug("Looking for default project: %s", info['defaultProject']['id'])
-            project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
-            if not project:
-                project = workspace.create_project("Taurus Tests Project")
-            return project
 
 
 class BaseCloudTest(object):
