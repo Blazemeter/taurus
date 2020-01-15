@@ -29,49 +29,16 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
     def test_rspec_full(self):
         self.full_run({
             'execution': {
+                'hold-for': '10s',
+                'iterations': 3,
                 'scenario': {'script': RESOURCES_DIR + 'selenium/ruby/example_spec.rb'},
             },
         })
         self.assertTrue(os.path.exists(self.obj.runner.report_file))
         with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
-        self.assertIn('--test-suite', stdout)
-        self.assertIn('example_spec.rb', stdout)
-
-    def test_rspec_hold(self):
-        self.full_run({
-            'execution': {
-                'hold-for': '10s',
-                'scenario': {'script': RESOURCES_DIR + 'selenium/ruby/example_spec.rb'},
-                'executor': 'selenium'
-            },
-        })
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
         self.assertIn('--hold-for 10', stdout)
-
-    def test_rspec_iterations(self):
-        self.full_run({
-            'execution': {
-                'iterations': 3,
-                'scenario': {'script': RESOURCES_DIR + 'selenium/ruby/example_spec.rb'},
-                'executor': 'selenium'
-            },
-        })
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
         self.assertIn('--iterations 3', stdout)
-
-    def test_interpreter(self):
-        self.configure({
-            'execution': {
-                'iterations': 3,
-                'scenario': {'script': RESOURCES_DIR + 'selenium/ruby/example_spec.rb'},
-                'executor': 'selenium'
-            },
-        })
-        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
-        self.obj.prepare()
 
     def test_rspec_report_extras(self):
         # NOTE: cloud functional tests rely on sample['extras'] being a dict
