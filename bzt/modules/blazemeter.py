@@ -831,8 +831,7 @@ class ProjectFinder(object):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.user = user
         self.workspaces = workspaces
-        self.is_functional = False
-        self.gui_mode = False
+        self.test_type = None
 
     def _find_project(self, proj_name):
         """
@@ -937,20 +936,21 @@ class ProjectFinder(object):
 
         return project
 
-    def resolve_test(self, project, test_name, taurus_only=False):
-        test = None
+    def _create_project_or_use_default(self, workspace, proj_name):
+        if proj_name:
+            return workspace.create_project(proj_name)
+        else:
+            info = self.user.fetch()
+            self.log.debug("Looking for default project: %s", info['defaultProject']['id'])
+            project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
+            if not project:
+                project = workspace.create_project("Taurus Tests Project")
+            return project
 
+    def resolve_test(self, project, test_name, test_type):
         is_int = isinstance(test_name, (int, float))
         is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
-        if self.is_functional:
-            if self.gui_mode:
-                test_type = FUNC_GUI_TEST_TYPE
-            else:
-                test_type = FUNC_API_TEST_TYPE
-        elif taurus_only:
-            test_type = TAURUS_TEST_TYPE
-        else:
-            test_type = None
+
         if is_int or is_digit:
             test_id = int(test_name)
             self.log.debug("Treating project name as ID: %s", test_id)
@@ -963,6 +963,8 @@ class ProjectFinder(object):
             test = project.multi_tests(name=test_name).first()
             if not test:
                 test = project.tests(name=test_name, test_type=test_type).first()
+        else:
+            test = None
 
         return test
 
@@ -974,24 +976,24 @@ class ProjectFinder(object):
         project_name = self.parameters.get("project", self.settings.get("project"))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         launch_existing_test = self.settings.get("launch-existing-test", False)
-        send_report_email = self.settings.get("send-report-email", False)
+
+        # if we're to launch existing test - don't use test_type filter (look for any type)
+        filter_test_type = None if launch_existing_test else self.test_type
 
         test_spec = parse_blazemeter_test_link(test_name)
         self.log.debug("Parsed test link: %s", test_spec)
-        look_for_taurus_only = not launch_existing_test
         if test_spec is not None:
-            # if we're to launch existing test - look for any type, otherwise - taurus only
             account, workspace, project, test = self.user.test_by_ids(test_spec.account_id, test_spec.workspace_id,
                                                                       test_spec.project_id, test_spec.test_id,
-                                                                      taurus_only=look_for_taurus_only)
-            if test is None:
+                                                                      test_type=filter_test_type)
+            if not test:
                 raise TaurusConfigError("Test not found: %s", test_name)
             self.log.info("Found test by link: %s", test_name)
         else:
             account = self.resolve_account(account_name)
             workspace = self.resolve_workspace(account, workspace_name)
             project = self.resolve_project(workspace, project_name)
-            test = self.resolve_test(project, test_name, taurus_only=look_for_taurus_only)
+            test = self.resolve_test(project, test_name, test_type=filter_test_type)
 
         if isinstance(test, MultiTest):
             self.log.debug("Detected test type: multi")
@@ -999,9 +1001,10 @@ class ProjectFinder(object):
         elif isinstance(test, Test):
             self.log.debug("Detected test type: standard")
             test_class = CloudTaurusTest
-        else:
+        else:   # test not found
             if launch_existing_test:
                 raise TaurusConfigError("Can't find test for launching: %r" % test_name)
+
             if use_deprecated or self.settings.get("cloud-mode") == 'taurusCloud':
                 self.log.debug("Will create standard test")
                 test_class = CloudTaurusTest
@@ -1013,21 +1016,9 @@ class ProjectFinder(object):
         router._workspaces = self.workspaces
         router.cloud_mode = self.settings.get("cloud-mode", None)
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
-        router.is_functional = self.is_functional
-        router.gui_mode = self.gui_mode
-        router.send_report_email = send_report_email
+        router.test_type = self.test_type
+        router.send_report_email = self.settings.get("send-report-email", False)
         return router
-
-    def _create_project_or_use_default(self, workspace, proj_name):
-        if proj_name:
-            return workspace.create_project(proj_name)
-        else:
-            info = self.user.fetch()
-            self.log.debug("Looking for default project: %s", info['defaultProject']['id'])
-            project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
-            if not project:
-                project = workspace.create_project("Taurus Tests Project")
-            return project
 
 
 class BaseCloudTest(object):
@@ -1054,8 +1045,7 @@ class BaseCloudTest(object):
         self._workspaces = None
         self.cloud_mode = None
         self.dedicated_ips = False
-        self.is_functional = False
-        self.gui_mode = False
+        self.test_type = None
         self.send_report_email = False
 
     @abstractmethod
@@ -1149,24 +1139,13 @@ class CloudTaurusTest(BaseCloudTest):
 
         if self._test is not None:
             test_type = self._test.get("configuration").get("type")
-            func_modes = FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE
-            should_be_func = (self.is_functional and (test_type not in func_modes))
-            should_be_taurus = (not self.is_functional and test_type != TAURUS_TEST_TYPE)
-            if should_be_func or should_be_taurus:
+            if test_type != self.test_type:
                 self.log.debug("Can't reuse test type %r as Taurus test, will create new one", test_type)
                 self._test = None
 
         if self._test is None:
-            if self.is_functional:
-                if self.gui_mode:
-                    test_type = FUNC_GUI_TEST_TYPE
-                else:
-                    test_type = FUNC_API_TEST_TYPE
-            else:
-                test_type = TAURUS_TEST_TYPE
-
             test_config = {
-                "type": test_type,
+                "type": self.test_type,
                 "plugins": {
                     "taurus": {
                         "filename": ""  # without this line it does not work
@@ -1192,7 +1171,7 @@ class CloudTaurusTest(BaseCloudTest):
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
-        self.master = self._test.start(as_functional=self.is_functional)
+        self.master = self._test.start(as_functional=self.test_type in (FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE))
         return self.master.address + '/app/#/masters/%s' % self.master['id']
 
     def start_if_ready(self):
@@ -1512,11 +1491,22 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
 
-        func_mode = self.engine.is_functional_mode()
-        finder.is_functional = func_mode
-        finder.gui_mode = func_mode and (
-                (len(self.executors) == 1) and
-                isinstance(self.executors[0], SeleniumExecutor))
+        test_type = self.settings.get("test-type")  # user test type. should we mention it in doc?
+        if not test_type:
+            func_mode = self.engine.is_functional_mode()
+            gui_mode = func_mode and (
+                    (len(self.executors) == 1) and
+                    isinstance(self.executors[0], SeleniumExecutor))
+
+            if func_mode:
+                if gui_mode:
+                    test_type = FUNC_GUI_TEST_TYPE
+                else:
+                    test_type = FUNC_API_TEST_TYPE
+            else:
+                test_type = TAURUS_TEST_TYPE
+
+        finder.test_type = test_type
 
         self.router = finder.get_test_router()
 
