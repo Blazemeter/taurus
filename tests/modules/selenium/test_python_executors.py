@@ -51,7 +51,7 @@ class TestLocatorsMagager(BZTestCase):
         self.assertEqual(30, driver.waiting_time)
 
 
-class TestSeleniumNoseRunner(SeleniumTestCase):
+class TestSeleniumApiritifRunner(SeleniumTestCase):
     def test_selenium_prepare_python_single(self):
         """
         Check if script exists in working dir
@@ -121,7 +121,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
 
     def test_runner_fail_no_test_found(self):
         """
-        Check that Python Nose runner fails if no tests were found
+        Check that Python Apiritif runner fails if no tests were found
         :return:
         """
         self.configure({
@@ -182,7 +182,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             self.obj.shutdown()
 
 
-class TestNoseRunner(ExecutorTestCase):
+class TestApiritifRunner(ExecutorTestCase):
     EXECUTOR = ApiritifNoseExecutor
 
     def test_full_single_script(self):

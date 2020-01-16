@@ -3,63 +3,56 @@ import os
 import time
 
 from bzt.utils import is_windows
+from bzt.modules.selenium import SeleniumExecutor
 from tests import RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
 
 
 class TestSeleniumRSpecRunner(SeleniumTestCase):
-    def test_selenium_prepare_rspec(self):
-        self.configure({
-            "execution": {
-                "scenario": {
-                    "script": RESOURCES_DIR + "selenium/ruby/example_spec.rb"
-                }}})
-        self.obj.prepare()
-
-    def full_run(self, config):
+    def prepare_runner(self, config):
         self.configure(config)
+        super(SeleniumExecutor, self.obj).prepare()
+        self.obj.install_required_tools()
+        for driver in self.obj.webdrivers:
+            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+        self.obj.create_runner()
+
         dummy = RESOURCES_DIR + 'selenium/ruby/ruby' + ('.bat' if is_windows() else '.sh')
-        self.obj.prepare()
         self.obj.runner.settings.merge({"interpreter": dummy})
+        self.obj.runner.settings.merge({"path": dummy})
+        self.obj.runner.prepare()
+        self.obj.script = self.obj.runner.script
+
         self.obj.startup()
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
     def test_rspec_full(self):
-        self.full_run({
+        self.prepare_runner({
             'execution': {
                 'hold-for': '10s',
                 'iterations': 3,
                 'scenario': {'script': RESOURCES_DIR + 'selenium/ruby/example_spec.rb'},
             },
         })
-        self.assertTrue(os.path.exists(self.obj.runner.report_file))
         with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn('--hold-for 10', stdout)
         self.assertIn('--iterations 3', stdout)
 
-    def test_rspec_report_extras(self):
-        # NOTE: cloud functional tests rely on sample['extras'] being a dict
-        # this test verifies it
+    def test_selenium_prepare_rspec(self):
         self.configure({
-            'execution': {
-                'iterations': 1,
-                'scenario': {'script': RESOURCES_DIR + 'selenium/ruby/example_spec.rb'},
-                'executor': 'selenium'
-            },
-        })
+            "execution": {
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/ruby/example_spec.rb"
+                }}})
+
+        dummy = RESOURCES_DIR + 'selenium/ruby/ruby' + ('.bat' if is_windows() else '.sh')
+
+        self.obj.settings.merge({"interpreter": dummy})
+        self.obj.settings.merge({"path": dummy})
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+
         self.obj.prepare()
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.report_file))
-        lines = open(self.obj.runner.report_file).readlines()
-        self.assertEqual(len(lines), 3)
-        for line in lines:
-            sample = json.loads(line)
-            self.assertIsNotNone(sample['extras'])
-            self.assertIsInstance(sample['extras'], dict)
+        self.assertEqual(self.obj.script, RESOURCES_DIR + "selenium/ruby/example_spec.rb")
