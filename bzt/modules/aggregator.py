@@ -69,8 +69,8 @@ class SinglePassIterator(RecordedIterator):
         # histogram
         self.hist_values[item.value_iterated_to] = item.count_at_value_iterated_to
 
-        # stddev
-        dev = (self.histogram._hdr_median_equiv_value(item.value_iterated_to) * 1.0) - self._mean  # FIXME: protected mt
+        # stddev FIXME: protected mt
+        dev = (self.histogram._hdr_median_equiv_value(item.value_iterated_to) * 1.0) - self._mean * 1000
         self._geometric_dev_total += (dev * dev) * item.count_added_in_this_iter_step
 
         # percentiles

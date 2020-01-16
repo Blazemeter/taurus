@@ -824,10 +824,6 @@ class DatapointSerializer(object):
 
 
 class ProjectFinder(object):
-    """
-    :type user: User
-    """
-
     def __init__(self, parameters, settings, user, workspaces, parent_log):
         super(ProjectFinder, self).__init__()
         self.default_test_name = "Taurus Test"
@@ -836,24 +832,24 @@ class ProjectFinder(object):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.user = user
         self.workspaces = workspaces
-        self.is_functional = False
-        self.gui_mode = False
+        self.test_type = None
 
     def _find_project(self, proj_name):
         """
         :rtype: bzt.bza.Project
         """
-        if isinstance(proj_name, (int, float)):  # TODO: what if it's string "123"?
+        if isinstance(proj_name, (int, float)):  # project id
             proj_id = int(proj_name)
             self.log.debug("Treating project name as ID: %s", proj_id)
             project = self.workspaces.projects(ident=proj_id).first()
             if not project:
                 raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
-            return project
-        elif proj_name is not None:
-            return self.workspaces.projects(name=proj_name).first()
+        elif proj_name:
+            project = self.workspaces.projects(name=proj_name).first()
+        else:
+            project = None
 
-        return None
+        return project
 
     def _ws_proj_switch(self, project):
         if project:
@@ -862,18 +858,22 @@ class ProjectFinder(object):
             return self.workspaces
 
     def resolve_external_test(self):
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        proj_name = self.parameters.get("project", self.settings.get("project"))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
         project = self._find_project(proj_name)
         if not project and proj_name:
-            project = self._default_or_create_project(proj_name)
+            project = self.workspaces.first().create_project(proj_name)
 
         test = self._ws_proj_switch(project).tests(name=test_name, test_type='external').first()
 
         if not test:
             if not project:
-                project = self._default_or_create_project(proj_name)
+                info = self.user.fetch()
+                project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
+                if not project:
+                    project = self.workspaces.first().create_project("Taurus Tests Project")
+
             test = project.create_test(test_name, {"type": "external"})
 
         return test
@@ -921,104 +921,21 @@ class ProjectFinder(object):
         return workspace
 
     def resolve_project(self, workspace, project_name):
-        project = None
-
-        if isinstance(project_name, (int, float)):  # TODO: what if it's string "123"?
-            proj_id = int(project_name)
-            self.log.debug("Treating project name as ID: %s", proj_id)
-            project = workspace.projects(ident=proj_id).first()
+        if isinstance(project_name, (int, float)):  # project id
+            project_id = int(project_name)
+            self.log.debug("Treating project name as ID: %s", project_id)
+            project = workspace.projects(ident=project_id).first()
             if not project:
-                raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
-        elif project_name is not None:
+                raise TaurusConfigError("BlazeMeter project not found by ID: %s" % project_id)
+        elif project_name:
             project = workspace.projects(name=project_name).first()
+        else:
+            project = None
 
-        if project is None:
+        if not project:
             project = self._create_project_or_use_default(workspace, project_name)
 
         return project
-
-    def resolve_test(self, project, test_name, taurus_only=False):
-        test = None
-
-        is_int = isinstance(test_name, (int, float))
-        is_digit = isinstance(test_name, (str, str)) and test_name.isdigit()
-        if self.is_functional:
-            if self.gui_mode:
-                test_type = FUNC_GUI_TEST_TYPE
-            else:
-                test_type = FUNC_API_TEST_TYPE
-        elif taurus_only:
-            test_type = TAURUS_TEST_TYPE
-        else:
-            test_type = None
-        if is_int or is_digit:
-            test_id = int(test_name)
-            self.log.debug("Treating project name as ID: %s", test_id)
-            test = project.multi_tests(ident=test_id).first()
-            if not test:
-                test = project.tests(ident=test_id, test_type=test_type).first()
-            if not test:
-                raise TaurusConfigError("BlazeMeter test not found by ID: %s" % test_id)
-        elif test_name is not None:
-            test = project.multi_tests(name=test_name).first()
-            if not test:
-                test = project.tests(name=test_name, test_type=test_type).first()
-
-        return test
-
-    def resolve_test_type(self):
-        use_deprecated = self.settings.get("use-deprecated-api", True)
-        default_location = self.settings.get("default-location", None)
-        account_name = self.parameters.get("account", self.settings.get("account", None))
-        workspace_name = self.parameters.get("workspace", self.settings.get("workspace", None))
-        project_name = self.parameters.get("project", self.settings.get("project", None))
-        test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
-        launch_existing_test = self.settings.get("launch-existing-test", False)
-        send_report_email = self.settings.get("send-report-email", False)
-
-        test_spec = parse_blazemeter_test_link(test_name)
-        self.log.debug("Parsed test link: %s", test_spec)
-        look_for_taurus_only = not launch_existing_test
-        if test_spec is not None:
-            # if we're to launch existing test - look for any type, otherwise - taurus only
-            account, workspace, project, test = self.user.test_by_ids(test_spec.account_id, test_spec.workspace_id,
-                                                                      test_spec.project_id, test_spec.test_id,
-                                                                      taurus_only=look_for_taurus_only)
-            if test is None:
-                raise TaurusConfigError("Test not found: %s", test_name)
-            self.log.info("Found test by link: %s", test_name)
-        else:
-            account = self.resolve_account(account_name)
-            workspace = self.resolve_workspace(account, workspace_name)
-            project = self.resolve_project(workspace, project_name)
-            test = self.resolve_test(project, test_name, taurus_only=look_for_taurus_only)
-
-        if isinstance(test, MultiTest):
-            self.log.debug("Detected test type: multi")
-            test_class = CloudCollectionTest
-        elif isinstance(test, Test):
-            self.log.debug("Detected test type: standard")
-            test_class = CloudTaurusTest
-        else:
-            if launch_existing_test:
-                raise TaurusConfigError("Can't find test for launching: %r" % test_name)
-            if use_deprecated or self.settings.get("cloud-mode") == 'taurusCloud':
-                self.log.debug("Will create standard test")
-                test_class = CloudTaurusTest
-            else:
-                self.log.debug("Will create a multi test")
-                test_class = CloudCollectionTest
-
-        assert test_class is not None
-        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test,
-                            self.log)
-        router._workspaces = self.workspaces
-        router.cloud_mode = self.settings.get("cloud-mode", None)
-        router.dedicated_ips = self.settings.get("dedicated-ips", False)
-        router.is_functional = self.is_functional
-        router.gui_mode = self.gui_mode
-        router.send_report_email = send_report_email
-        return router
 
     def _create_project_or_use_default(self, workspace, proj_name):
         if proj_name:
@@ -1031,15 +948,91 @@ class ProjectFinder(object):
                 project = workspace.create_project("Taurus Tests Project")
             return project
 
-    def _default_or_create_project(self, proj_name):
-        if proj_name:
-            return self.workspaces.first().create_project(proj_name)
+    def resolve_test(self, project, test_name, test_type):
+        is_int = isinstance(test_name, (int, float))
+<<<<<<< HEAD
+        is_digit = isinstance(test_name, (str, str)) and test_name.isdigit()
+        if self.is_functional:
+            if self.gui_mode:
+                test_type = FUNC_GUI_TEST_TYPE
+            else:
+                test_type = FUNC_API_TEST_TYPE
+        elif taurus_only:
+            test_type = TAURUS_TEST_TYPE
         else:
-            info = self.user.fetch()
-            project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
-            if not project:
-                project = self.workspaces.first().create_project("Taurus Tests Project")
-            return project
+            test_type = None
+=======
+        is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
+
+>>>>>>> 20fd6e1fe60f673f61881114a5e5e2a15cf48841
+        if is_int or is_digit:
+            test_id = int(test_name)
+            self.log.debug("Treating project name as ID: %s", test_id)
+            test = project.multi_tests(ident=test_id).first()
+            if not test:
+                test = project.tests(ident=test_id, test_type=test_type).first()
+            if not test:
+                raise TaurusConfigError("BlazeMeter test not found by ID: %s" % test_id)
+        elif test_name is not None:
+            test = project.multi_tests(name=test_name).first()
+            if not test:
+                test = project.tests(name=test_name, test_type=test_type).first()
+        else:
+            test = None
+
+        return test
+
+    def get_test_router(self):
+        use_deprecated = self.settings.get("use-deprecated-api", True)
+        default_location = self.settings.get("default-location", None)
+        account_name = self.parameters.get("account", self.settings.get("account", None))
+        workspace_name = self.parameters.get("workspace", self.settings.get("workspace", None))
+        project_name = self.parameters.get("project", self.settings.get("project"))
+        test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        launch_existing_test = self.settings.get("launch-existing-test", False)
+
+        # if we're to launch existing test - don't use test_type filter (look for any type)
+        filter_test_type = None if launch_existing_test else self.test_type
+
+        test_spec = parse_blazemeter_test_link(test_name)
+        self.log.debug("Parsed test link: %s", test_spec)
+        if test_spec is not None:
+            account, workspace, project, test = self.user.test_by_ids(test_spec.account_id, test_spec.workspace_id,
+                                                                      test_spec.project_id, test_spec.test_id,
+                                                                      test_type=filter_test_type)
+            if not test:
+                raise TaurusConfigError("Test not found: %s", test_name)
+            self.log.info("Found test by link: %s", test_name)
+        else:
+            account = self.resolve_account(account_name)
+            workspace = self.resolve_workspace(account, workspace_name)
+            project = self.resolve_project(workspace, project_name)
+            test = self.resolve_test(project, test_name, test_type=filter_test_type)
+
+        if isinstance(test, MultiTest):
+            self.log.debug("Detected test type: multi")
+            test_class = CloudCollectionTest
+        elif isinstance(test, Test):
+            self.log.debug("Detected test type: standard")
+            test_class = CloudTaurusTest
+        else:   # test not found
+            if launch_existing_test:
+                raise TaurusConfigError("Can't find test for launching: %r" % test_name)
+
+            if use_deprecated or self.settings.get("cloud-mode") == 'taurusCloud':
+                self.log.debug("Will create standard test")
+                test_class = CloudTaurusTest
+            else:
+                self.log.debug("Will create a multi test")
+                test_class = CloudCollectionTest
+
+        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test, self.log)
+        router._workspaces = self.workspaces
+        router.cloud_mode = self.settings.get("cloud-mode", None)
+        router.dedicated_ips = self.settings.get("dedicated-ips", False)
+        router.test_type = self.test_type
+        router.send_report_email = self.settings.get("send-report-email", False)
+        return router
 
 
 class BaseCloudTest(object):
@@ -1052,7 +1045,6 @@ class BaseCloudTest(object):
     """
 
     def __init__(self, user, test, project, test_name, default_location, launch_existing_test, parent_log):
-        self.default_test_name = "Taurus Test"
         self.log = parent_log.getChild(self.__class__.__name__)
         self.default_location = default_location
         self._test_name = test_name
@@ -1067,8 +1059,7 @@ class BaseCloudTest(object):
         self._workspaces = None
         self.cloud_mode = None
         self.dedicated_ips = False
-        self.is_functional = False
-        self.gui_mode = False
+        self.test_type = None
         self.send_report_email = False
 
     @abstractmethod
@@ -1162,24 +1153,13 @@ class CloudTaurusTest(BaseCloudTest):
 
         if self._test is not None:
             test_type = self._test.get("configuration").get("type")
-            func_modes = FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE
-            should_be_func = (self.is_functional and (test_type not in func_modes))
-            should_be_taurus = (not self.is_functional and test_type != TAURUS_TEST_TYPE)
-            if should_be_func or should_be_taurus:
+            if test_type != self.test_type:
                 self.log.debug("Can't reuse test type %r as Taurus test, will create new one", test_type)
                 self._test = None
 
         if self._test is None:
-            if self.is_functional:
-                if self.gui_mode:
-                    test_type = FUNC_GUI_TEST_TYPE
-                else:
-                    test_type = FUNC_API_TEST_TYPE
-            else:
-                test_type = TAURUS_TEST_TYPE
-
             test_config = {
-                "type": test_type,
+                "type": self.test_type,
                 "plugins": {
                     "taurus": {
                         "filename": ""  # without this line it does not work
@@ -1205,7 +1185,7 @@ class CloudTaurusTest(BaseCloudTest):
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
-        self.master = self._test.start(as_functional=self.is_functional)
+        self.master = self._test.start(as_functional=self.test_type in (FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE))
         return self.master.address + '/app/#/masters/%s' % self.master['id']
 
     def start_if_ready(self):
@@ -1465,7 +1445,6 @@ class MasterProvisioning(Provisioning):
 class CloudProvisioning(MasterProvisioning, WidgetProvider):
     """
     :type user: bzt.bza.User
-    :type results_reader: ResultsFromBZA
     :type router: BaseCloudTest
     :type _workspaces: bzt.bza.BZAObjectsList[bzt.bza.Workspace]
     """
@@ -1526,13 +1505,24 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
 
-        func_mode = self.engine.is_functional_mode()
-        finder.is_functional = func_mode
-        finder.gui_mode = func_mode and (
-                (len(self.executors) == 1) and
-                isinstance(self.executors[0], SeleniumExecutor))
+        test_type = self.settings.get("test-type")  # user test type. should we mention it in doc?
+        if not test_type:
+            func_mode = self.engine.is_functional_mode()
+            gui_mode = func_mode and (
+                    (len(self.executors) == 1) and
+                    isinstance(self.executors[0], SeleniumExecutor))
 
-        self.router = finder.resolve_test_type()
+            if func_mode:
+                if gui_mode:
+                    test_type = FUNC_GUI_TEST_TYPE
+                else:
+                    test_type = FUNC_API_TEST_TYPE
+            else:
+                test_type = TAURUS_TEST_TYPE
+
+        finder.test_type = test_type
+
+        self.router = finder.get_test_router()
 
         if not self.launch_existing_test:
             self.router.prepare_locations(self.executors, self.engine.config)

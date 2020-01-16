@@ -227,7 +227,7 @@ class User(BZAObject):
         hdr = {"Content-Type": str(body.get_content_type())}
         self._request(url, body.form_as_bytes(), headers=hdr)
 
-    def test_by_ids(self, account_id=None, workspace_id=None, project_id=None, test_id=None, taurus_only=False):
+    def test_by_ids(self, account_id=None, workspace_id=None, project_id=None, test_id=None, test_type=None):
         account = self.accounts(ident=account_id).first()
         if not account:
             raise ValueError("Account not found: %s" % account_id)
@@ -241,12 +241,10 @@ class User(BZAObject):
             target = workspace
 
         test = target.multi_tests(ident=test_id).first()
-        if test is None:
-            test_type = "taurus" if taurus_only else None
+        if not test:
             test = target.tests(ident=test_id, test_type=test_type).first()
-
-        if test is None:
-            raise ValueError("Test wasn't found")
+            if not test:
+                raise ValueError("Test wasn't found")
 
         return account, workspace, project, test
 
@@ -336,10 +334,10 @@ class Workspace(BZAObject):
             if ident is not None and item['id'] != ident:
                 continue
 
-            if name is not None and item['name'] != name:
+            if name and item['name'] != name:
                 continue
 
-            if test_type is not None and item['configuration']['type'] != test_type:
+            if test_type and item['configuration']['type'] != test_type:
                 continue
 
             tests.append(Test(self, item))
