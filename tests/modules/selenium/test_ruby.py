@@ -45,7 +45,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.configure({
             "execution": {
                 "scenario": {
-                    "script": RESOURCES_DIR + "selenium/ruby/example_spec.rb"
+                    "script": os.path.normpath(RESOURCES_DIR + "selenium/ruby/example_spec.rb")
                 }}})
 
         dummy = RESOURCES_DIR + 'selenium/ruby/ruby' + ('.bat' if is_windows() else '.sh')
