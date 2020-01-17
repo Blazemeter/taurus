@@ -45,7 +45,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.configure({
             "execution": {
                 "scenario": {
-                    "script": os.path.normpath(RESOURCES_DIR + "selenium/ruby/example_spec.rb")
+                    "script": RESOURCES_DIR + "selenium/ruby/example_spec.rb"
                 }}})
 
         dummy = RESOURCES_DIR + 'selenium/ruby/ruby' + ('.bat' if is_windows() else '.sh')
@@ -55,4 +55,4 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
 
         self.obj.prepare()
-        self.assertEqual(self.obj.script, RESOURCES_DIR + "selenium/ruby/example_spec.rb")
+        self.assertEqual(self.obj.script, os.path.normpath(RESOURCES_DIR + "selenium/ruby/example_spec.rb"))
