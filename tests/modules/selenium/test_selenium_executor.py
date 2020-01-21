@@ -284,9 +284,6 @@ class TestSeleniumStuff(SeleniumTestCase):
 
         reader.close()
         self.obj.runner._tailer.close()
-        # self.obj.runner.reader.underlings[0].csvreader.file.close()
-
-        # self.assertEquals(4, len(list(lines)))
 
     def test_fail_on_zero_results(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
