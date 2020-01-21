@@ -1,7 +1,7 @@
 import json
 import os
-
 import time
+import yaml
 
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
@@ -502,6 +502,10 @@ class TestPyTestExecutor(ExecutorTestCase):
 
 class TestRobotExecutor(ExecutorTestCase):
     EXECUTOR = RobotExecutor
+    CMD_LINE = None
+
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
+        self.CMD_LINE = args
 
     def test_full_single_script(self):
         self.configure({
@@ -531,23 +535,18 @@ class TestRobotExecutor(ExecutorTestCase):
         self.configure({
             "execution": [{
                 "hold-for": "5s",
+                "iterations": 3,
                 "scenario": {
                     "script": RESOURCES_DIR + "selenium/robot/simple/test.robot"
                 }
             }]
         })
         self.obj.prepare()
-        try:
-            start_time = time.time()
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        self.assertTrue(os.path.exists(self.obj.report_file))
-        duration = time.time() - start_time
-        self.assertGreater(duration, 5)
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.assertTrue('--duration' in self.CMD_LINE)
+        dur_val = self.CMD_LINE[self.CMD_LINE.index('--duration')+1]
+        self.assertEqual(dur_val, '5.0')
 
     def test_iterations(self):
         self.configure({
@@ -559,17 +558,11 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.obj.prepare()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        self.assertFalse(self.obj.has_results())
-        self.assertNotEquals(self.obj.process, None)
-        lines = open(self.obj.report_file).readlines()
-        self.assertEqual(3 * 5, len(lines))
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.assertTrue('--iterations' in self.CMD_LINE)
+        iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations')+1]
+        self.assertEqual(iters_val, '3')
 
     def test_variables(self):
         self.configure({
@@ -584,19 +577,12 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.obj.prepare()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        self.assertFalse(self.obj.has_results())
-        self.assertNotEquals(self.obj.process, None)
-        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
-        self.obj.log.info(samples)
-        self.assertEqual(5, len(samples))
-        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.assertTrue('--variablefile' in self.CMD_LINE)
+        var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile')+1]
+        self.assertTrue(var_file.endswith("robot-vars.yaml"))
+        self.assertEqual('janedoe', yaml.load(open(var_file).read())['USERNAME'])
 
     def test_variables_file(self):
         self.configure({
@@ -609,19 +595,11 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.obj.prepare()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        self.assertFalse(self.obj.has_results())
-        self.assertNotEquals(self.obj.process, None)
-        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
-        self.obj.log.info(samples)
-        self.assertEqual(5, len(samples))
-        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.assertTrue('--variablefile' in self.CMD_LINE)
+        var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile')+1]
+        self.assertEqual(var_file, RESOURCES_DIR + "selenium/robot/simple/vars.yaml")
 
     def test_single_tag(self):
         self.configure({
@@ -634,19 +612,11 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.obj.prepare()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        self.assertFalse(self.obj.has_results())
-        self.assertNotEquals(self.obj.process, None)
-        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
-        self.obj.log.info(samples)
-        self.assertEqual(1, len(samples))
-        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.assertTrue('--include' in self.CMD_LINE)
+        tags = self.CMD_LINE[self.CMD_LINE.index('--include')+1]
+        self.assertEqual(tags, 'create')
 
     def test_multiple_tags(self):
         self.configure({
@@ -659,16 +629,8 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.obj.prepare()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        self.assertFalse(self.obj.has_results())
-        self.assertNotEquals(self.obj.process, None)
-        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
-        self.obj.log.info(samples)
-        self.assertEqual(2, len(samples))
-        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.assertTrue('--include' in self.CMD_LINE)
+        tags = self.CMD_LINE[self.CMD_LINE.index('--include')+1]
+        self.assertEqual(tags, 'create,database')
