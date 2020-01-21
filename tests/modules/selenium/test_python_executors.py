@@ -188,8 +188,8 @@ class TestApiritifRunner(ExecutorTestCase):
         self.obj.engine.check_interval = 0.1
         self.obj.execution.merge({
             "iterations": 1,
-            "ramp-up": "10s",
-            "hold-for": "10s",
+            "ramp-up": "5s",
+            "hold-for": "5s",
             "steps": 5,
             "scenario": {
                 "script": RESOURCES_DIR + "apiritif/test_codegen.py"}})

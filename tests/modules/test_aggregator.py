@@ -73,7 +73,7 @@ class TestResultsReader(BZTestCase):
 
         res = {}
         # current measurements shows ~25K samples/sec
-        for cnt in (10000, 25000, 40000, 50000):
+        for cnt in (10000, 25000, 50000):
             for a in range(0, cnt):
                 sample = (cnt, "", 1, r(1000), r(1000), r(1000), rc(), err(), '', 0)
                 mock.data.append(sample)
