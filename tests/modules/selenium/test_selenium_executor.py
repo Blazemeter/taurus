@@ -266,14 +266,14 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.startup()
 
     def test_from_extension(self):
-        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
+        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
 
     def test_requests(self):
-        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.engine.start_subprocess = self.start_subprocess
