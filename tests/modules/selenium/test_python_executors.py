@@ -353,6 +353,10 @@ class TestApiritifRunner(ExecutorTestCase):
 
 class TestPyTestExecutor(ExecutorTestCase):
     EXECUTOR = PyTestExecutor
+    CMD_LINE = None
+
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
+        self.CMD_LINE = args
 
     def test_full_single_script(self):
         self.obj.execution.merge({
@@ -408,17 +412,11 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
         self.obj.prepare()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        with open(self.obj.report_file) as fds:
-            report = [json.loads(line) for line in fds.readlines() if line]
-        self.assertEqual(10, len(report))
-        self.assertTrue(all(item["status"] == "PASSED" for item in report))
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.assertTrue('-i' in self.CMD_LINE)
+        iter_val = self.CMD_LINE[self.CMD_LINE.index('-i')+1]
+        self.assertEqual(iter_val, '10')
 
     def test_hold(self):
         self.obj.execution.merge({
@@ -428,17 +426,11 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
         self.obj.prepare()
-        try:
-            start_time = time.time()
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-            end_time = time.time()
-        self.obj.post_process()
-        duration = end_time - start_time
-        self.assertGreaterEqual(duration, 3.0)
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.assertTrue('-d' in self.CMD_LINE)
+        iter_val = self.CMD_LINE[self.CMD_LINE.index('-d')+1]
+        self.assertEqual(iter_val, '3.0')
 
     def test_blazedemo(self):
         self.obj.engine.check_interval = 0.1
