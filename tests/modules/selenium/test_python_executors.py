@@ -599,7 +599,7 @@ class TestRobotExecutor(ExecutorTestCase):
         self.obj.startup()
         self.assertTrue('--variablefile' in self.CMD_LINE)
         var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile')+1]
-        self.assertEqual(var_file, RESOURCES_DIR + "selenium/robot/simple/vars.yaml")
+        self.assertEqual(var_file, os.path.normpath(RESOURCES_DIR + "selenium/robot/simple/vars.yaml"))
 
     def test_single_tag(self):
         self.configure({
