@@ -232,13 +232,12 @@ from selenium.webdriver.common.keys import Keys
                 gen_subscript(var_w_locator, 1)
             ])
 
-    @staticmethod
-    def _gen_get_locators(var_name, locators):
+    def _gen_get_locators(self, var_name, locators):
         args = []
         for loc in locators:
             locator_type = list(loc.keys())[0]
             locator_value = loc[locator_type]
-            args.append(ast.Dict([ast.Str(locator_type)], [ast.Str(locator_value)]))
+            args.append(ast.Dict([ast.Str(locator_type)], [self._gen_expr(locator_value)]))
 
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store())],

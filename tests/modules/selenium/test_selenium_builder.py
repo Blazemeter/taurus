@@ -865,6 +865,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "loc_sc": {
                         "default-address": "http://blazedemo.com,",
                         "variables": {
+                            "my_xpath_locator": "/html/body/div[3]",
                             "red_pill": "take_it,",
                             "name": "Name"
                         },
@@ -889,7 +890,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "type": "mouseDown",
                                         "locators": [
                                             {"id": "invalid_id"},
-                                            {"xpath": "/html/body/div[3]/form/select[1]"}
+                                            {"xpath": "${my_xpath_locator}"}
                                         ]
                                     },
                                     {
