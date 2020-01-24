@@ -164,7 +164,7 @@
                         </li>
                     {/if}
                 {/foreach}
-                <form action="http://www.google.com/search" class="searchform pull-right" method="get" name="searchform">
+                <form action="https://www.google.com/search" class="searchform pull-right" method="get" name="searchform">
                     <input name="sitesearch" type="hidden" value="gettaurus.org">
                     <input autocomplete="on" class="form-controls search" name="q" placeholder="Search site..." required="required"  type="text">
                     <button class="button" type="submit"><i class="fa fa-search"></i></button>
