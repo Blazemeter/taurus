@@ -93,6 +93,8 @@ class ApiritifScriptGenerator(object):
                         'resize', 'maximize', 'alert'
                         ])
 
+    EXECUTION_BLOCKS = "|".join(['if'])
+
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
     IMPORTS = """import os
@@ -158,7 +160,8 @@ from selenium.webdriver.common.keys import Keys
 
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
-        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (self.ACTIONS, tags), re.IGNORECASE)
+        all_actions = self.ACTIONS + "|" + self.EXECUTION_BLOCKS
+        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
         selectors = []
@@ -623,11 +626,36 @@ from selenium.webdriver.common.keys import Keys
             action_elements.extend(self._gen_screenshot_mngr(param))
         elif atype == 'alert':
             action_elements.extend(self._gen_alert(param))
+        elif atype == 'if':
+            action_elements.append(self._gen_condition_mngr(param, action_config))
 
         if not action_elements and not self.ignore_unknown_actions:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
+
+    def _gen_condition_mngr(self, param, action_config):
+        if not action_config.get('then'):
+            raise TaurusConfigError("Missing then branch in if statement")
+
+        test = ast.Assign(targets=[ast.Name(id='test', ctx=ast.Store())],
+                          value=ast_call(func=ast_attr("self.driver.execute_script"),
+                                         args=[self._gen_expr("return %s;" % param)]))
+
+        body = []
+        for action in action_config.get('then'):
+            body.append(self._gen_action(action))
+
+        orelse = []
+        if action_config.get('else'):
+            for action in action_config.get('else'):
+                orelse.append(self._gen_action(action))
+
+        return [test,
+                [ast.If(
+                    test=[ast.Name(id='test')],
+                    body=body,
+                    orelse=orelse)]]
 
     def _check_platform(self):
         mobile_browsers = ["chrome", "safari"]

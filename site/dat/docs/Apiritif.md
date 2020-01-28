@@ -193,6 +193,55 @@ This is an example how it looks like:
 ```
 You can see full example [here](#Sample-scenario-using-multiple-locators).
 
+##### If Blocks
+
+Apiritif allows to control execution flow using `if` blocks. These blocks enable 
+conditional execution of actions.
+
+Each `if` block should contain a mandatory `then` field, and an optional `else` field. Both `then` and `else` fields
+should contain list of actions.
+
+Here's a simple example:
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    variables:
+      elem_id: id_123
+    timeout: 10s
+    requests:
+      - label: example1
+        actions:
+          - go(http://blazedemo.com)
+          - if: 'document.getElementById("${elem_id}") !== undefined'
+            then:
+              - type: clickById(${elem_id})
+            else:
+              - go(http://blazedemo.com/login)
+```
+
+Logic blocks can also be nested:
+
+```yaml
+scenarios:
+  nested_example:
+    requests:
+      - label: nested_req
+        actions:
+          - if: <condition1>
+            then:
+              - if: <condition2>
+                then:
+                  - go(https://google.com/)
+                else:
+                  - go(https://yahoo.com/)
+            else:
+              - go(https://bing.com/)
+```
+
+Note that `<conditions>` are evaluated as JavaScript code so they must contain valid JavaScript expression 
+that yields boolean value.
 
 ### Alert
 For alert handling, use the following methods:
