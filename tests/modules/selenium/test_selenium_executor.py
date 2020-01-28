@@ -115,24 +115,6 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.check_flow_markers()
         self.check_samples()
 
-    def test_data_source_in_action(self):
-        self.configure({
-            EXEC: {
-                "executor": "selenium",
-                "iterations": 1,
-                "scenario": {
-                    "data-sources": [RESOURCES_DIR + "selenium/data-sources/data.csv"],
-                    "requests": [{
-                        "label": "exec_it",
-                        "assert": ["Simple Travel Agency"],
-                        "actions": ["go(${host}/${page})"]}]}}})
-        self.obj.prepare()
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-        self.obj.post_process()
-
     def start_subprocess(self, args, env, cwd=None, **kwargs):
         self.CMD_LINE = args
 

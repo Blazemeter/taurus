@@ -184,28 +184,6 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
 class TestApiritifRunner(ExecutorTestCase):
     EXECUTOR = ApiritifNoseExecutor
 
-    def test_full_single_script(self):
-        self.obj.engine.check_interval = 0.1
-        self.obj.execution.merge({
-            "iterations": 1,
-            "ramp-up": "5s",
-            "hold-for": "5s",
-            "steps": 5,
-            "scenario": {
-                "script": RESOURCES_DIR + "apiritif/test_codegen.py"}})
-
-        self.obj.prepare()
-        self.obj.get_widget()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        self.assertFalse(self.obj.has_results())
-        self.assertNotEquals(self.obj.process, None)
-
     def test_new_flow(self):
         self.configure({
             "execution": [{
