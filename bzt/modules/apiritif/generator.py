@@ -219,6 +219,8 @@ from selenium.webdriver.common.keys import Keys
         elif isinstance(action_config, dict):
             if action_config.get("type"):
                 return self._parse_dict_action(action_config)
+            elif action_config.get("if"):
+                name, param = ("if", action_config.get("if"))
             else:
                 name, param = next(iteritems(action_config))
         else:
