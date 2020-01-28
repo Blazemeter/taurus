@@ -50,7 +50,6 @@ matrix:
       - R_PATH=C:/Ruby22/bin
       - PYTHON_VERSION="3.7.x"
       - PYTHON_ARCH="64"
-#      - NODEJS_VERSION="10"
     before_install:
     - choco install python --version 3.7.6
     - $PYTHON --version
@@ -58,11 +57,6 @@ matrix:
     - $PIP_INSTALL --upgrade pip
     - $PIP_INSTALL pip wheel --upgrade
     - choco install nodejs.install
-#    install:
-#    - gem install rspec
-#    - $PIP_INSTALL pyyaml==3.13
-#    - $PIP_INSTALL -r requirements.txt
-#    - $PIP_INSTALL -r tests/ci/requirements.txt
     before_script:
     - ruby -v
     - gem -v
