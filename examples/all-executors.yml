@@ -14,7 +14,7 @@ services:
 reporting:
 - module: passfail
   criteria:
-  - fail>0 for 1s
+  - fail>0
 
 # all of functional-style executors
 ---

@@ -1430,6 +1430,43 @@ class TestCloudProvisioning(BZTestCase):
         data = json.loads(reqs[10]['data'])
         self.assertEqual(data['configuration']['type'], FUNC_GUI_TEST_TYPE)
 
+    def test_user_type_test_creation(self):
+        self.obj.engine.aggregator = FunctionalAggregator()
+        user_test_type = "appiumForExampe"
+
+        self.configure(
+            engine_cfg={
+                EXEC: {"executor": "selenium",  "scenario": {"requests": ["http://blazedemo.com"]}},
+                "modules": {
+                    "selenium": {
+                        "class": SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__,
+                        "virtual-display": False},
+                    "apiritif": {
+                        "class": ApiritifTester.__module__ + "." + ApiritifTester.__name__,
+                        "verbose": False},
+                }},
+            get={
+                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
+                    {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
+                ]},
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=1': [
+                    {'result': []},
+                    {'result': [{'id': 1}]}
+                ],
+                'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+            }, post={
+                'https://a.blazemeter.com/api/v4/tests/1/start?functionalExecution=true': {'result': {'id': 'mid'}}
+            })
+        self.obj.settings.merge({"delete-test-files": False, "project": "myproject", "test-type": user_test_type})
+        self.obj.prepare()
+        self.obj.startup()
+        reqs = self.mock.requests
+        self.assertEqual(reqs[10]['url'], 'https://a.blazemeter.com/api/v4/tests')
+        self.assertEqual(reqs[10]['method'], 'POST')
+        data = json.loads(reqs[10]['data'])
+        self.assertEqual(data['configuration']['type'], user_test_type)
+
     def test_functional_cloud_failed_shutdown(self):
         self.obj.engine.aggregator = FunctionalAggregator()
         func_summary = {"isFailed": True}

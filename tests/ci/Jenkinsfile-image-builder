@@ -1,0 +1,57 @@
+clearWorkspaceAsRoot()
+
+@Library ("jenkins_library") _
+
+properties([pipelineTriggers([githubPush()])]) //Enable Git webhook triggering
+
+pipeline {
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '200', daysToKeepStr: '30'))
+    ansiColor('xterm')
+    timeout time: 60, unit: 'MINUTES'
+    timestamps()
+  }
+
+  agent {
+    docker {
+      image 'registry.blazemeter.net/jenkins-docker-agent:master.20'
+      args "-u root -v /var/run/docker.sock:/var/run/docker.sock"
+    }
+  }
+
+  stages {
+    stage('Building an image'){
+      steps{
+        script{
+          imageTag = buildImage()
+        }
+      }
+    }
+
+    stage('Pushing an image'){
+      steps{
+        script {
+          pushImage(imageTag)
+        }
+      }
+    }
+  }
+}
+
+def buildImage() {
+  def branch = BRANCH_NAME.toString().replace("origin/", "");
+  git branch: "${branch}", credentialsId: 'github-token', url: 'https://github.com/Blazemeter/taurus.git'
+  def editedBranch = branch.replaceAll("/", "-");
+  def TAURUS_VERSION = "${editedBranch}" + "-${BUILD_NUMBER}"
+  def imageTag = "blazemeter/taurus:${TAURUS_VERSION}"
+  sh "docker build --no-cache -t ${imageTag} ."
+
+  return imageTag;
+}
+
+def pushImage(imageTag) {
+  withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
+    sh "docker push ${imageTag}"
+  }
+}
