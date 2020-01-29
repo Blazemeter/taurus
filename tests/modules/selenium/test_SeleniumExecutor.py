@@ -56,7 +56,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.assertNotEquals(self.obj.runner.process, None)
 
     def check_transaction_logged(self):
-        with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.out")) as out:
+        with open(os.path.normpath(self.obj.engine.artifacts_dir + "apiritif.out")) as out:
             content = out.readlines()
 
             # todo: check for loadgen debug log ('find me!')
@@ -91,7 +91,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
     def check_samples(self):
         # apiritif.0.csv filled by ApiritifPlugin
-        with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")) as sample_file:
+        with open(os.path.normpath(self.obj.engine.artifacts_dir + "apiritif.0.csv")) as sample_file:
             samples = sample_file.readlines()
 
         for arg in ["t1", "true"]:
@@ -230,7 +230,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({EXEC: {
             "executor": "selenium",
-            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SeleniumTest.java"}
+            "scenario": {"script": os.path.normpath(RESOURCES_DIR + "selenium/invalid/SeleniumTest.java")}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -245,7 +245,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({EXEC: {
             "executor": "selenium",
-            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"}
+            "scenario": {"script": os.path.normpath(RESOURCES_DIR + "selenium/invalid/SimpleTest.java")}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -260,7 +260,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({EXEC: {
             "executor": "selenium",
-            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
+            "scenario": {"script": os.path.normpath(RESOURCES_DIR + "selenium/invalid/selenium1.java")}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -269,7 +269,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.shutdown()
 
     def test_from_extension(self):
-        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
+        self.configure(yaml.load(open(os.path.normpath(RESOURCES_DIR + "yaml/selenium_from_extension.yml")).read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
@@ -285,7 +285,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertFalse(results[0][DataPoint.CUMULATIVE][''][KPISet.ERRORS])  # error msg
 
     def test_requests(self):
-        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.load(open(os.path.normpath(RESOURCES_DIR + "yaml/selenium_executor_requests.yml")).read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
@@ -325,7 +325,7 @@ class TestSeleniumStuff(SeleniumTestCase):
     def test_dont_copy_local_script_to_artifacts(self):
         "ensures that .java file is not copied into artifacts-dir"
         filename = "BlazeDemo.java"
-        script_path = RESOURCES_DIR + "" + filename
+        script_path = os.path.normpath(RESOURCES_DIR + "" + filename)
         self.obj.execution.merge({
             "scenario": {
                 "script": script_path,
@@ -342,7 +342,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.engine.file_search_paths = [self.obj.engine.artifacts_dir]
 
         script_name = "BlazeDemo.java"
-        test_script = RESOURCES_DIR + "" + script_name
+        test_script = os.path.normpath(RESOURCES_DIR + "" + script_name)
         artifacts_script = os.path.join(self.obj.engine.artifacts_dir, script_name)
         shutil.copy2(test_script, artifacts_script)
 

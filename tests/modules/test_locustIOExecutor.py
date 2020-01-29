@@ -34,7 +34,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
             "iterations": 10,
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "script": RESOURCES_DIR + "locust/simple.py"
+                "script": os.path.normpath(RESOURCES_DIR + "locust/simple.py")
             }
         }})
         self.obj.prepare()

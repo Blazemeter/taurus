@@ -1021,7 +1021,7 @@ class TestJMeterExecutor(ExecutorTestCase):
     def test_iterations_loop_bug(self):
         self.obj.execution.merge({
             "iterations": 10,
-            "scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
+            "scenario": {"script": os.path.normpath(RESOURCES_DIR + "/jmeter/jmx/http.jmx")}})
         self.obj.prepare()
         modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         tg = modified_xml_tree.find(".//ThreadGroup")

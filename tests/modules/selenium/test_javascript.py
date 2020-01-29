@@ -19,7 +19,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
     def test_selenium_prepare_mocha(self):
         self.obj.execution.merge({"scenario": {
-            "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
+            "script": os.path.normpath(RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js")
         }})
         self.obj.prepare()
 
@@ -58,7 +58,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
     def test_mocha_installed(self):
         self.obj.execution.merge({"scenario": {
-            "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
+            "script": os.path.normpath(RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js")
         }})
         self.func_results = "mocha is installed", None
         call_back = bzt.utils.RequiredTool.call
@@ -92,7 +92,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.full_run({
             'execution': {
                 "scenario": {
-                    "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
+                    "script": os.path.normpath(RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js")
                 }
             }
         })
@@ -102,7 +102,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.full_run({
             'execution': {
                 'hold-for': '5s',
-                'scenario': {'script': RESOURCES_DIR + 'selenium/js-mocha/'},
+                'scenario': {'script': os.path.normpath(RESOURCES_DIR + 'selenium/js-mocha/')},
                 'executor': 'selenium'
             },
         })
@@ -115,7 +115,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.full_run({
             'execution': {
                 'iterations': 3,
-                'scenario': {'script': RESOURCES_DIR + 'selenium/js-mocha'},
+                'scenario': {'script': os.path.normpath(RESOURCES_DIR + 'selenium/js-mocha')},
                 'executor': 'selenium'
             },
         })
@@ -124,9 +124,9 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertIn("--iterations 3", stdout)
 
     def test_install_mocha(self):
-        dummy_installation_path = get_full_path(BUILD_DIR + "selenium-taurus/nodejs")
-        mocha_link = get_full_path(RESOURCES_DIR + "selenium/mocha-3.1.0.tgz")
-        wd_link = get_full_path(RESOURCES_DIR + "selenium/selenium-webdriver-1.0.0.tgz")
+        dummy_installation_path = get_full_path(os.path.normpath(BUILD_DIR + "selenium-taurus/nodejs"))
+        mocha_link = get_full_path(os.path.normpath(RESOURCES_DIR + "selenium/mocha-3.1.0.tgz"))
+        wd_link = get_full_path(os.path.normpath(RESOURCES_DIR + "selenium/selenium-webdriver-1.0.0.tgz"))
 
         shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)
         self.assertFalse(exists(dummy_installation_path))
@@ -149,7 +149,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             self.obj.execution.merge({
                 "runner": "mocha",
                 "scenario": {
-                    "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"}})
+                    "script": os.path.normpath(RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js")}})
             self.obj.prepare()
 
             self.assertTrue(exists(join(dummy_installation_path, "node_modules")))
@@ -165,13 +165,13 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
 
 class TestWebdriverIOExecutor(SeleniumTestCase):
-    RUNNER_STUB = RESOURCES_DIR + "selenium/js-wdio/wdio" + (".bat" if is_windows() else ".sh")
+    RUNNER_STUB = os.path.normpath(RESOURCES_DIR + "selenium/js-wdio/wdio" + (".bat" if is_windows() else ".sh"))
 
     def test_prepare(self):
         self.obj.execution.merge({
             "runner": "wdio",
             "scenario": {
-                "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js"
+                "script": os.path.normpath(RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js")
             }
         })
         self.obj.prepare()
@@ -195,7 +195,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             'execution': {
                 "runner": "wdio",
                 "scenario": {
-                    "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js",
+                    "script": os.path.normpath(RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js"),
                 }
             },
         })
@@ -208,7 +208,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.full_run({
             'execution': {
                 'hold-for': '5s',
-                'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
+                'scenario': {'script': os.path.normpath(RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js')},
                 'runner': 'wdio',
             },
         })
@@ -221,7 +221,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.full_run({
             'execution': {
                 'iterations': 3,
-                'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
+                'scenario': {'script': os.path.normpath(RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js')},
                 'runner': 'wdio'
             },
         })
@@ -252,7 +252,7 @@ class TestNewmanExecutor(BZTestCase):
 
     def test_flow(self):
         self.full_run({"execution": {"scenario": {
-            "script": RESOURCES_DIR + 'functional/postman.json',
+            "script": os.path.normpath(RESOURCES_DIR + 'functional/postman.json'),
             "globals": {"a": 123},
         }}})
         self.assertTrue(os.path.exists(self.obj.report_file))

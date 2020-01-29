@@ -24,26 +24,26 @@ class TestGrinderExecutor(ExecutorTestCase):
         super(TestGrinderExecutor, self).tearDown()
 
     def test_install_Grinder(self):
-        path = os.path.abspath(BUILD_DIR + "grinder-taurus/lib/grinder.jar")
+        path = os.path.abspath(os.path.normpath(BUILD_DIR + "grinder-taurus/lib/grinder.jar"))
         shutil.rmtree(get_full_path(path, step_up=2), ignore_errors=True)
 
         grinder_link = GrinderMirrorsManager.DOWNLOAD_LINK
         grinder_version = Grinder.VERSION
         mirrors_source = GrinderMirrorsManager.MIRRORS_SOURCE
         try:
-            GrinderMirrorsManager.DOWNLOAD_LINK = "file:///" + RESOURCES_DIR + \
-                                                  "grinder/grinder-{version}_{version}-binary.zip"
+            GrinderMirrorsManager.DOWNLOAD_LINK = os.path.normpath("file:///" + RESOURCES_DIR + \
+                                                  "grinder/grinder-{version}_{version}-binary.zip")
             Grinder.VERSION = "3.11"
-            GrinderMirrorsManager.MIRRORS_SOURCE = "file:///" + RESOURCES_DIR + "jmeter/unicode_file"
+            GrinderMirrorsManager.MIRRORS_SOURCE = os.path.normpath("file:///" + RESOURCES_DIR + "jmeter/unicode_file")
 
             self.assertFalse(os.path.exists(path))
 
             self.obj.settings.merge({"path": path})
-            self.obj.settings.merge({"properties-file": RESOURCES_DIR + "grinder/grinder.base.properties",
+            self.obj.settings.merge({"properties-file": os.path.normpath(RESOURCES_DIR + "grinder/grinder.base.properties"),
                                      "properties": {"sample_prop": "some_val"}})
             self.obj.execution.merge({"scenario": {
-                "script": RESOURCES_DIR + "grinder/helloworld.py",
-                "properties-file": RESOURCES_DIR + "grinder/grinder.properties",
+                "script": os.path.normpath(RESOURCES_DIR + "grinder/helloworld.py"),
+                "properties-file": os.path.normpath(RESOURCES_DIR + "grinder/grinder.properties"),
                 "properties": {"grinder.useConsole": "false"}}})
             self.obj.prepare()
 
@@ -54,18 +54,18 @@ class TestGrinderExecutor(ExecutorTestCase):
             GrinderMirrorsManager.MIRRORS_SOURCE = mirrors_source
 
     def test_install_Grinder_link(self):
-        path = os.path.abspath(BUILD_DIR + "grinder-taurus/lib/grinder.jar")
+        path = os.path.abspath(os.path.normpath(BUILD_DIR + "grinder-taurus/lib/grinder.jar"))
         shutil.rmtree(get_full_path(path, step_up=2), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
 
-        link = "file:///" + RESOURCES_DIR + "grinder/grinder-3.11_3.11-binary.zip"
+        link = os.path.normpath("file:///" + RESOURCES_DIR + "grinder/grinder-3.11_3.11-binary.zip")
         self.obj.settings.merge({"download-link": link})
         self.obj.settings.merge({"path": path})
-        self.obj.settings.merge({"properties-file": RESOURCES_DIR + "grinder/grinder.base.properties",
+        self.obj.settings.merge({"properties-file": os.path.normpath(RESOURCES_DIR + "grinder/grinder.base.properties"),
                                  "properties": {"sample_prop": "some_val"}})
         self.obj.execution.merge({"scenario": {
-            "script": RESOURCES_DIR + "grinder/helloworld.py",
-            "properties-file": RESOURCES_DIR + "grinder/grinder.properties",
+            "script": os.path.normpath(RESOURCES_DIR + "grinder/helloworld.py"),
+            "properties-file": os.path.normpath(RESOURCES_DIR + "grinder/grinder.properties"),
             "properties": {"grinder.useConsole": "false"}}})
         self.obj.prepare()
 
@@ -76,7 +76,7 @@ class TestGrinderExecutor(ExecutorTestCase):
         self.obj.execution.merge({"concurrency": {"local": 2},
                                   "ramp-up": 2,
                                   "hold-for": 2,
-                                  "scenario": {"script": RESOURCES_DIR + "grinder/helloworld.py"}})
+                                  "scenario": {"script": os.path.normpath(RESOURCES_DIR + "grinder/helloworld.py")}})
         self.obj.prepare()
         self.obj.get_widget()
         self.assertEqual(self.obj.widget.widgets[0].text, "Grinder: helloworld.py")
@@ -88,7 +88,7 @@ class TestGrinderExecutor(ExecutorTestCase):
 
     def test_fail_on_zero_results(self):
         self.obj.execution.merge({"concurrency": {"local": 2},
-                                  "scenario": {"script": RESOURCES_DIR + "grinder/helloworld.py"}})
+                                  "scenario": {"script": os.path.normpath(RESOURCES_DIR + "grinder/helloworld.py")}})
         self.obj.prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]
@@ -101,7 +101,7 @@ class TestGrinderExecutor(ExecutorTestCase):
     def test_with_results(self):
         self.obj.execution.merge({
             "concurrency": {"local": 2},
-            "scenario": {"script": RESOURCES_DIR + "grinder/helloworld.py"}})
+            "scenario": {"script": os.path.normpath(RESOURCES_DIR + "grinder/helloworld.py")}})
         self.obj.prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]
@@ -128,7 +128,7 @@ class TestGrinderExecutor(ExecutorTestCase):
         self.assertIn('net.grinder.Grinder', self.obj.cmd_line)
 
         try:
-            self.obj.cmd_line = RESOURCES_DIR + "grinder/grinder" + EXE_SUFFIX
+            self.obj.cmd_line = os.path.normpath(RESOURCES_DIR + "grinder/grinder" + EXE_SUFFIX)
             self.obj.startup()
             while not self.obj.check():
                 time.sleep(self.obj.engine.check_interval)
@@ -157,7 +157,7 @@ class TestGrinderExecutor(ExecutorTestCase):
                          'Custom': 'Header',
                      }}]}}})
         self.obj.prepare()
-        script = open(os.path.join(self.obj.engine.artifacts_dir, 'grinder_requests.py')).read()
+        script = open(os.path.normpath(self.obj.engine.artifacts_dir + 'grinder_requests.py')).read()
 
         default_addr = re.findall(r"url='http://blazedemo.com'", script)
         self.assertEquals(1, len(default_addr))
@@ -192,7 +192,7 @@ class TestGrinderExecutor(ExecutorTestCase):
                                   "scenario": {"keepalive": False, "requests": ['http://blazedemo.com']}})
         self.obj.prepare()
         try:
-            self.obj.cmd_line = RESOURCES_DIR + "grinder/grinder" + EXE_SUFFIX
+            self.obj.cmd_line = os.path.normpath(RESOURCES_DIR + "grinder/grinder" + EXE_SUFFIX)
             self.obj.startup()
             while not self.obj.check():
                 time.sleep(self.obj.engine.check_interval)

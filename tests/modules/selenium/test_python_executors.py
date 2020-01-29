@@ -405,7 +405,7 @@ class TestPyTestExecutor(ExecutorTestCase):
         self.obj.execution.merge({
             "iterations": 10,
             "scenario": {
-                "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
+                "script": os.path.normpath(RESOURCES_DIR + "selenium/pytest/test_single.py")
             }
         })
         self.obj.prepare()
@@ -425,7 +425,7 @@ class TestPyTestExecutor(ExecutorTestCase):
         self.obj.execution.merge({
             "hold-for": "3s",
             "scenario": {
-                "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
+                "script": os.path.normpath(RESOURCES_DIR + "selenium/pytest/test_single.py")
             }
         })
         self.obj.prepare()
@@ -532,7 +532,7 @@ class TestRobotExecutor(ExecutorTestCase):
             "execution": [{
                 "hold-for": "5s",
                 "scenario": {
-                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot"
+                    "script": os.path.normpath(RESOURCES_DIR + "selenium/robot/simple/test.robot")
                 }
             }]
         })
@@ -554,7 +554,7 @@ class TestRobotExecutor(ExecutorTestCase):
             "execution": [{
                 "iterations": 3,
                 "scenario": {
-                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot"
+                    "script": os.path.normpath(RESOURCES_DIR + "selenium/robot/simple/test.robot")
                 }
             }]
         })
