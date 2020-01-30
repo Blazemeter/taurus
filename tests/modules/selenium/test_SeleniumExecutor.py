@@ -56,7 +56,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.assertNotEquals(self.obj.runner.process, None)
 
     def check_transaction_logged(self):
-        with open(os.path.normpath(self.obj.engine.artifacts_dir + "apiritif.out")) as out:
+        with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.out")) as out:
             content = out.readlines()
 
             # todo: check for loadgen debug log ('find me!')
