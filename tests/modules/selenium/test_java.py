@@ -123,6 +123,11 @@ class TestJavaC(BZTestCase):
 
 
 class TestJUnitTester(BZTestCase):
+    CMD_LINE = None
+
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
+        self.CMD_LINE = args
+
     def setUp(self):
         super(TestJUnitTester, self).setUp()
         engine_obj = EngineEmul()
@@ -204,10 +209,9 @@ class TestJUnitTester(BZTestCase):
         self.obj.settings.merge({"properties": {"settprop": 1}, "junit-version": 5})
         self.obj.prepare()
         self.obj.engine.aggregator.prepare()
+        self.obj.engine.aggregator.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
 
@@ -215,12 +219,6 @@ class TestJUnitTester(BZTestCase):
         start1 = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '/')
         start2 = "ARTIFACTS+"
         self.assertFilesEqual(orig_prop_file, self.obj.props_file, replace_str=start1, replace_with=start2)
-
-        self.assertTrue(self.obj.has_results())
-
-        cumulative = self.obj.engine.aggregator.cumulative
-        self.assertEqual("java.lang.RuntimeException: 123", cumulative[''][KPISet.ERRORS][0]['msg'])
-        self.assertEqual(1, cumulative[''][KPISet.SUCCESSES])
 
     def test_load_mode(self):
         self.obj.engine.aggregator = ConsolidatingAggregator()
@@ -231,13 +229,10 @@ class TestJUnitTester(BZTestCase):
         self.obj.settings.merge({"junit-version": 5})
         self.obj.prepare()
         self.obj.engine.aggregator.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
-        self.assertTrue(self.obj.has_results())
         self.assertTrue(self.obj.report_file.endswith(".csv"))
         self.assertIsInstance(self.obj.reader, JTLReader)
 
@@ -250,16 +245,13 @@ class TestJUnitTester(BZTestCase):
         self.obj.settings.merge({"junit-version": 5})
         self.obj.prepare()
         self.obj.engine.aggregator.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
 
         self.obj.reader.report_reader.json_reader.file.close()
 
-        self.assertTrue(self.obj.has_results())
         self.assertTrue(self.obj.report_file.endswith(".ldjson"))
         self.assertIsInstance(self.obj.reader, FuncSamplesReader)
 
