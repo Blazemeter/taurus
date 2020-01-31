@@ -166,6 +166,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
 class TestWebdriverIOExecutor(SeleniumTestCase):
     RUNNER_STUB = RESOURCES_DIR + "selenium/js-wdio/wdio" + (".bat" if is_windows() else ".sh")
+    CMD_LINE = None
 
     def test_prepare(self):
         self.obj.execution.merge({
@@ -190,6 +191,15 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
+    def simplified_run(self, config):
+        def start_subprocess(args, env, cwd=None, **kwargs):
+            self.CMD_LINE = args
+        self.configure(config)
+        self.obj.prepare()
+        self.obj.engine.start_subprocess = start_subprocess
+        self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
+        self.obj.startup()
+
     def test_simple(self):
         self.full_run({
             'execution': {
@@ -205,7 +215,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.assertEqual(len(lines), 1)
 
     def test_hold(self):
-        self.full_run({
+        self.simplified_run({
             'execution': {
                 'hold-for': '5s',
                 'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
@@ -213,12 +223,12 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             },
         })
 
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
-        self.assertIn("--hold-for 5", stdout)
+        self.assertTrue('--hold-for' in self.CMD_LINE)
+        hold_val = self.CMD_LINE[self.CMD_LINE.index('--hold-for')+1]
+        self.assertEqual(hold_val, '5.0')
 
     def test_iterations(self):
-        self.full_run({
+        self.simplified_run({
             'execution': {
                 'iterations': 3,
                 'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
@@ -226,9 +236,9 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             },
         })
 
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
-        self.assertIn("--iterations 3", stdout)
+        self.assertTrue('--iterations' in self.CMD_LINE)
+        iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations')+1]
+        self.assertEqual(iters_val, '3')
 
 
 class TestNewmanExecutor(BZTestCase):
