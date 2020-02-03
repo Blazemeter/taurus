@@ -3,7 +3,7 @@ skip_branch_with_pr: true
 
 environment:
   matrix:
-    - PYTHON: "C:\\Python38"
+    - PYTHON: "C:\\Python37"
       PYTHON_VERSION: "3.7.x"
       PYTHON_ARCH: "64"
 
@@ -28,7 +28,7 @@ before_test:
   - rspec --version
   - node --version
   - locust --version
-  - ps: Start-Process $env:PYTHON\\python.exe tests/resources/httpserver/start.py
+  - ps: Start-Process python tests/resources/httpserver/start.py
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
