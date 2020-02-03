@@ -19,6 +19,7 @@ from tests import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER
 
 class TestLocustIOExecutor(ExecutorTestCase):
     EXECUTOR = LocustIOExecutor
+    CMD_LINE = None
 
     @classmethod
     def setUpClass(cls):
@@ -27,6 +28,9 @@ class TestLocustIOExecutor(ExecutorTestCase):
     def setUp(self):
         super(TestLocustIOExecutor, self).setUp()
         self.obj.engine.config['provisioning'] = 'local'
+
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
+        self.CMD_LINE = args
 
     def test_simple(self):
         self.configure({"execution": {
@@ -333,9 +337,8 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         diagnostics = self.obj.get_error_diagnostics()
