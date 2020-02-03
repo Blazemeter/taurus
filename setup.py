@@ -20,7 +20,7 @@ import bzt
 
 with open('requirements.txt') as _f:
     content = _f.read()
-    requires = [req for req in pkg_resources.parse_requirements(content)]
+    requires = [str(req) for req in pkg_resources.parse_requirements(content)]
 
 setup(
     name="bzt",
