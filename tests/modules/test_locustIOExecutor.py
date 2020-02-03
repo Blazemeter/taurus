@@ -42,13 +42,8 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        try:
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        except RuntimeError:  # FIXME: not good, but what to do?
-            pass
-        self.obj.shutdown()
         self.assertFalse(self.obj.has_results())
 
     def test_locust_widget(self):
@@ -63,9 +58,9 @@ class TestLocustIOExecutor(ExecutorTestCase):
         }})
 
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.get_widget()
-        self.obj.check()
         self.assertEqual(self.obj.widget.duration, 30)
         self.assertTrue(self.obj.widget.widgets[0].text.endswith("simple.py"))
         self.obj.shutdown()
@@ -109,14 +104,9 @@ class TestLocustIOExecutor(ExecutorTestCase):
         }})
 
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.get_widget()
-        try:
-            self.obj.check()
-            time.sleep(2)
-            self.obj.check()
-        except RuntimeError:
-            ROOT_LOGGER.warning("Do you use patched locust for non-GUI master?")
         self.obj.shutdown()
         self.obj.post_process()
         self.assertFalse(self.obj.has_results())
@@ -206,8 +196,8 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 "requests": ["http://blazedemo.com/"]}}})
 
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
 
@@ -268,6 +258,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                         "url": "http://blazedemo.com"}]}}})
 
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.shutdown()
         debug_buff = self.log_recorder.debug_buff.getvalue()
@@ -286,9 +277,8 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
 
@@ -300,30 +290,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
             header_line = jtl[0].strip()
             expected = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
             self.assertEqual(header_line, expected)
-
-    def test_jtl_quoting_issue(self):
-        self.configure({"execution": {
-            "concurrency": 1,
-            "iterations": 1,
-            "scenario": {
-                "default-address": "http://httpbin.org/status/503",
-                "requests": [
-                    "/"
-                ]
-            }
-        }})
-        self.obj.prepare()
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-        self.obj.post_process()
-
-        kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
-        self.assertTrue(os.path.exists(kpi_path))
-
-        reader = JTLReader(kpi_path, self.obj.log)
-        list(reader.datapoints())
 
     def test_diagnostics(self):
         self.configure({"execution": {
@@ -337,8 +303,9 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
         self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         diagnostics = self.obj.get_error_diagnostics()
