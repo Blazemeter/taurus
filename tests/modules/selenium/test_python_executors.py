@@ -132,13 +132,13 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             }
         })
         self.obj.prepare()
-        # self.obj.startup()
-        # while not self.obj.check():
-        #     time.sleep(self.obj.engine.check_interval)
-        # self.obj.shutdown()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
 
-        # diagnostics = "\n".join(self.obj.get_error_diagnostics())
-        # self.assertIn("Nothing to test.", diagnostics)
+        diagnostics = "\n".join(self.obj.get_error_diagnostics())
+        self.assertIn("Nothing to test.", diagnostics)
 
     def test_resource_files_collection_remote_apiritif(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "selenium/python/"}})
