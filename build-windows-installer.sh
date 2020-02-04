@@ -40,7 +40,7 @@ set -u
 
 # setup packages needed for build
 python -m pip install -U pip-custom-platform wheel
-python -m pip install pynsist==2.1
+python -m pip install pynsist==2.1 pip==19.3
 python scripts/installer/gen_installer.py "$TAURUS_DIST"
 
 # deactivate venv afterwards
