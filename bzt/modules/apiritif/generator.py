@@ -1413,9 +1413,14 @@ from selenium.webdriver.common.keys import Keys
         self.tree = self._build_tree()
 
     def save(self, filename):
-        with open(filename, 'wt') as fds:
-            fds.write("# coding=utf-8\n")
-            fds.write(astunparse.unparse(self.tree))
+        if PY2:
+            with open(filename, 'wt') as fds:
+                fds.write("# coding=utf-8\n")
+                fds.write(astunparse.unparse(self.tree))
+        else:
+            with open(filename, 'wt', encoding='utf8') as fds:
+                fds.write("# coding=utf-8\n")
+                fds.write(astunparse.unparse(self.tree))
 
     def _gen_logging(self):
         set_log = ast.Assign(

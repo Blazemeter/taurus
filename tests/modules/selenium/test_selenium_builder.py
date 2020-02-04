@@ -1,6 +1,7 @@
 import ast
 import astunparse
 import os
+import unittest
 
 from bzt import TaurusConfigError
 from tests import RESOURCES_DIR
@@ -693,6 +694,33 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target_lines = [
             "self.driver.switch_to.alert.accept()",
             "self.driver.switch_to.alert.dismiss()"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    @unittest.skipIf(PY2, "py3 only")
+    def test_non_utf(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "simple"}],
+            "scenarios": {
+                "simple": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/测试",
+                    }, ]
+                },
+            }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script, encoding='utf8') as fds:
+            content = fds.read()
+
+        target_lines = [
+            "with apiritif.smart_transaction('http://blazedemo.com/测试')",
+            "self.driver.get('http://blazedemo.com/测试')"
         ]
 
         for idx in range(len(target_lines)):
