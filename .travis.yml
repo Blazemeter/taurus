@@ -1,6 +1,6 @@
 sudo: false
 language: python
-dist: xenial
+dist: bionic
 cache: pip  # use caching for pip's packages to speed up builds
 
 branches:
@@ -8,7 +8,6 @@ branches:
   - master
 
 python:
-#- "3.5"
 #- "3.6"
 - "3.7"
 
