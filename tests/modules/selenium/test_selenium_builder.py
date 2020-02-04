@@ -699,7 +699,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-    @unittest.skipIf(PY2, "py3 only")
     def test_non_utf(self):
         self.configure({
             "execution": [{
