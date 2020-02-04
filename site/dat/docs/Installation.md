@@ -32,7 +32,7 @@ Notes:
 
 ####  Install Taurus System Dependencies
 
-1. Get Python 3.5+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
+1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
 1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
 
 #### Install Taurus Python Dependencies
@@ -75,7 +75,7 @@ If your brew auto update is switched off don't forget to manage it manually.
 
 ## Linux
 
-You will need Python 3.5+ and Java installed. To install Taurus on Linux, do the following instructions:
+You will need Python 3.6+ and Java installed. To install Taurus on Linux, do the following instructions:
 
 ```
 sudo apt-get update
