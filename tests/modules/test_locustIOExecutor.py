@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import unittest
 
 try:
     import unittest.mock as mock
@@ -13,10 +14,13 @@ from bzt.modules.jmeter import JTLReader
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from bzt.modules.provisioning import Local
+from bzt.six import PY2
+
 
 from tests import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER
 
 
+@unittest.skipIf(PY2, "py3.6+ only")
 class TestLocustIOExecutor(ExecutorTestCase):
     EXECUTOR = LocustIOExecutor
     CMD_LINE = None
