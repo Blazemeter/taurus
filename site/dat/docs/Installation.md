@@ -75,7 +75,7 @@ If your brew auto update is switched off don't forget to manage it manually.
 
 ## Linux
 
-You will need Python 3.7+ and Java installed. To install Taurus on Linux, do the following instructions:
+You will need Python 3.6+ and Java installed. To install Taurus on Linux, do the following instructions:
 
 ```
 sudo apt-get update
