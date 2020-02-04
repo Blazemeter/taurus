@@ -13,28 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import pkg_resources
 from setuptools import setup
-from distutils.version import LooseVersion
-
-# noinspection PyPackageRequirements
-import pip
 
 import bzt
 
-
-# thanks to pip there are two :incompatible ways to parse requirements.txt
-if hasattr(pip, '__version__') and LooseVersion(str(pip.__version__)) >= LooseVersion('10.0.0'):
-    # new versions of pip require a session
-    from pip._internal import req, download
-    requirements = req.parse_requirements('requirements.txt', session=download.PipSession())
-elif hasattr(pip, '__version__') and LooseVersion(str(pip.__version__)) >= LooseVersion('7.0'):
-    # new versions of pip require a session
-    requirements = pip.req.parse_requirements('requirements.txt', session=pip.download.PipSession())
-else:
-    # old versions do not
-    requirements = pip.req.parse_requirements('requirements.txt')
-
-requires = [str(item.req) for item in requirements]
+with open('requirements.txt') as _f:
+    content = _f.read()
+    requires = [str(req) for req in pkg_resources.parse_requirements(content)]
 
 setup(
     name="bzt",
