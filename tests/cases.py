@@ -88,7 +88,7 @@ class BZTestCase(TestCase):
 
         diff = list(difflib.unified_diff(exp_lines, act_lines))
 
-        if diff and not equal_by_content(diff[5:]):
+        if diff: # and not equal_by_content(diff[5:]):
                 ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
                 msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
                 raise AssertionError(msg % (actual, expected, "\n".join(diff)))
