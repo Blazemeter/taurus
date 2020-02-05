@@ -59,16 +59,16 @@ class BZTestCase(TestCase):
             diff_act, diff_exp = [], []
             for line in difference:
                 if line[0] == '-':
-                    act_line = line[2:line.rfind('"')+1].split(" ")[1:]
+                    act_line = line[1:].split(" ")
                     act_line.sort()
                     diff_act.append(act_line)
                 elif line[0] == '+':
-                    diff_exp.append(line[2:line.rfind('"')+1].split(" ")[1:])
-            if diff_act == diff_exp:
-                return True
-            else:
-                return False
-        
+                    exp_line = line[1:].split(" ")
+                    exp_line.sort()
+                    diff_exp.append(exp_line)
+
+            return diff_act == diff_exp
+
         if isinstance(replace_str, str):
             replace_str = [replace_str]
         if isinstance(replace_with, str):
@@ -78,6 +78,7 @@ class BZTestCase(TestCase):
             exp_lines = exp.readlines()
 
         subs = dict(zip(replace_str, replace_with))
+        subs.update({'<': '< ', '>': ' >'})
         for key in subs:
             act_lines = [x.replace(key, subs[key]).rstrip() for x in act_lines]
             exp_lines = [x.replace(key, subs[key]).rstrip() for x in exp_lines]
@@ -88,10 +89,10 @@ class BZTestCase(TestCase):
 
         diff = list(difflib.unified_diff(exp_lines, act_lines))
 
-        if diff: # and not equal_by_content(diff[5:]):
-                ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
-                msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
-                raise AssertionError(msg % (actual, expected, "\n".join(diff)))
+        if diff and not equal_by_content(diff[2:]):
+            ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
+            msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
+            raise AssertionError(msg % (actual, expected, "\n".join(diff)))
 
     def assertPathsEqual(self, p1, p2):
         if not isinstance(p1, list):
