@@ -199,6 +199,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.obj.engine.start_subprocess = start_subprocess
         self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
         self.obj.startup()
+        self.obj.shutdown()
 
     def test_simple(self):
         self.full_run({
@@ -250,25 +251,17 @@ class TestNewmanExecutor(BZTestCase):
         self.obj.engine.config.merge(config)
         execution = config["execution"][0] if isinstance(config["execution"], list) else config["execution"]
         self.obj.execution.merge(execution)
-        self.obj.prepare()
-
-        self.obj.get_launch_cmdline = lambda *args: [TestNewmanExecutor.RUNNER_STUB] + list(args)
-
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-        self.obj.post_process()
 
     def test_flow(self):
+        def start_subprocess(args, env, cwd=None, **kwargs):
+            self.CMD_LINE = args
         self.full_run({"execution": {"scenario": {
             "script": RESOURCES_DIR + 'functional/postman.json',
             "globals": {"a": 123},
         }}})
-        self.assertTrue(os.path.exists(self.obj.report_file))
-        with open(self.obj.report_file) as fds:
-            samples = [json.loads(line) for line in fds.readlines()]
-        self.assertEqual(1, len(samples))
-        sample = samples[0]
-        self.assertEqual(sample["status"], "PASSED")
-        self.assertEqual(sample["test_case"], "should load")
+        self.obj.prepare()
+        self.obj.engine.start_subprocess = start_subprocess
+
+        self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
