@@ -55,19 +55,20 @@ class BZTestCase(TestCase):
 
     @staticmethod
     def assertFilesEqual(expected, actual, replace_str="", replace_with="", python_files=False):
-        def equal_by_content(difference):
-            diff_act, diff_exp = [], []
-            for line in difference:
-                if line[0] == '-':
-                    act_line = line[1:].split(" ")
-                    act_line.sort()
-                    diff_act.append(act_line)
-                elif line[0] == '+':
-                    exp_line = line[1:].split(" ")
-                    exp_line.sort()
-                    diff_exp.append(exp_line)
+        def order(line):
+            line = line.replace(',', ' ,')  # for imports
+            line = line.split(" ")
+            line.sort()
+            return ' '.join(line)
 
-            return diff_act == diff_exp
+        def equal_by_content(diff):
+            act_lines = [line[1:] for line in diff if line.startswith('-')]
+            exp_lines = [line[1:] for line in diff if line.startswith('+')]
+            for pair in zip(act_lines, exp_lines):
+                if order(pair[0]) != order(pair[1]):
+                    return False
+
+            return True
 
         if isinstance(replace_str, str):
             replace_str = [replace_str]
@@ -78,7 +79,8 @@ class BZTestCase(TestCase):
             exp_lines = exp.readlines()
 
         subs = dict(zip(replace_str, replace_with))
-        subs.update({'<': '< ', '>': ' >'})
+        subs.update({'<': '< ', '>': ' >'})     # for xml
+
         for key in subs:
             act_lines = [x.replace(key, subs[key]).rstrip() for x in act_lines]
             exp_lines = [x.replace(key, subs[key]).rstrip() for x in exp_lines]
