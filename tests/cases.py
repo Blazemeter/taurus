@@ -55,20 +55,23 @@ class BZTestCase(TestCase):
 
     @staticmethod
     def assertFilesEqual(expected, actual, replace_str="", replace_with="", python_files=False):
-        def equal_by_content(difference):
-            diff_act, diff_exp = [], []
-            for line in difference:
-                if line[0] == '-':
-                    act_line = line[2:line.rfind('"')+1].split(" ")[1:]
-                    act_line.sort()
-                    diff_act.append(act_line)
-                elif line[0] == '+':
-                    diff_exp.append(line[2:line.rfind('"')+1].split(" ")[1:])
-            if diff_act == diff_exp:
-                return True
-            else:
-                return False
-        
+        def order(line):
+            line = line.replace(',', ' ,')  # for imports
+            line = line.replace('(', '( ')  # for
+            line = line.replace(')', ' )')  # calls
+            line = line.split(" ")
+            line.sort()
+            return ' '.join(line)
+
+        def equal_by_content(diff):
+            act_lines = [line[1:] for line in diff if line.startswith('-')]
+            exp_lines = [line[1:] for line in diff if line.startswith('+')]
+            for pair in zip(act_lines, exp_lines):
+                if order(pair[0]) != order(pair[1]):
+                    return False
+
+            return True
+
         if isinstance(replace_str, str):
             replace_str = [replace_str]
         if isinstance(replace_with, str):
@@ -78,6 +81,8 @@ class BZTestCase(TestCase):
             exp_lines = exp.readlines()
 
         subs = dict(zip(replace_str, replace_with))
+        subs.update({'<': '< ', '>': ' >'})     # for xml
+
         for key in subs:
             act_lines = [x.replace(key, subs[key]).rstrip() for x in act_lines]
             exp_lines = [x.replace(key, subs[key]).rstrip() for x in exp_lines]
@@ -88,10 +93,10 @@ class BZTestCase(TestCase):
 
         diff = list(difflib.unified_diff(exp_lines, act_lines))
 
-        if diff and not equal_by_content(diff[5:]):
-                ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
-                msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
-                raise AssertionError(msg % (actual, expected, "\n".join(diff)))
+        if diff and not equal_by_content(diff[2:]):
+            ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
+            msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
+            raise AssertionError(msg % (actual, expected, "\n".join(diff)))
 
     def assertPathsEqual(self, p1, p2):
         if not isinstance(p1, list):
