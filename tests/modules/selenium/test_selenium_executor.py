@@ -118,6 +118,23 @@ class TestSeleniumExecutor(SeleniumTestCase):
     def start_subprocess(self, args, env, cwd=None, **kwargs):
         self.CMD_LINE = args
 
+    def test_data_source_in_action(self):
+        self.configure({
+            EXEC: {
+                "executor": "selenium",
+                "iterations": 1,
+                "scenario": {
+                    "data-sources": [RESOURCES_DIR + "selenium/data-sources/data.csv"],
+                    "requests": [{
+                        "label": "exec_it",
+                        "assert": ["Simple Travel Agency"],
+                        "actions": ["go(${host}/${page})"]}]}}})
+        self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
+
     def test_infinite_iters(self):
         self.CMD_LINE = None
         self.configure({
