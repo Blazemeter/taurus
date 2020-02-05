@@ -33,7 +33,7 @@ class TestLocSc(unittest.TestCase):
         self.driver.implicitly_wait(3.5)
         self.wnd_mng = WindowManager(self.driver)
         self.frm_mng = FrameManager(self.driver)
-        self.loc_mng = LocatorsManager(self.driver)
+        self.loc_mng = LocatorsManager(self.driver, 3.5)
         self.vars = {
             'name': 'Name',
             'red_pill': 'take_it,',
