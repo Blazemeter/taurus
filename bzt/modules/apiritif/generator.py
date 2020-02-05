@@ -1128,7 +1128,7 @@ from selenium.webdriver.common.keys import Keys
         return named_args
 
     # generate transactions recursively
-    def _gen_transaction(self, trans_conf):
+    def _gen_transaction(self, trans_conf, transaction_class = "apiritif.smart_transaction"):
         body = []
         if isinstance(trans_conf, IncludeScenarioBlock):
             included = self.executor.get_scenario(trans_conf.scenario_name)
@@ -1142,13 +1142,12 @@ from selenium.webdriver.common.keys import Keys
                 scenario=included)
         for request in trans_conf.requests:
             if isinstance(request, TransactionBlock) or isinstance(request, IncludeScenarioBlock):
-                body.append(self._gen_transaction(request))
+                body.append(self._gen_transaction(request, transaction_class="apiritif.transaction"))
             elif isinstance(request, SetVariables):
                 body.append(self._gen_set_vars(request))
             else:
                 body.append(self._gen_http_request(request))
 
-        transaction_class = "apiritif.smart_transaction"
         # if self.test_mode == "selenium":    # todo: remove it?
         #    transaction_class += "_logged"
 
