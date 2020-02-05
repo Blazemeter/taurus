@@ -28,7 +28,7 @@ class TestLocSc(unittest.TestCase):
         self.driver = None
         options = webdriver.FirefoxOptions()
         profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', '<somewhere>webdriver.log')
+        profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
         self.driver = webdriver.Firefox(profile, firefox_options=options)
         self.driver.implicitly_wait(3.5)
         self.wnd_mng = WindowManager(self.driver)

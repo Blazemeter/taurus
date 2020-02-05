@@ -57,6 +57,8 @@ class BZTestCase(TestCase):
     def assertFilesEqual(expected, actual, replace_str="", replace_with="", python_files=False):
         def order(line):
             line = line.replace(',', ' ,')  # for imports
+            line = line.replace('(', '( ')  # for
+            line = line.replace(')', ' )')  # calls
             line = line.split(" ")
             line.sort()
             return ' '.join(line)
