@@ -64,6 +64,11 @@ class BZTestCase(TestCase):
             return ' '.join(line)
 
         def equal_by_content(diff):
+            # todo: it doesn't show diff for follow case, shouldn't we fix it?
+            # 01: + func1()
+            # 02:   func2()
+            # 03: - func1()
+            # func1 moved and order has been changed
             act_lines = [line[1:] for line in diff if line.startswith('-')]
             exp_lines = [line[1:] for line in diff if line.startswith('+')]
             for pair in zip(act_lines, exp_lines):
@@ -96,6 +101,9 @@ class BZTestCase(TestCase):
         if diff and not equal_by_content(diff[2:]):
             ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
             msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
+            # here we show full diff, even equal_by_content
+            # todo: show only really different lines
+
             raise AssertionError(msg % (actual, expected, "\n".join(diff)))
 
     def assertPathsEqual(self, p1, p2):
