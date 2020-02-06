@@ -201,68 +201,30 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.configure({EXEC: {"executor": "selenium"}})
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
-    def test_javac_fail(self):
-        """
-        Test RuntimeError when compilation fails
-        :return:
-        """
-        self.configure({
-            EXEC: {
+    def test_various_raise(self):
+        self.configure({  # RuntimeError when
+            EXEC: [{  # compilation fails
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/invalid.java"}
-            }
-        })
+            }, {  # no files of known types were found.
+                "executor": "selenium",
+                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/not_found"}
+            }]})
         self.assertRaises(ToolError, self.obj.prepare)
 
-    def test_no_supported_files_to_test(self):
-        """
-        Test RuntimeError raised when no files of known types were found.
-        :return:
-        """
-        self.configure({EXEC: {
-            "executor": "selenium",
-            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/not_found"}
-        }})
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
-
     def test_empty_test_methods(self):
-        """
-        Test exact number of tests when java annotations used
-        :return:
-        """
-        self.configure({EXEC: {
-            "executor": "selenium",
-            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SeleniumTest.java"}
-        }})
+        self.configure({  # Test exact number of tests when
+            EXEC: [{  # java annotations used
+                "executor": "selenium",
+                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SeleniumTest.java"}
+            }, {  # test class extends JUnit TestCase
+                "executor": "selenium",
+                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"}
+            }, {  # annotations used and no "test" in class name
+                "executor": "selenium",
+                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
+        }]})
         self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
-
-    def test_exception_in_method(self):
-        """
-        Test exact number of tests when test class extends JUnit TestCase
-        :return:
-        """
-        self.configure({EXEC: {
-            "executor": "selenium",
-            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"}
-        }})
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
-
-    def test_no_test_in_name(self):
-        """
-        Test exact number of tests when annotations used and no "test" in class name
-        :return:
-        """
-        self.configure({EXEC: {
-            "executor": "selenium",
-            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
-        }})
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
 
     def test_from_extension(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
