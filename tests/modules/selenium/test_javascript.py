@@ -168,16 +168,6 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
     RUNNER_STUB = RESOURCES_DIR + "selenium/js-wdio/wdio" + (".bat" if is_windows() else ".sh")
     CMD_LINE = None
 
-    def test_prepare(self):
-        self.obj.execution.merge({
-            "runner": "wdio",
-            "scenario": {
-                "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js"
-            }
-        })
-        self.obj.prepare()
-        self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
-
     def full_run(self, config):
         self.configure(config)
 
@@ -196,12 +186,13 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             self.CMD_LINE = args
         self.configure(config)
         self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
         self.obj.engine.start_subprocess = start_subprocess
         self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
         self.obj.startup()
         self.obj.shutdown()
 
-    def test_simple(self):
+    def test_full(self):
         self.full_run({
             'execution': {
                 "runner": "wdio",
@@ -215,10 +206,11 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             lines = fds.readlines()
         self.assertEqual(len(lines), 1)
 
-    def test_hold(self):
+    def test_simple(self):
         self.simplified_run({
             'execution': {
                 'hold-for': '5s',
+                'iterations': 3,
                 'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
                 'runner': 'wdio',
             },
@@ -227,15 +219,6 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.assertTrue('--hold-for' in self.CMD_LINE)
         hold_val = self.CMD_LINE[self.CMD_LINE.index('--hold-for')+1]
         self.assertEqual(hold_val, '5.0')
-
-    def test_iterations(self):
-        self.simplified_run({
-            'execution': {
-                'iterations': 3,
-                'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
-                'runner': 'wdio'
-            },
-        })
 
         self.assertTrue('--iterations' in self.CMD_LINE)
         iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations')+1]
