@@ -235,6 +235,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
+                    "data-sources": [{"path": "first.csv", "loop": False}, "second.csv"],
                     "default-address": "http://blazedemo.com",
                     "variables": {
                         "red_pill": "take_it",

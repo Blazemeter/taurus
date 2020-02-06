@@ -96,6 +96,9 @@ class BZTestCase(TestCase):
         if diff and not equal_by_content(diff[2:]):
             ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
             msg = "Failed asserting that two files are equal:\n%s\nversus\n%s\nDiff is:\n\n%s"
+            # here we show full diff, even equal_by_content
+            # todo: show only really different lines
+
             raise AssertionError(msg % (actual, expected, "\n".join(diff)))
 
     def assertPathsEqual(self, p1, p2):
