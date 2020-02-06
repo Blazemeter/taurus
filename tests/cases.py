@@ -64,6 +64,11 @@ class BZTestCase(TestCase):
             return ' '.join(line)
 
         def equal_by_content(diff):
+            # todo: it doesn't show diff for follow case, shouldn't we fix it?
+            # 01: + func1()
+            # 02:   func2()
+            # 03: - func1()
+            # func1 moved and order has been changed
             act_lines = [line[1:] for line in diff if line.startswith('-')]
             exp_lines = [line[1:] for line in diff if line.startswith('+')]
             for pair in zip(act_lines, exp_lines):
