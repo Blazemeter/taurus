@@ -7,6 +7,7 @@ from os.path import join, exists, dirname
 import bzt
 
 from bzt.modules.javascript import WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
+from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import get_full_path, is_windows
 
 from tests import BUILD_DIR, RESOURCES_DIR, BZTestCase
@@ -79,8 +80,15 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.engine.config.merge(config)
         self.obj.execution = self.obj.engine.config['execution']
 
-        self.obj.prepare()
+        super(SeleniumExecutor, self.obj).prepare()
+        self.obj.install_required_tools()
+        for driver in self.obj.webdrivers:
+            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
 
+        self.obj.create_runner()
+        self.obj.runner.install_required_tools = lambda: None
+        self.obj.runner.prepare()
+        self.obj.script = self.obj.runner.script
         self.obj.runner.get_launch_cmdline = lambda *args: [TestSeleniumMochaRunner.RUNNER_STUB] + list(args)
 
         self.obj.startup()
@@ -168,44 +176,21 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
     RUNNER_STUB = RESOURCES_DIR + "selenium/js-wdio/wdio" + (".bat" if is_windows() else ".sh")
     CMD_LINE = None
 
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
+        self.CMD_LINE = args
+
     def full_run(self, config):
         self.configure(config)
-
-        self.obj.prepare()
-        self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
-
-        self.obj.runner.get_launch_cmdline = lambda *args: [TestWebdriverIOExecutor.RUNNER_STUB] + list(args)
-
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-
-    def simplified_run(self, config):
-        self.configure(config)
+        self.obj.install_required_tools = lambda: None
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
-        self.obj.engine.start_subprocess = lambda **kwargs: None
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
         self.obj.startup()
         self.obj.shutdown()
 
-    def test_full(self):
-        self.full_run({
-            'execution': {
-                "runner": "wdio",
-                "scenario": {
-                    "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js",
-                }
-            },
-        })
-        self.assertTrue(exists(self.obj.runner.report_file))
-        with open(self.obj.runner.report_file) as fds:
-            lines = fds.readlines()
-        self.assertEqual(len(lines), 1)
-
     def test_simple(self):
-        self.simplified_run({
+        self.full_run({
             'execution': {
                 'hold-for': '5s',
                 'iterations': 3,
