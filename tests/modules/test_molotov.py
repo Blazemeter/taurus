@@ -109,6 +109,7 @@ class TestMolotov(ExecutorTestCase):
         self.obj.prepare()
         self.obj.engine.start_subprocess = start_subprocess
         self.obj.startup()
+        self.obj.post_process()
         self.assertTrue('--delay' in self.CMD_LINE)
         delay_val = self.CMD_LINE[self.CMD_LINE.index('--delay')+1]
         self.assertEqual(delay_val, '5.0')
