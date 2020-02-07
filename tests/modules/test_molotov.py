@@ -85,7 +85,7 @@ class TestMolotov(ExecutorTestCase):
             "scenario": {
                 "script": LOADTEST_PY}}})
         self.obj.prepare()
-        self.obj.engine.start_subprocess = start_subprocess
+        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.get_widget()
         self.obj.startup()
         self.obj.shutdown()

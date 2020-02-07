@@ -48,7 +48,11 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.obj.prepare()
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
+        self.obj.post_process()
         self.assertFalse(self.obj.has_results())
+        self.assertTrue('-f' in self.CMD_LINE)
+        file_val = self.CMD_LINE[self.CMD_LINE.index('-f')+1]
+        self.assertEqual(file_val, os.path.normpath(RESOURCES_DIR + "locust/simple.py"))
 
     def test_locust_widget(self):
         self.configure({"execution": {
@@ -62,7 +66,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         }})
 
         self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
         self.obj.get_widget()
         self.assertEqual(self.obj.widget.duration, 30)
@@ -108,7 +112,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         }})
 
         self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
         self.obj.get_widget()
         self.obj.shutdown()
@@ -200,8 +204,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 "requests": ["http://blazedemo.com/"]}}})
 
         self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
         self.obj.shutdown()
         self.obj.post_process()
 
@@ -262,9 +264,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
                         "url": "http://blazedemo.com"}]}}})
 
         self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
-        self.obj.shutdown()
         debug_buff = self.log_recorder.debug_buff.getvalue()
         self.assertNotIn("'--host='", debug_buff)
 
@@ -281,9 +280,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
         self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
         kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
@@ -307,9 +303,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
         self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
         diagnostics = self.obj.get_error_diagnostics()
         self.assertIsNotNone(diagnostics)

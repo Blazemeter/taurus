@@ -182,12 +182,10 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.obj.shutdown()
 
     def simplified_run(self, config):
-        def start_subprocess(args, env, cwd=None, **kwargs):
-            self.CMD_LINE = args
         self.configure(config)
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
-        self.obj.engine.start_subprocess = start_subprocess
+        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
         self.obj.startup()
         self.obj.shutdown()
@@ -236,14 +234,12 @@ class TestNewmanExecutor(BZTestCase):
         self.obj.execution.merge(execution)
 
     def test_flow(self):
-        def start_subprocess(args, env, cwd=None, **kwargs):
-            self.CMD_LINE = args
         self.full_run({"execution": {"scenario": {
             "script": RESOURCES_DIR + 'functional/postman.json',
             "globals": {"a": 123},
         }}})
         self.obj.prepare()
-        self.obj.engine.start_subprocess = start_subprocess
+        self.obj.engine.start_subprocess = lambda **kwargs: None
 
         self.obj.startup()
         self.obj.shutdown()

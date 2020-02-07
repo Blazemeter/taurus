@@ -190,9 +190,6 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
 
 class TestSeleniumStuff(SeleniumTestCase):
-    def start_subprocess(self, args, env, cwd=None, **kwargs):
-        self.CMD_LINE = args
-
     def test_empty_scenario(self):
         """
         Raise runtime error when no scenario provided
@@ -230,7 +227,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
-        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
         self.obj.post_process()
 
@@ -238,7 +235,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
-        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
         self.obj.post_process()
 
