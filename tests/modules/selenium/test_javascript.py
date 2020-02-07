@@ -18,12 +18,6 @@ from tests.modules.selenium import SeleniumTestCase
 class TestSeleniumMochaRunner(SeleniumTestCase):
     RUNNER_STUB = RESOURCES_DIR + "selenium/js-mocha/mocha" + (".bat" if is_windows() else ".sh")
 
-    def test_selenium_prepare_mocha(self):
-        self.obj.execution.merge({"scenario": {
-            "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
-        }})
-        self.obj.prepare()
-
     @staticmethod
     def check_mocha_cmd(runner):
         check_mocha = [runner.node.tool_path, "-e", "require('mocha'); console.log('mocha is installed');"]

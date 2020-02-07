@@ -1,15 +1,12 @@
-import json
 import os
 import shutil
 import time
-import traceback
 from os import listdir
 from os.path import exists, join, dirname
 
 import yaml
 
-from bzt.engine import EXEC
-from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
+from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader
 from bzt.modules.java import JUnitTester, TestNGTester
 from bzt.modules.java.executors import JavaTestRunner
@@ -17,7 +14,7 @@ from bzt.modules.java.tools import JavaC, JarTool, Hamcrest, SeleniumServer
 from bzt.modules.jmeter import JTLReader
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import ToolError
-from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ROOT_LOGGER, ExecutorTestCase
+from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ExecutorTestCase
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 

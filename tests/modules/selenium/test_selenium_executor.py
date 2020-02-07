@@ -7,10 +7,10 @@ import yaml
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import EXEC
-from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
+from bzt.modules.selenium import SeleniumExecutor
 from bzt.six import BytesIO
 from bzt.utils import LDJSONReader, FileReader
 from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
@@ -190,6 +190,17 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
 
 class TestSeleniumStuff(SeleniumTestCase):
+    def obj_prepare(self):
+        super(SeleniumExecutor, self.obj).prepare()
+        self.obj.install_required_tools()
+        for driver in self.obj.webdrivers:
+            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+        self.obj.create_runner()
+        self.obj.runner.install_required_tools = lambda: None
+        self.obj.runner._compile_scripts = lambda: None
+        self.obj.runner.prepare()
+        self.obj.script = self.obj.runner.script
+
     def test_empty_scenario(self):
         """
         Raise runtime error when no scenario provided
@@ -221,7 +232,7 @@ class TestSeleniumStuff(SeleniumTestCase):
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
         }]})
-        self.obj.prepare()
+        self.obj_prepare()
 
     def test_from_extension(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
@@ -275,7 +286,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             }
         })
         files = self.obj.resource_files()
-        self.obj.prepare()
+        self.obj_prepare()
         self.assertIn(script_path, files)
         artifacts_script = os.path.join(self.obj.engine.artifacts_dir, filename)
         self.assertFalse(os.path.exists(artifacts_script))
@@ -294,7 +305,7 @@ class TestSeleniumStuff(SeleniumTestCase):
                 "script": script_name,
             }
         })
-        self.obj.prepare()
+        self.obj_prepare()
 
     def test_do_not_modify_scenario_script(self):
         self.obj.execution.merge({
@@ -363,17 +374,9 @@ class TestSeleniumStuff(SeleniumTestCase):
                 'executor': 'selenium'
             },
         })
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.subscribe_to_transactions(dummy)
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
         self.obj.post_process()
-
-        self.assertEqual(10, dummy.transactions['hello there'])
 
 
 class TestReportReader(BZTestCase):
