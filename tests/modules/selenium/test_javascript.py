@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 import time
@@ -6,6 +5,7 @@ from os.path import join, exists, dirname
 
 import bzt
 
+from bzt import TaurusConfigError
 from bzt.modules.javascript import WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import get_full_path, is_windows
@@ -167,16 +167,24 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
 
 class TestWebdriverIOExecutor(SeleniumTestCase):
-    RUNNER_STUB = RESOURCES_DIR + "selenium/js-wdio/wdio" + (".bat" if is_windows() else ".sh")
     CMD_LINE = None
 
-    def start_subprocess(self, args, env, cwd=None, **kwargs):
+    def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
+
+    def obj_prepare(self):
+        super(SeleniumExecutor, self.obj).prepare()
+        for driver in self.obj.webdrivers:
+            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+
+        self.obj.create_runner()
+        self.obj.runner._check_tools = lambda x: None
+        self.obj.runner.prepare()
+        self.obj.script = self.obj.runner.script
 
     def full_run(self, config):
         self.configure(config)
-        self.obj.install_required_tools = lambda: None
-        self.obj.prepare()
+        self.obj_prepare()
         self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
         self.obj.engine.start_subprocess = self.start_subprocess
         self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
@@ -203,8 +211,6 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
 
 
 class TestNewmanExecutor(BZTestCase):
-    RUNNER_STUB = RESOURCES_DIR + "newman/newman" + (".bat" if is_windows() else ".sh")
-
     def full_run(self, config):
         self.obj = NewmanExecutor()
         self.obj.engine = EngineEmul()
@@ -217,6 +223,7 @@ class TestNewmanExecutor(BZTestCase):
             "script": RESOURCES_DIR + 'functional/postman.json',
             "globals": {"a": 123},
         }}})
+        self.obj._check_tools = lambda x: None
         self.obj.prepare()
         self.obj.engine.start_subprocess = lambda **kwargs: None
 

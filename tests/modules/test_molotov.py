@@ -75,8 +75,6 @@ class TestMolotov(ExecutorTestCase):
     @unittest.skipUnless(sys.version_info >= (3, 5), "enabled only on 3.5+")
     @unittest.skipIf(is_windows(), "disabled on windows")
     def test_full(self):
-        def start_subprocess(args, env, cwd=None, **kwargs):
-            self.CMD_LINE = args
         self.configure({"execution": {
             "concurrency": 3,
             "processes": 2,
