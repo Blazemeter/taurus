@@ -26,8 +26,6 @@ modules:
   # selenium & functional executors
   selenium:
     class: bzt.modules.selenium.SeleniumExecutor
-  nose:
-    class: bzt.modules.apiritif.ApiritifNoseExecutor
   junit:
     class: bzt.modules.java.JUnitTester
   testng:
