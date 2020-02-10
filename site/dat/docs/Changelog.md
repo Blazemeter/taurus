@@ -8,6 +8,7 @@
 - use 0 as infinity iterations limit in apiritif
 - fix stdev calculation
 - fix bzt-pip entry point
+- fix dashboard bug on Windows
 - remove double timeout from selenium test generation
 - remove nose executor as deprecated
 - documentation fixes
