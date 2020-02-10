@@ -897,11 +897,6 @@ from selenium.webdriver.common.keys import Keys
             decorator_list=[])
 
     def _gen_class_setup(self):
-        if self.test_mode == "apiritif":
-            target_init = self._gen_api_target()
-        else:
-            target_init = self._gen_webdriver()
-
         data_sources = [self._gen_default_vars()]
         for idx in range(len(self.data_sources)):
             data_sources.append(ast.Expr(ast_call(func=ast_attr("reader_%s.read_vars" % (idx + 1)))))
@@ -912,6 +907,11 @@ from selenium.webdriver.common.keys import Keys
                 args=[ast_call(
                     func=ast_attr("reader_%s.get_vars" % (idx + 1)))])
             data_sources.append(ast.Expr(extend_vars))
+
+        if self.test_mode == "apiritif":
+            target_init = self._gen_api_target()
+        else:
+            target_init = self._gen_webdriver()
 
         handlers = []
         if self.generate_markers:
@@ -934,7 +934,7 @@ from selenium.webdriver.common.keys import Keys
         setup = ast.FunctionDef(
             name="setUp",
             args=[ast_attr("self")],
-            body=target_init + data_sources + handlers + store_block,
+            body=data_sources + target_init + handlers + store_block,
             decorator_list=[])
         return [setup, gen_empty_line_stmt()]
 
@@ -1121,7 +1121,7 @@ from selenium.webdriver.common.keys import Keys
         return named_args
 
     # generate transactions recursively
-    def _gen_transaction(self, trans_conf):
+    def _gen_transaction(self, trans_conf, transaction_class = "apiritif.smart_transaction"):
         body = []
         if isinstance(trans_conf, IncludeScenarioBlock):
             included = self.executor.get_scenario(trans_conf.scenario_name)
@@ -1135,13 +1135,12 @@ from selenium.webdriver.common.keys import Keys
                 scenario=included)
         for request in trans_conf.requests:
             if isinstance(request, TransactionBlock) or isinstance(request, IncludeScenarioBlock):
-                body.append(self._gen_transaction(request))
+                body.append(self._gen_transaction(request, transaction_class="apiritif.transaction"))
             elif isinstance(request, SetVariables):
                 body.append(self._gen_set_vars(request))
             else:
                 body.append(self._gen_http_request(request))
 
-        transaction_class = "apiritif.smart_transaction"
         # if self.test_mode == "selenium":    # todo: remove it?
         #    transaction_class += "_logged"
 

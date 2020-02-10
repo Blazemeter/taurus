@@ -38,7 +38,7 @@ class TestLocScRemote(unittest.TestCase):
                                            'version': '54.0',
                                        })
         self.driver.implicitly_wait(3.5)
-        self.loc_mng = LocatorsManager(self.driver)
+        self.loc_mng = LocatorsManager(self.driver, 3.5)
         self.vars = {
 
         }

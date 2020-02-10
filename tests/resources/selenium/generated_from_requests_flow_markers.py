@@ -29,9 +29,9 @@ class TestLocSc(unittest.TestCase):
         options = webdriver.ChromeOptions()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
-        self.driver = webdriver.Chrome(service_log_path='<somewhere>webdriver.log', chrome_options=options)
+        self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', chrome_options=options)
         self.driver.implicitly_wait(3.5)
-        self.loc_mng = LocatorsManager(self.driver)
+        self.loc_mng = LocatorsManager(self.driver, 3.5)
         self.vars = {
 
         }
