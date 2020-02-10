@@ -10,19 +10,15 @@ from time import time, sleep
 import apiritif
 
 
-def setup():
-    vars = {
-
-    }
-
-    apiritif.put_into_thread_store(vars)
-
-
 class TestAPI(unittest.TestCase, ):
 
     def setUp(self):
-        (self.vars,) = apiritif.get_from_thread_store()
+        self.vars = {}
+        apiritif.put_into_thread_store(func_mode=False)
 
-    def test_1_apiritif(self):
-        with apiritif.transaction('apiritif'):
+    def _1_apiritif(self):
+        with apiritif.smart_transaction('apiritif'):
             response = apiritif.http.get('http://localhost:8000/')
+
+    def test_test_requests(self):
+        self._1_apiritif()
