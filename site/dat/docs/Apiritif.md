@@ -216,7 +216,7 @@ scenarios:
           - go(http://blazedemo.com)
           - if: 'document.getElementById("${elem_id}") !== undefined'
             then:
-              - type: clickById(${elem_id})
+              - clickById(${elem_id})
             else:
               - go(http://blazedemo.com/login)
 ```
