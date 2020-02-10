@@ -950,21 +950,8 @@ class ProjectFinder(object):
 
     def resolve_test(self, project, test_name, test_type):
         is_int = isinstance(test_name, (int, float))
-<<<<<<< HEAD
-        is_digit = isinstance(test_name, (str, str)) and test_name.isdigit()
-        if self.is_functional:
-            if self.gui_mode:
-                test_type = FUNC_GUI_TEST_TYPE
-            else:
-                test_type = FUNC_API_TEST_TYPE
-        elif taurus_only:
-            test_type = TAURUS_TEST_TYPE
-        else:
-            test_type = None
-=======
-        is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
+        is_digit = isinstance(test_name, str) and test_name.isdigit()
 
->>>>>>> 20fd6e1fe60f673f61881114a5e5e2a15cf48841
         if is_int or is_digit:
             test_id = int(test_name)
             self.log.debug("Treating project name as ID: %s", test_id)
