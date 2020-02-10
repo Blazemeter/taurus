@@ -6,7 +6,7 @@
 - dump graphite and serveragent data
 - update default version of jmeter tool to 5.2.1
 - use 0 as infinity iterations limit in apiritif
-- fix stdev calculation
+- fix calculation of standard deviation
 - fix bzt-pip entry point
 - fix dashboard bug on Windows
 - remove double timeout from selenium test generation
