@@ -1,6 +1,9 @@
+# coding=utf-8
+
 import ast
 import astunparse
 import os
+import unittest
 
 from bzt import TaurusConfigError
 from bzt.six import PY2
@@ -232,6 +235,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
+                    "data-sources": [{"path": "first.csv", "loop": False}, "second.csv"],
                     "default-address": "http://blazedemo.com",
                     "variables": {
                         "red_pill": "take_it",
@@ -329,7 +333,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>", python_files=True)
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
         with open(self.obj.script) as script:
             self.assertIn("bzt.resources.selenium_extras", script.read())
 
@@ -633,7 +637,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_flow_markers.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>", python_files=True)
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
     def test_resize_window(self):
         self.configure({
@@ -697,6 +701,33 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target_lines = [
             "self.driver.switch_to.alert.accept()",
             "self.driver.switch_to.alert.dismiss()"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    @unittest.skipIf(PY2, "py3 only")
+    def test_non_utf(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "simple"}],
+            "scenarios": {
+                "simple": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/测试",
+                    }, ]
+                },
+            }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script, encoding='utf8') as fds:
+            content = fds.read()
+
+        target_lines = [
+            "with apiritif.smart_transaction('http://blazedemo.com/测试')",
+            "self.driver.get('http://blazedemo.com/测试')"
         ]
 
         for idx in range(len(target_lines)):
@@ -1064,7 +1095,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_v2.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>", python_files=True)
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
         with open(self.obj.script) as script:
             self.assertIn("bzt.resources.selenium_extras", script.read())
 
