@@ -108,6 +108,21 @@ class TestJavaC(BZTestCase):
         self.assertEqual("10", self.obj._get_version(out1))
         self.assertEqual("8", self.obj._get_version(out2))
 
+    def test_simple_compilation(self):
+        super(TestJavaC, self).setUp()
+        engine_obj = EngineEmul()
+
+        self.obj = JUnitTester()
+        self.obj.settings = engine_obj.config.get("modules").get("junit")
+        self.obj.engine = engine_obj
+
+        self.obj.execution.merge({
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
+        })
+
+        self.obj.prepare()
+        self.obj.post_process()
+
 
 class TestJUnitTester(BZTestCase):
     def setUp(self):
