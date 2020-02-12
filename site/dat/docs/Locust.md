@@ -47,7 +47,7 @@ class WebsiteUser(HttpLocust):
     wait_time = between(0.100, 1.500)
 ```
 
-For files generation we use syntax of Locust 0.13+.
+For files generation we use syntax of Locust 0.13+. Latest supported version is 0.13.5.
 
 ## Requests Scenario
 
