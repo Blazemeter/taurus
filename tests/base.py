@@ -62,8 +62,8 @@ def local_paths_config():
                 "path": RESOURCES_DIR + "gatling/gatling3" + EXE_SUFFIX,
             },
             "junit": {
-                "path": dirname + "/../build/selenium/tools/junit/junit.jar",
-                "selenium-server": dirname + "/../build/selenium/selenium-server.jar"
+                "path": os.path.normpath(dirname + "/../build/selenium/tools/junit/junit.jar"),
+                "selenium-server": os.path.normpath(dirname + "/../build/selenium/selenium-server.jar")
             }
         }
     }
