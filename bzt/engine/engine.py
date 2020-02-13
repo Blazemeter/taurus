@@ -666,9 +666,6 @@ class Engine(object):
         else:
             self.aggregator = self.instantiate_module(cls)
 
-        if self.aggregator.is_functional:
-            self.func_mode = True
-
         self.prepared.append(self.aggregator)
         self.aggregator.prepare()
 

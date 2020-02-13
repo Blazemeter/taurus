@@ -62,7 +62,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         super(FinalStatus, self).prepare()
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
-        elif self.engine.func_mode:
+        elif self.engine.is_functional_mode():
             self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):
