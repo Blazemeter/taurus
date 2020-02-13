@@ -329,7 +329,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 }
             }
         })
+
+        # it changes default of data-source loop parameter to 'false' (see second.csv params)
         self.obj.engine.aggregator.is_functional = True
+
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
