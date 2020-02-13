@@ -43,7 +43,7 @@ matrix:
     env:
       - PYTHON="C:/Python37/python.exe"
       - PIP_INSTALL="C:/Python37/python.exe -m pip install"
-      - PATH=c/Python37:/c/Python37/Scripts:$PATH
+      - PATH=c/Python37:/c/Python37/Scripts:c:\\jdk\\bin:$PATH
       - R_PATH=C:/Ruby22/bin
       - PYTHON_VERSION="3.7.x"
       - PYTHON_ARCH="64"
@@ -54,6 +54,7 @@ matrix:
     - $PIP_INSTALL --upgrade pip
     - $PIP_INSTALL pip wheel --upgrade
     - choco install nodejs.install
+    - choco install jdk8 -params 'installdir=c:\\jdk' -y
     before_script:
     - ruby -v
     - gem -v
