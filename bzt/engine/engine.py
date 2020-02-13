@@ -80,6 +80,7 @@ class Engine(object):
         self.stopping_reason = None
         self.engine_loop_utilization = 0
         self.prepared = []
+        self.started = []
 
         self.default_cwd = None
         self.logging_level_down = lambda: None
