@@ -251,7 +251,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.stdout = open(self.engine.create_artifact("jmeter", ".out"), "w")
         self.stderr = open(self.engine.create_artifact("jmeter", ".err"), "w")
 
-        if self.engine.func_mode:
+        if self.engine.is_functional_mode():
             self.reader = FuncJTLReader(self.log_jtl, self.engine, self.log)
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.reader.executor_label = self.label
@@ -454,6 +454,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 listener.set("enabled", "false")
 
     def __apply_test_mode(self, jmx):
+        func_mode = self.engine.is_functional_mode()
         test_plan_selector = "jmeterTestPlan>hashTree>TestPlan"
         plans = jmx.get(test_plan_selector)
         if not plans:
@@ -463,9 +464,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         props = test_plan.xpath('boolProp[@name="TestPlan.functional_mode"]')
         if props:
             prop = props[0]
-            prop.text = "true" if self.engine.func_mode else "false"
+            prop.text = "true" if func_mode else "false"
         else:
-            element = jmx._get_functional_mode_prop(self.engine.func_mode)
+            element = jmx._get_functional_mode_prop(func_mode)
             jmx.append(test_plan_selector, element)
 
     @staticmethod
@@ -481,7 +482,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_result_listeners(self, jmx):
-        if self.engine.func_mode:
+        if self.engine.is_functional_mode():
             self.__add_trace_writer(jmx)
         else:
             self.__add_result_writers(jmx)

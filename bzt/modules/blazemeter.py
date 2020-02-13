@@ -1493,11 +1493,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         test_type = self.settings.get("test-type")  # user test type. should we mention it in doc?
         if not test_type:
-            gui_mode = self.engine.func_mode and (
+            func_mode = self.engine.is_functional_mode()
+            gui_mode = func_mode and (
                     (len(self.executors) == 1) and
                     isinstance(self.executors[0], SeleniumExecutor))
 
-            if self.engine.func_mode:
+            if func_mode:
                 if gui_mode:
                     test_type = FUNC_GUI_TEST_TYPE
                 else:
@@ -1528,7 +1529,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         self.widget = self.get_widget()
 
-        if self.engine.func_mode:
+        if self.engine.is_functional_mode():
             self.results_reader = FunctionalBZAReader(self.log)
             self.engine.aggregator.add_underling(self.results_reader)
         else:

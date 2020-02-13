@@ -103,7 +103,7 @@ class Scenario(UserDict, object):
             source = ensure_is_dict(sources, idx, "path")
             if not source:
                 raise TaurusConfigError("Data source must have valid file path: '%s'" % source)
-            source.get("loop", not self.engine.func_mode, force_set=True)
+            source.get("loop", not self.engine.is_functional_mode(), force_set=True)
 
             yield source
 

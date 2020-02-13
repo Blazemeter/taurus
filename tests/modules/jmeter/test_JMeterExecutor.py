@@ -2440,7 +2440,6 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_func_mode_jmeter_2_13(self):
         self.obj.engine.aggregator.is_functional = True
-        self.obj.engine.func_mode = True
         self.configure({"execution": {
             'scenario': {
                 "requests": [
@@ -2460,7 +2459,6 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_func_mode_jmeter_3_xx(self):
         self.obj.engine.aggregator.is_functional = True
-        self.obj.engine.func_mode = True
         self.configure({"execution": {
             'scenario': {
                 "requests": [
@@ -2805,7 +2803,6 @@ class TestJMeterExecutor(ExecutorTestCase):
     def test_func_aggregator_chosen(self):
         self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))
         self.obj.engine.aggregator = FunctionalAggregator()
-        self.obj.engine.func_mode = True
         self.obj.prepare()
         self.assertEquals('get-post', self.obj.reader.executor_label)
 

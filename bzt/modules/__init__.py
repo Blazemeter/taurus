@@ -54,7 +54,7 @@ class ReportableExecutor(ScenarioExecutor):
 
         self.report_file = report_file.replace(os.path.sep, '/')
 
-        if self.engine.func_mode:
+        if self.engine.is_functional_mode():
             self.reader = self.create_func_reader(self.report_file)
         else:
             self.reader = self.create_load_reader(self.report_file)

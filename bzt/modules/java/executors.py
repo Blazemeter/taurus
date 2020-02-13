@@ -233,7 +233,7 @@ class JUnitTester(JavaTestRunner):
         super(JUnitTester, self).install_required_tools()
 
     def prepare(self):
-        self.report_file_suffix = ".ldjson" if self.engine.func_mode else ".csv"
+        self.report_file_suffix = ".ldjson" if self.engine.is_functional_mode() else ".csv"
         super(JUnitTester, self).prepare()
         self.__write_props_file()
 

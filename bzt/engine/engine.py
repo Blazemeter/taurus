@@ -80,8 +80,6 @@ class Engine(object):
         self.stopping_reason = None
         self.engine_loop_utilization = 0
         self.prepared = []
-        self.started = []
-        self.func_mode = False
 
         self.default_cwd = None
         self.logging_level_down = lambda: None
@@ -411,6 +409,9 @@ class Engine(object):
             merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
         for artifact in existing_artifacts:
             self.existing_artifact(artifact)
+
+    def is_functional_mode(self):
+        return self.aggregator is not None and self.aggregator.is_functional
 
     def __load_module(self, alias):
         """
