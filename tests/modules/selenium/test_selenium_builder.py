@@ -235,7 +235,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
-                    "data-sources": [{"path": "first.csv", "loop": False}, "second.csv"],
+                    "data-sources": [{"path": "first.csv", "loop": True}, "second.csv"],
                     "default-address": "http://blazedemo.com",
                     "variables": {
                         "red_pill": "take_it",
@@ -329,7 +329,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 }
             }
         })
-
+        self.engine.func_mode = True
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')

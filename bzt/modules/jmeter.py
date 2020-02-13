@@ -251,7 +251,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.stdout = open(self.engine.create_artifact("jmeter", ".out"), "w")
         self.stderr = open(self.engine.create_artifact("jmeter", ".err"), "w")
 
-        if self.engine.is_functional_mode():
+        if self.engine.func_mode:
             self.reader = FuncJTLReader(self.log_jtl, self.engine, self.log)
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.reader.executor_label = self.label
@@ -482,7 +482,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
     def __add_result_listeners(self, jmx):
-        if self.engine.is_functional_mode():
+        if self.engine.func_mode:
             self.__add_trace_writer(jmx)
         else:
             self.__add_result_writers(jmx)

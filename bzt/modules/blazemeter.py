@@ -1493,12 +1493,11 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         test_type = self.settings.get("test-type")  # user test type. should we mention it in doc?
         if not test_type:
-            func_mode = self.engine.is_functional_mode()
-            gui_mode = func_mode and (
+            gui_mode = self.engine.func_mode and (
                     (len(self.executors) == 1) and
                     isinstance(self.executors[0], SeleniumExecutor))
 
-            if func_mode:
+            if self.engine.func_mode:
                 if gui_mode:
                     test_type = FUNC_GUI_TEST_TYPE
                 else:
