@@ -62,7 +62,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         super(FinalStatus, self).prepare()
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
-        elif self.engine.in_functional_mode():
+        elif self.engine.func_mode:
             self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):
@@ -352,7 +352,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
     def prepare(self):
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
-        elif self.engine.in_functional_mode():
+        elif self.engine.func_mode:
             self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):

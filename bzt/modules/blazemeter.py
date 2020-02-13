@@ -1529,7 +1529,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         self.widget = self.get_widget()
 
-        if self.engine.in_functional_mode():
+        if self.engine.func_mode:
             self.results_reader = FunctionalBZAReader(self.log)
             self.engine.aggregator.add_underling(self.results_reader)
         else:

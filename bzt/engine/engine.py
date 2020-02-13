@@ -81,6 +81,7 @@ class Engine(object):
         self.engine_loop_utilization = 0
         self.prepared = []
         self.started = []
+        self.func_mode = False
 
         self.default_cwd = None
         self.logging_level_down = lambda: None
@@ -411,9 +412,6 @@ class Engine(object):
         for artifact in existing_artifacts:
             self.existing_artifact(artifact)
 
-    def is_functional_mode(self):
-        return self.aggregator is not None and self.aggregator.is_functional
-
     def __load_module(self, alias):
         """
         Load module class by alias
@@ -666,6 +664,10 @@ class Engine(object):
             self.log.warning("Proceeding without aggregator, no results analysis")
         else:
             self.aggregator = self.instantiate_module(cls)
+
+        if self.aggregator.is_functional:
+            self.func_mode = True
+
         self.prepared.append(self.aggregator)
         self.aggregator.prepare()
 
