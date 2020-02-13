@@ -99,10 +99,12 @@ class Scenario(UserDict, object):
         if not isinstance(sources, list):
             raise TaurusConfigError("data-sources is not a list: '%s'" % sources)
 
+        is_load_mode = not self.engine.is_functional_mode()
         for idx, source in enumerate(sources):
             source = ensure_is_dict(sources, idx, "path")
             if not source:
                 raise TaurusConfigError("Data source must have valid file path: '%s'" % source)
+            source.get("loop", is_load_mode, force_set=True)
 
             yield source
 
