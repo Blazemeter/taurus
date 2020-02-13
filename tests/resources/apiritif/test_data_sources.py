@@ -9,7 +9,7 @@ from time import time, sleep
 
 import apiritif
 
-reader_1 = apiritif.CSVReaderPerThread('first-file.csv')
+reader_1 = apiritif.CSVReaderPerThread('first-file.csv', loop=True)
 reader_2 = apiritif.CSVReaderPerThread('/second/file.csv', loop=True, quoted=False, delimiter='-')
 
 
