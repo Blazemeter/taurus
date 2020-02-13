@@ -454,7 +454,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 listener.set("enabled", "false")
 
     def __apply_test_mode(self, jmx):
-        func_mode = self.engine.is_functional_mode()
         test_plan_selector = "jmeterTestPlan>hashTree>TestPlan"
         plans = jmx.get(test_plan_selector)
         if not plans:
@@ -464,9 +463,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         props = test_plan.xpath('boolProp[@name="TestPlan.functional_mode"]')
         if props:
             prop = props[0]
-            prop.text = "true" if func_mode else "false"
+            prop.text = "true" if self.engine.func_mode else "false"
         else:
-            element = jmx._get_functional_mode_prop(func_mode)
+            element = jmx._get_functional_mode_prop(self.engine.func_mode)
             jmx.append(test_plan_selector, element)
 
     @staticmethod
