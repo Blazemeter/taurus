@@ -43,7 +43,8 @@ matrix:
     env:
       - PYTHON="C:/Python37/python.exe"
       - PIP_INSTALL="C:/Python37/python.exe -m pip install"
-      - PATH=c/Python37:/c/Python37/Scripts:c:\\jdk\\bin:c:\\nodejs:$PATH
+      - NODE="c:\\nodejs"
+      - PATH=c/Python37:/c/Python37/Scripts:c:\\jdk\\bin:%NODE%:$PATH
       - R_PATH=C:/Ruby22/bin
       - PYTHON_VERSION="3.7.x"
       - PYTHON_ARCH="64"
