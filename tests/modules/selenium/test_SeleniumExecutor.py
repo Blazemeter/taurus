@@ -171,6 +171,22 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
         self.assertIn("--iterations 1", self.CMD_LINE)
 
+    def test_load_no_iter_duration(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "hold-for": "2s",
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = False
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertNotIn("--iterations 1", self.CMD_LINE)
+
     def test_func_no_iter(self):
         self.configure({
             EXEC: {
