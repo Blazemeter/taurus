@@ -125,7 +125,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
         iterations = load.iterations
         if "iterations" not in self.execution:  # defaults:
-            if self.engine.is_functional_mode() and self.get_scenario().get_data_sources():
+            if self.engine.is_functional_mode() and list(self.get_scenario().get_data_sources()):
                 iterations = 0                  # infinite for func mode and ds
             else:
                 iterations = 1                  # run once otherwise
