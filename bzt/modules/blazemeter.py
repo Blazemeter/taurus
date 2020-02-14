@@ -42,7 +42,7 @@ from bzt.engine import Reporter, Provisioning, Configuration, Service
 from bzt.engine import Singletone, SETTINGS, ScenarioExecutor, EXEC
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
+from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener, LocalClient
 from bzt.modules.services import Unpacker
 from bzt.modules.selenium import SeleniumExecutor
@@ -1529,12 +1529,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         self.widget = self.get_widget()
 
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+        if self.engine.is_functional_mode():
+            self.results_reader = FunctionalBZAReader(self.log)
+            self.engine.aggregator.add_underling(self.results_reader)
+        else:
             self.results_reader = ResultsFromBZA()
             self.results_reader.log = self.log
-            self.engine.aggregator.add_underling(self.results_reader)
-        elif isinstance(self.engine.aggregator, FunctionalAggregator):
-            self.results_reader = FunctionalBZAReader(self.log)
             self.engine.aggregator.add_underling(self.results_reader)
 
     @staticmethod
