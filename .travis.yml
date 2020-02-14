@@ -53,12 +53,14 @@ matrix:
     - $PYTHON -m ensurepip
     - $PIP_INSTALL --upgrade pip
     - $PIP_INSTALL pip wheel --upgrade
-    - choco install nodejs.install
     - choco install jdk8 -params 'installdir=c:\\jdk' -y
+    - choco install nodejs.install
     before_script:
     - ruby -v
     - gem -v
-    - rspec --version
+    - rspec --versioncheck
+    - node --version
+    - nodejs --version
     - powershell Start-Process $PYTHON tests/resources/httpserver/start.py
     script:
     - $PYTHON -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci --with-coverage --cover-inclusive

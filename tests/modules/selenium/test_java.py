@@ -153,8 +153,8 @@ class TestJUnitTester(BZTestCase):
         check installation of selenium-server, junit
         :return:
         """
-        installation_path = os.path.normpath(BUILD_DIR + "selenium-taurus")
-        source_url = os.path.normpath("file:///" + RESOURCES_DIR + "selenium/selenium-server.jar")
+        installation_path = BUILD_DIR + "selenium-taurus"
+        source_url = "file:///" + RESOURCES_DIR + "selenium/selenium-server.jar"
 
         shutil.rmtree(dirname(installation_path), ignore_errors=True)
         self.assertFalse(exists(installation_path))

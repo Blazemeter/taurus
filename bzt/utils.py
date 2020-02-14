@@ -1433,22 +1433,19 @@ class Node(RequiredTool):
         super(Node, self).__init__(installable=False, **kwargs)
 
     def check_if_installed(self):
-        node_candidates = ["node", "nodejs"]
-        for candidate in node_candidates:
-            try:
-                self.log.debug("Trying '%r' as Node Tool...", candidate)
-                out, err = self.call([candidate, '--version'])
-            except CALL_PROBLEMS as exc:
-                self.log.debug("%r is not installed: %s", candidate, exc)
-                continue
+        node_candidate = "node"
+        try:
+            self.log.debug("Trying '%r' as Node Tool...", node_candidate)
+            out, err = self.call([node_candidate, '--version'])
+        except CALL_PROBLEMS as exc:
+            self.log.debug("%r is not installed: %s", node_candidate, exc)
+            return False
 
-            if err:
-                out += err
-            self.log.debug("%s output: %s", candidate, out)
-            self.tool_path = candidate
-            return True
-
-        return False
+        if err:
+            out += err
+        self.log.debug("%s output: %s", node_candidate, out)
+        self.tool_path = node_candidate
+        return True
 
 
 class MirrorsManager(object):
