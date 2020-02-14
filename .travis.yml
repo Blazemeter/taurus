@@ -58,7 +58,7 @@ matrix:
     before_script:
     - ruby -v
     - gem -v
-    - rspec --versioncheck
+    - rspec --version
     - node --version
     - powershell Start-Process $PYTHON tests/resources/httpserver/start.py
     script:
