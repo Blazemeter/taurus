@@ -198,7 +198,7 @@ class TestJUnitTester(BZTestCase):
     def test_simple(self):
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.execution.merge({
-            "scenario": {"script": os.path.normpath(RESOURCES_DIR + "BlazeDemo.java"), "properties": {"scenprop": 3}},
+            "scenario": {"script": RESOURCES_DIR + "BlazeDemo.java", "properties": {"scenprop": 3}},
             "properties": {"execprop": 2}
         })
         self.obj.settings.merge({"properties": {"settprop": 1}, "junit-version": 5})

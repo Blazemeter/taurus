@@ -269,7 +269,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.shutdown()
 
     def test_from_extension(self):
-        self.configure(yaml.load(open(os.path.normpath(RESOURCES_DIR + "yaml/selenium_from_extension.yml")).read()))
+        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
@@ -285,7 +285,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertFalse(results[0][DataPoint.CUMULATIVE][''][KPISet.ERRORS])  # error msg
 
     def test_requests(self):
-        self.configure(yaml.load(open(os.path.normpath(RESOURCES_DIR + "yaml/selenium_executor_requests.yml")).read()))
+        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
