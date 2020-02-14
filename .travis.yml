@@ -54,8 +54,8 @@ matrix:
     - $PYTHON -m ensurepip
     - $PIP_INSTALL --upgrade pip
     - $PIP_INSTALL pip wheel --upgrade
-    - choco install jdk8 -params 'installdir=c:\\jdk' -y
-    - choco install nodejs.install -params 'installdir=c:\\nodejs' -y
+    - choco install jdk8 -y
+    - choco install nodejs.install -y
     before_script:
     - ruby -v
     - gem -v
