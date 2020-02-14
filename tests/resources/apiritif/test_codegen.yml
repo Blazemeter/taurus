@@ -1,6 +1,6 @@
 execution:
 - scenario: with-extractors
-  executor: nose
+  executor: apiritif
   iterations: 1
 
 reporting:
@@ -50,5 +50,5 @@ scenarios:
       method: DELETE
 
 modules:
-  nose:
+  apiritif:
     verbose: true

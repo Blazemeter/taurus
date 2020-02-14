@@ -2,7 +2,7 @@
  * Chrome loader for proxy2jmx service under Microsoft Windows.
  *
  * It helps you to cut in normal selenium call chain:
- * user_script -> Nose -> WebDriver -> chromedriver.exe -> chrome.exe
+ * user_script -> Apiritif -> WebDriver -> chromedriver.exe -> chrome.exe
  * and add some chrome settings. (mainly proxies)
  * This file should be compiled with MinGW (http://www.mingw.org)
  *
