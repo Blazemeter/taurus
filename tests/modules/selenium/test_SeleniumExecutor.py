@@ -185,7 +185,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
 
-        self.assertNotIn("--iterations 1", self.CMD_LINE)
+        self.assertNotIn("--iterations", self.CMD_LINE)
 
     def test_func_no_iter(self):
         self.configure({
@@ -216,7 +216,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
 
-        self.assertIn('--iterations 0', self.CMD_LINE)
+        self.assertNotIn('--iterations', self.CMD_LINE)
 
 
 class TestSeleniumStuff(SeleniumTestCase):
