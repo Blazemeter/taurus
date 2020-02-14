@@ -157,7 +157,7 @@ class TestGrinderExecutor(ExecutorTestCase):
                          'Custom': 'Header',
                      }}]}}})
         self.obj.prepare()
-        script = open(os.path.normpath(self.obj.engine.artifacts_dir + 'grinder_requests.py')).read()
+        script = open(os.path.join(self.obj.engine.artifacts_dir, 'grinder_requests.py')).read()
 
         default_addr = re.findall(r"url='http://blazedemo.com'", script)
         self.assertEquals(1, len(default_addr))
