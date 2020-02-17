@@ -54,9 +54,8 @@ matrix:
     - $PYTHON -m ensurepip
     - $PIP_INSTALL --upgrade pip
     - $PIP_INSTALL pip wheel --upgrade
-    - choco install jdk8 -y
-    - choco install nodejs.install -y
-    - cat 'C:\ProgramData\chocolatey\logs\chocolatey.log'
+    - choco install jdk8 --params 'installdir=c:\\jdk' -y
+    - choco install nodejs.install -y # msi
     before_script:
     - ruby -v
     - gem -v
