@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 import time
@@ -6,7 +5,9 @@ from os.path import join, exists, dirname
 
 import bzt
 
+from bzt import TaurusConfigError
 from bzt.modules.javascript import WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
+from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import get_full_path, is_windows
 
 from tests import BUILD_DIR, RESOURCES_DIR, BZTestCase
@@ -16,12 +17,6 @@ from tests.modules.selenium import SeleniumTestCase
 
 class TestSeleniumMochaRunner(SeleniumTestCase):
     RUNNER_STUB = RESOURCES_DIR + "selenium/js-mocha/mocha" + (".bat" if is_windows() else ".sh")
-
-    def test_selenium_prepare_mocha(self):
-        self.obj.execution.merge({"scenario": {
-            "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
-        }})
-        self.obj.prepare()
 
     @staticmethod
     def check_mocha_cmd(runner):
@@ -79,8 +74,15 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.engine.config.merge(config)
         self.obj.execution = self.obj.engine.config['execution']
 
-        self.obj.prepare()
+        super(SeleniumExecutor, self.obj).prepare()
+        self.obj.install_required_tools()
+        for driver in self.obj.webdrivers:
+            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
 
+        self.obj.create_runner()
+        self.obj.runner.install_required_tools = lambda: None
+        self.obj.runner.prepare()
+        self.obj.script = self.obj.runner.script
         self.obj.runner.get_launch_cmdline = lambda *args: [TestSeleniumMochaRunner.RUNNER_STUB] + list(args)
 
         self.obj.startup()
@@ -125,7 +127,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
     def test_install_mocha(self):
         dummy_installation_path = get_full_path(BUILD_DIR + "selenium-taurus/nodejs")
-        mocha_link = get_full_path(RESOURCES_DIR + "selenium/mocha-3.1.0.tgz")
+        mocha_link = get_full_path(RESOURCES_DIR + "selenium/mocha-7.0.0.tgz")
         wd_link = get_full_path(RESOURCES_DIR + "selenium/selenium-webdriver-1.0.0.tgz")
 
         shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)
@@ -165,100 +167,66 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
 
 class TestWebdriverIOExecutor(SeleniumTestCase):
-    RUNNER_STUB = RESOURCES_DIR + "selenium/js-wdio/wdio" + (".bat" if is_windows() else ".sh")
+    CMD_LINE = None
 
-    def test_prepare(self):
-        self.obj.execution.merge({
-            "runner": "wdio",
-            "scenario": {
-                "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js"
-            }
-        })
-        self.obj.prepare()
-        self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
+    def start_subprocess(self, args, **kwargs):
+        self.CMD_LINE = args
+
+    def obj_prepare(self):
+        super(SeleniumExecutor, self.obj).prepare()
+        for driver in self.obj.webdrivers:
+            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+
+        self.obj.create_runner()
+        self.obj.runner._check_tools = lambda x: None
+        self.obj.runner.prepare()
+        self.obj.script = self.obj.runner.script
 
     def full_run(self, config):
         self.configure(config)
-
-        self.obj.prepare()
+        self.obj_prepare()
+        self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
-
-        self.obj.runner.get_launch_cmdline = lambda *args: [TestWebdriverIOExecutor.RUNNER_STUB] + list(args)
-
         self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
     def test_simple(self):
         self.full_run({
             'execution': {
-                "runner": "wdio",
-                "scenario": {
-                    "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js",
-                }
-            },
-        })
-        self.assertTrue(exists(self.obj.runner.report_file))
-        with open(self.obj.runner.report_file) as fds:
-            lines = fds.readlines()
-        self.assertEqual(len(lines), 1)
-
-    def test_hold(self):
-        self.full_run({
-            'execution': {
                 'hold-for': '5s',
+                'iterations': 3,
                 'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
                 'runner': 'wdio',
             },
         })
 
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
-        self.assertIn("--hold-for 5", stdout)
+        self.assertTrue('--hold-for' in self.CMD_LINE)
+        hold_val = self.CMD_LINE[self.CMD_LINE.index('--hold-for')+1]
+        self.assertEqual(hold_val, '5.0')
 
-    def test_iterations(self):
-        self.full_run({
-            'execution': {
-                'iterations': 3,
-                'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
-                'runner': 'wdio'
-            },
-        })
-
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
-        self.assertIn("--iterations 3", stdout)
+        self.assertTrue('--iterations' in self.CMD_LINE)
+        iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations')+1]
+        self.assertEqual(iters_val, '3')
 
 
 class TestNewmanExecutor(BZTestCase):
-    RUNNER_STUB = RESOURCES_DIR + "newman/newman" + (".bat" if is_windows() else ".sh")
-
     def full_run(self, config):
         self.obj = NewmanExecutor()
         self.obj.engine = EngineEmul()
         self.obj.engine.config.merge(config)
         execution = config["execution"][0] if isinstance(config["execution"], list) else config["execution"]
         self.obj.execution.merge(execution)
-        self.obj.prepare()
-
-        self.obj.get_launch_cmdline = lambda *args: [TestNewmanExecutor.RUNNER_STUB] + list(args)
-
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-        self.obj.post_process()
 
     def test_flow(self):
         self.full_run({"execution": {"scenario": {
             "script": RESOURCES_DIR + 'functional/postman.json',
             "globals": {"a": 123},
         }}})
-        self.assertTrue(os.path.exists(self.obj.report_file))
-        with open(self.obj.report_file) as fds:
-            samples = [json.loads(line) for line in fds.readlines()]
-        self.assertEqual(1, len(samples))
-        sample = samples[0]
-        self.assertEqual(sample["status"], "PASSED")
-        self.assertEqual(sample["test_case"], "should load")
+        self.obj._check_tools = lambda x: None
+        self.obj.prepare()
+        self.obj.engine.start_subprocess = lambda **kwargs: None
+
+        self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
