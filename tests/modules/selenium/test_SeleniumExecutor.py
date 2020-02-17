@@ -202,6 +202,39 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
         self.assertIn("--iterations 1", self.CMD_LINE)
 
+    def test_func_0_iter(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "iterations": 0,
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertNotIn('--iterations', self.CMD_LINE)
+
+    def test_func_ds_0_iter(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "iterations": 0,
+                "scenario": {
+                    "data-sources": ['one.csv'],
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertNotIn('--iterations', self.CMD_LINE)
+
     def test_func_ds_no_iter(self):
         self.configure({
             EXEC: {
