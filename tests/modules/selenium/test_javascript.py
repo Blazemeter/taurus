@@ -5,10 +5,10 @@ from os.path import join, exists, dirname
 
 import bzt
 
-from bzt import TaurusConfigError
 from bzt.modules.javascript import WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import get_full_path, is_windows
+import bzt.utils
 
 from tests import BUILD_DIR, RESOURCES_DIR, BZTestCase
 from tests.mocks import EngineEmul
@@ -172,19 +172,10 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
 
-    def obj_prepare(self):
-        super(SeleniumExecutor, self.obj).prepare()
-        for driver in self.obj.webdrivers:
-            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
-
-        self.obj.create_runner()
-        self.obj.runner._check_tools = lambda x: None
-        self.obj.runner.prepare()
-        self.obj.script = self.obj.runner.script
-
     def full_run(self, config):
         self.configure(config)
-        self.obj_prepare()
+        bzt.utils.call = lambda **kwargs: "", ""
+        self.obj.prepare()
         self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
         self.obj.engine.start_subprocess = self.start_subprocess
         self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
@@ -223,7 +214,7 @@ class TestNewmanExecutor(BZTestCase):
             "script": RESOURCES_DIR + 'functional/postman.json',
             "globals": {"a": 123},
         }}})
-        self.obj._check_tools = lambda x: None
+        bzt.utils.call = lambda **kwargs: "", ""
         self.obj.prepare()
         self.obj.engine.start_subprocess = lambda **kwargs: None
 
