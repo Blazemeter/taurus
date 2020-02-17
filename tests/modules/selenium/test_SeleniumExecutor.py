@@ -7,10 +7,10 @@ import yaml
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import EXEC
+from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
-from bzt.modules.selenium import SeleniumExecutor
 from bzt.six import BytesIO
 from bzt.utils import LDJSONReader, FileReader
 from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
@@ -115,9 +115,6 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.check_flow_markers()
         self.check_samples()
 
-    def start_subprocess(self, args, env, cwd=None, **kwargs):
-        self.CMD_LINE = args
-
     def test_data_source_in_action(self):
         self.configure({
             EXEC: {
@@ -130,10 +127,14 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "assert": ["Simple Travel Agency"],
                         "actions": ["go(${host}/${page})"]}]}}})
         self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
+
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
+        self.CMD_LINE = args
 
     def test_infinite_iters(self):
         self.CMD_LINE = None
@@ -190,17 +191,6 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
 
 class TestSeleniumStuff(SeleniumTestCase):
-    def obj_prepare(self):
-        super(SeleniumExecutor, self.obj).prepare()
-        self.obj.install_required_tools()
-        for driver in self.obj.webdrivers:
-            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
-        self.obj.create_runner()
-        self.obj.runner.install_required_tools = lambda: None
-        self.obj.runner._compile_scripts = lambda: None
-        self.obj.runner.prepare()
-        self.obj.script = self.obj.runner.script
-
     def test_empty_scenario(self):
         """
         Raise runtime error when no scenario provided
@@ -209,52 +199,108 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.configure({EXEC: {"executor": "selenium"}})
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
-    def test_various_raise(self):
-        self.configure({  # RuntimeError when
-            EXEC: [{  # compilation fails
+    def test_javac_fail(self):
+        """
+        Test RuntimeError when compilation fails
+        :return:
+        """
+        self.configure({
+            EXEC: {
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/invalid.java"}
-            }, {  # no files of known types were found.
-                "executor": "selenium",
-                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/not_found"}
-            }]})
+            }
+        })
         self.assertRaises(ToolError, self.obj.prepare)
 
-    def test_empty_test_methods(self):
-        self.configure({  # Test exact number of tests when
-            EXEC: [{  # java annotations used
-                "executor": "selenium",
-                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SeleniumTest.java"}
-            }, {  # test class extends JUnit TestCase
-                "executor": "selenium",
-                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"}
-            }, {  # annotations used and no "test" in class name
-                "executor": "selenium",
-                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
-        }]})
-        self.obj_prepare()
+    def test_no_supported_files_to_test(self):
+        """
+        Test RuntimeError raised when no files of known types were found.
+        :return:
+        """
+        self.configure({EXEC: {
+            "executor": "selenium",
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/not_found"}
+        }})
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
+
+    def test_samples_count_annotations(self):
+        """
+        Test exact number of tests when java annotations used
+        :return:
+        """
+        self.configure({EXEC: {
+            "executor": "selenium",
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SeleniumTest.java"}
+        }})
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+
+    def test_samples_count_testcase(self):
+        """
+        Test exact number of tests when test class extends JUnit TestCase
+        :return:
+        """
+        self.configure({EXEC: {
+            "executor": "selenium",
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"}
+        }})
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+
+    def test_no_test_in_name(self):
+        """
+        Test exact number of tests when annotations used and no "test" in class name
+        :return:
+        """
+        self.configure({EXEC: {
+            "executor": "selenium",
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
+        }})
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
 
     def test_from_extension(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
-        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
-        self.obj.post_process()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        results = list(self.obj.runner.reader.datapoints(final_pass=True))
+
+        self.obj.runner._tailer.close()
+        self.obj.runner.reader.underlings[0].csvreader.file.close()
+
+        self.assertEquals(1, len(results))
+        self.assertFalse(results[0][DataPoint.CUMULATIVE][''][KPISet.ERRORS])  # error msg
 
     def test_requests(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
-        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
-        self.obj.post_process()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
 
         reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv"))
         lines = reader.get_lines(last_pass=True)
 
         reader.close()
         self.obj.runner._tailer.close()
+        self.obj.runner.reader.underlings[0].csvreader.file.close()
+
+        self.assertEquals(4, len(list(lines)))
 
     def test_fail_on_zero_results(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
@@ -286,7 +332,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             }
         })
         files = self.obj.resource_files()
-        self.obj_prepare()
+        self.obj.prepare()
         self.assertIn(script_path, files)
         artifacts_script = os.path.join(self.obj.engine.artifacts_dir, filename)
         self.assertFalse(os.path.exists(artifacts_script))
@@ -305,7 +351,7 @@ class TestSeleniumStuff(SeleniumTestCase):
                 "script": script_name,
             }
         })
-        self.obj_prepare()
+        self.obj.prepare()
 
     def test_do_not_modify_scenario_script(self):
         self.obj.execution.merge({
@@ -374,9 +420,17 @@ class TestSeleniumStuff(SeleniumTestCase):
                 'executor': 'selenium'
             },
         })
-        self.obj_prepare()
+        self.obj.prepare()
         self.obj.subscribe_to_transactions(dummy)
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
         self.obj.post_process()
+
+        self.assertEqual(10, dummy.transactions['hello there'])
 
 
 class TestReportReader(BZTestCase):

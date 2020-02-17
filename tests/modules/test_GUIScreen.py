@@ -44,7 +44,7 @@ class TestGUIScreen(BZTestCase):
 
         for _ in range(1, 10):
             obj.draw_screen((1, 1), canvas)
-            time.sleep(0.3)
+            time.sleep(0.5)
 
         if hasattr(obj, 'font'):
             old_font_size = 10
