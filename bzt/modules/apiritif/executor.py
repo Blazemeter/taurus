@@ -123,8 +123,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         if load.concurrency:
             cmdline += ['--concurrency', str(load.concurrency)]
 
-        iterations = load.iterations
-        if "iterations" not in self.execution:  # defaults:
+        iterations = self.get_raw_load().iterations
+        if iterations is None:  # defaults:
             if load.duration or self.engine.is_functional_mode() and list(self.get_scenario().get_data_sources()):
                 iterations = 0                  # infinite for func mode and ds
             else:
