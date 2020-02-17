@@ -71,6 +71,11 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
             },
         })
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+
+        dummy = RESOURCES_DIR + 'selenium/ruby/ruby' + ('.bat' if is_windows() else '.sh')
+        self.obj.settings.merge({"interpreter": dummy})
+        self.obj.settings.merge({"path": dummy})
+
         self.obj.prepare()
 
     def test_rspec_report_extras(self):
