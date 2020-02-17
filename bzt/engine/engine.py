@@ -666,6 +666,7 @@ class Engine(object):
             self.log.warning("Proceeding without aggregator, no results analysis")
         else:
             self.aggregator = self.instantiate_module(cls)
+
         self.prepared.append(self.aggregator)
         self.aggregator.prepare()
 

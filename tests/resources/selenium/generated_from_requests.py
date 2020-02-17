@@ -20,8 +20,8 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from bzt.resources.selenium_extras import FrameManager, WindowManager, LocatorsManager
-reader_1 = apiritif.CSVReaderPerThread('first.csv', loop=False)
-reader_2 = apiritif.CSVReaderPerThread('second.csv')
+reader_1 = apiritif.CSVReaderPerThread('first.csv', loop=True)
+reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)
 
 
 class TestLocSc(unittest.TestCase):
