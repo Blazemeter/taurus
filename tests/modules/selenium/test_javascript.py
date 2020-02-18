@@ -206,6 +206,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
+        self.obj.post_process()
 
     def simple_run(self, config):
         self.prepare(config)
