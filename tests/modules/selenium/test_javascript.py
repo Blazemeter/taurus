@@ -185,8 +185,10 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
                 "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js"
             }
         })
+        tmp_aec = bzt.utils.exec_and_communicate
         bzt.utils.exec_and_communicate = exec_and_communicate
         self.obj.prepare()
+        bzt.utils.exec_and_communicate = tmp_aec
         self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
 
     def prepare(self, config):
@@ -195,8 +197,10 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
 
         self.configure(config)
 
+        tmp_aec = bzt.utils.exec_and_communicate
         bzt.utils.exec_and_communicate = exec_and_communicate
         self.obj.prepare()
+        bzt.utils.exec_and_communicate = tmp_aec
         self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
 
     def full_run(self, config):
@@ -262,8 +266,11 @@ class TestNewmanExecutor(BZTestCase):
         self.obj.engine.config.merge(config)
         execution = config["execution"][0] if isinstance(config["execution"], list) else config["execution"]
         self.obj.execution.merge(execution)
+
+        tmp_aec = bzt.utils.exec_and_communicate
         bzt.utils.exec_and_communicate = exec_and_communicate
         self.obj.prepare()
+        bzt.utils.exec_and_communicate = tmp_aec
 
         self.obj.node.tool_path = self.RUNNER_STUB
 
