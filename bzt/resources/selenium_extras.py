@@ -5,7 +5,21 @@ from apiritif import get_transaction_handlers, set_transaction_handlers, get_fro
 from selenium.webdriver.common.by import By
 
 
-def add_flow_markers():
+MARKERS = {
+    "start": {
+        "testCaseName": "test_case",
+        "testSuiteName": "test_suite"},
+    "stop": {
+        "status": "status",
+        "message": "message"}}
+
+
+def add_flow_markers(params=None):
+    if not params:
+        params = {}
+
+    MARKERS.update(params)
+
     handlers = get_transaction_handlers()
     handlers["enter"].append(_send_start_flow_marker)
     handlers["exit"].append(_send_exit_flow_marker)
@@ -14,15 +28,27 @@ def add_flow_markers():
 
 def _send_marker(stage, params):
     driver = get_from_thread_store("driver")
-    driver.execute_script('/* FLOW_MARKER test-case-%s */' % stage, params)
+    driver.execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
 
 
-def _send_start_flow_marker(test_case, test_suite):
-    _send_marker('start', {'testCaseName': test_case, 'testSuiteName': test_suite})
+def _send_start_flow_marker():  # don't join it with send_exit_ for future additions
+    stage = "start"
+    markers = MARKERS[stage]
+    labels = list(markers.keys())
+    names = [markers[label] for label in labels]
+    values = get_from_thread_store(names)
+    params = dict(zip(labels, values))
+    _send_marker(stage, params)
 
 
-def _send_exit_flow_marker(status, message):
-    _send_marker('stop', {'status': status, 'message': message})
+def _send_exit_flow_marker():
+    stage = "stop"
+    markers = MARKERS[stage]
+    labels = list(markers.keys())
+    names = [markers[label] for label in labels]
+    values = get_from_thread_store(names)
+    params = dict(zip(labels, values))
+    _send_marker(stage, params)
 
 
 class FrameManager:
