@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import shutil
 from os.path import exists, dirname
 
@@ -85,13 +86,17 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.prepare(config)
         self.obj.runner.get_launch_cmdline = lambda *args: [TestSeleniumMochaRunner.RUNNER_STUB] + list(args)
         self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
+        self.obj.post_process()
 
     def simple_run(self, config):
         self.prepare(config)
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.shutdown()
+        self.obj.post_process()
 
     def test_mocha_full(self):
         self.full_run({
@@ -198,6 +203,8 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.prepare(config)
         self.obj.runner.get_launch_cmdline = lambda *args: [TestWebdriverIOExecutor.RUNNER_STUB] + list(args)
         self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
     def simple_run(self, config):
@@ -205,6 +212,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.shutdown()
+        self.obj.post_process()
 
     def test_full(self):
         self.full_run({
