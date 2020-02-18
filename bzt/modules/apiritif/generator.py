@@ -93,7 +93,7 @@ class ApiritifScriptGenerator(object):
                         'resize', 'maximize', 'alert'
                         ])
 
-    EXECUTION_BLOCKS = "|".join(['if'])
+    EXECUTION_BLOCKS = "|".join(['if', 'loop'])
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
@@ -219,14 +219,19 @@ from selenium.webdriver.common.keys import Keys
         elif isinstance(action_config, dict):
             if action_config.get("type"):
                 return self._parse_dict_action(action_config)
-            elif action_config.get("if"):
-                name, param = ("if", action_config.get("if"))
+            block = self._get_execution_block(action_config)
+            if block and len(block) == 1:
+                name, param = (block[0], action_config.get(block[0]))
             else:
                 name, param = next(iteritems(action_config))
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
         return self._parse_string_action(name, param)
+
+    def _get_execution_block(self, action_config):
+        # get the list of execution blocks in this action if there are any or empty list
+        return list(set(action_config.keys()).intersection(self.EXECUTION_BLOCKS.split("|")))
 
     @staticmethod
     def _gen_dynamic_locator(var_w_locator):
@@ -630,11 +635,42 @@ from selenium.webdriver.common.keys import Keys
             action_elements.extend(self._gen_alert(param))
         elif atype == 'if':
             action_elements.append(self._gen_condition_mngr(param, action_config))
+        elif atype == 'loop':
+            action_elements.append(self._gen_loop_mngr(action_config))
 
         if not action_elements and not self.ignore_unknown_actions:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
+
+    def _gen_loop_mngr(self, action_config):
+        if 'start' not in action_config or 'end' not in action_config or 'do' not in action_config:
+            raise TaurusConfigError("Loop must contain start, end and do")
+        elements = []
+        range_elts = []
+        start = action_config['start']
+        end = action_config['end']
+        step = action_config['step'] or 1
+        # need to adjust the end index so that also that one is included in the range
+        end = end + 1 if step > 0 else end - 1
+
+        for i in range (start, end, step):
+            range_elts.append(ast.Num(i))
+
+        body = [
+            ast.Assign(
+                targets=[self._gen_expr("${%s}" % action_config['loop'])],
+                value=ast_call(func=ast_attr("str"), args=[ast.Name(id=action_config['loop'])]))
+        ]
+        for action in action_config.get('do'):
+            body.append(self._gen_action(action))
+
+        elements.append(
+            ast.For(target=ast.Name(id=action_config.get('loop'), ctx=ast.Store()), iter=ast.List(elts=range_elts),
+                    body=body,
+                    orelse=[]))
+
+        return elements
 
     def _gen_condition_mngr(self, param, action_config):
         if not action_config.get('then'):
