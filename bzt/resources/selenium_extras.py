@@ -31,8 +31,9 @@ def _send_marker(stage, params):
     driver.execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
 
 
-def _send_start_flow_marker():  # don't join it with send_exit_ for future additions
-    stage = "start"
+# don't join it with send_exit_ for future additions
+def _send_start_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
+    stage = "start"                             # apiritif removed (http.py) and apiritif released ( > 0.9.2)
     markers = MARKERS[stage]
     labels = list(markers.keys())
     names = [markers[label] for label in labels]
@@ -41,8 +42,8 @@ def _send_start_flow_marker():  # don't join it with send_exit_ for future addit
     _send_marker(stage, params)
 
 
-def _send_exit_flow_marker():
-    stage = "stop"
+def _send_exit_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
+    stage = "stop"                             # apiritif removed (http.py) and apiritif released ( > 0.9.2)
     markers = MARKERS[stage]
     labels = list(markers.keys())
     names = [markers[label] for label in labels]
