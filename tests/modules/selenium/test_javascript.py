@@ -2,7 +2,7 @@ import json
 import os
 import time
 import shutil
-from os.path import exists, dirname
+from os.path import join, exists, dirname
 
 import bzt
 
@@ -129,9 +129,6 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertIn("--iterations 3", self.CMD_LINE)
 
     def test_install_mocha(self):
-        def exec_and_communicate(*args, **kwargs):
-            return "", ""
-
         dummy_installation_path = get_full_path(BUILD_DIR + "selenium-taurus/nodejs")
         mocha_link = get_full_path(RESOURCES_DIR + "selenium/mocha-7.0.0.tgz")
         wd_link = get_full_path(RESOURCES_DIR + "selenium/selenium-webdriver-1.0.0.tgz")
@@ -158,9 +155,13 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
                 "runner": "mocha",
                 "scenario": {
                     "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"}})
-            bzt.utils.exec_and_communicate = exec_and_communicate
             self.obj.prepare()
 
+            self.assertTrue(exists(join(dummy_installation_path, "node_modules")))
+            self.assertTrue(exists(join(dummy_installation_path, "node_modules", "mocha")))
+            self.assertTrue(exists(join(dummy_installation_path, "node_modules", "mocha", "index.js")))
+            self.assertTrue(exists(join(dummy_installation_path, "node_modules", "selenium-webdriver")))
+            self.assertTrue(exists(join(dummy_installation_path, "node_modules", "selenium-webdriver", "index.js")))
         finally:
             Mocha.PACKAGE_NAME = orig_mocha_package
             JSSeleniumWebdriver.PACKAGE_NAME = orig_wd_package
