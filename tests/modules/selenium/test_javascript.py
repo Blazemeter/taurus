@@ -6,6 +6,7 @@ from os.path import join, exists, dirname
 
 import bzt
 
+from bzt import ToolError
 from bzt.modules.javascript import WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
 from bzt.utils import get_full_path, EXE_SUFFIX
 
@@ -80,9 +81,13 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.engine.config.merge(config)
         self.obj.execution = self.obj.engine.config['execution']
         tmp_aec = bzt.utils.exec_and_communicate
-        bzt.utils.exec_and_communicate = exec_and_communicate
-        self.obj.prepare()
-        bzt.utils.exec_and_communicate = tmp_aec
+        try:
+            bzt.utils.exec_and_communicate = exec_and_communicate
+            self.obj.prepare()
+        except ToolError as exc:
+            self.fail("ToolError:" % exc)
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
 
     def full_run(self, config):
         self.prepare(config)
@@ -189,9 +194,13 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             }
         })
         tmp_aec = bzt.utils.exec_and_communicate
-        bzt.utils.exec_and_communicate = exec_and_communicate
-        self.obj.prepare()
-        bzt.utils.exec_and_communicate = tmp_aec
+        try:
+            bzt.utils.exec_and_communicate = exec_and_communicate
+            self.obj.prepare()
+        except ToolError as exc:
+            self.fail("ToolError:" % exc)
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
         self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
 
     def prepare(self, config):
@@ -201,9 +210,13 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.configure(config)
 
         tmp_aec = bzt.utils.exec_and_communicate
-        bzt.utils.exec_and_communicate = exec_and_communicate
-        self.obj.prepare()
-        bzt.utils.exec_and_communicate = tmp_aec
+        try:
+            bzt.utils.exec_and_communicate = exec_and_communicate
+            self.obj.prepare()
+        except ToolError as exc:
+            self.fail("ToolError:" % exc)
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
         self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
 
     def full_run(self, config):
