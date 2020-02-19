@@ -79,8 +79,10 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
         self.obj.engine.config.merge(config)
         self.obj.execution = self.obj.engine.config['execution']
+        tmp_aec = bzt.utils.exec_and_communicate
         bzt.utils.exec_and_communicate = exec_and_communicate
         self.obj.prepare()
+        bzt.utils.exec_and_communicate = tmp_aec
 
     def full_run(self, config):
         self.prepare(config)
