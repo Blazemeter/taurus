@@ -48,6 +48,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.obj.prepare()
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
+        self.obj.shutdown()
         self.obj.post_process()
         self.assertFalse(self.obj.has_results())
         self.assertTrue('-f' in self.CMD_LINE)
@@ -72,6 +73,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.assertEqual(self.obj.widget.duration, 30)
         self.assertTrue(self.obj.widget.widgets[0].text.endswith("simple.py"))
         self.obj.shutdown()
+        self.obj.post_process()
 
     def test_locust_fractional_hatch_rate(self):
         test_concurrency, test_ramp_up = 4, "60s"
@@ -97,6 +99,8 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 if x.startswith("--hatch-rate")
             ]
             self.assertEqual(hatch[0], "%f" % expected_hatch_rate)
+            self.obj.shutdown()
+        self.obj.post_process()
 
     def test_locust_master(self):
         self.configure({"execution": {
@@ -161,6 +165,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.engine.aggregator.add_underling(self.obj.reader)
         self.assertEqual(1, len(list(self.obj.engine.aggregator.datapoints(final_pass=True))))
+        self.obj.post_process()
 
     def test_resource_files_requests(self):
         self.configure({"execution": {
@@ -196,6 +201,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         prov.started_modules = [self.obj]
         self.obj.engine.provisioning = prov
         self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
+        self.obj.post_process()
 
     def test_requests_minimal(self):
         self.configure({"execution": {
@@ -249,6 +255,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
 
         self.obj.prepare()
         self.assertFilesEqual(RESOURCES_DIR + "locust/generated_from_requests.py", self.obj.script)
+        self.obj.post_process()
 
     def test_build_script_none_def_addr(self):
         self.sniff_log(self.obj.log)
@@ -266,6 +273,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.obj.prepare()
         debug_buff = self.log_recorder.debug_buff.getvalue()
         self.assertNotIn("'--host='", debug_buff)
+        self.obj.post_process()
 
     def test_jtl_key_order(self):
         self.configure({"execution": {
