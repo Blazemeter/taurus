@@ -17,7 +17,6 @@ LOADTEST_PY = join(RESOURCES_DIR, "molotov", "loadtest.py")
 @unittest.skipUnless(sys.version_info >= (3, 5), "enabled only on 3.5+")
 class TestMolotov(ExecutorTestCase):
     EXECUTOR = MolotovExecutor
-    CMD_LINE = None
 
     def tearDown(self):
         if self.obj.reader:
