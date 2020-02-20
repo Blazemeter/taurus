@@ -117,6 +117,9 @@ class TestLocSc(unittest.TestCase):
             self.vars['Basic'] = self.driver.find_element(
                 var_loc_as[0],
                 var_loc_as[1]).get_attribute('innerText')
+            self.assertTrue(self.driver.execute_script('return 10 === 2*5;'), '10 === 2*5')
+
+            self.vars['var_eval'] = self.driver.execute_script('return 0 == false;')
 
             var_loc_keys = self.loc_mng.get_locator([{
                 'xpath': '/wrong/one',

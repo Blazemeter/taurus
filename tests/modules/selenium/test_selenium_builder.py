@@ -290,6 +290,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"storeTextByXPath(//*[@id='basics']/h2)": "Basic"},
                             {"storeValueByXPath(//*[@id='basics']/h1)": "World"},
                             {"storeString(${Title} ${Basic} by ${By})": "Final"},
+                            {"storeEval(0 == false)": "var_eval"},
+                            "assertEval(10 === 2*5)",
                             "go(http:\\blazemeter.com)",
                             "echoString(${red_pill})",
                             "screenshot(screen.png)",
@@ -979,6 +981,15 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "type": "storeText",
                                         "param": "Basic",
                                         "locators": [{"xpath": "/html/body/div[3]/h2"}]
+                                    },
+                                    {
+                                        "type": "assertEval",
+                                        "param": "10 === 2*5"
+                                    },
+                                    {
+                                        "type": "storeEval",
+                                        "param": "var_eval",
+                                        "value": "0 == false"
                                     },
                                     {
                                         "type": "click",
