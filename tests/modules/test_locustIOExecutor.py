@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 import unittest
 
 try:
@@ -10,7 +9,6 @@ except ImportError:
 
 from bzt import ToolError
 from bzt.utils import dehumanize_time
-from bzt.modules.jmeter import JTLReader
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from bzt.modules.provisioning import Local
@@ -298,34 +296,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
             header_line = jtl[0].strip()
             expected = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
             self.assertEqual(header_line, expected)
-
-    # def test_jtl_quoting_issue(self):
-    #     def shellex(*args, **kwargs):
-    #         return "", ""
-    #
-    #     self.configure({"execution": {
-    #         "concurrency": 1,
-    #         "iterations": 1,
-    #         "scenario": {
-    #             "default-address": "http://httpbin.org/status/503",
-    #             "requests": [
-    #                 "/"
-    #             ]
-    #         }
-    #     }})
-    #     self.obj.prepare()
-    #     self.obj.engine.start_subprocess = self.start_subprocess
-    #     self.obj.startup()
-    #     # while not self.obj.check():
-    #     #     time.sleep(self.obj.engine.check_interval)
-    #     self.obj.shutdown()
-    #     self.obj.post_process()
-    #
-    #     kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
-    #     self.assertTrue(os.path.exists(kpi_path))
-    #
-    #     reader = JTLReader(kpi_path, self.obj.log)
-    #     list(reader.datapoints())
 
     def test_diagnostics(self):
         self.configure({"execution": {
