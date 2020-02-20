@@ -334,78 +334,66 @@ class TestPyTestExecutor(ExecutorTestCase):
     EXECUTOR = PyTestExecutor
     CMD_LINE = None
 
-    def start_subprocess(self, args, env, cwd=None, **kwargs):
+    def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
 
+    def full_run(self, config):
+        self.obj.execution.merge(config)
+        self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
+
     def test_report_file(self):
-        self.obj.execution.merge({
+        self.full_run({
             "scenario": {
                 "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
             }
         })
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
-        self.obj.post_process()
         self.assertTrue('--report-file' in self.CMD_LINE)
         val = self.CMD_LINE[self.CMD_LINE.index('--report-file') + 1]
         self.assertTrue(val.endswith("PyTestExecutor.ldjson"))
 
     def test_iterations(self):
-        self.obj.execution.merge({
+        self.full_run({
             "iterations": 10,
             "scenario": {
                 "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
             }
         })
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
-        self.obj.post_process()
         self.assertTrue('-i' in self.CMD_LINE)
         iter_val = self.CMD_LINE[self.CMD_LINE.index('-i')+1]
         self.assertEqual(iter_val, '10')
 
     def test_hold(self):
-        self.obj.execution.merge({
+        self.full_run({
             "hold-for": "3s",
             "scenario": {
                 "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
             }
         })
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
-        self.obj.post_process()
         self.assertTrue('-d' in self.CMD_LINE)
         iter_val = self.CMD_LINE[self.CMD_LINE.index('-d')+1]
         self.assertEqual(iter_val, '3.0')
 
     def test_script(self):
-        self.obj.execution.merge({
+        self.full_run({
             "scenario": {
                 "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
             }
         })
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
-        self.obj.post_process()
         self.assertTrue(self.CMD_LINE[-1].endswith("test_single.py"))
 
     def test_additional_args(self):
         additional_args = "--foo --bar"
-        self.obj.execution.merge({
+        self.obj.runner_path = RESOURCES_DIR + "selenium/pytest/bin/runner.py"
+        self.full_run({
             "scenario": {
                 "additional-args": additional_args,
                 "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
             }
         })
-        self.obj.runner_path = RESOURCES_DIR + "selenium/pytest/bin/runner.py"
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
-        self.obj.post_process()
         self.assertTrue('--foo', '--bar' in self.CMD_LINE)
 
 
