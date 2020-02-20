@@ -84,8 +84,6 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         try:
             bzt.utils.exec_and_communicate = exec_and_communicate
             self.obj.prepare()
-        except ToolError as exc:
-            self.fail("ToolError:" % exc)
         finally:
             bzt.utils.exec_and_communicate = tmp_aec
 
@@ -197,8 +195,6 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         try:
             bzt.utils.exec_and_communicate = exec_and_communicate
             self.obj.prepare()
-        except ToolError as exc:
-            self.fail("ToolError:" % exc)
         finally:
             bzt.utils.exec_and_communicate = tmp_aec
         self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
@@ -284,9 +280,11 @@ class TestNewmanExecutor(BZTestCase):
         self.obj.execution.merge(execution)
 
         tmp_aec = bzt.utils.exec_and_communicate
-        bzt.utils.exec_and_communicate = exec_and_communicate
-        self.obj.prepare()
-        bzt.utils.exec_and_communicate = tmp_aec
+        try:
+            bzt.utils.exec_and_communicate = exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
 
         self.obj.node.tool_path = self.RUNNER_STUB
 
