@@ -14,6 +14,7 @@ from bzt.modules.robot import RobotExecutor
 from tests import RESOURCES_DIR, ExecutorTestCase, BZTestCase
 from tests.modules.selenium import SeleniumTestCase
 from bzt.resources.selenium_extras import LocatorsManager
+from bzt.utils import EXE_SUFFIX
 
 
 class MockWebDriver(object):
@@ -412,7 +413,7 @@ class TestRobotExecutor(ExecutorTestCase):
     EXECUTOR = RobotExecutor
     CMD_LINE = None
 
-    def start_subprocess(self, args, env, cwd=None, **kwargs):
+    def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
 
     def test_full_single_script(self):
@@ -425,9 +426,8 @@ class TestRobotExecutor(ExecutorTestCase):
         })
         self.obj.prepare()
         try:
+            self.obj.settings["interpreter"] = RESOURCES_DIR + "selenium/robot/robot-mock" + EXE_SUFFIX
             self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
         self.obj.post_process()
@@ -439,8 +439,16 @@ class TestRobotExecutor(ExecutorTestCase):
         self.assertIsNotNone(self.obj.output_file)
         self.assertIsNotNone(self.obj.log_file)
 
+    def full_run(self, config):
+        self.configure(config)
+        self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
+
     def test_hold(self):
-        self.configure({
+        self.full_run({
             "execution": [{
                 "hold-for": "5s",
                 "iterations": 3,
@@ -449,15 +457,12 @@ class TestRobotExecutor(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
         self.assertTrue('--duration' in self.CMD_LINE)
         dur_val = self.CMD_LINE[self.CMD_LINE.index('--duration')+1]
         self.assertEqual(dur_val, '5.0')
 
     def test_iterations(self):
-        self.configure({
+        self.full_run({
             "execution": [{
                 "iterations": 3,
                 "scenario": {
@@ -465,15 +470,12 @@ class TestRobotExecutor(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
         self.assertTrue('--iterations' in self.CMD_LINE)
         iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations')+1]
         self.assertEqual(iters_val, '3')
 
     def test_variables(self):
-        self.configure({
+        self.full_run({
             "execution": [{
                 "iterations": 1,
                 "scenario": {
@@ -484,16 +486,13 @@ class TestRobotExecutor(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
         self.assertTrue('--variablefile' in self.CMD_LINE)
         var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile')+1]
         self.assertTrue(var_file.endswith("robot-vars.yaml"))
         self.assertEqual('janedoe', yaml.load(open(var_file).read())['USERNAME'])
 
     def test_variables_file(self):
-        self.configure({
+        self.full_run({
             "execution": [{
                 "iterations": 1,
                 "scenario": {
@@ -502,15 +501,12 @@ class TestRobotExecutor(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
         self.assertTrue('--variablefile' in self.CMD_LINE)
         var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile')+1]
         self.assertEqual(var_file, os.path.normpath(RESOURCES_DIR + "selenium/robot/simple/vars.yaml"))
 
     def test_single_tag(self):
-        self.configure({
+        self.full_run({
             "execution": [{
                 "iterations": 1,
                 "scenario": {
@@ -519,15 +515,12 @@ class TestRobotExecutor(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
         self.assertTrue('--include' in self.CMD_LINE)
         tags = self.CMD_LINE[self.CMD_LINE.index('--include')+1]
         self.assertEqual(tags, 'create')
 
     def test_multiple_tags(self):
-        self.configure({
+        self.full_run({
             "execution": [{
                 "iterations": 1,
                 "scenario": {
@@ -536,9 +529,6 @@ class TestRobotExecutor(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
         self.assertTrue('--include' in self.CMD_LINE)
         tags = self.CMD_LINE[self.CMD_LINE.index('--include')+1]
         self.assertEqual(tags, 'create,database')
