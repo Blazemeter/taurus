@@ -345,6 +345,52 @@ class TestPyTestExecutor(ExecutorTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
+    def test_full_single_script(self):
+        self.obj.execution.merge({
+            "iterations": 1,
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
+            }
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+
+    def test_statuses(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
+            }
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        with open(self.obj.report_file) as fds:
+            report = [json.loads(line) for line in fds.readlines() if line]
+        self.assertEqual(4, len(report))
+        self.assertEqual(["PASSED", "FAILED", "FAILED", "SKIPPED"], [item["status"] for item in report])
+
+        failed_item = report[1]
+        assertions = failed_item["assertions"]
+        self.assertEqual(1, len(assertions))
+        assertion = assertions[0]
+        self.assertEqual('assert (2 + (2 * 2)) == 8', assertion['error_msg'])
+        self.assertTrue(assertion['failed'])
+        self.assertEqual('AssertionError: assert (2 + (2 * 2)) == 8', assertion['name'])
+        self.assertIsNotNone(assertion.get('error_trace'))
+
     def test_report_file(self):
         self.full_run({
             "scenario": {
@@ -362,9 +408,7 @@ class TestPyTestExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
             }
         })
-        self.assertTrue('-i' in self.CMD_LINE)
-        iter_val = self.CMD_LINE[self.CMD_LINE.index('-i')+1]
-        self.assertEqual(iter_val, '10')
+        self.assertTrue('-i 10' in ' '.join(self.CMD_LINE))
 
     def test_hold(self):
         self.full_run({
@@ -373,9 +417,7 @@ class TestPyTestExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
             }
         })
-        self.assertTrue('-d' in self.CMD_LINE)
-        iter_val = self.CMD_LINE[self.CMD_LINE.index('-d')+1]
-        self.assertEqual(iter_val, '3.0')
+        self.assertTrue('-d 3.0' in ' '.join(self.CMD_LINE))
 
     def test_script(self):
         self.full_run({
