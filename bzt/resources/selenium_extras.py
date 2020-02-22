@@ -1,7 +1,7 @@
 # Utility functions and classes for Taurus Selenium tests
 
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException
-from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store
+from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
 from selenium.webdriver.common.by import By
 
 
@@ -31,14 +31,19 @@ def _send_marker(stage, params):
     driver.execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
 
 
-# don't join it with send_exit_ for future additions
 def _send_start_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
     stage = "start"                             # apiritif removed (http.py) and apiritif released ( > 0.9.2)
-    markers = MARKERS[stage]
-    labels = list(markers.keys())
-    names = [markers[label] for label in labels]
-    values = get_from_thread_store(names)
-    params = dict(zip(labels, values))
+
+    test_case, test_suite, scenario_name, data_sources = get_from_thread_store(
+        ['test_case', 'test_suite', 'scenario_name', 'data_sources']
+    )
+    params = {
+        "testCaseName": "test_case",
+        "testSuiteName": scenario_name or "test_suite"}
+
+    if data_sources:
+        params["testDataIterationId"] = get_iteration()
+
     _send_marker(stage, params)
 
 
