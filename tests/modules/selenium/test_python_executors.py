@@ -464,7 +464,7 @@ class TestRobotExecutor(ExecutorTestCase):
         self.assertFalse(self.obj.has_results())
         self.assertNotEquals(self.obj.process, None)
         lines = open(self.obj.report_file).readlines()
-        self.assertEqual(5, len(lines))
+        self.assertEqual(1, len(lines))
 
         self.assertIsNotNone(self.obj.output_file)
         self.assertIsNotNone(self.obj.log_file)
