@@ -5,6 +5,7 @@ import yaml
 
 from selenium.common.exceptions import NoSuchElementException
 
+import bzt
 from bzt.engine import EXEC
 from bzt.modules import ConsolidatingAggregator
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
@@ -337,9 +338,19 @@ class TestPyTestExecutor(ExecutorTestCase):
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
 
+    def exec_and_communicate(self, *args, **kwargs):
+        return "", ""
+
     def full_run(self, config):
         self.obj.execution.merge(config)
-        self.obj.prepare()
+
+        tmp_aec = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
+
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.shutdown()
@@ -352,13 +363,11 @@ class TestPyTestExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
             }
         })
+
+        self.obj._check_tools = lambda *args, **kwargs: None
         self.obj.prepare()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
+        self.obj.startup()
+        self.obj.shutdown()
         self.obj.post_process()
         self.assertFalse(self.obj.has_results())
         self.assertNotEquals(self.obj.process, None)
@@ -446,6 +455,9 @@ class TestRobotExecutor(ExecutorTestCase):
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
 
+    def exec_and_communicate(self, *args, **kwargs):
+        return "", ""
+
     def test_full_single_script(self):
         self.configure({
             "execution": [{
@@ -454,7 +466,14 @@ class TestRobotExecutor(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+
+        tmp_aec = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
+
         try:
             self.obj.settings["interpreter"] = RESOURCES_DIR + "selenium/robot/robot-mock" + EXE_SUFFIX
             self.obj.startup()
@@ -471,7 +490,12 @@ class TestRobotExecutor(ExecutorTestCase):
 
     def full_run(self, config):
         self.configure(config)
-        self.obj.prepare()
+        tmp_aec = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.shutdown()
