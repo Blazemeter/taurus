@@ -38,8 +38,8 @@ def _send_start_flow_marker(*args, **kwargs):   # for apiritif. remove when comp
         ['test_case', 'test_suite', 'scenario_name', 'data_sources']
     )
     params = {
-        "testCaseName": "test_case",
-        "testSuiteName": scenario_name or "test_suite"}
+        "testCaseName": test_case,
+        "testSuiteName": scenario_name or test_suite}
 
     if data_sources:
         params["testDataIterationId"] = get_iteration()
