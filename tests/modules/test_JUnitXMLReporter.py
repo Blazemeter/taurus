@@ -336,6 +336,7 @@ class TestJUnitXML(BZTestCase):
     def test_functional_report(self):
         engine = EngineEmul()
         aggregator = FunctionalAggregator()
+        engine.func_mode = True
         aggregator.engine = engine
         engine.aggregator = aggregator
 

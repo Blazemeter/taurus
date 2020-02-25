@@ -35,10 +35,11 @@ class TestLocSc(unittest.TestCase):
         self.frm_mng = FrameManager(self.driver)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
         self.vars = {
+            'my_xpath_locator': '/html/body/div[3]',
             'name': 'Name',
             'red_pill': 'take_it,',
         }
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
+        apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc')
 
     def _1_Test_V2(self):
         with apiritif.smart_transaction('Test V2'):
@@ -49,7 +50,7 @@ class TestLocSc(unittest.TestCase):
             var_loc_chain = self.loc_mng.get_locator([{
                 'id': 'invalid_id',
             }, {
-                'xpath': '/html/body/div[3]/form/select[1]',
+                'xpath': self.vars['my_xpath_locator'],
             }])
             ActionChains(self.driver).click_and_hold(self.driver.find_element(
                 var_loc_chain[0],

@@ -1,42 +1,49 @@
 import json
 import os
-import time
 
-from bzt.utils import is_windows
+import bzt
+from bzt.utils import EXE_SUFFIX
 from tests import RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
 
 
 class TestSeleniumRSpecRunner(SeleniumTestCase):
-    def test_selenium_prepare_rspec(self):
-        self.configure({
-            "execution": {
-                "scenario": {
-                    "script": RESOURCES_DIR + "selenium/ruby/example_spec.rb"
-                }}})
-        self.obj.prepare()
+    CMD_LINE = None
+
+    def start_subprocess(self, args, **kwargs):
+        self.CMD_LINE = ' '.join(args)
+
+    def exec_and_communicate(self, *args, **kwargs):
+        return "", ""
 
     def full_run(self, config):
+
         self.configure(config)
-        dummy = RESOURCES_DIR + 'selenium/ruby/ruby' + ('.bat' if is_windows() else '.sh')
-        self.obj.prepare()
+        dummy = RESOURCES_DIR + 'selenium/ruby/ruby' + EXE_SUFFIX
+
+        tmp_aec = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
+
         self.obj.runner.settings.merge({"interpreter": dummy})
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
+        self.obj.post_process()
 
     def test_rspec_full(self):
         self.full_run({
             'execution': {
+                'hold-for': '10s',
+                'iterations': 3,
                 'scenario': {'script': RESOURCES_DIR + 'selenium/ruby/example_spec.rb'},
             },
         })
-        self.assertTrue(os.path.exists(self.obj.runner.report_file))
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
-        self.assertIn('--test-suite', stdout)
-        self.assertIn('example_spec.rb', stdout)
+        self.assertIn('--hold-for 10', self.CMD_LINE)
+        self.assertIn('--iterations 3', self.CMD_LINE)
 
     def test_rspec_hold(self):
         self.full_run({
@@ -46,9 +53,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
                 'executor': 'selenium'
             },
         })
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
-        self.assertIn('--hold-for 10', stdout)
+        self.assertIn('--hold-for 10', self.CMD_LINE)
 
     def test_rspec_iterations(self):
         self.full_run({
@@ -58,9 +63,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
                 'executor': 'selenium'
             },
         })
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
-        self.assertIn('--iterations 3', stdout)
+        self.assertIn('--iterations 3', self.CMD_LINE)
 
     def test_interpreter(self):
         self.configure({
@@ -71,28 +74,25 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
             },
         })
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+
+        dummy = RESOURCES_DIR + 'selenium/ruby/ruby' + EXE_SUFFIX
+        self.obj.settings.merge({"interpreter": dummy})
+        self.obj.settings.merge({"path": dummy})
+
         self.obj.prepare()
 
-    def test_rspec_report_extras(self):
-        # NOTE: cloud functional tests rely on sample['extras'] being a dict
-        # this test verifies it
+    def test_selenium_prepare_rspec(self):
         self.configure({
-            'execution': {
-                'iterations': 1,
-                'scenario': {'script': RESOURCES_DIR + 'selenium/ruby/example_spec.rb'},
-                'executor': 'selenium'
-            },
-        })
+            "execution": {
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/ruby/example_spec.rb"
+                }}})
+
+        dummy = RESOURCES_DIR + 'selenium/ruby/ruby' + EXE_SUFFIX
+
+        self.obj.settings.merge({"interpreter": dummy})
+        self.obj.settings.merge({"path": dummy})
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+
         self.obj.prepare()
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.report_file))
-        lines = open(self.obj.runner.report_file).readlines()
-        self.assertEqual(len(lines), 3)
-        for line in lines:
-            sample = json.loads(line)
-            self.assertIsNotNone(sample['extras'])
-            self.assertIsInstance(sample['extras'], dict)
+        self.assertEqual(self.obj.script, os.path.normpath(RESOURCES_DIR + "selenium/ruby/example_spec.rb"))

@@ -45,7 +45,7 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
 
         tools = [self._get_tool(TclLibrary),
                  self._get_tool(Ruby, config=self.settings),
-                 self._get_tool(RSpec),
+                 self._get_tool(RSpec, config=self.settings),
                  self.plugin]
         self._check_tools(tools)
 
@@ -94,13 +94,15 @@ class Ruby(RequiredTool):
 
 
 class RSpec(RequiredTool):
-    def __init__(self, **kwargs):
-        super(RSpec, self).__init__(installable=False, **kwargs)
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+        default_tool_path = "rspec.bat" if is_windows() else "rspec"
+        tool_path = settings.get("path", default_tool_path)
+        super(RSpec, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
-        rspec_exec = "rspec.bat" if is_windows() else "rspec"
         try:
-            out, err = self.call([rspec_exec, '--version'])
+            out, err = self.call([self.tool_path, '--version'])
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False

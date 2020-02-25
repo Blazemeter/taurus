@@ -86,7 +86,7 @@ class MockFileReader(FileReader):
 class EngineEmul(Engine):
     def __init__(self):
         super(EngineEmul, self).__init__(ROOT_LOGGER)
-
+        self.aggregator.add_underling = lambda _: None
         directory = get_full_path(TEST_DIR)
         prefix = datetime.datetime.now().strftime(self.ARTIFACTS_DIR)
         self.config.merge({

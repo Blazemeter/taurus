@@ -30,7 +30,7 @@ from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
-from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener
+from bzt.modules.functional import FunctionalAggregatorListener
 from bzt.modules.passfail import PassFailStatus
 from bzt.utils import etree, iteritems, get_full_path, is_windows
 
@@ -61,7 +61,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         super(FinalStatus, self).prepare()
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
-        elif isinstance(self.engine.aggregator, FunctionalAggregator):
+        elif self.engine.is_functional_mode():
             self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):
@@ -351,7 +351,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
     def prepare(self):
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
-        elif isinstance(self.engine.aggregator, FunctionalAggregator):
+        elif self.engine.is_functional_mode():
             self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):

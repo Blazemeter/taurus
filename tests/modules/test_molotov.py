@@ -1,7 +1,7 @@
 import sys
 import time
 import unittest
-from os.path import exists, join
+from os.path import join
 
 from bzt import ToolError
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -57,9 +57,8 @@ class TestMolotov(ExecutorTestCase):
             "scenario": {
                 "script": LOADTEST_PY}})
         self.obj.prepare()
+        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         self.assertIsNotNone(self.obj.get_error_diagnostics())
@@ -81,26 +80,20 @@ class TestMolotov(ExecutorTestCase):
             "scenario": {
                 "script": LOADTEST_PY}}})
         self.obj.prepare()
+        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.get_widget()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
+        self.obj.startup()
+        self.obj.shutdown()
         self.obj.post_process()
-        self.assertNotEquals(self.obj.process, None)
-        self.assertTrue(exists(self.obj.report_file_name))
-
-
-class TestMolotovCmd(ExecutorTestCase):
-    EXECUTOR = MolotovExecutor
-    CMD_LINE = None
-
-    def start_subprocess(self, args, env, cwd=None, **kwargs):
-        self.CMD_LINE = args
 
     def test_think_time(self):
+        self.CMD_LINE = []
+
+        def start_subprocess(args, **kwargs):
+            self.CMD_LINE = ' '.join(args)
+
+        self.obj.settings.merge({
+            "path": TOOL_PATH})
         self.configure({
             "execution": {
                 "scenario": "simple"},
@@ -111,11 +104,10 @@ class TestMolotovCmd(ExecutorTestCase):
                 }
             }})
         self.obj.prepare()
-        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.engine.start_subprocess = start_subprocess
         self.obj.startup()
-        self.assertTrue('--delay' in self.CMD_LINE)
-        delay_val = self.CMD_LINE[self.CMD_LINE.index('--delay')+1]
-        self.assertEqual(delay_val, '5.0')
+        self.obj.post_process()
+        self.assertTrue('--delay 5.0' in self.CMD_LINE)
 
 
 class TestReportReader(BZTestCase):
