@@ -961,10 +961,10 @@ from selenium.webdriver.common.keys import Keys
                 stored_vars["driver"] = "self.driver"
 
         has_ds = bool(list(self.scenario.get_data_sources()))
-        stored_vars.update({
-            'scenario_name': [ast.Str(self.label)],
-            'data_sources': str(has_ds)
-        })
+        stored_vars['scenario_name'] = [ast.Str(self.label)]
+        if has_ds:
+            stored_vars['data_sources'] = str(has_ds)
+
         store_call = ast_call(
             func=ast_attr("apiritif.put_into_thread_store"),
             keywords=[ast.keyword(arg=key, value=ast_attr(stored_vars[key])) for key in stored_vars],
