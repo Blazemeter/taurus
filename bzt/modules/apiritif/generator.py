@@ -955,10 +955,15 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
 
-        stored_vars = {"func_mode": str(False)}  # todo: make func_mode optional
+        stored_vars = {"func_mode": str(self.executor.engine.is_functional_mode())}
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
+
+        has_ds = bool(list(self.scenario.get_data_sources()))
+        stored_vars['scenario_name'] = [ast.Str(self.label)]
+        if has_ds:
+            stored_vars['data_sources'] = str(has_ds)
 
         store_call = ast_call(
             func=ast_attr("apiritif.put_into_thread_store"),

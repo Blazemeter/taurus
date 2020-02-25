@@ -36,7 +36,7 @@ class TestLocSc(unittest.TestCase):
 
         }
         add_flow_markers()
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
+        apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc')
 
     def _1_(self):
         with apiritif.smart_transaction('/'):

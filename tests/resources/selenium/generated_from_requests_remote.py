@@ -43,7 +43,7 @@ class TestLocScRemote(unittest.TestCase):
 
         }
         add_flow_markers()
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
+        apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc_remote')
 
     def _1_(self):
         with apiritif.smart_transaction('/'):

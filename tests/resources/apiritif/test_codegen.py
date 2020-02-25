@@ -26,7 +26,7 @@ class TestWithExtractors(unittest.TestCase, ):
         self.vars = {
 
         }
-        apiritif.put_into_thread_store(func_mode=False)
+        apiritif.put_into_thread_store(func_mode=False, scenario_name='with-extractors')
 
     def _1_just_get(self):
         with apiritif.smart_transaction('just get'):
