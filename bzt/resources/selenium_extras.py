@@ -5,21 +5,7 @@ from apiritif import get_transaction_handlers, set_transaction_handlers, get_fro
 from selenium.webdriver.common.by import By
 
 
-MARKERS = {
-    "start": {
-        "testCaseName": "test_case",
-        "testSuiteName": "test_suite"},
-    "stop": {
-        "status": "status",
-        "message": "message"}}
-
-
-def add_flow_markers(params=None):
-    if not params:
-        params = {}
-
-    MARKERS.update(params)
-
+def add_flow_markers():
     handlers = get_transaction_handlers()
     handlers["enter"].append(_send_start_flow_marker)
     handlers["exit"].append(_send_exit_flow_marker)
@@ -49,10 +35,8 @@ def _send_start_flow_marker(*args, **kwargs):   # for apiritif. remove when comp
 
 def _send_exit_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
     stage = "stop"                             # apiritif removed (http.py) and apiritif released ( > 0.9.2)
-    markers = MARKERS[stage]
-    labels = list(markers.keys())
-    names = [markers[label] for label in labels]
-    values = get_from_thread_store(names)
+    labels = "status", "message"
+    values = get_from_thread_store(labels)
     params = dict(zip(labels, values))
     _send_marker(stage, params)
 
