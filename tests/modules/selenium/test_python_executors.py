@@ -363,11 +363,13 @@ class TestPyTestExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
             }
         })
-
-        self.obj._check_tools = lambda *args, **kwargs: None
         self.obj.prepare()
-        self.obj.startup()
-        self.obj.shutdown()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
         self.obj.post_process()
         self.assertFalse(self.obj.has_results())
         self.assertNotEquals(self.obj.process, None)
