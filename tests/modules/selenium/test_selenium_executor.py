@@ -115,7 +115,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.check_flow_markers()
         self.check_samples()
 
-    def start_subprocess(self, args, env, cwd=None, **kwargs):
+    def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
 
     def test_data_source_in_action(self):
@@ -190,6 +190,9 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
 
 class TestSeleniumStuff(SeleniumTestCase):
+    def start_subprocess(self, args, **kwargs):
+        self.CMD_LINE = args
+
     def obj_prepare(self):
         super(SeleniumExecutor, self.obj).prepare()
         self.obj.install_required_tools()
@@ -369,13 +372,14 @@ class TestSeleniumStuff(SeleniumTestCase):
             },
         })
         self.obj_prepare()
-
-        # try.. startup...
-        fake_out = os.path.join(RESOURCES_DIR, 'apiritif', 'output.out')
-        self.obj.runner._tailer = FileReader(filename=fake_out, parent_logger=self.log)
         self.obj.subscribe_to_transactions(dummy)
-        # shutdown.. finally..
-
+        try:
+            self.obj.engine.start_subprocess = self.start_subprocess
+            self.obj.startup()
+            fake_out = os.path.join(RESOURCES_DIR, 'apiritif/dummy-output.out')
+            self.obj.runner._tailer = FileReader(filename=fake_out, parent_logger=self.log)
+        finally:
+            self.obj.shutdown()
         self.obj.post_process()
         self.assertEqual(10, dummy.transactions['hello there'])
 
