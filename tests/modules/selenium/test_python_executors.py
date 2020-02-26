@@ -447,7 +447,7 @@ class TestPyTestExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
             }
         })
-        self.assertTrue('--foo', '--bar' in self.CMD_LINE)
+        self.assertTrue(additional_args in " ".join(self.CMD_LINE))
 
 
 class TestRobotExecutor(ExecutorTestCase):
@@ -473,22 +473,17 @@ class TestRobotExecutor(ExecutorTestCase):
         try:
             bzt.utils.exec_and_communicate = self.exec_and_communicate
             self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_aec
-
-        try:
             self.obj.settings["interpreter"] = RESOURCES_DIR + "selenium/robot/robot-mock" + EXE_SUFFIX
             self.obj.startup()
         finally:
+            bzt.utils.exec_and_communicate = tmp_aec
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
+
         self.assertFalse(self.obj.has_results())
         self.assertNotEquals(self.obj.process, None)
         lines = open(self.obj.report_file).readlines()
         self.assertEqual(1, len(lines))
-
-        self.assertIsNotNone(self.obj.output_file)
-        self.assertIsNotNone(self.obj.log_file)
 
     def full_run(self, config):
         self.configure(config)
@@ -516,6 +511,19 @@ class TestRobotExecutor(ExecutorTestCase):
         self.assertTrue('--duration' in self.CMD_LINE)
         dur_val = self.CMD_LINE[self.CMD_LINE.index('--duration')+1]
         self.assertEqual(dur_val, '5.0')
+
+    def test_report_file(self):
+        self.full_run({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot"
+                }
+            }]
+        })
+        self.assertTrue('--report-file' in self.CMD_LINE)
+        report_file = self.CMD_LINE[self.CMD_LINE.index('--report-file')+1]
+        self.assertTrue(report_file.endswith("RobotExecutor.ldjson"))
 
     def test_iterations(self):
         self.full_run({
@@ -560,6 +568,32 @@ class TestRobotExecutor(ExecutorTestCase):
         self.assertTrue('--variablefile' in self.CMD_LINE)
         var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile')+1]
         self.assertEqual(var_file, os.path.normpath(RESOURCES_DIR + "selenium/robot/simple/vars.yaml"))
+
+    def test_output_file(self):
+        self.full_run({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot"
+                }
+            }]
+        })
+        self.assertTrue('--outputfile' in self.CMD_LINE)
+        out_file = self.CMD_LINE[self.CMD_LINE.index('--outputfile')+1]
+        self.assertTrue(out_file.endswith("output.xml"))
+
+    def test_log_file(self):
+        self.full_run({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot"
+                }
+            }]
+        })
+        self.assertTrue('--logfile' in self.CMD_LINE)
+        log_file = self.CMD_LINE[self.CMD_LINE.index('--logfile')+1]
+        self.assertTrue(log_file.endswith("log.html"))
 
     def test_single_tag(self):
         self.full_run({
