@@ -196,7 +196,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         for driver in self.obj.webdrivers:
             self.obj.env.add_path({"PATH": driver.get_driver_dir()})
         self.obj.create_runner()
-        self.obj.runner.install_required_tools = lambda: None
+        self.obj.runner._check_tools = lambda *args: None
         self.obj.runner._compile_scripts = lambda: None
         self.obj.runner.prepare()
         self.obj.script = self.obj.runner.script
@@ -249,12 +249,6 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
         self.obj.post_process()
-
-        reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv"))
-        lines = reader.get_lines(last_pass=True)
-
-        reader.close()
-        self.obj.runner._tailer.close()
 
     def test_fail_on_zero_results(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
