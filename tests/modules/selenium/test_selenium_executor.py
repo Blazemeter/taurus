@@ -375,8 +375,15 @@ class TestSeleniumStuff(SeleniumTestCase):
             },
         })
         self.obj_prepare()
+
+        # try.. startup...
+        fake_out = os.path.join(RESOURCES_DIR, 'apiritif', 'output.out')
+        self.obj.runner._tailer = FileReader(filename=fake_out, parent_logger=self.log)
         self.obj.subscribe_to_transactions(dummy)
+        # shutdown.. finally..
+
         self.obj.post_process()
+        self.assertEqual(10, dummy.transactions['hello there'])
 
 
 class TestReportReader(BZTestCase):
