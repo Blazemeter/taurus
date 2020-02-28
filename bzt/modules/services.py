@@ -21,6 +21,7 @@ import json
 import os
 import time
 import zipfile
+import sys
 
 from bzt.six import communicate, text_type, string_types
 
@@ -35,6 +36,44 @@ if not is_windows():
         from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
     except ImportError:
         from pyvirtualdisplay import Display
+
+
+class PipInstaller(Service):
+    def __init__(self):
+        super(PipInstaller, self).__init__()
+        self.packages = []
+        self.temp = True
+        self.target_dir = None
+        self.interpreter = sys.executable
+
+    def _install(self, packages):
+        pass     # todo:
+
+    def _check(self, packages):
+        pass     # todo:
+
+    def _uninstall(self, packages):
+        pass     # todo:
+
+    def _reload(self, packages):
+        pass     # todo:
+
+    def prepare(self):
+        self.temp = self.settings.get("temp", self.temp)   # install into artifacts dir, otherwise into .bzt
+        self.target_dir = self.engine.artifacts_dir     # todo: based on self.temp
+        self.packages = self.parameters.get("packages", self.packages)  # todo: add versions (dict)
+        if not self._check(["pip"]):
+            raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
+        cmdline = [self.interpreter, "-m", "pip", "install", "t", self.target_dir]
+        self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
+        out, err = exec_and_communicate(cmdline)
+        if err:
+            self.log.error("pip-installer stderr:\n%s" % err)
+        self.log.debug("pip-installer stdout: \n%s" % out)
+
+    def shutdown(self):
+        if not is_windows() and self.temp:
+            pass    # todo: remove self.packages
 
 
 class Unpacker(Service):
