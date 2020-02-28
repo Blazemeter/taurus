@@ -129,3 +129,62 @@ class LocatorsManager:
         # restore the implicit wait value
         self.driver.implicitly_wait(self.timeout)
         return locator
+
+
+class DialogsManager:
+    """
+    Provides additional methods for working with Dialogs that are not available in the Python Webdriver.
+    These JavaScript functions are taken from the Java Selenium Webdriver repository
+    """
+
+    def __init__(self, driver):
+        self.driver = driver
+
+    def replace_alerts(self):
+        self.driver.execute_script("""
+          if (window.__webdriverAlerts) { return; }
+          window.__webdriverAlerts = [];
+          window.alert = function(msg) { window.__webdriverAlerts.push(msg); };
+          window.__webdriverConfirms = [];
+          window.__webdriverNextConfirm = true;
+          window.confirm = function(msg) {
+            window.__webdriverConfirms.push(msg);
+            var res = window.__webdriverNextConfirm;
+            window.__webdriverNextConfirm = true;
+            return res;
+          };
+          window.__webdriverPrompts = [];
+          window.__webdriverNextPrompts = true;
+          window.prompt = function(msg, def) {
+            window.__webdriverPrompts.push(msg || def);
+            var res = window.__webdriverNextPrompt;
+            window.__webdriverNextPrompt = true;
+            return res;
+          };
+        """)
+
+    def get_next_confirm(self):
+        return self.driver.execute_script("""
+                 if (!window.__webdriverConfirms) { return null; }
+                 return window.__webdriverConfirms.shift();
+               """)
+
+    def get_next_alert(self):
+        return self.driver.execute_script("""
+                if (!window.__webdriverAlerts) { return null } 
+                var t = window.__webdriverAlerts.shift(); 
+                if (t) { t = t.replace(/\\n/g, ' '); }
+                return t;
+              """)
+
+    def get_next_prompt(self):
+        return self.driver.execute_script("""
+                if (!window.__webdriverPrompts) { return null; }
+                return window.__webdriverPrompts.shift();
+              """)
+
+    def answer_on_next_prompt(self, value):
+        self.driver.execute_script("window.__webdriverNextPrompt = '%s';" % value)
+
+    def set_next_confirm_state(self, confirm):
+        self.driver.execute_script("window.__webdriverNextConfirm = %s;" % str(confirm).lower())

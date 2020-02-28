@@ -33,11 +33,16 @@ class TestLocSc(unittest.TestCase):
         self.driver = webdriver.Chrome(service_log_path='<somewhere>webdriver.log', chrome_options=options)
         self.driver.implicitly_wait(3.5)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
-        apiritif.put_into_thread_store(driver=self.driver, func_mode=False)
+        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
 
     def _1_Conditions_test(self):
         with apiritif.smart_transaction('Conditions test'):
             self.driver.get('http://blazedemo.com')
+
+            try:
+                self.dlg_mng.replace_alerts()
+            except AttributeError:
+                pass
 
             test = self.driver.execute_script('return document.getElementsByName("fromPort")[0].length > 0;')
             if test:

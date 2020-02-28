@@ -303,6 +303,8 @@ Besides, you can use [alternative syntax](#Alternative-syntax-supporting-multipl
   param: OK
 ```
 
+For additional operations with dialogs see [Dialogs management](#Dialogs-management).
+
 ### Assertion
 For requested page source inspection you can use the following actions:
 - `assertTextByX(X\_name): "text"` to assert text to an element
@@ -339,6 +341,59 @@ The same can be written like this:
 ```yaml
 - type: clearCookies
 ```
+
+### Dialogs management
+Besides the basic functionality to handle [Alerts](#Alert) it is also possible to use the
+following actions to do assertion and answering on Dialogs.
+
+#### Assertions
+
+Enables to check whether a dialog of a specified type was previously displayed with the 
+given message. The type can be any of the following: `alert`, `prompt` or `confirm`.
+
+Examples:
+
+```yaml
+- assertDialog(alert): Error occurred
+- assertDialog(prompt): Enter your name
+- assertDialog(confirm): Are you sure to proceed?
+```
+
+Example using the Alternative syntax:
+
+```yaml
+- type: assertDialog
+  param: alert
+  value: Error occurred
+```
+
+#### Answering dialogs
+
+Allows to set the value that will be returned by displaying a dialog. It is only applicable
+to `prompt` and `confirm` dialogs. This action actually prevents showing the dialog and instead
+returns the specified value directly.
+
+For confirmation dialogs the value can only be either `true` or `false`, meaning to simulate 
+click on 'Ok' or 'Cancel' buttons.
+
+Examples:
+
+```yaml
+- answerDialog(prompt): John Doe
+- answerDialog(confirm): true   # click on 'OK'
+```
+
+Examples using the alternative syntax:
+
+```yaml
+- type: answerDialog
+  param: prompt
+  value: Jon Doe
+- type: answerDialog
+  param: confirm
+  value: false    # click on 'Cancel'
+```
+
 
 ### Echoing
 Use `echoString("echoed text")` to print text string on the Apiritif output execution.
@@ -382,7 +437,6 @@ rawCode: print('This is a python command.')
 ```
 
 See example [here](#Sample-scenario).
-
 
 ### Frame management
 When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command
