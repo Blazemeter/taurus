@@ -33,7 +33,7 @@ class TestLocSc(unittest.TestCase):
         self.driver = webdriver.Chrome(service_log_path='<somewhere>webdriver.log', chrome_options=options)
         self.driver.implicitly_wait(3.5)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
+        apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc')
 
     def _1_Conditions_test(self):
         with apiritif.smart_transaction('Conditions test'):

@@ -46,7 +46,7 @@ class TestLocSc(unittest.TestCase):
             'name': 'Name',
             'red_pill': 'take_it',
         }
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
+        apiritif.put_into_thread_store(func_mode=True, driver=self.driver, scenario_name='loc_sc', data_sources=True)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):

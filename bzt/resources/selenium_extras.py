@@ -1,7 +1,7 @@
 # Utility functions and classes for Taurus Selenium tests
 
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException
-from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store
+from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
 from selenium.webdriver.common.by import By
 
 
@@ -14,15 +14,31 @@ def add_flow_markers():
 
 def _send_marker(stage, params):
     driver = get_from_thread_store("driver")
-    driver.execute_script('/* FLOW_MARKER test-case-%s */' % stage, params)
+    driver.execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
 
 
-def _send_start_flow_marker(test_case, test_suite):
-    _send_marker('start', {'testCaseName': test_case, 'testSuiteName': test_suite})
+def _send_start_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
+    stage = "start"                             # apiritif removed (http.py) and apiritif released ( > 0.9.2)
+
+    test_case, test_suite, scenario_name, data_sources = get_from_thread_store(
+        ['test_case', 'test_suite', 'scenario_name', 'data_sources']
+    )
+    params = {
+        "testCaseName": test_case,
+        "testSuiteName": scenario_name or test_suite}
+
+    if data_sources:
+        params["testDataIterationId"] = get_iteration()
+
+    _send_marker(stage, params)
 
 
-def _send_exit_flow_marker(status, message):
-    _send_marker('stop', {'status': status, 'message': message})
+def _send_exit_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
+    stage = "stop"                             # apiritif removed (http.py) and apiritif released ( > 0.9.2)
+    labels = "status", "message"
+    values = get_from_thread_store(labels)
+    params = dict(zip(labels, values))
+    _send_marker(stage, params)
 
 
 class FrameManager:
