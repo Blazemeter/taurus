@@ -81,7 +81,8 @@ class PipInstaller(Service):
             self.target_dir = "~/.bzt/"
 
         self.target_dir = os.path.join(self.target_dir, "python-packages")
-        os.mkdir(self.target_dir)
+        if not os.path.exists(self.target_dir):
+            os.mkdir(get_full_path(self.target_dir))
 
         python_path = os.environ.get('PYTHONPATH', '')
         if python_path:
@@ -93,6 +94,10 @@ class PipInstaller(Service):
 
         if self._missed(["pip"]):
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
+        self.packages = self._missed(self.packages)
+        if not self.packages:
+            return
+
         cmdline = [self.interpreter, "-m", "pip", "install", "-t", self.target_dir]
         cmdline += self.packages
         self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
@@ -105,7 +110,7 @@ class PipInstaller(Service):
         if self.packages and self.temp and not is_windows():    # might be forbidden on win as tool still work
             self.log.debug("remove packages: %s" % self.packages)
 
-            shutil.rmtree(self.target_dir)
+            shutil.rmtree(self.target_dir)  # it removes all content of directory in reality, not only self.packages
 
 
 class Unpacker(Service):
