@@ -86,6 +86,8 @@ modules:
     class: bzt.modules.proxy2jmx.Proxy2JMX
   unpacker:
     class: bzt.modules.services.Unpacker
+  pip-install:
+    class: bzt.modules.services.PipInstaller
   screenshoter:
     class: bzt.modules.blazemeter.ServiceStubScreenshoter
   capturehar:

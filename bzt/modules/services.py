@@ -49,8 +49,16 @@ class PipInstaller(Service):
     def _install(self, packages):
         pass     # todo:
 
-    def _check(self, packages):
-        pass     # todo:
+    def _missed(self, packages):
+        # todo: add version handling
+        missed = []
+        cmdline = [self.interpreter, "-m", "pip", "list"]
+        out, _ = exec_and_communicate(cmdline)
+        list_of_installed = [line.split(' ')[0] for line in out.split('\n')[2:-1]]
+        for package in packages:
+            if package not in list_of_installed:
+                missed.append(package)
+        return missed
 
     def _uninstall(self, packages):
         pass     # todo:
@@ -60,9 +68,17 @@ class PipInstaller(Service):
 
     def prepare(self):
         self.temp = self.settings.get("temp", self.temp)   # install into artifacts dir, otherwise into .bzt
-        self.target_dir = self.engine.artifacts_dir     # todo: based on self.temp
+        if self.temp:
+            self.target_dir = self.engine.artifacts_dir
+        else:
+            self.target_dir = "~/.bzt/"
+
+        self.target_dir = os.path.join(self.target_dir, "python-packages")
+        os.mkdir(self.target_dir)
+        # todo: PYTHONPATH += self.target_dir
+
         self.packages = self.parameters.get("packages", self.packages)  # todo: add versions (dict)
-        if not self._check(["pip"]):
+        if self._missed(["pip"]):
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
         cmdline = [self.interpreter, "-m", "pip", "install", "t", self.target_dir]
         self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
