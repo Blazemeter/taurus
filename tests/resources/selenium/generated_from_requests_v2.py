@@ -25,6 +25,11 @@ from bzt.resources.selenium_extras import FrameManager, LocatorsManager, WindowM
 class TestLocSc(unittest.TestCase):
 
     def setUp(self):
+        self.vars = {
+            'my_xpath_locator': '/html/body/div[3]',
+            'name': 'Name',
+            'red_pill': 'take_it,',
+        }
         self.driver = None
         options = webdriver.FirefoxOptions()
         profile = webdriver.FirefoxProfile()
@@ -34,12 +39,7 @@ class TestLocSc(unittest.TestCase):
         self.wnd_mng = WindowManager(self.driver)
         self.frm_mng = FrameManager(self.driver)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
-        self.vars = {
-            'my_xpath_locator': '/html/body/div[3]',
-            'name': 'Name',
-            'red_pill': 'take_it,',
-        }
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
+        apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc')
 
     def _1_Test_V2(self):
         with apiritif.smart_transaction('Test V2'):
