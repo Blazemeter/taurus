@@ -220,7 +220,7 @@ from selenium.webdriver.common.keys import Keys
             if action_config.get("type"):
                 return self._parse_dict_action(action_config)
             block = self._get_execution_block(action_config)
-            if block and len(block) == 1:
+            if len(block) == 1:
                 name, param = (block[0], action_config.get(block[0]))
             else:
                 name, param = next(iteritems(action_config))
@@ -644,16 +644,15 @@ from selenium.webdriver.common.keys import Keys
         return [ast.Expr(element) for element in action_elements]
 
     def _gen_loop_mngr(self, action_config):
-        if 'start' not in action_config or 'end' not in action_config or 'do' not in action_config:
-            raise TaurusConfigError("Loop must contain start, end and do")
-        elements = []
-        range_elts = []
-        start = action_config['start']
-        end = action_config['end']
-        step = action_config['step'] or 1
+        exc = TaurusConfigError("Loop must contain start, end and do")
+        start = action_config.get('start', exc)
+        end = action_config.get('end', exc)
+        step = action_config.get('step') or 1
         # need to adjust the end index so that also that one is included in the range
         end = end + 1 if step > 0 else end - 1
 
+        elements = []
+        range_elts = []
         for i in range (start, end, step):
             range_elts.append(ast.Num(i))
 
@@ -662,7 +661,7 @@ from selenium.webdriver.common.keys import Keys
                 targets=[self._gen_expr("${%s}" % action_config['loop'])],
                 value=ast_call(func=ast_attr("str"), args=[ast.Name(id=action_config['loop'])]))
         ]
-        for action in action_config.get('do'):
+        for action in action_config.get('do', exc):
             body.append(self._gen_action(action))
 
         elements.append(

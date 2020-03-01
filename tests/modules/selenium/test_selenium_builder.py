@@ -1313,7 +1313,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "for i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]",
+            "for i in %s" % str(list(range(1,11))),
             "self.vars['i'] = str(i)",
             "self.loc_mng.get_locator([{'id': self.vars['i']"
 
