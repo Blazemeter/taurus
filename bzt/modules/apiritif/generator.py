@@ -637,21 +637,18 @@ from selenium.webdriver.common.keys import Keys
         return [ast.Expr(element) for element in action_elements]
 
     def _gen_condition_mngr(self, param, action_config):
-        if not action_config.get('then'):
-            raise TaurusConfigError("Missing then branch in if statement")
-
         test = ast.Assign(targets=[ast.Name(id='test', ctx=ast.Store())],
                           value=ast_call(func=ast_attr("self.driver.execute_script"),
                                          args=[self._gen_expr("return %s;" % param)]))
 
         body = []
-        for action in action_config.get('then'):
+        exc = TaurusConfigError("Missing then branch in if statement")
+        for action in action_config.get('then', exc):
             body.append(self._gen_action(action))
 
         orelse = []
-        if action_config.get('else'):
-            for action in action_config.get('else'):
-                orelse.append(self._gen_action(action))
+        for action in action_config.get('else'):
+            orelse.append(self._gen_action(action))
 
         return [test,
                 [ast.If(
