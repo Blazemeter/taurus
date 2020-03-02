@@ -220,7 +220,7 @@ from selenium.webdriver.common.keys import Keys
             if action_config.get("type"):
                 return self._parse_dict_action(action_config)
             block = self._get_execution_block(action_config)
-            if block and len(block) == 1:
+            if len(block) == 1:
                 name, param = (block[0], action_config.get(block[0]))
             else:
                 name, param = next(iteritems(action_config))
@@ -654,36 +654,34 @@ from selenium.webdriver.common.keys import Keys
         return [ast.Expr(element) for element in action_elements]
 
     def _gen_loop_mngr(self, action_config):
-        if 'start' not in action_config or 'end' not in action_config or 'do' not in action_config:
-            raise TaurusConfigError("Loop must contain start, end and do")
-        elements = []
-        range_elts = []
-        start = action_config['start']
-        end = action_config['end']
-        step = action_config['step'] or 1
-        # need to adjust the end index so that also that one is included in the range
+        exc = TaurusConfigError("Loop must contain start, end and do")
+        start = action_config.get('start', exc)
+        end = action_config.get('end', exc)
+        step = action_config.get('step') or 1
         end = end + 1 if step > 0 else end - 1
-
-        for i in range (start, end, step):
-            range_elts.append(ast.Num(i))
+        elements = []
 
         body = [
             ast.Assign(
                 targets=[self._gen_expr("${%s}" % action_config['loop'])],
                 value=ast_call(func=ast_attr("str"), args=[ast.Name(id=action_config['loop'])]))
         ]
-        for action in action_config.get('do'):
+        for action in action_config.get('do', exc):
             body.append(self._gen_action(action))
 
+        args = [ast.Num(start), ast.Num(end)]
+        if step != 1:
+            args.append(ast.Num(step))
+
         elements.append(
-            ast.For(target=ast.Name(id=action_config.get('loop'), ctx=ast.Store()), iter=ast.List(elts=range_elts),
+            ast.For(target=ast.Name(id=action_config.get('loop'),
+                    ctx=ast.Store()),
+                    iter=ast_call(func=ast_attr("range"),
+                                  args=args),
                     body=body,
                     orelse=[]))
 
         return elements
-
-    def _gen_eval_js_expression(self, js_expr):
-        return ast_call(func=ast_attr("self.driver.execute_script"), args=[self._gen_expr("return %s;" % js_expr)])
 
     def _gen_condition_mngr(self, param, action_config):
         if not action_config.get('then'):
@@ -1003,10 +1001,15 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
 
-        stored_vars = {"func_mode": str(False)}  # todo: make func_mode optional
+        stored_vars = {"func_mode": str(self.executor.engine.is_functional_mode())}
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
+
+        has_ds = bool(list(self.scenario.get_data_sources()))
+        stored_vars['scenario_name'] = [ast.Str(self.label)]
+        if has_ds:
+            stored_vars['data_sources'] = str(has_ds)
 
         store_call = ast_call(
             func=ast_attr("apiritif.put_into_thread_store"),
