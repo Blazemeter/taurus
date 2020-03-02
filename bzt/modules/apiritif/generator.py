@@ -648,7 +648,6 @@ from selenium.webdriver.common.keys import Keys
         start = action_config.get('start', exc)
         end = action_config.get('end', exc)
         step = action_config.get('step') or 1
-        # need to adjust the end index so that also that one is included in the range
         end = end + 1 if step > 0 else end - 1
         elements = []
 
@@ -660,11 +659,15 @@ from selenium.webdriver.common.keys import Keys
         for action in action_config.get('do', exc):
             body.append(self._gen_action(action))
 
+        args = [ast.Num(start), ast.Num(end)]
+        if step != 1:
+            args.append(ast.Num(step))
+
         elements.append(
             ast.For(target=ast.Name(id=action_config.get('loop'),
                     ctx=ast.Store()),
                     iter=ast_call(func=ast_attr("range"),
-                                  args=[ast.Num(start), ast.Num(end), ast.Num(step)]),
+                                  args=args),
                     body=body,
                     orelse=[]))
 
