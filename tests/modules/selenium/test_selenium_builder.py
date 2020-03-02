@@ -1218,3 +1218,169 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             self.obj.prepare()
 
         self.assertTrue('Missing then' in str(context.exception))
+
+    def test_loop_missing_end(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": 1,
+                                "do": [
+                                    "clickById(dd)"
+                                ]
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Loop must contain' in str(context.exception))
+
+    def test_loop_missing_start(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "end": 10,
+                                "do": [
+                                    "clickById(dd)"
+                                ]
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Loop must contain' in str(context.exception))
+
+    def test_loop_missing_do(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": 1,
+                                "end": 10
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Loop must contain' in str(context.exception))
+
+    def test_loop_step_defaults_to_1(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": 1,
+                                "end": 10,
+                                "do": [
+                                    "clickById(${i})"
+                                ]
+                            }
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "for i in range(1, 11)",
+            "self.vars['i'] = str(i)",
+            "self.loc_mng.get_locator([{'id': self.vars['i']"
+
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
+                          TestSeleniumScriptGeneration.clear_spaces(content),
+                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_loop_step_2(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": 1,
+                                "end": 10,
+                                "step": 2,
+                                "do": [
+                                    "clickById(id)"
+                                ]
+                            }
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "for i in range(1, 11, 2)",
+            "self.vars['i'] = str(i)"
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_loop_step_negative(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": 10,
+                                "end": 0,
+                                "step": -1,
+                                "do": [
+                                    "clickById(id)"
+                                ]
+                            }
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "for i in range(10, -1, -1)",
+            "self.vars['i'] = str(i)"
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))

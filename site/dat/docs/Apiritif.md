@@ -243,6 +243,54 @@ scenarios:
 Note that `<conditions>` are evaluated as JavaScript code so they must contain valid JavaScript expression 
 that yields boolean value.
 
+### Loops
+
+`Loop` blocks allow repeated execution of actions. 
+
+It is necessary to specify variable name used in the loop,
+along with the `start` and `end` indexes. The actions that shall be executed in the loop are defined in the `do` field.
+In these action you can then reference the variable by the name you defined next to the `loop` keyword.
+ 
+Optionally you can set the `step` field which defines the difference between each number in the sequence 
+(it can also be negative). If `step` is not explicitly set then it will default to 1.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_loop
+        actions:
+          - go(http://blazedemo.com)
+          - loop: var_i
+            start: 1
+            end: 10
+            do:
+              - clickById(id_${var_i})
+              - typeById(input_${var_i}): My Item ${var_i} 
+``` 
+
+Note that both the `start` and `end` index are included in the loop. So for 
+example setting `start` to 1 and `end` to 5 will loop through these values: \[1, 2, 3, 4, 5\].
+
+It is also possible to specify the `step` negative. In that case the loop will go from the higher 
+numbers to the lower ones. However it is also necessary that the `start` index is higher than the 
+`end` index. 
+
+For example:
+
+```yaml
+  - loop: i
+    start: 5
+    end: 1
+    step: -1
+    do: 
+      - clickById(id_${i})
+``` 
+This will loop through the values \[5, 4, 3, 2, 1\] in the descending order.
+
+
 ### Alert
 For alert handling, use the following methods:
 - `alert("OK")` to click "OK" on an alert
