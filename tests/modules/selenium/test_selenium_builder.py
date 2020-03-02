@@ -1427,3 +1427,66 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         ]
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_assert_dialog_wrong_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "assertDialog(wrong)": "test"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
+                        in str(context.exception))
+
+    def test_answer_dialog_wrong_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "answerDialog(wrong)": "test"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("answerDialog type must be one of the following: 'prompt' or 'confirm'"
+                        in str(context.exception))
+
+    def test_answer_confirm_incorrect_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "answerDialog(confirm)": "value"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("answerDialog of type confirm must have value either 'true' or 'false'"
+                        in str(context.exception))
