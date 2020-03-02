@@ -223,7 +223,7 @@ from selenium.webdriver.common.keys import Keys
             if action_config.get("type"):
                 return self._parse_dict_action(action_config)
             block = self._get_execution_block(action_config)
-            if block and len(block) == 1:
+            if len(block) == 1:
                 name, param = (block[0], action_config.get(block[0]))
             else:
                 name, param = next(iteritems(action_config))
@@ -660,6 +660,39 @@ from selenium.webdriver.common.keys import Keys
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
+
+    def _gen_loop_mngr(self, action_config):
+        exc = TaurusConfigError("Loop must contain start, end and do")
+        start = action_config.get('start', exc)
+        end = action_config.get('end', exc)
+        step = action_config.get('step') or 1
+        end = end + 1 if step > 0 else end - 1
+        elements = []
+
+        body = [
+            ast.Assign(
+                targets=[self._gen_expr("${%s}" % action_config['loop'])],
+                value=ast_call(func=ast_attr("str"), args=[ast.Name(id=action_config['loop'])]))
+        ]
+        for action in action_config.get('do', exc):
+            body.append(self._gen_action(action))
+
+        args = [ast.Num(start), ast.Num(end)]
+        if step != 1:
+            args.append(ast.Num(step))
+
+        elements.append(
+            ast.For(target=ast.Name(id=action_config.get('loop'),
+                    ctx=ast.Store()),
+                    iter=ast_call(func=ast_attr("range"),
+                                  args=args),
+                    body=body,
+                    orelse=[]))
+
+        return elements
+
+    def _gen_eval_js_expression(self, js_expr):
+        return ast_call(func=ast_attr("self.driver.execute_script"), args=[self._gen_expr("return %s;" % js_expr)])
 
     def _gen_answer_dialog_mngr(self, type, value):
         if not type in ['prompt', 'confirm']:

@@ -584,9 +584,8 @@ For storing the result of evaluation of a JavaScript expression use:
 
 - `storeEval(js_expr): var_eval`
 
-Note that the result of the evaluation will be converted to String data type.
-
-The following example will store the result of finding an element by id to the `el_present` variable:
+The following example will store to the `el_present` variable a flag indicating
+whether the find element by id was successful or not:
 - `storeEval(document.getElementById("elem_id") !== undefined): el_present`
 
 Or use the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
