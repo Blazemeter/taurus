@@ -249,6 +249,9 @@ class TestLocSc(unittest.TestCase):
                 var_loc_as[1]).get_attribute('value')
 
             self.vars['Final'] = '{} {} by {}'.format(self.vars['Title'], self.vars['Basic'], self.vars['By'])
+
+            self.vars['var_eval'] = self.driver.execute_script('return 0 == false;')
+            self.assertTrue(self.driver.execute_script('return 10 === 2*5;'), '10 === 2*5')
             self.driver.get('http:\\blazemeter.com')
             print(self.vars['red_pill'])
             self.driver.save_screenshot('screen.png')

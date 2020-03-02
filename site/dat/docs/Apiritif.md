@@ -308,11 +308,12 @@ For requested page source inspection you can use the following actions:
 - `assertTextByX(X\_name): "text"` to assert text to an element
 - `assertValueByX(X\_name): value` to assert value
 - `assertTitle(title)` to assert page title
+- `assertEval(js_expr)` to assert that evaluation of a JavaScript expression returns true value
 
 Don't forget to replace `X` with the right [locators](#Locators).
 See sample usage in [Frame Management](#Frame-management) section.
 
-Also, for assertion you can also use special assertion block. See example [here](#Sample-scenario).
+For assertion you can also use special assertion block. See example [here](#Sample-scenario).
 
 Using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators): 
 ```yaml
@@ -327,6 +328,8 @@ Using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators)
     - id: element_id
 - type: assertTitle
   param: title
+- type: assertEval
+  param: js_expr
 ```
 
 ### Cookies
@@ -523,6 +526,14 @@ For storing variables use the following actions:
 
 See documentation for `X` [here](#Locators).
 
+For storing the result of evaluation of a JavaScript expression use:
+
+- `storeEval(js_expr): var_eval`
+
+The following example will store to the `el_present` variable a flag indicating
+whether the find element by id was successful or not:
+- `storeEval(document.getElementById("elem_id") !== undefined): el_present`
+
 Or use the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 ```yaml
 - type: storeTitle
@@ -538,6 +549,9 @@ Or use the [alternative syntax](#Alternative-syntax-supporting-multiple-locators
   param: var_value
   locators:
     - id: element_id
+- type: storeEval
+  param: var_eval
+  value: js_expr
 ```
 
 ### Typing

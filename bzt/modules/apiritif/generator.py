@@ -374,6 +374,16 @@ from selenium.webdriver.common.keys import Keys
             elements.append(gen_store(
                 name=name.strip(),
                 value=self._gen_expr(value.strip())))
+        elif atype == 'assert' and tag == 'eval':
+            elements.append(ast_call(
+                func=ast_attr("self.assertTrue"),
+                args=[self._gen_eval_js_expression(name), ast.Str(name)]))
+        elif atype == 'store' and tag == 'eval':
+            elements.append(
+                gen_store(
+                    name=name.strip(),
+                    value=self._gen_eval_js_expression(value))
+            )
         else:
             target = None
 
@@ -673,13 +683,15 @@ from selenium.webdriver.common.keys import Keys
 
         return elements
 
+    def _gen_eval_js_expression(self, js_expr):
+        return ast_call(func=ast_attr("self.driver.execute_script"), args=[self._gen_expr("return %s;" % js_expr)])
+
     def _gen_condition_mngr(self, param, action_config):
         if not action_config.get('then'):
             raise TaurusConfigError("Missing then branch in if statement")
 
         test = ast.Assign(targets=[ast.Name(id='test', ctx=ast.Store())],
-                          value=ast_call(func=ast_attr("self.driver.execute_script"),
-                                         args=[self._gen_expr("return %s;" % param)]))
+                          value=self._gen_eval_js_expression(param))
 
         body = []
         for action in action_config.get('then'):
