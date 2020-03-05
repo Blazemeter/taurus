@@ -25,6 +25,9 @@ from bzt.resources.selenium_extras import LocatorsManager, add_flow_markers
 class TestLocSc(unittest.TestCase):
 
     def setUp(self):
+        self.vars = {
+
+        }
         self.driver = None
         options = webdriver.ChromeOptions()
         options.add_argument('--no-sandbox')
@@ -32,9 +35,6 @@ class TestLocSc(unittest.TestCase):
         self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', chrome_options=options)
         self.driver.implicitly_wait(3.5)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
-        self.vars = {
-
-        }
         add_flow_markers()
         apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc')
 

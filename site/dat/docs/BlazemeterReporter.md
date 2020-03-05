@@ -51,6 +51,7 @@ reporting:
   report-name: Jenkins Build 1
   test: Taurus Demo
   project: Taurus Tests Group
+  upload-artifacts: true  # upload artifacts when test is finished
 ```
 
 Advanced settings:
