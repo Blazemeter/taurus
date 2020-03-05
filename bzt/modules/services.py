@@ -48,7 +48,16 @@ class PipInstaller(Service):
         self.interpreter = sys.executable
 
     def _install(self, packages):
-        pass     # todo:
+        if not packages:
+            self.log.debug("Nothing to install")
+            return
+        cmdline = [self.interpreter, "-m", "pip", "install", "-t", self.target_dir]
+        cmdline += self.packages
+        self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
+        out, err = exec_and_communicate(cmdline)
+        if err:
+            self.log.error("pip-installer stderr:\n%s" % err)
+        self.log.debug("pip-installer stdout: \n%s" % out)
 
     def _missed(self, packages):
         # todo: add version handling
@@ -98,13 +107,7 @@ class PipInstaller(Service):
         if not self.packages:
             return
 
-        cmdline = [self.interpreter, "-m", "pip", "install", "-t", self.target_dir]
-        cmdline += self.packages
-        self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
-        out, err = exec_and_communicate(cmdline)
-        if err:
-            self.log.error("pip-installer stderr:\n%s" % err)
-        self.log.debug("pip-installer stdout: \n%s" % out)
+        self._install(self.packages)
 
     def shutdown(self):
         if self.packages and self.temp and not is_windows():    # might be forbidden on win as tool still work
