@@ -200,7 +200,14 @@ class DialogsManager:
               """)
 
     def answer_on_next_prompt(self, value):
-        self.driver.execute_script("window.__webdriverNextPrompt = '%s';" % value)
+        if str(value).lower() == '#cancel':
+            self.driver.execute_script("window.__webdriverNextPrompt = null")
+        else:
+            self.driver.execute_script("window.__webdriverNextPrompt = '%s';" % value)
 
-    def set_next_confirm_state(self, confirm):
-        self.driver.execute_script("window.__webdriverNextConfirm = %s;" % str(confirm).lower())
+    def set_next_confirm_state(self, value):
+        if str(value).lower() == '#ok':
+            confirm = 'true'
+        else:
+            confirm = 'false'
+        self.driver.execute_script("window.__webdriverNextConfirm = %s;" % confirm)

@@ -231,7 +231,7 @@ class TestLocSc(unittest.TestCase):
             self.assertIsNotNone(dialog, 'No dialog of type confirm appeared')
             self.assertEqual(dialog, 'Are you sure?', "Dialog message didn't match")
             self.dlg_mng.answer_on_next_prompt('myvalue')
-            self.dlg_mng.set_next_confirm_state(True)
+            self.dlg_mng.set_next_confirm_state('#Ok')
             print(self.vars['red_pill'])
             self.driver.save_screenshot('screen.png')
 

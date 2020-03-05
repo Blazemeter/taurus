@@ -373,14 +373,14 @@ Allows to set the value that will be returned by displaying a dialog. It is only
 to `prompt` and `confirm` dialogs. This action actually prevents showing the dialog and instead
 returns the specified value directly.
 
-For confirmation dialogs the value can only be either `true` or `false`, meaning to simulate 
+For confirmation dialogs the value can only be either `'#Ok'` or `'#Cancel'`, meaning to simulate 
 click on 'Ok' or 'Cancel' buttons.
 
 Examples:
 
 ```yaml
 - answerDialog(prompt): John Doe
-- answerDialog(confirm): true   # click on 'OK'
+- answerDialog(confirm): '#Ok'
 ```
 
 Examples using the alternative syntax:
@@ -391,7 +391,7 @@ Examples using the alternative syntax:
   value: Jon Doe
 - type: answerDialog
   param: confirm
-  value: false    # click on 'Cancel'
+  value: '#Cancel'
 ```
 
 

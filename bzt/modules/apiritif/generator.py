@@ -664,8 +664,8 @@ from selenium.webdriver.common.keys import Keys
     def _gen_answer_dialog_mngr(self, type, value):
         if not type in ['prompt', 'confirm']:
             raise TaurusConfigError("answerDialog type must be one of the following: 'prompt' or 'confirm'")
-        if type == 'confirm' and str(value).lower() not in ['true', 'false']:
-            raise TaurusConfigError("answerDialog of type confirm must have value either 'true' or 'false'")
+        if type == 'confirm' and str(value).lower() not in ['#ok', '#cancel']:
+            raise TaurusConfigError("answerDialog of type confirm must have value either '#Ok' or '#Cancel'")
         self.selenium_extras.add("DialogsManager")
         dlg_method = "self.dlg_mng.answer_on_next_prompt" if type == 'prompt' else "self.dlg_mng.set_next_confirm_state"
         return [ast_call(func=ast_attr(dlg_method), args=[ast.Str(value)])]

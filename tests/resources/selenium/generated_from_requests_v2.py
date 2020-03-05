@@ -168,7 +168,7 @@ class TestLocSc(unittest.TestCase):
             self.frm_mng.switch(self.driver.find_element(By.NAME, 'my_frame'))
             self.wnd_mng.close()
             self.dlg_mng.answer_on_next_prompt('my input')
-            self.dlg_mng.set_next_confirm_state(True)
+            self.dlg_mng.set_next_confirm_state('#Ok')
 
             dialog = self.dlg_mng.get_next_alert()
             self.assertIsNotNone(dialog, 'No dialog of type alert appeared')
