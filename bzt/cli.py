@@ -37,7 +37,7 @@ from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError, 
 from bzt.engine import Engine, Configuration, SETTINGS, EXEC
 from bzt.linter import ConfigurationLinter
 from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
-from bzt.utils import is_int, BetterDict, is_url, RESOURCES_DIR, get_full_path
+from bzt.utils import is_int, BetterDict, is_url, RESOURCES_DIR
 
 
 class CLI(object):
@@ -61,13 +61,6 @@ class CLI(object):
         self.log.debug("OS: %s", platform.uname())
         self.engine = Engine(self.log)
         self.exit_code = 0
-
-    def _set_pythonpath(self):
-        version = sys.version.split(' ')[0]
-        path_suffix = os.path.join('python-packages', version)
-        userpath = get_full_path(os.path.join("~", ".bzt", path_suffix))
-        temppath = get_full_path(os.path.join(self.engine.artifacts_dir, path_suffix))
-        os.environ['PYTHONPATH'] = os.pathsep.join((userpath, temppath, os.environ.get('PYTHONPATH', '')))
 
     @staticmethod
     def setup_logging(options):
@@ -189,7 +182,7 @@ class CLI(object):
             CLI.console_handler.setLevel(logging.DEBUG)
         self.engine.create_artifacts_dir(configs, merged_config)
         self.engine.default_cwd = os.getcwd()
-        self.engine._set_pythonpath()
+        self.engine.set_pythonpath()
         self.engine.eval_env()  # yacky, I don't like having it here, but how to apply it after aliases and artif dir?
 
     def __is_verbose(self):

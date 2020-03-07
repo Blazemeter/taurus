@@ -86,7 +86,18 @@ class Engine(object):
         self.logging_level_down = lambda: None
         self.logging_level_up = lambda: None
 
+        self.user_pythonpath = None
+        self.temp_pythonpath = None
+
         self._http_client = None
+
+    def set_pythonpath(self):
+        version = sys.version.split(' ')[0]
+        path_suffix = os.path.join('python-packages', version)
+        self.user_pythonpath = get_full_path(os.path.join("~", ".bzt", path_suffix))
+        self.temp_pythonpath = get_full_path(os.path.join(self.artifacts_dir, path_suffix))
+        os.environ['PYTHONPATH'] = \
+            os.pathsep.join((self.user_pythonpath, self.temp_pythonpath, os.environ.get('PYTHONPATH', '')))
 
     def configure(self, user_configs, read_config_files=True):
         """

@@ -46,12 +46,13 @@ class PipInstaller(Service):
         self.temp = True
         self.target_dir = None
         self.interpreter = sys.executable
+        self.pip_cmd = [self.interpreter, "-m", "pip"]  # todo: change for win to bzt-pip
 
     def _install(self, packages):
         if not packages:
             self.log.debug("Nothing to install")
             return
-        cmdline = [self.interpreter, "-m", "pip", "install", "-t", self.target_dir]
+        cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
         cmdline += self.packages
         self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
         out, err = exec_and_communicate(cmdline)
@@ -61,7 +62,7 @@ class PipInstaller(Service):
 
     def _missed(self, packages):
         # todo: add version handling
-        cmdline = [self.interpreter, "-m", "pip", "list"]
+        cmdline = self.pip_cmd + ["list"]
         out, _ = exec_and_communicate(cmdline)
         list_of_installed = [line.split(' ')[0] for line in out.split('\n')[2:-1]]
 
@@ -78,7 +79,15 @@ class PipInstaller(Service):
         pass     # todo:
 
     def prepare(self):
-        self.packages = self.parameters.get("packages", self.packages)  # todo: add versions (dict)
+        """
+        pip-installer expect follow definition:
+        - service pip-install
+          temp: false   # install to ~/.bzt instead of artifacts dir
+          packages:
+          - first_pkg
+          - second_pkg
+        """
+        self.packages = self.parameters.get("packages", self.packages)  # todo: add versions (dict format?)
         if not self.packages:
             return
 
@@ -92,7 +101,7 @@ class PipInstaller(Service):
         if not os.path.exists(self.target_dir):
             os.mkdir(get_full_path(self.target_dir))
 
-        if self._missed(["pip"]):
+        if self._missed(["pip"]):   # extend to windows (bzt-pip)
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
         self.packages = self._missed(self.packages)
         if not self.packages:
