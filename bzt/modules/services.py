@@ -62,7 +62,6 @@ class PipInstaller(Service):
     def _missed(self, packages):
         # todo: add version handling
         cmdline = [self.interpreter, "-m", "pip", "list"]
-        # todo: set pythonpath for pip to avoid duplication
         out, _ = exec_and_communicate(cmdline)
         list_of_installed = [line.split(' ')[0] for line in out.split('\n')[2:-1]]
 
@@ -92,14 +91,6 @@ class PipInstaller(Service):
         self.target_dir = os.path.join(self.target_dir, "python-packages")
         if not os.path.exists(self.target_dir):
             os.mkdir(get_full_path(self.target_dir))
-
-        python_path = os.environ.get('PYTHONPATH', '')
-        if python_path:
-            python_path = os.pathsep.join((self.target_dir, python_path))
-        else:
-            python_path = self.target_dir
-
-        os.environ['PYTHONPATH'] = python_path
 
         if self._missed(["pip"]):
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
