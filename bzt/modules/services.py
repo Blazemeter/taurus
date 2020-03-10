@@ -98,7 +98,7 @@ class PipInstaller(Service):
             self.target_dir = self.engine.user_pythonpath
 
         if not os.path.exists(self.target_dir):
-            os.mkdir(get_full_path(self.target_dir))
+            os.makedirs(get_full_path(self.target_dir), exist_ok=True)
 
         if self._missed(["pip"]):   # extend to windows (bzt-pip)
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
@@ -108,7 +108,7 @@ class PipInstaller(Service):
 
         self._install(self.packages)
 
-    def shutdown(self):
+    def post_process(self):
         if self.packages and self.temp and not is_windows():    # might be forbidden on win as tool still work
             self.log.debug("remove packages: %s" % self.packages)
 
