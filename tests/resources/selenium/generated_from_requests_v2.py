@@ -34,7 +34,7 @@ class TestLocSc(unittest.TestCase):
         self.wnd_mng = WindowManager(self.driver)
         self.frm_mng = FrameManager(self.driver)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
-        self.dlg_mng = DialogsManager(self.driver)
+        self.dlg_mng = DialogsManager(self.driver, True)
         self.vars = {
             'my_xpath_locator': '/html/body/div[3]',
             'name': 'Name',
@@ -45,11 +45,8 @@ class TestLocSc(unittest.TestCase):
     def _1_Test_V2(self):
         with apiritif.smart_transaction('Test V2'):
             self.driver.get('http://blazedemo.com')
+            self.dlg_mng.replace_dialogs()
 
-            try:
-                self.dlg_mng.replace_alerts()
-            except AttributeError:
-                pass
             self.driver.set_window_size('750', '750')
             self.wnd_mng.switch(0)
 

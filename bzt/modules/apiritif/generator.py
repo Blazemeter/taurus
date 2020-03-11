@@ -140,6 +140,7 @@ from selenium.webdriver.common.keys import Keys
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
         self.test_mode = test_mode
+        self.useDialogsManager = False
 
     def _parse_action_params(self, expr, name):
         res = expr.match(name)
@@ -185,7 +186,7 @@ from selenium.webdriver.common.keys import Keys
             if tag in self.TO_BYS.keys():
                 tag_name = self.TO_BYS[tag]
                 selectors = [{tag_name: selector}]
-            elif not param and param is not False:
+            elif param is None:
                 param = selector
             else:
                 value = selector
@@ -662,19 +663,19 @@ from selenium.webdriver.common.keys import Keys
         return [ast.Expr(element) for element in action_elements]
 
     def _gen_answer_dialog_mngr(self, type, value):
-        if not type in ['prompt', 'confirm']:
+        if type not in ['prompt', 'confirm']:
             raise TaurusConfigError("answerDialog type must be one of the following: 'prompt' or 'confirm'")
         if type == 'confirm' and str(value).lower() not in ['#ok', '#cancel']:
             raise TaurusConfigError("answerDialog of type confirm must have value either '#Ok' or '#Cancel'")
-        self.selenium_extras.add("DialogsManager")
+        self.useDialogsManager = True
         dlg_method = "self.dlg_mng.answer_on_next_prompt" if type == 'prompt' else "self.dlg_mng.set_next_confirm_state"
         return [ast_call(func=ast_attr(dlg_method), args=[ast.Str(value)])]
 
     def _gen_assert_dialog_mngr(self, type, value):
-        if not type in ['alert', 'prompt', 'confirm']:
+        if type not in ['alert', 'prompt', 'confirm']:
             raise TaurusConfigError("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'")
         elements = []
-        self.selenium_extras.add("DialogsManager")
+        self.useDialogsManager = True
         dlg_method = "self.dlg_mng.get_next_" + type
 
         elements.append(ast.Assign(targets=[ast.Name(id='dialog', ctx=ast.Store())],
@@ -691,19 +692,15 @@ from selenium.webdriver.common.keys import Keys
 
     @staticmethod
     def _gen_replace_dialogs():
-        return ast.Try(
-            body=[ast_call(
-                func=ast_attr("self.dlg_mng.replace_alerts"))],
-            handlers=[
-                ast.ExceptHandler(
-                    type=ast.Name(id='AttributeError', ctx=ast.Load()),
-                    name=None,
-                    body=[ast.Pass()]
-                )
-            ],
-            orelse=[],
-            finalbody=[]
-        )
+        """
+        Generates the call to DialogsManager to replace dialogs, the replacement is actually done only when
+        assertDialog or answerDialog actions are used
+        """
+        return [
+            gen_empty_line_stmt(),
+            ast_call(
+                func=ast_attr("self.dlg_mng.replace_dialogs"))
+        ]
 
     def _gen_loop_mngr(self, action_config):
         exc = TaurusConfigError("Loop must contain start, end and do")
@@ -916,13 +913,14 @@ from selenium.webdriver.common.keys import Keys
                 func=ast.Name(id=mgr),
                 args=[ast_attr("self.driver"), ast.Str(self._get_scenario_timeout())])))
 
+        self.selenium_extras.add("DialogsManager")
         mgr = "DialogsManager"
-        if mgr in self.selenium_extras:
-            body.append(ast.Assign(
-                targets=[ast_attr("self.dlg_mng")],
-                value=ast_call(
-                    func=ast.Name(id=mgr),
-                    args=[ast_attr("self.driver")])))
+        body.append(ast.Assign(
+            targets=[ast_attr("self.dlg_mng")],
+            value=ast_call(
+                func=ast.Name(id=mgr),
+                args=[ast_attr("self.driver"),
+                      ast.Num(self.useDialogsManager)])))
 
         return body
 

@@ -41,7 +41,7 @@ class TestLocSc(unittest.TestCase):
         self.wnd_mng = WindowManager(self.driver)
         self.frm_mng = FrameManager(self.driver)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
-        self.dlg_mng = DialogsManager(self.driver)
+        self.dlg_mng = DialogsManager(self.driver, True)
         self.vars = {
             'name': 'Name',
             'red_pill': 'take_it',
@@ -51,10 +51,7 @@ class TestLocSc(unittest.TestCase):
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
-            try:
-                self.dlg_mng.replace_alerts()
-            except AttributeError:
-                pass
+            self.dlg_mng.replace_dialogs()
 
             var_loc_wait = self.loc_mng.get_locator([{'xpath': "//input[@type='submit']"}])
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
@@ -214,10 +211,7 @@ class TestLocSc(unittest.TestCase):
             self.assertTrue(self.driver.execute_script('return 10 === 2*5;'), '10 === 2*5')
             self.driver.get('http:\\blazemeter.com')
 
-            try:
-                self.dlg_mng.replace_alerts()
-            except AttributeError:
-                pass
+            self.dlg_mng.replace_dialogs()
 
             dialog = self.dlg_mng.get_next_alert()
             self.assertIsNotNone(dialog, 'No dialog of type alert appeared')
