@@ -88,11 +88,11 @@ class TestJMeterExecutor(ExecutorTestCase):
         selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
         selector += '>stringProp[name=ThreadGroup\.num_threads]'
         thr = jmx.get(selector)
-        self.assertEqual(4, len(thr))  # tg with concurrency=0 must be disabled
-        self.assertEqual('20', thr[0].text)  # 2 -> 20
-        self.assertEqual("false", thr[1].getparent().attrib["enabled"])  # 0 -> disable tg
-        self.assertEqual('10', thr[2].text)  # ${some_var} -> 1 -> 10
-        self.assertEqual('30', thr[3].text)  # {__P(prop, 3)} -> 3 -> 30
+        self.assertEqual(4, len(thr))   # tg with concurrency=0 must be disabled
+        self.assertEqual('20', thr[0].text)    # 2 -> 20
+        self.assertEqual("false", thr[1].getparent().attrib["enabled"]) # 0 -> disable tg
+        self.assertEqual('10', thr[2].text)    # ${some_var} -> 1 -> 10
+        self.assertEqual('30', thr[3].text)    # {__P(prop, 3)} -> 3 -> 30
 
     def test_jmx_2tg(self):
         self.configure({"execution": {
@@ -254,20 +254,20 @@ class TestJMeterExecutor(ExecutorTestCase):
                         {
                             'url': 'http://zero.com',
                             "method": "get",
-                            'body-file': body_file0  # ignore because method is GET
+                            'body-file': body_file0     # ignore because method is GET
                         }, {
                             'url': 'http://first.com',
                             "method": "${put_method}",
-                            'body-file': body_file1  # handle as body-file
+                            'body-file': body_file1     # handle as body-file
                         }, {
                             'url': 'http://second.com',
                             'method': 'post',
-                            'body': 'body2',  # handle only 'body' as both are mentioned (body and body-file)
+                            'body': 'body2',    # handle only 'body' as both are mentioned (body and body-file)
                             'body-file': body_file2
                         }, {
                             'url': 'https://the third.com',
                             'method': 'post',
-                            'body-file': '${J_VAR}'  # write variable as body-file
+                            'body-file': '${J_VAR}'     # write variable as body-file
                         }
                     ]}}})
         res_files = self.obj.get_resource_files()
@@ -498,11 +498,11 @@ class TestJMeterExecutor(ExecutorTestCase):
         uniform_timer = jmx.tree.find(".//UniformRandomTimer[@testname='Think-Time']")
         gaussian_timer = jmx.tree.find(".//GaussianRandomTimer[@testname='Think-Time']")
         poisson_timer = jmx.tree.find(".//PoissonRandomTimer[@testname='Think-Time']")
-
+        
         ctd = "ConstantTimer.delay"
         rtr = "RandomTimer.range"
         str_prop = ".//stringProp[@name='%s']"
-
+        
         const_delay = constant_timer.find(str_prop % ctd).text
         self.assertEqual("750", const_delay)
 
@@ -888,7 +888,7 @@ class TestJMeterExecutor(ExecutorTestCase):
     def test_distributed_props(self):
         self.sniff_log(self.obj.log)
 
-        self.configure({"execution": {"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}}})
+        self.configure({"execution":{"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}}})
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
         self.obj.settings['properties'] = BetterDict.from_dict({"a": 1})
 
@@ -1058,8 +1058,8 @@ class TestJMeterExecutor(ExecutorTestCase):
         ramp_up = tg.find(".//stringProp[@name='ThreadGroup.ramp_time']")
         conc = tg.find(".//stringProp[@name='ThreadGroup.num_threads']")
         delay = tg.find(".//boolProp[@name='ThreadGroup.delayedStart']")
-        self.assertEqual(conc.text, '${__P(val_c)}')  # concurrency should be saved
-        self.assertEqual(ramp_up.text, '0')  # ramp-up should be removed
+        self.assertEqual(conc.text, '${__P(val_c)}')    # concurrency should be saved
+        self.assertEqual(ramp_up.text, '0')             # ramp-up should be removed
 
         delay = delay is not None and delay.text == "true"
         self.assertTrue(delay)
@@ -1376,21 +1376,21 @@ class TestJMeterExecutor(ExecutorTestCase):
             "scenario": {
                 "requests": [
                     {
-                        "url": "http://blazedemo1.com",  # header + complicated dict = json
+                        "url": "http://blazedemo1.com",         # header + complicated dict = json
                         "method": "POST",
                         "headers": {"Content-Type": "application/json"},
                         "body": {"key1": {"key2": "val3"}}
                     }, {
-                        "url": "http://blazedemo2.com",  # no header + easy dict = form
+                        "url": "http://blazedemo2.com",         # no header + easy dict = form
                         "method": "POST",
                         "body": {"key4": "val5"}
                     }, {
-                        "url": "http://blazedemo3.com",  # no header + complicated dict = json
+                        "url": "http://blazedemo3.com",         # no header + complicated dict = json
                         "method": "POST",
                         "body": {
                             "key6": {"key7": "val8"}}
                     }, {
-                        "url": "http://blazedemo4.com",  # header + easy dict = json
+                        "url": "http://blazedemo4.com",         # header + easy dict = json
                         "method": "POST",
                         "headers": {"Content-Type": "application/json"},
                         "body": {"key9": "val10"}
@@ -1441,24 +1441,6 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
         self.assertEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
 
-    def test_jtl_flags(self):
-        self.configure({"execution": {
-            "write-xml-jtl": "error",
-            "scenario": {
-                "requests": [{
-                    "url": "http://blazedemo.com"}]}}})
-        self.obj.settings.merge({'xml-jtl-flags': {
-            'responseData': True,
-            'message': False}})
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        writers = xml_tree.findall(".//ResultCollector[@testname='Errors Writer']")
-        self.assertEqual(1, len(writers))
-        self.assertEqual('false', writers[0].find('objProp/value/samplerData').text)
-        self.assertEqual('false', writers[0].find('objProp/value/message').text)
-        self.assertEqual('true', writers[0].find('objProp/value/responseData').text)
-        self.assertEqual('true', writers[0].find('objProp/value/bytes').text)
-
     def test_csv_jtl_flags(self):
         self.configure({"execution": {
             "write-xml-jtl": "error",
@@ -1478,6 +1460,24 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual('true', writers[0].find('objProp/value/sentBytes').text)
         self.assertEqual('true', writers[0].find('objProp/value/idleTime').text)
         self.assertEqual('false', writers[0].find('objProp/value/dataType').text)
+
+    def test_jtl_flags(self):
+        self.configure({"execution": {
+            "write-xml-jtl": "error",
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com"}]}}})
+        self.obj.settings.merge({'xml-jtl-flags': {
+            'responseData': True,
+            'message': False}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        writers = xml_tree.findall(".//ResultCollector[@testname='Errors Writer']")
+        self.assertEqual(1, len(writers))
+        self.assertEqual('false', writers[0].find('objProp/value/samplerData').text)
+        self.assertEqual('false', writers[0].find('objProp/value/message').text)
+        self.assertEqual('true', writers[0].find('objProp/value/responseData').text)
+        self.assertEqual('true', writers[0].find('objProp/value/bytes').text)
 
     def test_jmx_modification_unicode(self):
         cfg_selector = ('Home Page>HTTPsampler.Arguments>Arguments.arguments'
