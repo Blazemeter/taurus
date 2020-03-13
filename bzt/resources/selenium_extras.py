@@ -130,12 +130,14 @@ class LocatorsManager:
         first one
         """
         first_locator = None
+        if ignore_implicit_wait:
+            self.driver.implicitly_wait(0)
         for locator in locators:
             locator_type = list(locator.keys())[0]
             locator_value = locator[locator_type]
             if not first_locator:
                 first_locator = (self.BYS[locator_type.lower()], locator_value)
-            if first_locator or ignore_implicit_wait:
+            else:
                 # set implicit wait to 0 get the result instantly for the other locators
                 self.driver.implicitly_wait(0)
             elements = self.driver.find_elements(self.BYS[locator_type.lower()], locator_value)
