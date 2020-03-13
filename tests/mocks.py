@@ -117,6 +117,32 @@ class EngineEmul(Engine):
         return super(EngineEmul, self).prepare()
 
 
+# Allow custom configs
+class EngineEmul2(Engine):
+    def __init__(self, custom_configs):
+        super().__init__(ROOT_LOGGER)
+        self.aggregator.add_underling = lambda _: None
+
+        self.config.merge({
+            "provisioning": "local",
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                "local": ModuleMock.__module__ + "." + ModuleMock.__name__},
+            "settings": {
+                "check-updates": False}})
+        self.config.merge(custom_configs)
+
+        self.check_interval = 0.1
+        self.create_artifacts_dir()
+        self.prepare_exc = None
+        self.was_finalize = False
+
+    def prepare(self):
+        if self.prepare_exc:
+            raise self.prepare_exc
+        return super().prepare()
+
+
 class ModuleMock(ScenarioExecutor, Provisioning, Reporter, Service, FileLister, HavingInstallableTools, SelfDiagnosable):
     """ mock """
 

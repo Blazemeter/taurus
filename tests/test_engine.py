@@ -1,4 +1,5 @@
 """ unit test """
+import copy
 import os
 import sys
 import yaml
@@ -6,9 +7,9 @@ import yaml
 from bzt import TaurusConfigError
 from bzt.engine import Configuration, EXEC
 from bzt.six import string_types, communicate
-from bzt.utils import BetterDict, is_windows
-from tests import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase
-from tests.mocks import EngineEmul
+from bzt.utils import BetterDict, is_windows, get_full_path, get_uniq_name
+from tests import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase, TEST_DIR
+from tests.mocks import EngineEmul, EngineEmul2
 
 
 class TestEngine(BZTestCase):
@@ -181,6 +182,27 @@ class TestEngine(BZTestCase):
             if "BZT_ENV_TEST_UNSET" in os.environ:
                 os.environ.pop("BZT_ENV_TEST_UNSET")
 
+    def test_nested_env_eval(self):
+        try:
+            self.obj.config.merge({
+                "settings": {
+                    "env": {"FOO": "${BAR}/aaa/bbb", "FOOBAR": "eee", "BAR": "${BAZ}/ccc", "BAZ": "${FOOBAR}/ddd"}
+                }})
+            self.obj.eval_env()
+            self.assertEqual("eee/ddd/ccc/aaa/bbb", self.obj.config["settings"]["env"]["FOO"])
+            self.assertEqual("eee", self.obj.config["settings"]["env"]["FOOBAR"])
+            self.assertEqual("eee/ddd/ccc", self.obj.config["settings"]["env"]["BAR"])
+            self.assertEqual("eee/ddd", self.obj.config["settings"]["env"]["BAZ"])
+        finally:
+            if "FOO" in os.environ:
+                os.environ.pop("FOO")
+            if "BAR" in os.environ:
+                os.environ.pop("BAR")
+            if "FOOBAR" in os.environ:
+                os.environ.pop("FOOBAR")
+            if "BAZ" in os.environ:
+                os.environ.pop("BAZ")
+
     def test_singletone_service(self):
         configs = [
             RESOURCES_DIR + "yaml/singletone-service.yml",
@@ -323,6 +345,25 @@ class TestScenarioExecutor(ExecutorTestCase):
         process = self.obj._execute(cmdline, shell=True)
         stdout, _ = communicate(process)
         self.assertEquals(self.engine.artifacts_dir, stdout.strip())
+
+    def test_passes_artifacts_dir_with_envs(self):
+        cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
+        engine = EngineEmul2({
+            "settings": {
+                "env": {"BZT_ARTIFACTS_DIR_ENV_TEST": "custom_dir_from_env"},
+                "artifacts-dir": get_uniq_name(directory=get_full_path(TEST_DIR),
+                                               prefix="${BZT_ARTIFACTS_DIR_ENV_TEST}/%Y-%m-%d_%H-%M-%S.%f")
+            }})
+        engine.eval_env()
+        engine.prepare()
+        executor = copy.deepcopy(self.obj)
+        executor.engine = engine
+        process = executor._execute(cmdline, shell=True)
+        stdout, _ = communicate(process)
+        self.assertEqual(engine.artifacts_dir, stdout.strip())
+
+        if "BZT_ARTIFACTS_DIR_ENV_TEST" in os.environ:
+            os.environ.pop("BZT_ARTIFACTS_DIR_ENV_TEST")
 
     def test_case_of_variables(self):
         env = {'aaa': 333, 'AAA': 666}

@@ -391,7 +391,11 @@ class Engine(object):
             artifacts_dir = self.config.get(SETTINGS, force_set=True).get("artifacts-dir", self.ARTIFACTS_DIR)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
 
-        self.artifacts_dir = get_full_path(self.artifacts_dir)
+        envs = self.config.get(SETTINGS, force_set=True).get("env", force_set=True)
+        envs[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
+        envs = self._expend_env_vars(envs)
+
+        self.artifacts_dir = get_full_path(envs[TAURUS_ARTIFACTS_DIR])
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
         os.environ[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
@@ -706,17 +710,7 @@ class Engine(object):
         envs = self.config.get(SETTINGS, force_set=True).get("env", force_set=True)
         envs[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
 
-        for varname in envs:
-            if envs[varname]:
-                envs[varname] = str(envs[varname])
-                envs[varname] = os.path.expandvars(envs[varname])
-
-        for varname in envs:
-            if envs[varname] is None:
-                if varname in os.environ:
-                    os.environ.pop(varname)
-            else:
-                os.environ[varname] = str(envs[varname])
+        envs = self._expend_env_vars(envs)
 
         def custom_expandvars(value):
             parts = re.split(r'(\$\{.*?\})', value)
@@ -735,3 +729,35 @@ class Engine(object):
                 container[key] = custom_expandvars(value)
 
         BetterDict.traverse(self.config, apply_env)
+
+    def _expend_env_vars(self, envs):
+        """
+        Export all user-defined environment variables to the system and substitute any variables in the values.
+
+        settings:
+          env:
+            FOO: ${BAR}/bbb/ccc
+            BAR: aaa
+        """
+        self._update_system_env_vars(envs)
+
+        for varname in envs:
+            if envs[varname]:
+                envs[varname] = str(envs[varname])
+                envs[varname] = os.path.expandvars(envs[varname])
+
+            self.log.debug("Env: %s=%s", varname, envs[varname])
+
+        self._update_system_env_vars(envs)
+
+        return envs
+
+    def _update_system_env_vars(self, envs):
+        for varname in envs:
+            if envs[varname] is None:
+                if varname in os.environ:
+                    os.environ.pop(varname)
+            else:
+                os.environ[varname] = str(envs[varname])
+
+            self.log.debug("OS env: %s=%s", varname, envs[varname])
