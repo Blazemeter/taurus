@@ -86,11 +86,11 @@ class ApiritifScriptGenerator(object):
     }
 
     ACTIONS = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
-                        'mouseOver', 'select', 'wait', 'keys', 'pause', 'clear', 'assert',
+                        'mouseOver', 'select', 'wait', 'keys', 'pauseFor', 'clear', 'assert',
                         'assertText', 'assertValue', 'submit', 'close', 'script', 'editcontent',
                         'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
                         'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode',
-                        'resize', 'maximize', 'alert'
+                        'resize', 'maximize', 'alert', 'waitFor'
                         ])
 
     EXECUTION_BLOCKS = "|".join(['if', 'loop'])
@@ -110,7 +110,7 @@ from selenium.webdriver.common.keys import Keys
 """
 
     BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
-    COMMON_TAGS = ("For", "Cookies", "Title", "Window", "Eval", "ByIdx", "String")
+    COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
@@ -161,7 +161,7 @@ from selenium.webdriver.common.keys import Keys
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
         all_actions = self.ACTIONS + "|" + self.EXECUTION_BLOCKS
-        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
+        expr = re.compile(r"^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
         selectors = []
@@ -196,6 +196,13 @@ from selenium.webdriver.common.keys import Keys
         elif atype == "switchframe":
             # for switchFrameByName we need to get the param
             param = selector
+        elif atype == "waitfor":
+            value = param
+            args = selector.rsplit(",", 1)
+            if len(args) != 2:
+                raise TaurusConfigError("Incorrect amount of arguments for waitFor (2 expected).")
+            param = args[1].strip()
+            selectors = [{tag_name: args[0].strip()}]
 
         return atype, tag, param, value, selectors
 
@@ -242,17 +249,19 @@ from selenium.webdriver.common.keys import Keys
                 gen_subscript(var_w_locator, 1)
             ])
 
-    def _gen_get_locators(self, var_name, locators):
+    def _gen_ast_locators_dict(self, locators):
         args = []
         for loc in locators:
             locator_type = list(loc.keys())[0]
             locator_value = loc[locator_type]
             args.append(ast.Dict([ast.Str(locator_type)], [self._gen_expr(locator_value)]))
+        return args
 
+    def _gen_get_locators(self, var_name, locators):
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store())],
             value=ast_call(func="self.loc_mng.get_locator",
-                           args=[ast.List(elts=args)]))
+                           args=[ast.List(elts=self._gen_ast_locators_dict(locators))]))
 
     def _gen_locator(self, tag, selector):
         return ast_call(
@@ -549,6 +558,7 @@ from selenium.webdriver.common.keys import Keys
         mode = "visibility" if param == 'visible' else 'presence'
 
         if atype == 'wait':
+            self.log.warning("Wait command is deprecated and will be removed soon. Use waitFor instead.")
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
             locator_type = list(selectors[0].keys())[0]
@@ -578,7 +588,7 @@ from selenium.webdriver.common.keys import Keys
                                     ])]),
                     ast.Str(errmsg)]))
 
-        elif atype == 'pause' and tag == 'for':
+        elif atype == 'pausefor':
             elements.append(ast_call(
                 func="sleep",
                 args=[ast.Num(dehumanize_time(param))]))
@@ -634,7 +644,9 @@ from selenium.webdriver.common.keys import Keys
                                                 args=[self._gen_expr(param.strip())]))
         elif atype == "editcontent":
             action_elements.extend(self._gen_edit_mngr(param, selectors))
-        elif atype in ('wait', 'pause'):
+        elif atype == 'waitfor':
+            action_elements.extend(self._gen_wait_for_mngr(param, value, selectors))
+        elif atype in ('wait', 'pausefor'):
             action_elements.extend(self._gen_wait_sleep_mngr(atype, tag, param, selectors))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(ast_call(
@@ -652,6 +664,21 @@ from selenium.webdriver.common.keys import Keys
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
+
+    def _gen_wait_for_mngr(self, param, value, selectors):
+        self.selenium_extras.add("WaitForManager")
+        supported_conds = ["present", "visible", "clickable", "notpresent", "notvisible", "notclickable"]
+
+        if param.lower() not in supported_conds:
+            raise TaurusConfigError("Invalid condition in waitFor: '%s'. Supported conditions are: %s." %
+                                    (param, ", ".join(supported_conds)))
+
+        if not value:
+            value = 10  # if timeout value is not present set it by default to 10s
+        timeout = dehumanize_time(value)
+
+        return [ast_call(func="self.wait_for_mng.wait_for",
+                 args=[ast.Str(param), ast.List(elts=self._gen_ast_locators_dict(selectors)), ast.Num(timeout)])]
 
     def _gen_loop_mngr(self, action_config):
         exc = TaurusConfigError("Loop must contain start, end and do")
@@ -863,6 +890,14 @@ from selenium.webdriver.common.keys import Keys
             value=ast_call(
                 func=ast.Name(id=mgr),
                 args=[ast_attr("self.driver"), ast.Str(self._get_scenario_timeout())])))
+
+        mgr = "WaitForManager"
+        if mgr in self.selenium_extras:
+            body.append(ast.Assign(
+                targets=[ast_attr("self.wait_for_mng")],
+                value=ast_call(
+                    func=ast.Name(id=mgr),
+                    args=[ast_attr("self.driver"), ast.Str(self._get_scenario_timeout())])))
 
         return body
 

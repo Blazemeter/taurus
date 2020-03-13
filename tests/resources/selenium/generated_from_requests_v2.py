@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import FrameManager, LocatorsManager, WindowManager
+from bzt.resources.selenium_extras import FrameManager, LocatorsManager, WindowManager, WaitForManager
 
 
 class TestLocSc(unittest.TestCase):
@@ -39,6 +39,7 @@ class TestLocSc(unittest.TestCase):
         self.wnd_mng = WindowManager(self.driver)
         self.frm_mng = FrameManager(self.driver)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
+        self.wait_for_mng = WaitForManager(self.driver, 3.5)
         apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc')
 
     def _1_Test_V2(self):
@@ -180,7 +181,7 @@ class TestLocSc(unittest.TestCase):
             WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((
                 var_loc_wait[0],
                 var_loc_wait[1])), "Element 'css':'invalid_css' failed to appear within 3.5s")
-
+            self.wait_for_mng.wait_for('visible', [{'css': 'invalid_css'}, {'name': 'inputName'}], 9020.0)
             var_edit_content = self.loc_mng.get_locator([{
                 'id': 'editor',
             }])
