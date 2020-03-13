@@ -252,6 +252,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         }],
                         "actions": [
                             "waitByXPath(//input[@type='submit'])",
+                            {"waitForByXPath(//input[@name='test,name'], present)": "1m20s"},
                             "assertTitle(BlazeDemo)",
                             "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
                             "doubleClickByXPath(/html/body/div[3]/h2)",
@@ -1065,6 +1066,15 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         ]
                                     },
                                     {
+                                        "type": "waitFor",
+                                        "param": "visible",
+                                        "locators": [
+                                            {"css": "invalid_css"},
+                                            {"name": "inputName"}
+                                        ],
+                                        "value": "2h30m20s"
+                                    },
+                                    {
                                         "type": "editContent",
                                         "param": "lo-la-lu",
                                         "locators": [{"id": "editor"}]
@@ -1490,3 +1500,59 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         self.assertTrue("answerDialog of type confirm must have value either '#Ok' or '#Cancel'"
                         in str(context.exception))
+
+    def test_wait_for(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            "waitForById(myId, visible)",
+                            {"waitForById(myId, present)": "10s"},
+                            {"waitForById(myId, clickable)": "10s"},
+                            {"waitForById(myId, notvisible)": "10s"},
+                            {"waitForById(myId, notpresent)": "10s"},
+                            {"waitForById(myId, notclickable)": "10s"}
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "self.wait_for_mng.wait_for('visible',[{'id':'myId'}],10.0)",
+            "self.wait_for_mng.wait_for('present',[{'id':'myId'}],10.0)",
+            "self.wait_for_mng.wait_for('clickable',[{'id':'myId'}],10.0)",
+            "self.wait_for_mng.wait_for('notvisible',[{'id':'myId'}],10.0)",
+            "self.wait_for_mng.wait_for('notpresent',[{'id':'myId'}],10.0)",
+            "self.wait_for_mng.wait_for('notclickable',[{'id':'myId'}],10.0)"
+        ]
+        for idx in range(len(target_lines)):
+            target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
+            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
+                          TestSeleniumScriptGeneration.clear_spaces(content),
+                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+
+    def test_wait_for_invalid_cond(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {"waitForById(myId, invisible)": "10s"},
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Invalid condition in waitFor' in str(context.exception),
+                        "Given string was not found in '%s'" % str(context.exception))

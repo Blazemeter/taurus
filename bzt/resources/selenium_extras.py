@@ -1,9 +1,13 @@
 # Utility functions and classes for Taurus Selenium tests
 
-from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException
+from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
+    TimeoutException
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
 from selenium.webdriver.common.by import By
+import time
 
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as econd
 
 def _get_driver():
     return get_from_thread_store("driver")
@@ -127,10 +131,11 @@ class Manager:
         'linktext': By.LINK_TEXT
     }
 
-    def get_locator(self, locators):
+    def get_locator(self, locators, ignore_implicit_wait=False):
         """
         :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
         {css: 'my_cls'}]
+        :param ignore_implicit_wait: set it to True to set the implicit wait immediately to 0
         :return: first valid locator from the passed List, if no locator is valid then returns the
         first one
         """
@@ -142,7 +147,7 @@ class Manager:
             locator_value = locator[locator_type]
             if not first_locator:
                 first_locator = (self.BYS[locator_type.lower()], locator_value)
-            else:
+            if first_locator or ignore_implicit_wait:
                 # set implicit wait to 0 get the result instantly for the other locators
                 driver.implicitly_wait(0)
             elements = driver.find_elements(self.BYS[locator_type.lower()], locator_value)
@@ -258,3 +263,74 @@ class DialogsManager:
         else:
             confirm = 'false'
         _get_driver().execute_script("window.__webdriverNextConfirm = %s;" % confirm)
+
+
+class WaitForManager:
+
+    def __init__(self, driver, timeout=30):
+        self.driver = driver
+        self.timeout = timeout
+        self.loc_mngr = LocatorsManager(driver, timeout)
+
+    POSITIVE_CONDS = [
+        "present", "visible", "clickable"
+    ]
+
+    NEGATIVE_CONDS = [
+        "notpresent", "notvisible", "notclickable"
+    ]
+
+    def wait_for(self, condition, locators, wait_timeout=10):
+        if condition.lower() in self.POSITIVE_CONDS:
+            self._wait_for_positive(condition.lower(), locators, wait_timeout)
+        elif condition.lower() in self.NEGATIVE_CONDS:
+            self._wait_for_negative(condition.lower(), locators, wait_timeout)
+
+    def _wait_for_positive(self, condition, locators, wait_timeout):
+        start_time = time.time()
+        while True:
+            locator = None
+            try:
+                locator = self.loc_mngr.get_locator(locators, True)
+            except NoSuchElementException:
+                pass
+            if locator:
+                element = None
+                try:
+                    element = WebDriverWait(self.driver, wait_timeout).until(self._get_until_cond(condition, locator))
+                except TimeoutException:
+                    pass
+                if element:
+                    return
+
+            elapsed_time = time.time() - start_time
+            if elapsed_time > wait_timeout:
+                raise NoSuchElementException("Timeout occurred while waiting for '%s' condition" % condition)
+
+    def _wait_for_negative(self, condition, locators, wait_timeout):
+        present_locs = []
+        for locator in locators:
+            try:
+                present_locs.append(self.loc_mngr.get_locator([locator], True))
+            except NoSuchElementException:
+                pass
+        if not present_locs:
+            return
+        start_time = time.time()
+        for locator in present_locs:
+            elapsed_time = time.time() - start_time
+            timeout = wait_timeout - elapsed_time
+            WebDriverWait(self.driver, timeout).until_not(
+                self._get_until_cond(condition, locator),
+                message="Timeout occurred while waiting for element (%s=%s) to become '%s'" %
+                        (locator[0], locator[1], condition))
+
+    @staticmethod
+    def _get_until_cond(condition, locator):
+        loc_tuple = (LocatorsManager.BYS[locator[0]], locator[1])
+        if "clickable" in condition:
+            return econd.element_to_be_clickable(loc_tuple)
+        if "present" in condition:
+            return econd.presence_of_element_located(loc_tuple)
+        if "visible" in condition:
+            return econd.visibility_of_element_located(loc_tuple)

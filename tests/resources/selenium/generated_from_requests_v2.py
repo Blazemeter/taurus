@@ -38,6 +38,7 @@ class TestLocSc(unittest.TestCase):
         self.frm_mng = FrameManager()
         self.mng = Manager()
         self.dlg_mng = DialogsManager(True)
+        self.wait_for_mng = WaitForManager(self.driver, 3.5)
         apiritif.put_into_thread_store(timeout=timeout, scenario_name='loc_sc', driver=self.driver, func_mode=False)
 
     def _1_Test_V2(self):
@@ -137,7 +138,7 @@ class TestLocSc(unittest.TestCase):
             WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((
                 var_loc_wait[0],
                 var_loc_wait[1])), "Element 'css':'invalid_css' failed to appear within 3.5s")
-
+            self.wait_for_mng.wait_for('visible', [{'css': 'invalid_css'}, {'name': 'inputName'}], 9020.0)
             var_edit_content = self.mng.get_locator([{'id': 'editor'}])
 
             if self.driver.find_element(

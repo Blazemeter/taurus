@@ -45,6 +45,7 @@ class TestLocSc(unittest.TestCase):
         self.frm_mng = FrameManager()
         self.mng = Manager()
         self.dlg_mng = DialogsManager(True)
+        self.wait_for_mng = WaitForManager(self.driver, 3.5)
         apiritif.put_into_thread_store(timeout=timeout, scenario_name='loc_sc', driver=self.driver, func_mode=True,
                                        data_sources=True)
 
@@ -57,6 +58,7 @@ class TestLocSc(unittest.TestCase):
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
                 var_loc_wait[0],
                 var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')
+            self.wait_for_mng.wait_for('present', [{'xpath': "//input[@name='test,name']"}], 80.0)
             self.assertEqual(self.driver.title, 'BlazeDemo')
 
             var_loc_chain = self.mng.get_locator([{'xpath': '/html/body/div[2]/div/p[2]/a'}])
