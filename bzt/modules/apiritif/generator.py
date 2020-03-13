@@ -158,6 +158,14 @@ from selenium.webdriver.common.keys import Keys
 
         return atype, tag, selector
 
+    @staticmethod
+    def _trim_quotes(selector):
+        if selector.startswith('"') and selector.endswith('"'):
+            selector = selector[1:-1]
+        elif selector.startswith("'") and selector.endswith("'"):
+            selector = selector[1:-1]
+        return selector
+
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
         all_actions = self.ACTIONS + "|" + self.EXECUTION_BLOCKS
@@ -165,12 +173,8 @@ from selenium.webdriver.common.keys import Keys
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
         selectors = []
-        # hello, reviewer!
         if selector:
-            if selector.startswith('"') and selector.endswith('"'):
-                selector = selector[1:-1]
-            elif selector.startswith("'") and selector.endswith("'"):
-                selector = selector[1:-1]
+            selector = self._trim_quotes(selector)
         else:
             selector = ""
 
@@ -200,9 +204,9 @@ from selenium.webdriver.common.keys import Keys
             value = param
             args = selector.rsplit(",", 1)
             if len(args) != 2:
-                raise TaurusConfigError("Incorrect amount of arguments for waitFor (2 expected).")
+                raise TaurusConfigError("Incorrect amount of arguments (%s) for waitFor (2 expected)." % len(args))
             param = args[1].strip()
-            selectors = [{tag_name: args[0].strip()}]
+            selectors = [{tag_name: self._trim_quotes(args[0].strip())}]
 
         return atype, tag, param, value, selectors
 

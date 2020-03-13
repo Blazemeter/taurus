@@ -216,7 +216,7 @@ class WaitForManager:
 
     @staticmethod
     def _get_until_cond(condition, locator):
-        loc_tuple = (LocatorsManager.BYS[locator[0]], locator[1])
+        loc_tuple = (locator[0], locator[1])
         if "clickable" in condition:
             return econd.element_to_be_clickable(loc_tuple)
         if "present" in condition:
