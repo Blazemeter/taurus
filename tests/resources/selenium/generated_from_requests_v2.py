@@ -25,6 +25,11 @@ from bzt.resources.selenium_extras import FrameManager, LocatorsManager, WindowM
 class TestLocSc(unittest.TestCase):
 
     def setUp(self):
+        self.vars = {
+            'my_xpath_locator': '/html/body/div[3]',
+            'name': 'Name',
+            'red_pill': 'take_it,',
+        }
         self.driver = None
         options = webdriver.FirefoxOptions()
         profile = webdriver.FirefoxProfile()
@@ -34,11 +39,7 @@ class TestLocSc(unittest.TestCase):
         self.wnd_mng = WindowManager(self.driver)
         self.frm_mng = FrameManager(self.driver)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
-        self.vars = {
-            'name': 'Name',
-            'red_pill': 'take_it,',
-        }
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
+        apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc')
 
     def _1_Test_V2(self):
         with apiritif.smart_transaction('Test V2'):
@@ -49,7 +50,7 @@ class TestLocSc(unittest.TestCase):
             var_loc_chain = self.loc_mng.get_locator([{
                 'id': 'invalid_id',
             }, {
-                'xpath': '/html/body/div[3]/form/select[1]',
+                'xpath': self.vars['my_xpath_locator'],
             }])
             ActionChains(self.driver).click_and_hold(self.driver.find_element(
                 var_loc_chain[0],
@@ -116,6 +117,9 @@ class TestLocSc(unittest.TestCase):
             self.vars['Basic'] = self.driver.find_element(
                 var_loc_as[0],
                 var_loc_as[1]).get_attribute('innerText')
+            self.assertTrue(self.driver.execute_script('return 10 === 2*5;'), '10 === 2*5')
+
+            self.vars['var_eval'] = self.driver.execute_script('return 0 == false;')
 
             var_loc_keys = self.loc_mng.get_locator([{
                 'xpath': '/wrong/one',

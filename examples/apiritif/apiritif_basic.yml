@@ -1,6 +1,6 @@
 execution:
 - scenario: with-extractors
-  executor: nose
+  executor: apiritif
   iterations: 1
 
 reporting:

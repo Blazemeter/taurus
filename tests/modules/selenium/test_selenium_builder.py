@@ -235,7 +235,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
-                    "data-sources": [{"path": "first.csv", "loop": False}, "second.csv"],
+                    "data-sources": [{"path": "first.csv", "loop": True}, "second.csv"],
                     "default-address": "http://blazedemo.com",
                     "variables": {
                         "red_pill": "take_it",
@@ -290,6 +290,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"storeTextByXPath(//*[@id='basics']/h2)": "Basic"},
                             {"storeValueByXPath(//*[@id='basics']/h1)": "World"},
                             {"storeString(${Title} ${Basic} by ${By})": "Final"},
+                            {"storeEval(0 == false)": "var_eval"},
+                            "assertEval(10 === 2*5)",
                             "go(http:\\blazemeter.com)",
                             "echoString(${red_pill})",
                             "screenshot(screen.png)",
@@ -329,6 +331,9 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 }
             }
         })
+
+        # it changes default of data-source loop parameter to 'false' (see second.csv params)
+        self.obj.engine.aggregator.is_functional = True
 
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests.py"
@@ -896,6 +901,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "loc_sc": {
                         "default-address": "http://blazedemo.com,",
                         "variables": {
+                            "my_xpath_locator": "/html/body/div[3]",
                             "red_pill": "take_it,",
                             "name": "Name"
                         },
@@ -920,7 +926,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "type": "mouseDown",
                                         "locators": [
                                             {"id": "invalid_id"},
-                                            {"xpath": "/html/body/div[3]/form/select[1]"}
+                                            {"xpath": "${my_xpath_locator}"}
                                         ]
                                     },
                                     {
@@ -975,6 +981,15 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "type": "storeText",
                                         "param": "Basic",
                                         "locators": [{"xpath": "/html/body/div[3]/h2"}]
+                                    },
+                                    {
+                                        "type": "assertEval",
+                                        "param": "10 === 2*5"
+                                    },
+                                    {
+                                        "type": "storeEval",
+                                        "param": "var_eval",
+                                        "value": "0 == false"
                                     },
                                     {
                                         "type": "click",
@@ -1097,3 +1112,286 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
         with open(self.obj.script) as script:
             self.assertIn("bzt.resources.selenium_extras", script.read())
+
+    def test_conditions(self):
+        self.configure(
+            {
+                "execution": [
+                    {
+                        "executor": "apiritif",
+                        "scenario": "loc_sc"
+                    }
+                ],
+                "scenarios": {
+                    "loc_sc": {
+                        "default-address": "http://blazedemo.com,",
+                        "browser": "Chrome",
+                        "variables": {
+                            "city_select_name": "fromPort",
+                            "input_name_id": "inputName"
+                        },
+                        "timeout": "3.5s",
+                        "requests": [
+                            {
+                                "label": "Conditions test",
+                                "actions": [
+                                    "go(http://blazedemo.com)",
+                                    {
+                                        "if": "document.getElementsByName(\"fromPort\")[0].length > 0",
+                                        "then": [
+                                            {
+                                                "type": "click",
+                                                "locators": [
+                                                    {
+                                                        "id": "wrong_id"
+                                                    },
+                                                    {
+                                                        "xpath": "/html/body/div[3]/form/div/input"
+                                                    }
+                                                ]
+                                            },
+                                            "pauseFor(1s)",
+                                            {
+                                                "if": "document.getElementsByClassName(\"table\")[0].rows.length > 5",
+                                                "then": [
+                                                    "clickByXPath(/html/body/div[2]/table/tbody/tr[5]/td[1]/input)",
+                                                    {
+                                                        "if": "document.getElementById(\"${input_name_id}\").value "
+                                                              "=== ''",
+                                                        "then": [
+                                                            {
+                                                                "typeById(${input_name_id})": "John Doe"
+                                                            }
+                                                        ],
+                                                        "else": [
+                                                            {
+                                                                "typeById(${input_name_id})": "Jack Green"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "clickByXPath(/html/body/div[2]/form/div[11]/div/input)",
+                                                    "pauseFor(5s)"
+                                                ]
+                                            }
+                                        ],
+                                        "else": [
+                                            {
+                                                "if": "document.getElementsByClassName(\"table\")[0].rows.length > 5",
+                                                "then": [
+                                                    {
+                                                        "typeById(${elem2_id})": "my text"
+                                                    },
+                                                    {
+                                                        "if": "window.screen.width > 1000",
+                                                        "then": [
+                                                            "screenshot(file_1000)"
+                                                        ],
+                                                        "else": [
+                                                            "screenshot(file)"
+                                                        ]
+                                                    }
+                                                ],
+                                                "else": [
+                                                    "clickByXPath(/html/body/div[3]/input)"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        )
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_if_then_else.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>", python_files=True)
+
+    def test_conditions_missing_then(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "if": "document.getElementsByName(\"fromPort\")[0].length > 0"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Missing then' in str(context.exception))
+
+    def test_loop_missing_end(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": 1,
+                                "do": [
+                                    "clickById(dd)"
+                                ]
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Loop must contain' in str(context.exception))
+
+    def test_loop_missing_start(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "end": 10,
+                                "do": [
+                                    "clickById(dd)"
+                                ]
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Loop must contain' in str(context.exception))
+
+    def test_loop_missing_do(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": 1,
+                                "end": 10
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Loop must contain' in str(context.exception))
+
+    def test_loop_step_defaults_to_1(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": 1,
+                                "end": 10,
+                                "do": [
+                                    "clickById(${i})"
+                                ]
+                            }
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "for i in range(1, 11)",
+            "self.vars['i'] = str(i)",
+            "self.loc_mng.get_locator([{'id': self.vars['i']"
+
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
+                          TestSeleniumScriptGeneration.clear_spaces(content),
+                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_loop_step_2(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": 1,
+                                "end": 10,
+                                "step": 2,
+                                "do": [
+                                    "clickById(id)"
+                                ]
+                            }
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "for i in range(1, 11, 2)",
+            "self.vars['i'] = str(i)"
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_loop_step_negative(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": 10,
+                                "end": 0,
+                                "step": -1,
+                                "do": [
+                                    "clickById(id)"
+                                ]
+                            }
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "for i in range(10, -1, -1)",
+            "self.vars['i'] = str(i)"
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))

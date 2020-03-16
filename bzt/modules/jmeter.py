@@ -35,9 +35,9 @@ from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNet
 from bzt.engine import Scenario, FileLister, HavingInstallableTools, ScenarioExecutor
 from bzt.engine import SelfDiagnosable, SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
-from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
+from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
+from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
 from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
@@ -251,16 +251,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.stdout = open(self.engine.create_artifact("jmeter", ".out"), "w")
         self.stderr = open(self.engine.create_artifact("jmeter", ".err"), "w")
 
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+        if self.engine.is_functional_mode():
+            self.reader = FuncJTLReader(self.log_jtl, self.engine, self.log)
+            self.reader.is_distributed = len(self.distributed_servers) > 0
+            self.reader.executor_label = self.label
+            self.engine.aggregator.add_underling(self.reader)
+        else:
             err_msg_separator = self.settings.get("error-message-separator")
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl, err_msg_separator)
             self.reader.is_distributed = len(self.distributed_servers) > 0
             assert isinstance(self.reader, JTLReader)
-            self.engine.aggregator.add_underling(self.reader)
-        elif isinstance(self.engine.aggregator, FunctionalAggregator):
-            self.reader = FuncJTLReader(self.log_jtl, self.engine, self.log)
-            self.reader.is_distributed = len(self.distributed_servers) > 0
-            self.reader.executor_label = self.label
             self.engine.aggregator.add_underling(self.reader)
 
     def __set_system_properties(self):
@@ -495,26 +495,26 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def __add_result_writers(self, jmx):
         version = LooseVersion(self.tool.version)
-        flags = {}
+        csv_flags = self.settings.get('csv-jtl-flags')
         if version < LooseVersion("2.13"):
-            flags['^connectTime'] = False
+            csv_flags['^connectTime'] = False
 
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-        kpi_lst = jmx.new_kpi_listener(self.kpi_jtl, flags)
+        kpi_lst = jmx.new_kpi_listener(self.kpi_jtl, csv_flags)
         self.__add_listener(kpi_lst, jmx)
 
         verbose = self.engine.config.get(SETTINGS).get("verbose", False)
         jtl_log_level = self.execution.get('write-xml-jtl', "full" if verbose else 'error')
 
-        flags = self.settings.get('xml-jtl-flags')
+        xml_flags = self.settings.get('xml-jtl-flags')
 
         if jtl_log_level == 'error':
             self.log_jtl = self.engine.create_artifact("error", ".jtl")
-            log_lst = jmx.new_xml_listener(self.log_jtl, False, flags)
+            log_lst = jmx.new_xml_listener(self.log_jtl, False, xml_flags)
             self.__add_listener(log_lst, jmx)
         elif jtl_log_level == 'full':
             self.log_jtl = self.engine.create_artifact("trace", ".jtl")
-            log_lst = jmx.new_xml_listener(self.log_jtl, True, flags)
+            log_lst = jmx.new_xml_listener(self.log_jtl, True, xml_flags)
             self.__add_listener(log_lst, jmx)
 
     def __force_tran_parent_sample(self, jmx):

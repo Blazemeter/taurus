@@ -25,6 +25,9 @@ from bzt.resources.selenium_extras import LocatorsManager
 class TestLocScAppium(unittest.TestCase):
 
     def setUp(self):
+        self.vars = {
+
+        }
         self.driver = None
         self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={
             'browserName': 'chrome',
@@ -33,10 +36,7 @@ class TestLocScAppium(unittest.TestCase):
         })
         self.driver.implicitly_wait(3.5)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
-        self.vars = {
-
-        }
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
+        apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc_appium')
 
     def _1_(self):
         with apiritif.smart_transaction('/'):

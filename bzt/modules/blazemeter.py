@@ -42,7 +42,7 @@ from bzt.engine import Reporter, Provisioning, Configuration, Service
 from bzt.engine import Singletone, SETTINGS, ScenarioExecutor, EXEC
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
+from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener, LocalClient
 from bzt.modules.services import Unpacker
 from bzt.modules.selenium import SeleniumExecutor
@@ -217,6 +217,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.public_report = self.settings.get("public-report", self.public_report)
+        self.upload_artifacts = self.parameters.get("upload-artifacts", self.upload_artifacts)
         self._dpoint_serializer.multi = self.settings.get("report-times-multiplier", self._dpoint_serializer.multi)
         token = self.settings.get("token", "")
         if not token:
@@ -244,7 +245,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             self._session.data_signature = self.parameters.get("signature", exc)
             self._session.kpi_target = self.parameters.get("kpi-target", self._session.kpi_target)
             self.send_data = self.parameters.get("send-data", self.send_data)
-            self.upload_artifacts = self.parameters.get("upload-artifacts", self.upload_artifacts)
         else:
             try:
                 self._user.ping()  # to check connectivity and auth
@@ -1529,12 +1529,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         self.widget = self.get_widget()
 
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+        if self.engine.is_functional_mode():
+            self.results_reader = FunctionalBZAReader(self.log)
+            self.engine.aggregator.add_underling(self.results_reader)
+        else:
             self.results_reader = ResultsFromBZA()
             self.results_reader.log = self.log
-            self.engine.aggregator.add_underling(self.results_reader)
-        elif isinstance(self.engine.aggregator, FunctionalAggregator):
-            self.results_reader = FunctionalBZAReader(self.log)
             self.engine.aggregator.add_underling(self.results_reader)
 
     @staticmethod

@@ -1,13 +1,14 @@
 import json
 import os
-import shutil
 import time
+import shutil
 from os.path import join, exists, dirname
 
 import bzt
 
+from bzt import ToolError
 from bzt.modules.javascript import WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
-from bzt.utils import get_full_path, is_windows
+from bzt.utils import get_full_path, EXE_SUFFIX
 
 from tests import BUILD_DIR, RESOURCES_DIR, BZTestCase
 from tests.mocks import EngineEmul
@@ -15,13 +16,11 @@ from tests.modules.selenium import SeleniumTestCase
 
 
 class TestSeleniumMochaRunner(SeleniumTestCase):
-    RUNNER_STUB = RESOURCES_DIR + "selenium/js-mocha/mocha" + (".bat" if is_windows() else ".sh")
+    RUNNER_STUB = RESOURCES_DIR + "selenium/js-mocha/mocha" + EXE_SUFFIX
+    CMD_LINE = None
 
-    def test_selenium_prepare_mocha(self):
-        self.obj.execution.merge({"scenario": {
-            "script": os.path.normpath(RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js")
-        }})
-        self.obj.prepare()
+    def start_subprocess(self, args, **kwargs):
+        self.CMD_LINE = ' '.join(args)
 
     @staticmethod
     def check_mocha_cmd(runner):
@@ -75,18 +74,34 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertIn(self.check_mocha_cmd(runner), args)
         self.assertNotIn(self.install_mocha_cmd(runner), args)
 
-    def full_run(self, config):
+    def prepare(self, config):
+        def exec_and_communicate(*args, **kwargs):
+            return "", ""
+
         self.obj.engine.config.merge(config)
         self.obj.execution = self.obj.engine.config['execution']
+        tmp_aec = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
 
-        self.obj.prepare()
-
+    def full_run(self, config):
+        self.prepare(config)
         self.obj.runner.get_launch_cmdline = lambda *args: [TestSeleniumMochaRunner.RUNNER_STUB] + list(args)
-
         self.obj.startup()
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
+        self.obj.post_process()
+
+    def simple_run(self, config):
+        self.prepare(config)
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
 
     def test_mocha_full(self):
         self.full_run({
@@ -99,34 +114,29 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertTrue(exists(self.obj.runner.report_file))
 
     def test_mocha_hold(self):
-        self.full_run({
+        self.simple_run({
             'execution': {
                 'hold-for': '5s',
                 'scenario': {'script': os.path.normpath(RESOURCES_DIR + 'selenium/js-mocha/')},
                 'executor': 'selenium'
             },
         })
-
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
-        self.assertIn("--hold-for 5", stdout)
+        self.assertIn("--hold-for 5.0", self.CMD_LINE)
 
     def test_mocha_iterations(self):
-        self.full_run({
+        self.simple_run({
             'execution': {
                 'iterations': 3,
                 'scenario': {'script': os.path.normpath(RESOURCES_DIR + 'selenium/js-mocha')},
                 'executor': 'selenium'
             },
         })
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
-        self.assertIn("--iterations 3", stdout)
+        self.assertIn("--iterations 3", self.CMD_LINE)
 
     def test_install_mocha(self):
-        dummy_installation_path = get_full_path(os.path.normpath(BUILD_DIR + "selenium-taurus/nodejs"))
-        mocha_link = get_full_path(os.path.normpath(RESOURCES_DIR + "selenium/mocha-3.1.0.tgz"))
-        wd_link = get_full_path(os.path.normpath(RESOURCES_DIR + "selenium/selenium-webdriver-1.0.0.tgz"))
+        dummy_installation_path = get_full_path(BUILD_DIR + "selenium-taurus/nodejs")
+        mocha_link = get_full_path(RESOURCES_DIR + "selenium/mocha-7.0.0.tgz")
+        wd_link = get_full_path(RESOURCES_DIR + "selenium/selenium-webdriver-1.0.0.tgz")
 
         shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)
         self.assertFalse(exists(dummy_installation_path))
@@ -165,32 +175,63 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
 
 class TestWebdriverIOExecutor(SeleniumTestCase):
-    RUNNER_STUB = os.path.normpath(RESOURCES_DIR + "selenium/js-wdio/wdio" + (".bat" if is_windows() else ".sh"))
+    RUNNER_STUB = RESOURCES_DIR + "selenium/js-wdio/wdio" + EXE_SUFFIX
+    CMD_LINE = None
+
+    def start_subprocess(self, args, **kwargs):
+        self.CMD_LINE = ' '.join(args)
 
     def test_prepare(self):
+        def exec_and_communicate(*args, **kwargs):
+            return "", ""
+
         self.obj.execution.merge({
             "runner": "wdio",
             "scenario": {
                 "script": os.path.normpath(RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js")
             }
         })
-        self.obj.prepare()
+        tmp_aec = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
         self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
 
-    def full_run(self, config):
+    def prepare(self, config):
+        def exec_and_communicate(*args, **kwargs):
+            return "", ""
+
         self.configure(config)
 
-        self.obj.prepare()
+        tmp_aec = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = exec_and_communicate
+            self.obj.prepare()
+        except ToolError as exc:
+            self.fail("ToolError:" % exc)
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
         self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
 
+    def full_run(self, config):
+        self.prepare(config)
         self.obj.runner.get_launch_cmdline = lambda *args: [TestWebdriverIOExecutor.RUNNER_STUB] + list(args)
-
         self.obj.startup()
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
+        self.obj.post_process()
 
-    def test_simple(self):
+    def simple_run(self, config):
+        self.prepare(config)
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
+
+    def test_full(self):
         self.full_run({
             'execution': {
                 "runner": "wdio",
@@ -205,48 +246,49 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.assertEqual(len(lines), 1)
 
     def test_hold(self):
-        self.full_run({
+        self.simple_run({
             'execution': {
                 'hold-for': '5s',
-                'scenario': {'script': os.path.normpath(RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js')},
-                'runner': 'wdio',
+                'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
+                'runner': 'wdio'
             },
         })
-
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
-        self.assertIn("--hold-for 5", stdout)
+        self.assertIn("--hold-for 5.0", self.CMD_LINE)
 
     def test_iterations(self):
-        self.full_run({
+        self.simple_run({
             'execution': {
                 'iterations': 3,
                 'scenario': {'script': os.path.normpath(RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js')},
                 'runner': 'wdio'
             },
         })
-
-        with open(self.obj.runner.stdout.name) as fds:
-            stdout = fds.read()
-        self.assertIn("--iterations 3", stdout)
+        self.assertIn("--iterations 3", self.CMD_LINE)
 
 
 class TestNewmanExecutor(BZTestCase):
-    RUNNER_STUB = RESOURCES_DIR + "newman/newman" + (".bat" if is_windows() else ".sh")
+    RUNNER_STUB = RESOURCES_DIR + "newman/newman" + EXE_SUFFIX
 
     def full_run(self, config):
+        def exec_and_communicate(*args, **kwargs):
+            return "", ""
+
         self.obj = NewmanExecutor()
         self.obj.engine = EngineEmul()
         self.obj.engine.config.merge(config)
         execution = config["execution"][0] if isinstance(config["execution"], list) else config["execution"]
         self.obj.execution.merge(execution)
-        self.obj.prepare()
 
-        self.obj.get_launch_cmdline = lambda *args: [TestNewmanExecutor.RUNNER_STUB] + list(args)
+        tmp_aec = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
+
+        self.obj.node.tool_path = self.RUNNER_STUB
 
         self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
 

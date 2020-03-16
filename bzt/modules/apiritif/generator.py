@@ -93,6 +93,8 @@ class ApiritifScriptGenerator(object):
                         'resize', 'maximize', 'alert'
                         ])
 
+    EXECUTION_BLOCKS = "|".join(['if', 'loop'])
+
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
     IMPORTS = """import os
@@ -158,7 +160,8 @@ from selenium.webdriver.common.keys import Keys
 
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
-        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (self.ACTIONS, tags), re.IGNORECASE)
+        all_actions = self.ACTIONS + "|" + self.EXECUTION_BLOCKS
+        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
         selectors = []
@@ -216,12 +219,19 @@ from selenium.webdriver.common.keys import Keys
         elif isinstance(action_config, dict):
             if action_config.get("type"):
                 return self._parse_dict_action(action_config)
+            block = self._get_execution_block(action_config)
+            if len(block) == 1:
+                name, param = (block[0], action_config.get(block[0]))
             else:
                 name, param = next(iteritems(action_config))
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
         return self._parse_string_action(name, param)
+
+    def _get_execution_block(self, action_config):
+        # get the list of execution blocks in this action if there are any or empty list
+        return list(set(action_config.keys()).intersection(self.EXECUTION_BLOCKS.split("|")))
 
     @staticmethod
     def _gen_dynamic_locator(var_w_locator):
@@ -232,13 +242,12 @@ from selenium.webdriver.common.keys import Keys
                 gen_subscript(var_w_locator, 1)
             ])
 
-    @staticmethod
-    def _gen_get_locators(var_name, locators):
+    def _gen_get_locators(self, var_name, locators):
         args = []
         for loc in locators:
             locator_type = list(loc.keys())[0]
             locator_value = loc[locator_type]
-            args.append(ast.Dict([ast.Str(locator_type)], [ast.Str(locator_value)]))
+            args.append(ast.Dict([ast.Str(locator_type)], [self._gen_expr(locator_value)]))
 
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store())],
@@ -365,6 +374,16 @@ from selenium.webdriver.common.keys import Keys
             elements.append(gen_store(
                 name=name.strip(),
                 value=self._gen_expr(value.strip())))
+        elif atype == 'assert' and tag == 'eval':
+            elements.append(ast_call(
+                func=ast_attr("self.assertTrue"),
+                args=[self._gen_eval_js_expression(name), ast.Str(name)]))
+        elif atype == 'store' and tag == 'eval':
+            elements.append(
+                gen_store(
+                    name=name.strip(),
+                    value=self._gen_eval_js_expression(value))
+            )
         else:
             target = None
 
@@ -624,11 +643,70 @@ from selenium.webdriver.common.keys import Keys
             action_elements.extend(self._gen_screenshot_mngr(param))
         elif atype == 'alert':
             action_elements.extend(self._gen_alert(param))
+        elif atype == 'if':
+            action_elements.append(self._gen_condition_mngr(param, action_config))
+        elif atype == 'loop':
+            action_elements.append(self._gen_loop_mngr(action_config))
 
         if not action_elements and not self.ignore_unknown_actions:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
+
+    def _gen_loop_mngr(self, action_config):
+        exc = TaurusConfigError("Loop must contain start, end and do")
+        start = action_config.get('start', exc)
+        end = action_config.get('end', exc)
+        step = action_config.get('step') or 1
+        end = end + 1 if step > 0 else end - 1
+        elements = []
+
+        body = [
+            ast.Assign(
+                targets=[self._gen_expr("${%s}" % action_config['loop'])],
+                value=ast_call(func=ast_attr("str"), args=[ast.Name(id=action_config['loop'])]))
+        ]
+        for action in action_config.get('do', exc):
+            body.append(self._gen_action(action))
+
+        args = [ast.Num(start), ast.Num(end)]
+        if step != 1:
+            args.append(ast.Num(step))
+
+        elements.append(
+            ast.For(target=ast.Name(id=action_config.get('loop'),
+                    ctx=ast.Store()),
+                    iter=ast_call(func=ast_attr("range"),
+                                  args=args),
+                    body=body,
+                    orelse=[]))
+
+        return elements
+
+    def _gen_eval_js_expression(self, js_expr):
+        return ast_call(func=ast_attr("self.driver.execute_script"), args=[self._gen_expr("return %s;" % js_expr)])
+
+    def _gen_condition_mngr(self, param, action_config):
+        if not action_config.get('then'):
+            raise TaurusConfigError("Missing then branch in if statement")
+
+        test = ast.Assign(targets=[ast.Name(id='test', ctx=ast.Store())],
+                          value=self._gen_eval_js_expression(param))
+
+        body = []
+        for action in action_config.get('then'):
+            body.append(self._gen_action(action))
+
+        orelse = []
+        if action_config.get('else'):
+            for action in action_config.get('else'):
+                orelse.append(self._gen_action(action))
+
+        return [test,
+                [ast.If(
+                    test=[ast.Name(id='test')],
+                    body=body,
+                    orelse=orelse)]]
 
     def _check_platform(self):
         mobile_browsers = ["chrome", "safari"]
@@ -926,10 +1004,15 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
 
-        stored_vars = {"func_mode": str(False)}  # todo: make func_mode optional
+        stored_vars = {"func_mode": str(self.executor.engine.is_functional_mode())}
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
+
+        has_ds = bool(list(self.scenario.get_data_sources()))
+        stored_vars['scenario_name'] = [ast.Str(self.label)]
+        if has_ds:
+            stored_vars['data_sources'] = str(has_ds)
 
         store_call = ast_call(
             func=ast_attr("apiritif.put_into_thread_store"),

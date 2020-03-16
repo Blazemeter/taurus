@@ -1441,6 +1441,26 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
         self.assertEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
 
+    def test_csv_jtl_flags(self):
+        self.configure({"execution": {
+            "write-xml-jtl": "error",
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com"}]}}})
+        self.obj.settings.merge({'csv-jtl-flags': {
+            'saveAssertionResultsFailureMessage': True,
+            'sentBytes': True,
+            'idleTime': True,
+            'dataType': False}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        writers = xml_tree.findall(".//ResultCollector[@testname='KPI Writer']")
+        self.assertEqual(1, len(writers))
+        self.assertEqual('true', writers[0].find('objProp/value/saveAssertionResultsFailureMessage').text)
+        self.assertEqual('true', writers[0].find('objProp/value/sentBytes').text)
+        self.assertEqual('true', writers[0].find('objProp/value/idleTime').text)
+        self.assertEqual('false', writers[0].find('objProp/value/dataType').text)
+
     def test_jtl_flags(self):
         self.configure({"execution": {
             "write-xml-jtl": "error",
