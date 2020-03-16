@@ -120,7 +120,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.check_samples()
 
     def start_subprocess(self, args, **kwargs):
-        self.CMD_LINE = args
+        self.CMD_LINE = " ".join(args)
 
     def test_data_source_in_action(self):
         self.configure({
