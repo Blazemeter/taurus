@@ -34,7 +34,7 @@ from distutils.version import LooseVersion
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
 from bzt.six import string_types, text_type, parse, reraise
-from bzt.utils import load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux, is_mac
+from bzt.utils import load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient, Environment
 from .dicts import Configuration
 from .modules import Provisioning, Reporter, Service, Aggregator, EngineModule
