@@ -27,6 +27,10 @@ reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)
 class TestLocSc(unittest.TestCase):
 
     def setUp(self):
+        self.vars = {
+            'name': 'Name',
+            'red_pill': 'take_it',
+        }
         reader_1.read_vars()
         reader_2.read_vars()
         self.vars.update(reader_1.get_vars())
@@ -40,11 +44,7 @@ class TestLocSc(unittest.TestCase):
         self.wnd_mng = WindowManager(self.driver)
         self.frm_mng = FrameManager(self.driver)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
-        self.vars = {
-            'name': 'Name',
-            'red_pill': 'take_it',
-        }
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver)
+        apiritif.put_into_thread_store(func_mode=True, driver=self.driver,scenario_name='loc_sc', data_sources=True)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
@@ -249,6 +249,9 @@ class TestLocSc(unittest.TestCase):
                 var_loc_as[1]).get_attribute('value')
 
             self.vars['Final'] = '{} {} by {}'.format(self.vars['Title'], self.vars['Basic'], self.vars['By'])
+
+            self.vars['var_eval'] = self.driver.execute_script('return 0 == false;')
+            self.assertTrue(self.driver.execute_script('return 10 === 2*5;'), '10 === 2*5')
             self.driver.get('http:\\blazemeter.com')
             print(self.vars['red_pill'])
             self.driver.save_screenshot('screen.png')

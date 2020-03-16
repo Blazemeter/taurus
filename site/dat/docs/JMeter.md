@@ -984,6 +984,88 @@ modules:
 
 Remember: some logging information might be used by `[assertions](#Assertions)` so change log verbosity can affect them.
 
+### CSV file content configuration
+
+By default, the kpi.jtl file does not have enough fields for JMeter's HTML dashboard generator to operate.   
+You can change this with option `csv-jtl-flags` like this:
+
+```yaml
+modules:
+  jmeter:
+    csv-jtl-flags:
+      saveAssertionResultsFailureMessage: true
+      sentBytes: true
+
+services:
+- module: shellexec
+  post-process:
+  - '[ -f "${TAURUS_ARTIFACTS_DIR}/kpi.jtl" ] && /path/to/jmeter -g "${TAURUS_ARTIFACTS_DIR}/kpi.jtl" -o "${TAURUS_ARTIFACTS_DIR}/dashboard" -j "${TAURUS_ARTIFACTS_DIR}/generate_report.log" '
+```
+
+Next example shows all the default flags with default values (you don't have to use full dictionary if you want to change some from them):
+
+```yaml
+modules:
+  jmeter:
+    csv-jtl-flags:
+      xml: false
+      fieldNames: true
+      time: true
+      timestamp: true
+      latency: true
+      connectTime: true
+      success: true
+      label: true
+      code: true
+      message: true
+      threadName: true
+      dataType: false
+      encoding: false
+      assertions: false
+      subresults: false
+      responseData: false
+      samplerData: false
+      responseHeaders: false
+      requestHeaders: false
+      responseDataOnError: false
+      saveAssertionResultsFailureMessage: false
+      bytes: true
+      hostname: true
+      threadCounts: true
+      url: false
+```
+
+You can also add flags which are not listed above, as long as JMeter recognizes them:
+
+```yaml
+modules:
+  jmeter:
+    csv-jtl-flags:
+      sentBytes: true
+      idleTime: true
+```
+
+Note: JMeter dashboard generator **requires** the following settings:
+
+```yaml
+modules:
+  jmeter:
+    csv-jtl-flags:
+      time: true
+      timestamp: true
+      latency: true
+      connectTime: true
+      success: true
+      label: true
+      code: true
+      message: true
+      threadName: true
+      saveAssertionResultsFailureMessage: true
+      bytes: true
+      threadCounts: true
+      sentBytes: true  # JMeter 4.0 or above
+```
+
 ## JMeter JVM Memory Limit
 
 You can tweak JMeter's memory limit (aka, `-Xmx` JVM option) with `memory-xmx` setting.
