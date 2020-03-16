@@ -193,6 +193,103 @@ This is an example how it looks like:
 ```
 You can see full example [here](#Sample-scenario-using-multiple-locators).
 
+##### If Blocks
+
+Apiritif allows to control execution flow using `if` blocks. These blocks enable 
+conditional execution of actions.
+
+Each `if` block should contain a mandatory `then` field, and an optional `else` field. Both `then` and `else` fields
+should contain list of actions.
+
+Here's a simple example:
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    variables:
+      elem_id: id_123
+    timeout: 10s
+    requests:
+      - label: example1
+        actions:
+          - go(http://blazedemo.com)
+          - if: 'document.getElementById("${elem_id}") !== undefined'
+            then:
+              - clickById(${elem_id})
+            else:
+              - go(http://blazedemo.com/login)
+```
+
+Logic blocks can also be nested:
+
+```yaml
+scenarios:
+  nested_example:
+    requests:
+      - label: nested_req
+        actions:
+          - if: <condition1>
+            then:
+              - if: <condition2>
+                then:
+                  - go(https://google.com/)
+                else:
+                  - go(https://yahoo.com/)
+            else:
+              - go(https://bing.com/)
+```
+
+Note that `<conditions>` are evaluated as JavaScript code so they must contain valid JavaScript expression 
+that yields boolean value.
+
+### Loops
+
+`Loop` blocks allow repeated execution of actions. 
+
+It is necessary to specify variable name used in the loop,
+along with the `start` and `end` indexes. The actions that shall be executed in the loop are defined in the `do` field.
+In these action you can then reference the variable by the name you defined next to the `loop` keyword.
+ 
+Optionally you can set the `step` field which defines the difference between each number in the sequence 
+(it can also be negative). If `step` is not explicitly set then it will default to 1.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_loop
+        actions:
+          - go(http://blazedemo.com)
+          - loop: var_i
+            start: 1
+            end: 10
+            do:
+              - clickById(id_${var_i})
+              - typeById(input_${var_i}): My Item ${var_i} 
+``` 
+
+Note that both the `start` and `end` index are included in the loop. So for 
+example setting `start` to 1 and `end` to 5 will loop through these values: \[1, 2, 3, 4, 5\].
+
+It is also possible to specify the `step` negative. In that case the loop will go from the higher 
+numbers to the lower ones. However it is also necessary that the `start` index is higher than the 
+`end` index. 
+
+For example:
+
+```yaml
+  - loop: i
+    start: 5
+    end: 1
+    step: -1
+    do: 
+      - clickById(id_${i})
+``` 
+This will loop through the values \[5, 4, 3, 2, 1\] in the descending order.
+
 
 ### Alert
 For alert handling, use the following methods:
@@ -206,16 +303,19 @@ Besides, you can use [alternative syntax](#Alternative-syntax-supporting-multipl
   param: OK
 ```
 
+For additional operations with dialogs see [Dialogs management](#Dialogs-management).
+
 ### Assertion
 For requested page source inspection you can use the following actions:
 - `assertTextByX(X\_name): "text"` to assert text to an element
 - `assertValueByX(X\_name): value` to assert value
 - `assertTitle(title)` to assert page title
+- `assertEval(js_expr)` to assert that evaluation of a JavaScript expression returns true value
 
 Don't forget to replace `X` with the right [locators](#Locators).
 See sample usage in [Frame Management](#Frame-management) section.
 
-Also, for assertion you can also use special assertion block. See example [here](#Sample-scenario).
+For assertion you can also use special assertion block. See example [here](#Sample-scenario).
 
 Using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators): 
 ```yaml
@@ -230,6 +330,8 @@ Using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators)
     - id: element_id
 - type: assertTitle
   param: title
+- type: assertEval
+  param: js_expr
 ```
 
 ### Cookies
@@ -239,6 +341,59 @@ The same can be written like this:
 ```yaml
 - type: clearCookies
 ```
+
+### Dialogs management
+Besides the basic functionality to handle [Alerts](#Alert) it is also possible to use the
+following actions to do assertion and answering on Dialogs.
+
+#### Assertions
+
+Enables to check whether a dialog of a specified type was previously displayed with the 
+given message. The type can be any of the following: `alert`, `prompt` or `confirm`.
+
+Examples:
+
+```yaml
+- assertDialog(alert): Error occurred
+- assertDialog(prompt): Enter your name
+- assertDialog(confirm): Are you sure to proceed?
+```
+
+Example using the Alternative syntax:
+
+```yaml
+- type: assertDialog
+  param: alert
+  value: Error occurred
+```
+
+#### Answering dialogs
+
+Allows to set the value that will be returned by displaying a dialog. It is only applicable
+to `prompt` and `confirm` dialogs. This action actually prevents showing the dialog and instead
+returns the specified value directly.
+
+For confirmation dialogs the value can only be either `'#Ok'` or `'#Cancel'`, meaning to simulate 
+click on 'Ok' or 'Cancel' buttons.
+
+Examples:
+
+```yaml
+- answerDialog(prompt): John Doe
+- answerDialog(confirm): '#Ok'
+```
+
+Examples using the alternative syntax:
+
+```yaml
+- type: answerDialog
+  param: prompt
+  value: Jon Doe
+- type: answerDialog
+  param: confirm
+  value: '#Cancel'
+```
+
 
 ### Echoing
 Use `echoString("echoed text")` to print text string on the Apiritif output execution.
@@ -282,7 +437,6 @@ rawCode: print('This is a python command.')
 ```
 
 See example [here](#Sample-scenario).
-
 
 ### Frame management
 When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command
@@ -426,6 +580,14 @@ For storing variables use the following actions:
 
 See documentation for `X` [here](#Locators).
 
+For storing the result of evaluation of a JavaScript expression use:
+
+- `storeEval(js_expr): var_eval`
+
+The following example will store to the `el_present` variable a flag indicating
+whether the find element by id was successful or not:
+- `storeEval(document.getElementById("elem_id") !== undefined): el_present`
+
 Or use the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 ```yaml
 - type: storeTitle
@@ -441,6 +603,9 @@ Or use the [alternative syntax](#Alternative-syntax-supporting-multiple-locators
   param: var_value
   locators:
     - id: element_id
+- type: storeEval
+  param: var_eval
+  value: js_expr
 ```
 
 ### Typing

@@ -87,11 +87,14 @@ class ApiritifScriptGenerator(object):
 
     ACTIONS = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
                         'mouseOver', 'select', 'wait', 'keys', 'pause', 'clear', 'assert',
-                        'assertText', 'assertValue', 'submit', 'close', 'script', 'editcontent',
+                        'assertText', 'assertValue', 'assertDialog', 'answerDialog', 'submit',
+                        'close', 'script', 'editcontent',
                         'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
                         'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode',
                         'resize', 'maximize', 'alert'
                         ])
+
+    EXECUTION_BLOCKS = "|".join(['if', 'loop'])
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
@@ -137,6 +140,7 @@ from selenium.webdriver.common.keys import Keys
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
         self.test_mode = test_mode
+        self.useDialogsManager = False
 
     def _parse_action_params(self, expr, name):
         res = expr.match(name)
@@ -158,7 +162,8 @@ from selenium.webdriver.common.keys import Keys
 
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
-        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (self.ACTIONS, tags), re.IGNORECASE)
+        all_actions = self.ACTIONS + "|" + self.EXECUTION_BLOCKS
+        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
         selectors = []
@@ -181,7 +186,7 @@ from selenium.webdriver.common.keys import Keys
             if tag in self.TO_BYS.keys():
                 tag_name = self.TO_BYS[tag]
                 selectors = [{tag_name: selector}]
-            elif not param:
+            elif param is None:
                 param = selector
             else:
                 value = selector
@@ -193,6 +198,8 @@ from selenium.webdriver.common.keys import Keys
         elif atype == "switchframe":
             # for switchFrameByName we need to get the param
             param = selector
+        elif atype in ['answerdialog', 'assertdialog']:
+            param, value = value, param
 
         return atype, tag, param, value, selectors
 
@@ -216,12 +223,19 @@ from selenium.webdriver.common.keys import Keys
         elif isinstance(action_config, dict):
             if action_config.get("type"):
                 return self._parse_dict_action(action_config)
+            block = self._get_execution_block(action_config)
+            if len(block) == 1:
+                name, param = (block[0], action_config.get(block[0]))
             else:
                 name, param = next(iteritems(action_config))
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
         return self._parse_string_action(name, param)
+
+    def _get_execution_block(self, action_config):
+        # get the list of execution blocks in this action if there are any or empty list
+        return list(set(action_config.keys()).intersection(self.EXECUTION_BLOCKS.split("|")))
 
     @staticmethod
     def _gen_dynamic_locator(var_w_locator):
@@ -232,13 +246,12 @@ from selenium.webdriver.common.keys import Keys
                 gen_subscript(var_w_locator, 1)
             ])
 
-    @staticmethod
-    def _gen_get_locators(var_name, locators):
+    def _gen_get_locators(self, var_name, locators):
         args = []
         for loc in locators:
             locator_type = list(loc.keys())[0]
             locator_value = loc[locator_type]
-            args.append(ast.Dict([ast.Str(locator_type)], [ast.Str(locator_value)]))
+            args.append(ast.Dict([ast.Str(locator_type)], [self._gen_expr(locator_value)]))
 
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store())],
@@ -365,6 +378,16 @@ from selenium.webdriver.common.keys import Keys
             elements.append(gen_store(
                 name=name.strip(),
                 value=self._gen_expr(value.strip())))
+        elif atype == 'assert' and tag == 'eval':
+            elements.append(ast_call(
+                func=ast_attr("self.assertTrue"),
+                args=[self._gen_eval_js_expression(name), ast.Str(name)]))
+        elif atype == 'store' and tag == 'eval':
+            elements.append(
+                gen_store(
+                    name=name.strip(),
+                    value=self._gen_eval_js_expression(value))
+            )
         else:
             target = None
 
@@ -592,6 +615,10 @@ from selenium.webdriver.common.keys import Keys
             action_elements.extend(self._gen_chain_mngr(atype, selectors))
         elif atype == "select":
             action_elements.extend(self._gen_select_mngr(param, selectors))
+        elif atype == 'assertdialog':
+            action_elements.extend(self._gen_assert_dialog_mngr(param, value))
+        elif atype == 'answerdialog':
+            action_elements.extend(self._gen_answer_dialog_mngr(param, value))
         elif atype is not None and (atype.startswith("assert") or atype.startswith("store")):
             action_elements.extend(self._gen_assert_store_mngr(atype, tag, param, value, selectors))
 
@@ -613,6 +640,7 @@ from selenium.webdriver.common.keys import Keys
             if param:
                 action_elements.append(ast_call(func=ast_attr("self.driver.get"),
                                                 args=[self._gen_expr(param.strip())]))
+                action_elements.append(ApiritifScriptGenerator._gen_replace_dialogs())
         elif atype == "editcontent":
             action_elements.extend(self._gen_edit_mngr(param, selectors))
         elif atype in ('wait', 'pause'):
@@ -624,11 +652,110 @@ from selenium.webdriver.common.keys import Keys
             action_elements.extend(self._gen_screenshot_mngr(param))
         elif atype == 'alert':
             action_elements.extend(self._gen_alert(param))
+        elif atype == 'if':
+            action_elements.append(self._gen_condition_mngr(param, action_config))
+        elif atype == 'loop':
+            action_elements.append(self._gen_loop_mngr(action_config))
 
         if not action_elements and not self.ignore_unknown_actions:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
+
+    def _gen_answer_dialog_mngr(self, type, value):
+        if type not in ['prompt', 'confirm']:
+            raise TaurusConfigError("answerDialog type must be one of the following: 'prompt' or 'confirm'")
+        if type == 'confirm' and str(value).lower() not in ['#ok', '#cancel']:
+            raise TaurusConfigError("answerDialog of type confirm must have value either '#Ok' or '#Cancel'")
+        self.useDialogsManager = True
+        dlg_method = "self.dlg_mng.answer_on_next_prompt" if type == 'prompt' else "self.dlg_mng.set_next_confirm_state"
+        return [ast_call(func=ast_attr(dlg_method), args=[ast.Str(value)])]
+
+    def _gen_assert_dialog_mngr(self, type, value):
+        if type not in ['alert', 'prompt', 'confirm']:
+            raise TaurusConfigError("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'")
+        elements = []
+        self.useDialogsManager = True
+        dlg_method = "self.dlg_mng.get_next_" + type
+
+        elements.append(ast.Assign(targets=[ast.Name(id='dialog', ctx=ast.Store())],
+                       value=ast_call(
+                            func=ast_attr(dlg_method))))
+        elements.append(ast_call(
+                func=ast_attr("self.assertIsNotNone"),
+                args=[ast.Name(id='dialog'), ast.Str("No dialog of type %s appeared" % type)]))
+        elements.append(ast_call(
+                func=ast_attr("self.assertEqual"),
+                args=[ast.Name(id='dialog'), ast.Str(value), ast.Str("Dialog message didn't match")]))
+
+        return elements
+
+    @staticmethod
+    def _gen_replace_dialogs():
+        """
+        Generates the call to DialogsManager to replace dialogs, the replacement is actually done only when
+        assertDialog or answerDialog actions are used
+        """
+        return [
+            gen_empty_line_stmt(),
+            ast_call(
+                func=ast_attr("self.dlg_mng.replace_dialogs"))
+        ]
+
+    def _gen_loop_mngr(self, action_config):
+        exc = TaurusConfigError("Loop must contain start, end and do")
+        start = action_config.get('start', exc)
+        end = action_config.get('end', exc)
+        step = action_config.get('step') or 1
+        end = end + 1 if step > 0 else end - 1
+        elements = []
+
+        body = [
+            ast.Assign(
+                targets=[self._gen_expr("${%s}" % action_config['loop'])],
+                value=ast_call(func=ast_attr("str"), args=[ast.Name(id=action_config['loop'])]))
+        ]
+        for action in action_config.get('do', exc):
+            body.append(self._gen_action(action))
+
+        args = [ast.Num(start), ast.Num(end)]
+        if step != 1:
+            args.append(ast.Num(step))
+
+        elements.append(
+            ast.For(target=ast.Name(id=action_config.get('loop'),
+                                    ctx=ast.Store()),
+                    iter=ast_call(func=ast_attr("range"),
+                                  args=args),
+                    body=body,
+                    orelse=[]))
+
+        return elements
+
+    def _gen_eval_js_expression(self, js_expr):
+        return ast_call(func=ast_attr("self.driver.execute_script"), args=[self._gen_expr("return %s;" % js_expr)])
+
+    def _gen_condition_mngr(self, param, action_config):
+        if not action_config.get('then'):
+            raise TaurusConfigError("Missing then branch in if statement")
+
+        test = ast.Assign(targets=[ast.Name(id='test', ctx=ast.Store())],
+                          value=self._gen_eval_js_expression(param))
+
+        body = []
+        for action in action_config.get('then'):
+            body.append(self._gen_action(action))
+
+        orelse = []
+        if action_config.get('else'):
+            for action in action_config.get('else'):
+                orelse.append(self._gen_action(action))
+
+        return [test,
+                [ast.If(
+                    test=[ast.Name(id='test')],
+                    body=body,
+                    orelse=orelse)]]
 
     def _check_platform(self):
         mobile_browsers = ["chrome", "safari"]
@@ -786,6 +913,15 @@ from selenium.webdriver.common.keys import Keys
                 func=ast.Name(id=mgr),
                 args=[ast_attr("self.driver"), ast.Str(self._get_scenario_timeout())])))
 
+        self.selenium_extras.add("DialogsManager")
+        mgr = "DialogsManager"
+        body.append(ast.Assign(
+            targets=[ast_attr("self.dlg_mng")],
+            value=ast_call(
+                func=ast.Name(id=mgr),
+                args=[ast_attr("self.driver"),
+                      ast.Num(self.useDialogsManager)])))
+
         return body
 
     @staticmethod
@@ -926,10 +1062,15 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
 
-        stored_vars = {"func_mode": str(False)}  # todo: make func_mode optional
+        stored_vars = {"func_mode": str(self.executor.engine.is_functional_mode())}
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
+
+        has_ds = bool(list(self.scenario.get_data_sources()))
+        stored_vars['scenario_name'] = [ast.Str(self.label)]
+        if has_ds:
+            stored_vars['data_sources'] = str(has_ds)
 
         store_call = ast_call(
             func=ast_attr("apiritif.put_into_thread_store"),
@@ -1179,6 +1320,7 @@ from selenium.webdriver.common.keys import Keys
                     ast_call(
                         func=ast_attr("self.driver.get"),
                         args=[self._gen_expr(url)])))
+                lines.append(ApiritifScriptGenerator._gen_replace_dialogs())
 
             else:
                 method = req.method.lower()

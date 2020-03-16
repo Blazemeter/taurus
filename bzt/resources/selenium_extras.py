@@ -1,7 +1,7 @@
 # Utility functions and classes for Taurus Selenium tests
 
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException
-from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store
+from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
 from selenium.webdriver.common.by import By
 
 
@@ -14,15 +14,31 @@ def add_flow_markers():
 
 def _send_marker(stage, params):
     driver = get_from_thread_store("driver")
-    driver.execute_script('/* FLOW_MARKER test-case-%s */' % stage, params)
+    driver.execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
 
 
-def _send_start_flow_marker(test_case, test_suite):
-    _send_marker('start', {'testCaseName': test_case, 'testSuiteName': test_suite})
+def _send_start_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
+    stage = "start"                             # apiritif removed (http.py) and apiritif released ( > 0.9.2)
+
+    test_case, test_suite, scenario_name, data_sources = get_from_thread_store(
+        ['test_case', 'test_suite', 'scenario_name', 'data_sources']
+    )
+    params = {
+        "testCaseName": test_case,
+        "testSuiteName": scenario_name or test_suite}
+
+    if data_sources:
+        params["testDataIterationId"] = get_iteration()
+
+    _send_marker(stage, params)
 
 
-def _send_exit_flow_marker(status, message):
-    _send_marker('stop', {'status': status, 'message': message})
+def _send_exit_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
+    stage = "stop"                             # apiritif removed (http.py) and apiritif released ( > 0.9.2)
+    labels = "status", "message"
+    values = get_from_thread_store(labels)
+    params = dict(zip(labels, values))
+    _send_marker(stage, params)
 
 
 class FrameManager:
@@ -129,3 +145,101 @@ class LocatorsManager:
         # restore the implicit wait value
         self.driver.implicitly_wait(self.timeout)
         return locator
+
+
+class DialogsManager:
+    """
+    Provides additional methods for working with Dialogs that are not available in the Python Webdriver.
+    These JavaScript functions are taken from the Java Selenium WebDriver repository
+    """
+
+    def __init__(self, driver, is_active):
+        """
+
+        :param driver: the WebDriver instance
+        :param is_active: flag indicating whether DialogsManager is going to be utilized in this test run,
+        if yes then the dialogs will be replaced
+        """
+        self.driver = driver
+        self.is_active = is_active
+
+    def replace_dialogs(self):
+        """
+        Replaces the standard JavaScript methods, i.e. 'window.confirm', 'window.alert' and 'window.prompt' with
+        own implementation that stores the messages from the dialogs and also is capable of returning user defined
+        values
+        """
+        if not self.is_active:
+            return  # don't replace dialogs in case DialogsManager is not activated
+
+        self.driver.execute_script("""
+          if (window.__webdriverAlerts) { return; }
+          window.__webdriverAlerts = [];
+          window.alert = function(msg) { window.__webdriverAlerts.push(msg); };
+          window.__webdriverConfirms = [];
+          window.__webdriverNextConfirm = true;
+          window.confirm = function(msg) {
+            window.__webdriverConfirms.push(msg);
+            var res = window.__webdriverNextConfirm;
+            window.__webdriverNextConfirm = true;
+            return res;
+          };
+          window.__webdriverPrompts = [];
+          window.__webdriverNextPrompts = true;
+          window.prompt = function(msg, def) {
+            window.__webdriverPrompts.push(msg || def);
+            var res = window.__webdriverNextPrompt;
+            window.__webdriverNextPrompt = true;
+            return res;
+          };
+        """)
+
+    def get_next_confirm(self):
+        """
+        :return: the message from the last invocation of 'window.confirm'
+        """
+        return self.driver.execute_script("""
+                 if (!window.__webdriverConfirms) { return null; }
+                 return window.__webdriverConfirms.shift();
+               """)
+
+    def get_next_alert(self):
+        """
+        :return: the alert message from the last invocation of 'window.alert'
+        """
+        return self.driver.execute_script("""
+                if (!window.__webdriverAlerts) { return null } 
+                var t = window.__webdriverAlerts.shift(); 
+                if (t) { t = t.replace(/\\n/g, ' '); }
+                return t;
+              """)
+
+    def get_next_prompt(self):
+        """
+        :return: the message from the last invocation of 'window.prompt'
+        """
+        return self.driver.execute_script("""
+                if (!window.__webdriverPrompts) { return null; }
+                return window.__webdriverPrompts.shift();
+              """)
+
+    def answer_on_next_prompt(self, value):
+        """
+        :param value: The value to be used to answer the next 'window.prompt', if '#cancel' is provided then
+        click on cancel button is simulated by returning null
+        """
+        if str(value).lower() == '#cancel':
+            self.driver.execute_script("window.__webdriverNextPrompt = null")
+        else:
+            self.driver.execute_script("window.__webdriverNextPrompt = '%s';" % value)
+
+    def set_next_confirm_state(self, value):
+        """
+        :param value: either '#ok' to click on OK button or '#cancel' to simulate click on Cancel button in the
+        next 'window.confirm' method
+        """
+        if str(value).lower() == '#ok':
+            confirm = 'true'
+        else:
+            confirm = 'false'
+        self.driver.execute_script("window.__webdriverNextConfirm = %s;" % confirm)

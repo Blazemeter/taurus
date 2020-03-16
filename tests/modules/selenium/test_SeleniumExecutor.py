@@ -29,6 +29,10 @@ class LDJSONReaderEmul(object):
 
 class TestSeleniumExecutor(SeleniumTestCase):
     # todo: get_error_diagnostics: only geckodriver, not chrome-?
+    def setUp(self):
+        super(TestSeleniumExecutor, self).setUp()
+        self.CMD_LINE = ''
+
     def run_script(self, name):
         with open(RESOURCES_DIR + "selenium/" + name + ".py") as script:
             self.wd_log = self.obj.engine.create_artifact("webdriver", ".log")
@@ -134,10 +138,71 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.obj.post_process()
 
     def start_subprocess(self, args, env, cwd=None, **kwargs):
-        self.CMD_LINE = args
+        self.CMD_LINE = ' '.join(args)
 
-    def test_infinite_iters(self):
-        self.CMD_LINE = None
+    def test_user_iter(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "iterations": 100,
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertIn("--iterations 100", self.CMD_LINE)
+
+    def test_load_no_iter(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = False
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertIn("--iterations 1", self.CMD_LINE)
+
+    def test_load_no_iter_duration(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "hold-for": "2s",
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = False
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertNotIn("--iterations", self.CMD_LINE)
+
+    def test_func_no_iter(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertIn("--iterations 1", self.CMD_LINE)
+
+    def test_func_0_iter(self):
         self.configure({
             EXEC: {
                 "executor": "apiritif",
@@ -146,48 +211,45 @@ class TestSeleniumExecutor(SeleniumTestCase):
                     "requests": [
                         "http://blazedemo.com"]}}})
 
-        self.obj.prepare()
+        self.obj.engine.aggregator.is_functional = True
         self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
         self.obj.startup()
 
-        self.assertTrue("--iterations" in self.CMD_LINE)
-        iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations') + 1]
-        self.assertEqual(iters_val, '0')
+        self.assertNotIn('--iterations', self.CMD_LINE)
 
-    def test_not_infinite_iters(self):
-        self.CMD_LINE = None
+    def test_func_ds_0_iter(self):
         self.configure({
             EXEC: {
                 "executor": "apiritif",
                 "iterations": 0,
-                "hold-for": 30,
                 "scenario": {
+                    "data-sources": ['one.csv'],
                     "requests": [
                         "http://blazedemo.com"]}}})
 
-        self.obj.prepare()
+        self.obj.engine.aggregator.is_functional = True
         self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
         self.obj.startup()
 
-        self.assertFalse("--iterations" in self.CMD_LINE)
-        self.assertTrue("--hold-for" in self.CMD_LINE)
+        self.assertNotIn('--iterations', self.CMD_LINE)
 
-    def test_no_iters_is_one(self):
-        self.CMD_LINE = None
+    def test_func_ds_no_iter(self):
         self.configure({
             EXEC: {
                 "executor": "apiritif",
                 "scenario": {
+                    "data-sources": ['one.csv'],
                     "requests": [
                         "http://blazedemo.com"]}}})
 
-        self.obj.prepare()
+        self.obj.engine.aggregator.is_functional = True
         self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
         self.obj.startup()
 
-        self.assertTrue("--iterations" in self.CMD_LINE)
-        iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations') + 1]
-        self.assertEqual(iters_val, '1')
+        self.assertNotIn('--iterations', self.CMD_LINE)
 
 
 class TestSeleniumStuff(SeleniumTestCase):

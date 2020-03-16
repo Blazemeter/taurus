@@ -7,9 +7,9 @@ try:
     import unittest.mock as mock
 except ImportError:
     import mock
-
+import bzt
 from bzt import ToolError
-from bzt.utils import dehumanize_time
+from bzt.utils import dehumanize_time, EXE_SUFFIX
 from bzt.modules.jmeter import JTLReader
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
@@ -23,6 +23,7 @@ from tests import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER
 @unittest.skipIf(PY2, "py3.6+ only")
 class TestLocustIOExecutor(ExecutorTestCase):
     EXECUTOR = LocustIOExecutor
+    CMD_LINE = None
 
     @classmethod
     def setUpClass(cls):
@@ -31,6 +32,9 @@ class TestLocustIOExecutor(ExecutorTestCase):
     def setUp(self):
         super(TestLocustIOExecutor, self).setUp()
         self.obj.engine.config['provisioning'] = 'local'
+
+    def start_subprocess(self, args, **kwargs):
+        self.CMD_LINE = args
 
     def test_simple(self):
         self.configure({"execution": {
@@ -42,13 +46,16 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
         self.obj.prepare()
-        self.obj.startup()
+
+        tmp = sys.executable
         try:
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        except RuntimeError:  # FIXME: not good, but what to do?
-            pass
+            sys.executable = RESOURCES_DIR + "locust/locust-mock" + EXE_SUFFIX
+            self.obj.startup()
+        finally:
+            sys.executable = tmp
+
         self.obj.shutdown()
+        self.obj.post_process()
         self.assertFalse(self.obj.has_results())
 
     def test_locust_widget(self):
@@ -63,12 +70,13 @@ class TestLocustIOExecutor(ExecutorTestCase):
         }})
 
         self.obj.prepare()
+        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
         self.obj.get_widget()
-        self.obj.check()
         self.assertEqual(self.obj.widget.duration, 30)
         self.assertTrue(self.obj.widget.widgets[0].text.endswith("simple.py"))
         self.obj.shutdown()
+        self.obj.post_process()
 
     def test_locust_fractional_hatch_rate(self):
         test_concurrency, test_ramp_up = 4, "60s"
@@ -94,6 +102,8 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 if x.startswith("--hatch-rate")
             ]
             self.assertEqual(hatch[0], "%f" % expected_hatch_rate)
+            self.obj.shutdown()
+        self.obj.post_process()
 
     def test_locust_master(self):
         self.configure({"execution": {
@@ -109,14 +119,9 @@ class TestLocustIOExecutor(ExecutorTestCase):
         }})
 
         self.obj.prepare()
+        self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
         self.obj.get_widget()
-        try:
-            self.obj.check()
-            time.sleep(2)
-            self.obj.check()
-        except RuntimeError:
-            ROOT_LOGGER.warning("Do you use patched locust for non-GUI master?")
         self.obj.shutdown()
         self.obj.post_process()
         self.assertFalse(self.obj.has_results())
@@ -163,6 +168,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.engine.aggregator.add_underling(self.obj.reader)
         self.assertEqual(1, len(list(self.obj.engine.aggregator.datapoints(final_pass=True))))
+        self.obj.post_process()
 
     def test_resource_files_requests(self):
         self.configure({"execution": {
@@ -198,6 +204,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         prov.started_modules = [self.obj]
         self.obj.engine.provisioning = prov
         self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
+        self.obj.post_process()
 
     def test_requests_minimal(self):
         self.configure({"execution": {
@@ -206,8 +213,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 "requests": ["http://blazedemo.com/"]}}})
 
         self.obj.prepare()
-        self.obj.startup()
-        self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
 
@@ -253,6 +258,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
 
         self.obj.prepare()
         self.assertFilesEqual(RESOURCES_DIR + "locust/generated_from_requests.py", self.obj.script)
+        self.obj.post_process()
 
     def test_build_script_none_def_addr(self):
         self.sniff_log(self.obj.log)
@@ -268,10 +274,9 @@ class TestLocustIOExecutor(ExecutorTestCase):
                         "url": "http://blazedemo.com"}]}}})
 
         self.obj.prepare()
-        self.obj.startup()
-        self.obj.shutdown()
         debug_buff = self.log_recorder.debug_buff.getvalue()
         self.assertNotIn("'--host='", debug_buff)
+        self.obj.post_process()
 
     def test_jtl_key_order(self):
         self.configure({"execution": {
@@ -286,10 +291,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
         self.obj.prepare()
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
         self.obj.post_process()
 
         kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
@@ -302,6 +303,9 @@ class TestLocustIOExecutor(ExecutorTestCase):
             self.assertEqual(header_line, expected)
 
     def test_jtl_quoting_issue(self):
+        def exec_and_communicate(*args, **kwargs):
+            return "", ""
+
         self.configure({"execution": {
             "concurrency": 1,
             "iterations": 1,
@@ -312,15 +316,22 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 ]
             }
         }})
-        self.obj.prepare()
-        self.obj.startup()
+        tmp_aec, tmp_ex = bzt.utils.exec_and_communicate, sys.executable
+        try:
+            bzt.utils.exec_and_communicate = exec_and_communicate
+            self.obj.prepare()
+            sys.executable = RESOURCES_DIR + "locust/locust-mock" + EXE_SUFFIX
+            self.obj.startup()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
+            sys.executable = tmp_ex
+
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
 
-        kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
-        self.assertTrue(os.path.exists(kpi_path))
+        kpi_path = RESOURCES_DIR + "locust/locust-kpi.jtl"
 
         reader = JTLReader(kpi_path, self.obj.log)
         list(reader.datapoints())
@@ -337,10 +348,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
         self.obj.prepare()
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
         self.obj.post_process()
         diagnostics = self.obj.get_error_diagnostics()
         self.assertIsNotNone(diagnostics)
