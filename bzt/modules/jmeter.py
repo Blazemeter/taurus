@@ -495,26 +495,26 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def __add_result_writers(self, jmx):
         version = LooseVersion(self.tool.version)
-        flags = {}
+        csv_flags = self.settings.get('csv-jtl-flags')
         if version < LooseVersion("2.13"):
-            flags['^connectTime'] = False
+            csv_flags['^connectTime'] = False
 
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-        kpi_lst = jmx.new_kpi_listener(self.kpi_jtl, flags)
+        kpi_lst = jmx.new_kpi_listener(self.kpi_jtl, csv_flags)
         self.__add_listener(kpi_lst, jmx)
 
         verbose = self.engine.config.get(SETTINGS).get("verbose", False)
         jtl_log_level = self.execution.get('write-xml-jtl', "full" if verbose else 'error')
 
-        flags = self.settings.get('xml-jtl-flags')
+        xml_flags = self.settings.get('xml-jtl-flags')
 
         if jtl_log_level == 'error':
             self.log_jtl = self.engine.create_artifact("error", ".jtl")
-            log_lst = jmx.new_xml_listener(self.log_jtl, False, flags)
+            log_lst = jmx.new_xml_listener(self.log_jtl, False, xml_flags)
             self.__add_listener(log_lst, jmx)
         elif jtl_log_level == 'full':
             self.log_jtl = self.engine.create_artifact("trace", ".jtl")
-            log_lst = jmx.new_xml_listener(self.log_jtl, True, flags)
+            log_lst = jmx.new_xml_listener(self.log_jtl, True, xml_flags)
             self.__add_listener(log_lst, jmx)
 
     def __force_tran_parent_sample(self, jmx):
