@@ -34,7 +34,7 @@ from distutils.version import LooseVersion
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
 from bzt.six import string_types, text_type, parse, reraise
-from bzt.utils import load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
+from bzt.utils import load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux, is_mac
 from bzt.utils import shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient, Environment
 from .dicts import Configuration
 from .modules import Provisioning, Reporter, Service, Aggregator, EngineModule
@@ -733,6 +733,7 @@ class Engine(object):
     def _expend_env_vars(self, envs):
         """
         Export all user-defined environment variables to the system and substitute any variables in the values.
+        Example:
 
         settings:
           env:
@@ -748,16 +749,18 @@ class Engine(object):
 
             self.log.debug("Env: %s=%s", varname, envs[varname])
 
-        self._update_system_env_vars(envs)
+        self._update_system_env_vars(envs, override_os_env=True)
 
         return envs
 
-    def _update_system_env_vars(self, envs):
+    def _update_system_env_vars(self, envs, override_os_env=False):
         for varname in envs:
             if envs[varname] is None:
                 if varname in os.environ:
                     os.environ.pop(varname)
             else:
-                os.environ[varname] = str(envs[varname])
+                # avoid exporting settings like PATH: ${PATH} to OS env by default
+                if override_os_env or varname not in os.environ:
+                    os.environ[varname] = str(envs[varname])
 
-            self.log.debug("OS env: %s=%s", varname, envs[varname])
+                    self.log.debug("OS env: %s=%s", varname, envs[varname])
