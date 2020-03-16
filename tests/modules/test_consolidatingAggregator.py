@@ -25,7 +25,7 @@ def get_success_reader(offset=0):
 
 def get_success_reader_alot(prefix='', offset=0):
     mock = MockReader()
-    for x in range(2, 200):
+    for x in range(2, 100):
         rnd = int(random() * x)
         mock.data.append((x + offset, prefix + random_string(1 + rnd), 1, r(), r(), r(), 200, '', '', 0))
     return mock
