@@ -218,6 +218,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.public_report = self.settings.get("public-report", self.public_report)
+        self.upload_artifacts = self.parameters.get("upload-artifacts", self.upload_artifacts)
         self._dpoint_serializer.multi = self.settings.get("report-times-multiplier", self._dpoint_serializer.multi)
         token = self.settings.get("token", "")
         if not token:
@@ -245,7 +246,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             self._session.data_signature = self.parameters.get("signature", exc)
             self._session.kpi_target = self.parameters.get("kpi-target", self._session.kpi_target)
             self.send_data = self.parameters.get("send-data", self.send_data)
-            self.upload_artifacts = self.parameters.get("upload-artifacts", self.upload_artifacts)
         else:
             try:
                 self._user.ping()  # to check connectivity and auth

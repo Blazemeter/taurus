@@ -17,15 +17,13 @@ log.setLevel(logging.DEBUG)
 class TestWithExtractors(unittest.TestCase, ):
 
     def setUp(self):
+        self.vars = {}
         self.target = apiritif.http.target('https://jsonplaceholder.typicode.com')
         self.target.keep_alive(True)
         self.target.auto_assert_ok(True)
         self.target.use_cookies(True)
         self.target.allow_redirects(True)
         self.target.timeout(5.0)
-        self.vars = {
-
-        }
         apiritif.put_into_thread_store(func_mode=False, scenario_name='with-extractors')
 
     def _1_just_get(self):
