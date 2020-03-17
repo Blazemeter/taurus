@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import LocatorsManager
+from bzt.resources.selenium_extras import LocatorsManager, DialogsManager
 
 
 class TestLocSc(unittest.TestCase):
@@ -30,14 +30,16 @@ class TestLocSc(unittest.TestCase):
         options = webdriver.ChromeOptions()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
-        self.driver = webdriver.Chrome(service_log_path='<somewhere>webdriver.log', chrome_options=options)
+        self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', chrome_options=options)
         self.driver.implicitly_wait(3.5)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
-        apiritif.put_into_thread_store(driver=self.driver, func_mode=False, scenario_name='loc_sc')
+        self.dlg_mng = DialogsManager(self.driver, False)
+        apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc')
 
     def _1_Conditions_test(self):
         with apiritif.smart_transaction('Conditions test'):
             self.driver.get('http://blazedemo.com')
+            self.dlg_mng.replace_dialogs()
 
             test = self.driver.execute_script('return document.getElementsByName("fromPort")[0].length > 0;')
             if test:
