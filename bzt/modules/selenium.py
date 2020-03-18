@@ -219,6 +219,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.runner.post_process()
 
         if os.path.exists("geckodriver.log"):
+            if self.runner.script and self.runner.script.endswith(".rb"):
+                f = open("geckodriver.log")
+                raise TaurusConfigError("Gecko '%s'" % f.readlines())
             self.engine.existing_artifact("geckodriver.log", True)
 
         super(SeleniumExecutor, self).post_process()
