@@ -46,6 +46,7 @@ class TestLocSc(unittest.TestCase):
         self.mng = Manager()
         self.dlg_mng = DialogsManager(True)
         self.wait_for_mng = WaitForManager(self.driver, 3.5)
+        self.dlg_mng = DialogsManager(self.driver, True)
         apiritif.put_into_thread_store(timeout=timeout, scenario_name='loc_sc', driver=self.driver, func_mode=True,
                                        data_sources=True)
 
@@ -54,10 +55,7 @@ class TestLocSc(unittest.TestCase):
             self.driver.get('http://blazedemo.com/')
             self.dlg_mng.replace_dialogs()
 
-            var_loc_wait = self.mng.get_locator([{'xpath': "//input[@type='submit']"}])
-            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
-                var_loc_wait[0],
-                var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')
+            self.wait_for_mng.wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             self.wait_for_mng.wait_for('present', [{'xpath': "//input[@name='test,name']"}], 80.0)
             self.assertEqual(self.driver.title, 'BlazeDemo')
 
@@ -101,10 +99,7 @@ class TestLocSc(unittest.TestCase):
                 var_loc_as[0],
                 var_loc_as[1]).get_attribute('innerText').strip(), self.vars['name'].strip())
 
-            var_loc_wait = self.mng.get_locator([{'name': 'toPort'}])
-            WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((
-                var_loc_wait[0],
-                var_loc_wait[1])), "Element 'name':'toPort' failed to appear within 3.5s")
+            self.wait_for_mng.wait_for('visible', [{'name': 'toPort'}], 3.5)
 
             var_loc_keys = self.mng.get_locator([{'name': 'toPort'}])
             self.driver.find_element(

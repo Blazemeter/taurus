@@ -129,8 +129,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "raiseNoSuchElementException((\'The element (%s : %r)is not a contenteditable element\'%"
             "(var_edit_content[0], var_edit_content[1])))"
             "print(self.vars['red_pill'])",
-            "WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((var_loc_wait[0],"
-            "var_loc_wait[1])), \"Element 'name':'toPort' failed to appear within 3.5s\")",
+            "self.wait_for_mng.wait_for('visible', [{'name': 'toPort'}], 3.5)"
             "sleep(4.6)",
             "self.driver.delete_all_cookies()",
             "self.driver.save_screenshot('screen.png')",
@@ -1449,15 +1448,36 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         "label": "la-la",
                         "actions": [
                             {
-                                "assertDialog(wrong)": "test"
-                            }
+                                "type": "waitFor",
+                                "param": "visible",
+                                "locators": [
+                                    {"id": "myid"},
+                                    {"css": "mycss"}
+                                ]
+                            },
+                            {"waitForById(myId, present)": "10s"},
+                            {"waitForById(myId, clickable)": "10s"},
+                            {"waitForById(myId, notvisible)": "10s"},
+                            {"waitForById(myId, notpresent)": "10s"},
+                            {"waitForById(myId, notclickable)": "10s"}
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
             self.obj.prepare()
 
-        self.assertTrue("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
-                        in str(context.exception))
+        target_lines = [
+            "self.wait_for_mng.wait_for('visible',[{'id':'myId'}],10.0)",
+            "self.wait_for_mng.wait_for('present',[{'id':'myId'}],10.0)",
+            "self.wait_for_mng.wait_for('clickable',[{'id':'myId'}],10.0)",
+            "self.wait_for_mng.wait_for('notvisible',[{'id':'myId'}],10.0)",
+            "self.wait_for_mng.wait_for('notpresent',[{'id':'myId'}],10.0)",
+            "self.wait_for_mng.wait_for('notclickable',[{'id':'myId'}],10.0)"
+        ]
+        for idx in range(len(target_lines)):
+            target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
+            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
+                          TestSeleniumScriptGeneration.clear_spaces(content),
+                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
     def test_answer_dialog_wrong_type(self):
         self.configure({
@@ -1477,10 +1497,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with self.assertRaises(TaurusConfigError) as context:
             self.obj.prepare()
 
-        self.assertTrue("answerDialog type must be one of the following: 'prompt' or 'confirm'"
-                        in str(context.exception))
+        self.assertTrue('Invalid condition' in str(context.exception),
+                        "Given string was not found in '%s'" % str(context.exception))
 
-    def test_answer_confirm_incorrect_type(self):
+    def test_assert_dialog_wrong_type(self):
         self.configure({
             "execution": [{
                 "executor": "apiritif",

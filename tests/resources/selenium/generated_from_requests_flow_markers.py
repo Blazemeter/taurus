@@ -37,6 +37,7 @@ class TestLocSc(unittest.TestCase):
             chrome_options=options)
         self.driver.implicitly_wait(timeout)
         self.mng = Manager()
+        self.wait_for_mng = WaitForManager(self.driver, 3.5)
         self.dlg_mng = DialogsManager(False)
         add_flow_markers()
         apiritif.put_into_thread_store(timeout=timeout, scenario_name='loc_sc', driver=self.driver, func_mode=False)
@@ -46,10 +47,8 @@ class TestLocSc(unittest.TestCase):
             self.driver.get('http://blazedemo.com/')
             self.dlg_mng.replace_dialogs()
 
-            var_loc_wait = self.mng.get_locator([{'xpath': "//input[@type='submit']"}])
-            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
-                var_loc_wait[0],
-                var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')
+            self.dlg_mng.replace_dialogs()
+            self.wait_for_mng.wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             self.assertEqual(self.driver.title, 'BlazeDemo')
             body = self.driver.page_source
             re_pattern = re.compile('contained_text')

@@ -134,10 +134,7 @@ class TestLocSc(unittest.TestCase):
             filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), ('screenshot-%d.png' % (time() * 1000)))
             self.driver.save_screenshot(filename)
 
-            var_loc_wait = self.mng.get_locator([{'css': 'invalid_css'}, {'name': 'inputName'}])
-            WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((
-                var_loc_wait[0],
-                var_loc_wait[1])), "Element 'css':'invalid_css' failed to appear within 3.5s")
+            self.wait_for_mng.wait_for('visible', [{'css': 'invalid_css'}, {'name': 'inputName'}], 3.5)
             self.wait_for_mng.wait_for('visible', [{'css': 'invalid_css'}, {'name': 'inputName'}], 9020.0)
             var_edit_content = self.mng.get_locator([{'id': 'editor'}])
 
