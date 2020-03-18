@@ -4,7 +4,7 @@ skip_branch_with_pr: true
 environment:
   matrix:
     - PYTHON: "C:\\Python37"
-      PYTHON_VERSION: "3.7.x"
+      PYTHON_VERSION: "3.7.6"
       PYTHON_ARCH: "64"
 
 platform:
