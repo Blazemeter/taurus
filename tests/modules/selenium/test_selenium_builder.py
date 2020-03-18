@@ -129,8 +129,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "raiseNoSuchElementException((\'The element (%s : %r)is not a contenteditable element\'%"
             "(var_edit_content[0], var_edit_content[1])))"
             "print(self.vars['red_pill'])",
-            "WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((var_loc_wait[0],"
-            "var_loc_wait[1])), \"Element 'name':'toPort' failed to appear within 3.5s\")",
+            "self.wait_for_mng.wait_for('visible', [{'name': 'toPort'}], 3.5)"
             "sleep(4.6)",
             "self.driver.delete_all_cookies()",
             "self.driver.save_screenshot('screen.png')",
@@ -1448,7 +1447,14 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": [{
                         "label": "la-la",
                         "actions": [
-                            "waitForById(myId, visible)",
+                            {
+                                "type": "waitFor",
+                                "param": "visible",
+                                "locators": [
+                                    {"id": "myid"},
+                                    {"css": "mycss"}
+                                ]
+                            },
                             {"waitForById(myId, present)": "10s"},
                             {"waitForById(myId, clickable)": "10s"},
                             {"waitForById(myId, notvisible)": "10s"},
@@ -1461,7 +1467,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "self.wait_for_mng.wait_for('visible',[{'id':'myId'}],10.0)",
+            "self.wait_for_mng.wait_for('visible',[{'id':'myid'},{'css':'mycss'}],10.0)",
             "self.wait_for_mng.wait_for('present',[{'id':'myId'}],10.0)",
             "self.wait_for_mng.wait_for('clickable',[{'id':'myId'}],10.0)",
             "self.wait_for_mng.wait_for('notvisible',[{'id':'myId'}],10.0)",
@@ -1491,7 +1497,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with self.assertRaises(TaurusConfigError) as context:
             self.obj.prepare()
 
-        self.assertTrue('Invalid condition in waitFor' in str(context.exception),
+        self.assertTrue('Invalid condition' in str(context.exception),
                         "Given string was not found in '%s'" % str(context.exception))
     def test_assert_dialog_wrong_type(self):
         self.configure({

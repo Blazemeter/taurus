@@ -560,45 +560,10 @@ from selenium.webdriver.common.keys import Keys
                 args=args))
         return elements
 
-    def _gen_wait_sleep_mngr(self, atype, tag, param, selectors):
-        elements = []
-        mode = "visibility" if param == 'visible' else 'presence'
-
-        if atype == 'wait':
-            self.log.warning("Wait command is deprecated and will be removed soon. Use waitFor instead.")
-            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
-            timeout = dehumanize_time(self.scenario.get("timeout", exc))
-            locator_type = list(selectors[0].keys())[0]
-            locator_value = selectors[0][locator_type]
-            errmsg = "Element %r:%r failed to appear within %ss" % (locator_type, locator_value,
-                                                                    timeout)
-
-            elements.append(self._gen_get_locators("var_loc_wait", selectors))
-
-            elements.append(ast_call(
-                func=ast_attr(
-                    fields=(
-                        ast_call(
-                            func="WebDriverWait",
-                            args=[
-                                ast_attr("self.driver"),
-                                ast.Num(timeout)]),
-                        "until")),
-                args=[
-                    ast_call(
-                        func=ast_attr("econd.%s_of_element_located" % mode),
-                        args=[
-                            ast.Tuple(
-                                elts=[
-                                    gen_subscript("var_loc_wait", 0),
-                                    gen_subscript("var_loc_wait", 1)
-                                    ])]),
-                    ast.Str(errmsg)]))
-
-        elif atype == 'pausefor':
-            elements.append(ast_call(
-                func="sleep",
-                args=[ast.Num(dehumanize_time(param))]))
+    def _gen_sleep_mngr(self, param):
+        elements = [ast_call(
+            func="sleep",
+            args=[ast.Num(dehumanize_time(param))])]
 
         return elements
 
@@ -656,10 +621,10 @@ from selenium.webdriver.common.keys import Keys
                 action_elements.append(ApiritifScriptGenerator._gen_replace_dialogs())
         elif atype == "editcontent":
             action_elements.extend(self._gen_edit_mngr(param, selectors))
-        elif atype == 'waitfor':
-            action_elements.extend(self._gen_wait_for_mngr(param, value, selectors))
-        elif atype in ('wait', 'pausefor'):
-            action_elements.extend(self._gen_wait_sleep_mngr(atype, tag, param, selectors))
+        elif atype.startswith('wait'):
+            action_elements.extend(self._gen_wait_for_mngr(atype, param, value, selectors))
+        elif atype == 'pausefor':
+            action_elements.extend(self._gen_sleep_mngr(param))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(ast_call(
                 func=ast_attr("self.driver.delete_all_cookies")))
@@ -677,17 +642,24 @@ from selenium.webdriver.common.keys import Keys
 
         return [ast.Expr(element) for element in action_elements]
 
-    def _gen_wait_for_mngr(self, param, value, selectors):
+    def _gen_wait_for_mngr(self, atype, param, value, selectors):
         self.selenium_extras.add("WaitForManager")
         supported_conds = ["present", "visible", "clickable", "notpresent", "notvisible", "notclickable"]
 
-        if param.lower() not in supported_conds:
-            raise TaurusConfigError("Invalid condition in waitFor: '%s'. Supported conditions are: %s." %
-                                    (param, ", ".join(supported_conds)))
+        if not atype.endswith("for"):
+            self.log.warning("Wait command is deprecated and will be removed soon. Use waitFor instead.")
+            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
+            timeout = dehumanize_time(self.scenario.get("timeout", exc))
+            if not param:
+                param = "present"
+        else:
+            if not value:
+                value = 10  # if timeout value is not present set it by default to 10s
+            timeout = dehumanize_time(value)
 
-        if not value:
-            value = 10  # if timeout value is not present set it by default to 10s
-        timeout = dehumanize_time(value)
+        if param.lower() not in supported_conds:
+            raise TaurusConfigError("Invalid condition in %s: '%s'. Supported conditions are: %s." %
+                                    (atype, param, ", ".join(supported_conds)))
 
         return [ast_call(func="self.wait_for_mng.wait_for",
                  args=[ast.Str(param), ast.List(elts=self._gen_ast_locators_dict(selectors)), ast.Num(timeout)])]
