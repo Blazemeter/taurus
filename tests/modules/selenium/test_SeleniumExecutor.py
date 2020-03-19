@@ -253,13 +253,13 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
 
 class TestSeleniumStuff(SeleniumTestCase):
-    def test_empty_scenario(self):
-        """
-        Raise runtime error when no scenario provided
-        :return:
-        """
-        self.configure({EXEC: {"executor": "selenium"}})
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
+    # def test_empty_scenario(self):
+    #     """
+    #     Raise runtime error when no scenario provided
+    #     :return:
+    #     """
+    #     self.configure({EXEC: {"executor": "selenium"}})
+    #     self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_javac_fail(self):
         """
@@ -364,40 +364,40 @@ class TestSeleniumStuff(SeleniumTestCase):
 
         self.assertEquals(4, len(list(lines)))
 
-    def test_fail_on_zero_results(self):
-        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
-        self.obj.prepare()
-        self.obj.engine.prepared = [self.obj]
-        self.obj.engine.started = [self.obj]
-        prov = Local()
-        prov.engine = self.obj.engine
-        prov.executors = [self.obj]
-        prov.started_modules = [self.obj]
-        self.obj.engine.provisioning = prov
-        self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
+    # def test_fail_on_zero_results(self):
+    #     self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
+    #     self.obj.prepare()
+    #     self.obj.engine.prepared = [self.obj]
+    #     self.obj.engine.started = [self.obj]
+    #     prov = Local()
+    #     prov.engine = self.obj.engine
+    #     prov.executors = [self.obj]
+    #     prov.started_modules = [self.obj]
+    #     self.obj.engine.provisioning = prov
+    #     self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
-    def test_aremote_prov_requests(self):
-        self.obj.execution.merge({
-            "scenario": {
-                "requests": [
-                    "http://blazedemo.com"]}})
-        resources = self.obj.resource_files()
-        self.assertEqual(0, len(resources))
+    # def test_aremote_prov_requests(self):
+    #     self.obj.execution.merge({
+    #         "scenario": {
+    #             "requests": [
+    #                 "http://blazedemo.com"]}})
+    #     resources = self.obj.resource_files()
+    #     self.assertEqual(0, len(resources))
 
-    def test_dont_copy_local_script_to_artifacts(self):
-        "ensures that .java file is not copied into artifacts-dir"
-        filename = "BlazeDemo.java"
-        script_path = RESOURCES_DIR + "" + filename
-        self.obj.execution.merge({
-            "scenario": {
-                "script": script_path,
-            }
-        })
-        files = self.obj.resource_files()
-        self.obj.prepare()
-        self.assertIn(script_path, files)
-        artifacts_script = os.path.join(self.obj.engine.artifacts_dir, filename)
-        self.assertFalse(os.path.exists(artifacts_script))
+    # def test_dont_copy_local_script_to_artifacts(self):
+    #     "ensures that .java file is not copied into artifacts-dir"
+    #     filename = "BlazeDemo.java"
+    #     script_path = RESOURCES_DIR + "" + filename
+    #     self.obj.execution.merge({
+    #         "scenario": {
+    #             "script": script_path,
+    #         }
+    #     })
+    #     files = self.obj.resource_files()
+    #     self.obj.prepare()
+    #     self.assertIn(script_path, files)
+    #     artifacts_script = os.path.join(self.obj.engine.artifacts_dir, filename)
+    #     self.assertFalse(os.path.exists(artifacts_script))
 
     def test_take_script_from_artifacts(self):
         """ensures that executor looks for script in artifacts-dir (for cloud/remote cases)"""
@@ -415,62 +415,62 @@ class TestSeleniumStuff(SeleniumTestCase):
         })
         self.obj.prepare()
 
-    def test_do_not_modify_scenario_script(self):
-        self.obj.execution.merge({
-            "scenario": {
-                "requests": ["address"],
-            }
-        })
-        self.obj.prepare()
-        self.assertNotIn("script", self.obj.get_scenario())
+    # def test_do_not_modify_scenario_script(self):
+    #     self.obj.execution.merge({
+    #         "scenario": {
+    #             "requests": ["address"],
+    #         }
+    #     })
+    #     self.obj.prepare()
+    #     self.assertNotIn("script", self.obj.get_scenario())
 
-    def test_default_address_gen(self):
-        self.obj.execution.merge({
-            "scenario": {
-                "default-address": "http://blazedemo.com",
-                "requests": ["/", "http://absolute.address.com/somepage", "/reserve.php"],
-            }
-        })
-        self.obj.prepare()
-        with open(os.path.join(self.obj.engine.artifacts_dir, os.path.basename(self.obj.script))) as fds:
-            script = fds.read()
-        urls = re.findall(r"\.get\('(.+)'\)", script)
-        self.assertEqual("http://blazedemo.com/", urls[0])
-        self.assertEqual("http://absolute.address.com/somepage", urls[1])
-        self.assertEqual("http://blazedemo.com/reserve.php", urls[2])
+    # def test_default_address_gen(self):
+    #     self.obj.execution.merge({
+    #         "scenario": {
+    #             "default-address": "http://blazedemo.com",
+    #             "requests": ["/", "http://absolute.address.com/somepage", "/reserve.php"],
+    #         }
+    #     })
+    #     self.obj.prepare()
+    #     with open(os.path.join(self.obj.engine.artifacts_dir, os.path.basename(self.obj.script))) as fds:
+    #         script = fds.read()
+    #     urls = re.findall(r"\.get\('(.+)'\)", script)
+    #     self.assertEqual("http://blazedemo.com/", urls[0])
+    #     self.assertEqual("http://absolute.address.com/somepage", urls[1])
+    #     self.assertEqual("http://blazedemo.com/reserve.php", urls[2])
 
-    def test_force_runner(self):
-        self.obj.execution.merge({
-            'scenario': {'script': RESOURCES_DIR + 'selenium/junit/jar/'},
-            'runner': 'apiritif',
-        })
-        self.obj.prepare()
-        self.assertIsInstance(self.obj.runner, ApiritifNoseExecutor)
+    # def test_force_runner(self):
+    #     self.obj.execution.merge({
+    #         'scenario': {'script': RESOURCES_DIR + 'selenium/junit/jar/'},
+    #         'runner': 'apiritif',
+    #     })
+    #     self.obj.prepare()
+    #     self.assertIsInstance(self.obj.runner, ApiritifNoseExecutor)
 
-    def test_additional_classpath_resource_files(self):
-        self.obj.execution.merge({
-            'scenario': {
-                'script': RESOURCES_DIR + 'selenium/junit/jar/dummy.jar',
-                'runner': 'junit',
-                'additional-classpath': [RESOURCES_DIR + 'selenium/junit/jar/another_dummy.jar']}})
-        self.obj.engine.config.merge({
-            'modules': {
-                'junit': {
-                    'additional-classpath': [RESOURCES_DIR + 'selenium/testng/jars/testng-suite.jar']}}})
-        own_resources = self.obj.resource_files()
-        all_resources = list(set(self.obj.get_resource_files()))
+    # def test_additional_classpath_resource_files(self):
+    #     self.obj.execution.merge({
+    #         'scenario': {
+    #             'script': RESOURCES_DIR + 'selenium/junit/jar/dummy.jar',
+    #             'runner': 'junit',
+    #             'additional-classpath': [RESOURCES_DIR + 'selenium/junit/jar/another_dummy.jar']}})
+    #     self.obj.engine.config.merge({
+    #         'modules': {
+    #             'junit': {
+    #                 'additional-classpath': [RESOURCES_DIR + 'selenium/testng/jars/testng-suite.jar']}}})
+    #     own_resources = self.obj.resource_files()
+    #     all_resources = list(set(self.obj.get_resource_files()))
+    #
+    #     # scenario.script, scenario.additional-classpath, settings.additional-classpath
+    #     self.assertEqual(len(own_resources), 2)
+    #     self.assertEqual(len(all_resources), 3)
 
-        # scenario.script, scenario.additional-classpath, settings.additional-classpath
-        self.assertEqual(len(own_resources), 2)
-        self.assertEqual(len(all_resources), 3)
-
-    def test_add_env_path(self):
-        path1 = os.path.join("foo", "bar")
-        path2 = os.path.join("bar", "baz")
-        self.obj.env.add_path({"PATH": path1})
-        self.obj.env.add_path({"PATH": path2})
-        self.assertIn(path1, self.obj.env.get("PATH"))
-        self.assertIn(path2, self.obj.env.get("PATH"))
+    # def test_add_env_path(self):
+    #     path1 = os.path.join("foo", "bar")
+    #     path2 = os.path.join("bar", "baz")
+    #     self.obj.env.add_path({"PATH": path1})
+    #     self.obj.env.add_path({"PATH": path2})
+    #     self.assertIn(path1, self.obj.env.get("PATH"))
+    #     self.assertIn(path2, self.obj.env.get("PATH"))
 
     def test_subscribe_to_transactions(self):
         dummy = DummyListener()
