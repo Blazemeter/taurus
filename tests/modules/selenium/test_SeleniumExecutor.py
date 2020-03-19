@@ -27,230 +27,230 @@ class LDJSONReaderEmul(object):
             yield line
 
 
-# class TestSeleniumExecutor(SeleniumTestCase):
-#     # todo: get_error_diagnostics: only geckodriver, not chrome-?
-#     def setUp(self):
-#         super(TestSeleniumExecutor, self).setUp()
-#         self.CMD_LINE = ''
-#
-#     def run_script(self, name):
-#         with open(RESOURCES_DIR + "selenium/" + name + ".py") as script:
-#             self.wd_log = self.obj.engine.create_artifact("webdriver", ".log")
-#             script_lines = script.readlines()
-#
-#             new_script = self.obj.engine.create_artifact(name, ".py")
-#             with open(new_script, 'w+') as new_script_file:
-#                 for line in script_lines:
-#                     new_script_file.write(line.replace("'webdriver.log'", repr(self.wd_log)))
-#
-#         self.configure({
-#             "execution": [{
-#                 "test-mode": "apiritif",
-#                 "iterations": 1,
-#                 "scenario": {
-#                     "script": new_script}}]})
-#         self.obj.prepare()
-#         try:
-#             self.obj.startup()
-#             while not self.obj.check():
-#                 time.sleep(self.obj.engine.check_interval)
-#         finally:
-#             self.obj.shutdown()
-#         self.obj.post_process()
-#         self.assertNotEquals(self.obj.runner.process, None)
-#
-#     def check_transaction_logged(self):
-#         with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.out")) as out:
-#             content = out.readlines()
-#
-#             # todo: check for loadgen debug log ('find me!')
-#
-#             stages = "Transaction started", "Transaction ended"
-#             names = "t1", "t2", "t3"
-#
-#             for stage in stages:
-#                 cases = [line for line in content if stage in line]
-#                 for name in names:
-#                     self.assertIn(name, '\n'.join(cases))
-#
-#     def check_flow_markers(self):
-#         with open(self.wd_log) as wd_file:
-#             content = wd_file.read()
-#
-#             wd_lines = content.split("[INFO]")
-#
-#         flow_markers = [l for l in wd_lines if "FLOW_MARKER" in l]
-#         for arg in ["t1", "start"]:
-#             self.assertIn(arg, flow_markers[0])
-#         for arg in ["success", "stop"]:
-#             self.assertIn(arg, flow_markers[1])
-#         for arg in ["t2", "start"]:
-#             self.assertIn(arg, flow_markers[2])
-#         for arg in ["Assertion", "failed", "stop"]:
-#             self.assertIn(arg, flow_markers[3])
-#         for arg in ["t3", "start"]:
-#             self.assertIn(arg, flow_markers[4])
-#         for arg in ["broken", "stop"]:
-#             self.assertIn(arg, flow_markers[5])
-#
-#     def check_samples(self):
-#         # apiritif.0.csv filled by ApiritifPlugin
-#         with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")) as sample_file:
-#             samples = sample_file.readlines()
-#
-#         for arg in ["t1", "true"]:
-#             self.assertIn(arg, samples[1])
-#
-#         for arg in ["t2", "Assertion"]:
-#             self.assertIn(arg, samples[2])
-#
-#         for arg in ["t3", "Exception"]:
-#             self.assertIn(arg, samples[3])
-#
-#     def test_selenium_old_flow(self):
-#         self.run_script("test_old_flow")
-#         self.check_transaction_logged()
-#         self.check_flow_markers()
-#         self.check_samples()
-#
-#     def test_selenium_new_flow(self):
-#         self.run_script("test_new_flow")
-#         self.check_transaction_logged()
-#         self.check_flow_markers()
-#         self.check_samples()
-#
-#     def test_data_source_in_action(self):
-#         self.configure({
-#             EXEC: {
-#                 "executor": "selenium",
-#                 "iterations": 1,
-#                 "scenario": {
-#                     "data-sources": [RESOURCES_DIR + "selenium/data-sources/data.csv"],
-#                     "requests": [{
-#                         "label": "exec_it",
-#                         "assert": ["Simple Travel Agency"],
-#                         "actions": ["go(${host}/${page})"]}]}}})
-#         self.obj.prepare()
-#         self.obj.startup()
-#         while not self.obj.check():
-#             time.sleep(self.obj.engine.check_interval)
-#         self.obj.shutdown()
-#         self.obj.post_process()
-#
-#     def start_subprocess(self, args, env, cwd=None, **kwargs):
-#         self.CMD_LINE = ' '.join(args)
-#
-#     def test_user_iter(self):
-#         self.configure({
-#             EXEC: {
-#                 "executor": "apiritif",
-#                 "iterations": 100,
-#                 "scenario": {
-#                     "requests": [
-#                         "http://blazedemo.com"]}}})
-#
-#         self.obj.engine.aggregator.is_functional = True
-#         self.obj.engine.start_subprocess = self.start_subprocess
-#         self.obj.prepare()
-#         self.obj.startup()
-#
-#         self.assertIn("--iterations 100", self.CMD_LINE)
-#
-#     def test_load_no_iter(self):
-#         self.configure({
-#             EXEC: {
-#                 "executor": "apiritif",
-#                 "scenario": {
-#                     "requests": [
-#                         "http://blazedemo.com"]}}})
-#
-#         self.obj.engine.aggregator.is_functional = False
-#         self.obj.engine.start_subprocess = self.start_subprocess
-#         self.obj.prepare()
-#         self.obj.startup()
-#
-#         self.assertIn("--iterations 1", self.CMD_LINE)
-#
-#     def test_load_no_iter_duration(self):
-#         self.configure({
-#             EXEC: {
-#                 "executor": "apiritif",
-#                 "hold-for": "2s",
-#                 "scenario": {
-#                     "requests": [
-#                         "http://blazedemo.com"]}}})
-#
-#         self.obj.engine.aggregator.is_functional = False
-#         self.obj.engine.start_subprocess = self.start_subprocess
-#         self.obj.prepare()
-#         self.obj.startup()
-#
-#         self.assertNotIn("--iterations", self.CMD_LINE)
-#
-#     def test_func_no_iter(self):
-#         self.configure({
-#             EXEC: {
-#                 "executor": "apiritif",
-#                 "scenario": {
-#                     "requests": [
-#                         "http://blazedemo.com"]}}})
-#
-#         self.obj.engine.aggregator.is_functional = True
-#         self.obj.engine.start_subprocess = self.start_subprocess
-#         self.obj.prepare()
-#         self.obj.startup()
-#
-#         self.assertIn("--iterations 1", self.CMD_LINE)
-#
-#     def test_func_0_iter(self):
-#         self.configure({
-#             EXEC: {
-#                 "executor": "apiritif",
-#                 "iterations": 0,
-#                 "scenario": {
-#                     "requests": [
-#                         "http://blazedemo.com"]}}})
-#
-#         self.obj.engine.aggregator.is_functional = True
-#         self.obj.engine.start_subprocess = self.start_subprocess
-#         self.obj.prepare()
-#         self.obj.startup()
-#
-#         self.assertNotIn('--iterations', self.CMD_LINE)
-#
-#     def test_func_ds_0_iter(self):
-#         self.configure({
-#             EXEC: {
-#                 "executor": "apiritif",
-#                 "iterations": 0,
-#                 "scenario": {
-#                     "data-sources": ['one.csv'],
-#                     "requests": [
-#                         "http://blazedemo.com"]}}})
-#
-#         self.obj.engine.aggregator.is_functional = True
-#         self.obj.engine.start_subprocess = self.start_subprocess
-#         self.obj.prepare()
-#         self.obj.startup()
-#
-#         self.assertNotIn('--iterations', self.CMD_LINE)
-#
-#     def test_func_ds_no_iter(self):
-#         self.configure({
-#             EXEC: {
-#                 "executor": "apiritif",
-#                 "scenario": {
-#                     "data-sources": ['one.csv'],
-#                     "requests": [
-#                         "http://blazedemo.com"]}}})
-#
-#         self.obj.engine.aggregator.is_functional = True
-#         self.obj.engine.start_subprocess = self.start_subprocess
-#         self.obj.prepare()
-#         self.obj.startup()
-#
-#         self.assertNotIn('--iterations', self.CMD_LINE)
-# 
+class TestSeleniumExecutor(SeleniumTestCase):
+    # todo: get_error_diagnostics: only geckodriver, not chrome-?
+    def setUp(self):
+        super(TestSeleniumExecutor, self).setUp()
+        self.CMD_LINE = ''
+
+    def run_script(self, name):
+        with open(RESOURCES_DIR + "selenium/" + name + ".py") as script:
+            self.wd_log = self.obj.engine.create_artifact("webdriver", ".log")
+            script_lines = script.readlines()
+
+            new_script = self.obj.engine.create_artifact(name, ".py")
+            with open(new_script, 'w+') as new_script_file:
+                for line in script_lines:
+                    new_script_file.write(line.replace("'webdriver.log'", repr(self.wd_log)))
+
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "iterations": 1,
+                "scenario": {
+                    "script": new_script}}]})
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.runner.process, None)
+
+    def check_transaction_logged(self):
+        with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.out")) as out:
+            content = out.readlines()
+
+            # todo: check for loadgen debug log ('find me!')
+
+            stages = "Transaction started", "Transaction ended"
+            names = "t1", "t2", "t3"
+
+            for stage in stages:
+                cases = [line for line in content if stage in line]
+                for name in names:
+                    self.assertIn(name, '\n'.join(cases))
+
+    def check_flow_markers(self):
+        with open(self.wd_log) as wd_file:
+            content = wd_file.read()
+
+            wd_lines = content.split("[INFO]")
+
+        flow_markers = [l for l in wd_lines if "FLOW_MARKER" in l]
+        for arg in ["t1", "start"]:
+            self.assertIn(arg, flow_markers[0])
+        for arg in ["success", "stop"]:
+            self.assertIn(arg, flow_markers[1])
+        for arg in ["t2", "start"]:
+            self.assertIn(arg, flow_markers[2])
+        for arg in ["Assertion", "failed", "stop"]:
+            self.assertIn(arg, flow_markers[3])
+        for arg in ["t3", "start"]:
+            self.assertIn(arg, flow_markers[4])
+        for arg in ["broken", "stop"]:
+            self.assertIn(arg, flow_markers[5])
+
+    def check_samples(self):
+        # apiritif.0.csv filled by ApiritifPlugin
+        with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")) as sample_file:
+            samples = sample_file.readlines()
+
+        for arg in ["t1", "true"]:
+            self.assertIn(arg, samples[1])
+
+        for arg in ["t2", "Assertion"]:
+            self.assertIn(arg, samples[2])
+
+        for arg in ["t3", "Exception"]:
+            self.assertIn(arg, samples[3])
+
+    def test_selenium_old_flow(self):
+        self.run_script("test_old_flow")
+        self.check_transaction_logged()
+        self.check_flow_markers()
+        self.check_samples()
+
+    def test_selenium_new_flow(self):
+        self.run_script("test_new_flow")
+        self.check_transaction_logged()
+        self.check_flow_markers()
+        self.check_samples()
+
+    def test_data_source_in_action(self):
+        self.configure({
+            EXEC: {
+                "executor": "selenium",
+                "iterations": 1,
+                "scenario": {
+                    "data-sources": [RESOURCES_DIR + "selenium/data-sources/data.csv"],
+                    "requests": [{
+                        "label": "exec_it",
+                        "assert": ["Simple Travel Agency"],
+                        "actions": ["go(${host}/${page})"]}]}}})
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
+        self.CMD_LINE = ' '.join(args)
+
+    def test_user_iter(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "iterations": 100,
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertIn("--iterations 100", self.CMD_LINE)
+
+    def test_load_no_iter(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = False
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertIn("--iterations 1", self.CMD_LINE)
+
+    def test_load_no_iter_duration(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "hold-for": "2s",
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = False
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertNotIn("--iterations", self.CMD_LINE)
+
+    def test_func_no_iter(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertIn("--iterations 1", self.CMD_LINE)
+
+    def test_func_0_iter(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "iterations": 0,
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertNotIn('--iterations', self.CMD_LINE)
+
+    def test_func_ds_0_iter(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "iterations": 0,
+                "scenario": {
+                    "data-sources": ['one.csv'],
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertNotIn('--iterations', self.CMD_LINE)
+
+    def test_func_ds_no_iter(self):
+        self.configure({
+            EXEC: {
+                "executor": "apiritif",
+                "scenario": {
+                    "data-sources": ['one.csv'],
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.assertNotIn('--iterations', self.CMD_LINE)
+
 
 class TestSeleniumStuff(SeleniumTestCase):
     def test_empty_scenario(self):
