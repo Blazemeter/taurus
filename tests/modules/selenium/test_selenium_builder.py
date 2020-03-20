@@ -89,6 +89,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         else:
             print_i = "print(i)"
 
+        self.assertNotIn(content, "self.dlg_mng = DialogsManager(self.driver)")
+
         target_lines = [
             "self.wnd_mng.switch('0')",
             """self.driver.execute_script("window.open('some.url');")""",
@@ -293,6 +295,11 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"storeEval(0 == false)": "var_eval"},
                             "assertEval(10 === 2*5)",
                             "go(http:\\blazemeter.com)",
+                            {"assertDialog(alert)": "Alert Message"},
+                            {"assertDialog(prompt)": "Enter value"},
+                            {"assertDialog(confirm)": "Are you sure?"},
+                            {"answerDialog(prompt)": "myvalue"},
+                            {"answerDialog(confirm)": "#Ok"},
                             "echoString(${red_pill})",
                             "screenshot(screen.png)",
                             "screenshot()",
@@ -1097,7 +1104,32 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     },
                                     {
                                         "type": "closeWindow"
-                                    }
+                                    },
+                                    {
+                                        "type": "answerDialog",
+                                        "param": "prompt",
+                                        "value": "my input"
+                                    },
+                                    {
+                                        "type": "answerDialog",
+                                        "param": "confirm",
+                                        "value": '#Ok'
+                                    },
+                                    {
+                                        "type": "assertDialog",
+                                        "param": "alert",
+                                        "value": "Exception occurred!"
+                                    },
+                                    {
+                                        "type": "assertDialog",
+                                        "param": "confirm",
+                                        "value": "Are you sure?"
+                                    },
+                                    {
+                                        "type": "assertDialog",
+                                        "param": "prompt",
+                                        "value": "What is your age?"
+                                    },
                                 ]
                             }
                         ]
@@ -1208,7 +1240,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_if_then_else.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>", python_files=True)
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
     def test_conditions_missing_then(self):
         self.configure({
@@ -1395,3 +1427,66 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         ]
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_assert_dialog_wrong_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "assertDialog(wrong)": "test"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
+                        in str(context.exception))
+
+    def test_answer_dialog_wrong_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "answerDialog(wrong)": "test"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("answerDialog type must be one of the following: 'prompt' or 'confirm'"
+                        in str(context.exception))
+
+    def test_answer_confirm_incorrect_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "answerDialog(confirm)": "value"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("answerDialog of type confirm must have value either '#Ok' or '#Cancel'"
+                        in str(context.exception))

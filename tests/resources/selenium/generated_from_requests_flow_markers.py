@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import LocatorsManager, add_flow_markers
+from bzt.resources.selenium_extras import LocatorsManager, add_flow_markers, DialogsManager
 
 
 class TestLocSc(unittest.TestCase):
@@ -35,6 +35,7 @@ class TestLocSc(unittest.TestCase):
         self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', chrome_options=options)
         self.driver.implicitly_wait(3.5)
         self.loc_mng = LocatorsManager(self.driver, 3.5)
+        self.dlg_mng = DialogsManager(self.driver, False)
         add_flow_markers()
         apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc')
 
