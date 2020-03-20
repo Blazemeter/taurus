@@ -149,9 +149,11 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = True
-        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
 
         self.assertIn("--iterations 100", self.CMD_LINE)
 
@@ -167,6 +169,8 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.prepare()
         self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
 
         self.assertIn("--iterations 1", self.CMD_LINE)
 
@@ -180,9 +184,11 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = False
-        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
 
         self.assertNotIn("--iterations", self.CMD_LINE)
 
@@ -195,9 +201,11 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = True
-        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
 
         self.assertIn("--iterations 1", self.CMD_LINE)
 
@@ -211,9 +219,11 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = True
-        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
 
         self.assertNotIn('--iterations', self.CMD_LINE)
 
@@ -228,9 +238,11 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = True
-        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
 
         self.assertNotIn('--iterations', self.CMD_LINE)
 
@@ -244,9 +256,11 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = True
-        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
 
         self.assertNotIn('--iterations', self.CMD_LINE)
 
