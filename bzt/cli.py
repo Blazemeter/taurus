@@ -655,7 +655,7 @@ def main():
         logging.debug("Exception: %s", traceback.format_exc())
         code = 1
 
-    exit(code)
+    sys.exit(code)
 
 
 if __name__ == "__main__":
