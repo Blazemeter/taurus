@@ -889,7 +889,7 @@ from selenium.webdriver.common.keys import Keys
         body.append(ast.Expr(
             ast_call(
                 func=ast_attr("self.driver.implicitly_wait"),
-                args=[ast.Num(self._get_scenario_timeout())])))
+                args=[ast_attr("timeout")])))
 
         mgr = "WindowManager"
         if mgr in self.selenium_extras:
@@ -907,13 +907,12 @@ from selenium.webdriver.common.keys import Keys
                     func=ast.Name(id=mgr),
                     args=[ast_attr("self.driver")])))
 
-        self.selenium_extras.add("LocatorsManager")
-        mgr = "LocatorsManager"
+        self.selenium_extras.add("Manager")
+        mgr = "Manager"
         body.append(ast.Assign(
             targets=[ast_attr("self.loc_mng")],
             value=ast_call(
-                func=ast.Name(id=mgr),
-                args=[ast_attr("self.driver"), ast.Str(self._get_scenario_timeout())])))
+                func=ast.Name(id=mgr))))
 
         mgr = "WaitForManager"
         if mgr in self.selenium_extras:
@@ -1072,7 +1071,10 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
 
-        stored_vars = {"func_mode": str(self.executor.engine.is_functional_mode())}
+        stored_vars = {
+            "timeout": "timeout",
+            "func_mode": str(self.executor.engine.is_functional_mode())}
+
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
@@ -1089,10 +1091,14 @@ from selenium.webdriver.common.keys import Keys
 
         store_block = [ast.Expr(store_call)]
 
+        timeout_setup = [ast.Expr(ast.Assign(
+                targets=[ast_attr("timeout")],
+                value=ast.Num(self._get_scenario_timeout())))]
+
         setup = ast.FunctionDef(
             name="setUp",
             args=[ast_attr("self")],
-            body=data_sources + target_init + handlers + store_block,
+            body=data_sources + timeout_setup + target_init + handlers + store_block,
             decorator_list=[])
         return [setup, gen_empty_line_stmt()]
 

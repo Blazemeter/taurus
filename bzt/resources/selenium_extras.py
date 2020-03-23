@@ -9,6 +9,19 @@ import time
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as econd
 
+
+def _get_driver():
+    return get_from_thread_store("driver")
+
+
+def _get_timeout():
+    timeout = get_from_thread_store("timeout")
+    if not (timeout or timeout == 0):   # timeout in (None, []), default requires
+        timeout = 30
+
+    return timeout
+
+
 def add_flow_markers():
     handlers = get_transaction_handlers()
     handlers["enter"].append(_send_start_flow_marker)
@@ -17,8 +30,7 @@ def add_flow_markers():
 
 
 def _send_marker(stage, params):
-    driver = get_from_thread_store("driver")
-    driver.execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
+    _get_driver().execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
 
 
 def _send_start_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
@@ -108,7 +120,7 @@ class WindowManager:
         self.driver.close()
 
 
-class LocatorsManager:
+class Manager:
     BYS = {
         'xpath': By.XPATH,
         'css': By.CSS_SELECTOR,
@@ -116,10 +128,6 @@ class LocatorsManager:
         'id': By.ID,
         'linktext': By.LINK_TEXT
     }
-
-    def __init__(self, driver, timeout=30):
-        self.driver = driver
-        self.timeout = timeout
 
     def get_locator(self, locators, ignore_implicit_wait=False):
         """
@@ -129,9 +137,11 @@ class LocatorsManager:
         :return: first valid locator from the passed List, if no locator is valid then returns the
         first one
         """
+        driver = _get_driver()
+        timeout = _get_timeout()
         first_locator = None
         if ignore_implicit_wait:
-            self.driver.implicitly_wait(0)
+            driver.implicitly_wait(0)
         for locator in locators:
             locator_type = list(locator.keys())[0]
             locator_value = locator[locator_type]
@@ -139,18 +149,18 @@ class LocatorsManager:
                 first_locator = (self.BYS[locator_type.lower()], locator_value)
             else:
                 # set implicit wait to 0 get the result instantly for the other locators
-                self.driver.implicitly_wait(0)
-            elements = self.driver.find_elements(self.BYS[locator_type.lower()], locator_value)
+                driver.implicitly_wait(0)
+            elements = driver.find_elements(self.BYS[locator_type.lower()], locator_value)
             if len(elements) > 0:
                 locator = (self.BYS[locator_type.lower()], locator_value)
                 break
         else:
-            self.driver.implicitly_wait(self.timeout)
+            driver.implicitly_wait(timeout)
             msg = "Element not found: (%s, %s)" % first_locator
             raise NoSuchElementException(msg)
 
         # restore the implicit wait value
-        self.driver.implicitly_wait(self.timeout)
+        driver.implicitly_wait(timeout)
         return locator
 
 
@@ -159,7 +169,7 @@ class WaitForManager:
     def __init__(self, driver, timeout=30):
         self.driver = driver
         self.timeout = timeout
-        self.loc_mngr = LocatorsManager(driver, timeout)
+        self.loc_mngr = Manager()
 
     POSITIVE_CONDS = [
         "present", "visible", "clickable"

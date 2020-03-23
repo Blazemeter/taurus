@@ -1480,7 +1480,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                           TestSeleniumScriptGeneration.clear_spaces(content),
                           msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-
     def test_wait_for_invalid_cond(self):
         self.configure({
             "execution": [{
