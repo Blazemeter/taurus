@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import Manager, WindowManager, DialogsManager, FrameManager
+from bzt.resources.selenium_extras import Manager, WindowManager, DialogsManager, FrameManager, WaitForManager
 
 reader_1 = apiritif.CSVReaderPerThread('first.csv', loop=True)
 reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)
@@ -45,10 +45,9 @@ class TestLocSc(unittest.TestCase):
         self.frm_mng = FrameManager()
         self.mng = Manager()
         self.dlg_mng = DialogsManager(True)
-        self.wait_for_mng = WaitForManager(self.driver, 3.5)
-        self.dlg_mng = DialogsManager(self.driver, True)
-        apiritif.put_into_thread_store(timeout=timeout, scenario_name='loc_sc', driver=self.driver, func_mode=True,
-                                       data_sources=True)
+        self.wait_for_mng = WaitForManager(3.5)
+        apiritif.put_into_thread_store(data_sources=True, scenario_name='loc_sc', driver=self.driver,
+                                       timeout=timeout, func_mode=True)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):

@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import add_flow_markers, Manager, DialogsManager, WaitForManager
+from bzt.resources.selenium_extras import WaitForManager, DialogsManager, Manager, add_flow_markers
 
 
 class TestLocScRemote(unittest.TestCase):
@@ -36,11 +36,11 @@ class TestLocScRemote(unittest.TestCase):
                                                              'version': '54.0'})
         self.driver.implicitly_wait(timeout)
         self.mng = Manager()
-        self.wait_for_mng = WaitForManager(self.driver, 3.5)
         self.dlg_mng = DialogsManager(False)
+        self.wait_for_mng = WaitForManager(3.5)
         add_flow_markers()
-        apiritif.put_into_thread_store(timeout=timeout, driver=self.driver, scenario_name='loc_sc_remote',
-                                       func_mode=False)
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver,
+                                       scenario_name='loc_sc_remote')
 
     def _1_(self):
         with apiritif.smart_transaction('/'):

@@ -926,7 +926,7 @@ from selenium.webdriver.common.keys import Keys
                 targets=[ast_attr("self.wait_for_mng")],
                 value=ast_call(
                     func=ast.Name(id=mgr),
-                    args=[ast_attr("self.driver"), ast.Str(self._get_scenario_timeout())])))
+                    args=[ast.Str(self._get_scenario_timeout())])))
 
         return body
 

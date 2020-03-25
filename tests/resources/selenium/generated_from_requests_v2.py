@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import DialogsManager, Manager, WindowManager, FrameManager
+from bzt.resources.selenium_extras import DialogsManager, FrameManager, WindowManager, Manager, WaitForManager
 
 
 class TestLocSc(unittest.TestCase):
@@ -38,8 +38,8 @@ class TestLocSc(unittest.TestCase):
         self.frm_mng = FrameManager()
         self.mng = Manager()
         self.dlg_mng = DialogsManager(True)
-        self.wait_for_mng = WaitForManager(self.driver, 3.5)
-        apiritif.put_into_thread_store(timeout=timeout, scenario_name='loc_sc', driver=self.driver, func_mode=False)
+        self.wait_for_mng = WaitForManager(3.5)
+        apiritif.put_into_thread_store(driver=self.driver, scenario_name='loc_sc', func_mode=False, timeout=timeout)
 
     def _1_Test_V2(self):
         with apiritif.smart_transaction('Test V2'):
@@ -133,9 +133,9 @@ class TestLocSc(unittest.TestCase):
 
             filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), ('screenshot-%d.png' % (time() * 1000)))
             self.driver.save_screenshot(filename)
-
             self.wait_for_mng.wait_for('visible', [{'css': 'invalid_css'}, {'name': 'inputName'}], 3.5)
             self.wait_for_mng.wait_for('visible', [{'css': 'invalid_css'}, {'name': 'inputName'}], 9020.0)
+
             var_edit_content = self.mng.get_locator([{'id': 'editor'}])
 
             if self.driver.find_element(

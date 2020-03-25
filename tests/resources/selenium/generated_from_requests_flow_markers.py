@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import Manager, DialogsManager, add_flow_markers
+from bzt.resources.selenium_extras import Manager, add_flow_markers, WaitForManager, DialogsManager
 
 
 class TestLocSc(unittest.TestCase):
@@ -37,16 +37,14 @@ class TestLocSc(unittest.TestCase):
             chrome_options=options)
         self.driver.implicitly_wait(timeout)
         self.mng = Manager()
-        self.wait_for_mng = WaitForManager(self.driver, 3.5)
         self.dlg_mng = DialogsManager(False)
+        self.wait_for_mng = WaitForManager(3.5)
         add_flow_markers()
-        apiritif.put_into_thread_store(timeout=timeout, scenario_name='loc_sc', driver=self.driver, func_mode=False)
+        apiritif.put_into_thread_store(scenario_name='loc_sc', func_mode=False, driver=self.driver, timeout=timeout)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
-            self.dlg_mng.replace_dialogs()
-
             self.dlg_mng.replace_dialogs()
             self.wait_for_mng.wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             self.assertEqual(self.driver.title, 'BlazeDemo')

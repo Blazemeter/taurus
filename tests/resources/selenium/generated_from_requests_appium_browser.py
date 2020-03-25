@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import Manager, DialogsManager, WaitForManager
+from bzt.resources.selenium_extras import WaitForManager, Manager, DialogsManager
 
 
 class TestLocScAppium(unittest.TestCase):
@@ -34,9 +34,9 @@ class TestLocScAppium(unittest.TestCase):
                                                              'platformName': 'android'})
         self.driver.implicitly_wait(timeout)
         self.mng = Manager()
-        self.wait_for_mng = WaitForManager(self.driver, 3.5)
         self.dlg_mng = DialogsManager(False)
-        apiritif.put_into_thread_store(scenario_name='loc_sc_appium', timeout=timeout, driver=self.driver,
+        self.wait_for_mng = WaitForManager(3.5)
+        apiritif.put_into_thread_store(driver=self.driver, timeout=timeout, scenario_name='loc_sc_appium',
                                        func_mode=False)
 
     def _1_(self):

@@ -1448,36 +1448,15 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         "label": "la-la",
                         "actions": [
                             {
-                                "type": "waitFor",
-                                "param": "visible",
-                                "locators": [
-                                    {"id": "myid"},
-                                    {"css": "mycss"}
-                                ]
-                            },
-                            {"waitForById(myId, present)": "10s"},
-                            {"waitForById(myId, clickable)": "10s"},
-                            {"waitForById(myId, notvisible)": "10s"},
-                            {"waitForById(myId, notpresent)": "10s"},
-                            {"waitForById(myId, notclickable)": "10s"}
+                                "assertDialog(wrong)": "test"
+                            }
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
             self.obj.prepare()
 
-        target_lines = [
-            "self.wait_for_mng.wait_for('visible',[{'id':'myId'}],10.0)",
-            "self.wait_for_mng.wait_for('present',[{'id':'myId'}],10.0)",
-            "self.wait_for_mng.wait_for('clickable',[{'id':'myId'}],10.0)",
-            "self.wait_for_mng.wait_for('notvisible',[{'id':'myId'}],10.0)",
-            "self.wait_for_mng.wait_for('notpresent',[{'id':'myId'}],10.0)",
-            "self.wait_for_mng.wait_for('notclickable',[{'id':'myId'}],10.0)"
-        ]
-        for idx in range(len(target_lines)):
-            target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
-            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
-                          TestSeleniumScriptGeneration.clear_spaces(content),
-                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
+        self.assertTrue("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
+                        in str(context.exception))
 
     def test_answer_dialog_wrong_type(self):
         self.configure({
@@ -1497,10 +1476,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with self.assertRaises(TaurusConfigError) as context:
             self.obj.prepare()
 
-        self.assertTrue('Invalid condition' in str(context.exception),
-                        "Given string was not found in '%s'" % str(context.exception))
+        self.assertTrue("answerDialog type must be one of the following: 'prompt' or 'confirm'"
+                        in str(context.exception))
 
-    def test_assert_dialog_wrong_type(self):
+    def test_answer_confirm_incorrect_type(self):
         self.configure({
             "execution": [{
                 "executor": "apiritif",
@@ -1557,7 +1536,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                           TestSeleniumScriptGeneration.clear_spaces(content),
                           msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-
     def test_wait_for_invalid_cond(self):
         self.configure({
             "execution": [{
@@ -1574,5 +1552,5 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with self.assertRaises(TaurusConfigError) as context:
             self.obj.prepare()
 
-        self.assertTrue('Invalid condition in waitFor' in str(context.exception),
+        self.assertTrue('Invalid condition' in str(context.exception),
                         "Given string was not found in '%s'" % str(context.exception))
