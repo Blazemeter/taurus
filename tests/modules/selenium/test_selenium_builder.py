@@ -769,9 +769,9 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "var_loc_keys=self.loc_mng.get_locator([{'name':'btn1',}])",
+            "var_loc_keys=self.mng.get_locator([{'name':'btn1',}])",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).click()",
-            "var_loc_keys=self.loc_mng.get_locator([{'id':'Id_123',}])",
+            "var_loc_keys=self.mng.get_locator([{'id':'Id_123',}])",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('London')"
         ]
@@ -809,8 +809,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "source=self.loc_mng.get_locator([{'xpath':'/xpath/to'}])",
-            "target=self.loc_mng.get_locator([{'css':'mycss'},{'id':'ID'}])",
+            "source=self.mng.get_locator([{'xpath':'/xpath/to'}])",
+            "target=self.mng.get_locator([{'css':'mycss'},{'id':'ID'}])",
             "ActionChains(self.driver).drag_and_drop(self.driver.find_element(source[0],source[1]),"
             "self.driver.find_element(target[0],target[1])).perform()"
         ]
@@ -1358,7 +1358,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target_lines = [
             "for i in range(1, 11)",
             "self.vars['i'] = str(i)",
-            "self.loc_mng.get_locator([{'id': self.vars['i']"
+            "self.mng.get_locator([{'id': self.vars['i']"
 
         ]
         for idx in range(len(target_lines)):

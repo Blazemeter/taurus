@@ -5,6 +5,18 @@ from apiritif import get_transaction_handlers, set_transaction_handlers, get_fro
 from selenium.webdriver.common.by import By
 
 
+def _get_driver():
+    return get_from_thread_store("driver")
+
+
+def _get_timeout():
+    timeout = get_from_thread_store("timeout")
+    if not (timeout or timeout == 0):   # timeout in (None, []), default requires
+        timeout = 30
+
+    return timeout
+
+
 def add_flow_markers():
     handlers = get_transaction_handlers()
     handlers["enter"].append(_send_start_flow_marker)
@@ -13,8 +25,7 @@ def add_flow_markers():
 
 
 def _send_marker(stage, params):
-    driver = get_from_thread_store("driver")
-    driver.execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
+    _get_driver().execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
 
 
 def _send_start_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
@@ -42,32 +53,32 @@ def _send_exit_flow_marker(*args, **kwargs):   # for apiritif. remove when compa
 
 
 class FrameManager:
-    def __init__(self, driver):
-        self.driver = driver
 
-    def switch(self, frame_name=None):
+    @staticmethod
+    def switch(frame_name=None):
+        driver = _get_driver()
         try:
             if not frame_name or frame_name == "relative=top":
-                self.driver.switch_to_default_content()
+                driver.switch_to_default_content()
             elif frame_name.startswith("index="):  # Switch using index frame using relative position
-                self.driver.switch_to.frame(int(frame_name.split("=")[1]))
+                driver.switch_to.frame(int(frame_name.split("=")[1]))
             elif frame_name == "relative=parent":  # Switch to parent frame of the current frame
-                self.driver.switch_to.parent_frame()
+                driver.switch_to.parent_frame()
             else:  # Use the selenium alternative
-                self.driver.switch_to.frame(frame_name)
+                driver.switch_to.frame(frame_name)
         except NoSuchFrameException:
             raise NoSuchFrameException("Invalid Frame ID: %s" % frame_name)
 
 
 class WindowManager:
-    def __init__(self, driver):
-        self.driver = driver
+    def __init__(self):
         self.windows = {}
 
     def switch(self, window_name=None):
+        driver = _get_driver()
         try:
             if not window_name:  # Switch to last window created
-                self.driver.switch_to.window(self.driver.window_handles[-1])
+                driver.switch_to.window(driver.window_handles[-1])
             else:
                 if window_name.isdigit():  # Switch to window handler index
                     self._switch_by_idx(int(window_name))
@@ -75,36 +86,39 @@ class WindowManager:
                     if window_name.startswith("win_ser_"):  # Switch using window sequential mode
                         self._switch_by_win_ser(window_name)
                     else:  # Switch using window name
-                        self.driver.switch_to.window(window_name)
+                        driver.switch_to.window(window_name)
         except NoSuchWindowException:
             raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
 
-    def _switch_by_idx(self, win_index):
-        wnd_handlers = self.driver.window_handles
+    @staticmethod
+    def _switch_by_idx(win_index):
+        driver = _get_driver()
+        wnd_handlers = driver.window_handles
         if len(wnd_handlers) <= win_index and win_index >= 0:
-            self.driver.switch_to.window(wnd_handlers[win_index])
+            driver.switch_to.window(wnd_handlers[win_index])
         else:
             raise NoSuchWindowException("Invalid Window ID: %s" % str(win_index))
 
     def _switch_by_win_ser(self, window_name):
+        driver = _get_driver()
         if window_name == "win_ser_local":
-            wnd_handlers = self.driver.window_handles
+            wnd_handlers = driver.window_handles
             if len(wnd_handlers) > 0:
-                self.driver.switch_to.window(wnd_handlers[0])
+                driver.switch_to.window(wnd_handlers[0])
             else:
                 raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
         else:
             if window_name not in self.windows:
-                self.windows[window_name] = self.driver.window_handles[-1]
-            self.driver.switch_to.window(self.windows[window_name])
+                self.windows[window_name] = driver.window_handles[-1]
+            driver.switch_to.window(self.windows[window_name])
 
     def close(self, window_name=None):
         if window_name:
             self.switch(window_name)
-        self.driver.close()
+        _get_driver().close()
 
 
-class LocatorsManager:
+class Manager:
     BYS = {
         'xpath': By.XPATH,
         'css': By.CSS_SELECTOR,
@@ -113,10 +127,6 @@ class LocatorsManager:
         'linktext': By.LINK_TEXT
     }
 
-    def __init__(self, driver, timeout=30):
-        self.driver = driver
-        self.timeout = timeout
-
     def get_locator(self, locators):
         """
         :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
@@ -124,6 +134,8 @@ class LocatorsManager:
         :return: first valid locator from the passed List, if no locator is valid then returns the
         first one
         """
+        driver = _get_driver()
+        timeout = _get_timeout()
         first_locator = None
         for locator in locators:
             locator_type = list(locator.keys())[0]
@@ -132,18 +144,18 @@ class LocatorsManager:
                 first_locator = (self.BYS[locator_type.lower()], locator_value)
             else:
                 # set implicit wait to 0 get the result instantly for the other locators
-                self.driver.implicitly_wait(0)
-            elements = self.driver.find_elements(self.BYS[locator_type.lower()], locator_value)
+                driver.implicitly_wait(0)
+            elements = driver.find_elements(self.BYS[locator_type.lower()], locator_value)
             if len(elements) > 0:
                 locator = (self.BYS[locator_type.lower()], locator_value)
                 break
         else:
-            self.driver.implicitly_wait(self.timeout)
+            driver.implicitly_wait(timeout)
             msg = "Element not found: (%s, %s)" % first_locator
             raise NoSuchElementException(msg)
 
         # restore the implicit wait value
-        self.driver.implicitly_wait(self.timeout)
+        driver.implicitly_wait(timeout)
         return locator
 
 
@@ -153,14 +165,12 @@ class DialogsManager:
     These JavaScript functions are taken from the Java Selenium WebDriver repository
     """
 
-    def __init__(self, driver, is_active):
+    def __init__(self, is_active):
         """
 
-        :param driver: the WebDriver instance
         :param is_active: flag indicating whether DialogsManager is going to be utilized in this test run,
         if yes then the dialogs will be replaced
         """
-        self.driver = driver
         self.is_active = is_active
 
     def replace_dialogs(self):
@@ -172,7 +182,7 @@ class DialogsManager:
         if not self.is_active:
             return  # don't replace dialogs in case DialogsManager is not activated
 
-        self.driver.execute_script("""
+        _get_driver().execute_script("""
           if (window.__webdriverAlerts) { return; }
           window.__webdriverAlerts = [];
           window.alert = function(msg) { window.__webdriverAlerts.push(msg); };
@@ -194,46 +204,51 @@ class DialogsManager:
           };
         """)
 
-    def get_next_confirm(self):
+    @staticmethod
+    def get_next_confirm():
         """
         :return: the message from the last invocation of 'window.confirm'
         """
-        return self.driver.execute_script("""
+        return _get_driver().execute_script("""
                  if (!window.__webdriverConfirms) { return null; }
                  return window.__webdriverConfirms.shift();
                """)
 
-    def get_next_alert(self):
+    @staticmethod
+    def get_next_alert():
         """
         :return: the alert message from the last invocation of 'window.alert'
         """
-        return self.driver.execute_script("""
+        return _get_driver().execute_script("""
                 if (!window.__webdriverAlerts) { return null } 
                 var t = window.__webdriverAlerts.shift(); 
                 if (t) { t = t.replace(/\\n/g, ' '); }
                 return t;
               """)
 
-    def get_next_prompt(self):
+    @staticmethod
+    def get_next_prompt():
         """
         :return: the message from the last invocation of 'window.prompt'
         """
-        return self.driver.execute_script("""
+        return _get_driver().execute_script("""
                 if (!window.__webdriverPrompts) { return null; }
                 return window.__webdriverPrompts.shift();
               """)
 
-    def answer_on_next_prompt(self, value):
+    @staticmethod
+    def answer_on_next_prompt(value):
         """
         :param value: The value to be used to answer the next 'window.prompt', if '#cancel' is provided then
         click on cancel button is simulated by returning null
         """
         if str(value).lower() == '#cancel':
-            self.driver.execute_script("window.__webdriverNextPrompt = null")
+            _get_driver().execute_script("window.__webdriverNextPrompt = null")
         else:
-            self.driver.execute_script("window.__webdriverNextPrompt = '%s';" % value)
+            _get_driver().execute_script("window.__webdriverNextPrompt = '%s';" % value)
 
-    def set_next_confirm_state(self, value):
+    @staticmethod
+    def set_next_confirm_state(value):
         """
         :param value: either '#ok' to click on OK button or '#cancel' to simulate click on Cancel button in the
         next 'window.confirm' method
@@ -242,4 +257,4 @@ class DialogsManager:
             confirm = 'true'
         else:
             confirm = 'false'
-        self.driver.execute_script("window.__webdriverNextConfirm = %s;" % confirm)
+        _get_driver().execute_script("window.__webdriverNextConfirm = %s;" % confirm)
