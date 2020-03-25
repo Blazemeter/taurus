@@ -267,7 +267,7 @@ from selenium.webdriver.common.keys import Keys
     def _gen_get_locators(self, var_name, locators):
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store())],
-            value=ast_call(func="self.mng.get_locator",
+            value=ast_call(func="get_locator",
                            args=[ast.List(elts=self._gen_ast_locators_dict(locators))]))
 
     def _gen_locator(self, tag, selector):
@@ -643,7 +643,7 @@ from selenium.webdriver.common.keys import Keys
         return [ast.Expr(element) for element in action_elements]
 
     def _gen_wait_for_mngr(self, atype, param, value, selectors):
-        self.selenium_extras.add("WaitForManager")
+        self.selenium_extras.add("wait_for")
         supported_conds = ["present", "visible", "clickable", "notpresent", "notvisible", "notclickable"]
 
         if not atype.endswith("for"):
@@ -661,7 +661,7 @@ from selenium.webdriver.common.keys import Keys
             raise TaurusConfigError("Invalid condition in %s: '%s'. Supported conditions are: %s." %
                                     (atype, param, ", ".join(supported_conds)))
 
-        return [ast_call(func="self.wait_for_mng.wait_for",
+        return [ast_call(func="wait_for",
                  args=[ast.Str(param), ast.List(elts=self._gen_ast_locators_dict(selectors)), ast.Num(timeout)])]
 
     def _gen_answer_dialog_mngr(self, type, value):
@@ -905,13 +905,6 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(
                     func=ast.Name(id=mgr))))
 
-        self.selenium_extras.add("Manager")
-        mgr = "Manager"
-        body.append(ast.Assign(
-            targets=[ast_attr("self.mng")],
-            value=ast_call(
-                func=ast.Name(id=mgr))))
-
         self.selenium_extras.add("DialogsManager")
         mgr = "DialogsManager"
         body.append(ast.Assign(
@@ -919,14 +912,6 @@ from selenium.webdriver.common.keys import Keys
             value=ast_call(
                 func=ast.Name(id=mgr),
                 args=[ast.Num(self.useDialogsManager)])))
-
-        mgr = "WaitForManager"
-        if mgr in self.selenium_extras:
-            body.append(ast.Assign(
-                targets=[ast_attr("self.wait_for_mng")],
-                value=ast_call(
-                    func=ast.Name(id=mgr),
-                    args=[ast.Str(self._get_scenario_timeout())])))
 
         return body
 
@@ -974,13 +959,13 @@ from selenium.webdriver.common.keys import Keys
                 source = "selenium"
 
             imports.append(ast.parse(self.IMPORTS % source).body)
-            if self.selenium_extras:
-                extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
-                imports.append(
-                    ast.ImportFrom(
-                        module="bzt.resources.selenium_extras",
-                        names=extra_names,
-                        level=0))
+            self.selenium_extras.add("get_locator")
+            extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
+            imports.append(
+                ast.ImportFrom(
+                    module="bzt.resources.selenium_extras",
+                    names=extra_names,
+                    level=0))
 
         return imports
 
