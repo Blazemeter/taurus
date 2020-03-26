@@ -300,6 +300,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"assertDialog(confirm)": "Are you sure?"},
                             {"answerDialog(prompt)": "myvalue"},
                             {"answerDialog(confirm)": "#Ok"},
+                            {"answerDialog(alert)": "#Ok"},
                             "echoString(${red_pill})",
                             "screenshot(screen.png)",
                             "screenshot()",
@@ -769,9 +770,9 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "var_loc_keys=self.mng.get_locator([{'name':'btn1',}])",
+            "var_loc_keys=get_locator([{'name':'btn1',}])",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).click()",
-            "var_loc_keys=self.mng.get_locator([{'id':'Id_123',}])",
+            "var_loc_keys=get_locator([{'id':'Id_123',}])",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('London')"
         ]
@@ -809,8 +810,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "source=self.mng.get_locator([{'xpath':'/xpath/to'}])",
-            "target=self.mng.get_locator([{'css':'mycss'},{'id':'ID'}])",
+            "source=get_locator([{'xpath':'/xpath/to'}])",
+            "target=get_locator([{'css':'mycss'},{'id':'ID'}])",
             "ActionChains(self.driver).drag_and_drop(self.driver.find_element(source[0],source[1]),"
             "self.driver.find_element(target[0],target[1])).perform()"
         ]
@@ -1116,6 +1117,11 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "value": '#Ok'
                                     },
                                     {
+                                        "type": "answerDialog",
+                                        "param": "alert",
+                                        "value": '#Ok'
+                                    },
+                                    {
                                         "type": "assertDialog",
                                         "param": "alert",
                                         "value": "Exception occurred!"
@@ -1358,7 +1364,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target_lines = [
             "for i in range(1, 11)",
             "self.vars['i'] = str(i)",
-            "self.mng.get_locator([{'id': self.vars['i']"
+            "get_locator([{'id': self.vars['i']"
 
         ]
         for idx in range(len(target_lines)):
@@ -1467,7 +1473,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with self.assertRaises(TaurusConfigError) as context:
             self.obj.prepare()
 
-        self.assertTrue("answerDialog type must be one of the following: 'prompt' or 'confirm'"
+        self.assertTrue("answerDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
                         in str(context.exception))
 
     def test_answer_confirm_incorrect_type(self):
@@ -1490,3 +1496,25 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         self.assertTrue("answerDialog of type confirm must have value either '#Ok' or '#Cancel'"
                         in str(context.exception))
+
+    def test_answer_alert_incorrect_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "answerDialog(alert)": "value"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("answerDialog of type alert must have value '#Ok'"
+                        in str(context.exception))
+

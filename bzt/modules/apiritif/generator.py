@@ -140,7 +140,6 @@ from selenium.webdriver.common.keys import Keys
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
         self.test_mode = test_mode
-        self.useDialogsManager = False
 
     def _parse_action_params(self, expr, name):
         res = expr.match(name)
@@ -255,7 +254,7 @@ from selenium.webdriver.common.keys import Keys
 
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store())],
-            value=ast_call(func="self.mng.get_locator",
+            value=ast_call(func="get_locator",
                            args=[ast.List(elts=args)]))
 
     def _gen_locator(self, tag, selector):
@@ -616,9 +615,9 @@ from selenium.webdriver.common.keys import Keys
         elif atype == "select":
             action_elements.extend(self._gen_select_mngr(param, selectors))
         elif atype == 'assertdialog':
-            action_elements.extend(self._gen_assert_dialog_mngr(param, value))
+            action_elements.extend(self._gen_assert_dialog(param, value))
         elif atype == 'answerdialog':
-            action_elements.extend(self._gen_answer_dialog_mngr(param, value))
+            action_elements.extend(self._gen_answer_dialog(param, value))
         elif atype is not None and (atype.startswith("assert") or atype.startswith("store")):
             action_elements.extend(self._gen_assert_store_mngr(atype, tag, param, value, selectors))
 
@@ -640,7 +639,7 @@ from selenium.webdriver.common.keys import Keys
             if param:
                 action_elements.append(ast_call(func=ast_attr("self.driver.get"),
                                                 args=[self._gen_expr(param.strip())]))
-                action_elements.append(ApiritifScriptGenerator._gen_replace_dialogs())
+                action_elements.append(self._gen_replace_dialogs())
         elif atype == "editcontent":
             action_elements.extend(self._gen_edit_mngr(param, selectors))
         elif atype in ('wait', 'pause'):
@@ -662,22 +661,23 @@ from selenium.webdriver.common.keys import Keys
 
         return [ast.Expr(element) for element in action_elements]
 
-    def _gen_answer_dialog_mngr(self, type, value):
-        if type not in ['prompt', 'confirm']:
-            raise TaurusConfigError("answerDialog type must be one of the following: 'prompt' or 'confirm'")
+    def _gen_answer_dialog(self, type, value):
+        if type not in ['alert', 'prompt', 'confirm']:
+            raise TaurusConfigError("answerDialog type must be one of the following: 'alert', 'prompt' or 'confirm'")
         if type == 'confirm' and str(value).lower() not in ['#ok', '#cancel']:
             raise TaurusConfigError("answerDialog of type confirm must have value either '#Ok' or '#Cancel'")
-        self.useDialogsManager = True
-        dlg_method = "self.dlg_mng.answer_on_next_prompt" if type == 'prompt' else "self.dlg_mng.set_next_confirm_state"
+        if type == 'alert' and str(value).lower() != '#ok':
+            raise TaurusConfigError("answerDialog of type alert must have value '#Ok'")
+        dlg_method = "dialogs_answer_on_next_%s" % type
+        self.selenium_extras.add(dlg_method)
         return [ast_call(func=ast_attr(dlg_method), args=[ast.Str(value)])]
 
-    def _gen_assert_dialog_mngr(self, type, value):
+    def _gen_assert_dialog(self, type, value):
         if type not in ['alert', 'prompt', 'confirm']:
             raise TaurusConfigError("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'")
         elements = []
-        self.useDialogsManager = True
-        dlg_method = "self.dlg_mng.get_next_" + type
-
+        dlg_method = "dialogs_get_next_%s" % type
+        self.selenium_extras.add(dlg_method)
         elements.append(ast.Assign(targets=[ast.Name(id='dialog', ctx=ast.Store())],
                        value=ast_call(
                             func=ast_attr(dlg_method))))
@@ -690,16 +690,16 @@ from selenium.webdriver.common.keys import Keys
 
         return elements
 
-    @staticmethod
-    def _gen_replace_dialogs():
+    def _gen_replace_dialogs(self):
         """
-        Generates the call to DialogsManager to replace dialogs, the replacement is actually done only when
-        assertDialog or answerDialog actions are used
+        Generates the call to DialogsManager to replace dialogs
         """
+        method = "dialogs_replace"
+        self.selenium_extras.add(method)
         return [
             gen_empty_line_stmt(),
             ast_call(
-                func=ast_attr("self.dlg_mng.replace_dialogs"))
+                func=ast_attr(method))
         ]
 
     def _gen_loop_mngr(self, action_config):
@@ -903,21 +903,6 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(
                     func=ast.Name(id=mgr))))
 
-        self.selenium_extras.add("Manager")
-        mgr = "Manager"
-        body.append(ast.Assign(
-            targets=[ast_attr("self.mng")],
-            value=ast_call(
-                func=ast.Name(id=mgr))))
-
-        self.selenium_extras.add("DialogsManager")
-        mgr = "DialogsManager"
-        body.append(ast.Assign(
-            targets=[ast_attr("self.dlg_mng")],
-            value=ast_call(
-                func=ast.Name(id=mgr),
-                args=[ast.Num(self.useDialogsManager)])))
-
         return body
 
     @staticmethod
@@ -964,13 +949,13 @@ from selenium.webdriver.common.keys import Keys
                 source = "selenium"
 
             imports.append(ast.parse(self.IMPORTS % source).body)
-            if self.selenium_extras:
-                extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
-                imports.append(
-                    ast.ImportFrom(
-                        module="bzt.resources.selenium_extras",
-                        names=extra_names,
-                        level=0))
+            self.selenium_extras.add("get_locator")
+            extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
+            imports.append(
+                ast.ImportFrom(
+                    module="bzt.resources.selenium_extras",
+                    names=extra_names,
+                    level=0))
 
         return imports
 
@@ -1323,7 +1308,7 @@ from selenium.webdriver.common.keys import Keys
                     ast_call(
                         func=ast_attr("self.driver.get"),
                         args=[self._gen_expr(url)])))
-                lines.append(ApiritifScriptGenerator._gen_replace_dialogs())
+                lines.append(self._gen_replace_dialogs())
 
             else:
                 method = req.method.lower()
