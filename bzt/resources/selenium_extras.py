@@ -158,6 +158,111 @@ def _send_exit_flow_marker(*args, **kwargs):   # for apiritif. remove when compa
     _send_marker(stage, params)
 
 
+def replace_dialogs():
+    """
+    Replaces the standard JavaScript methods, i.e. 'window.confirm', 'window.alert' and 'window.prompt' with
+    own implementation that stores the messages from the dialogs and also is capable of returning user defined
+    values
+    """
+
+    _get_driver().execute_script("""
+          if (window.__webdriverAlerts) { return; }
+          window.__webdriverAlerts = [];
+          window.__webdriverOriginalAlert = window.alert;
+          window.__webdriverNextAlert = null;
+          window.alert = function(msg) {
+            if (window.__webdriverNextAlert === null) {
+                window.__webdriverOriginalAlert(msg);
+            }
+            window.__webdriverNextAlert = null; 
+            window.__webdriverAlerts.push(msg); 
+          };
+          window.__webdriverConfirms = [];
+          window.__webdriverNextConfirm = null;
+          window.__webdriverPrevConfirm = window.confirm;
+          window.confirm = function(msg) {
+            window.__webdriverConfirms.push(msg);
+            var res = window.__webdriverNextConfirm;
+            if (res === null) {
+                return window.__webdriverPrevConfirm(msg);
+            }
+            window.__webdriverNextConfirm = null;
+            return res;
+          };
+          window.__webdriverPrompts = [];
+          window.__webdriverNextPrompts = true;
+          window.prompt = function(msg, def) {
+            window.__webdriverPrompts.push(msg || def);
+            var res = window.__webdriverNextPrompt;
+            window.__webdriverNextPrompt = true;
+            return res;
+          };
+        """)
+
+
+def get_next_confirm():
+    """
+    :return: the message from the last invocation of 'window.confirm'
+    """
+    return _get_driver().execute_script("""
+                 if (!window.__webdriverConfirms) { return null; }
+                 return window.__webdriverConfirms.shift();
+               """)
+
+
+def get_next_alert():
+    """
+    :return: the alert message from the last invocation of 'window.alert'
+    """
+    return _get_driver().execute_script("""
+                if (!window.__webdriverAlerts) { return null } 
+                var t = window.__webdriverAlerts.shift(); 
+                if (t) { t = t.replace(/\\n/g, ' '); }
+                return t;
+              """)
+
+
+def get_next_prompt():
+    """
+    :return: the message from the last invocation of 'window.prompt'
+    """
+    return _get_driver().execute_script("""
+                if (!window.__webdriverPrompts) { return null; }
+                return window.__webdriverPrompts.shift();
+              """)
+
+
+def answer_on_next_alert(value):
+    """
+    Simulates click on OK button in the next alert
+    """
+    if str(value).lower() == '#ok':
+        _get_driver().execute_script("window.__webdriverNextAlert = true")
+
+
+def answer_on_next_prompt(value):
+    """
+    :param value: The value to be used to answer the next 'window.prompt', if '#cancel' is provided then
+    click on cancel button is simulated by returning null
+    """
+    if str(value).lower() == '#cancel':
+        _get_driver().execute_script("window.__webdriverNextPrompt = null")
+    else:
+        _get_driver().execute_script("window.__webdriverNextPrompt = '%s';" % value)
+
+
+def answer_on_next_confirm(value):
+    """
+    :param value: either '#ok' to click on OK button or '#cancel' to simulate click on Cancel button in the
+    next 'window.confirm' method
+    """
+    if str(value).lower() == '#ok':
+        confirm = 'true'
+    else:
+        confirm = 'false'
+    _get_driver().execute_script("window.__webdriverNextConfirm = %s;" % confirm)
+
+
 class FrameManager:
 
     @staticmethod
@@ -222,104 +327,3 @@ class WindowManager:
         if window_name:
             self.switch(window_name)
         _get_driver().close()
-
-
-class DialogsManager:
-    """
-    Provides additional methods for working with Dialogs that are not available in the Python Webdriver.
-    These JavaScript functions are taken from the Java Selenium WebDriver repository
-    """
-
-    def __init__(self, is_active):
-        """
-
-        :param is_active: flag indicating whether DialogsManager is going to be utilized in this test run,
-        if yes then the dialogs will be replaced
-        """
-        self.is_active = is_active
-
-    def replace_dialogs(self):
-        """
-        Replaces the standard JavaScript methods, i.e. 'window.confirm', 'window.alert' and 'window.prompt' with
-        own implementation that stores the messages from the dialogs and also is capable of returning user defined
-        values
-        """
-        if not self.is_active:
-            return  # don't replace dialogs in case DialogsManager is not activated
-
-        _get_driver().execute_script("""
-          if (window.__webdriverAlerts) { return; }
-          window.__webdriverAlerts = [];
-          window.alert = function(msg) { window.__webdriverAlerts.push(msg); };
-          window.__webdriverConfirms = [];
-          window.__webdriverNextConfirm = true;
-          window.confirm = function(msg) {
-            window.__webdriverConfirms.push(msg);
-            var res = window.__webdriverNextConfirm;
-            window.__webdriverNextConfirm = true;
-            return res;
-          };
-          window.__webdriverPrompts = [];
-          window.__webdriverNextPrompts = true;
-          window.prompt = function(msg, def) {
-            window.__webdriverPrompts.push(msg || def);
-            var res = window.__webdriverNextPrompt;
-            window.__webdriverNextPrompt = true;
-            return res;
-          };
-        """)
-
-    @staticmethod
-    def get_next_confirm():
-        """
-        :return: the message from the last invocation of 'window.confirm'
-        """
-        return _get_driver().execute_script("""
-                 if (!window.__webdriverConfirms) { return null; }
-                 return window.__webdriverConfirms.shift();
-               """)
-
-    @staticmethod
-    def get_next_alert():
-        """
-        :return: the alert message from the last invocation of 'window.alert'
-        """
-        return _get_driver().execute_script("""
-                if (!window.__webdriverAlerts) { return null } 
-                var t = window.__webdriverAlerts.shift(); 
-                if (t) { t = t.replace(/\\n/g, ' '); }
-                return t;
-              """)
-
-    @staticmethod
-    def get_next_prompt():
-        """
-        :return: the message from the last invocation of 'window.prompt'
-        """
-        return _get_driver().execute_script("""
-                if (!window.__webdriverPrompts) { return null; }
-                return window.__webdriverPrompts.shift();
-              """)
-
-    @staticmethod
-    def answer_on_next_prompt(value):
-        """
-        :param value: The value to be used to answer the next 'window.prompt', if '#cancel' is provided then
-        click on cancel button is simulated by returning null
-        """
-        if str(value).lower() == '#cancel':
-            _get_driver().execute_script("window.__webdriverNextPrompt = null")
-        else:
-            _get_driver().execute_script("window.__webdriverNextPrompt = '%s';" % value)
-
-    @staticmethod
-    def set_next_confirm_state(value):
-        """
-        :param value: either '#ok' to click on OK button or '#cancel' to simulate click on Cancel button in the
-        next 'window.confirm' method
-        """
-        if str(value).lower() == '#ok':
-            confirm = 'true'
-        else:
-            confirm = 'false'
-        _get_driver().execute_script("window.__webdriverNextConfirm = %s;" % confirm)

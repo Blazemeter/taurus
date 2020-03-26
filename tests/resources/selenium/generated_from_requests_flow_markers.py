@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import Manager, add_flow_markers, WaitForManager, DialogsManager
+from bzt.resources.selenium_extras import add_flow_markers, get_locator, replace_dialogs, wait_for
 
 
 class TestLocSc(unittest.TestCase):
@@ -36,17 +36,14 @@ class TestLocSc(unittest.TestCase):
             service_log_path='/somewhere/webdriver.log',
             chrome_options=options)
         self.driver.implicitly_wait(timeout)
-        self.mng = Manager()
-        self.dlg_mng = DialogsManager(False)
-        self.wait_for_mng = WaitForManager(3.5)
         add_flow_markers()
-        apiritif.put_into_thread_store(scenario_name='loc_sc', func_mode=False, driver=self.driver, timeout=timeout)
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, scenario_name='loc_sc', driver=self.driver)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
-            self.dlg_mng.replace_dialogs()
-            self.wait_for_mng.wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
+            replace_dialogs()
+            wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             self.assertEqual(self.driver.title, 'BlazeDemo')
             body = self.driver.page_source
             re_pattern = re.compile('contained_text')

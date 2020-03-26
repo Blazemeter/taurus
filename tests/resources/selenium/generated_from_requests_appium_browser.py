@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import WaitForManager, Manager, DialogsManager
+from bzt.resources.selenium_extras import get_locator, replace_dialogs, wait_for
 
 
 class TestLocScAppium(unittest.TestCase):
@@ -33,17 +33,14 @@ class TestLocScAppium(unittest.TestCase):
                                        desired_capabilities={'browserName': 'chrome', 'deviceName': '',
                                                              'platformName': 'android'})
         self.driver.implicitly_wait(timeout)
-        self.mng = Manager()
-        self.dlg_mng = DialogsManager(False)
-        self.wait_for_mng = WaitForManager(3.5)
-        apiritif.put_into_thread_store(driver=self.driver, timeout=timeout, scenario_name='loc_sc_appium',
+        apiritif.put_into_thread_store(scenario_name='loc_sc_appium', driver=self.driver, timeout=timeout,
                                        func_mode=False)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
-            self.dlg_mng.replace_dialogs()
-            self.wait_for_mng.wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
+            replace_dialogs()
+            wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             self.assertEqual(self.driver.title, 'BlazeDemo')
             body = self.driver.page_source
             re_pattern = re.compile('contained_text')

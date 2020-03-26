@@ -129,7 +129,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "raiseNoSuchElementException((\'The element (%s : %r)is not a contenteditable element\'%"
             "(var_edit_content[0], var_edit_content[1])))"
             "print(self.vars['red_pill'])",
-            "self.wait_for_mng.wait_for('visible', [{'name': 'toPort'}], 3.5)"
+            "wait_for('visible', [{'name': 'toPort'}], 3.5)"
             "sleep(4.6)",
             "self.driver.delete_all_cookies()",
             "self.driver.save_screenshot('screen.png')",
@@ -769,9 +769,9 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "var_loc_keys=self.mng.get_locator([{'name':'btn1',}])",
+            "var_loc_keys=get_locator([{'name':'btn1',}])",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).click()",
-            "var_loc_keys=self.mng.get_locator([{'id':'Id_123',}])",
+            "var_loc_keys=get_locator([{'id':'Id_123',}])",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('London')"
         ]
@@ -809,8 +809,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "source=self.mng.get_locator([{'xpath':'/xpath/to'}])",
-            "target=self.mng.get_locator([{'css':'mycss'},{'id':'ID'}])",
+            "source=get_locator([{'xpath':'/xpath/to'}])",
+            "target=get_locator([{'css':'mycss'},{'id':'ID'}])",
             "ActionChains(self.driver).drag_and_drop(self.driver.find_element(source[0],source[1]),"
             "self.driver.find_element(target[0],target[1])).perform()"
         ]
@@ -1367,7 +1367,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target_lines = [
             "for i in range(1, 11)",
             "self.vars['i'] = str(i)",
-            "self.mng.get_locator([{'id': self.vars['i']"
+            "get_locator([{'id': self.vars['i']"
 
         ]
         for idx in range(len(target_lines)):
@@ -1476,7 +1476,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with self.assertRaises(TaurusConfigError) as context:
             self.obj.prepare()
 
-        self.assertTrue("answerDialog type must be one of the following: 'prompt' or 'confirm'"
+        self.assertTrue("answerDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
                         in str(context.exception))
 
     def test_answer_confirm_incorrect_type(self):
@@ -1523,12 +1523,12 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "self.wait_for_mng.wait_for('visible',[{'id':'myId'}],10.0)",
-            "self.wait_for_mng.wait_for('present',[{'id':'myId'}],10.0)",
-            "self.wait_for_mng.wait_for('clickable',[{'id':'myId'}],10.0)",
-            "self.wait_for_mng.wait_for('notvisible',[{'id':'myId'}],10.0)",
-            "self.wait_for_mng.wait_for('notpresent',[{'id':'myId'}],10.0)",
-            "self.wait_for_mng.wait_for('notclickable',[{'id':'myId'}],10.0)"
+            "wait_for('visible',[{'id':'myId'}],10.0)",
+            "wait_for('present',[{'id':'myId'}],10.0)",
+            "wait_for('clickable',[{'id':'myId'}],10.0)",
+            "wait_for('notvisible',[{'id':'myId'}],10.0)",
+            "wait_for('notpresent',[{'id':'myId'}],10.0)",
+            "wait_for('notclickable',[{'id':'myId'}],10.0)"
         ]
         for idx in range(len(target_lines)):
             target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))

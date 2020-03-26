@@ -369,23 +369,28 @@ Example using the Alternative syntax:
 
 #### Answering dialogs
 
-Allows to set the value that will be returned by displaying a dialog. It is only applicable
-to `prompt` and `confirm` dialogs. This action actually prevents showing the dialog and instead
+Allows to set the value that will be returned by displaying a dialog. It is applicable
+to `alert`, `prompt` and `confirm` dialogs. This action actually prevents showing the dialog and instead
 returns the specified value directly.
 
+For alert dialogs the value needs to be always '#Ok' for dismissing the dialog.
 For confirmation dialogs the value can only be either `'#Ok'` or `'#Cancel'`, meaning to simulate 
 click on 'Ok' or 'Cancel' buttons.
 
 Examples:
 
 ```yaml
+- answerDialog(alert): '#Ok'
 - answerDialog(prompt): John Doe
-- answerDialog(confirm): '#Ok'
+- answerDialog(confirm): '#Cancel'
 ```
 
 Examples using the alternative syntax:
 
 ```yaml
+- type: answerDialog
+  param: alert
+  value: '#Ok'
 - type: answerDialog
   param: prompt
   value: Jon Doe
