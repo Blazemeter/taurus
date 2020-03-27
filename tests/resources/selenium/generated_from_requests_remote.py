@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import add_flow_markers, Manager, DialogsManager
+from bzt.resources.selenium_extras import dialogs_replace, add_flow_markers, get_locator
 
 
 class TestLocScRemote(unittest.TestCase):
@@ -35,18 +35,16 @@ class TestLocScRemote(unittest.TestCase):
                                                              'platformVersion': '', 'seleniumVersion': '',
                                                              'version': '54.0'})
         self.driver.implicitly_wait(timeout)
-        self.mng = Manager()
-        self.dlg_mng = DialogsManager(False)
         add_flow_markers()
-        apiritif.put_into_thread_store(timeout=timeout, driver=self.driver, scenario_name='loc_sc_remote',
-                                       func_mode=False)
+        apiritif.put_into_thread_store(func_mode=False, timeout=timeout, scenario_name='loc_sc_remote',
+                                       driver=self.driver)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
-            self.dlg_mng.replace_dialogs()
+            dialogs_replace()
 
-            var_loc_wait = self.mng.get_locator([{'xpath': "//input[@type='submit']"}])
+            var_loc_wait = get_locator([{'xpath': "//input[@type='submit']"}])
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
                 var_loc_wait[0],
                 var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')

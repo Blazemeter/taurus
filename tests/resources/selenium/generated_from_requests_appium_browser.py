@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import Manager, DialogsManager
+from bzt.resources.selenium_extras import get_locator, dialogs_replace
 
 
 class TestLocScAppium(unittest.TestCase):
@@ -33,17 +33,15 @@ class TestLocScAppium(unittest.TestCase):
                                        desired_capabilities={'browserName': 'chrome', 'deviceName': '',
                                                              'platformName': 'android'})
         self.driver.implicitly_wait(timeout)
-        self.mng = Manager()
-        self.dlg_mng = DialogsManager(False)
-        apiritif.put_into_thread_store(scenario_name='loc_sc_appium', timeout=timeout, driver=self.driver,
-                                       func_mode=False)
+        apiritif.put_into_thread_store(scenario_name='loc_sc_appium', func_mode=False, driver=self.driver,
+                                       timeout=timeout)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
-            self.dlg_mng.replace_dialogs()
+            dialogs_replace()
 
-            var_loc_wait = self.mng.get_locator([{'xpath': "//input[@type='submit']"}])
+            var_loc_wait = get_locator([{'xpath': "//input[@type='submit']"}])
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
                 var_loc_wait[0],
                 var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')
