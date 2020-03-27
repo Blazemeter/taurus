@@ -1,8 +1,12 @@
 # Utility functions and classes for Taurus Selenium tests
+import time
 
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
-from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException
+from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
+    TimeoutException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as econd
 
 BYS = {
     'xpath': By.XPATH,
@@ -198,6 +202,64 @@ def dialogs_answer_on_next_confirm(value):
     else:
         confirm = 'false'
     _get_driver().execute_script("window.__webdriverNextConfirm = %s;" % confirm)
+
+
+def wait_for(condition, locators, wait_timeout=10):
+    if condition.lower() in ["present", "visible", "clickable"]:
+        _wait_for_positive(condition.lower(), locators, wait_timeout)
+    elif condition.lower() in ["notpresent", "notvisible", "notclickable"]:
+        _wait_for_negative(condition.lower(), locators, wait_timeout)
+
+
+def _wait_for_positive(condition, locators, wait_timeout):
+    start_time = time.time()
+    while True:
+        locator = None
+        try:
+            locator = get_locator(locators, True)
+        except NoSuchElementException:
+            pass
+        if locator:
+            element = None
+            try:
+                element = WebDriverWait(_get_driver(), wait_timeout).until(_get_until_cond(condition, locator))
+            except TimeoutException:
+                pass
+            if element:
+                return
+
+        elapsed_time = time.time() - start_time
+        if elapsed_time > wait_timeout:
+            raise NoSuchElementException("Timeout occurred while waiting for '%s' condition" % condition)
+
+
+def _wait_for_negative(condition, locators, wait_timeout):
+    present_locs = []
+    for locator in locators:
+        try:
+            present_locs.append(get_locator([locator], True))
+        except NoSuchElementException:
+            pass
+    if not present_locs:
+        return
+    start_time = time.time()
+    for locator in present_locs:
+        elapsed_time = time.time() - start_time
+        timeout = wait_timeout - elapsed_time
+        WebDriverWait(_get_driver(), timeout).until_not(
+            _get_until_cond(condition, locator),
+            message="Timeout occurred while waiting for element (%s=%s) to become '%s'" %
+                    (locator[0], locator[1], condition))
+
+
+def _get_until_cond(condition, locator):
+    loc_tuple = (locator[0], locator[1])
+    if "clickable" in condition:
+        return econd.element_to_be_clickable(loc_tuple)
+    if "present" in condition:
+        return econd.presence_of_element_located(loc_tuple)
+    if "visible" in condition:
+        return econd.visibility_of_element_located(loc_tuple)
 
 
 class FrameManager:
