@@ -5,10 +5,10 @@ import time
 
 import apiritif
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.common.by import By
 
 from bzt.engine import EXEC
 from bzt.modules import ConsolidatingAggregator
+from bzt.modules.selenium import GeckoDriver
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
 from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.modules.pytest import PyTestExecutor
@@ -471,6 +471,12 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
         self.obj.prepare()
+
+        driver = self.obj._get_tool(GeckoDriver, config=self.obj.settings.get('geckodriver'))
+        if not driver.check_if_installed():
+            driver.install()
+        self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+
         try:
             self.obj.startup()
             while not self.obj.check():
