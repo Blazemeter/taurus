@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import DialogsManager, Manager
+from bzt.resources.selenium_extras import get_locator, dialogs_replace
 
 
 class TestLocSc(unittest.TestCase):
@@ -36,20 +36,18 @@ class TestLocSc(unittest.TestCase):
             service_log_path='/somewhere/webdriver.log',
             chrome_options=options)
         self.driver.implicitly_wait(timeout)
-        self.mng = Manager()
-        self.dlg_mng = DialogsManager(False)
-        apiritif.put_into_thread_store(func_mode=False, timeout=timeout, scenario_name='loc_sc', driver=self.driver)
+        apiritif.put_into_thread_store(scenario_name='loc_sc', timeout=timeout, func_mode=False, driver=self.driver)
 
     def _1_Conditions_test(self):
         with apiritif.smart_transaction('Conditions test'):
             self.driver.get('http://blazedemo.com')
 
-            self.dlg_mng.replace_dialogs()
+            dialogs_replace()
 
             test = self.driver.execute_script('return document.getElementsByName("fromPort")[0].length > 0;')
             if test:
 
-                var_loc_keys = self.mng.get_locator([{'id': 'wrong_id'}, {'xpath': '/html/body/div[3]/form/div/input'}])
+                var_loc_keys = get_locator([{'id': 'wrong_id'}, {'xpath': '/html/body/div[3]/form/div/input'}])
                 self.driver.find_element(
                     var_loc_keys[0],
                     var_loc_keys[1]).click()
@@ -58,7 +56,7 @@ class TestLocSc(unittest.TestCase):
                 test = self.driver.execute_script('return document.getElementsByClassName("table")[0].rows.length > 5;')
                 if test:
 
-                    var_loc_keys = self.mng.get_locator([{'xpath': '/html/body/div[2]/table/tbody/tr[5]/td[1]/input'}])
+                    var_loc_keys = get_locator([{'xpath': '/html/body/div[2]/table/tbody/tr[5]/td[1]/input'}])
                     self.driver.find_element(
                         var_loc_keys[0],
                         var_loc_keys[1]).click()
@@ -67,7 +65,7 @@ class TestLocSc(unittest.TestCase):
                         'return document.getElementById("{}").value === \'\';'.format(self.vars['input_name_id']))
                     if test:
 
-                        var_loc_keys = self.mng.get_locator([{'id': self.vars['input_name_id']}])
+                        var_loc_keys = get_locator([{'id': self.vars['input_name_id']}])
                         self.driver.find_element(
                             var_loc_keys[0],
                             var_loc_keys[1]).clear()
@@ -76,7 +74,7 @@ class TestLocSc(unittest.TestCase):
                             var_loc_keys[1]).send_keys('John Doe')
                     else:
 
-                        var_loc_keys = self.mng.get_locator([{'id': self.vars['input_name_id']}])
+                        var_loc_keys = get_locator([{'id': self.vars['input_name_id']}])
                         self.driver.find_element(
                             var_loc_keys[0],
                             var_loc_keys[1]).clear()
@@ -84,7 +82,7 @@ class TestLocSc(unittest.TestCase):
                             var_loc_keys[0],
                             var_loc_keys[1]).send_keys('Jack Green')
 
-                    var_loc_keys = self.mng.get_locator([{'xpath': '/html/body/div[2]/form/div[11]/div/input'}])
+                    var_loc_keys = get_locator([{'xpath': '/html/body/div[2]/form/div[11]/div/input'}])
                     self.driver.find_element(
                         var_loc_keys[0],
                         var_loc_keys[1]).click()
@@ -94,7 +92,7 @@ class TestLocSc(unittest.TestCase):
                 test = self.driver.execute_script('return document.getElementsByClassName("table")[0].rows.length > 5;')
                 if test:
 
-                    var_loc_keys = self.mng.get_locator([{'id': self.vars['elem2_id']}])
+                    var_loc_keys = get_locator([{'id': self.vars['elem2_id']}])
                     self.driver.find_element(
                         var_loc_keys[0],
                         var_loc_keys[1]).clear()
@@ -109,7 +107,7 @@ class TestLocSc(unittest.TestCase):
                         self.driver.save_screenshot('file')
                 else:
 
-                    var_loc_keys = self.mng.get_locator([{'xpath': '/html/body/div[3]/input'}])
+                    var_loc_keys = get_locator([{'xpath': '/html/body/div[3]/input'}])
                     self.driver.find_element(
                         var_loc_keys[0],
                         var_loc_keys[1]).click()

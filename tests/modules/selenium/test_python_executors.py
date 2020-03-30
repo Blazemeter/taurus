@@ -15,7 +15,7 @@ from bzt.modules.pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
 from tests import RESOURCES_DIR, ExecutorTestCase, BZTestCase
 from tests.modules.selenium import SeleniumTestCase
-from bzt.resources.selenium_extras import Manager
+from bzt.resources.selenium_extras import get_locator, BYS
 
 
 class MockWebDriver(object):
@@ -23,7 +23,7 @@ class MockWebDriver(object):
         self.content = []
         for element in content:
             key, val = list(element.items())[0]
-            self.content.append((Manager.BYS[key.lower()], val))
+            self.content.append((BYS[key.lower()], val))
         self.timeout = timeout
         self.waiting_time = 0
 
@@ -40,17 +40,16 @@ class TestLocatorsMagager(BZTestCase):
         content = [{'css': 'existed_css'}]
         timeout = 30
         driver = MockWebDriver(content=content, timeout=timeout)
-        locators_manager = Manager()
 
         apiritif.put_into_thread_store(driver=driver, timeout=timeout, func_mode=False)
 
         missing_locators = [{'css': 'missing_css'}, {'xpath': 'missing_xpath'}]
-        self.assertRaises(NoSuchElementException, locators_manager.get_locator, missing_locators)
+        self.assertRaises(NoSuchElementException, get_locator, missing_locators)
         self.assertEqual(30, driver.waiting_time)
 
         driver.waiting_time = 0
         existed_locators = [{'css': 'existed_css'}]
-        locators_manager.get_locator(existed_locators)
+        get_locator(existed_locators)
         self.assertEqual(30, driver.waiting_time)
 
 
