@@ -463,31 +463,6 @@ class TestPyTestExecutor(ExecutorTestCase):
             report = [json.loads(line) for line in fds.readlines() if line]
         self.assertEqual(2, len(report))
 
-    def test_package(self):
-        self.obj.engine.check_interval = 0.1
-        self.obj.execution.merge({
-            "scenario": {
-                "script": RESOURCES_DIR + "selenium/pytest/"
-            }
-        })
-        self.obj.prepare()
-
-        driver = self.obj._get_tool(GeckoDriver, config=self.obj.settings.get('geckodriver'))
-        if not driver.check_if_installed():
-            driver.install()
-        self.obj.env.add_path({"PATH": driver.get_driver_dir()})
-
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        with open(self.obj.report_file) as fds:
-            report = [json.loads(line) for line in fds.readlines() if line]
-        self.assertEqual(7, len(report))
-
     def test_additional_args(self):
         additional_args = "--foo --bar"
         self.obj.execution.merge({
