@@ -532,7 +532,39 @@ Or by using the [multiple locators](#Alternative-syntax-supporting-multiple-loca
 
 ### Pause
 For pause you can use the following actions:
+
+- `waitForByX(X\_name, condition): timeout`
+
+This action allows for checking that the given object meets the `condition` within the `timeout` period.
+
+`condition` is one of the following:
+
+    - Present
+    - Visible
+    - Clickable
+    - NotPresent
+    - NotVisible
+    - NotClickable
+
+
+`timeout` is optional with default value of 10 (10 seconds). Timeout can be provided as a numeric value 
+and that will mean seconds or it can be provided as a formatted string with the pattern 
+1d2h3m4s5ms where you can provide number of days, hours, minutes, seconds and milliseconds it’s required to wait. 
+
+You can also define waitFor using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators) to provide multiple locators:
+```yaml
+- type: waitFor
+  locators: 
+    - css: element_class
+    - id: element_id
+  param: Clickable    # the condition
+  value: 2m30s        # the timeout    
+```
+
+
 - `waitByX(X\_name)` to wait for presence or `waitByX(X\_name): visible` to wait for visibility
+
+**_DEPRECATION WARNING_** `waitByX` is deprecated and will be removed soon, please use the `waitForByX` version above.
 
 You can also define wait using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators) to provide multiple locators:
 ```yaml

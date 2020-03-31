@@ -19,9 +19,9 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_get_next_confirm, get_locator, dialogs_get_next_prompt, \
-    dialogs_answer_on_next_prompt, WindowManager, dialogs_answer_on_next_confirm, dialogs_replace, FrameManager, \
-    dialogs_get_next_alert, dialogs_answer_on_next_alert
+from bzt.resources.selenium_extras import dialogs_answer_on_next_alert, FrameManager, dialogs_answer_on_next_prompt, \
+    WindowManager, dialogs_replace, dialogs_get_next_confirm, get_locator, dialogs_answer_on_next_confirm, wait_for, \
+    dialogs_get_next_prompt, dialogs_get_next_alert
 
 reader_1 = apiritif.CSVReaderPerThread('first.csv', loop=True)
 reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)
@@ -45,18 +45,15 @@ class TestLocSc(unittest.TestCase):
         self.driver.implicitly_wait(timeout)
         self.wnd_mng = WindowManager()
         self.frm_mng = FrameManager()
-        apiritif.put_into_thread_store(scenario_name='loc_sc', timeout=timeout, driver=self.driver, func_mode=True,
-                                       data_sources=True)
+        apiritif.put_into_thread_store(data_sources=True, timeout=timeout, scenario_name='loc_sc', driver=self.driver,
+                                       func_mode=True)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
             dialogs_replace()
-
-            var_loc_wait = get_locator([{'xpath': "//input[@type='submit']"}])
-            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
-                var_loc_wait[0],
-                var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')
+            wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
+            wait_for('present', [{'xpath': "//input[@name='test,name']"}], 80.0)
             self.assertEqual(self.driver.title, 'BlazeDemo')
 
             var_loc_chain = get_locator([{'xpath': '/html/body/div[2]/div/p[2]/a'}])
@@ -98,11 +95,7 @@ class TestLocSc(unittest.TestCase):
             self.assertEqual(self.driver.find_element(
                 var_loc_as[0],
                 var_loc_as[1]).get_attribute('innerText').strip(), self.vars['name'].strip())
-
-            var_loc_wait = get_locator([{'name': 'toPort'}])
-            WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((
-                var_loc_wait[0],
-                var_loc_wait[1])), "Element 'name':'toPort' failed to appear within 3.5s")
+            wait_for('visible', [{'name': 'toPort'}], 3.5)
 
             var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(

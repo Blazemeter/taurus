@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import get_locator, add_flow_markers, dialogs_replace
+from bzt.resources.selenium_extras import dialogs_replace, get_locator, wait_for, add_flow_markers
 
 
 class TestLocSc(unittest.TestCase):
@@ -43,11 +43,7 @@ class TestLocSc(unittest.TestCase):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
             dialogs_replace()
-
-            var_loc_wait = get_locator([{'xpath': "//input[@type='submit']"}])
-            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
-                var_loc_wait[0],
-                var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')
+            wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             self.assertEqual(self.driver.title, 'BlazeDemo')
             body = self.driver.page_source
             re_pattern = re.compile('contained_text')
