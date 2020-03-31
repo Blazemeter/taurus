@@ -19,7 +19,10 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import FrameManager, WindowManager, LocatorsManager
+from bzt.resources.selenium_extras import dialogs_get_next_confirm, get_locator, dialogs_get_next_prompt, \
+    dialogs_answer_on_next_prompt, WindowManager, dialogs_answer_on_next_confirm, dialogs_replace, FrameManager, \
+    dialogs_get_next_alert, dialogs_answer_on_next_alert
+
 reader_1 = apiritif.CSVReaderPerThread('first.csv', loop=True)
 reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)
 
@@ -27,110 +30,86 @@ reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)
 class TestLocSc(unittest.TestCase):
 
     def setUp(self):
-        self.vars = {
-            'name': 'Name',
-            'red_pill': 'take_it',
-        }
+        self.vars = {'name': 'Name', 'red_pill': 'take_it'}
         reader_1.read_vars()
         reader_2.read_vars()
         self.vars.update(reader_1.get_vars())
         self.vars.update(reader_2.get_vars())
+
+        timeout = 3.5
         self.driver = None
         options = webdriver.FirefoxOptions()
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
         self.driver = webdriver.Firefox(profile, firefox_options=options)
-        self.driver.implicitly_wait(3.5)
-        self.wnd_mng = WindowManager(self.driver)
-        self.frm_mng = FrameManager(self.driver)
-        self.loc_mng = LocatorsManager(self.driver, 3.5)
-        apiritif.put_into_thread_store(func_mode=True, driver=self.driver,scenario_name='loc_sc', data_sources=True)
+        self.driver.implicitly_wait(timeout)
+        self.wnd_mng = WindowManager()
+        self.frm_mng = FrameManager()
+        apiritif.put_into_thread_store(scenario_name='loc_sc', timeout=timeout, driver=self.driver, func_mode=True,
+                                       data_sources=True)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
+            dialogs_replace()
 
-            var_loc_wait = self.loc_mng.get_locator([{
-                'xpath': "//input[@type='submit']",
-            }])
+            var_loc_wait = get_locator([{'xpath': "//input[@type='submit']"}])
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
                 var_loc_wait[0],
                 var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')
             self.assertEqual(self.driver.title, 'BlazeDemo')
 
-            var_loc_chain = self.loc_mng.get_locator([{
-                'xpath': '/html/body/div[2]/div/p[2]/a',
-            }])
+            var_loc_chain = get_locator([{'xpath': '/html/body/div[2]/div/p[2]/a'}])
             ActionChains(self.driver).move_to_element(self.driver.find_element(
                 var_loc_chain[0],
                 var_loc_chain[1])).perform()
 
-            var_loc_chain = self.loc_mng.get_locator([{
-                'xpath': '/html/body/div[3]/h2',
-            }])
+            var_loc_chain = get_locator([{'xpath': '/html/body/div[3]/h2'}])
             ActionChains(self.driver).double_click(self.driver.find_element(
                 var_loc_chain[0],
                 var_loc_chain[1])).perform()
 
-            var_loc_chain = self.loc_mng.get_locator([{
-                'xpath': '/html/body/div[3]/form/select[1]',
-            }])
+            var_loc_chain = get_locator([{'xpath': '/html/body/div[3]/form/select[1]'}])
             ActionChains(self.driver).click_and_hold(self.driver.find_element(
                 var_loc_chain[0],
                 var_loc_chain[1])).perform()
 
-            var_loc_chain = self.loc_mng.get_locator([{
-                'xpath': '/html/body/div[3]/form/select[1]/option[6]',
-            }])
+            var_loc_chain = get_locator([{'xpath': '/html/body/div[3]/form/select[1]/option[6]'}])
             ActionChains(self.driver).release(self.driver.find_element(
                 var_loc_chain[0],
                 var_loc_chain[1])).perform()
 
-            var_loc_select = self.loc_mng.get_locator([{
-                'name': 'toPort',
-            }])
+            var_loc_select = get_locator([{'name': 'toPort'}])
             Select(self.driver.find_element(
                 var_loc_select[0],
                 var_loc_select[1])).select_by_visible_text('London')
 
-            var_loc_keys = self.loc_mng.get_locator([{
-                'css': 'body input.btn.btn-primary',
-            }])
+            var_loc_keys = get_locator([{'css': 'body input.btn.btn-primary'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).send_keys(Keys.ENTER)
 
-            var_loc_as = self.loc_mng.get_locator([{
-                'id': 'address',
-            }])
+            var_loc_as = get_locator([{'id': 'address'}])
             self.assertEqual(self.driver.find_element(
                 var_loc_as[0],
                 var_loc_as[1]).get_attribute('value').strip(), '123 Beautiful st.'.strip())
 
-            var_loc_as = self.loc_mng.get_locator([{
-                'xpath': '/html/body/div[2]/form/div[1]/label',
-            }])
+            var_loc_as = get_locator([{'xpath': '/html/body/div[2]/form/div[1]/label'}])
             self.assertEqual(self.driver.find_element(
                 var_loc_as[0],
                 var_loc_as[1]).get_attribute('innerText').strip(), self.vars['name'].strip())
 
-            var_loc_wait = self.loc_mng.get_locator([{
-                'name': 'toPort',
-            }])
+            var_loc_wait = get_locator([{'name': 'toPort'}])
             WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((
                 var_loc_wait[0],
                 var_loc_wait[1])), "Element 'name':'toPort' failed to appear within 3.5s")
 
-            var_loc_keys = self.loc_mng.get_locator([{
-                'name': 'toPort',
-            }])
+            var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).send_keys('B')
 
-            var_loc_keys = self.loc_mng.get_locator([{
-                'name': 'toPort',
-            }])
+            var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).clear()
@@ -138,16 +117,12 @@ class TestLocSc(unittest.TestCase):
                 var_loc_keys[0],
                 var_loc_keys[1]).send_keys('B')
 
-            var_loc_keys = self.loc_mng.get_locator([{
-                'name': 'toPort',
-            }])
+            var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).send_keys(Keys.ENTER)
 
-            var_loc_keys = self.loc_mng.get_locator([{
-                'name': 'toPort',
-            }])
+            var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).clear()
@@ -155,16 +130,12 @@ class TestLocSc(unittest.TestCase):
                 var_loc_keys[0],
                 var_loc_keys[1]).send_keys(Keys.ENTER)
 
-            var_loc_keys = self.loc_mng.get_locator([{
-                'xpath': '//div[3]/form/select[1]//option[3]',
-            }])
+            var_loc_keys = get_locator([{'xpath': '//div[3]/form/select[1]//option[3]'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
 
-            var_loc_keys = self.loc_mng.get_locator([{
-                'xpath': '//div[3]/form/select[2]//option[6]',
-            }])
+            var_loc_keys = get_locator([{'xpath': '//div[3]/form/select[2]//option[6]'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
@@ -178,9 +149,7 @@ class TestLocSc(unittest.TestCase):
             self.wnd_mng.close('win_ser_1')
             self.wnd_mng.close('that_window')
 
-            var_loc_keys = self.loc_mng.get_locator([{
-                'name': 'toPort',
-            }])
+            var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).submit()
@@ -190,13 +159,9 @@ class TestLocSc(unittest.TestCase):
                 if ((i % 2) == 0):
                     print(i)
 
-            source = self.loc_mng.get_locator([{
-                'id': 'address',
-            }])
+            source = get_locator([{'id': 'address'}])
 
-            target = self.loc_mng.get_locator([{
-                'name': 'toPort',
-            }])
+            target = get_locator([{'name': 'toPort'}])
             ActionChains(self.driver).drag_and_drop(self.driver.find_element(
                 source[0],
                 source[1]), self.driver.find_element(
@@ -206,9 +171,7 @@ class TestLocSc(unittest.TestCase):
             self.frm_mng.switch('index=1')
             self.frm_mng.switch('relative=parent')
 
-            var_edit_content = self.loc_mng.get_locator([{
-                'id': 'editor',
-            }])
+            var_edit_content = get_locator([{'id': 'editor'}])
 
             if self.driver.find_element(
                     var_edit_content[0],
@@ -223,26 +186,20 @@ class TestLocSc(unittest.TestCase):
             sleep(3.5)
             self.driver.delete_all_cookies()
 
-            var_loc_keys = self.loc_mng.get_locator([{
-                'linktext': 'destination of the week! The Beach!',
-            }])
+            var_loc_keys = get_locator([{'linktext': 'destination of the week! The Beach!'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
 
             self.vars['Title'] = self.driver.title
 
-            var_loc_as = self.loc_mng.get_locator([{
-                'xpath': "//*[@id='basics']/h2",
-            }])
+            var_loc_as = get_locator([{'xpath': "//*[@id='basics']/h2"}])
 
             self.vars['Basic'] = self.driver.find_element(
                 var_loc_as[0],
                 var_loc_as[1]).get_attribute('innerText')
 
-            var_loc_as = self.loc_mng.get_locator([{
-                'xpath': "//*[@id='basics']/h1",
-            }])
+            var_loc_as = get_locator([{'xpath': "//*[@id='basics']/h1"}])
 
             self.vars['World'] = self.driver.find_element(
                 var_loc_as[0],
@@ -253,6 +210,23 @@ class TestLocSc(unittest.TestCase):
             self.vars['var_eval'] = self.driver.execute_script('return 0 == false;')
             self.assertTrue(self.driver.execute_script('return 10 === 2*5;'), '10 === 2*5')
             self.driver.get('http:\\blazemeter.com')
+
+            dialogs_replace()
+
+            dialog = dialogs_get_next_alert()
+            self.assertIsNotNone(dialog, 'No dialog of type alert appeared')
+            self.assertEqual(dialog, 'Alert Message', "Dialog message didn't match")
+
+            dialog = dialogs_get_next_prompt()
+            self.assertIsNotNone(dialog, 'No dialog of type prompt appeared')
+            self.assertEqual(dialog, 'Enter value', "Dialog message didn't match")
+
+            dialog = dialogs_get_next_confirm()
+            self.assertIsNotNone(dialog, 'No dialog of type confirm appeared')
+            self.assertEqual(dialog, 'Are you sure?', "Dialog message didn't match")
+            dialogs_answer_on_next_prompt('myvalue')
+            dialogs_answer_on_next_confirm('#Ok')
+            dialogs_answer_on_next_alert('#Ok')
             print(self.vars['red_pill'])
             self.driver.save_screenshot('screen.png')
 

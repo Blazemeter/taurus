@@ -87,7 +87,8 @@ class ApiritifScriptGenerator(object):
 
     ACTIONS = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
                         'mouseOver', 'select', 'wait', 'keys', 'pause', 'clear', 'assert',
-                        'assertText', 'assertValue', 'submit', 'close', 'script', 'editcontent',
+                        'assertText', 'assertValue', 'assertDialog', 'answerDialog', 'submit',
+                        'close', 'script', 'editcontent',
                         'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
                         'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode',
                         'resize', 'maximize', 'alert'
@@ -184,7 +185,7 @@ from selenium.webdriver.common.keys import Keys
             if tag in self.TO_BYS.keys():
                 tag_name = self.TO_BYS[tag]
                 selectors = [{tag_name: selector}]
-            elif not param:
+            elif param is None:
                 param = selector
             else:
                 value = selector
@@ -196,6 +197,8 @@ from selenium.webdriver.common.keys import Keys
         elif atype == "switchframe":
             # for switchFrameByName we need to get the param
             param = selector
+        elif atype in ['answerdialog', 'assertdialog']:
+            param, value = value, param
 
         return atype, tag, param, value, selectors
 
@@ -251,7 +254,7 @@ from selenium.webdriver.common.keys import Keys
 
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store())],
-            value=ast_call(func="self.loc_mng.get_locator",
+            value=ast_call(func="get_locator",
                            args=[ast.List(elts=args)]))
 
     def _gen_locator(self, tag, selector):
@@ -604,6 +607,10 @@ from selenium.webdriver.common.keys import Keys
             action_elements.extend(self._gen_chain_mngr(atype, selectors))
         elif atype == "select":
             action_elements.extend(self._gen_select_mngr(param, selectors))
+        elif atype == 'assertdialog':
+            action_elements.extend(self._gen_assert_dialog(param, value))
+        elif atype == 'answerdialog':
+            action_elements.extend(self._gen_answer_dialog(param, value))
         elif atype is not None and (atype.startswith("assert") or atype.startswith("store")):
             action_elements.extend(self._gen_assert_store_mngr(atype, tag, param, value, selectors))
 
@@ -625,6 +632,7 @@ from selenium.webdriver.common.keys import Keys
             if param:
                 action_elements.append(ast_call(func=ast_attr("self.driver.get"),
                                                 args=[self._gen_expr(param.strip())]))
+                action_elements.append(self._gen_replace_dialogs())
         elif atype == "editcontent":
             action_elements.extend(self._gen_edit_mngr(param, selectors))
         elif atype in ('wait', 'pause'):
@@ -645,6 +653,47 @@ from selenium.webdriver.common.keys import Keys
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
+
+    def _gen_answer_dialog(self, type, value):
+        if type not in ['alert', 'prompt', 'confirm']:
+            raise TaurusConfigError("answerDialog type must be one of the following: 'alert', 'prompt' or 'confirm'")
+        if type == 'confirm' and str(value).lower() not in ['#ok', '#cancel']:
+            raise TaurusConfigError("answerDialog of type confirm must have value either '#Ok' or '#Cancel'")
+        if type == 'alert' and str(value).lower() != '#ok':
+            raise TaurusConfigError("answerDialog of type alert must have value '#Ok'")
+        dlg_method = "dialogs_answer_on_next_%s" % type
+        self.selenium_extras.add(dlg_method)
+        return [ast_call(func=ast_attr(dlg_method), args=[ast.Str(value)])]
+
+    def _gen_assert_dialog(self, type, value):
+        if type not in ['alert', 'prompt', 'confirm']:
+            raise TaurusConfigError("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'")
+        elements = []
+        dlg_method = "dialogs_get_next_%s" % type
+        self.selenium_extras.add(dlg_method)
+        elements.append(ast.Assign(targets=[ast.Name(id='dialog', ctx=ast.Store())],
+                       value=ast_call(
+                            func=ast_attr(dlg_method))))
+        elements.append(ast_call(
+                func=ast_attr("self.assertIsNotNone"),
+                args=[ast.Name(id='dialog'), ast.Str("No dialog of type %s appeared" % type)]))
+        elements.append(ast_call(
+                func=ast_attr("self.assertEqual"),
+                args=[ast.Name(id='dialog'), ast.Str(value), ast.Str("Dialog message didn't match")]))
+
+        return elements
+
+    def _gen_replace_dialogs(self):
+        """
+        Generates the call to DialogsManager to replace dialogs
+        """
+        method = "dialogs_replace"
+        self.selenium_extras.add(method)
+        return [
+            gen_empty_line_stmt(),
+            ast_call(
+                func=ast_attr(method))
+        ]
 
     def _gen_loop_mngr(self, action_config):
         exc = TaurusConfigError("Loop must contain start, end and do")
@@ -668,7 +717,7 @@ from selenium.webdriver.common.keys import Keys
 
         elements.append(
             ast.For(target=ast.Name(id=action_config.get('loop'),
-                    ctx=ast.Store()),
+                                    ctx=ast.Store()),
                     iter=ast_call(func=ast_attr("range"),
                                   args=args),
                     body=body,
@@ -831,31 +880,21 @@ from selenium.webdriver.common.keys import Keys
         body.append(ast.Expr(
             ast_call(
                 func=ast_attr("self.driver.implicitly_wait"),
-                args=[ast.Num(self._get_scenario_timeout())])))
+                args=[ast_attr("timeout")])))
 
         mgr = "WindowManager"
         if mgr in self.selenium_extras:
             body.append(ast.Assign(
                 targets=[ast_attr("self.wnd_mng")],
                 value=ast_call(
-                    func=ast.Name(id=mgr),
-                    args=[ast_attr("self.driver")])))
+                    func=ast.Name(id=mgr))))
 
         mgr = "FrameManager"
         if mgr in self.selenium_extras:
             body.append(ast.Assign(
                 targets=[ast_attr("self.frm_mng")],
                 value=ast_call(
-                    func=ast.Name(id=mgr),
-                    args=[ast_attr("self.driver")])))
-
-        self.selenium_extras.add("LocatorsManager")
-        mgr = "LocatorsManager"
-        body.append(ast.Assign(
-            targets=[ast_attr("self.loc_mng")],
-            value=ast_call(
-                func=ast.Name(id=mgr),
-                args=[ast_attr("self.driver"), ast.Str(self._get_scenario_timeout())])))
+                    func=ast.Name(id=mgr))))
 
         return body
 
@@ -903,13 +942,13 @@ from selenium.webdriver.common.keys import Keys
                 source = "selenium"
 
             imports.append(ast.parse(self.IMPORTS % source).body)
-            if self.selenium_extras:
-                extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
-                imports.append(
-                    ast.ImportFrom(
-                        module="bzt.resources.selenium_extras",
-                        names=extra_names,
-                        level=0))
+            self.selenium_extras.add("get_locator")
+            extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
+            imports.append(
+                ast.ImportFrom(
+                    module="bzt.resources.selenium_extras",
+                    names=extra_names,
+                    level=0))
 
         return imports
 
@@ -997,7 +1036,10 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
 
-        stored_vars = {"func_mode": str(self.executor.engine.is_functional_mode())}
+        stored_vars = {
+            "timeout": "timeout",
+            "func_mode": str(self.executor.engine.is_functional_mode())}
+
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
@@ -1014,10 +1056,14 @@ from selenium.webdriver.common.keys import Keys
 
         store_block = [ast.Expr(store_call)]
 
+        timeout_setup = [ast.Expr(ast.Assign(
+            targets=[ast_attr("timeout")],
+            value=ast.Num(self._get_scenario_timeout())))]
+
         setup = ast.FunctionDef(
             name="setUp",
             args=[ast_attr("self")],
-            body=data_sources + target_init + handlers + store_block,
+            body=data_sources + timeout_setup + target_init + handlers + store_block,
             decorator_list=[])
         return [setup, gen_empty_line_stmt()]
 
@@ -1255,6 +1301,7 @@ from selenium.webdriver.common.keys import Keys
                     ast_call(
                         func=ast_attr("self.driver.get"),
                         args=[self._gen_expr(url)])))
+                lines.append(self._gen_replace_dialogs())
 
             else:
                 method = req.method.lower()

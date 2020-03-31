@@ -85,6 +85,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         print_i = "print(i)"
 
+        self.assertNotIn(content, "self.dlg_mng = DialogsManager(self.driver)")
+
         target_lines = [
             "self.wnd_mng.switch('0')",
             """self.driver.execute_script("window.open('some.url');")""",
@@ -289,6 +291,12 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"storeEval(0 == false)": "var_eval"},
                             "assertEval(10 === 2*5)",
                             "go(http:\\blazemeter.com)",
+                            {"assertDialog(alert)": "Alert Message"},
+                            {"assertDialog(prompt)": "Enter value"},
+                            {"assertDialog(confirm)": "Are you sure?"},
+                            {"answerDialog(prompt)": "myvalue"},
+                            {"answerDialog(confirm)": "#Ok"},
+                            {"answerDialog(alert)": "#Ok"},
                             "echoString(${red_pill})",
                             "screenshot(screen.png)",
                             "screenshot()",
@@ -757,9 +765,9 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "var_loc_keys=self.loc_mng.get_locator([{'name':'btn1',}])",
+            "var_loc_keys=get_locator([{'name':'btn1',}])",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).click()",
-            "var_loc_keys=self.loc_mng.get_locator([{'id':'Id_123',}])",
+            "var_loc_keys=get_locator([{'id':'Id_123',}])",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('London')"
         ]
@@ -797,8 +805,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "source=self.loc_mng.get_locator([{'xpath':'/xpath/to'}])",
-            "target=self.loc_mng.get_locator([{'css':'mycss'},{'id':'ID'}])",
+            "source=get_locator([{'xpath':'/xpath/to'}])",
+            "target=get_locator([{'css':'mycss'},{'id':'ID'}])",
             "ActionChains(self.driver).drag_and_drop(self.driver.find_element(source[0],source[1]),"
             "self.driver.find_element(target[0],target[1])).perform()"
         ]
@@ -1092,7 +1100,37 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     },
                                     {
                                         "type": "closeWindow"
-                                    }
+                                    },
+                                    {
+                                        "type": "answerDialog",
+                                        "param": "prompt",
+                                        "value": "my input"
+                                    },
+                                    {
+                                        "type": "answerDialog",
+                                        "param": "confirm",
+                                        "value": '#Ok'
+                                    },
+                                    {
+                                        "type": "answerDialog",
+                                        "param": "alert",
+                                        "value": '#Ok'
+                                    },
+                                    {
+                                        "type": "assertDialog",
+                                        "param": "alert",
+                                        "value": "Exception occurred!"
+                                    },
+                                    {
+                                        "type": "assertDialog",
+                                        "param": "confirm",
+                                        "value": "Are you sure?"
+                                    },
+                                    {
+                                        "type": "assertDialog",
+                                        "param": "prompt",
+                                        "value": "What is your age?"
+                                    },
                                 ]
                             }
                         ]
@@ -1203,7 +1241,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_if_then_else.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>", python_files=True)
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
     def test_conditions_missing_then(self):
         self.configure({
@@ -1321,7 +1359,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target_lines = [
             "for i in range(1, 11)",
             "self.vars['i'] = str(i)",
-            "self.loc_mng.get_locator([{'id': self.vars['i']"
+            "get_locator([{'id': self.vars['i']"
 
         ]
         for idx in range(len(target_lines)):
@@ -1390,3 +1428,88 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         ]
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_assert_dialog_wrong_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "assertDialog(wrong)": "test"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
+                        in str(context.exception))
+
+    def test_answer_dialog_wrong_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "answerDialog(wrong)": "test"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("answerDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
+                        in str(context.exception))
+
+    def test_answer_confirm_incorrect_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "answerDialog(confirm)": "value"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("answerDialog of type confirm must have value either '#Ok' or '#Cancel'"
+                        in str(context.exception))
+
+    def test_answer_alert_incorrect_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "answerDialog(alert)": "value"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("answerDialog of type alert must have value '#Ok'"
+                        in str(context.exception))
+

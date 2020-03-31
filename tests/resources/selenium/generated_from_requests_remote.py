@@ -19,39 +19,32 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import LocatorsManager, add_flow_markers
+from bzt.resources.selenium_extras import dialogs_replace, add_flow_markers, get_locator
 
 
 class TestLocScRemote(unittest.TestCase):
 
     def setUp(self):
-        self.vars = {
+        self.vars = {}
 
-        }
+        timeout = 3.5
         self.driver = None
         self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub',
-                                       desired_capabilities={
-                                           'app': '',
-                                           'browserName': 'firefox',
-                                           'deviceName': '',
-                                           'javascriptEnabled': 'True',
-                                           'platformName': 'linux',
-                                           'platformVersion': '',
-                                           'seleniumVersion': '',
-                                           'version': '54.0',
-                                       })
-        self.driver.implicitly_wait(3.5)
-        self.loc_mng = LocatorsManager(self.driver, 3.5)
+                                       desired_capabilities={'app': '', 'browserName': 'firefox', 'deviceName': '',
+                                                             'javascriptEnabled': 'True', 'platformName': 'linux',
+                                                             'platformVersion': '', 'seleniumVersion': '',
+                                                             'version': '54.0'})
+        self.driver.implicitly_wait(timeout)
         add_flow_markers()
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc_remote')
+        apiritif.put_into_thread_store(func_mode=False, timeout=timeout, scenario_name='loc_sc_remote',
+                                       driver=self.driver)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
+            dialogs_replace()
 
-            var_loc_wait = self.loc_mng.get_locator([{
-                'xpath': "//input[@type='submit']",
-            }])
+            var_loc_wait = get_locator([{'xpath': "//input[@type='submit']"}])
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
                 var_loc_wait[0],
                 var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')

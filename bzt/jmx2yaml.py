@@ -1763,7 +1763,7 @@ def main():
             logging.error("Exception: %s", exc)
             logging.debug("Exception: %s", traceback.format_exc())
             code = 1
-        exit(code)
+        sys.exit(code)
     else:
         sys.stdout.write(usage + "\n")
 
