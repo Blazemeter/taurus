@@ -3,18 +3,19 @@ import os
 
 import time
 
+import apiritif
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.common.by import By
 
 from bzt.engine import EXEC
 from bzt.modules import ConsolidatingAggregator
+from bzt.modules.selenium import GeckoDriver
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
 from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.modules.pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
 from tests import RESOURCES_DIR, ExecutorTestCase, BZTestCase
 from tests.modules.selenium import SeleniumTestCase
-from bzt.resources.selenium_extras import LocatorsManager
+from bzt.resources.selenium_extras import get_locator, BYS
 
 
 class MockWebDriver(object):
@@ -22,7 +23,7 @@ class MockWebDriver(object):
         self.content = []
         for element in content:
             key, val = list(element.items())[0]
-            self.content.append((LocatorsManager.BYS[key.lower()], val))
+            self.content.append((BYS[key.lower()], val))
         self.timeout = timeout
         self.waiting_time = 0
 
@@ -39,15 +40,16 @@ class TestLocatorsMagager(BZTestCase):
         content = [{'css': 'existed_css'}]
         timeout = 30
         driver = MockWebDriver(content=content, timeout=timeout)
-        locators_manager = LocatorsManager(driver=driver, timeout=timeout)
+
+        apiritif.put_into_thread_store(driver=driver, timeout=timeout, func_mode=False)
 
         missing_locators = [{'css': 'missing_css'}, {'xpath': 'missing_xpath'}]
-        self.assertRaises(NoSuchElementException, locators_manager.get_locator, missing_locators)
+        self.assertRaises(NoSuchElementException, get_locator, missing_locators)
         self.assertEqual(30, driver.waiting_time)
 
         driver.waiting_time = 0
         existed_locators = [{'css': 'existed_css'}]
-        locators_manager.get_locator(existed_locators)
+        get_locator(existed_locators)
         self.assertEqual(30, driver.waiting_time)
 
 
@@ -449,6 +451,12 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
         self.obj.prepare()
+
+        driver = self.obj._get_tool(GeckoDriver, config=self.obj.settings.get('geckodriver'))
+        if not driver.check_if_installed():
+            driver.install()
+        self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+
         try:
             self.obj.startup()
             while not self.obj.check():
@@ -468,6 +476,12 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
         self.obj.prepare()
+
+        driver = self.obj._get_tool(GeckoDriver, config=self.obj.settings.get('geckodriver'))
+        if not driver.check_if_installed():
+            driver.install()
+        self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+
         try:
             self.obj.startup()
             while not self.obj.check():
