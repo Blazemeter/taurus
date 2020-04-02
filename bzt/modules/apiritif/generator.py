@@ -73,7 +73,8 @@ class ApiritifScriptGenerator(object):
         'bycss': "css",
         'byname': "name",
         'byid': "id",
-        'bylinktext': "linktext"
+        'bylinktext': "linktext",
+        'byelement': "byelement"
     }
 
     ACTION_CHAINS = {
@@ -94,7 +95,7 @@ class ApiritifScriptGenerator(object):
                         'resize', 'maximize', 'alert', 'waitFor'
                         ])
 
-    EXECUTION_BLOCKS = "|".join(['if', 'loop'])
+    EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach'])
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
@@ -110,7 +111,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 """
 
-    BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
+    BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement")
     COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
 
     ACCESS_TARGET = 'target'
@@ -215,9 +216,19 @@ from selenium.webdriver.common.keys import Keys
 
     def _parse_dict_action(self, action_config):
         name = action_config["type"]
-        selectors = action_config.get("locators")
+        selectors = []
+        if action_config.get("locators"):
+            selectors = action_config.get("locators")
+        elif action_config.get("element"):
+            selectors = self._gen_selector_byelement(action_config)
         if action_config.get("source") and action_config.get("target"):
-            selectors = (action_config.get("source"), action_config.get("target"))
+            source = action_config.get("source")
+            target = action_config.get("target")
+            if self._is_foreach_element(source):
+                source = self._gen_selector_byelement(source[0])
+            if self._is_foreach_element(target):
+                target = self._gen_selector_byelement(target[0])
+            selectors = (source, target)
         param = action_config["param"]
         value = action_config["value"]
         tags = "|".join(self.COMMON_TAGS) + "|ByName"   # ByName is needed in switchFrameByName
@@ -225,6 +236,10 @@ from selenium.webdriver.common.keys import Keys
         action_params = self._parse_action_params(expr, name)
 
         return action_params[0], action_params[1], param, value, selectors
+
+    @staticmethod
+    def _gen_selector_byelement(config):
+        return [{"byelement": config.get("element")}]
 
     def _parse_action(self, action_config):
         if isinstance(action_config, string_types):
@@ -248,7 +263,13 @@ from selenium.webdriver.common.keys import Keys
         return list(set(action_config.keys()).intersection(self.EXECUTION_BLOCKS.split("|")))
 
     @staticmethod
-    def _gen_dynamic_locator(var_w_locator):
+    def _is_foreach_element(locators):
+        # action performed in foreach loop on element
+        return len(locators) == 1 and (locators[0].get("byelement") or locators[0].get("element"))
+
+    def _gen_dynamic_locator(self, var_w_locator, locators):
+        if self._is_foreach_element(locators):
+                return ast.Name(id=locators[0].get("byelement"))
         return ast_call(
             func=ast_attr("self.driver.find_element"),
             args=[
@@ -264,11 +285,19 @@ from selenium.webdriver.common.keys import Keys
             args.append(ast.Dict([ast.Str(locator_type)], [self._gen_expr(locator_value)]))
         return args
 
-    def _gen_get_locators(self, var_name, locators):
+    def _gen_loc_method_call(self, method, var_name, locators):
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store())],
-            value=ast_call(func="get_locator",
+            value=ast_call(func=method,
                            args=[ast.List(elts=self._gen_ast_locators_dict(locators))]))
+
+    def _gen_get_locator_call(self, var_name, locators):
+        if self._is_foreach_element(locators):  # don't generate 'get_locator' for byElement action
+            return []
+        return self._gen_loc_method_call("get_locator", var_name, locators)
+
+    def _gen_get_elements_call(self, var_name, locators):
+        return self._gen_loc_method_call("get_elements", var_name, locators)
 
     def _gen_locator(self, tag, selector):
         return ast_call(
@@ -333,8 +362,8 @@ from selenium.webdriver.common.keys import Keys
     def _gen_chain_mngr(self, atype, selectors):
         elements = []
         if atype in self.ACTION_CHAINS:
-            elements.append(self._gen_get_locators("var_loc_chain", selectors))
-            locator = self._gen_dynamic_locator("var_loc_chain")
+            elements.append(self._gen_get_locator_call("var_loc_chain", selectors))
+            locator = self._gen_dynamic_locator("var_loc_chain", selectors)
             operator = ast_attr(fields=(
                 ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
                 self.ACTION_CHAINS[atype.lower()]))
@@ -354,8 +383,8 @@ from selenium.webdriver.common.keys import Keys
             source = selectors[0]
             target = selectors[1]
 
-            elements = [self._gen_get_locators("source", source),
-                        self._gen_get_locators("target", target)]
+            elements = [self._gen_get_locator_call("source", source),
+                        self._gen_get_locator_call("target", target)]
 
             operator = ast_attr(
                 fields=(
@@ -368,8 +397,8 @@ from selenium.webdriver.common.keys import Keys
                     fields=(
                         ast_call(
                             func=operator,
-                            args=[self._gen_dynamic_locator("source"),
-                                  self._gen_dynamic_locator("target")]),
+                            args=[self._gen_dynamic_locator("source", source),
+                                  self._gen_dynamic_locator("target", target)]),
                         "perform"))))
         return elements
 
@@ -409,11 +438,11 @@ from selenium.webdriver.common.keys import Keys
                 target = "value"
 
             if target:
-                elements.append(self._gen_get_locators("var_loc_as", selectors))
+                elements.append(self._gen_get_locator_call("var_loc_as", selectors))
                 locator_attr = ast_call(
                     func=ast_attr(
                         fields=(
-                            self._gen_dynamic_locator("var_loc_as"),
+                            self._gen_dynamic_locator("var_loc_as", selectors),
                             "get_attribute")),
                     args=[ast.Str(target)])
 
@@ -442,7 +471,7 @@ from selenium.webdriver.common.keys import Keys
         elements = []
         args = []
         action = None
-        elements.append(self._gen_get_locators("var_loc_keys", selectors))
+        elements.append(self._gen_get_locator_call("var_loc_keys", selectors))
 
         if atype == "click":
             action = "click"
@@ -453,7 +482,7 @@ from selenium.webdriver.common.keys import Keys
                 elements.append(ast_call(
                     func=ast_attr(
                         fields=(
-                            self._gen_dynamic_locator("var_loc_keys"),
+                            self._gen_dynamic_locator("var_loc_keys", selectors),
                             "clear"))))
             action = "send_keys"
             if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
@@ -465,7 +494,7 @@ from selenium.webdriver.common.keys import Keys
             elements.append(ast_call(
                 func=ast_attr(
                     fields=(
-                        self._gen_dynamic_locator("var_loc_keys"),
+                        self._gen_dynamic_locator("var_loc_keys", selectors),
                         action)),
                 args=args))
         return elements
@@ -475,18 +504,26 @@ from selenium.webdriver.common.keys import Keys
             raise TaurusConfigError("Missing param for editContent action.")
         var_name = "var_edit_content"
 
-        elements = [self._gen_get_locators(var_name, locators)]
-        locator = self._gen_dynamic_locator(var_name)
+        elements = [self._gen_get_locator_call(var_name, locators)]
+        locator = self._gen_dynamic_locator(var_name, locators)
         tag = gen_subscript(var_name, 0)
         selector = gen_subscript(var_name, 1)
+
+        if self._is_foreach_element(locators):
+            el = locators[0].get("byelement")
+            exc_msg = "The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element"
+            exc_args = [ast.Str(el), ast_attr(el + ".tag_name"), ast_attr(el + ".text")]
+        else:
+            exc_msg = "The element (%s: %r) is not a contenteditable element"
+            exc_args = [tag, selector]
 
         exc_type = ast_call(
             func="NoSuchElementException",
             args=[
                 ast.BinOp(
-                    left=ast.Str("The element (%s: %r) is not a contenteditable element"),
+                    left=ast.Str(exc_msg),
                     op=ast.Mod(),
-                    right=ast.Tuple(elts=[tag, selector]))
+                    right=ast.Tuple(elts=exc_args))
             ]
         )
 
@@ -568,10 +605,10 @@ from selenium.webdriver.common.keys import Keys
         return elements
 
     def _gen_select_mngr(self, param, selectors):
-        elements = [self._gen_get_locators("var_loc_select", selectors), ast_call(
+        elements = [self._gen_get_locator_call("var_loc_select", selectors), ast_call(
             func=ast_attr(
                 fields=(
-                    ast_call(func="Select", args=[self._gen_dynamic_locator("var_loc_select")]),
+                    ast_call(func="Select", args=[self._gen_dynamic_locator("var_loc_select", selectors)]),
                     "select_by_visible_text")),
             args=[self._gen_expr(param)])]
         return elements
@@ -636,11 +673,30 @@ from selenium.webdriver.common.keys import Keys
             action_elements.append(self._gen_condition_mngr(param, action_config))
         elif atype == 'loop':
             action_elements.append(self._gen_loop_mngr(action_config))
+        elif atype == 'foreach':
+            action_elements.append(self._gen_foreach_mngr(action_config))
 
         if not action_elements and not self.ignore_unknown_actions:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
+
+    def _gen_foreach_mngr(self, action_config):
+        self.selenium_extras.add("get_elements")
+        exc = TaurusConfigError("Foreach loop must contain locators and do")
+        elements = []
+        locators = action_config.get('locators', exc)
+        body = []
+        for action in action_config.get('do', exc):
+            body.append(self._gen_action(action))
+
+        elements.append(self._gen_get_elements_call("elements", locators))
+        elements.append(
+            ast.For(target=ast.Name(id=action_config.get('foreach'), ctx=ast.Store()), iter=ast.Name(id="elements"),
+                    body=body,
+                    orelse=[]))
+
+        return elements
 
     def _gen_wait_for(self, atype, param, value, selectors):
         self.selenium_extras.add("wait_for")
