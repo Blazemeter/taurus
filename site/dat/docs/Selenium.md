@@ -149,11 +149,7 @@ services:
   width: 1024
   height: 768
 ```
-
-Note: SeleniumExecutor uses shared virtual display for all executions.
-
-Deprecation Note: using `virtual-display` in `selenium` module settings is deprecated and will be removed
-in the future, you should use [Virtual Display Service](Services.md#Virtual-Display-Service).
+See more info [here](Services.md#Virtual-Display-Service).
 
 ## Appium
 
