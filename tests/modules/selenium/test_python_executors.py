@@ -449,23 +449,23 @@ class TestPyTestExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "selenium/pytest/test_blazedemo.py"
             }
         })
-        self.obj.prepare()
+
+        tmp_aec = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
 
         driver = self.obj._get_tool(GeckoDriver, config=self.obj.settings.get('geckodriver'))
         if not driver.check_if_installed():
             driver.install()
         self.obj.env.add_path({"PATH": driver.get_driver_dir()})
 
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.obj.shutdown()
         self.obj.post_process()
-        with open(self.obj.report_file) as fds:
-            report = [json.loads(line) for line in fds.readlines() if line]
-        self.assertEqual(2, len(report))
 
     def test_package(self):
         self.obj.engine.check_interval = 0.1
@@ -474,23 +474,23 @@ class TestPyTestExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "selenium/pytest/"
             }
         })
-        self.obj.prepare()
+
+        tmp_aec = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
 
         driver = self.obj._get_tool(GeckoDriver, config=self.obj.settings.get('geckodriver'))
         if not driver.check_if_installed():
             driver.install()
         self.obj.env.add_path({"PATH": driver.get_driver_dir()})
 
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.obj.shutdown()
         self.obj.post_process()
-        with open(self.obj.report_file) as fds:
-            report = [json.loads(line) for line in fds.readlines() if line]
-        self.assertEqual(7, len(report))
 
     def test_additional_args(self):
         additional_args = "--foo --bar"
