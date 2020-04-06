@@ -3,7 +3,7 @@ import re
 import shutil
 import time
 
-from yaml import full_load
+import yaml
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import EXEC
@@ -314,7 +314,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj_prepare()
 
     def test_from_extension(self):
-        self.configure(full_load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.engine.start_subprocess = lambda **kwargs: None
@@ -322,7 +322,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.post_process()
 
     def test_requests(self):
-        self.configure(full_load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.engine.start_subprocess = lambda **kwargs: None
@@ -330,7 +330,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.post_process()
 
     def test_fail_on_zero_results(self):
-        self.configure(full_load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]

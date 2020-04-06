@@ -1,4 +1,4 @@
-from yaml import full_load
+import yaml
 
 from bzt.six import iteritems
 from bzt.swagger2yaml import SwaggerConverter, Swagger, Swagger2YAML, process
@@ -36,8 +36,8 @@ class TestSwagger2YAML(BZTestCase):
         options = FakeOptions(file_name=result)
         process(options, [source])
         # shutil.copy(result, expected)
-        actual = full_load(open(result).read())
-        expected = full_load(open(expected).read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
 
     def test_convert_scenarios_from_paths(self):
@@ -47,8 +47,8 @@ class TestSwagger2YAML(BZTestCase):
         options = FakeOptions(file_name=result, scenarios_from_paths=True)
         process(options, [source])
         # shutil.copy(result, expected)
-        actual = full_load(open(result).read())
-        expected = full_load(open(expected).read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
 
     def test_convert_security_apikey_header(self):
@@ -58,8 +58,8 @@ class TestSwagger2YAML(BZTestCase):
         options = FakeOptions(file_name=result)
         process(options, [source])
         # shutil.copy(result, expected)
-        actual = full_load(open(result).read())
-        expected = full_load(open(expected).read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
 
     def test_convert_security_basic(self):
@@ -69,8 +69,8 @@ class TestSwagger2YAML(BZTestCase):
         options = FakeOptions(file_name=result)
         process(options, [source])
         # shutil.copy(result, expected)
-        actual = full_load(open(result).read())
-        expected = full_load(open(expected).read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
 
     def test_convert_security_basic_local(self):
@@ -80,8 +80,8 @@ class TestSwagger2YAML(BZTestCase):
         options = FakeOptions(file_name=result)
         process(options, [source])
         # shutil.copy(result, expected)
-        actual = full_load(open(result).read())
-        expected = full_load(open(expected).read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
 
     def test_convert_security_apikey_query(self):
@@ -91,8 +91,8 @@ class TestSwagger2YAML(BZTestCase):
         options = FakeOptions(file_name=result)
         process(options, [source])
         # shutil.copy(result, expected)
-        actual = full_load(open(result).read())
-        expected = full_load(open(expected).read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
 
     def test_convert_interpolation_values(self):
@@ -102,8 +102,8 @@ class TestSwagger2YAML(BZTestCase):
         options = FakeOptions(file_name=result)
         process(options, [source])
         # shutil.copy(result, expected)
-        actual = full_load(open(result).read())
-        expected = full_load(open(expected).read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
 
     def test_convert_interpolation_variables(self):
@@ -113,8 +113,8 @@ class TestSwagger2YAML(BZTestCase):
         options = FakeOptions(file_name=result, parameter_interpolation=Swagger.INTERPOLATE_WITH_JMETER_VARS)
         process(options, [source])
         # shutil.copy(result, expected)
-        actual = full_load(open(result).read())
-        expected = full_load(open(expected).read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
 
     def test_convert_interpolation_none(self):
@@ -124,8 +124,8 @@ class TestSwagger2YAML(BZTestCase):
         options = FakeOptions(file_name=result, parameter_interpolation=Swagger.INTERPOLATE_DISABLE)
         process(options, [source])
         # shutil.copy(result, expected)
-        actual = full_load(open(result).read())
-        expected = full_load(open(expected).read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
 
     def test_convert_security_apikey_multiscenarios(self):
@@ -135,8 +135,8 @@ class TestSwagger2YAML(BZTestCase):
         options = FakeOptions(file_name=result, scenarios_from_paths=True)
         process(options, [source])
         # shutil.copy(result, expected)
-        actual = full_load(open(result).read())
-        expected = full_load(open(expected).read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
 
 
