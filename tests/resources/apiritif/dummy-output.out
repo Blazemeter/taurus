@@ -1,0 +1,14 @@
+2020-02-26 17:30:46,568:INFO:24966:140073582909184:apiritif:Total workers: 1
+2020-02-26 17:30:46,573:INFO:24979:140073582909184:apiritif:Adding worker: idx=0	concurrency=1	results=/home/alevental/Documents/taurus/build/test/2020-02-26_17-30-46.283371/apiritif.0.csv
+2020-02-26 17:30:46,581:INFO:24979:140073572402944:apiritif.recorder:Transaction started:: start_time=1582727446.581,name=hello there
+2020-02-26 17:30:46,681:INFO:24979:140073572402944:apiritif.recorder:Transaction ended:: duration=0.100,name=hello there
+2020-02-26 17:30:46,684:INFO:24979:140073572402944:apiritif.recorder:Transaction started:: start_time=1582727446.684,name=hello there
+2020-02-26 17:30:46,784:INFO:24979:140073572402944:apiritif.recorder:Transaction ended:: duration=0.100,name=hello there
+2020-02-26 17:30:46,787:INFO:24979:140073572402944:apiritif.recorder:Transaction started:: start_time=1582727446.787,name=hello there
+2020-02-26 17:30:46,887:INFO:24979:140073572402944:apiritif.recorder:Transaction ended:: duration=0.100,name=hello there
+2020-02-26 17:30:46,894:INFO:24979:140073572402944:apiritif.recorder:Transaction started:: start_time=1582727446.894,name=hello there
+2020-02-26 17:30:46,994:INFO:24979:140073572402944:apiritif.recorder:Transaction ended:: duration=0.100,name=hello there
+2020-02-26 17:30:47,004:INFO:24979:140073572402944:apiritif.recorder:Transaction started:: start_time=1582727447.005,name=hello there
+2020-02-26 17:30:47,104:INFO:24979:140073572402944:apiritif.recorder:Transaction ended:: duration=0.100,name=hello there
+2020-02-26 17:30:47,106:INFO:24979:140073582909184:apiritif:Workers finished, awaiting result writer
+2020-02-26 17:30:47,207:INFO:24979:140073582909184:apiritif:Results written, shutting down
