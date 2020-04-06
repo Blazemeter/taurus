@@ -86,12 +86,12 @@ class ApiritifScriptGenerator(object):
     }
 
     ACTIONS = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
-                        'mouseOver', 'select', 'wait', 'keys', 'pause', 'clear', 'assert',
-                        'assertText', 'assertValue', 'assertDialog', 'answerDialog', 'submit',
+                        'mouseOver', 'select', 'wait', 'keys', 'pauseFor', 'clear', 'assert',
+                        'assertText', 'assertValue',  'assertDialog', 'answerDialog', 'submit',
                         'close', 'script', 'editcontent',
                         'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
                         'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode',
-                        'resize', 'maximize', 'alert'
+                        'resize', 'maximize', 'alert', 'waitFor'
                         ])
 
     EXECUTION_BLOCKS = "|".join(['if', 'loop'])
@@ -111,7 +111,7 @@ from selenium.webdriver.common.keys import Keys
 """
 
     BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
-    COMMON_TAGS = ("For", "Cookies", "Title", "Window", "Eval", "ByIdx", "String")
+    COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
@@ -159,19 +159,23 @@ from selenium.webdriver.common.keys import Keys
 
         return atype, tag, selector
 
+    @staticmethod
+    def _trim_quotes(selector):
+        if selector.startswith('"') and selector.endswith('"'):
+            selector = selector[1:-1]
+        elif selector.startswith("'") and selector.endswith("'"):
+            selector = selector[1:-1]
+        return selector
+
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
         all_actions = self.ACTIONS + "|" + self.EXECUTION_BLOCKS
-        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
+        expr = re.compile(r"^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
         selectors = []
-        # hello, reviewer!
         if selector:
-            if selector.startswith('"') and selector.endswith('"'):
-                selector = selector[1:-1]
-            elif selector.startswith("'") and selector.endswith("'"):
-                selector = selector[1:-1]
+            selector = self._trim_quotes(selector)
         else:
             selector = ""
 
@@ -197,6 +201,13 @@ from selenium.webdriver.common.keys import Keys
         elif atype == "switchframe":
             # for switchFrameByName we need to get the param
             param = selector
+        elif atype == "waitfor":
+            value = param
+            args = selector.rsplit(",", 1)
+            if len(args) != 2:
+                raise TaurusConfigError("Incorrect amount of arguments (%s) for waitFor (2 expected)." % len(args))
+            param = args[1].strip()
+            selectors = [{self.TO_BYS[tag]: self._trim_quotes(args[0].strip())}]
         elif atype in ['answerdialog', 'assertdialog']:
             param, value = value, param
 
@@ -245,17 +256,19 @@ from selenium.webdriver.common.keys import Keys
                 gen_subscript(var_w_locator, 1)
             ])
 
-    def _gen_get_locators(self, var_name, locators):
+    def _gen_ast_locators_dict(self, locators):
         args = []
         for loc in locators:
             locator_type = list(loc.keys())[0]
             locator_value = loc[locator_type]
             args.append(ast.Dict([ast.Str(locator_type)], [self._gen_expr(locator_value)]))
+        return args
 
+    def _gen_get_locators(self, var_name, locators):
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store())],
             value=ast_call(func="get_locator",
-                           args=[ast.List(elts=args)]))
+                           args=[ast.List(elts=self._gen_ast_locators_dict(locators))]))
 
     def _gen_locator(self, tag, selector):
         return ast_call(
@@ -547,44 +560,10 @@ from selenium.webdriver.common.keys import Keys
                 args=args))
         return elements
 
-    def _gen_wait_sleep_mngr(self, atype, tag, param, selectors):
-        elements = []
-        mode = "visibility" if param == 'visible' else 'presence'
-
-        if atype == 'wait':
-            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
-            timeout = dehumanize_time(self.scenario.get("timeout", exc))
-            locator_type = list(selectors[0].keys())[0]
-            locator_value = selectors[0][locator_type]
-            errmsg = "Element %r:%r failed to appear within %ss" % (locator_type, locator_value,
-                                                                    timeout)
-
-            elements.append(self._gen_get_locators("var_loc_wait", selectors))
-
-            elements.append(ast_call(
-                func=ast_attr(
-                    fields=(
-                        ast_call(
-                            func="WebDriverWait",
-                            args=[
-                                ast_attr("self.driver"),
-                                ast.Num(timeout)]),
-                        "until")),
-                args=[
-                    ast_call(
-                        func=ast_attr("econd.%s_of_element_located" % mode),
-                        args=[
-                            ast.Tuple(
-                                elts=[
-                                    gen_subscript("var_loc_wait", 0),
-                                    gen_subscript("var_loc_wait", 1)
-                                    ])]),
-                    ast.Str(errmsg)]))
-
-        elif atype == 'pause' and tag == 'for':
-            elements.append(ast_call(
-                func="sleep",
-                args=[ast.Num(dehumanize_time(param))]))
+    def _gen_sleep_mngr(self, param):
+        elements = [ast_call(
+            func="sleep",
+            args=[ast.Num(dehumanize_time(param))])]
 
         return elements
 
@@ -642,8 +621,10 @@ from selenium.webdriver.common.keys import Keys
                 action_elements.append(self._gen_replace_dialogs())
         elif atype == "editcontent":
             action_elements.extend(self._gen_edit_mngr(param, selectors))
-        elif atype in ('wait', 'pause'):
-            action_elements.extend(self._gen_wait_sleep_mngr(atype, tag, param, selectors))
+        elif atype.startswith('wait'):
+            action_elements.extend(self._gen_wait_for(atype, param, value, selectors))
+        elif atype == 'pausefor':
+            action_elements.extend(self._gen_sleep_mngr(param))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(ast_call(
                 func=ast_attr("self.driver.delete_all_cookies")))
@@ -660,6 +641,30 @@ from selenium.webdriver.common.keys import Keys
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
+
+    def _gen_wait_for(self, atype, param, value, selectors):
+        self.selenium_extras.add("wait_for")
+        supported_conds = ["present", "visible", "clickable", "notpresent", "notvisible", "notclickable"]
+
+        if not atype.endswith("for"):
+            self.log.warning("Wait command is deprecated and will be removed soon. Use waitFor instead.")
+            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
+            timeout = dehumanize_time(self.scenario.get("timeout", exc))
+            if not param:
+                param = "present"
+        else:
+            if not value:
+                value = 10  # if timeout value is not present set it by default to 10s
+            timeout = dehumanize_time(value)
+
+        if param.lower() not in supported_conds:
+            raise TaurusConfigError("Invalid condition in %s: '%s'. Supported conditions are: %s." %
+                                    (atype, param, ", ".join(supported_conds)))
+
+        return [ast_call(func="wait_for",
+                         args=[ast.Str(param),
+                               ast.List(elts=self._gen_ast_locators_dict(selectors)),
+                               ast.Num(timeout)])]
 
     def _gen_answer_dialog(self, type, value):
         if type not in ['alert', 'prompt', 'confirm']:

@@ -19,9 +19,9 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import WindowManager, get_locator, dialogs_answer_on_next_prompt, FrameManager, \
-    dialogs_get_next_prompt, dialogs_replace, dialogs_get_next_alert, dialogs_get_next_confirm, \
-    dialogs_answer_on_next_confirm, dialogs_answer_on_next_alert
+from bzt.resources.selenium_extras import dialogs_answer_on_next_prompt, dialogs_answer_on_next_alert, wait_for, \
+    dialogs_answer_on_next_confirm, dialogs_replace, WindowManager, dialogs_get_next_prompt, dialogs_get_next_alert, \
+    get_locator, dialogs_get_next_confirm, FrameManager
 
 
 class TestLocSc(unittest.TestCase):
@@ -38,7 +38,7 @@ class TestLocSc(unittest.TestCase):
         self.driver.implicitly_wait(timeout)
         self.wnd_mng = WindowManager()
         self.frm_mng = FrameManager()
-        apiritif.put_into_thread_store(func_mode=False, scenario_name='loc_sc', driver=self.driver, timeout=timeout)
+        apiritif.put_into_thread_store(driver=self.driver, scenario_name='loc_sc', timeout=timeout, func_mode=False)
 
     def _1_Test_V2(self):
         with apiritif.smart_transaction('Test V2'):
@@ -131,11 +131,8 @@ class TestLocSc(unittest.TestCase):
 
             filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), ('screenshot-%d.png' % (time() * 1000)))
             self.driver.save_screenshot(filename)
-
-            var_loc_wait = get_locator([{'css': 'invalid_css'}, {'name': 'inputName'}])
-            WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((
-                var_loc_wait[0],
-                var_loc_wait[1])), "Element 'css':'invalid_css' failed to appear within 3.5s")
+            wait_for('visible', [{'css': 'invalid_css'}, {'name': 'inputName'}], 3.5)
+            wait_for('visible', [{'css': 'invalid_css'}, {'name': 'inputName'}], 9020.0)
 
             var_edit_content = get_locator([{'id': 'editor'}])
 

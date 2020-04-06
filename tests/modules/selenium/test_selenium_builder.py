@@ -129,8 +129,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "raiseNoSuchElementException((\'The element (%s : %r)is not a contenteditable element\'%"
             "(var_edit_content[0], var_edit_content[1])))"
             "print(self.vars['red_pill'])",
-            "WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((var_loc_wait[0],"
-            "var_loc_wait[1])), \"Element 'name':'toPort' failed to appear within 3.5s\")",
+            "wait_for('visible', [{'name': 'toPort'}], 3.5)"
             "sleep(4.6)",
             "self.driver.delete_all_cookies()",
             "self.driver.save_screenshot('screen.png')",
@@ -252,6 +251,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         }],
                         "actions": [
                             "waitByXPath(//input[@type='submit'])",
+                            {"waitForByXPath(//input[@name='test,name'], present)": "1m20s"},
                             "assertTitle(BlazeDemo)",
                             "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
                             "doubleClickByXPath(/html/body/div[3]/h2)",
@@ -1066,6 +1066,15 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         ]
                                     },
                                     {
+                                        "type": "waitFor",
+                                        "param": "visible",
+                                        "locators": [
+                                            {"css": "invalid_css"},
+                                            {"name": "inputName"}
+                                        ],
+                                        "value": "2h30m20s"
+                                    },
+                                    {
                                         "type": "editContent",
                                         "param": "lo-la-lu",
                                         "locators": [{"id": "editor"}]
@@ -1518,3 +1527,65 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.assertTrue("answerDialog of type alert must have value '#Ok'"
                         in str(context.exception))
 
+    def test_wait_for(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "type": "waitFor",
+                                "param": "visible",
+                                "locators": [
+                                    {"css": "invalid_css"},
+                                    {"id": "input_id"}
+                                ],
+                                "value": "2h30m20s"
+                            },
+                            {"waitForById(myId, present)": "10s"},
+                            {"waitForById(myId, clickable)": "10s"},
+                            {"waitForById(myId, notvisible)": "10s"},
+                            {"waitForById(myId, notpresent)": "10s"},
+                            {"waitForById(myId, notclickable)": "10s"}
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "wait_for('visible',[{'css':'invalid_css'},{'id':'input_id'}],9020.0)",
+            "wait_for('present',[{'id':'myId'}],10.0)",
+            "wait_for('clickable',[{'id':'myId'}],10.0)",
+            "wait_for('notvisible',[{'id':'myId'}],10.0)",
+            "wait_for('notpresent',[{'id':'myId'}],10.0)",
+            "wait_for('notclickable',[{'id':'myId'}],10.0)"
+        ]
+        for idx in range(len(target_lines)):
+            target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
+            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
+                          TestSeleniumScriptGeneration.clear_spaces(content),
+                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_wait_for_invalid_cond(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {"waitForById(myId, invisible)": "10s"},
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Invalid condition' in str(context.exception),
+                        "Given string was not found in '%s'" % str(context.exception))
