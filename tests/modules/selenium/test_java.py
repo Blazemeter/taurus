@@ -3,8 +3,7 @@ import shutil
 import time
 from os import listdir
 from os.path import exists, join, dirname
-
-import yaml
+from yaml import full_load
 
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader
@@ -634,7 +633,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
 
     def test_detect_testng_xml_with_config(self):
         test_yml = RESOURCES_DIR + "selenium/testng/test.yml"
-        self.obj.engine.config.merge(yaml.full_load(open(test_yml)))
+        self.obj.engine.config.merge(full_load(open(test_yml)))
         self.obj.execution = self.obj.engine.config.get('execution')
         self.obj.engine.file_search_paths.append(dirname(test_yml))
         self.obj.prepare()
