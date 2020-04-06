@@ -331,7 +331,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.shutdown()
 
     def test_from_extension(self):
-        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
@@ -347,7 +347,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertFalse(results[0][DataPoint.CUMULATIVE][''][KPISet.ERRORS])  # error msg
 
     def test_requests(self):
-        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
@@ -365,7 +365,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEquals(4, len(list(lines)))
 
     def test_fail_on_zero_results(self):
-        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]
