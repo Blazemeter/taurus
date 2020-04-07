@@ -688,12 +688,21 @@ from selenium.webdriver.common.keys import Keys
         locators = action_config.get('locators', exc)
         body = []
         for action in action_config.get('do', exc):
-            body.append(self._gen_action(action))
+            body = body + self._gen_action(action)
+
+        body_list = []
+        # filter out empty AST expressions that cause empty lines in the generated code
+        for item in body:
+            if isinstance(item.value, list):
+                if len(item.value) > 0:
+                    body_list.append(item)
+            else:
+                body_list.append(item)
 
         elements.append(self._gen_get_elements_call("elements", locators))
         elements.append(
             ast.For(target=ast.Name(id=action_config.get('foreach'), ctx=ast.Store()), iter=ast.Name(id="elements"),
-                    body=body,
+                    body=body_list,
                     orelse=[]))
 
         return elements
