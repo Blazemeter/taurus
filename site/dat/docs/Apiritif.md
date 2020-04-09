@@ -198,8 +198,8 @@ You can see full example [here](#Sample-scenario-using-multiple-locators).
 Apiritif allows to control execution flow using `if` blocks. These blocks enable 
 conditional execution of actions.
 
-Each `if` block should contain a mandatory `then` field, and an optional `else` field. Both `then` and `else` fields
-should contain list of actions.
+Each `if` block can contain `then` and/or `else` field. Both `then` and `else` fields
+may contain a list of actions.
 
 Here's a simple example:
 

@@ -1257,7 +1257,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
-    def test_conditions_missing_then(self):
+    def test_conditions_missing_then_else(self):
         self.configure({
             "execution": [{
                 "executor": "apiritif",
@@ -1272,10 +1272,19 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             }
                         ]}]}}})
 
-        with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
 
-        self.assertTrue('Missing then' in str(context.exception))
+        target_lines = [
+            "test=self.driver.execute_script(\'return document.getElementsByName(\"fromPort\")[0].length > 0;\')",
+            "if test: pass"
+        ]
+        for idx in range(len(target_lines)):
+            target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
+            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
+                          TestSeleniumScriptGeneration.clear_spaces(content),
+                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
     def test_loop_missing_end(self):
         self.configure({

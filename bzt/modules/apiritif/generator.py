@@ -806,15 +806,15 @@ from selenium.webdriver.common.keys import Keys
         return ast_call(func=ast_attr("self.driver.execute_script"), args=[self._gen_expr("return %s;" % js_expr)])
 
     def _gen_condition_mngr(self, param, action_config):
-        if not action_config.get('then'):
-            raise TaurusConfigError("Missing then branch in if statement")
-
         test = ast.Assign(targets=[ast.Name(id='test', ctx=ast.Store())],
                           value=self._gen_eval_js_expression(param))
 
         body = []
-        for action in action_config.get('then'):
-            body.append(self._gen_action(action))
+        if action_config.get('then'):
+            for action in action_config.get('then'):
+                body.append(self._gen_action(action))
+        else:
+            body.append(ast.Pass())
 
         orelse = []
         if action_config.get('else'):
