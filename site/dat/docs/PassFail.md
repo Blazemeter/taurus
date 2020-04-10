@@ -99,7 +99,7 @@ execution:
 - scenario: s1
   criteria:  # this is per-execution criteria list
   - fail>0%
-  - rt>1s
+  - avg-rt>1s
 - scenario: s2
 
 scenarios:
@@ -110,6 +110,8 @@ scenarios:
     criteria:  # this is per-scenario criteria list
     - fail>50%
     - p90>250ms
+reporting:
+- module: passfail # this is to enable passfail module
 ```
 
 # Monitoring-Based Failure Criteria
