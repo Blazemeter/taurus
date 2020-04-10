@@ -31,6 +31,3 @@ class SeleniumTestCase(ExecutorTestCase):
             if self.obj.runner.stderr:
                 self.obj.runner.stderr.close()
         super(SeleniumTestCase, self).tearDown()
-
-
-

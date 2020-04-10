@@ -52,6 +52,30 @@ def get_locator(locators, ignore_implicit_wait=False):
     return locator
 
 
+def get_elements(locators):
+    """
+    :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
+    {css: 'my_cls'}]
+    :return: all elements that match the first valid locator out of the passed locators
+    """
+    elements = []
+    first_locator = True
+    driver = _get_driver()
+    for locator in locators:
+        locator_type = list(locator.keys())[0]
+        locator_value = locator[locator_type]
+        if not first_locator:
+            driver.implicitly_wait(0)
+        elements = driver.find_elements(BYS[locator_type.lower()], locator_value)
+        first_locator = False
+        if len(elements) > 0:
+            break
+
+    # restore the implicit wait value
+    driver.implicitly_wait(_get_timeout())
+    return elements
+
+
 def _get_driver():
     return get_from_thread_store("driver")
 

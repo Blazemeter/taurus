@@ -502,8 +502,8 @@ class Test(BZAObject):
         body = MultiPartForm()
         body.add_file_as_string('script', 'taurus.yml', taurus_config)
 
-        for rfile in resource_files:
-            body.add_file('files[]', rfile)
+        for idx, rfile in enumerate(resource_files):
+            body.add_file('files[{}]'.format(idx), rfile)
 
         hdr = {"Content-Type": str(body.get_content_type())}
         self._request(url, body.form_as_bytes(), headers=hdr)

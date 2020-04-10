@@ -1584,3 +1584,173 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         self.assertTrue('Invalid condition' in str(context.exception),
                         "Given string was not found in '%s'" % str(context.exception))
+
+    def test_foreach_all_by_element_actions(self):
+        self.configure(
+            {
+                "execution": [
+                    {
+                        "executor": "apiritif",
+                        "scenario": "loc_sc"
+                    }
+                ],
+                "scenarios": {
+                    "loc_sc": {
+                        "default-address": "http://blazedemo.com,",
+                        "browser": "Chrome",
+                        "variables": {
+                            "city_select_name": "fromPort",
+                            "input_name_id": "inputName"
+                        },
+                        "timeout": "3.5s",
+                        "requests": [
+                            {
+                                "label": "Foreach test",
+                                "actions": [
+                                    {
+                                        "foreach": "el",
+                                        "locators": [
+                                            {"css": "input"},
+                                            {"xpath": "/table/input/"},
+                                        ],
+                                        "do": [
+                                            {"assertTextByElement(el)": "text"},
+                                            {
+                                                "type": "assertText",
+                                                "element": "el",
+                                                "param": "text"
+                                            },
+                                            {"assertValueByElement(el)": "value"},
+                                            {
+                                                "type": "assertValue",
+                                                "element": "el",
+                                                "param": "value"
+                                            },
+                                            {"editContentByElement(el)" : "new text"},
+                                            {
+                                                "type": "editContent",
+                                                "element": "el",
+                                                "param": "new text"
+                                            },
+                                            "clickByElement(el)",
+                                            {
+                                                "type": "click",
+                                                "element": "el",
+                                            },
+                                            "doubleClickByElement(el)",
+                                            {
+                                                "type": "doubleClick",
+                                                "element": "el",
+                                            },
+                                            "mouseDownByElement(el)",
+                                            {
+                                                "type": "mouseDown",
+                                                "element": "el",
+                                            },
+                                            "mouseUpByElement(el)",
+                                            {
+                                                "type": "mouseUp",
+                                                "element": "el",
+                                            },
+                                            "mouseOutByElement(el)",
+                                            {
+                                                "type": "mouseOut",
+                                                "element": "el",
+                                            },
+                                            "mouseOverByElement(el)",
+                                            {
+                                                "type": "mouseOver",
+                                                "element": "el",
+                                            },
+                                            {"dragByElement(el)" : "elementById(id12)"},
+                                            {"dragById(id34)": "elementByElement(el)"},
+                                            {
+                                                "type": "drag",
+                                                "source": [
+                                                    {"element": "el"}
+                                                ],
+                                                "target": [
+                                                        {"id": "id12"}
+                                                ]
+                                            },
+                                            {
+                                                "type": "drag",
+                                                "source": [
+                                                    {"id": "id34"}
+                                                ],
+                                                "target": [
+                                                    {"element": "el"}
+                                                ]
+                                            },
+                                            {"selectByElement(el)": "value"},
+                                            {
+                                                "type": "select",
+                                                "element": "el",
+                                                "param": "value"
+                                            },
+                                            {"storeTextByElement(el)": "my_var"},
+                                            {
+                                                "type": "storeText",
+                                                "element": "el",
+                                                "param": "my_var"
+                                            },
+                                            {"storeValueByElement(el)": "my_var"},
+                                            {
+                                                "type": "storeValue",
+                                                "element": "el",
+                                                "param": "my_var"
+                                            },
+                                            {"typeByElement(el)": "text"},
+                                            {
+                                                "type": "type",
+                                                "element": "el",
+                                                "param": "text"
+                                            },
+                                            "submitByElement(el)",
+                                            {
+                                                "type": "submit",
+                                                "element": "el"
+                                            },
+                                            {"keysByElement(el)": "KEY_ENTER"},
+                                            {
+                                                "type": "keys",
+                                                "element": "el",
+                                                "param": "KEY_ENTER"
+                                            },
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        )
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_foreach.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+    def test_foreach_missing_locators(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "foreach": "element",
+                                "do": [
+                                    "clickByElement(element)"
+                                ]
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("Foreach loop must contain locators and do" in str(context.exception))
