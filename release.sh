@@ -1,5 +1,5 @@
 #! /bin/bash -xe
 
 $(dirname $0)/build-sdist.sh
-
-python -m twine upload dist/*
+python3 -m pip install twine
+python3 -m twine upload dist/*
