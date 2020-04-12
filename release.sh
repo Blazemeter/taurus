@@ -2,4 +2,4 @@
 
 $(dirname $0)/build-sdist.sh
 
-twine upload dist/*
+python -m twine upload dist/*

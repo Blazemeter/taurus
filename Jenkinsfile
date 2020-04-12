@@ -41,7 +41,7 @@ node()
             }
 
             sh """
-                docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs ${JOB_NAME} ${BUILD_NUMBER}
+                docker run --entrypoint /bzt-configs/build-artifacts.sh -v `pwd`:/bzt-configs ${JOB_NAME} ${BUILD_NUMBER}
                 """
 
             archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true

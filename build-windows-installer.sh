@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -xe
 set -euo pipefail
 
 BUILD_DIR="$(dirname $0)/build/nsis"
