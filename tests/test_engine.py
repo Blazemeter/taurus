@@ -356,7 +356,7 @@ class TestScenarioExecutor(ExecutorTestCase):
             }})
         engine.eval_env()
         engine.prepare()
-        executor = copy.deepcopy(self.obj)
+        executor = self.obj
         executor.engine = engine
         process = executor._execute(cmdline, shell=True)
         stdout, _ = communicate(process)
