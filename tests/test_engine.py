@@ -1,7 +1,7 @@
 """ unit test """
-import copy
 import os
 import sys
+
 import yaml
 
 from bzt import TaurusConfigError
