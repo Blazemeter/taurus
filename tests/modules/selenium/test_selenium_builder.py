@@ -1371,7 +1371,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "for i in range(1, 11)",
+            "for i in get_loop_range(1, 10, 1)",
             "self.vars['i'] = str(i)",
             "get_locator([{'id': self.vars['i']"
 
@@ -1406,7 +1406,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "for i in range(1, 11, 2)",
+            "for i in get_loop_range(1, 10, 2)",
             "self.vars['i'] = str(i)"
         ]
         for idx in range(len(target_lines)):
@@ -1437,7 +1437,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "for i in range(10, -1, -1)",
+            "for i in get_loop_range(10, 0, -1)",
             "self.vars['i'] = str(i)"
         ]
         for idx in range(len(target_lines)):
