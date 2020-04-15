@@ -290,6 +290,70 @@ For example:
 ``` 
 This will loop through the values \[5, 4, 3, 2, 1\] in the descending order.
 
+### Foreach
+
+`foreach` blocks allow to iterate over each element on a page that matches the specified `locators`.
+
+For example:
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_1
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
+            locators:
+              - css: input
+              - xpath: //input
+            do:
+              - clickByElement(el)  # refers to the variable el 
+              - typeByElement(el): text to type
+              - type: storeValue
+                element: el         # refers to the variable el
+                param: my_var
+                             
+```
+
+`locators` is an array of selectors equivalent to those used in 
+[alternative syntax notation](#Alternative-syntax-supporting-multiple-locators).
+The `locators` also work the same way - the selectors in the array are examined 
+one by one and which first returns a not empty set of elements is used then for the iteration.
+
+To refer to the given element in the current iteration you need to use either 
+the suffix `ByElement` for the short version of actions notation or `element` for the alternative version.
+This way explicit locators (e.g. `ById`, `ByXpath`) are replaced by reference to the variable you define
+in the `foreach` loop. You however can still use the explicit locators combined with the `ByElement` actions in 
+the loop. See the example below.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_2
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
+            locators:
+              - css: input
+              - xpath: //input
+            do:
+              - clickByElement(el)  # refers to the variable el 
+              - dragByElement(el): elementById(id_123)
+              - keysById(btn_submit): KEY_ENTER
+```
+
+You can also nest multiple `foreach` blocks, just make sure to 
+use unique names for the variables in each of the blocks.  
+
+Please note that it is not possible to use `wait` and `waitFor` actions in the `foreach` using `ByElement`. 
+However you can still use it inside the loop the common way - e.g. `waitById(my_id)`.
+
 
 ### Alert
 For alert handling, use the following methods:
