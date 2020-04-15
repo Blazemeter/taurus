@@ -1443,6 +1443,36 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
+    def test_loop_w_variables(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "variables": {
+                        "start": 10,
+                        "end": 20,
+                        "step": 1
+                    },
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": "${start}",
+                                "end": "${end}",
+                                "step": "${step}",
+                                "do": [
+                                    "clickById(id_${i})"
+                                ]
+                            }
+                        ]}]}}})
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_loop_variables.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
     def test_assert_dialog_wrong_type(self):
         self.configure({
             "execution": [{
