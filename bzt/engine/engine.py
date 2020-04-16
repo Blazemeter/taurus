@@ -38,7 +38,7 @@ from bzt.utils import reraise, load_class, BetterDict, ensure_is_dict, dehumaniz
 from bzt.utils import shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient, Environment
 from .dicts import Configuration
 from .modules import Provisioning, Reporter, Service, Aggregator, EngineModule
-from .names import EXEC, TAURUS_ARTIFACTS_DIR, SETTINGS
+from .names import EXEC, TAURUS_ARTIFACTS_DIR, TAURUS_USER_CONFIGS, SETTINGS
 from .templates import Singletone
 
 
@@ -95,6 +95,7 @@ class Engine(object):
         :type read_config_files: bool
         """
         self.log.info("Configuring...")
+        self.config['user-configs'] = [os.path.abspath(conf) for conf in user_configs]
 
         if read_config_files:
             self._load_base_configs()
@@ -705,6 +706,8 @@ class Engine(object):
         """
         envs = self.config.get(SETTINGS, force_set=True).get("env", force_set=True)
         envs[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
+        envs[TAURUS_USER_CONFIGS] = ','.join(map(str, self.config.get('user-configs', force_set=True)))
+        self.log.warning("Env vars: " + envs[TAURUS_USER_CONFIGS])
 
         for varname in envs:
             if envs[varname]:
