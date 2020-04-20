@@ -290,6 +290,8 @@ For example:
 ``` 
 This will loop through the values \[5, 4, 3, 2, 1\] in the descending order.
 
+Note that you may also use variables in the `start`, `end` and `step` fields.
+
 ### Foreach
 
 `foreach` blocks allow to iterate over each element on a page that matches the specified `locators`.
