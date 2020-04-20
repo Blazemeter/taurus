@@ -35,12 +35,12 @@ def gen_empty_line_stmt():
 def gen_subscript(var_name, index):
     """ Generates code like variable[1]  """
     return ast.Expr(value=ast.Subscript(value=ast.Name(id=var_name, ctx=ast.Load()),
-                                        slice=ast.Index(value=ast.Num(n=index)), ctx=ast.Load()))
+                                        slice=ast.Index(value=ast.Num(n=index, kind="")), ctx=ast.Load()))
 
 
 def gen_store(name, value):
     return ast.Assign(
         targets=[ast.Subscript(
             value=ast_attr("self.vars"),
-            slice=ast.Str(name))],
+            slice=ast.Str(name, kind=""))],
         value=value)
