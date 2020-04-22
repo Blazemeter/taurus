@@ -22,10 +22,4 @@ describe('Blazedemo verification', function() {
             assert.equal(title, 'BlazeDemo');
         });
     });
-    it('should fail', async () => {
-        await driver.get('http://blazedemo.com/reserve.php')
-        await driver.getTitle().then(function (title) {
-            assert.equal(title, 'BlazeDemo - definitely not reserve');
-        });
-    })
 });
