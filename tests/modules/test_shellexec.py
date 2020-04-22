@@ -16,7 +16,12 @@ class TaskTestCase(BZTestCase):
         self.obj = ShellExecutor()
         self.obj.parameters = BetterDict()
         self.obj.engine = EngineEmul()
-        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.engine.config.merge({
+            "provisioning": "local",
+            "modules": {
+                "local": {"class": "bzt.modules.provisioning.Local"},
+                "cloud": {"class": "bzt.modules.blazemeter.CloudProvisioning"},
+            }})
         self.obj.engine.default_cwd = os.getcwd()
         self.sniff_log(self.obj.log)
 
