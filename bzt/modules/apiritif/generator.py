@@ -766,11 +766,12 @@ from selenium.webdriver.common.keys import Keys
         ]
 
     def _gen_loop_mngr(self, action_config):
+        extra_method = "get_loop_range"
+        self.selenium_extras.add(extra_method)
         exc = TaurusConfigError("Loop must contain start, end and do")
         start = action_config.get('start', exc)
         end = action_config.get('end', exc)
         step = action_config.get('step') or 1
-        end = end + 1 if step > 0 else end - 1
         elements = []
 
         body = [
@@ -781,15 +782,15 @@ from selenium.webdriver.common.keys import Keys
         for action in action_config.get('do', exc):
             body.append(self._gen_action(action))
 
-        args = [ast.Num(start), ast.Num(end)]
-        if step != 1:
-            args.append(ast.Num(step))
+        range_args = [self.expr_compiler.gen_expr(start),
+                      self.expr_compiler.gen_expr(end),
+                      self.expr_compiler.gen_expr(step)]
 
         elements.append(
             ast.For(target=ast.Name(id=action_config.get('loop'),
                                     ctx=ast.Store()),
-                    iter=ast_call(func=ast_attr("range"),
-                                  args=args),
+                    iter=ast_call(func=ast_attr(extra_method),
+                                  args=range_args),
                     body=body,
                     orelse=[]))
 

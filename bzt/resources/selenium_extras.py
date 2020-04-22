@@ -286,6 +286,14 @@ def _get_until_cond(condition, locator):
         return econd.visibility_of_element_located(loc_tuple)
 
 
+def get_loop_range(start, end, step):
+    """
+    :return: the range over which the loop will operate
+    """
+    end = end + 1 if step > 0 else end - 1
+    return range(start, end, step)
+
+
 class FrameManager:
 
     @staticmethod
