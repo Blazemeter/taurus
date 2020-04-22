@@ -60,10 +60,13 @@ Notes:
  - Background tasks will be shut down forcefully on mirror stages (see [Lifecycle](Lifecycle.md)) if they were not finished yet.
  - Background tasks on Check stage will not start until same previous task completed.
  - Special environment variable `TAURUS\_ARTIFACTS\_DIR` is set for every command, containing path to current artifacts directory
- - Special environment variables `TAURUS\_EXIT\_CODE` and `TAURUS\_STOPPING\_REASON` is set for every command after Taurus begins shutdown, containing exit code and possible failure explanation
- - There is module setting `default-cwd` for `shellexec` module that allows to change `cwd` default value for all tasks
- - There is module setting `env` which contains dictionary for additional environment variables for commands
+ - Special environment variables `TAURUS\_EXIT\_CODE` and `TAURUS\_STOPPING\_REASON` is set for every command after
+ Taurus begins shutdown, containing exit code and possible failure explanation
 
+##Module Settings
+Some 'global' settings can be specified in the `modules` block as usual.
+There are `default-cwd` for `shellexec` module that allows to change `cwd` default value for all tasks
+and `env` which contains dictionary for additional environment variables for commands
 ```yaml
 modules:
   shellexec:
@@ -71,4 +74,19 @@ modules:
     env:
       VARNAME: value
       VARNAME2: value2
+```
+
+ ##Provisioning Context Configuration
+ By default all tasks will be handled on the host where test is executed. In `Cloud Provisioning` case you ask (locally)
+ to run test in the BM Cloud and all task will be executed there. It's possible to specify target provisioning
+ for tasks or module settings, just use provisioning nicks for that:
+```yaml
+services:
+- module: shellexec
+  prepare:
+  - command: echo # will be executed with test together
+- module: shellexec
+  cloud:
+    prepare:
+    - command: kill_them_all # only on your local host when you start cloud test
 ```
