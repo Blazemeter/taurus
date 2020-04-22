@@ -90,7 +90,7 @@ class ShellExecutor(Service):
 
     def _filter_prov_context(self):
         def filter_conf(conf):
-            if not any(key in conf for key in prov_configs.items()):        # if no specific provisioning is configured
+            if not any(key in conf for key in prov_configs.values()):        # if no specific provisioning is configured
                 conf = BetterDict.from_dict({prov_configs['local']: conf})  # all configuration is local
 
             return conf.get(current_prov)
