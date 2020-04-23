@@ -772,13 +772,19 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr(method))
         ]
 
+    @staticmethod
+    def _convert_to_number(arg):
+        if isinstance(arg, str) and arg.isdigit():
+            return int(arg)
+        return arg
+
     def _gen_loop_mngr(self, action_config):
         extra_method = "get_loop_range"
         self.selenium_extras.add(extra_method)
         exc = TaurusConfigError("Loop must contain start, end and do")
-        start = action_config.get('start', exc)
-        end = action_config.get('end', exc)
-        step = action_config.get('step') or 1
+        start = self._convert_to_number(action_config.get('start', exc))
+        end = self._convert_to_number(action_config.get('end', exc))
+        step = self._convert_to_number(action_config.get('step')) or 1
         elements = []
 
         body = [
@@ -786,7 +792,10 @@ from selenium.webdriver.common.keys import Keys
                 targets=[self._gen_expr("${%s}" % action_config['loop'])],
                 value=ast_call(func=ast_attr("str"), args=[ast.Name(id=action_config['loop'])]))
         ]
-        for action in action_config.get('do', exc):
+        actions = action_config.get('do', exc)
+        if len(actions) == 0:
+            raise exc
+        for action in actions:
             body.append(self._gen_action(action))
 
         range_args = [self.expr_compiler.gen_expr(start),

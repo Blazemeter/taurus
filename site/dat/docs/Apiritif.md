@@ -290,7 +290,30 @@ For example:
 ``` 
 This will loop through the values \[5, 4, 3, 2, 1\] in the descending order.
 
-Note that you may also use variables in the `start`, `end` and `step` fields.
+Note that you may also use variables in the `start`, `end` and `step` fields. These fields may
+include numbers surrounded by quotes and one can even concatenate in this case numbers with variables.
+
+For example: 
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    variables:
+      step: 1
+      end: '00'
+    requests:
+      - label: example_loop
+        actions:
+          - go(http://blazedemo.com)
+          - loop: i
+            start: '1'
+            end: '1${end}' # will result in 100
+            step: ${step}
+            do: 
+              - clickById(id_${i}) 
+``` 
 
 ### Foreach
 
