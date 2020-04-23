@@ -9,6 +9,7 @@ from tests import BZTestCase, RESOURCES_DIR
 
 from bzt.cli import CLI, ConfigOverrider, get_option_parser
 from bzt.engine import Configuration
+import bzt.modules.shellexec
 from tests.mocks import EngineEmul, ModuleMock
 
 
@@ -42,19 +43,30 @@ class TestCLI(BZTestCase):
         self.assertEquals(0, ret)
 
     def test_call_proc_error(self):
-        ret = self.get_ret_code([RESOURCES_DIR + "yaml/wrong_cmd.yml"])
-        self.assertEquals(1, ret)
+        self.obj.engine.config.merge({
+            "provisioning": "mock",
+            "modules": {
+                "local": {"class": "bzt.modules.provisioning.Local"},
+                "cloud": {"class": "bzt.modules.blazemeter.CloudProvisioning"},
+            }})
+        saved_local = bzt.modules.shellexec.Local
+        bzt.modules.shellexec.Local = ModuleMock
+        try:
+            ret = self.get_ret_code([RESOURCES_DIR + "yaml/wrong_cmd.yml"])
+            self.assertEquals(1, ret)
 
-        #from shellexec
-        good_err = "DEBUG EngineEmul] Command 'wrong_cmd' returned non-zero exit status 1"
+            # from shellexec
+            good_err = "DEBUG EngineEmul] Command 'wrong_cmd' returned non-zero exit status 1"
 
-        # from CalledProcessError constructor in reraise()
-        bad_err = "__init__() missing 1 required positional argument: 'cmd'"
+            # from CalledProcessError constructor in reraise()
+            bad_err = "__init__() missing 1 required positional argument: 'cmd'"
 
-        log_file = os.path.join(self.obj.engine.artifacts_dir, "bzt.log")
-        log_content = codecs.open(log_file, encoding="utf-8").read()
-        self.assertIn(good_err, log_content)
-        self.assertNotIn(bad_err, log_content)
+            log_file = os.path.join(self.obj.engine.artifacts_dir, "bzt.log")
+            log_content = codecs.open(log_file, encoding="utf-8").read()
+            self.assertIn(good_err, log_content)
+            self.assertNotIn(bad_err, log_content)
+        finally:
+            bzt.modules.shellexec.Local = saved_local
 
     def test_unicode_logging(self):
         """ check whether unicode symbols are logged correctly into file """
