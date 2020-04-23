@@ -9,7 +9,7 @@ from tests import BZTestCase, RESOURCES_DIR
 
 from bzt.cli import CLI, ConfigOverrider, get_option_parser
 from bzt.engine import Configuration
-import bzt.modules.provisioning
+import bzt.modules.shellexec
 from tests.mocks import EngineEmul, ModuleMock
 
 
@@ -49,8 +49,8 @@ class TestCLI(BZTestCase):
                 "local": {"class": "bzt.modules.provisioning.Local"},
                 "cloud": {"class": "bzt.modules.blazemeter.CloudProvisioning"},
             }})
-        saved_local = bzt.modules.provisioning.Local
-        bzt.modules.provisioning.Local = ModuleMock
+        saved_local = bzt.modules.shellexec.Local
+        bzt.modules.shellexec.Local = ModuleMock
         try:
             ret = self.get_ret_code([RESOURCES_DIR + "yaml/wrong_cmd.yml"])
             self.assertEquals(1, ret)
@@ -66,7 +66,7 @@ class TestCLI(BZTestCase):
             self.assertIn(good_err, log_content)
             self.assertNotIn(bad_err, log_content)
         finally:
-            bzt.modules.provisioning.Local = saved_local
+            bzt.modules.shellexec.Local = saved_local
 
     def test_unicode_logging(self):
         """ check whether unicode symbols are logged correctly into file """
