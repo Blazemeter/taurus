@@ -290,6 +290,9 @@ def get_loop_range(start, end, step):
     """
     :return: the range over which the loop will operate
     """
+    start = int(start)
+    end = int(end)
+    step = int(step)
     end = end + 1 if step > 0 else end - 1
     return range(start, end, step)
 
