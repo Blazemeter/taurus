@@ -307,11 +307,12 @@ from selenium.webdriver.common.keys import Keys
                 self._gen_expr(selector)])
 
     def _gen_window_mngr(self, atype, param):
-        self.selenium_extras.add("WindowManager")
         elements = []
         if atype == "switch":
+            method = "switch_window"
+            self.selenium_extras.add(method)
             elements.append(ast_call(
-                func=ast_attr("self.wnd_mng.switch"),
+                func=ast_attr(method),
                 args=[self._gen_expr(param)]))
         elif atype == "resize":
             if not re.compile(r"\d+,\d+").match(param):
@@ -333,29 +334,32 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("self.driver.execute_script"),
                 args=[self._gen_expr("window.open('%s');" % param)]))
         elif atype == "close":
+            method = "close_window"
+            self.selenium_extras.add(method)
             args = []
             if param:
                 args.append(self._gen_expr(param))
             elements.append(ast_call(
-                func=ast_attr("self.wnd_mng.close"),
+                func=ast_attr(method),
                 args=args))
         return elements
 
     def _gen_frame_mngr(self, tag, selector):
-        self.selenium_extras.add("FrameManager")
+        method = "switch_frame"
+        self.selenium_extras.add(method)
         elements = []  # todo: byid/byidx disambiguation?
         if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
             if tag == "byidx":
                 selector = "index=%s" % selector
 
             elements.append(ast_call(
-                func=ast_attr("self.frm_mng.switch"),
+                func=ast_attr(method),
                 args=[ast.Str(selector)]))
         else:
             if tag == "byname":
                 tag = "name"
             elements.append(ast_call(
-                func=ast_attr("self.frm_mng.switch"),
+                func=ast_attr(method),
                 args=[self._gen_locator(tag, selector)]))
         return elements
 
@@ -968,20 +972,6 @@ from selenium.webdriver.common.keys import Keys
             ast_call(
                 func=ast_attr("self.driver.implicitly_wait"),
                 args=[ast_attr("timeout")])))
-
-        mgr = "WindowManager"
-        if mgr in self.selenium_extras:
-            body.append(ast.Assign(
-                targets=[ast_attr("self.wnd_mng")],
-                value=ast_call(
-                    func=ast.Name(id=mgr))))
-
-        mgr = "FrameManager"
-        if mgr in self.selenium_extras:
-            body.append(ast.Assign(
-                targets=[ast_attr("self.frm_mng")],
-                value=ast_call(
-                    func=ast.Name(id=mgr))))
 
         return body
 
