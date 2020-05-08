@@ -744,8 +744,7 @@ class Engine(object):
 
         for varname in envs:
             if envs[varname]:
-                envs[varname] = str(envs[varname])
-                envs[varname] = os.path.expandvars(envs[varname])
+                envs[varname] = os.path.expandvars(str(envs[varname]))
 
             self.log.debug("Env: %s=%s", varname, envs[varname])
 
@@ -761,6 +760,6 @@ class Engine(object):
             else:
                 # avoid exporting settings like PATH: ${PATH} to OS env by default
                 if override_os_env or varname not in os.environ:
-                    os.environ[varname] = str(envs[varname])
+                    os.environ[varname] = os.path.expandvars(str(envs[varname]))
 
                     self.log.debug("OS env: %s=%s", varname, envs[varname])
