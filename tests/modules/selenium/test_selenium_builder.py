@@ -1333,7 +1333,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {
                                 "loop": "i",
                                 "start": 1,
-                                "end": 10
+                                "end": 10,
+                                "do": []
                             }
                         ]}]}}})
 
@@ -1467,6 +1468,40 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_loop_variables.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+    def test_loop_str_var_fields(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "variables": {
+                        "step": 1
+                    },
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": "1",
+                                "end": "10",
+                                "step": '1${step}',
+                                "do": [
+                                    "clickById(id)"
+                                ]
+                            }
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "for i in get_loop_range(1, 10, '1{}'.format(self.vars['step']))",
+            "self.vars['i'] = str(i)"
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
     def test_assert_dialog_wrong_type(self):
         self.configure({
