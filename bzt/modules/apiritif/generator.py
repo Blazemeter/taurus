@@ -905,6 +905,7 @@ from selenium.webdriver.common.keys import Keys
                 body.append(ast.Assign(targets=[ast_attr("options")], value=ast_attr("None")))
 
             body.append(self._get_remote_webdriver())
+
         else:
             if self._get_headless_setup():
                 self.log.warning("Browser %r doesn't support headless mode" % browser)
