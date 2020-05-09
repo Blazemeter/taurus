@@ -888,19 +888,18 @@ from selenium.webdriver.common.keys import Keys
             headless_setup = [ast.Expr(
                 ast_call(func=ast_attr("options.set_headless")))]
 
-        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None")),
-                ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
-
-        if browser == 'firefox':
-            body.append(ast.Assign(
+        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
+        firefox_options = [
+            ast.Assign(
                 targets=[ast.Name(id="options")],
                 value=ast_call(
-                    func=ast_attr("webdriver.FirefoxOptions"))))
-            body.extend(headless_setup)
-
-            body.append(ast.Expr(
+                    func=ast_attr("webdriver.FirefoxOptions"))),
+            ast.Expr(
                 ast_call(func=ast_attr("options.set_preference"),
-                         args=[ast.Str("network.proxy.type"), ast.Str("4")])))
+                         args=[ast.Str("network.proxy.type"), ast.Str("4")]))]
+
+        if browser == 'firefox':
+            body.extend(firefox_options + headless_setup)
 
             body.append(ast.Assign(
                 targets=[ast.Name(id="profile")],
@@ -949,11 +948,10 @@ from selenium.webdriver.common.keys import Keys
             keys = sorted(self.capabilities.keys())
             values = [str(self.capabilities[key]) for key in keys]
 
-            # todo:
-            # if firefox:
-            #   create options and options.set_preference('network.proxy.type', '4')
-            # else:
-            #   options = None
+            if 'firefox' == self.capabilities.get('browserName'):
+                body.append(firefox_options)
+            else:
+                body.append(ast.Assign(targets=[ast_attr("options")], value=ast_attr("None")))
 
             body.append(ast.Assign(
                 targets=[ast_attr("self.driver")],
