@@ -34,7 +34,7 @@ class TestLocSc(unittest.TestCase):
         options.add_argument('--disable-dev-shm-usage')
         self.driver = webdriver.Chrome(
             service_log_path='/somewhere/webdriver.log',
-            chrome_options=options)
+            options=options)
         self.driver.implicitly_wait(timeout)
         add_flow_markers()
         apiritif.put_into_thread_store(driver=self.driver, scenario_name='loc_sc', timeout=timeout, func_mode=False)

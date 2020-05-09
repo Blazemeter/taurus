@@ -32,9 +32,10 @@ class TestLocSc(unittest.TestCase):
         timeout = 3.5
         self.driver = None
         options = webdriver.FirefoxOptions()
+        options.set_preference('network.proxy.type', '4')
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
-        self.driver = webdriver.Firefox(profile, firefox_options=options)
+        self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
         self.wnd_mng = WindowManager()
         self.frm_mng = FrameManager()

@@ -889,13 +889,18 @@ from selenium.webdriver.common.keys import Keys
                 ast_call(func=ast_attr("options.set_headless")))]
 
         body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
-
-        if browser == 'firefox':
-            body.append(ast.Assign(
+        firefox_options = [
+            ast.Assign(
                 targets=[ast.Name(id="options")],
                 value=ast_call(
-                    func=ast_attr("webdriver.FirefoxOptions"))))
-            body.extend(headless_setup)
+                    func=ast_attr("webdriver.FirefoxOptions"))),
+            ast.Expr(
+                ast_call(func=ast_attr("options.set_preference"),
+                         args=[ast.Str("network.proxy.type"), ast.Str("4")]))]
+
+        if browser == 'firefox':
+            body.extend(firefox_options + headless_setup)
+
             body.append(ast.Assign(
                 targets=[ast.Name(id="profile")],
                 value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))))
@@ -910,7 +915,7 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("webdriver.Firefox"),
                     args=[ast.Name(id="profile")],
                     keywords=[ast.keyword(
-                        arg="firefox_options",
+                        arg="options",
                         value=ast.Name(id="options"))])))
         elif browser == 'chrome':
             body.append(ast.Assign(
@@ -937,11 +942,17 @@ from selenium.webdriver.common.keys import Keys
                             arg="service_log_path",
                             value=ast.Str(self.wdlog)),
                         ast.keyword(
-                            arg="chrome_options",
+                            arg="options",
                             value=ast.Name(id="options"))])))
         elif browser == 'remote':
             keys = sorted(self.capabilities.keys())
             values = [str(self.capabilities[key]) for key in keys]
+
+            if 'firefox' == self.capabilities.get('browserName'):
+                body.append(firefox_options)
+            else:
+                body.append(ast.Assign(targets=[ast_attr("options")], value=ast_attr("None")))
+
             body.append(ast.Assign(
                 targets=[ast_attr("self.driver")],
                 value=ast_call(
@@ -954,7 +965,10 @@ from selenium.webdriver.common.keys import Keys
                             arg="desired_capabilities",
                             value=ast.Dict(
                                 keys=[ast.Str(key) for key in keys],
-                                values=[ast.Str(value) for value in values]))])))
+                                values=[ast.Str(value) for value in values])),
+                        ast.keyword(
+                            arg="options",
+                            value=ast.Name(id="options"))])))
         else:
             if headless:
                 self.log.warning("Browser %r doesn't support headless mode" % browser)
