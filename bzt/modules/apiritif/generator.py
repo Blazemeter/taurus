@@ -888,7 +888,8 @@ from selenium.webdriver.common.keys import Keys
             headless_setup = [ast.Expr(
                 ast_call(func=ast_attr("options.set_headless")))]
 
-        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
+        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None")),
+                ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
 
         if browser == 'firefox':
             body.append(ast.Assign(
@@ -897,7 +898,9 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("webdriver.FirefoxOptions"))))
             body.extend(headless_setup)
 
-            # todo: options.set_preference('network.proxy.type', '4')
+            body.append(ast.Expr(
+                ast_call(func=ast_attr("options.set_preference"),
+                         args=[ast.Str("network.proxy.type"), ast.Str("4")])))
 
             body.append(ast.Assign(
                 targets=[ast.Name(id="profile")],
