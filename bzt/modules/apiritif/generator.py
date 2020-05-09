@@ -883,33 +883,21 @@ from selenium.webdriver.common.keys import Keys
 
         body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
 
-        firefox_options = [
-            ast.Assign(
-                targets=[ast.Name(id="options")],
-                value=ast_call(
-                    func=ast_attr("webdriver.FirefoxOptions"))),
-            ast.Expr(
-                ast_call(func=ast_attr("options.set_preference"),
-                         args=[ast.Str("network.proxy.type"), ast.Str("4")]))]
-
         if browser == 'firefox':
-            body.extend(firefox_options + self._get_headless_setup() + self._get_firefox_profile() + [self._get_firefox_webdriver()])
+            body.extend(self._get_firefox_options() + self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
         elif browser == 'chrome':
-            body.extend(self._get_chrome_options() + self._get_headless_setup() + [self._get_chrome_webdriver()])
+            body.extend(self._get_chrome_options() + [self._get_chrome_webdriver()])
 
         elif browser == 'remote':
             if 'firefox' == self.capabilities.get('browserName'):
-                body.append(firefox_options)
+                body.append(self._get_firefox_options())
             else:
                 body.append(ast.Assign(targets=[ast_attr("options")], value=ast_attr("None")))
 
             body.append(self._get_remote_webdriver())
 
         else:
-            if self._get_headless_setup():
-                self.log.warning("Browser %r doesn't support headless mode" % browser)
-
             body.append(ast.Assign(
                 targets=[ast_attr("self.driver")],
                 value=ast_call(
@@ -920,21 +908,26 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("self.driver.implicitly_wait"),
                 args=[ast_attr("timeout")])))
 
+        body.extend(self._get_extra_mngrs())
+
+        return body
+
+    def _get_extra_mngrs(self):
+        mngrs = []
         mgr = "WindowManager"
         if mgr in self.selenium_extras:
-            body.append(ast.Assign(
+            mngrs.append(ast.Assign(
                 targets=[ast_attr("self.wnd_mng")],
                 value=ast_call(
                     func=ast.Name(id=mgr))))
 
         mgr = "FrameManager"
         if mgr in self.selenium_extras:
-            body.append(ast.Assign(
+            mngrs.append(ast.Assign(
                 targets=[ast_attr("self.frm_mng")],
                 value=ast_call(
                     func=ast.Name(id=mgr))))
-
-        return body
+        return mngrs
 
     def _get_headless_setup(self):
         if self.scenario.get("headless", False):
@@ -943,6 +936,16 @@ from selenium.webdriver.common.keys import Keys
                 ast_call(func=ast_attr("options.set_headless")))]
         else:
             return []
+
+    def _get_firefox_options(self):
+        return [
+            ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(
+                    func=ast_attr("webdriver.FirefoxOptions"))),
+            ast.Expr(
+                ast_call(func=ast_attr("options.set_preference"),
+                         args=[ast.Str("network.proxy.type"), ast.Str("4")]))] + self._get_headless_setup()
 
     def _get_chrome_options(self):
         return [ast.Assign(
@@ -956,7 +959,7 @@ from selenium.webdriver.common.keys import Keys
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
-                    args=[ast.Str("%s" % "--disable-dev-shm-usage")]))]
+                    args=[ast.Str("%s" % "--disable-dev-shm-usage")]))] + self._get_headless_setup()
 
     def _get_firefox_profile(self):
         return [
