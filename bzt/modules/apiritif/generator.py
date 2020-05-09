@@ -879,9 +879,10 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_webdriver(self):
         self.log.debug("Generating setUp test method")
-        browser = self._check_platform()
 
         body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
+
+        browser = self._check_platform()
 
         if browser == 'firefox':
             body.extend(self._get_firefox_options() + self._get_firefox_profile() + [self._get_firefox_webdriver()])
@@ -893,7 +894,8 @@ from selenium.webdriver.common.keys import Keys
             if 'firefox' == self.capabilities.get('browserName'):
                 body.append(self._get_firefox_options())
             else:
-                body.append(ast.Assign(targets=[ast_attr("options")], value=ast_attr("None")))
+                empty_options = ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))
+                body.append(empty_options)
 
             body.append(self._get_remote_webdriver())
 
@@ -903,14 +905,16 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(
                     func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
 
-        body.append(ast.Expr(
-            ast_call(
-                func=ast_attr("self.driver.implicitly_wait"),
-                args=[ast_attr("timeout")])))
-
+        body.append(self._get_timeout())
         body.extend(self._get_extra_mngrs())
 
         return body
+
+    def _get_timeout(self):
+        return ast.Expr(
+            ast_call(
+                func=ast_attr("self.driver.implicitly_wait"),
+                args=[ast_attr("timeout")]))
 
     def _get_extra_mngrs(self):
         mngrs = []
@@ -938,20 +942,23 @@ from selenium.webdriver.common.keys import Keys
             return []
 
     def _get_firefox_options(self):
-        return [
+        firefox_options = [
             ast.Assign(
                 targets=[ast.Name(id="options")],
                 value=ast_call(
                     func=ast_attr("webdriver.FirefoxOptions"))),
             ast.Expr(
                 ast_call(func=ast_attr("options.set_preference"),
-                         args=[ast.Str("network.proxy.type"), ast.Str("4")]))] + self._get_headless_setup()
+                         args=[ast.Str("network.proxy.type"), ast.Str("4")]))]
+
+        return firefox_options + self._get_headless_setup()
 
     def _get_chrome_options(self):
-        return [ast.Assign(
-            targets=[ast.Name(id="options")],
-            value=ast_call(
-                func=ast_attr("webdriver.ChromeOptions"))),
+        chrome_options = [
+            ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(
+                    func=ast_attr("webdriver.ChromeOptions"))),
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
@@ -959,7 +966,9 @@ from selenium.webdriver.common.keys import Keys
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
-                    args=[ast.Str("%s" % "--disable-dev-shm-usage")]))] + self._get_headless_setup()
+                    args=[ast.Str("%s" % "--disable-dev-shm-usage")]))]
+
+        return chrome_options + self._get_headless_setup()
 
     def _get_firefox_profile(self):
         return [
