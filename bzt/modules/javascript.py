@@ -128,13 +128,14 @@ class WebdriverIOExecutor(JavaScriptExecutor):
         self.node = self._get_tool(Node)
         self.npm = self._get_tool(NPM)
         self.wdio = self._get_tool(WDIO, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.wdio_reporter = self._get_tool(WDIOReporter)
+        self.wdio_reporter = self._get_tool(WDIOReporter, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
+        self.wdio_runner = self._get_tool(WDIORunner, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
         self.wdio_taurus_plugin = self._get_tool(TaurusWDIOPlugin)
 
         wdio_mocha_plugin = self._get_tool(
             WDIOMochaPlugin, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
 
-        tools = [tcl_lib, self.node, self.npm, self.wdio, self.wdio_taurus_plugin, self.wdio_reporter, wdio_mocha_plugin]
+        tools = [tcl_lib, self.node, self.npm, self.wdio, self.wdio_taurus_plugin, self.wdio_reporter, self.wdio_runner, wdio_mocha_plugin]
 
         self._check_tools(tools)
 
@@ -293,7 +294,8 @@ class NPMPackage(RequiredTool):
         if self.package_name.startswith("@"):
             package_name_split = self.package_name.split("@")
             self.package_name = '@{}'.format(package_name_split[1])
-            self.version = package_name_split[2]
+            if len(package_name_split) > 2:
+                self.version = package_name_split[2]
         elif "@" in self.package_name:
             self.package_name, self.version = self.package_name.split("@")
 
@@ -341,13 +343,16 @@ class JSSeleniumWebdriver(NPMPackage):
     PACKAGE_NAME = "selenium-webdriver@3.6.0"
 
 class WDIO(NPMPackage):
-    PACKAGE_NAME = "@wdio/cli@6.1.0"
+    PACKAGE_NAME = "@wdio/cli@6.1.9"
+
+class WDIORunner(NPMPackage):
+    PACKAGE_NAME = "@wdio/local-runner@6.1.9"
 
 class WDIOReporter(NPMPackage):
-    PACKAGE_NAME = "@wdio/reporter"
+    PACKAGE_NAME = "@wdio/reporter@6.1.9"
 
 class WDIOMochaPlugin(NPMPackage):
-    PACKAGE_NAME = "@wdio/mocha-framework"
+    PACKAGE_NAME = "@wdio/mocha-framework@6.1.8"
 
 
 class Newman(NPMPackage):

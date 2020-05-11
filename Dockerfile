@@ -4,7 +4,7 @@ ENV DBUS_SESSION_BUS_ADDRESS=/dev/null DEBIAN_FRONTEND=noninteractive APT_INSTAL
 
 WORKDIR /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
-ADD https://deb.nodesource.com/setup_10.x /tmp
+ADD https://deb.nodesource.com/setup_12.x /tmp
 RUN apt-get -y update \
   && apt-get -y install dirmngr \
   && $APT_INSTALL software-properties-common apt-utils \
@@ -15,7 +15,7 @@ RUN apt-get -y update \
   && apt-add-repository ppa:yandex-load/main \
   && apt-add-repository ppa:nilarimogard/webupd8 \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
-  && bash /tmp/setup_10.x \
+  && bash /tmp/setup_12.x \
   && $APT_INSTALL tzdata \
   && dpkg-reconfigure --frontend noninteractive tzdata \
   && $APT_INSTALL \
