@@ -32,8 +32,8 @@ class TestConverter(BZTestCase):
         result = self._get_tmp()
         options = FakeOptions(file_name=result, test_case="index")
         process(options, [source])
-        actual = yaml.load(open(result).read())
-        expected = yaml.load(open(RESOURCES_DIR + "soapui/project.xml.yml").read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(RESOURCES_DIR + "soapui/project.xml.yml").read())
         self.assertEqual(actual, expected)
 
     def test_flickr(self):
@@ -41,8 +41,8 @@ class TestConverter(BZTestCase):
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
         process(options, [source])
-        actual = yaml.load(open(result).read())
-        expected = yaml.load(open(RESOURCES_DIR + "soapui/flickr-sample.xml.yml").read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(RESOURCES_DIR + "soapui/flickr-sample.xml.yml").read())
         self.assertEqual(actual, expected)
 
     def test_egalaxy(self):
@@ -50,8 +50,8 @@ class TestConverter(BZTestCase):
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
         process(options, [source])
-        actual = yaml.load(open(result).read())
-        expected = yaml.load(open(RESOURCES_DIR + "soapui/egalaxy.xml.yml").read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(RESOURCES_DIR + "soapui/egalaxy.xml.yml").read())
         self.assertEqual(actual, expected)
 
     def test_smart(self):
@@ -59,6 +59,6 @@ class TestConverter(BZTestCase):
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
         process(options, [source])
-        actual = yaml.load(open(result).read())
-        expected = yaml.load(open(RESOURCES_DIR + "soapui/smart.xml.yml").read())
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(RESOURCES_DIR + "soapui/smart.xml.yml").read())
         self.assertEqual(actual, expected)

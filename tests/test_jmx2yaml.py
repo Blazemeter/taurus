@@ -41,8 +41,8 @@ class TestConverter(BZTestCase):
         if not file1.startswith("/"):
             file1 = RESOURCES_DIR + "yaml/converter/" + file1
 
-        yml1 = yaml.load(open(file1).read())
-        yml2 = yaml.load(open(file2).read())
+        yml1 = yaml.full_load(open(file1).read())
+        yml2 = yaml.full_load(open(file2).read())
         return yml1 == yml2
 
     def test_objprop(self):
@@ -118,7 +118,7 @@ class TestConverter(BZTestCase):
     def test_copy_global_csv_dataset(self):
         self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
 
         tg1_datasets = yml.get("scenarios").get("Thread Group one").get("data-sources")
         tg2_datasets = yml.get("scenarios").get("Thread Group two").get("data-sources")
@@ -135,7 +135,7 @@ class TestConverter(BZTestCase):
     def test_parse_csv_dataset(self):
         self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         datasets = yml.get("scenarios").get("Thread Group one").get("data-sources")
         local_csv = [dataset for dataset in datasets if dataset.get('path') == 'local.csv'][0]
         self.assertEqual(local_csv['loop'], False)
@@ -145,7 +145,7 @@ class TestConverter(BZTestCase):
     def test_copy_global_headers(self):
         self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         headers_first_tg = yml.get("scenarios").get("Thread Group one").get("headers", [])
         headers_second_tg = yml.get("scenarios").get("Thread Group two").get("headers", [])
         self.assertEqual(len(headers_first_tg), 3)
@@ -154,7 +154,7 @@ class TestConverter(BZTestCase):
     def test_cache_cookie_dns_overrides(self):
         self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
         tg_two = yml.get("scenarios").get('Thread Group two')
         cache_first_tg = tg_one.get("store-cache")
@@ -173,7 +173,7 @@ class TestConverter(BZTestCase):
     def test_think_time_overrides(self):
         self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
         tg_two = yml.get("scenarios").get('Thread Group two')
         request_tg_two = tg_two.get("requests")[0]
@@ -188,7 +188,7 @@ class TestConverter(BZTestCase):
     def test_request_defaults(self):
         self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
         tg_two = yml.get("scenarios").get('Thread Group two')
         self.assertEqual(tg_one.get("default-address"), "https://127.0.0.2/")
@@ -203,7 +203,7 @@ class TestConverter(BZTestCase):
     def test_copy_global_request_assertions(self):
         self.configure(RESOURCES_DIR + "yaml/converter/assertions.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get("tg1")
         tg_two = yml.get("scenarios").get("tg2")
         tg_one_assertions = tg_one.get("assert")
@@ -229,7 +229,7 @@ class TestConverter(BZTestCase):
     def test_auth_manager(self):
         self.configure(RESOURCES_DIR + "yaml/converter/auth_manager.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         auth = yml.get("scenarios").get("Thread Group").get("authorization")
         sample = {
             'clear': True,
@@ -242,7 +242,7 @@ class TestConverter(BZTestCase):
     def test_copy_global_json_assertions(self):
         self.configure(RESOURCES_DIR + "yaml/converter/assertions.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get("tg1")
         tg_two = yml.get("scenarios").get("tg2")
         tg_one_assertions = tg_one.get("assert-jsonpath")
@@ -272,7 +272,7 @@ class TestConverter(BZTestCase):
     def test_xpath_assertions(self):
         self.configure(RESOURCES_DIR + "yaml/converter/assertions.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         tg = yml.get("scenarios").get("tg3")
         assertions = tg.get("assert-xpath")
         self.assertEqual(len(assertions), 2)
@@ -294,7 +294,7 @@ class TestConverter(BZTestCase):
     def test_extractors(self):
         self.configure(RESOURCES_DIR + "yaml/converter/extractors.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get("tg1")
         tg_two = yml.get("scenarios").get("tg2")
         tg_three = yml.get("scenarios").get("tg3")
@@ -365,7 +365,7 @@ class TestConverter(BZTestCase):
     def test_request_body(self):
         self.configure(RESOURCES_DIR + "yaml/converter/extractors.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get("tg1")
         tg_two = yml.get("scenarios").get("tg2")
         tg_one_req_one_body = tg_one.get("requests")[0].get("body")
@@ -378,20 +378,21 @@ class TestConverter(BZTestCase):
     def test_json_body(self):
         self.configure(RESOURCES_DIR + "yaml/converter/json_body.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         reqs1 = yml.get("scenarios").get("tg1")['requests']
         reqs2 = yml.get("scenarios").get("tg2")['requests']
         bodies = {req['label']: req.get('body', None) for req in reqs1 + reqs2}
         targets = {'r1_1': None, 'r1_2': list, 'r1_3': str, 'r1_4': dict,
                    'r2_1': None, 'r2_2': dict, 'r2_3': str, 'r2_4': str, 'r2_5': str}
         for label in targets:
-            self.assertTrue((bodies[label] is None and targets[label] is None)
-                            or isinstance(bodies[label], targets[label]))
+            self.assertTrue(not (
+                        not (bodies[label] is None and targets[label] is None) and not isinstance(bodies[label],
+                                                                                                  targets[label])))
 
     def test_duration_throughput(self):
         self.configure(RESOURCES_DIR + "yaml/converter/duration.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         tg_one = yml.get(EXEC)[0]
         tg_two = yml.get(EXEC)[1]
         tg_three = yml.get(EXEC)[2]
@@ -428,7 +429,7 @@ class TestConverter(BZTestCase):
     def test_load_profile_default_values(self):
         self.configure(RESOURCES_DIR + "yaml/converter/default.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         execution = yml.get(EXEC)[0]
         self.assertEqual("60s", execution.get("ramp-up"))
         self.assertEqual(1, execution.get("concurrency"))
@@ -437,7 +438,7 @@ class TestConverter(BZTestCase):
     def test_variables(self):
         self.configure(RESOURCES_DIR + "yaml/converter/vars.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         scenarios = yml.get("scenarios")
         tg_one = scenarios["TG1"]
         self.assertEqual(tg_one.get('variables'),
@@ -452,7 +453,7 @@ class TestConverter(BZTestCase):
     def test_no_variables(self):
         self.configure(RESOURCES_DIR + "yaml/converter/default.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         execution = yml.get(EXEC)[0]
         scenarios = yml.get("scenarios")
         scenario = scenarios[execution.get("scenario")]
@@ -472,7 +473,7 @@ class TestConverter(BZTestCase):
         try:
             self.obj.process()
             lines = FileReader(self.obj.dst_file).get_lines(last_pass=True)
-            yml = yaml.load(''.join(lines))
+            yml = yaml.full_load(''.join(lines))
             scenarios = yml.get("scenarios")
             scenario = scenarios["Thread Group"]
             requests = scenario["requests"]
@@ -513,7 +514,7 @@ class TestConverter(BZTestCase):
     def test_path_without_domain(self):
         self.configure(RESOURCES_DIR + "jmeter/jmx/http.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         scenarios = yml.get("scenarios")
         scenario = scenarios["Thread Group"]
         requests = scenario["requests"]
@@ -524,7 +525,7 @@ class TestConverter(BZTestCase):
     def test_request_content_encoding(self):
         self.configure(RESOURCES_DIR + "jmeter/jmx/http.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         scenarios = yml.get("scenarios")
         scenario = scenarios["Thread Group"]
         requests = scenario["requests"]
@@ -535,7 +536,7 @@ class TestConverter(BZTestCase):
     def test_request_redirect_policy(self):
         self.configure(RESOURCES_DIR + "jmeter/jmx/http.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         scenarios = yml.get("scenarios")
         scenario = scenarios["Thread Group"]
         requests = scenario["requests"]
@@ -564,7 +565,7 @@ class TestConverter(BZTestCase):
 
             self.configure(wrong_jmx)
             self.obj.process()
-            yml = yaml.load(open(self.obj.dst_file).read())
+            yml = yaml.full_load(open(self.obj.dst_file).read())
             requests = yml.get("scenarios").get("Thread Group").get("requests")
             self.assertTrue(any(request.get("while") == "${WC}" for request in requests))
         finally:
@@ -574,7 +575,7 @@ class TestConverter(BZTestCase):
     def test_loop_controllers(self):
         self.configure(RESOURCES_DIR + "yaml/converter/loop-controllers.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         requests = yml.get("scenarios").get("Thread Group").get("requests")
         self.assertEqual(len(requests), 2)
         first, second = requests
@@ -584,7 +585,7 @@ class TestConverter(BZTestCase):
     def test_ctg_convert(self):
         self.configure(RESOURCES_DIR + "yaml/converter/group-tg.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
+        yml = yaml.full_load(open(self.obj.dst_file).read())
         tg_execution = yml.get(EXEC)[0]
         tg_execution_sch = yml.get(EXEC)[1]
         ctg_execution = yml.get(EXEC)[2]
