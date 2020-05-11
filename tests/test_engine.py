@@ -211,7 +211,7 @@ class TestScenarioExecutor(ExecutorTestCase):
     def test_timers(self):
         """ general executor supports only simplified form of think-time """
         with open(os.path.join(RESOURCES_DIR, "yaml/timers.yml")) as config_file:
-            config = yaml.load(config_file.read())
+            config = yaml.full_load(config_file.read())
 
         self.configure(config)
         timers = [request.get_think_time() for request in self.obj.get_scenario().get_requests()]

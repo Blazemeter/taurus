@@ -487,7 +487,7 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_timers(self):
         with open(os.path.join(RESOURCES_DIR, "yaml/timers.yml")) as config_file:
-            config = yaml.load(config_file.read())
+            config = yaml.full_load(config_file.read())
 
         self.configure(config)
         self.obj.prepare()
@@ -1064,7 +1064,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.post_process()
 
     def test_distributed_gui(self):
-        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/distributed_gui.yml").read()))
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/distributed_gui.yml").read()))
         self.obj.prepare()
 
         prop_file_path = os.path.join(self.obj.engine.artifacts_dir, "jmeter-bzt.properties")

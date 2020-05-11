@@ -115,7 +115,7 @@ class TestPBenchExecutor(TestPBench):
 
     def test_improved_request_building(self):
         config = RESOURCES_DIR + "yaml/phantom_improved_request.yml"
-        self.configure(yaml.load(open(config).read()))
+        self.configure(yaml.full_load(open(config).read()))
         self.obj.prepare()
         with open(self.obj.generator.schedule_file) as fds:
             config = fds.readlines()
@@ -129,7 +129,7 @@ class TestPBenchExecutor(TestPBench):
 
     def test_same_address_port(self):
         config = RESOURCES_DIR + "yaml/phantom_request_same_address.yml"
-        self.configure(yaml.load(open(config).read()))
+        self.configure(yaml.full_load(open(config).read()))
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_install_pbench(self):
