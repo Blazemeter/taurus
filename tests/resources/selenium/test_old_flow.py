@@ -24,7 +24,7 @@ from selenium.webdriver.common.keys import Keys
 def setup():
     options = webdriver.ChromeOptions()
     driver = webdriver.Chrome(service_log_path='webdriver.log',
-                              chrome_options=options)
+                              options=options)
     driver.implicitly_wait(60.0)
     wnd_mng = WindowManager(driver)
     frm_mng = FrameManager(driver)

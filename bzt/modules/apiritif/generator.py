@@ -88,7 +88,7 @@ class ApiritifScriptGenerator(object):
 
     ACTIONS = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
                         'mouseOver', 'select', 'wait', 'keys', 'pauseFor', 'clear', 'assert',
-                        'assertText', 'assertValue',  'assertDialog', 'answerDialog', 'submit',
+                        'assertText', 'assertValue', 'assertDialog', 'answerDialog', 'submit',
                         'close', 'script', 'editcontent',
                         'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
                         'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode',
@@ -231,7 +231,7 @@ from selenium.webdriver.common.keys import Keys
             selectors = (source, target)
         param = action_config["param"]
         value = action_config["value"]
-        tags = "|".join(self.COMMON_TAGS) + "|ByName"   # ByName is needed in switchFrameByName
+        tags = "|".join(self.COMMON_TAGS) + "|ByName"  # ByName is needed in switchFrameByName
         expr = re.compile("^(%s)(%s)?$" % (self.ACTIONS, tags), re.IGNORECASE)
         action_params = self._parse_action_params(expr, name)
 
@@ -269,7 +269,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_dynamic_locator(self, var_w_locator, locators):
         if self._is_foreach_element(locators):
-                return ast.Name(id=locators[0].get("byelement"))
+            return ast.Name(id=locators[0].get("byelement"))
         return ast_call(
             func=ast_attr("self.driver.find_element"),
             args=[
@@ -749,14 +749,14 @@ from selenium.webdriver.common.keys import Keys
         dlg_method = "dialogs_get_next_%s" % type
         self.selenium_extras.add(dlg_method)
         elements.append(ast.Assign(targets=[ast.Name(id='dialog', ctx=ast.Store())],
-                       value=ast_call(
-                            func=ast_attr(dlg_method))))
+                                   value=ast_call(
+                                       func=ast_attr(dlg_method))))
         elements.append(ast_call(
-                func=ast_attr("self.assertIsNotNone"),
-                args=[ast.Name(id='dialog'), ast.Str("No dialog of type %s appeared" % type, kind="")]))
+            func=ast_attr("self.assertIsNotNone"),
+            args=[ast.Name(id='dialog'), ast.Str("No dialog of type %s appeared" % type, kind="")]))
         elements.append(ast_call(
-                func=ast_attr("self.assertEqual"),
-                args=[ast.Name(id='dialog'), ast.Str(value, kind=""), ast.Str("Dialog message didn't match", kind="")]))
+            func=ast_attr("self.assertEqual"),
+            args=[ast.Name(id='dialog'), ast.Str(value, kind=""), ast.Str("Dialog message didn't match", kind="")]))
 
         return elements
 
@@ -879,111 +879,149 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_webdriver(self):
         self.log.debug("Generating setUp test method")
-        browser = self._check_platform()
-
-        headless = self.scenario.get("headless", False)
-        headless_setup = []
-        if headless:
-            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
-            headless_setup = [ast.Expr(
-                ast_call(func=ast_attr("options.set_headless")))]
 
         body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
 
+        browser = self._check_platform()
+
         if browser == 'firefox':
-            body.append(ast.Assign(
-                targets=[ast.Name(id="options")],
-                value=ast_call(
-                    func=ast_attr("webdriver.FirefoxOptions"))))
-            body.extend(headless_setup)
-            body.append(ast.Assign(
-                targets=[ast.Name(id="profile")],
-                value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))))
-            body.append(ast.Expr(
-                ast_call(
-                    func=ast_attr("profile.set_preference"),
-                    args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])))
+            body.extend(self._get_firefox_options() + self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
-            body.append(ast.Assign(
-                targets=[ast_attr("self.driver")],
-                value=ast_call(
-                    func=ast_attr("webdriver.Firefox"),
-                    args=[ast.Name(id="profile")],
-                    keywords=[ast.keyword(
-                        arg="firefox_options",
-                        value=ast.Name(id="options"))])))
         elif browser == 'chrome':
-            body.append(ast.Assign(
-                targets=[ast.Name(id="options")],
-                value=ast_call(
-                    func=ast_attr("webdriver.ChromeOptions"))))
-            body.append(ast.Expr(
-                ast_call(
-                    func=ast_attr("options.add_argument"),
-                    args=[ast.Str("%s" % "--no-sandbox", kind="")]
-                )))
-            body.append(ast.Expr(
-                ast_call(
-                    func=ast_attr("options.add_argument"),
-                    args=[ast.Str("%s" % "--disable-dev-shm-usage", kind="")]
-                )))
-            body.extend(headless_setup)
-            body.append(ast.Assign(
-                targets=[ast_attr("self.driver")],
-                value=ast_call(
-                    func=ast_attr("webdriver.Chrome"),
-                    keywords=[
-                        ast.keyword(
-                            arg="service_log_path",
-                            value=ast.Str(self.wdlog, kind="")),
-                        ast.keyword(
-                            arg="chrome_options",
-                            value=ast.Name(id="options"))])))
-        elif browser == 'remote':
-            keys = sorted(self.capabilities.keys())
-            values = [str(self.capabilities[key]) for key in keys]
-            body.append(ast.Assign(
-                targets=[ast_attr("self.driver")],
-                value=ast_call(
-                    func=ast_attr("webdriver.Remote"),
-                    keywords=[
-                        ast.keyword(
-                            arg="command_executor",
-                            value=ast.Str(self.remote_address, kind="")),
-                        ast.keyword(
-                            arg="desired_capabilities",
-                            value=ast.Dict(
-                                keys=[ast.Str(key, kind="") for key in keys],
-                                values=[ast.Str(value, kind="") for value in values]))])))
-        else:
-            if headless:
-                self.log.warning("Browser %r doesn't support headless mode" % browser)
+            body.extend(self._get_chrome_options() + [self._get_chrome_webdriver()])
 
+        elif browser == 'remote':
+            if 'firefox' == self.capabilities.get('browserName'):
+                body.append(self._get_firefox_options())
+            else:
+                empty_options = ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))
+                body.append(empty_options)
+
+            body.append(self._get_remote_webdriver())
+
+        else:
             body.append(ast.Assign(
                 targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
 
-        body.append(ast.Expr(
+        body.append(self._get_timeout())
+        body.extend(self._get_extra_mngrs())
+
+        return body
+
+    def _get_timeout(self):
+        return ast.Expr(
             ast_call(
                 func=ast_attr("self.driver.implicitly_wait"),
-                args=[ast_attr("timeout")])))
+                args=[ast_attr("timeout")]))
 
+    def _get_extra_mngrs(self):
+        mngrs = []
         mgr = "WindowManager"
         if mgr in self.selenium_extras:
-            body.append(ast.Assign(
+            mngrs.append(ast.Assign(
                 targets=[ast_attr("self.wnd_mng")],
                 value=ast_call(
                     func=ast.Name(id=mgr))))
 
         mgr = "FrameManager"
         if mgr in self.selenium_extras:
-            body.append(ast.Assign(
+            mngrs.append(ast.Assign(
                 targets=[ast_attr("self.frm_mng")],
                 value=ast_call(
                     func=ast.Name(id=mgr))))
+        return mngrs
 
-        return body
+    def _get_headless_setup(self):
+        if self.scenario.get("headless", False):
+            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
+            return [ast.Expr(
+                ast_call(func=ast_attr("options.set_headless")))]
+        else:
+            return []
+
+    def _get_firefox_options(self):
+        firefox_options = [
+            ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(
+                    func=ast_attr("webdriver.FirefoxOptions"))),
+            ast.Expr(
+                ast_call(func=ast_attr("options.set_preference"),
+                         args=[ast.Str("network.proxy.type", kind=""), ast.Str("4", kind="")]))]
+
+        return firefox_options + self._get_headless_setup()
+
+    def _get_chrome_options(self):
+        chrome_options = [
+            ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(
+                    func=ast_attr("webdriver.ChromeOptions"))),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.add_argument"),
+                    args=[ast.Str("%s" % "--no-sandbox", kind="")])),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.add_argument"),
+                    args=[ast.Str("%s" % "--disable-dev-shm-usage", kind="")]))]
+
+        return chrome_options + self._get_headless_setup()
+
+    def _get_firefox_profile(self):
+        return [
+            ast.Assign(
+                targets=[ast.Name(id="profile")],
+                value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
+            ast.Expr(ast_call(
+                func=ast_attr("profile.set_preference"),
+                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")]))]
+
+    def _get_firefox_webdriver(self):
+        return ast.Assign(
+            targets=[ast_attr("self.driver")],
+            value=ast_call(
+                func=ast_attr("webdriver.Firefox"),
+                args=[ast.Name(id="profile")],
+                keywords=[ast.keyword(
+                    arg="options",
+                    value=ast.Name(id="options"))]))
+
+    def _get_chrome_webdriver(self):
+        return ast.Assign(
+            targets=[ast_attr("self.driver")],
+            value=ast_call(
+                func=ast_attr("webdriver.Chrome"),
+                keywords=[
+                    ast.keyword(
+                        arg="service_log_path",
+                        value=ast.Str(self.wdlog, kind="")),
+                    ast.keyword(
+                        arg="options",
+                        value=ast.Name(id="options"))]))
+
+    def _get_remote_webdriver(self):
+        keys = sorted(self.capabilities.keys())
+        values = [str(self.capabilities[key]) for key in keys]
+
+        return ast.Assign(
+            targets=[ast_attr("self.driver")],
+            value=ast_call(
+                func=ast_attr("webdriver.Remote"),
+                keywords=[
+                    ast.keyword(
+                        arg="command_executor",
+                        value=ast.Str(self.remote_address, kind="")),
+                    ast.keyword(
+                        arg="desired_capabilities",
+                        value=ast.Dict(
+                            keys=[ast.Str(key, kind="") for key in keys],
+                            values=[ast.Str(value, kind="") for value in values])),
+                    ast.keyword(
+                        arg="options",
+                        value=ast.Name(id="options"))]))
 
     @staticmethod
     def _gen_impl_wait(timeout):
@@ -1086,7 +1124,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_classdef(self):
         class_body = [self._gen_test_methods()]
-        class_body = [self._gen_class_setup()] + class_body     # order is important for selenium_extras set
+        class_body = [self._gen_class_setup()] + class_body  # order is important for selenium_extras set
 
         if self.test_mode == "selenium":
             class_body.append(self._gen_class_teardown())
@@ -1337,7 +1375,7 @@ from selenium.webdriver.common.keys import Keys
         return named_args
 
     # generate transactions recursively
-    def _gen_transaction(self, trans_conf, transaction_class = "apiritif.smart_transaction"):
+    def _gen_transaction(self, trans_conf, transaction_class="apiritif.smart_transaction"):
         body = []
         if isinstance(trans_conf, IncludeScenarioBlock):
             included = self.executor.get_scenario(trans_conf.scenario_name)
