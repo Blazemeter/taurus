@@ -55,17 +55,17 @@ class LocustStarter(object):
 
         return OrderedDict([
             ('timeStamp', "%d" % (time.time() * 1000)),
-            ('label', name),
-            ('method', request_type),
             ('elapsed', response_time),
-            ('bytes', response_length),
+            ('label', name),
             ('responseCode', rcode),
             ('responseMessage', rmsg),
             ('success', 'true' if exc is None else 'false'),
+            ('bytes', response_length),
 
-            # NOTE: might be resource-consuming
+            # # NOTE: might be resource-consuming
+            ('grpThreads', runners.locust_runner.user_count if runners.locust_runner else 0),
             ('allThreads', runners.locust_runner.user_count if runners.locust_runner else 0),
-            ('Latency', 0),
+            ('Latency', 0)
         ])
 
     def __on_request_success(self, request_type, name, response_time, response_length):
