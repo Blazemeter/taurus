@@ -2546,7 +2546,8 @@ class TestJMeterExecutor(ExecutorTestCase):
         })
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        post_procs = xml_tree.findall(
+            ".//hashTree[@type='tg']/hashTree/JSR223PostProcessor[@testclass='JSR223PostProcessor']")
         self.assertEqual(1, len(post_procs))
 
         jsr = post_procs[0]
@@ -2637,7 +2638,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         })
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        post_procs = xml_tree.findall(".//hashTree[@type='tg']/JSR223PostProcessor[@testclass='JSR223PostProcessor']")
         self.assertEqual(1, len(post_procs))
 
         jsr = post_procs[0]
