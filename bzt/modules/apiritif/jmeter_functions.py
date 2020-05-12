@@ -203,7 +203,7 @@ class JMeterExprCompiler(object):
 
         return ast.Subscript(
             value=ast.Name(id="self.vars", ctx=ast.Load()),
-            slice=ast.Index(value=ast.Str(s=varname)),
+            slice=ast.Index(value=ast.Str(s=varname, kind="")),
             ctx=ctx
         )
 
@@ -211,7 +211,7 @@ class JMeterExprCompiler(object):
         if isinstance(value, bool):
             return ast.Name(id="True" if value else "False", ctx=ast.Load())
         elif isinstance(value, (int, float)):
-            return ast.Num(n=value)
+            return ast.Num(n=value, kind="")
         elif isinstance(value, string_types):
             # if is has interpolation - break it into either a `"".format(args)` form or a Name node
             # otherwise - it's a string literal
@@ -229,12 +229,12 @@ class JMeterExprCompiler(object):
                 else:
                     result = ast_call(
                         func=ast.Attribute(
-                            value=ast.Str(s=value),
+                            value=ast.Str(s=value, kind=""),
                             attr='format',
                             ctx=ast.Load()),
                         args=format_args)
             else:
-                result = ast.Str(s=value)
+                result = ast.Str(s=value, kind="")
             return result
         elif isinstance(value, type(None)):
             return ast.Name(id="None", ctx=ast.Load())

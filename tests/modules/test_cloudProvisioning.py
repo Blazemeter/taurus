@@ -744,7 +744,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["use-deprecated-api"] = False
         self.obj.prepare()
 
-        conf = yaml.load(open(os.path.join(self.obj.engine.artifacts_dir, "cloud.yml")))
+        conf = yaml.full_load(open(os.path.join(self.obj.engine.artifacts_dir, "cloud.yml")))
         self.assertIn('locations', conf)
         self.assertIn('locations-weighted', conf)
         self.assertEqual(conf['locations']['us-east-1'], 1)
@@ -831,7 +831,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["use-deprecated-api"] = False
         self.obj.prepare()
 
-        cloud_config = yaml.load(open(os.path.join(self.obj.engine.artifacts_dir, "cloud.yml")))
+        cloud_config = yaml.full_load(open(os.path.join(self.obj.engine.artifacts_dir, "cloud.yml")))
         self.assertNotIn("locations", cloud_config)
         for execution in cloud_config["execution"]:
             self.assertIn("locations", execution)
@@ -866,7 +866,7 @@ class TestCloudProvisioning(BZTestCase):
 
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
 
-        cloud_config = yaml.load(open(os.path.join(self.obj.engine.artifacts_dir, "cloud.yml")))
+        cloud_config = yaml.full_load(open(os.path.join(self.obj.engine.artifacts_dir, "cloud.yml")))
         self.assertIn("locations", cloud_config)
         for execution in cloud_config["execution"]:
             self.assertNotIn("locations", execution)
