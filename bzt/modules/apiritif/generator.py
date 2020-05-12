@@ -1172,6 +1172,7 @@ from selenium.webdriver.common.keys import Keys
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
+                stored_vars["windows"] = "{}"
 
         has_ds = bool(list(self.scenario.get_data_sources()))
         stored_vars['scenario_name'] = [ast.Str(self.label, kind="")]

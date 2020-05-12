@@ -45,7 +45,7 @@ class TestLocSc(unittest.TestCase):
         self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
         apiritif.put_into_thread_store(timeout=timeout, data_sources=True, func_mode=True, scenario_name='loc_sc',
-                                       driver=self.driver)
+                                       windows={}, driver=self.driver)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):

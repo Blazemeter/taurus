@@ -16,9 +16,6 @@ BYS = {
     'linktext': By.LINK_TEXT
 }
 
-windows = {}
-
-
 def get_locator(locators, ignore_implicit_wait=False):
     """
     :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
@@ -351,8 +348,9 @@ def _switch_by_win_ser(window_name):
     elif window_name.split("win_ser_")[1].isdigit():    # e.g. win_ser_1
         _switch_by_idx(int(window_name.split("win_ser_")[1]))
     else:
+        windows = get_from_thread_store("windows")
         if window_name not in windows:
-            windows[window_name] = driver.window_handles[-1]
+            windows[window_name] = driver.current_window_handle
         driver.switch_to.window(windows[window_name])
 
 
