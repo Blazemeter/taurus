@@ -299,7 +299,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 jtl = fds.readlines()
 
             header_line = jtl[0].strip()
-            expected = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
+            expected = "timeStamp,elapsed,label,responseCode,responseMessage,success,bytes,grpThreads,allThreads,Latency"
             self.assertEqual(header_line, expected)
 
     def test_jtl_quoting_issue(self):
