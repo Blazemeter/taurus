@@ -2546,7 +2546,8 @@ class TestJMeterExecutor(ExecutorTestCase):
         })
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        post_procs = xml_tree.findall(
+            ".//hashTree[@type='tg']/hashTree/JSR223PostProcessor[@testclass='JSR223PostProcessor']")
         self.assertEqual(1, len(post_procs))
 
         jsr = post_procs[0]
@@ -2618,6 +2619,33 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual("groovy", pre.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
         self.assertEqual('vars.put("a", 1)', pre.find(".//stringProp[@name='script']").text)
+
+    def test_jsr223_scenario_level_block(self):
+        script = RESOURCES_DIR + "/jmeter/jsr223_script.js"
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "jsr223": {
+                        "language": "javascript",
+                        "script-file": script,
+                        "parameters": "first second"
+                    },
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        post_procs = xml_tree.findall(".//hashTree[@type='tg']/JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        self.assertEqual(1, len(post_procs))
+
+        jsr = post_procs[0]
+        self.assertEqual(script, jsr.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
+        self.assertEqual("true", jsr.find(".//stringProp[@name='cacheKey']").text)
 
     def test_request_content_encoding(self):
         self.configure({
