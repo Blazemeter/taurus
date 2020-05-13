@@ -513,8 +513,8 @@ modules:
 ##### JSR223 Blocks
 
 Sometimes you may want to use a JSR223 Pre/Post Processor to execute a code block before or
-after some requests. Taurus allows that with `jsr223` block. You can add this block after each 
-scenario (block will run before/after each request in scenario) or before/after specific request. 
+after some requests. Taurus allows that with `jsr223` block. You can put this block into 
+scenario level (block will run before/after each request in scenario) or into specific request. 
 
 Minimal example that will generate one JSR223 Post Processor.
 ```yaml
