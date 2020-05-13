@@ -911,6 +911,9 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.assertIn("http://blazedemo.com/vacation.html", test_script)
 
     def test_delimiter_tab(self):
+        """
+        Check if 'tab' is converted to '\t' ('\\t' when read from .py file)
+        """
         self.configure({
             "execution": [{
                 "test-mode": "apiritif",

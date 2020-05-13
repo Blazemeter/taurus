@@ -104,6 +104,9 @@ class Scenario(UserDict, object):
             if not source:
                 raise TaurusConfigError("Data source must have valid file path: '%s'" % source)
             source.get("loop", not self.engine.is_functional_mode(), force_set=True)
+            source['delimiter'] = source.get("delimiter").replace('\\t', '\t')
+            if source.get('delimiter').lower() == 'tab':
+                source['delimiter'] = '\t'
 
             yield source
 

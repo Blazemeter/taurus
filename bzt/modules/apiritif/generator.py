@@ -1104,10 +1104,7 @@ from selenium.webdriver.common.keys import Keys
             if "delimiter" in source:
                 delimiter = ast.keyword()
                 delimiter.arg = "delimiter"
-                del_value = source.get("delimiter").replace('\\t', '\t')
-                if del_value.lower() == 'tab':
-                    del_value = '\t'
-                delimiter.value = ast.Str(s=del_value, kind="")
+                delimiter.value = ast.Str(s=source.get("delimiter"), kind="")
                 keywords.append(delimiter)
 
             csv_file = self.scenario.engine.find_file(source["path"])
