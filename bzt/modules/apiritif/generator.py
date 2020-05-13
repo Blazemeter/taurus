@@ -1104,8 +1104,8 @@ from selenium.webdriver.common.keys import Keys
             if "delimiter" in source:
                 delimiter = ast.keyword()
                 delimiter.arg = "delimiter"
-                del_value = source.get("delimiter")
-                if del_value.lower() == 'tab' or del_value.lower() == '\\t':
+                del_value = source.get("delimiter").replace('\\t', '\t')
+                if del_value.lower() == 'tab':
                     del_value = '\t'
                 delimiter.value = ast.Str(s=del_value, kind="")
                 keywords.append(delimiter)
