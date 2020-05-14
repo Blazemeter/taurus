@@ -376,6 +376,38 @@ use unique names for the variables in each of the blocks.
 Please note that it is not possible to use `wait` and `waitFor` actions in the `foreach` using `ByElement`. 
 However you can still use it inside the loop the common way - e.g. `waitById(my_id)`.
 
+#### Perform actions in foreach using the parent context
+
+It is possible to specify in each action inside the foreach loop additional set of locators besides just the `element` field.
+This way it allows to locate a child element within the parent `element`.
+
+In the following example we iterate over table rows and do a click action on
+the button that should be located on each row.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_context
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             
+            locators:
+              - css: table_row
+              - xpath: //tr
+            do:
+              - type: click
+                element: el
+                locators:         # the list of locators that to find the child element in the parent 'el'
+                  - css: .btn-small
+                  - css: .button-small
+```
+
+Note that this is only supported while using the  
+[alternative syntax](#Alternative-syntax-supporting-multiple-locators) for the action.
+
 
 ### Alert
 For alert handling, use the following methods:

@@ -16,10 +16,13 @@ BYS = {
     'linktext': By.LINK_TEXT
 }
 
-def get_locator(locators, ignore_implicit_wait=False):
+
+def get_locator(locators, parent_el=None, ignore_implicit_wait=False):
     """
     :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
     {css: 'my_cls'}]
+    :param parent_el: reference to the parent element (WebElement instance), optional - if provided the find_elements
+    method is called on it instead of global context
     :param ignore_implicit_wait: set it to True to set the implicit wait immediately to 0
     :return: first valid locator from the passed List, if no locator is valid then returns the
     first one
@@ -37,7 +40,10 @@ def get_locator(locators, ignore_implicit_wait=False):
         else:
             # set implicit wait to 0 get the result instantly for the other locators
             driver.implicitly_wait(0)
-        elements = driver.find_elements(BYS[locator_type.lower()], locator_value)
+        if parent_el:
+            elements = parent_el.find_elements(BYS[locator_type.lower()], locator_value)
+        else:
+            elements = driver.find_elements(BYS[locator_type.lower()], locator_value)
         if len(elements) > 0:
             locator = (BYS[locator_type.lower()], locator_value)
             break

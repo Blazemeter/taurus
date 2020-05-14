@@ -1689,7 +1689,11 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                             {
                                                 "type": "assertText",
                                                 "element": "el",
-                                                "param": "text"
+                                                "param": "text",
+                                                "locators": [
+                                                    {"css": "style"},
+                                                    {"xpath": "//tr"}
+                                                ]
                                             },
                                             {"assertValueByElement(el)": "value"},
                                             {
@@ -1707,6 +1711,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                             {
                                                 "type": "click",
                                                 "element": "el",
+                                                "locators": [
+                                                    {"css": "input-cls"},
+                                                    {"xpath": "//input"}
+                                                ]
                                             },
                                             "doubleClickByElement(el)",
                                             {
