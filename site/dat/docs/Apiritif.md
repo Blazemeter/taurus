@@ -762,13 +762,16 @@ Typing actions with [multiple locators support](#Alternative-syntax-supporting-m
 To manage windows or tabs, the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
-  - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage.
+  - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage. It can be also surrounded with quotes.
+  - `win\_ser\_number`: Provides exactly the same functionality just like using only `number` - e.g. you can use `win\_ser\_0` to navigate to the first window
   - `name`: The name of the window (reference to the name used in the target window attribute in a link).
   - `win\_ser\_name`: In the `name` part, assign a name to the focused opened window, the next time when reference to the same window name, returns with focus to the named window selected.
   - `win\_ser\_local`: Go to the initial window.
   - `no value`: When no value is assigned, it means that the selection action is assigned over the last created window, and if the close action is used, it will also be over the last one created.
 
-Note: When any action command opens a new window (like click over a link with target window assigned), the action of selecting the window must always be declared, otherwise the actions executed by the execution were performed on the default window or the last one used with selectWindow command.
+Note: When any action command opens a new window (like click on a link with target window assigned), 
+the action of selecting the window must always be declared, otherwise the actions executed by the execution 
+will be performed on the default window or the last one used with `switchWindow` command.
 
 Or using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 ```yaml

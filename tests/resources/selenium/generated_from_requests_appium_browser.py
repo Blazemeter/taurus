@@ -35,7 +35,7 @@ class TestLocScAppium(unittest.TestCase):
                                                              'platformName': 'android'},
                                        options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(scenario_name='loc_sc_appium', timeout=timeout, driver=self.driver,
+        apiritif.put_into_thread_store(scenario_name='loc_sc_appium', timeout=timeout, driver=self.driver, windows={},
                                        func_mode=False)
 
     def _1_(self):
