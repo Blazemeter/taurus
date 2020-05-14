@@ -296,6 +296,19 @@ class TestJMeterExecutor(ExecutorTestCase):
                 "data-sources": [{"path": RESOURCES_DIR + "test2.csv", "delimiter": ","}]}}})
         self.obj.prepare()
 
+    def test_datasources_with_delimiter_tab(self):
+        self.configure({"execution": {
+            "scenario": {
+                "requests": ["http://localhost"],
+                "data-sources": [{"path": RESOURCES_DIR + "test2.csv", "delimiter": "tab"}]}}})
+        self.obj.prepare()
+
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        elements = xml_tree.findall(".//CSVDataSet[@testclass='CSVDataSet']")
+        self.assertEqual(1, len(elements))
+        element = elements[0]
+        self.assertEqual("\t", element.find(".//stringProp[@name='delimiter']").text)
+
     def test_datasources_jmeter_var(self):
         self.configure({"execution": {
             "scenario": {
