@@ -296,6 +296,19 @@ class TestJMeterExecutor(ExecutorTestCase):
                 "data-sources": [{"path": RESOURCES_DIR + "test2.csv", "delimiter": ","}]}}})
         self.obj.prepare()
 
+    def test_datasources_with_delimiter_tab(self):
+        self.configure({"execution": {
+            "scenario": {
+                "requests": ["http://localhost"],
+                "data-sources": [{"path": RESOURCES_DIR + "test2.csv", "delimiter": "tab"}]}}})
+        self.obj.prepare()
+
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        elements = xml_tree.findall(".//CSVDataSet[@testclass='CSVDataSet']")
+        self.assertEqual(1, len(elements))
+        element = elements[0]
+        self.assertEqual("\t", element.find(".//stringProp[@name='delimiter']").text)
+
     def test_datasources_jmeter_var(self):
         self.configure({"execution": {
             "scenario": {
@@ -488,7 +501,7 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_timers(self):
         with open(os.path.join(RESOURCES_DIR, "yaml/timers.yml")) as config_file:
-            config = yaml.load(config_file.read())
+            config = yaml.full_load(config_file.read())
 
         self.configure(config)
         self.obj.prepare()
@@ -1067,7 +1080,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.post_process()
 
     def test_distributed_gui(self):
-        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/distributed_gui.yml").read()))
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/distributed_gui.yml").read()))
         self.obj.prepare()
 
         prop_file_path = os.path.join(self.obj.engine.artifacts_dir, "jmeter-bzt.properties")
@@ -2546,7 +2559,8 @@ class TestJMeterExecutor(ExecutorTestCase):
         })
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        post_procs = xml_tree.findall(
+            ".//hashTree[@type='tg']/hashTree/JSR223PostProcessor[@testclass='JSR223PostProcessor']")
         self.assertEqual(1, len(post_procs))
 
         jsr = post_procs[0]
@@ -2618,6 +2632,33 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual("groovy", pre.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
         self.assertEqual('vars.put("a", 1)', pre.find(".//stringProp[@name='script']").text)
+
+    def test_jsr223_scenario_level_block(self):
+        script = RESOURCES_DIR + "/jmeter/jsr223_script.js"
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "jsr223": {
+                        "language": "javascript",
+                        "script-file": script,
+                        "parameters": "first second"
+                    },
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        post_procs = xml_tree.findall(".//hashTree[@type='tg']/JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        self.assertEqual(1, len(post_procs))
+
+        jsr = post_procs[0]
+        self.assertEqual(script, jsr.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
+        self.assertEqual("true", jsr.find(".//stringProp[@name='cacheKey']").text)
 
     def test_request_content_encoding(self):
         self.configure({

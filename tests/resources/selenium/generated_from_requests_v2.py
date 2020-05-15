@@ -19,9 +19,9 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_answer_on_next_prompt, dialogs_answer_on_next_alert, wait_for, \
-    dialogs_answer_on_next_confirm, dialogs_replace, WindowManager, dialogs_get_next_prompt, dialogs_get_next_alert, \
-    get_locator, dialogs_get_next_confirm, FrameManager
+from bzt.resources.selenium_extras import close_window, dialogs_answer_on_next_alert, dialogs_get_next_alert, \
+    dialogs_get_next_confirm, switch_window, wait_for, dialogs_get_next_prompt, get_locator, switch_frame, \
+    dialogs_answer_on_next_confirm, dialogs_answer_on_next_prompt, dialogs_replace
 
 
 class TestLocSc(unittest.TestCase):
@@ -32,13 +32,13 @@ class TestLocSc(unittest.TestCase):
         timeout = 3.5
         self.driver = None
         options = webdriver.FirefoxOptions()
+        options.set_preference('network.proxy.type', '4')
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
-        self.driver = webdriver.Firefox(profile, firefox_options=options)
+        self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
-        self.wnd_mng = WindowManager()
-        self.frm_mng = FrameManager()
-        apiritif.put_into_thread_store(driver=self.driver, scenario_name='loc_sc', timeout=timeout, func_mode=False)
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
+                                       scenario_name='loc_sc')
 
     def _1_Test_V2(self):
         with apiritif.smart_transaction('Test V2'):
@@ -46,7 +46,7 @@ class TestLocSc(unittest.TestCase):
 
             dialogs_replace()
             self.driver.set_window_size('750', '750')
-            self.wnd_mng.switch(0)
+            switch_window(0)
 
             var_loc_chain = get_locator([{'id': 'invalid_id'}, {'xpath': self.vars['my_xpath_locator']}])
             ActionChains(self.driver).click_and_hold(self.driver.find_element(
@@ -154,10 +154,10 @@ class TestLocSc(unittest.TestCase):
             self.driver.save_screenshot(filename)
             self.driver.execute_script("window.open('vacation.html');")
             self.driver.maximize_window()
-            self.frm_mng.switch('index=1')
-            self.frm_mng.switch('relative=parent')
-            self.frm_mng.switch(self.driver.find_element(By.NAME, 'my_frame'))
-            self.wnd_mng.close()
+            switch_frame('index=1')
+            switch_frame('relative=parent')
+            switch_frame(self.driver.find_element(By.NAME, 'my_frame'))
+            close_window()
             dialogs_answer_on_next_prompt('my input')
             dialogs_answer_on_next_confirm('#Ok')
             dialogs_answer_on_next_alert('#Ok')

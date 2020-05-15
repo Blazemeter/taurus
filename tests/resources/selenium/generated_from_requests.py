@@ -19,9 +19,9 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_answer_on_next_alert, FrameManager, dialogs_answer_on_next_prompt, \
-    WindowManager, dialogs_replace, dialogs_get_next_confirm, get_locator, dialogs_answer_on_next_confirm, wait_for, \
-    dialogs_get_next_prompt, dialogs_get_next_alert
+from bzt.resources.selenium_extras import dialogs_get_next_alert, switch_window, switch_frame, dialogs_replace, \
+    dialogs_answer_on_next_alert, dialogs_get_next_confirm, dialogs_get_next_prompt, wait_for, get_locator, \
+    dialogs_answer_on_next_confirm, dialogs_answer_on_next_prompt, close_window
 
 reader_1 = apiritif.CSVReaderPerThread('first.csv', loop=True)
 reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)
@@ -39,14 +39,13 @@ class TestLocSc(unittest.TestCase):
         timeout = 3.5
         self.driver = None
         options = webdriver.FirefoxOptions()
+        options.set_preference('network.proxy.type', '4')
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
-        self.driver = webdriver.Firefox(profile, firefox_options=options)
+        self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
-        self.wnd_mng = WindowManager()
-        self.frm_mng = FrameManager()
-        apiritif.put_into_thread_store(data_sources=True, timeout=timeout, scenario_name='loc_sc', driver=self.driver,
-                                       func_mode=True)
+        apiritif.put_into_thread_store(timeout=timeout, data_sources=True, func_mode=True, scenario_name='loc_sc',
+                                       windows={}, driver=self.driver)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
@@ -132,15 +131,15 @@ class TestLocSc(unittest.TestCase):
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
-            self.wnd_mng.switch('0')
+            switch_window('0')
             self.driver.execute_script("window.open('some.url');")
-            self.wnd_mng.switch('win_ser_local')
-            self.wnd_mng.switch('win_ser_1')
-            self.wnd_mng.switch('that_window')
-            self.wnd_mng.close('1')
-            self.wnd_mng.close('win_ser_local')
-            self.wnd_mng.close('win_ser_1')
-            self.wnd_mng.close('that_window')
+            switch_window('win_ser_local')
+            switch_window('win_ser_1')
+            switch_window('that_window')
+            close_window('1')
+            close_window('win_ser_local')
+            close_window('win_ser_1')
+            close_window('that_window')
 
             var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
@@ -160,9 +159,9 @@ class TestLocSc(unittest.TestCase):
                 source[1]), self.driver.find_element(
                 target[0],
                 target[1])).perform()
-            self.frm_mng.switch(self.driver.find_element(By.NAME, 'my_frame'))
-            self.frm_mng.switch('index=1')
-            self.frm_mng.switch('relative=parent')
+            switch_frame(self.driver.find_element(By.NAME, 'my_frame'))
+            switch_frame('index=1')
+            switch_frame('relative=parent')
 
             var_edit_content = get_locator([{'id': 'editor'}])
 

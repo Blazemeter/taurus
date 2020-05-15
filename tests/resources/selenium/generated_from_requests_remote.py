@@ -29,14 +29,17 @@ class TestLocScRemote(unittest.TestCase):
 
         timeout = 3.5
         self.driver = None
+        options = webdriver.FirefoxOptions()
+        options.set_preference('network.proxy.type', '4')
         self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub',
                                        desired_capabilities={'app': '', 'browserName': 'firefox', 'deviceName': '',
                                                              'javascriptEnabled': 'True', 'platformName': 'linux',
                                                              'platformVersion': '', 'seleniumVersion': '',
-                                                             'version': '54.0'})
+                                                             'version': '54.0'},
+                                       options=options)
         self.driver.implicitly_wait(timeout)
         add_flow_markers()
-        apiritif.put_into_thread_store(driver=self.driver, scenario_name='loc_sc_remote', timeout=timeout,
+        apiritif.put_into_thread_store(driver=self.driver, scenario_name='loc_sc_remote', timeout=timeout, windows={},
                                        func_mode=False)
 
     def _1_(self):

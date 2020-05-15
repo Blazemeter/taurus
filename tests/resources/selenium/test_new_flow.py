@@ -28,7 +28,7 @@ class TestSdsdsdsSelenium(unittest.TestCase):
         self.driver = None
         timeout = 60.0
         options = webdriver.ChromeOptions()
-        self.driver = webdriver.Chrome(service_log_path='webdriver.log', chrome_options=options)
+        self.driver = webdriver.Chrome(service_log_path='webdriver.log', options=options)
         self.driver.implicitly_wait(timeout)
 
         self.vars = {
