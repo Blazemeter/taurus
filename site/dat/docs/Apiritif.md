@@ -53,7 +53,7 @@ scenarios:
     - http://blazedemo.com/receive/${var1}
 ```
 
-See more info about `data-sources` [here](DataSources.md).
+See more info about data-sources [here](DataSources.md).
 
 It is valid to specify both single Python module (single .py file) and a Python package (folder with Python modules
 and packages).
