@@ -2924,6 +2924,36 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertIn("LOG ERROR: 2", diag_str)
         self.assertIn("LOG DEBUG: 3", diag_str)
 
+    def test_log_exists(self):
+        self.configure({
+            "execution": {
+                "iterations": 1,
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/"}]}}})
+        self.obj.prepare()
+        self.obj.env.set({'TEST_MODE': 'log'})
+        self.obj.env.set({'LOG_NAME': self.obj.jmeter_log})
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.prepare()
+        self.obj.env.set({'TEST_MODE': 'log'})
+        self.obj.env.set({'LOG_NAME': self.obj.jmeter_log})
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+        expected_log_name = os.path.join(self.engine.artifacts_dir, "jmeter.log")
+        self.assertEquals(self.obj.jmeter_log, expected_log_name)
+        diagnostics = self.obj.get_error_diagnostics()
+        self.assertIsNotNone(diagnostics)
+        diag_str = "\n".join(diagnostics)
+        self.assertNotIn("LOG DEBUG: 1", diag_str)
+        self.assertIn("LOG ERROR: 2", diag_str)
+        self.assertIn("LOG DEBUG: 3", diag_str)
+
     def test_jmeter_version_comp(self):
         self.configure({
             "execution": {

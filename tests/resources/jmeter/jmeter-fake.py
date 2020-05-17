@@ -9,6 +9,10 @@ def get_mode():
     return os.environ.get("TEST_MODE")
 
 
+def get_log_name():
+    return os.environ.get("LOG_NAME", "jmeter.log")
+
+
 def get_artifacts_dir():
     return os.environ.get("TAURUS_ARTIFACTS_DIR", ".")
 
@@ -40,7 +44,7 @@ def files():
 def write_log():
     sys.stdout.write("STDOUT message\n")
     sys.stderr.write("STDERR message\n")
-    with open(os.path.join(get_artifacts_dir(), 'jmeter.log'), 'w') as fds:
+    with open(os.path.join(get_artifacts_dir(), get_log_name()), 'w') as fds:
         fds.write("LOG DEBUG: 1\n")
         fds.write("LOG ERROR: 2\n")
         fds.write("LOG DEBUG: 3\n")

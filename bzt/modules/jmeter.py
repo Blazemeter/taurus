@@ -208,7 +208,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         :raise TaurusConfigError:
         """
         super(JMeterExecutor, self).prepare()
-        self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
+        log_name = os.path.join(self.engine.artifacts_dir, "jmeter.log")
+        if os.path.exists(log_name):
+            self.jmeter_log = log_name
+            self.engine.existing_artifact(self.jmeter_log, move=True)
+        else:
+            self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
 
