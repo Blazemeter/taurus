@@ -16,11 +16,13 @@ BYS = {
     'linktext': By.LINK_TEXT
 }
 
-def get_locator(locators, ignore_implicit_wait=False):
+def get_locator(locators, ignore_implicit_wait=False, raise_exception=False):
     """
     :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
     {css: 'my_cls'}]
     :param ignore_implicit_wait: set it to True to set the implicit wait immediately to 0
+    :param raise_exception: set it to True to get the NoSuchElementException in case no elements are matching any
+    of the passed locators, if set to False then the first locator is returned in that case
     :return: first valid locator from the passed List, if no locator is valid then returns the
     first one
     """
@@ -42,9 +44,12 @@ def get_locator(locators, ignore_implicit_wait=False):
             locator = (BYS[locator_type.lower()], locator_value)
             break
     else:
-        driver.implicitly_wait(timeout)
-        msg = "Element not found: (%s, %s)" % first_locator
-        raise NoSuchElementException(msg)
+        if raise_exception:
+            driver.implicitly_wait(timeout)
+            msg = "Element not found: (%s, %s)" % first_locator
+            raise NoSuchElementException(msg)
+        else:
+            locator = first_locator
 
     # restore the implicit wait value
     driver.implicitly_wait(timeout)
@@ -239,7 +244,7 @@ def _wait_for_positive(condition, locators, wait_timeout):
     while True:
         locator = None
         try:
-            locator = get_locator(locators, True)
+            locator = get_locator(locators, ignore_implicit_wait=True, raise_exception=True)
         except NoSuchElementException:
             pass
         if locator:
@@ -260,7 +265,7 @@ def _wait_for_negative(condition, locators, wait_timeout):
     present_locs = []
     for locator in locators:
         try:
-            present_locs.append(get_locator([locator], True))
+            present_locs.append(get_locator([locator], ignore_implicit_wait=True, raise_exception=True))
         except NoSuchElementException:
             pass
     if not present_locs:
