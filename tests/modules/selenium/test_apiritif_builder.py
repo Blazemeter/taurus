@@ -909,3 +909,22 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             test_script = fds.read()
         self.assertIn("http://blazedemo.com/", test_script)
         self.assertIn("http://blazedemo.com/vacation.html", test_script)
+
+    def test_delimiter_tab(self):
+        """
+        Check if 'tab' is converted to '\t' ('\\t' when read from .py file)
+        """
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": ["http://blazedemo.com/"],
+                    "data-sources": [{
+                        "path": "file.csv",
+                        "delimiter": "tab",
+                        "loop": True}]}}]})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, delimiter='\\t')", test_script)

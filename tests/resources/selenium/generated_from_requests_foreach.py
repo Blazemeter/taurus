@@ -36,7 +36,8 @@ class TestLocSc(unittest.TestCase):
             service_log_path='/somewhere/webdriver.log',
             options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(timeout=timeout, driver=self.driver, scenario_name='loc_sc', func_mode=False)
+        apiritif.put_into_thread_store(timeout=timeout, driver=self.driver, scenario_name='loc_sc', windows={},
+                                       func_mode=False)
 
     def _1_Foreach_test(self):
         with apiritif.smart_transaction('Foreach test'):
