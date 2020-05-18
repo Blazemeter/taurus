@@ -88,6 +88,8 @@ class Engine(object):
 
         self._http_client = None
 
+        self.user_config_file_paths = []
+
     def configure(self, user_configs, read_config_files=True):
         """
         Load configuration files
@@ -95,7 +97,7 @@ class Engine(object):
         :type read_config_files: bool
         """
         self.log.info("Configuring...")
-        self.config['user-configs'] = [os.path.abspath(conf) for conf in user_configs]
+        self.user_config_file_paths = [os.path.abspath(conf) for conf in user_configs]
 
         if read_config_files:
             self._load_base_configs()
@@ -706,8 +708,7 @@ class Engine(object):
         """
         envs = self.config.get(SETTINGS, force_set=True).get("env", force_set=True)
         envs[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
-        envs[TAURUS_USER_CONFIGS] = ','.join(map(str, self.config.get('user-configs', force_set=True)))
-        self.log.warning("Env vars: " + envs[TAURUS_USER_CONFIGS])
+        envs[TAURUS_USER_CONFIGS] = ','.join(map(str, self.user_config_file_paths))
 
         for varname in envs:
             if envs[varname]:

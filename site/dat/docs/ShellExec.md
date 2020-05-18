@@ -60,6 +60,7 @@ Notes:
  - Background tasks will be shut down forcefully on mirror stages (see [Lifecycle](Lifecycle.md)) if they were not finished yet.
  - Background tasks on Check stage will not start until same previous task completed.
  - Special environment variable `TAURUS\_ARTIFACTS\_DIR` is set for every command, containing path to current artifacts directory
+ - Special environment variable `TAURUS\_USER\_CONFIGS` is set for every command, containing list of absolute paths to configuration files
  - Special environment variables `TAURUS\_EXIT\_CODE` and `TAURUS\_STOPPING\_REASON` is set for every command after
  Taurus begins shutdown, containing exit code and possible failure explanation
 

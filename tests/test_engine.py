@@ -1,6 +1,8 @@
 """ unit test """
 import os
 import sys
+from pathlib import Path
+
 import yaml
 
 from bzt import TaurusConfigError
@@ -322,6 +324,22 @@ class TestScenarioExecutor(ExecutorTestCase):
         process = self.obj._execute(cmdline, shell=True)
         stdout, _ = communicate(process)
         self.assertEquals(self.engine.artifacts_dir, stdout.strip())
+
+    def test_passes_user_configs_var(self):
+        cmdline = "echo %TAURUS_USER_CONFIGS%" if is_windows() else "echo $TAURUS_USER_CONFIGS"
+
+        config = RESOURCES_DIR + "json/mock_normal.json"
+        self.engine.configure([config, config])
+
+        self.engine.eval_env()
+        self.engine.prepare()
+        process = self.obj._execute(cmdline, shell=True)
+        stdout, _ = communicate(process)
+
+        output_file_paths = stdout.strip().split(',')
+
+        self.assertEquals(Path(config), Path(output_file_paths[0]))
+        self.assertEquals(Path(config), Path(output_file_paths[1]))
 
     def test_case_of_variables(self):
         env = {'aaa': 333, 'AAA': 666}
