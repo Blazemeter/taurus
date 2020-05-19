@@ -1,13 +1,12 @@
 """ unit test """
 import os
 import sys
-from pathlib import Path
 
 import yaml
 
 from bzt import TaurusConfigError
 from bzt.engine import Configuration, EXEC
-from bzt.utils import BetterDict, is_windows, communicate
+from bzt.utils import BetterDict, is_windows, communicate, get_full_path
 from tests import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase
 from tests.mocks import EngineEmul
 
@@ -336,10 +335,10 @@ class TestScenarioExecutor(ExecutorTestCase):
         process = self.obj._execute(cmdline, shell=True)
         stdout, _ = communicate(process)
 
-        output_file_paths = stdout.strip().split(',')
+        expected_paths = [get_full_path(config) for i in range(2)]
+        output_paths = [get_full_path(path) for path in stdout.strip().split(os.pathsep)]
 
-        self.assertEquals(Path(config), Path(output_file_paths[0]))
-        self.assertEquals(Path(config), Path(output_file_paths[1]))
+        self.assertEquals(expected_paths, output_paths)
 
     def test_case_of_variables(self):
         env = {'aaa': 333, 'AAA': 666}

@@ -708,7 +708,7 @@ class Engine(object):
         """
         envs = self.config.get(SETTINGS, force_set=True).get("env", force_set=True)
         envs[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
-        envs[TAURUS_USER_CONFIGS] = ','.join(map(str, self.user_config_file_paths))
+        envs[TAURUS_USER_CONFIGS] = os.pathsep.join(map(str, self.user_config_file_paths))
 
         for varname in envs:
             if envs[varname]:
