@@ -37,7 +37,7 @@ from urwid import Pile, Text
 
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
-from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED
+from bzt.bza import User, Session, Test, Workspace, MultiTest, ENDED
 from bzt.engine import Reporter, Provisioning, Configuration, Service
 from bzt.engine import Singletone, SETTINGS, ScenarioExecutor, EXEC
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -1690,10 +1690,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.__last_master_status = master['status']
             self.log.info("Cloud test status: %s", self.__last_master_status)
 
-        if self.results_reader is not None and 'progress' in master and master['progress'] >= BZA_TEST_DATA_RECEIVED:
+        if self.results_reader is not None and 'progress' in master and master['progress'] >= ENDED:
             self.results_reader.master = self.router.master
 
-        if 'progress' in master and master['progress'] > BZA_TEST_DATA_RECEIVED:
+        if 'progress' in master and master['progress'] > ENDED:
             self.log.info("Test was stopped in the cloud: %s", master['status'])
             self.test_ended = True
             return True
