@@ -190,7 +190,7 @@ This is an example how it looks like:
 ```
 You can see full example [here](#Sample-scenario-using-multiple-locators).
 
-##### If Blocks
+### If Blocks
 
 Apiritif allows to control execution flow using `if` blocks. These blocks enable 
 conditional execution of actions.
