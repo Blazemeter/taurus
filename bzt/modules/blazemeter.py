@@ -1686,14 +1686,13 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         master = self._check_master_status()
 
-        if "status" in master and master['status'] != self.__last_master_status:
-            self.__last_master_status = master['status']
+        if master.get('status') != self.__last_master_status:
+            self.__last_master_status = master.get('status')
             self.log.info("Cloud test status: %s", self.__last_master_status)
 
-        if self.results_reader is not None and 'progress' in master and master['progress'] >= ENDED:
-            self.results_reader.master = self.router.master
-
-        if 'progress' in master and master['progress'] > ENDED:
+        if master.get('progress') == ENDED:
+            if self.results_reader is not None:
+                self.results_reader.master = self.router.master
             self.log.info("Test was stopped in the cloud: %s", master['status'])
             self.test_ended = True
             return True
