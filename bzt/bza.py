@@ -15,6 +15,7 @@ from bzt.six import text_type
 from bzt.six import urlencode
 from bzt.utils import to_json, MultiPartForm
 
+BZA_TEST_DATA_RECEIVED = 100
 ENDED = 140
 
 
