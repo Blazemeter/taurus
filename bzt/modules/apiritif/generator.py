@@ -307,11 +307,12 @@ from selenium.webdriver.common.keys import Keys
                 self._gen_expr(selector)])
 
     def _gen_window_mngr(self, atype, param):
-        self.selenium_extras.add("WindowManager")
         elements = []
         if atype == "switch":
+            method = "switch_window"
+            self.selenium_extras.add(method)
             elements.append(ast_call(
-                func=ast_attr("self.wnd_mng.switch"),
+                func=ast_attr(method),
                 args=[self._gen_expr(param)]))
         elif atype == "resize":
             if not re.compile(r"\d+,\d+").match(param):
@@ -333,29 +334,32 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("self.driver.execute_script"),
                 args=[self._gen_expr("window.open('%s');" % param)]))
         elif atype == "close":
+            method = "close_window"
+            self.selenium_extras.add(method)
             args = []
             if param:
                 args.append(self._gen_expr(param))
             elements.append(ast_call(
-                func=ast_attr("self.wnd_mng.close"),
+                func=ast_attr(method),
                 args=args))
         return elements
 
     def _gen_frame_mngr(self, tag, selector):
-        self.selenium_extras.add("FrameManager")
+        method = "switch_frame"
+        self.selenium_extras.add(method)
         elements = []  # todo: byid/byidx disambiguation?
         if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
             if tag == "byidx":
                 selector = "index=%s" % selector
 
             elements.append(ast_call(
-                func=ast_attr("self.frm_mng.switch"),
+                func=ast_attr(method),
                 args=[ast.Str(selector, kind="")]))
         else:
             if tag == "byname":
                 tag = "name"
             elements.append(ast_call(
-                func=ast_attr("self.frm_mng.switch"),
+                func=ast_attr(method),
                 args=[self._gen_locator(tag, selector)]))
         return elements
 
@@ -1161,6 +1165,7 @@ from selenium.webdriver.common.keys import Keys
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
+                stored_vars["windows"] = "{}"
 
         has_ds = bool(list(self.scenario.get_data_sources()))
         stored_vars['scenario_name'] = [ast.Str(self.label, kind="")]

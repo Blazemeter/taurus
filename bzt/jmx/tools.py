@@ -400,12 +400,17 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     @staticmethod
-    def __add_jsr_elements(children, req):
+    def __add_jsr_elements(children, req, get_from_config=True):
         """
         :type children: etree.Element
         :type req: Request
         """
-        jsrs = req.config.get("jsr223", [])
+        jsrs = []
+        if get_from_config:
+            jsrs = req.config.get("jsr223", [])
+        else:
+            jsrs = req.get("jsr223", [])
+
         if not isinstance(jsrs, list):
             jsrs = [jsrs]
         for idx, _ in enumerate(jsrs):
@@ -438,6 +443,7 @@ class JMeterScenarioBuilder(JMX):
         elements.extend(self.__gen_keystore_config(scenario))
         elements.extend(self.__gen_data_sources(scenario))
         elements.extend(self.__gen_requests(scenario))
+        self.__add_jsr_elements(elements, scenario, False)
         return elements
 
     def compile_request(self, request):

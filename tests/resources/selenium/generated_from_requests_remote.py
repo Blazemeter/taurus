@@ -39,7 +39,7 @@ class TestLocScRemote(unittest.TestCase):
                                        options=options)
         self.driver.implicitly_wait(timeout)
         add_flow_markers()
-        apiritif.put_into_thread_store(driver=self.driver, scenario_name='loc_sc_remote', timeout=timeout,
+        apiritif.put_into_thread_store(driver=self.driver, scenario_name='loc_sc_remote', timeout=timeout, windows={},
                                        func_mode=False)
 
     def _1_(self):

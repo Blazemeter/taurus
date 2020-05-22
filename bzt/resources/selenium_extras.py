@@ -16,12 +16,13 @@ BYS = {
     'linktext': By.LINK_TEXT
 }
 
-
-def get_locator(locators, ignore_implicit_wait=False):
+def get_locator(locators, ignore_implicit_wait=False, raise_exception=False):
     """
     :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
     {css: 'my_cls'}]
     :param ignore_implicit_wait: set it to True to set the implicit wait immediately to 0
+    :param raise_exception: set it to True to get the NoSuchElementException in case no elements are matching any
+    of the passed locators, if set to False then the first locator is returned in that case
     :return: first valid locator from the passed List, if no locator is valid then returns the
     first one
     """
@@ -43,9 +44,12 @@ def get_locator(locators, ignore_implicit_wait=False):
             locator = (BYS[locator_type.lower()], locator_value)
             break
     else:
-        driver.implicitly_wait(timeout)
-        msg = "Element not found: (%s, %s)" % first_locator
-        raise NoSuchElementException(msg)
+        if raise_exception:
+            driver.implicitly_wait(timeout)
+            msg = "Element not found: (%s, %s)" % first_locator
+            raise NoSuchElementException(msg)
+        else:
+            locator = first_locator
 
     # restore the implicit wait value
     driver.implicitly_wait(timeout)
@@ -240,7 +244,7 @@ def _wait_for_positive(condition, locators, wait_timeout):
     while True:
         locator = None
         try:
-            locator = get_locator(locators, True)
+            locator = get_locator(locators, ignore_implicit_wait=True, raise_exception=True)
         except NoSuchElementException:
             pass
         if locator:
@@ -261,7 +265,7 @@ def _wait_for_negative(condition, locators, wait_timeout):
     present_locs = []
     for locator in locators:
         try:
-            present_locs.append(get_locator([locator], True))
+            present_locs.append(get_locator([locator], ignore_implicit_wait=True, raise_exception=True))
         except NoSuchElementException:
             pass
     if not present_locs:
@@ -297,67 +301,65 @@ def get_loop_range(start, end, step):
     return range(start, end, step)
 
 
-class FrameManager:
-
-    @staticmethod
-    def switch(frame_name=None):
-        driver = _get_driver()
-        try:
-            if not frame_name or frame_name == "relative=top":
-                driver.switch_to_default_content()
-            elif frame_name.startswith("index="):  # Switch using index frame using relative position
-                driver.switch_to.frame(int(frame_name.split("=")[1]))
-            elif frame_name == "relative=parent":  # Switch to parent frame of the current frame
-                driver.switch_to.parent_frame()
-            else:  # Use the selenium alternative
-                driver.switch_to.frame(frame_name)
-        except NoSuchFrameException:
-            raise NoSuchFrameException("Invalid Frame ID: %s" % frame_name)
+def switch_frame(frame_name=None):
+    driver = _get_driver()
+    try:
+        if not frame_name or frame_name == "relative=top":
+            driver.switch_to_default_content()
+        elif frame_name.startswith("index="):  # Switch using index frame using relative position
+            driver.switch_to.frame(int(frame_name.split("=")[1]))
+        elif frame_name == "relative=parent":  # Switch to parent frame of the current frame
+            driver.switch_to.parent_frame()
+        else:  # Use the selenium alternative
+            driver.switch_to.frame(frame_name)
+    except NoSuchFrameException:
+        raise NoSuchFrameException("Invalid Frame ID: %s" % frame_name)
 
 
-class WindowManager:
-    def __init__(self):
-        self.windows = {}
-
-    def switch(self, window_name=None):
-        driver = _get_driver()
-        try:
-            if not window_name:  # Switch to last window created
-                driver.switch_to.window(driver.window_handles[-1])
+def switch_window(window_name=None):
+    driver = _get_driver()
+    try:
+        if window_name is None:  # Switch to last window created
+            driver.switch_to.window(driver.window_handles[-1])
+        else:
+            if isinstance(window_name, int) or window_name.isdigit():  # Switch to window handler index
+                _switch_by_idx(int(window_name))
             else:
-                if window_name.isdigit():  # Switch to window handler index
-                    self._switch_by_idx(int(window_name))
-                else:
-                    if window_name.startswith("win_ser_"):  # Switch using window sequential mode
-                        self._switch_by_win_ser(window_name)
-                    else:  # Switch using window name
-                        driver.switch_to.window(window_name)
-        except NoSuchWindowException:
-            raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
+                if window_name.startswith("win_ser_"):  # Switch using window sequential mode
+                    _switch_by_win_ser(window_name)
+                else:  # Switch using window name
+                    driver.switch_to.window(window_name)
+    except NoSuchWindowException:
+        raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
 
-    @staticmethod
-    def _switch_by_idx(win_index):
-        driver = _get_driver()
+
+def _switch_by_idx(win_index):
+    driver = _get_driver()
+    wnd_handlers = driver.window_handles
+    if 0 <= win_index < len(wnd_handlers):
+        driver.switch_to.window(wnd_handlers[win_index])
+    else:
+        raise NoSuchWindowException("Invalid Window ID: %s" % str(win_index))
+
+
+def _switch_by_win_ser(window_name):
+    driver = _get_driver()
+    if window_name == "win_ser_local":
         wnd_handlers = driver.window_handles
-        if len(wnd_handlers) <= win_index and win_index >= 0:
-            driver.switch_to.window(wnd_handlers[win_index])
+        if len(wnd_handlers) > 0:
+            driver.switch_to.window(wnd_handlers[0])
         else:
-            raise NoSuchWindowException("Invalid Window ID: %s" % str(win_index))
+            raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
+    elif window_name.split("win_ser_")[1].isdigit():    # e.g. win_ser_1
+        _switch_by_idx(int(window_name.split("win_ser_")[1]))
+    else:
+        windows = get_from_thread_store("windows")
+        if window_name not in windows:
+            windows[window_name] = driver.current_window_handle
+        driver.switch_to.window(windows[window_name])
 
-    def _switch_by_win_ser(self, window_name):
-        driver = _get_driver()
-        if window_name == "win_ser_local":
-            wnd_handlers = driver.window_handles
-            if len(wnd_handlers) > 0:
-                driver.switch_to.window(wnd_handlers[0])
-            else:
-                raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
-        else:
-            if window_name not in self.windows:
-                self.windows[window_name] = driver.window_handles[-1]
-            driver.switch_to.window(self.windows[window_name])
 
-    def close(self, window_name=None):
-        if window_name:
-            self.switch(window_name)
-        _get_driver().close()
+def close_window(window_name=None):
+    if window_name:
+        switch_window(window_name)
+    _get_driver().close()

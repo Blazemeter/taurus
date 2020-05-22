@@ -14,6 +14,7 @@ from bzt import TaurusNetworkError, ManualShutdown, VERSION, TaurusException
 from bzt.utils import to_json, MultiPartForm
 
 BZA_TEST_DATA_RECEIVED = 100
+ENDED = 140
 
 
 class BZAObject(dict):
