@@ -160,6 +160,7 @@ class TestLocSc(unittest.TestCase):
                 target[0],
                 target[1])).perform()
             switch_frame(self.driver.find_element(By.NAME, 'my_frame'))
+            switch_frame(self.driver.find_element(By.NAME, 'top_frame'))
             switch_frame('index=1')
             switch_frame('relative=parent')
 
