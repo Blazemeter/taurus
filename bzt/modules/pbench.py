@@ -24,6 +24,8 @@ import struct
 import time
 from abc import abstractmethod
 from os import strerror
+from urllib import parse
+from urllib.parse import urlencode
 
 import psutil
 
@@ -32,7 +34,7 @@ from bzt.engine import ScenarioExecutor, FileLister, HavingInstallableTools, Sel
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.six import string_types, urlencode, iteritems, parse, b, viewvalues
+from bzt.utils import iteritems, b, viewvalues
 from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader, RESOURCES_DIR
 from bzt.utils import shutdown_process, BetterDict, dehumanize_time, get_full_path, CALL_PROBLEMS
 
@@ -314,7 +316,7 @@ class PBenchGenerator(object):
         if isinstance(request.body, dict):
             if request.method != "GET":
                 body = urlencode(request.body)
-        elif isinstance(request.body, string_types):
+        elif isinstance(request.body, str):
             body = request.body
         elif request.body:
             msg = "Cannot handle 'body' option of type %s: %s"

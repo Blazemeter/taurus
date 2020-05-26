@@ -20,13 +20,14 @@ import logging
 import os
 import re
 import traceback
+from urllib import parse
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import FileLister, ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.six import etree, parse, iteritems
+from bzt.utils import etree, iteritems
 from bzt.utils import CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, which, FileReader
 
 

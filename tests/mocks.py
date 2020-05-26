@@ -14,8 +14,7 @@ from bzt.modules import TransactionListener
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregatorListener
-from bzt.six import b
-from bzt.utils import load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows, temp_file
+from bzt.utils import b, load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows, temp_file
 
 from tests.base import TEST_DIR, ROOT_LOGGER
 

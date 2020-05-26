@@ -8,7 +8,6 @@ from bzt import ToolError, TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.gatling import GatlingExecutor, DataLogReader, is_gatling2
 from bzt.modules.provisioning import Local
-from bzt.six import u
 from bzt.utils import EXE_SUFFIX, get_full_path, is_windows
 from tests import ExecutorTestCase, BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 
@@ -209,7 +208,7 @@ class TestGatlingExecutor(ExecutorTestCase):
             "throughput": 100,
             "scenario": {"script": RESOURCES_DIR + "gatling/" + script}}})
         self.obj.prepare()
-        self.obj.engine.artifacts_dir = u(self.obj.engine.artifacts_dir)
+        self.obj.engine.artifacts_dir = self.obj.engine.artifacts_dir
         self.obj.startup()
         self.obj.shutdown()
         with open(self.obj.stdout.name) as fds:

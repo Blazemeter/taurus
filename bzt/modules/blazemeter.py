@@ -27,7 +27,9 @@ import zipfile
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict, Counter, namedtuple
 from functools import wraps
+from io import BytesIO
 from ssl import SSLError
+from urllib.error import HTTPError, URLError
 
 import requests
 import yaml
@@ -47,8 +49,7 @@ from bzt.modules.monitoring import Monitoring, MonitoringListener, LocalClient
 from bzt.modules.services import Unpacker
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.requests_model import has_variable_pattern
-from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
-from bzt.utils import open_browser, BetterDict, ExceptionalDownloader, ProgressBarContext
+from bzt.utils import iteritems, b, open_browser, BetterDict, ExceptionalDownloader, ProgressBarContext
 from bzt.utils import to_json, dehumanize_time, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 
 TAURUS_TEST_TYPE = "taurus"
@@ -163,7 +164,7 @@ def parse_blazemeter_test_link(link):
     :param link:
     :return:
     """
-    if not isinstance(link, (string_types, text_type)):
+    if not isinstance(link, str):
         return None
 
     regex = r'https://a.blazemeter.com/app/#/accounts/(\d+)/workspaces/(\d+)/projects/(\d+)/tests/(\d+)(?:/\w+)?'
@@ -263,7 +264,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
         self.report_name = self.parameters.get("report-name", self.settings.get("report-name", self.report_name))
         if self.report_name == 'ask' and sys.stdin.isatty():
-            self.report_name = r_input("Please enter report-name: ")
+            self.report_name = input("Please enter report-name: ")
 
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
@@ -312,7 +313,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
     def __get_jtls_and_more(self):
         """
         Compress all files in artifacts dir to single zipfile
-        :rtype: (bzt.six.BytesIO,dict)
+        :rtype: (io.BytesIO,dict)
         """
         mfile = BytesIO()
         listing = {}
@@ -949,7 +950,7 @@ class ProjectFinder(object):
 
     def resolve_test(self, project, test_name, test_type):
         is_int = isinstance(test_name, (int, float))
-        is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
+        is_digit = isinstance(test_name, str) and test_name.isdigit()
 
         if is_int or is_digit:
             test_id = int(test_name)
@@ -1525,7 +1526,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         self.report_name = self.settings.get("report-name", self.report_name)
         if self.report_name == 'ask' and sys.stdin.isatty():
-            self.report_name = r_input("Please enter report-name: ")
+            self.report_name = input("Please enter report-name: ")
 
         self.widget = self.get_widget()
 
@@ -1746,7 +1747,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             # if we have captured HARs, let's download them
             for service in self.engine.config.get(Service.SERV, []):
                 mod = service.get('module', TaurusConfigError("No 'module' specified for service"))
-                assert isinstance(mod, string_types), mod
+                assert isinstance(mod, str), mod
                 module = self.engine.instantiate_module(mod)
                 if isinstance(module, ServiceStubCaptureHAR):
                     self._download_logs()

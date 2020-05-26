@@ -19,9 +19,8 @@ from abc import abstractmethod
 from bzt import TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
-from bzt.six import string_types, iteritems
 from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR
-from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time
+from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time, iteritems
 
 
 class JavaScriptExecutor(SubprocessedExecutor, HavingInstallableTools):
@@ -236,7 +235,7 @@ class NewmanExecutor(JavaScriptExecutor):
     def _dump_vars(self, key):
         cmdline = []
         vals = self.get_scenario().get(key)
-        if isinstance(vals, string_types):
+        if isinstance(vals, str):
             cmdline += ["--%s" % key, vals]
         else:
             data = {"values": []}

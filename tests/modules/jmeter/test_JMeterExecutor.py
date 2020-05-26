@@ -16,8 +16,7 @@ from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JTLReader, FuncJTLReader, JMeter
 from bzt.modules.provisioning import Local
-from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM, etree
 from tests import RESOURCES_DIR, BUILD_DIR, close_reader_file, ExecutorTestCase
 from . import MockJMeterExecutor, MockHTTPClient
 
@@ -649,32 +648,30 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_resource_files_data_sources_shorthand(self):
         csv_file = RESOURCES_DIR + 'test1.csv'
-        csv_file_uni = u(RESOURCES_DIR + 'test2.csv')
         self.configure({
             'execution': {
                 'scenario': {
-                    'data-sources': [csv_file, csv_file_uni]}}})
+                    'data-sources': [csv_file]}}})
         resource_files = self.obj.resource_files()
         self.assertIn(csv_file, resource_files)
-        self.assertIn(csv_file_uni, resource_files)
 
     def test_resource_files_data_sources_full_form(self):
-        csv_file = RESOURCES_DIR + 'test1.csv'
-        csv_file_uni = u(RESOURCES_DIR + 'test2.csv')
+        csv_file1 = RESOURCES_DIR + 'test1.csv'
+        csv_file2 = RESOURCES_DIR + 'test2.csv'
         self.configure({
             'execution': {
                 'scenario': {
                     'data-sources': [{
-                        'path': csv_file,
+                        'path': csv_file1,
                         'loop': False,
                         'quoted': True,
                     }, {
-                        'path': csv_file_uni,
+                        'path': csv_file2,
                         'loop': False,
                         'quoted': True}]}}})
         resource_files = self.obj.resource_files()
-        self.assertIn(csv_file, resource_files)
-        self.assertIn(csv_file_uni, resource_files)
+        self.assertIn(csv_file1, resource_files)
+        self.assertIn(csv_file2, resource_files)
 
     def test_resource_files_jsr223(self):
         js_file = RESOURCES_DIR + 'data.js'

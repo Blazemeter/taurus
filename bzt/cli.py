@@ -26,6 +26,7 @@ import traceback
 from logging import Formatter
 from optparse import OptionParser, Option
 from tempfile import NamedTemporaryFile
+from urllib.error import HTTPError
 
 import yaml
 from colorlog import ColoredFormatter
@@ -36,8 +37,7 @@ from bzt import ManualShutdown, NormalShutdown, RCProvider, TaurusException, Aut
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError, ToolError
 from bzt.engine import Engine, Configuration, SETTINGS, EXEC
 from bzt.linter import ConfigurationLinter
-from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
-from bzt.utils import is_int, BetterDict, is_url, RESOURCES_DIR
+from bzt.utils import get_stacktrace, is_int, BetterDict, is_url, RESOURCES_DIR
 
 
 class CLI(object):
@@ -509,25 +509,25 @@ class ConfigOverrider(object):
         for index, part in enumerate(parts[:-1]):
             self.__ensure_list_capacity(pointer, part, parts[index + 1])
 
-            if isinstance(part, integer_types):
+            if isinstance(part, int):
                 if part < 0:
-                    if isinstance(parts[index + 1], integer_types):
+                    if isinstance(parts[index + 1], int):
                         pointer.append([])
                     else:
                         pointer.append(BetterDict())
                     pointer = pointer[-1]
                 else:
                     pointer = pointer[part]
-            elif isinstance(parts[index + 1], integer_types) and isinstance(pointer, dict):
+            elif isinstance(parts[index + 1], int) and isinstance(pointer, dict):
                 pointer = pointer.get(part, [], force_set=True)
             else:
                 pointer = pointer.get(part, force_set=True)
         self.__ensure_list_capacity(pointer, parts[-1])
         self.log.debug("Applying: [%s]=%s", parts[-1], value)
-        if isinstance(parts[-1], string_types) and parts[-1][0] == '*':
+        if isinstance(parts[-1], str) and parts[-1][0] == '*':
             return self.__apply_mult_override(pointer, parts[-1][1:], value)
 
-        if isinstance(parts[-1], string_types) and parts[-1][0] == '^':
+        if isinstance(parts[-1], str) and parts[-1][0] == '^':
             item = parts[-1][1:]
 
             if isinstance(pointer, list):
@@ -567,10 +567,10 @@ class ConfigOverrider(object):
         :type pointer: list
         :type part: int
         """
-        if isinstance(pointer, list) and isinstance(part, integer_types):
+        if isinstance(pointer, list) and isinstance(part, int):
             while len(pointer) <= part:
                 self.log.debug("Len %s less than %s", len(pointer), part)
-                if isinstance(next_part, integer_types):
+                if isinstance(next_part, int):
                     pointer.append([])
                 else:
                     pointer.append(BetterDict())

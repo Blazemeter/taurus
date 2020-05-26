@@ -16,11 +16,11 @@ limitations under the License.
 from subprocess import CalledProcessError, PIPE
 
 from bzt import TaurusConfigError, RCProvider
-from bzt.six import communicate
 from bzt.engine import Service
-from bzt.utils import ensure_is_dict, Environment, shutdown_process, shell_exec, BetterDict
+from bzt.utils import ensure_is_dict, Environment, shutdown_process, shell_exec, communicate, BetterDict
 from bzt.modules.provisioning import Local
 from bzt.modules.blazemeter import CloudProvisioning
+
 
 class ShellExecutor(Service):
     """
