@@ -278,7 +278,7 @@ class ScenarioChecker(Checker):
     def on_execution_scenario(self, cpath, scenario):
         if isinstance(scenario, dict):
             self.check_scenario(cpath, scenario)
-        elif isinstance(scenario, (str, str)):
+        elif isinstance(scenario, str):
             scenario_name = scenario
             scenario_path = Path("scenarios", scenario_name)
             scenario = self.linter.get_config_value(scenario_path, raise_if_not_found=False)
@@ -311,7 +311,7 @@ class JMeterScenarioChecker(Checker):
         scenario = execution.get("scenario", None)
         if not scenario:
             return
-        if isinstance(scenario, (str, str)):
+        if isinstance(scenario, str):
             scenario_name = scenario
             scenario = self.get_named_scenario(scenario_name)
             if not scenario:

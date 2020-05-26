@@ -254,7 +254,7 @@ class Configuration(BetterDict):
         if isinstance(key, str):
             for suffix in ('password', 'secret', 'token',):
                 if key.lower().endswith(suffix):
-                    if value and isinstance(value, (str, str)):
+                    if value and isinstance(value, str):
                         container[key] = '*' * 8
 
     @staticmethod

@@ -38,7 +38,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
     def resource_files(self):
         files = super(RobotExecutor, self).resource_files()
         scenario = self.get_scenario()
-        if "variables" in scenario and isinstance(scenario["variables"], (str, str)):
+        if "variables" in scenario and isinstance(scenario["variables"], str):
             files.append(scenario["variables"])
         return files
 
@@ -56,7 +56,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
         scenario = self.get_scenario()
         variables = scenario.get("variables")
         if variables:
-            if isinstance(variables, (str, str)):
+            if isinstance(variables, str):
                 self.variables_file = get_full_path(variables)
             elif isinstance(variables, dict):
                 self.variables_file = self.engine.create_artifact("robot-vars", ".yaml")
@@ -70,7 +70,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
                 raise TaurusConfigError("`variables` is neither file nor dict")
         tags = scenario.get("tags", None)
         if tags:
-            if isinstance(tags, (str, str)):
+            if isinstance(tags, str):
                 self.tags = tags
             else:
                 raise TaurusConfigError("`tags` is not a string or text")

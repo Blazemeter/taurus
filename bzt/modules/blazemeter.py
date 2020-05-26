@@ -164,7 +164,7 @@ def parse_blazemeter_test_link(link):
     :param link:
     :return:
     """
-    if not isinstance(link, (str, str)):
+    if not isinstance(link, str):
         return None
 
     regex = r'https://a.blazemeter.com/app/#/accounts/(\d+)/workspaces/(\d+)/projects/(\d+)/tests/(\d+)(?:/\w+)?'

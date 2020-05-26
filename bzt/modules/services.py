@@ -64,7 +64,7 @@ class Unpacker(Service):
 class InstallChecker(Service, Singletone):
     @staticmethod
     def _parse_module_filter(filter_value):
-        if isinstance(filter_value, (str, str)):
+        if isinstance(filter_value, str):
             filter = set(filter_value.strip().split(","))
         elif isinstance(filter_value, (list, dict)):
             filter = set(filter_value)

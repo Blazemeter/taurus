@@ -887,7 +887,7 @@ class ComplexEncoder(json.JSONEncoder):
     Magic class to help serialize in JSON any object.
     """
     # todo: should we add complex type?
-    TYPES = (dict, list, tuple, str, str, int, float, bool, type(None))
+    TYPES = (dict, list, tuple, str, int, float, bool, type(None))
 
     def default(self, obj):  # pylint: disable=method-hidden
         """

@@ -489,7 +489,7 @@ from selenium.webdriver.common.keys import Keys
                             self._gen_dynamic_locator("var_loc_keys", selectors),
                             "clear"))))
             action = "send_keys"
-            if isinstance(param, (str, str)) and param.startswith("KEY_"):
+            if isinstance(param, str) and param.startswith("KEY_"):
                 args = [ast_attr("Keys.%s" % param.split("KEY_")[1])]
             else:
                 args = [self._gen_expr(str(param))]
