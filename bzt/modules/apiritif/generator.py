@@ -356,7 +356,7 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr(method),
                 args=[ast.Str(selector, kind="")]))
         else:
-            if tag == "byname" or not tag:  # if tag is not present default it to name
+            if tag == "byname":
                 tag = "name"
             elements.append(ast_call(
                 func=ast_attr(method),

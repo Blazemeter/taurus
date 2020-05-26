@@ -306,7 +306,7 @@ def switch_frame(frame_name=None):
     try:
         if not frame_name or frame_name == "relative=top":
             driver.switch_to_default_content()
-        elif isinstance(frame_name, str) and frame_name.startswith("index="):  # Switch using index frame using relative position
+        elif frame_name.startswith("index="):  # Switch using index frame using relative position
             driver.switch_to.frame(int(frame_name.split("=")[1]))
         elif frame_name == "relative=parent":  # Switch to parent frame of the current frame
             driver.switch_to.parent_frame()

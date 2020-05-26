@@ -279,7 +279,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"rawCode": "for i in range(10):\n  if i % 2 == 0:\n    print(i)"},
                             {"dragByID(address)": "elementByName(toPort)"},
                             "switchFrameByName('my_frame')",
-                            "switchFrame('top_frame')",
                             "switchFrameByIdx(1)",
                             "switchFrame(relative=parent)",
                             {"editContentById(editor)": "lo-la-lu"},
