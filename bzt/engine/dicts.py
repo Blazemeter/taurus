@@ -19,7 +19,6 @@ import codecs
 import copy
 import json
 import logging
-import os
 import re
 from collections import defaultdict
 from json import encoder
