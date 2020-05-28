@@ -928,3 +928,22 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, delimiter='\\t')", test_script)
+
+    def test_auto_quoted(self):
+        """
+        Check quotes in csv file are auto-detected
+        """
+        csv_path = RESOURCES_DIR + "apiritif/test_auto_quoted_csv.csv"
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": ["http://blazedemo.com/"],
+                    "data-sources": [{
+                        "path": csv_path,
+                        "loop": True}]}}]})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("reader_1 = apiritif.CSVReaderPerThread('%s', loop=True, quoted=True)" % csv_path, test_script)
