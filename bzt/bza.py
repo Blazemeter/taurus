@@ -46,7 +46,7 @@ class BZAObject(dict):
                     continue
                 self.__setattr__(attr, proto.__getattribute__(attr))
 
-    def _request(self, url, params=None, data=None, headers=None, method=None, raw_result=False, retry=True):
+    def _request(self, url, data=None, headers=None, method=None, raw_result=False, retry=True):
         """
         :param url: str
         :type data: Union[dict,str]
@@ -93,7 +93,7 @@ class BZAObject(dict):
         while True:
             try:
                 response = self.http_request(
-                    method=log_method, url=url, params=params, data=data, headers=headers, timeout=self.timeout)
+                    method=log_method, url=url, data=data, headers=headers, timeout=self.timeout)
             except requests.ReadTimeout:
                 if retry and retry_limit:
                     retry_limit -= 1
@@ -168,7 +168,7 @@ class User(BZAObject):
         """
         :rtype: BZAObjectsList[Account]
         """
-        res = self._request(self.address + '/api/v4/accounts', params={'limit': 100})
+        res = self._request(self.address + '/api/v4/accounts')
         accounts = []
         for acc in res['result']:
             if ident is not None and acc['id'] != ident:
