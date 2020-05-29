@@ -941,6 +941,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     "requests": ["http://blazedemo.com/"],
                     "data-sources": [{
                         "path": csv_path,
+                        "quoted": "auto",
                         "loop": True}]}}]})
 
         self.obj.prepare()

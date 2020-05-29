@@ -111,7 +111,7 @@ class Scenario(UserDict, object):
                     source['delimiter'] = '\t'
             quoted, variables = source.get("quoted"), source.get("variable-names")
             dir_path = self.engine.find_file(source['path'])
-            if not quoted and not variables:
+            if quoted == "auto" and not variables:
                 with open(dir_path) as csv_file:
                     header = csv_file.readline()
                     match = re.match(r'["[\w]+".?]*', header)
