@@ -18,3 +18,4 @@ selenium
 Appium-Python-Client
 urwid==2.0.1
 terminaltables>=3.1.0
+pyvirtualdisplay<=0.2.5
