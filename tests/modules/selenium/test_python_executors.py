@@ -615,7 +615,7 @@ class TestRobotExecutor(ExecutorTestCase):
         self.assertTrue('--variablefile' in self.CMD_LINE)
         var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile')+1]
         self.assertTrue(var_file.endswith("robot-vars.yaml"))
-        self.assertEqual('janedoe', yaml.load(open(var_file).read())['USERNAME'])
+        self.assertEqual('janedoe', yaml.full_load(open(var_file).read())['USERNAME'])
 
     def test_variables_file(self):
         self.full_run({
