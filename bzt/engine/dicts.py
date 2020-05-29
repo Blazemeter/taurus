@@ -109,14 +109,14 @@ class Scenario(UserDict, object):
                 source['delimiter'] = delimiter.replace('\\t', '\t')
                 if delimiter.lower() == 'tab':
                     source['delimiter'] = '\t'
-            quoted, variables = source.get("quoted"), source.get("variable-names")
-            dir_path = self.engine.find_file(source['path'])
-            if quoted == "auto" and not variables:
-                with open(dir_path) as csv_file:
-                    header = csv_file.readline()
-                    match = re.match(r'["[\w]+".?]*', header)
-                    if match is not None:
-                        source['quoted'] = True
+            # quoted, variables = source.get("quoted"), source.get("variable-names")
+            # dir_path = self.engine.find_file(source['path'])
+            # if quoted == "auto" and not variables:
+            #     with open(dir_path) as csv_file:
+            #         header = csv_file.readline()
+            #         match = re.match(r'["[\w]+".?]*', header)
+            #         if match is not None:
+            #             source['quoted'] = True
 
             yield source
 
