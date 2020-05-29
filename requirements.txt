@@ -11,7 +11,7 @@ progressbar33
 psutil>=5.6.6
 pytest>=3
 zipp==2.2.0
-pyvirtualdisplay; sys_platform != 'win32'
+pyvirtualdisplay<=0.2.5; sys_platform != 'win32'
 pyyaml
 requests>=2.18.1
 selenium
