@@ -342,7 +342,7 @@ class BZMock(object):
         self.mock_get = {
             'https://a.blazemeter.com/api/v4/web/version': {},
             'https://a.blazemeter.com/api/v4/user': {'id': 1, 'defaultProject': {'id': 1, 'accountId': 1, 'workspaceId': 1}},
-            'https://a.blazemeter.com/api/v4/accounts': {"result": [{'id': 1, 'owner':{'id': 1}}]},
+            'https://a.blazemeter.com/api/v4/accounts?limit=100': {"result": [{'id': 1, 'owner':{'id': 1}}]},
             'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                 "result": [{'id': 1, 'enabled': True}]},
             'https://a.blazemeter.com/api/v4/workspaces?accountId=2&enabled=true&limit=100': {

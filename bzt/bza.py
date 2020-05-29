@@ -168,7 +168,7 @@ class User(BZAObject):
         """
         :rtype: BZAObjectsList[Account]
         """
-        res = self._request(self.address + '/api/v4/accounts')
+        res = self._request(self.address + '/api/v4/accounts?limit=100')
         accounts = []
         for acc in res['result']:
             if ident is not None and acc['id'] != ident:

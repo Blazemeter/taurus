@@ -1672,7 +1672,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_lookup_account_workspace(self):
         self.configure(
             get={
-                'https://a.blazemeter.com/api/v4/accounts': {"result": [{"id": 1, "name": "Acc name"}]},
+                'https://a.blazemeter.com/api/v4/accounts?limit=100': {"result": [{"id": 1, "name": "Acc name"}]},
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
@@ -1834,7 +1834,7 @@ class TestCloudProvisioning(BZTestCase):
         self.configure(
             engine_cfg={EXEC: {"executor": "mock"}},
             get={
-                'https://a.blazemeter.com/api/v4/accounts': accs,
+                'https://a.blazemeter.com/api/v4/accounts?limit=100': accs,
             },
         )
 
