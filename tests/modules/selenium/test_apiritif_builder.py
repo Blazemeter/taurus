@@ -1,4 +1,5 @@
 import logging
+import os
 import tempfile
 
 from bzt import TaurusConfigError
@@ -933,7 +934,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         """
         Check quotes in csv file are auto-detected
         """
-        csv_path = RESOURCES_DIR + "apiritif/test_auto_quoted_csv.csv"
+        csv_path = os.path.normpath(RESOURCES_DIR + "apiritif/test_auto_quoted_csv.csv")
         self.configure({
             "execution": [{
                 "test-mode": "apiritif",
