@@ -20,12 +20,13 @@ import os
 import traceback
 
 from cssselect import GenericTranslator
+from lxml import etree
+from urllib import parse
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
-from bzt.utils import BetterDict
+from bzt.utils import BetterDict, iteritems, numeric_types
 from bzt.requests_model import has_variable_pattern
-from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types, integer_types
 
 LOG = logging.getLogger("")
 
@@ -347,7 +348,7 @@ class JMX(object):
 
         args = JMX._get_arguments_panel("HTTPsampler.Arguments")
 
-        if isinstance(body, string_types):
+        if isinstance(body, str):
             JMX.__add_body_from_string(args, body, proxy)
         elif isinstance(body, dict):
             JMX.__add_body_from_script(args, body, proxy)
@@ -517,7 +518,7 @@ class JMX(object):
         :return:
         """
         res = etree.Element("stringProp", name=name)
-        res.text = text_type(value)
+        res.text = str(value)
         return res
 
     @staticmethod
@@ -530,7 +531,7 @@ class JMX(object):
         :return:
         """
         res = etree.Element("longProp", name=name)
-        res.text = text_type(value)
+        res.text = str(value)
         return res
 
     @staticmethod
@@ -555,7 +556,7 @@ class JMX(object):
         :return:
         """
         res = etree.Element("intProp", name=name)
-        res.text = text_type(value)
+        res.text = str(value)
         return res
 
     @staticmethod
@@ -958,7 +959,7 @@ class JMX(object):
         :type from_var: str
         :rtype: lxml.etree.Element
         """
-        if isinstance(template, integer_types):
+        if isinstance(template, int):
             template = '$%s$' % template
 
         if headers.lower() == 'headers':
@@ -1183,7 +1184,7 @@ class JMX(object):
         :rtype: lxml.etree.Element
         """
         tname = "Assert %s %s" % ("hasn't" if is_invert else "has",
-                                  "[" + ", ".join('"' + text_type(x) + '"' for x in contains) + "]")
+                                  "[" + ", ".join('"' + str(x) + '"' for x in contains) + "]")
         element = etree.Element("ResponseAssertion", guiclass="AssertionGui",
                                 testclass="ResponseAssertion", testname=tname)
         if field == Scenario.FIELD_HEADERS:
@@ -1301,7 +1302,7 @@ class JMX(object):
         items = self.get(sel)
         res = 0
         for item in items:
-            item.text = text_type(text)
+            item.text = str(text)
             res += 1
 
         return res

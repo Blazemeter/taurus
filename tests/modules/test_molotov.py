@@ -14,7 +14,6 @@ TOOL_PATH = join(RESOURCES_DIR, "molotov", TOOL_NAME)
 LOADTEST_PY = join(RESOURCES_DIR, "molotov", "loadtest.py")
 
 
-@unittest.skipUnless(sys.version_info >= (3, 5), "enabled only on 3.5+")
 class TestMolotov(ExecutorTestCase):
     EXECUTOR = MolotovExecutor
 

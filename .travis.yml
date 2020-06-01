@@ -10,9 +10,9 @@ branches:
 os: linux
 
 python:
-#- "2.7"
 - "3.6"
 - "3.7"
+- "3.8"
 
 env:
   global:
@@ -52,7 +52,6 @@ install:
   fi
 - gem install rspec
 - $PIP_INSTALL --upgrade pip
-- $PIP_INSTALL "pyyaml<5.1"
 - $PIP_INSTALL -r requirements.txt
 - $PIP_INSTALL -r tests/ci/requirements.txt
 

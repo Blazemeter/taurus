@@ -26,6 +26,7 @@ import json
 import locale
 import logging
 import mimetypes
+import operator
 import os
 import platform
 import random
@@ -52,16 +53,60 @@ import math
 import psutil
 import requests
 import requests.adapters
+from io import IOBase
+from lxml import etree
 from progressbar import ProgressBar, Percentage, Bar, ETA
+from urllib import parse
+from urllib.request import url2pathname
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
-from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname, communicate
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, numeric_types
 
 LOG = logging.getLogger("")
 CALL_PROBLEMS = (CalledProcessError, OSError)
+numeric_types = (int, float, complex)
+viewvalues = operator.methodcaller("values")
 
+
+def unicode_decode(string, errors="strict"):
+    if isinstance(string, bytes):
+        return string.decode("utf-8", errors)
+    else:
+        return string
+
+
+def communicate(proc):  # todo: replace usage of it with sync_run()
+    out, err = proc.communicate()
+    out = unicode_decode(out, errors="ignore")
+    err = unicode_decode(err, errors="ignore")
+    return out, err
+
+
+def iteritems(dictionary, **kw):
+    return iter(dictionary.items(**kw))
+
+
+def b(string):
+    return string.encode("latin-1")
+
+
+def get_stacktrace(exc):
+    return ''.join(traceback.format_tb(exc.__traceback__)).rstrip()
+
+
+def reraise(exc_info, exc=None):
+    _type, message, stacktrace = exc_info
+    if exc is None:
+        exc = _type(message)
+    exc.__traceback__ = stacktrace
+    raise exc
+
+
+def stream_decode(string):
+    if not isinstance(string, str):
+        return string.decode()
+    else:
+        return string
 
 def sync_run(args, env=None):
     output = check_output(args, env=env, stderr=STDOUT)
@@ -79,7 +124,7 @@ def simple_body_dict(dic):
     """ body dict must have just one level for sending with form params"""
     if isinstance(dic, dict):
         for key in dic:
-            if not isinstance(dic[key], (string_types, numeric_types)):
+            if not isinstance(dic[key], (str, numeric_types)):
                 return False
         return True
     return False
@@ -125,7 +170,7 @@ def parse_java_version(versions):
             major = re.findall("\.([\d]*)", version)
 
         if major:
-            return deunicode(major[0])
+            return major[0]
 
 
 def run_once(func):
@@ -273,13 +318,7 @@ class BetterDict(defaultdict):
         else:
             value = defaultdict.get(self, key, default)
 
-        if isinstance(value, string_types):
-            if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
-                return value
-            else:
-                return text_type(value)
-        else:
-            return value
+        return value
 
     def merge(self, src):
         """
@@ -438,7 +477,7 @@ class TaurusCalledProcessError(CalledProcessError):
         base_str = super(TaurusCalledProcessError, self).__str__()
 
         if self.output:
-            base_str += '\n' + deunicode(self.output, errors="ignore")
+            base_str += '\n' + self.output
 
         return base_str
 
@@ -458,15 +497,15 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     Wrapper for subprocess starting
 
     """
-    if stdout and not isinstance(stdout, (integer_types, file_type)):
+    if stdout and not isinstance(stdout, (int, IOBase)):
         LOG.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
-    if stderr and not isinstance(stderr, (integer_types, file_type)):
+    if stderr and not isinstance(stderr, (int, IOBase)):
         LOG.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
-    if isinstance(args, string_types) and not shell:
+    if isinstance(args, str) and not shell:
         args = shlex.split(args, posix=not is_windows())
     LOG.debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
@@ -800,14 +839,14 @@ class MultiPartForm(object):
 
     def form_as_bytes(self):
         """
-        represents form contents as bytes in python3 or 8-bit str in python2
+        represents form contents as bytes
         """
         result_list = []
         for item in self.__convert_to_list():
-            # if (8-bit str (2.7) or bytes (3.x), then no processing, just add, else - encode)
-            if isinstance(item, binary_type):
+            # if (bytes (3.x), then no processing, just add, else - encode)
+            if isinstance(item, bytes):
                 result_list.append(item)
-            elif isinstance(item, text_type):
+            elif isinstance(item, str):
                 result_list.append(item.encode())
             else:
                 raise TaurusInternalException("Unhandled form data type: %s" % type(item))
@@ -848,7 +887,7 @@ class ComplexEncoder(json.JSONEncoder):
     Magic class to help serialize in JSON any object.
     """
     # todo: should we add complex type?
-    TYPES = (dict, list, tuple, text_type, string_types, integer_types, float, bool, type(None))
+    TYPES = (dict, list, tuple, str, int, float, bool, type(None))
 
     def default(self, obj):  # pylint: disable=method-hidden
         """
@@ -922,11 +961,6 @@ def guess_csv_dialect(header, force_doublequote=False):
     """
     possible_delims = ",;\t"
     dialect = csv.Sniffer().sniff(header, delimiters=possible_delims)
-
-    # We have to do that for py2, as the sniffer can possibly return unicode values
-    # in delimiter and quotechar. And py2's csv.reader is unable to handle unicode delimiters/quotechars.
-    dialect.delimiter = deunicode(dialect.delimiter)
-    dialect.quotechar = deunicode(dialect.quotechar)
 
     if force_doublequote:
         dialect.doublequote = True
@@ -1711,7 +1745,7 @@ def get_host_ips(filter_loopbacks=True):
     ips = []
     for _, interfaces in iteritems(psutil.net_if_addrs()):
         for iface in interfaces:
-            addr = text_type(iface.address)
+            addr = str(iface.address)
             try:
                 ip = ipaddress.ip_address(addr)
                 if filter_loopbacks and ip.is_loopback:
@@ -1766,7 +1800,7 @@ def get_assembled_value(configs, key, protect=False):
     elif all(isinstance(config, list) for config in target_configs):
         for config in target_configs:
             res.extend(config)
-    elif all(isinstance(config, (numeric_types, string_types)) for config in target_configs):
+    elif all(isinstance(config, (numeric_types, str)) for config in target_configs):
         res = target_configs[-1]
     else:
         raise TaurusConfigError("Incorrect type of '%s' found." % key)

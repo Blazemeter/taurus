@@ -25,8 +25,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.java import TaurusJavaHelper
 from bzt.requests_model import HTTPRequest
-from bzt.six import iteritems
-from bzt.utils import MirrorsManager, dehumanize_time, get_full_path, PythonGenerator, CALL_PROBLEMS
+from bzt.utils import iteritems, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary, FileReader, RESOURCES_DIR
 
 

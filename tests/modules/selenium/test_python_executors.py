@@ -46,9 +46,17 @@ class TestLocatorsMagager(BZTestCase):
 
         apiritif.put_into_thread_store(driver=driver, timeout=timeout, func_mode=False)
 
+        # exception should be raised when raise_exception is True
         missing_locators = [{'css': 'missing_css'}, {'xpath': 'missing_xpath'}]
-        self.assertRaises(NoSuchElementException, get_locator, missing_locators)
+        self.assertRaises(NoSuchElementException, get_locator, missing_locators, False, True)
         self.assertEqual(30, driver.waiting_time)
+
+        # exception should not be raised when raise_exception is False
+        driver.waiting_time = 0
+        locators = get_locator(missing_locators, ignore_implicit_wait=True, raise_exception=False)
+        self.assertEqual(locators, (BYS['css'], 'missing_css'))
+        # actual waiting time is 0 when setting ignore_implicit_wait to True
+        self.assertEqual(0, driver.waiting_time)
 
         driver.waiting_time = 0
         existed_locators = [{'css': 'existed_css'}]
@@ -607,7 +615,7 @@ class TestRobotExecutor(ExecutorTestCase):
         self.assertTrue('--variablefile' in self.CMD_LINE)
         var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile')+1]
         self.assertTrue(var_file.endswith("robot-vars.yaml"))
-        self.assertEqual('janedoe', yaml.load(open(var_file).read())['USERNAME'])
+        self.assertEqual('janedoe', yaml.full_load(open(var_file).read())['USERNAME'])
 
     def test_variables_file(self):
         self.full_run({

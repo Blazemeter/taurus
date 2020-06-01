@@ -18,6 +18,7 @@ limitations under the License.
 import os
 import re
 from distutils.version import LooseVersion
+from lxml import etree
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
@@ -25,7 +26,7 @@ from bzt.jmx import JMX
 from bzt.jmx.base import cond_int
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
 from bzt.requests_model import RequestVisitor, has_variable_pattern, HierarchicRequestParser
-from bzt.six import etree, iteritems, numeric_types, string_types
+from bzt.utils import iteritems, numeric_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, load_class, guess_delimiter
 
 
@@ -117,7 +118,7 @@ class LoadSettingsProcessor(object):
         groups = list(self.tg_handler.groups(jmx))
 
         # user concurrency is jmeter variable, write it to tg as is
-        if isinstance(self.load.concurrency, string_types):
+        if isinstance(self.load.concurrency, str):
             target_list = [(group, self.load.concurrency) for group in groups]
         else:  # concurrency is numeric or empty
             raw = self.load.concurrency is None  # keep existed concurrency if self.load.concurrency is omitted
@@ -399,12 +400,17 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     @staticmethod
-    def __add_jsr_elements(children, req):
+    def __add_jsr_elements(children, req, get_from_config=True):
         """
         :type children: etree.Element
         :type req: Request
         """
-        jsrs = req.config.get("jsr223", [])
+        jsrs = []
+        if get_from_config:
+            jsrs = req.config.get("jsr223", [])
+        else:
+            jsrs = req.get("jsr223", [])
+
         if not isinstance(jsrs, list):
             jsrs = [jsrs]
         for idx, _ in enumerate(jsrs):
@@ -437,6 +443,7 @@ class JMeterScenarioBuilder(JMX):
         elements.extend(self.__gen_keystore_config(scenario))
         elements.extend(self.__gen_data_sources(scenario))
         elements.extend(self.__gen_requests(scenario))
+        self.__add_jsr_elements(elements, scenario, False)
         return elements
 
     def compile_request(self, request):

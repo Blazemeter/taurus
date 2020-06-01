@@ -4,16 +4,7 @@
 """
 import os
 import argparse
-
-try:
-    from SimpleHTTPServer import SimpleHTTPRequestHandler
-except ImportError:
-    from http.server import SimpleHTTPRequestHandler
-
-try:
-    from SocketServer import TCPServer as HTTPServer
-except ImportError:
-    from http.server import HTTPServer
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 
 def main():

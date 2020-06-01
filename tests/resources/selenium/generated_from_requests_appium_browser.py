@@ -29,11 +29,13 @@ class TestLocScAppium(unittest.TestCase):
 
         timeout = 3.5
         self.driver = None
+        options = None
         self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub',
                                        desired_capabilities={'browserName': 'chrome', 'deviceName': '',
-                                                             'platformName': 'android'})
+                                                             'platformName': 'android'},
+                                       options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(scenario_name='loc_sc_appium', timeout=timeout, driver=self.driver,
+        apiritif.put_into_thread_store(scenario_name='loc_sc_appium', timeout=timeout, driver=self.driver, windows={},
                                        func_mode=False)
 
     def _1_(self):

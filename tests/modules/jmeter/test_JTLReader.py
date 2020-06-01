@@ -7,7 +7,6 @@ import unittest
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JTLErrorsReader, JTLReader, FuncJTLReader
-from bzt.six import PY2
 from bzt.utils import to_json
 from tests import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 from tests.mocks import EngineEmul
@@ -254,7 +253,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEquals(KPISet.ERRTYPE_ERROR, values[''][0]['type'])
         self.assertEquals('200', values[''][0]['rc'])
 
-    @unittest.skipUnless(sys.platform == "darwin" and sys.version_info >= (3, 0), "MacOS- and Python3-only")
+    @unittest.skipUnless(sys.platform == "darwin", "MacOS-only")
     def test_macos_unicode_parsing_is_not_supported(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/standard-errors.jtl")
         self.obj.read_file(final_pass=True)  # shouldn't fail with "ParserError: Unicode parsing is not supported"
@@ -345,12 +344,9 @@ class TestJTLReader(BZTestCase):
                u'perc': {u'100.0': 0.1},
                u'rc': {},
                u'rt': {u'0.001': 1, u'0.01': 1, u'0.1': 1},
-               u'stdev_rt': 0.058 if PY2 else 0.05802585630561603,
+               u'stdev_rt': 0.05802585630561603,
                u'succ': 0,
                u'throughput': 0}
 
         self.assertEqual(exp, enc_dec_iter(new().items()))
-        if PY2:
-            self.assertEqual(exp, enc_dec_iter(new().viewitems()))
-            self.assertEqual(exp, enc_dec_iter(new().iteritems()))
         self.assertEqual('{"100.0": 0.1}', to_json(new().get(KPISet.PERCENTILES), indent=None))

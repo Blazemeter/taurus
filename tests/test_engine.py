@@ -6,7 +6,6 @@ import yaml
 
 from bzt import TaurusConfigError
 from bzt.engine import Configuration, EXEC
-from bzt.six import string_types, communicate
 from bzt.utils import BetterDict, is_windows, get_full_path, get_uniq_name
 from tests import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase, TEST_DIR
 from tests.mocks import EngineEmul
@@ -258,7 +257,7 @@ class TestScenarioExecutor(ExecutorTestCase):
     def test_timers(self):
         """ general executor supports only simplified form of think-time """
         with open(os.path.join(RESOURCES_DIR, "yaml/timers.yml")) as config_file:
-            config = yaml.load(config_file.read())
+            config = yaml.full_load(config_file.read())
 
         self.configure(config)
         timers = [request.get_think_time() for request in self.obj.get_scenario().get_requests()]
@@ -345,7 +344,7 @@ class TestScenarioExecutor(ExecutorTestCase):
         self.obj.get_scenario()
         config = self.engine.config
         scenario = config['execution'][0]['scenario']
-        self.assertTrue(isinstance(scenario, string_types))
+        self.assertTrue(isinstance(scenario, str))
         self.assertIn(scenario, config['scenarios'])
 
     def test_scenario_not_found(self):

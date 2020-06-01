@@ -6,21 +6,20 @@ var driver;
 describe('Blazedemo verification', function() {
     this.timeout(30000);
 
-    before(function () {
+    before(async () => {
         driver = new webdriver.Builder().
             withCapabilities(webdriver.Capabilities.firefox()).
             build();
+        await driver.get('http://blazedemo.com/');
     });
 
     after(function () {
         driver.quit();
     });
 
-    it('selenium-mocha', function () {
-        driver.get('http://blazedemo.com/');
-        driver.getTitle().then(function (title) {
+    it('should pass', async () => {
+        await driver.getTitle().then(function (title) {
             assert.equal(title, 'BlazeDemo');
         });
     });
-
 });

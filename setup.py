@@ -34,7 +34,7 @@ setup(
     download_url='http://gettaurus.org/docs/DeveloperGuide/#Python-Egg-Snapshots',
     license='Apache 2.0',
     install_requires=requires,
-    packages=['bzt', 'bzt.engine', 'bzt.six', 'bzt.jmx', 'bzt.modules',
+    packages=['bzt', 'bzt.engine', 'bzt.jmx', 'bzt.modules',
               'bzt.modules.java', 'bzt.modules.apiritif', 'bzt.resources', 'bzt.modules.python'],
     entry_points={
         'console_scripts': [

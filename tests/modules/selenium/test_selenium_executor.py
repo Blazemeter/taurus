@@ -4,6 +4,7 @@ import shutil
 import time
 
 import yaml
+from io import BytesIO
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import EXEC
@@ -11,7 +12,6 @@ from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules.selenium import SeleniumExecutor
-from bzt.six import BytesIO
 from bzt.utils import LDJSONReader, FileReader
 from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul, DummyListener
@@ -314,7 +314,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj_prepare()
 
     def test_from_extension(self):
-        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.engine.start_subprocess = lambda **kwargs: None
@@ -322,7 +322,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.post_process()
 
     def test_requests(self):
-        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.engine.start_subprocess = lambda **kwargs: None
@@ -330,7 +330,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.post_process()
 
     def test_fail_on_zero_results(self):
-        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]

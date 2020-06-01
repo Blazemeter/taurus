@@ -4,8 +4,7 @@ from os import path
 
 from bzt import TaurusConfigError, ToolError
 from bzt.modules.tsung import TsungExecutor, TsungStatsReader, TsungConfig, Tsung
-from bzt.six import etree
-from bzt.utils import EXE_SUFFIX, BetterDict, is_windows
+from bzt.utils import etree, EXE_SUFFIX, BetterDict, is_windows
 from tests import BZTestCase, ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER
 
 TOOL_NAME = 'tsung' + EXE_SUFFIX

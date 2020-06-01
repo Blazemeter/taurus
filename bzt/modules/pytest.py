@@ -58,9 +58,6 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         """
         we need installed nose plugin
         """
-        if sys.version >= '3':
-            self.log.warning("You are using Python 3, make sure that your scripts are able to run in Python 3")
-
         self._check_tools([self._get_tool(TaurusPytestRunner, tool_path=self.runner_path)])
 
     def startup(self):
