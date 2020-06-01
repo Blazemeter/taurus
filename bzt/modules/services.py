@@ -35,7 +35,7 @@ if not is_windows():
     try:
         from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
     except ImportError:
-        from pyvirtualdisplay.xvfb import XvfbDisplay as Display
+        from pyvirtualdisplay import Display
 
 
 class Unpacker(Service):
@@ -316,7 +316,7 @@ class VirtualDisplay(Service, Singletone):
             self.virtual_display = Display(size=(width, height))
             self.virtual_display.start()
             msg = "Starting virtual display[%s] %s"
-            self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
+            self.log.info(msg, (width, height), self.virtual_display.new_display_var)
             VirtualDisplay.SHARED_VIRTUAL_DISPLAY = self.virtual_display
 
             self.engine.shared_env.set({'DISPLAY': os.environ['DISPLAY']})   # backward compatibility
