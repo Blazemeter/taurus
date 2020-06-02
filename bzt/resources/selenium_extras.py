@@ -186,7 +186,7 @@ def dialogs_get_next_alert():
     return _get_driver().execute_script("""
                 if (!window.__webdriverAlerts) { return null } 
                 var t = window.__webdriverAlerts.shift(); 
-                if (t) { t = t.replace(/\\n/g, ' '); }
+                if (t) { t = t.toString().replace(/\\n/g, ' '); }
                 return t;
               """)
 
