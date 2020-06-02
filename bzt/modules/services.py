@@ -314,9 +314,9 @@ class VirtualDisplay(Service, Singletone):
             width = self.parameters.get("width", 1024)
             height = self.parameters.get("height", 768)
             self.virtual_display = Display(size=(width, height))
-            msg = "Starting virtual display[%s]: %s"
-            self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
             self.virtual_display.start()
+            msg = "Starting virtual display[%s] %s"
+            self.log.info(msg, (width, height), self.virtual_display.new_display_var)
             VirtualDisplay.SHARED_VIRTUAL_DISPLAY = self.virtual_display
 
             self.engine.shared_env.set({'DISPLAY': os.environ['DISPLAY']})   # backward compatibility
