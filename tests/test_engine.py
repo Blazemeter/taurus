@@ -195,8 +195,8 @@ class TestEngine(BZTestCase):
                 }})
             self.obj.eval_env()
 
-            self.assertEqual("eee/ddd/ccc/aaa/bbb", self.obj.config["settings"]["env"]["FOO"])
-            self.assertEqual("eee/ddd/ccc/aaa/bbb", os.environ["FOO"])
+            self.assertEqual("${FOOBAR}/ddd/ccc/aaa/bbb", self.obj.config["settings"]["env"]["FOO"])
+            self.assertEqual("${FOOBAR}/ddd/ccc/aaa/bbb", os.environ["FOO"])
 
             self.assertEqual("eee", self.obj.config["settings"]["env"]["FOOBAR"])
             self.assertEqual("eee", os.environ["FOOBAR"])
