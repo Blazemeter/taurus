@@ -205,6 +205,7 @@ def dialogs_answer_on_next_alert(value):
     """
     Simulates click on OK button in the next alert
     """
+    dialogs_replace()
     if str(value).lower() == '#ok':
         _get_driver().execute_script("window.__webdriverNextAlert = true")
 
@@ -214,6 +215,7 @@ def dialogs_answer_on_next_prompt(value):
     :param value: The value to be used to answer the next 'window.prompt', if '#cancel' is provided then
     click on cancel button is simulated by returning null
     """
+    dialogs_replace()
     if str(value).lower() == '#cancel':
         _get_driver().execute_script("window.__webdriverNextPrompt = null")
     else:
@@ -225,6 +227,7 @@ def dialogs_answer_on_next_confirm(value):
     :param value: either '#ok' to click on OK button or '#cancel' to simulate click on Cancel button in the
     next 'window.confirm' method
     """
+    dialogs_replace()
     if str(value).lower() == '#ok':
         confirm = 'true'
     else:
