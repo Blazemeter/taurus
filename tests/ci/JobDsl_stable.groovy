@@ -4,7 +4,9 @@ pipelineJob('TAURUS-COMMUNITY-STABLE'){
         disableConcurrentBuilds()
         pipelineTriggers {
             triggers {
-                scm("H/30 * * * *") {}
+                scm {
+                    spec('H/30 * * * *')
+                }
             }
         }
     }
