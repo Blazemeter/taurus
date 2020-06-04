@@ -22,11 +22,12 @@ import os
 import time
 import zipfile
 
-from bzt.six import communicate, text_type, string_types
+from urllib.request import urlopen
+from urllib.error import URLError
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import Service, HavingInstallableTools, Singletone
-from bzt.six import get_stacktrace
+from bzt.utils import get_stacktrace, communicate
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node, CALL_PROBLEMS, exec_and_communicate
 
@@ -63,7 +64,7 @@ class Unpacker(Service):
 class InstallChecker(Service, Singletone):
     @staticmethod
     def _parse_module_filter(filter_value):
-        if isinstance(filter_value, (string_types, text_type)):
+        if isinstance(filter_value, str):
             filter = set(filter_value.strip().split(","))
         elif isinstance(filter_value, (list, dict)):
             filter = set(filter_value)
@@ -313,9 +314,9 @@ class VirtualDisplay(Service, Singletone):
             width = self.parameters.get("width", 1024)
             height = self.parameters.get("height", 768)
             self.virtual_display = Display(size=(width, height))
-            msg = "Starting virtual display[%s]: %s"
-            self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
             self.virtual_display.start()
+            msg = "Starting virtual display[%s] %s"
+            self.log.info(msg, (width, height), self.virtual_display.new_display_var)
             VirtualDisplay.SHARED_VIRTUAL_DISPLAY = self.virtual_display
 
             self.engine.shared_env.set({'DISPLAY': os.environ['DISPLAY']})   # backward compatibility

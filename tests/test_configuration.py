@@ -1,7 +1,6 @@
 # coding=utf-8
 import json
 
-from bzt import six
 from bzt.engine import Configuration
 from bzt.utils import BetterDict, dehumanize_time, temp_file
 from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
@@ -64,25 +63,12 @@ class TestConfiguration(BZTestCase):
 
     def test_unicode(self):
         obj = Configuration()
-        expected = six.u("Юникод")
+        expected = "Юникод"
         obj.merge({
             "ustr": expected,
         })
         ustr = obj.get("ustr", "nope")
         self.assertEqual(ustr, expected)
-
-    def test_save(self):
-        obj = Configuration()
-        obj.merge({
-            "str": "text",
-            "uc": six.u("ucstring")
-        })
-        fname = temp_file()
-        obj.dump(fname, Configuration.YAML)
-        with open(fname) as fh:
-            written = fh.read()
-            ROOT_LOGGER.debug("YAML:\n%s", written)
-            self.assertNotIn("unicode", written)
 
     def test_masq_sensitive(self):
         obj = Configuration()

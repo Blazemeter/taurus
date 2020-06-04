@@ -28,8 +28,7 @@ from bzt import AutomatedShutdown, TaurusConfigError
 from bzt.engine import Reporter, EngineModule
 from bzt.modules.aggregator import KPISet, DataPoint, AggregatorListener, ResultsProvider
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.six import string_types, viewvalues, iteritems
-from bzt.utils import load_class, dehumanize_time, get_bytes_count, BetterDict
+from bzt.utils import viewvalues, iteritems, load_class, dehumanize_time, get_bytes_count, BetterDict
 
 
 class CriteriaProcessor(AggregatorListener):
@@ -52,13 +51,13 @@ class CriteriaProcessor(AggregatorListener):
             crit_iter = enumerate(crit_cfg_list)
 
         for idx, crit_config in crit_iter:
-            if isinstance(crit_config, string_types):
+            if isinstance(crit_config, str):
                 crit_config = DataCriterion.string_to_config(crit_config)
                 crit_cfg_list[idx] = crit_config
             crit = load_class(crit_config.get('class', DataCriterion.__module__ + "." + DataCriterion.__name__))
             crit_instance = crit(crit_config, self)
             assert isinstance(crit_instance, FailCriterion)
-            if isinstance(idx, string_types):
+            if isinstance(idx, str):
                 crit_instance.message = idx
             self.criteria.append(crit_instance)
 

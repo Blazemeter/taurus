@@ -30,7 +30,7 @@ before_test:
   - rspec --version
   - node --version
   - locust --version
-  - ps: Start-Process python tests/resources/httpserver/start.py
+  - ps: Start-Process $env:PYTHON\\python.exe tests/resources/httpserver/start.py
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci"

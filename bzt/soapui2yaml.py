@@ -22,8 +22,7 @@ from optparse import OptionParser
 from bzt import TaurusInternalException
 from bzt.cli import CLI
 from bzt.engine import Configuration
-from bzt.utils import SoapUIScriptConverter
-from bzt.six import iteritems
+from bzt.utils import SoapUIScriptConverter, iteritems
 
 
 class SoapUI2YAML(object):

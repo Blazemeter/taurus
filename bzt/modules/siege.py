@@ -25,8 +25,7 @@ from bzt.engine import ScenarioExecutor, FileLister, HavingInstallableTools, Sel
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.six import iteritems
-from bzt.utils import CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, FileReader
+from bzt.utils import iteritems, CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, FileReader
 
 
 class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, FileLister, SelfDiagnosable):

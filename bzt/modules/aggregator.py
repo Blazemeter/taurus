@@ -30,8 +30,7 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.six import iteritems, PY3, text_type
-from bzt.utils import dehumanize_time, JSONConvertible
+from bzt.utils import iteritems, dehumanize_time, JSONConvertible
 
 log = logging.getLogger('aggregator')
 
@@ -333,20 +332,6 @@ class KPISet(dict):
         for item in super(KPISet, self).items():
             yield (item[0], self.__getitem__(item[0]))
 
-    def iteritems(self):
-        if PY3:
-            raise TaurusInternalException("Invalid call")
-
-        for item in super(KPISet, self).iteritems():
-            yield (item[0], self.__getitem__(item[0]))
-
-    def viewitems(self):
-        if PY3:
-            raise TaurusInternalException("Invalid call")
-
-        for item in super(KPISet, self).viewitems():
-            yield (item[0], self.__getitem__(item[0]))
-
     def viewvalues(self):
         raise TaurusInternalException("Invalid call")
 
@@ -541,7 +526,7 @@ class ResultsProvider(object):
         if not key or limit <= 0:
             return key
 
-        if not isinstance(key, text_type):
+        if not isinstance(key, str):
             key = key.decode('utf-8')
 
         if key.lower() in dataset.exact_set:

@@ -6,16 +6,15 @@ import base64
 import json
 import logging
 from collections import OrderedDict
+from urllib.parse import urlencode
 
 import requests
 
 from bzt import TaurusNetworkError, ManualShutdown, VERSION, TaurusException
-from bzt.six import string_types
-from bzt.six import text_type
-from bzt.six import urlencode
 from bzt.utils import to_json, MultiPartForm
 
 BZA_TEST_DATA_RECEIVED = 100
+ENDED = 140
 
 
 class BZAObject(dict):
@@ -64,9 +63,9 @@ class BZAObject(dict):
         has_auth = headers and "X-Api-Key" in headers
         if has_auth:
             pass  # all is good, we have auth provided
-        elif isinstance(self.token, string_types) and ':' in self.token:
+        elif isinstance(self.token, str) and ':' in self.token:
             token = self.token
-            if isinstance(token, text_type):
+            if isinstance(token, str):
                 token = token.encode('ascii')
             token = base64.b64encode(token).decode('ascii')
             headers['Authorization'] = 'Basic ' + token
@@ -80,7 +79,7 @@ class BZAObject(dict):
 
         url = str(url)
 
-        if isinstance(data, text_type):
+        if isinstance(data, str):
             data = data.encode("utf-8")
 
         if isinstance(data, (dict, list)):

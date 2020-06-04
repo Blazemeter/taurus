@@ -25,8 +25,7 @@ from collections import namedtuple
 from bzt import TaurusConfigError
 from bzt import ToolError
 
-from bzt.six import numeric_types, string_types
-from bzt.utils import Environment, RequiredTool, PIPE, SoapUIScriptConverter
+from bzt.utils import numeric_types, Environment, RequiredTool, PIPE, SoapUIScriptConverter
 from bzt.utils import to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 from .templates import FileLister
@@ -278,14 +277,14 @@ class ScenarioExecutor(EngineModule):
             exc = TaurusConfigError("Scenario is not found in execution: %s" % self.execution)
             label = self.execution.get('scenario', exc)
 
-            is_script = isinstance(label, string_types) and label not in scenarios and \
+            is_script = isinstance(label, str) and label not in scenarios and \
                         os.path.exists(self.engine.find_file(label))
             if isinstance(label, list):
                 msg = "Invalid content of scenario, list type instead of dict or string: %s"
                 raise TaurusConfigError(msg % label)
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
-                if isinstance(label, string_types):
+                if isinstance(label, str):
                     scenario = BetterDict.from_dict({Scenario.SCRIPT: label})
                 else:
                     scenario = label
