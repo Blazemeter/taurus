@@ -117,7 +117,7 @@ class Scenario(UserDict, object):
                     match = re.match(r'[[",\'][\w]+[",\'].?]*', header)
                     if match is not None:
                         source['quoted'] = True
-            if source['quoted'] == "auto":
+            if quoted and source['quoted'] == "auto":
                 source['quoted'] = False
 
             yield source
