@@ -6,7 +6,7 @@ import yaml
 
 from bzt import TaurusConfigError
 from bzt.engine import Configuration, EXEC
-from bzt.utils import BetterDict, is_windows, get_full_path, get_uniq_name
+from bzt.utils import BetterDict, is_windows, get_full_path, get_uniq_name, communicate
 from tests import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase, TEST_DIR
 from tests.mocks import EngineEmul
 

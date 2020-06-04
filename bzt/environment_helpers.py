@@ -6,7 +6,8 @@ VARIABLE_EXPAND_DEPTH = 2
 
 def expand_envs_with_os(envs):
     for var_name in envs:
-        envs[var_name] = expand_variable_with_os(envs[var_name])
+        if envs[var_name] is not None:
+            envs[var_name] = expand_variable_with_os(envs[var_name])
     return envs
 
 
