@@ -2,13 +2,9 @@ pipelineJob('TAURUS-COMMUNITY-MASTER'){
     properties {
         githubProjectUrl('http://github.com/Blazemeter/taurus')
         disableConcurrentBuilds()
-        pipelineTriggers {
-            triggers {
-                scm {
-                    spec('*/5 * * * *')
-                }
-            }
-        }
+    }
+    triggers {
+        scm('*/5 * * * *')
     }
     logRotator {
         daysToKeep(30)
