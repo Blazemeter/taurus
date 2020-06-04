@@ -74,9 +74,9 @@ class LocustStarter(object):
         self.fhd.flush()
         self.__check_limits()
 
-    def __on_request_failure(self, request_type, name, response_time, exception):
+    def __on_request_failure(self, request_type, name, response_time, exception, response_length=0):
         self.num_requests -= 1
-        self.writer.writerow(self.__getrec(request_type, name, response_time, 0, exception))
+        self.writer.writerow(self.__getrec(request_type, name, response_time, response_length, exception))
         self.fhd.flush()
         self.__check_limits()
 
