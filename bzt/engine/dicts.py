@@ -114,9 +114,11 @@ class Scenario(UserDict, object):
             if quoted == "auto" and not variables:
                 with open(dir_path) as csv_file:
                     header = csv_file.readline()
-                    match = re.match(r'["[\w]+".?]*', header)
+                    match = re.match(r'[[",\'][\w]+[",\'].?]*', header)
                     if match is not None:
                         source['quoted'] = True
+            if source['quoted'] == "auto":
+                source['quoted'] = False
 
             yield source
 
