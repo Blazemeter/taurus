@@ -43,8 +43,13 @@ scenarios:
       - http://blazedemo.com/receive/${var1} # get 'receive/val2'
     - include-scenario: inner
 
-    data-sources: # list of external data sources
-    - path/to/my.csv
+    data-sources: # these are data-sources options for Apiritif. See more info below.
+    - path/to/my.csv  # this is a shorthand form
+    - path: path/to/another.csv  # this is a full form
+      delimiter: ';'
+      quoted: false
+      loop: true
+      variable-names: id,name
 
   inner:
     requests:
@@ -52,7 +57,6 @@ scenarios:
         var1: val3
     - http://blazedemo.com/receive/${var1}
 ```
-
 See more info about data-sources [here](DataSources.md).
 
 It is valid to specify both single Python module (single .py file) and a Python package (folder with Python modules
