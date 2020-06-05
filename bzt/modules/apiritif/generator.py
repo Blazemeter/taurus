@@ -1104,6 +1104,12 @@ from selenium.webdriver.common.keys import Keys
                 delimiter.value = ast.Str(s=source.get("delimiter"), kind="")
                 keywords.append(delimiter)
 
+            if "encoding" in source:
+                encoding = ast.keyword()
+                encoding.arg = "encoding"
+                encoding.value = ast.Str(s=source.get("encoding"), kind="")
+                keywords.append(encoding)
+
             csv_file = self.scenario.engine.find_file(source["path"])
             reader = ast.Assign(
                 targets=[ast.Name(id="reader_%s" % idx)],

@@ -14,6 +14,7 @@ scenarios:
     - path: path/to/another.csv
       delimiter: ','
       quoted: false
+      encoding: "utf-8"
       loop: true
       variable-names: id,name
 ```
@@ -23,6 +24,7 @@ Explanation:
   - `delimiter` is a CSV delimiter. It is auto-detected by default, but you can use a symbol, 
   i.e. `'.'` for dot, `','` for comma. Also, you can use `'tab'` for a tab symbol.
   - `quoted` allows quoted data. Can be `true` of `false`.
+  - `encoding` allows you to specify encoding type.
   - `loop` allows to loop over in case of end-of-file reached if `true`, stop thread if `false`.
   - `variable-names` delimiter-separated list of variable names, empty by default.
   - `random-order` enables randomizing plugin; false by default.
