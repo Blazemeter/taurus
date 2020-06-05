@@ -950,6 +950,6 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("csv/test_auto_quoted_quotes.csv', loop=True, quoted=True)", test_script)
-        self.assertIn("csv/test_auto_quoted_double_quotes.csv', loop=True, quoted=True)", test_script)
-        self.assertIn("csv/test_auto_quoted_no_quotes.csv', loop=True, quoted=False)", test_script)
+        self.assertIn("test_auto_quoted_quotes.csv', loop=True, quoted=True)", test_script)
+        self.assertIn("test_auto_quoted_double_quotes.csv', loop=True, quoted=True)", test_script)
+        self.assertIn("test_auto_quoted_no_quotes.csv', loop=True, quoted=False)", test_script)
