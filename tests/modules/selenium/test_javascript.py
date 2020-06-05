@@ -7,7 +7,7 @@ from os.path import join, exists, dirname
 import bzt
 
 from bzt import ToolError
-from bzt.modules.javascript import MochaTester, NPMPackage, WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
+from bzt.modules.javascript import NPMPackage, WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
 from bzt.utils import get_full_path, EXE_SUFFIX
 
 from tests import BUILD_DIR, RESOURCES_DIR, BZTestCase
