@@ -3,7 +3,7 @@ import re
 
 from bzt.jmx.base import JMX
 from bzt.jmx.tools import ProtocolHandler
-from bzt.six import etree
+from lxml import etree
 
 RTE_CLASS_PATH = "com.blazemeter.jmeter.rte.sampler."
 

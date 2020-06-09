@@ -1,26 +1,13 @@
 # coding=utf-8
 import json
 import os
-import shutil
-import time
-from unittest import skipUnless, skipIf
 from distutils.version import LooseVersion
-from xml.etree import ElementTree
-
-import yaml
-
-from bzt import ToolError, TaurusConfigError, TaurusInternalException
-from bzt.jmx import JMX
-from bzt.jmx.tools import ProtocolHandler
-from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
-from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JTLReader, FuncJTLReader, JMeter
 from bzt.modules.provisioning import Local
-from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
-from tests import RESOURCES_DIR, BUILD_DIR, close_reader_file, ExecutorTestCase
-from . import MockJMeterExecutor, MockHTTPClient
+from bzt.utils import EXE_SUFFIX, JavaVM, etree
+from tests import RESOURCES_DIR, close_reader_file, ExecutorTestCase
+from . import MockJMeterExecutor
 
 _jvm = JavaVM()
 _jvm.check_if_installed()
