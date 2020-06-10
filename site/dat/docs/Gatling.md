@@ -110,10 +110,10 @@ execution:
 
 scenarios:
   complex_sample:
-    data-sources:
-    - path: buyouts.csv  # path to CSV file
-      delimiter: ','  # optional, set to comma by default
-      loop: true  # loop over data source file, true by default
+    data-sources:  # this is a list of data-sources options for Gatling. See more info below.
+    - path: buyouts.csv 
+      delimiter: ','
+      loop: true
     store-cache: true  # cache HTTP responses, true by default
     retrieve-resources: true # false by default, retrieves all embedded resources from HTML pages
     retrieve-resources-regex: (.*)boo(.*) # regular expression used to match any resource (white list)
@@ -142,6 +142,7 @@ scenarios:
         not: true
     - /purchase.php?username=${username}&email=${email}  # usage of variables from the CSV data source
 ```
+See more info about data-sources [here](DataSources.md).
 
 ## Configuration Options
 
