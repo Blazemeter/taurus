@@ -1,9 +1,11 @@
 # WebdriverIO Executor
 
-`wdio` executor allows you to run [WebdriverIO](http://webdriver.io/)-based test suites.
+`wdio` executor allows you to run [WebdriverIO](http://webdriver.io/) -based test suites.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded.
+
+Note: Taurus currently runs WebdriverIO version v6 by default (which requires Node v12+).
 
 Usage:
 ```yaml
@@ -27,4 +29,22 @@ You can customize it with `tools-dir` module setting.
 modules:
   wdio:
     tools-dir: my-dir
+```
+
+##Example
+
+Generate wdio.conf.js via Wdio CLI package, and following example file in specs: 
+
+```javascript
+var assert = require('assert');
+
+describe('sample test', () => {
+  
+  it("it's adequate", () => {
+    var result = 2 + 2 * 2;
+    assert.equal(result, 6);
+  });
+  
+});
+
 ```

@@ -1,7 +1,5 @@
-var util = require("util"),
-    events = require("events"),
-    fs = require("fs");
-var Launcher = require("webdriverio").Launcher;
+var fs = require("fs");
+var Launcher = require("@wdio/cli").default;
 
 function epoch() {
     return (new Date()).getTime() / 1000.0;
@@ -14,7 +12,6 @@ function reportItem(test, status, err) {
         "pending": "SKIPPED"
     };
 
-    /*eslint-disable camelcase */
     return {
         test_case: test.title,
         test_suite: test.parent,
@@ -27,71 +24,9 @@ function reportItem(test, status, err) {
             file: test.file || null
         }
     };
-    /*eslint-enable camelcase */
 }
 
 var reportStream = null;
-
-var TaurusReporter = function(config) {
-    config.reporterOptions = {
-        totalTests: 0,
-        failedTests: 0,
-        passedTests: 0
-    };
-
-    var reportStatusLine = function(lastTest) {
-        var total = config.reporterOptions.totalTests;
-        var passed = config.reporterOptions.passedTests;
-        var failed = config.reporterOptions.failedTests;
-        var line = lastTest.title + ",Total:" + total + " Passed:" + passed + " Failed:" + failed;
-        process.stdout.write(line + "\n");
-    };
-
-    var testStartTime = 0;
-    var testStatus = null;
-    var testErr = null;
-
-    this.on("test:start", function(test) {
-        testStartTime = epoch();
-        testStatus = null;
-        testErr = null;
-    });
-
-    this.on("test:pass", function(test) {
-        testStatus = "passed";
-    });
-
-    this.on("test:fail", function(test) {
-        testStatus = "failed";
-        testErr = test.err;
-    });
-
-    this.on("test:pending", function(test) {
-        testStatus = "pending";
-    });
-
-    this.on("test:end", function(test) {
-        config.reporterOptions.totalTests++;
-        if (testStatus === "failed") {
-            config.reporterOptions.failedTests++;
-        } else if (testStatus === "passed") {
-            config.reporterOptions.passedTests++;
-        }
-
-        test.startTime = testStartTime;
-        var item = reportItem(test, testStatus, testErr || {});
-        try {
-            reportStream.write(JSON.stringify(item) + "\n");
-        } catch(err) {
-            process.stderr.write("error while writing: " + err.toString() + "\n");
-        }
-        reportStatusLine(test);
-    });
-
-};
-
-TaurusReporter.reporterName = "TaurusReporter";
-util.inherits(TaurusReporter, events.EventEmitter);
 
 function usage() {
     process.stdout.write("Taurus Webdriver.io Plugin\n");
@@ -143,8 +78,6 @@ function parseCmdline(argv) {
         }
     }
 
-
-
     return options;
 }
 
@@ -154,7 +87,9 @@ function runWDIO() {
 
     var configFile = config.wdioConfig;
     var opts = {
-        reporters: [TaurusReporter],
+        reporters: [[__dirname + '/wdio-custom-reporter.js', {
+            reportFile: config.reportFile,
+        }]],
     };
 
     var wdio = new Launcher(configFile, opts);
