@@ -1,11 +1,13 @@
 @Library("jenkins_library") _
 
-node()
-{
-    try
-    {
-        stage('Checkout')
-        {
+pipeline {
+    agent any
+    options {
+        timestamps()
+        skipDefaultCheckout()
+    }
+    stages {
+        stage('Checkout') {
             cleanWs()
             scmVars = checkout scm
             commitHash = scmVars.GIT_COMMIT
@@ -13,23 +15,17 @@ node()
             IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
             IMAGE_TAG = IMAGE_TAG.toLowerCase()
         }
-
-        stage("Docker Image Build")
-        {
+        stage("Docker Image Build") {
             sh """
                 docker build -t ${JOB_NAME} .
                 """
         }
-
-        stage("Integration Tests")
-        {
+        stage("Integration Tests") {
             sh """
                 docker run -v `pwd`:/bzt-configs -v `pwd`/integr-artifacts:/tmp/artifacts ${JOB_NAME} -sequential examples/all-executors.yml
                 """
         }
-
-        stage("Create Artifacts")
-        {
+        stage("Create Artifacts") {
             sh """
                 sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py
             """
@@ -46,9 +42,7 @@ node()
 
             archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
         }
-
-        stage("Deploy site")
-        {
+        stage("Deploy site") {
             sh """
                 docker build -t deploy-image -f site/Dockerfile.deploy .
                 """
@@ -68,12 +62,11 @@ node()
                     ${isTag}
                     """
             }
-
         }
-    } catch (e) {
-         currentBuild.result = "FAILED"
-         throw e
-    } finally {
-         smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
+    }
+    post {
+        always {
+            smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
+        }
     }
 }

@@ -4,7 +4,22 @@ pipelineJob('TAURUS-COMMUNITY-STABLE'){
         disableConcurrentBuilds()
     }
     triggers {
-        scm('H/30 * * * *')
+        genericTrigger {
+            genericVariables {
+                genericVariable {
+                    key("ref")
+                    value("\$.ref")
+                }
+                genericVariable {
+                    key("commit")
+                    value("\$.after")
+                }
+            }
+            causeString('job triggered with $ref, commit hash - $commit')
+            token('Q6QyWaD4rdY42Kqt')
+            regexpFilterText('$ref')
+            regexpFilterExpression('^(refs/tags/.+)$')
+        }
     }
     logRotator {
         daysToKeep(30)
