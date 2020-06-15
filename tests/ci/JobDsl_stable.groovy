@@ -31,7 +31,7 @@ pipelineJob('TAURUS-COMMUNITY-STABLE'){
                 git{
                     remote {
                         url('http://github.com/Blazemeter/taurus.git')
-                        branch('refs/tags/*')
+                        branch('$ref')
                         credentials('github-token')
                     }
                 }
