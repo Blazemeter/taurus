@@ -64,7 +64,7 @@ class LocustStarter(object):
             ('success', 'true' if exc is None else 'false'),
 
             # NOTE: might be resource-consuming
-            ('allThreads', 0), #environment.runner.user_count if environment.runner else 0),
+            ('allThreads', 0),
             ('Latency', 0),
         ])
 
