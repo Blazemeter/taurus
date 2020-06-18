@@ -495,7 +495,7 @@ class ConfigOverrider(object):
                 obj[k] = self.__apply_mult_override(v, key, replace_value)
 # pull request ckrams-patch-3
 # fix issues when during visting see non string valued key
-        if isinstance(obj, str) and key in obj:
+        if isinstance(obj, object) and key in obj:
 # end fix
 # end pull request changes for ckrams-patch-3
             obj[key] = replace_value
