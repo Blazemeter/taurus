@@ -493,12 +493,10 @@ class ConfigOverrider(object):
         if isinstance(obj, dict):            
             for k, v in obj.items():
                 obj[k] = self.__apply_mult_override(v, key, replace_value)
-# pull request ckrams-patch-3
-# fix issues when during visting see non string valued key
-        if isinstance(obj, object) and key in obj:
-# end fix
-# end pull request changes for ckrams-patch-3
+        if isinstance(obj, str) and key in obj:
             obj[key] = replace_value
+        else:
+            self.log.info("Ignoring non string value:%s, key: %s, replace_value:%s",obj,key,replace_value)
         return obj
 
     def __apply_single_override(self, dest, name, value):
