@@ -83,3 +83,52 @@ scenarios:
 Keep in mind: locust requires default url for its work (empty string is accepted). You have to set `host`
 in python script or `default-address` in script for Taurus. If both are found value from Taurus script has priority.
  
+## Migration notes
+
+Since you can read this migration notes, all latest dev builds and releases after 1.14.2 of taurus support 1.0+ 
+locust version with new syntax. Here are some tips for updating to the latest locust version from version 0.13.*.
+
+#### In .yaml files `slaves` field is renamed to `workers` according to locust
+
+##### old version
+```yaml
+execution:
+- executor: locust
+  slaves: 10
+...
+```
+##### new version
+```yaml
+execution:
+- executor: locust
+  workers: 10
+...
+```
+
+#### Locust file migrations
+- `Locusts` is renamed to `Users`
+- Use property `tasks` instead of `task_set` 
+
+##### old version
+```python 
+from locust import HttpLocust, TaskSet, ...
+
+class WebsiteTasks(TaskSet):
+...
+
+class WebsiteUser(HttpLocust):
+    task_set = WebsiteTasks
+...
+```
+
+##### new version
+```python 
+from locust import HttpUser, TaskSet, ...
+
+class WebsiteTasks(TaskSet):
+...
+
+class WebsiteUser(HttpUser):
+    tasks = [WebsiteTasks]
+...
+```
