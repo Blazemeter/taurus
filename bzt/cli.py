@@ -495,8 +495,9 @@ class ConfigOverrider(object):
                 obj[k] = self.__apply_mult_override(v, key, replace_value)
         if isinstance(obj, str) and key in obj:
             obj[key] = replace_value
-        else:
+        elif  key in obj:
             self.log.info("Ignoring non string value:%s, key: %s, replace_value:%s",obj,key,replace_value)
+            obj[key] = replace_value
         return obj
 
     def __apply_single_override(self, dest, name, value):
