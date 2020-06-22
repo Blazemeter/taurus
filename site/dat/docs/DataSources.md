@@ -25,7 +25,7 @@ scenarios:
 Explanation:
   - `path` is a path to a csv file. This option is required.
   - `delimiter` is a CSV delimiter. It is auto-detected by default, but you can use a symbol, i.e. `'.'` for dot, `','` for comma. Also, you can use `'tab'` for a tab symbol.
-  - `quoted` allows quoted data. Can be `true` of `false`.
+  - `quoted` allows quoted data. Can be `true` of `false`. Use "auto" for auto-detection, if there's no `variable-names`.
   - `encoding` allows you to specify encoding type.
   - `loop` allows to loop over in case of end-of-file reached if `true`, stop thread if `false`.
   - `variable-names` delimiter-separated list of variable names, empty by default. When omitted, the first line of CSV file will be used as variable names.

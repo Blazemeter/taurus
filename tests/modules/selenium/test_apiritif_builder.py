@@ -1,4 +1,5 @@
 import logging
+import os
 import tempfile
 
 from bzt import TaurusConfigError
@@ -928,6 +929,30 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, delimiter='\\t')", test_script)
+
+    def test_auto_quoted(self):
+        """
+        Check quotes in csv file are auto-detected
+        """
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": ["http://blazedemo.com/"],
+                    "data-sources": [{
+                        "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_quotes.csv",
+                        "quoted": "auto"},{
+                        "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_double_quotes.csv",
+                        "quoted": "auto"},{
+                        "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_no_quotes.csv",
+                        "quoted": "auto"}]}}]})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("test_auto_quoted_quotes.csv', loop=True, quoted=True)", test_script)
+        self.assertIn("test_auto_quoted_double_quotes.csv', loop=True, quoted=True)", test_script)
+        self.assertIn("test_auto_quoted_no_quotes.csv', loop=True, quoted=False)", test_script)
 
     def test_encoding(self):
         self.configure({
