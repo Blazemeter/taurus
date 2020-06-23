@@ -941,10 +941,14 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     "requests": ["http://blazedemo.com/"],
                     "data-sources": [{
                         "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_quotes.csv",
-                        "quoted": "auto"},{
+                        "quoted": "auto"}, {
                         "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_double_quotes.csv",
-                        "quoted": "auto"},{
+                        "quoted": "auto"}, {
+                        "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_double_quotes_bom.csv",
+                        "quoted": "auto"}, {
                         "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_no_quotes.csv",
+                        "quoted": "auto"}, {
+                        "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_no_quotes_bom.csv",
                         "quoted": "auto"}]}}]})
 
         self.obj.prepare()
@@ -952,4 +956,6 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             test_script = fds.read()
         self.assertIn("test_auto_quoted_quotes.csv', loop=True, quoted=True)", test_script)
         self.assertIn("test_auto_quoted_double_quotes.csv', loop=True, quoted=True)", test_script)
+        self.assertIn("test_auto_quoted_double_quotes_bom.csv', loop=True, quoted=True)", test_script)
         self.assertIn("test_auto_quoted_no_quotes.csv', loop=True, quoted=False)", test_script)
+        self.assertIn("test_auto_quoted_no_quotes_bom.csv', loop=True, quoted=False)", test_script)
