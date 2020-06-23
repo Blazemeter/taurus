@@ -30,3 +30,5 @@ Explanation:
   - `random-order` enables randomizing plugin; false by default. Available only for JMeter.
 
 When `random-order` is `false`, data extraction will proceed in direct manner. Data lines, which contain delimeters, will be read from the top down to the bottom, just the way they were written. Otherwise, the data will be extracted in a random way.
+
+Unfortunately, we currently do not support UTF16 files.
