@@ -844,7 +844,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 for point in underling.datapoints(final_pass):
                     had_data = True
                     self._put_into_buffer(point)
-                    break
 
             if not had_data:
                 break
