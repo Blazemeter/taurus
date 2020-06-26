@@ -12,7 +12,7 @@ from bzt import ToolError
 from bzt.utils import dehumanize_time, EXE_SUFFIX
 from bzt.modules.jmeter import JTLReader
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
-from bzt.modules.locustio import LocustIOExecutor, SlavesReader
+from bzt.modules.locustio import LocustIOExecutor, WorkersReader
 from bzt.modules.provisioning import Local
 
 
@@ -109,7 +109,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
             "iterations": 10,
             "hold-for": 30,
             "master": True,
-            "slaves": 1,
+            "workers": 1,
             "scenario": {
                 "default-address": "http://blazedemo.com",
                 "script": RESOURCES_DIR + "locust/simple.py"
@@ -124,24 +124,24 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.obj.post_process()
         self.assertFalse(self.obj.has_results())
 
-    def test_locust_slave_results(self):
-        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves.ldjson", 2, ROOT_LOGGER)
+    def test_locust_worker_results(self):
+        obj = WorkersReader(RESOURCES_DIR + "locust/locust-workers.ldjson", 2, ROOT_LOGGER)
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(107, len(points))
         for point in points:
             self.assertGreater(point[DataPoint.CURRENT][''][KPISet.AVG_RESP_TIME], 0)
             self.assertGreater(point[DataPoint.CURRENT][''][KPISet.BYTE_COUNT], 0)
 
-    def test_locust_slave_results_errors(self):
-        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves2.ldjson", 2, ROOT_LOGGER)
+    def test_locust_worker_results_errors(self):
+        obj = WorkersReader(RESOURCES_DIR + "locust/locust-workers2.ldjson", 2, ROOT_LOGGER)
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(60, len(points))
         for point in points:
             self.assertEquals(len(point[DataPoint.CURRENT][''][KPISet.ERRORS]), 1)
             self.assertGreaterEqual(point[DataPoint.CURRENT][''][KPISet.FAILURES], 70)
 
-    def test_locust_delayed_slave(self):
-        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves-none.ldjson", 2, ROOT_LOGGER)
+    def test_locust_delayed_worker(self):
+        obj = WorkersReader(RESOURCES_DIR + "locust/locust-workers-none.ldjson", 2, ROOT_LOGGER)
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(0, len(points))
 
@@ -158,11 +158,11 @@ class TestLocustIOExecutor(ExecutorTestCase):
         resource_files = self.obj.resource_files()
         self.assertEqual(1, len(resource_files))
 
-    def test_slave_aggregation(self):
+    def test_worker_aggregation(self):
         self.configure({"execution": {
             "scenario": {"script": RESOURCES_DIR + "locust/simple.py"}}})
         self.obj.prepare()
-        self.obj.reader = SlavesReader(RESOURCES_DIR + "locust/locust-slaves.ldjson", 2, ROOT_LOGGER)
+        self.obj.reader = WorkersReader(RESOURCES_DIR + "locust/locust-workers.ldjson", 2, ROOT_LOGGER)
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.engine.aggregator.add_underling(self.obj.reader)
         self.assertEqual(107, len(list(self.obj.engine.aggregator.datapoints(final_pass=True))))

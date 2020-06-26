@@ -7,7 +7,7 @@ import time
 from collections import OrderedDict
 
 from locust import main, events, runners
-from locust.exception import StopLocust
+from locust.exception import StopUser
 from requests.exceptions import HTTPError
 
 from bzt.utils import guess_csv_dialect
@@ -37,10 +37,10 @@ class LocustStarter(object):
         # Only raise an exception if the actual test is running
         if self.locust_stop_time is None:
             if time.time() - self.locust_start_time >= self.locust_duration:
-                raise StopLocust('Duration limit reached')
+                raise StopUser('Duration limit reached')
 
             if self.num_requests <= 0:
-                raise StopLocust('Request limit reached')
+                raise StopUser('Request limit reached')
 
     @staticmethod
     def __getrec(request_type, name, response_time, response_length, exc=None):
@@ -64,7 +64,7 @@ class LocustStarter(object):
             ('success', 'true' if exc is None else 'false'),
 
             # NOTE: might be resource-consuming
-            ('allThreads', runners.locust_runner.user_count if runners.locust_runner else 0),
+            ('allThreads', 0),
             ('Latency', 0),
         ])
 
@@ -84,7 +84,7 @@ class LocustStarter(object):
         del locust_instance, tb
         self.__on_request_failure('', '', 0, exception)
 
-    def __on_slave_report(self, client_id, data):
+    def __on_worker_report(self, client_id, data):
         if data['stats'] or data['errors']:
             for item in data['stats']:
                 self.num_requests -= item['num_requests']
@@ -98,14 +98,14 @@ class LocustStarter(object):
         self.locust_stop_time = time.time()
 
     def execute(self):
-        if os.getenv("SLAVES_LDJSON"):
-            fname = os.getenv("SLAVES_LDJSON")
+        if os.getenv("WORKERS_LDJSON"):
+            fname = os.getenv("WORKERS_LDJSON")
             is_csv = False
         elif os.getenv("JTL"):
             fname = os.getenv("JTL")
             is_csv = True
         else:
-            raise ValueError("Please specify JTL or SLAVES_LDJSON environment variable")
+            raise ValueError("Please specify JTL or WORKERS_LDJSON environment variable")
 
         with open(fname, 'wt') as self.fhd:
             if is_csv:
@@ -117,11 +117,11 @@ class LocustStarter(object):
             else:
                 self.writer = None  # FIXME: bad code design, have zero object for it
 
-            events.request_success += self.__on_request_success
-            events.request_failure += self.__on_request_failure
-            events.locust_error += self.__on_exception
-            events.slave_report += self.__on_slave_report
-            events.quitting += self.__on_quit
+            events.request_success.add_listener(self.__on_request_success)
+            events.request_failure.add_listener(self.__on_request_failure)
+            events.user_error.add_listener(self.__on_exception)
+            events.worker_report.add_listener(self.__on_worker_report)
+            events.quitting.add_listener(self.__on_quit)
 
             main.main()
             self.fhd.flush()
