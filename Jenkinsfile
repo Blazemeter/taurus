@@ -35,20 +35,21 @@ pipeline {
         }
         stage("Create Artifacts") {
             steps {
-                sh """
-                   sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py
-                   """
-
-                if (!isTag) {
+                script {
                     sh """
-                       sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
+                       sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py
+                       """
+
+                    if (!isTag) {
+                        sh """
+                           sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
+                           """
+                    }
+
+                    sh """
+                       docker run --entrypoint /bzt-configs/build-artifacts.sh -v `pwd`:/bzt-configs ${JOB_NAME} ${BUILD_NUMBER}
                        """
                 }
-
-                sh """
-                   docker run --entrypoint /bzt-configs/build-artifacts.sh -v `pwd`:/bzt-configs ${JOB_NAME} ${BUILD_NUMBER}
-                   """
-
                 archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
             }
         }
