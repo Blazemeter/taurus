@@ -83,6 +83,21 @@ scenarios:
 Keep in mind: locust requires default url for its work (empty string is accepted). You have to set `host`
 in python script or `default-address` in script for Taurus. If both are found value from Taurus script has priority.
  
+## Run Locust in Distributed Mode
+Distributed mode for Locust is enabled with two option `master` and `workers` under execution settings:
+
+```yaml
+execution:
+- executor: locust
+  master: True
+  workers: 10
+
+scenarios:
+  request_example:
+...
+```
+Keep in mind: taurus starts locust master node only. All other workers should be configured and started manually.  
+ 
 ## Migration notes
 
 Since you can read this migration notes, all latest dev builds and releases after 1.14.2 of taurus support 1.0+ 
