@@ -10,11 +10,13 @@ pipeline {
         stage('Checkout') {
             steps {
                 cleanWs()
-                scmVars = checkout scm
-                commitHash = scmVars.GIT_COMMIT
-                isTag =  scmVars.GIT_BRANCH.startsWith("refs/tags/")
-                IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
-                IMAGE_TAG = IMAGE_TAG.toLowerCase()
+                script {
+                    scmVars = checkout scm
+                    commitHash = scmVars.GIT_COMMIT
+                    isTag =  scmVars.GIT_BRANCH.startsWith("refs/tags/")
+                    IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
+                    IMAGE_TAG = IMAGE_TAG.toLowerCase()
+                }
             }
         }
         stage("Docker Image Build") {
@@ -55,21 +57,23 @@ pipeline {
                 sh """
                    docker build -t deploy-image -f site/Dockerfile.deploy .
                    """
-                PROJECT_ID="blazemeter-taurus-website-prod"
-                withCredentials([file(credentialsId: "${PROJECT_ID}", variable: 'CRED_JSON')]) {
-                    def WORKSPACE_JSON = 'Google_credentials.json'
-                    def input = readJSON file: CRED_JSON
-                    writeJSON file: WORKSPACE_JSON, json: input
-                    sh """
-                       docker run --entrypoint /bzt/site/deploy-site.sh \
-                       -e KEY_FILE=${WORKSPACE_JSON} \
-                       -e PROJECT_ID=${PROJECT_ID} \
-                       -e BUILD_NUMBER=${BUILD_NUMBER} \
-                       -u root \
-                       -v /var/run/docker.sock:/var/run/docker.sock \
-                       -v `pwd`:/bzt -t deploy-image \
-                       ${isTag}
-                       """
+                script {
+                    PROJECT_ID="blazemeter-taurus-website-prod"
+                    withCredentials([file(credentialsId: "${PROJECT_ID}", variable: 'CRED_JSON')]) {
+                        def WORKSPACE_JSON = 'Google_credentials.json'
+                        def input = readJSON file: CRED_JSON
+                        writeJSON file: WORKSPACE_JSON, json: input
+                        sh """
+                           docker run --entrypoint /bzt/site/deploy-site.sh \
+                           -e KEY_FILE=${WORKSPACE_JSON} \
+                           -e PROJECT_ID=${PROJECT_ID} \
+                           -e BUILD_NUMBER=${BUILD_NUMBER} \
+                           -u root \
+                           -v /var/run/docker.sock:/var/run/docker.sock \
+                           -v `pwd`:/bzt -t deploy-image \
+                           ${isTag}
+                          """
+                    }
                 }
             }
         }
