@@ -1267,7 +1267,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()  # this one should skip
         self.obj.engine.aggregator.check()
 
-        self.assertEqual(22, len(self.mock.requests))  # todo: return 32, it's added temporary for 'read once' flow only
+        self.assertEqual(32, len(self.mock.requests))
 
     def test_dump_locations(self):
         self.configure()

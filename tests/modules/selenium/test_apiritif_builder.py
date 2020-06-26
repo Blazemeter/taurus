@@ -660,23 +660,8 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         reader.add_underling(reader2)
 
         items = list(reader.datapoints())
-        self.assertEqual(0, len(items))
-
-        all_items = []
-        while True:
-            items = list(reader.datapoints())
-            all_items.extend(items)
-            if not items:
-                break
-
-            for point in items:
-                cnc = point[DataPoint.CURRENT][''][KPISet.CONCURRENCY]
-                logging.info("%s: %s", point[DataPoint.TIMESTAMP], cnc)
-                self.assertLessEqual(cnc, 4)
-                cnc1 = point[DataPoint.CUMULATIVE][''][KPISet.CONCURRENCY]
-                self.assertLessEqual(cnc1, 4)
-
-        self.assertEqual(4, all_items[-1][DataPoint.CURRENT][''][KPISet.CONCURRENCY])
+        self.assertEqual(39, len(items))
+        self.assertEqual(4, items[-1][DataPoint.CURRENT][''][KPISet.CONCURRENCY])
 
     def test_func_reader(self):
         reader = ApiritifFuncReader(self.obj.engine, self.obj.log)
@@ -941,10 +926,14 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     "requests": ["http://blazedemo.com/"],
                     "data-sources": [{
                         "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_quotes.csv",
-                        "quoted": "auto"},{
+                        "quoted": "auto"}, {
                         "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_double_quotes.csv",
-                        "quoted": "auto"},{
+                        "quoted": "auto"}, {
+                        "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_double_quotes_bom.csv",
+                        "quoted": "auto"}, {
                         "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_no_quotes.csv",
+                        "quoted": "auto"}, {
+                        "path": RESOURCES_DIR + "apiritif/csv/test_auto_quoted_no_quotes_bom.csv",
                         "quoted": "auto"}]}}]})
 
         self.obj.prepare()
@@ -952,4 +941,6 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             test_script = fds.read()
         self.assertIn("test_auto_quoted_quotes.csv', loop=True, quoted=True)", test_script)
         self.assertIn("test_auto_quoted_double_quotes.csv', loop=True, quoted=True)", test_script)
+        self.assertIn("test_auto_quoted_double_quotes_bom.csv', loop=True, quoted=True)", test_script)
         self.assertIn("test_auto_quoted_no_quotes.csv', loop=True, quoted=False)", test_script)
+        self.assertIn("test_auto_quoted_no_quotes_bom.csv', loop=True, quoted=False)", test_script)
