@@ -200,7 +200,7 @@ class LocustIO(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
-            out, err = self.call([self.tool_path, "--version"])
+            out, err = self.call([sys.executable, "-m", self.tool_path, "--version"])
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
