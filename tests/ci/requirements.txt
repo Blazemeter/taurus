@@ -1,6 +1,6 @@
 codecov
 nose-exclude
-locustio>=1.0b2; python_version >= '3.5'
+locust
 coverage
 mock; python_version < '3.3'
 molotov; python_version >= '3.5'
