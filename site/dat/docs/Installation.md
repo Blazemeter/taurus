@@ -26,7 +26,8 @@ you should utilize the following command line utilities provided by the installe
 
 **Important!**
 - You need to install fresh `setuptools` and `wheel` before installing everything else with `bzt-pip`, 
- with the following command: `bzt-pip install setuptools wheel`. And please install Microsoft Visual C++ beforehand.
+ with the following command: `bzt-pip install setuptools wheel`. 
+ And please install [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) beforehand.
 
 ### Installing Taurus Manually
 
