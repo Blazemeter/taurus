@@ -86,7 +86,7 @@ modules:
 
 Available settings are:
 
- - `artifacts-dir` - path template where to save artifact files, uses [strftime template syntax](http://strftime.org/)
+ - `artifacts-dir` - path template where to save [artifact](ArtifactsDir.md) files, uses [strftime template syntax](http://strftime.org/)
  - `check-interval` - polling interval that used by engine after startup and until shutdown to determine if test is need to be stopped 
  - `aggregator` - module alias for top-level [results aggregator](Reporting.md#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
  - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings.md)

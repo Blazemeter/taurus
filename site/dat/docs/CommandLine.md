@@ -114,7 +114,7 @@ it with other CLI options and aliases, such as `-report`, `-cloud` and others.
 
 ## Artifacts
 
-Each tool start creates _artifacts directory_ under base dir (see `settings.artifacts-dir` command-line option). This directory is used to collect all files that were used with execution: configs (except personal), logs, generated scripts and everything else. Some of important artifacts are:
+Each tool start creates [artifacts directory](ArtifactsDir.md) under base dir (see `settings.artifacts-dir` command-line option). This directory is used to collect all files that were used with execution: configs (except personal), logs, generated scripts and everything else. Some of important artifacts are:
  - `bzt.log` - Taurus log, very detailed, great source for troubleshooting the tool
  - `merged.yml` and `merged.json` - configuration how it looks after merging all user's configuration files into one, saved in two formats
  - `effective.yml` and `effective.json` - configuration how it looks after applying defaults, shorthand rules and any othe modifications during execution, saved in two formats. This is how Taurus sees its configuration instructions and how YAML maps to JSON
