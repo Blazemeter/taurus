@@ -1,4 +1,3 @@
-sudo: false
 language: python
 dist: bionic
 cache: pip  # use caching for pip's packages to speed up builds
