@@ -493,11 +493,8 @@ class ConfigOverrider(object):
         if isinstance(obj, dict):            
             for k, v in obj.items():
                 obj[k] = self.__apply_mult_override(v, key, replace_value)
-# pull request ckrams-default-overrides-fix
-# fix issues when during visting see non string valued key
-        if isinstance(obj, str) and key in obj:
-# end fix
-# end pull request changes for ckrams-default-overrides-fix
+        if isinstance(obj,dict) and key in obj:
+            obj[key] = replace_value
         return obj
 
     def __apply_single_override(self, dest, name, value):
