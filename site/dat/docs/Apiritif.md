@@ -174,6 +174,20 @@ We can compose following XPath expressions:
 
 Any of these expressions can be used to fetch the desired element, if these attributes are unique.
 
+__7. By Shadow Locator__
+
+Shadow Locator enables to work with Shadow DOM which is designed as a tool for building component-based 
+applications. For example Salesforce Lightning Component Library is based on Shadow DOM. 
+Shadow DOM is self-contained and thus simple locators will not return nodes inside it.
+
+Shadow Locator is composed by a sequence of css selectors, e.g.:
+
+```html
+shadow: c-basic, lightning-accordion-section, .slds-button
+```
+
+Most of the actions in Apiritif support Shadow Locators.
+
 ### Alternative syntax supporting multiple locators
 It is possible to specify multiple locators for each action. This helps to increase script resiliency. If a locator
 fails (e.g. because of a webpage change and the script was not updated to reflect the changes) an alternative locator
@@ -812,6 +826,7 @@ scenarios:
           for i in range(10):           # multiline example
             if i % 2 == 0:
               print(i)
+      - clickByShadow(c-basic,form-opened,#mytext)   # sample usage of shadow locator
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
@@ -877,6 +892,8 @@ scenarios:
       - scriptEval("alert('This is Sparta');")
       - type: rawCode
         param: print('It\'s Python')  # insert as-is into script file
+      - type: click   # sample usage of shadow locator
+        shadow: 'c-basic, form-opened, #mytext'
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
