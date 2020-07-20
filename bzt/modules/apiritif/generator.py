@@ -282,7 +282,7 @@ from selenium.webdriver.common.keys import Keys
             return ast_call(
                 func=ast_attr("find_element_by_shadow"),
                 args=[
-                    ast.Str(locators[0].get("shadow"))
+                    ast.Str(locators[0].get("shadow"), kind="")
                 ]
             )
         return ast_call(
