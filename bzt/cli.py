@@ -490,7 +490,7 @@ class ConfigOverrider(object):
             for i in obj:
                 if isinstance(i, dict):
                     i = self.__apply_mult_override(i, key, replace_value)
-        if isinstance(obj, dict):            
+        if isinstance(obj, (list,dict)):            
             for k, v in obj.items():
                 if isinstance(v,dict):
                     obj[k] = self.__apply_mult_override(v, key, replace_value)
