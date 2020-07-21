@@ -61,7 +61,7 @@ before_script:
 - $PYTHON tests/resources/httpserver/start.py &
 
 script:
-- $PYTHON -m nose2
+- $PYTHON -m nose2 -s tests
 
 #after_success:
 #- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m && codecov; fi
