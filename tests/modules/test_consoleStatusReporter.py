@@ -57,6 +57,7 @@ class TestConsoleStatusReporter(BZTestCase):
         widget = jmeter.get_widget()
         widget.update()
         jmeter.startup()
+        widget.finished=True
         widget.update()
         obj.engine.provisioning.executors = [jmeter]
         obj.settings["disable"] = False
@@ -104,6 +105,7 @@ class TestConsoleStatusReporter(BZTestCase):
         widget = jmeter.get_widget()
         widget.update()
         jmeter.startup()
+        widget.finished
         widget.update()
         obj.engine.provisioning.executors = [jmeter]
         obj.settings["disable"] = False
