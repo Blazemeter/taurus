@@ -944,3 +944,18 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.assertIn("test_auto_quoted_double_quotes_bom.csv', loop=True, quoted=True)", test_script)
         self.assertIn("test_auto_quoted_no_quotes.csv', loop=True, quoted=False)", test_script)
         self.assertIn("test_auto_quoted_no_quotes_bom.csv', loop=True, quoted=False)", test_script)
+
+    def test_encoding(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": ["http://blazedemo.com/"],
+                    "data-sources": [{
+                        "path": "file.csv",
+                        "encoding": "UTF-16"}]}}]})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, encoding='UTF-16')", test_script)
