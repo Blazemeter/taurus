@@ -1629,8 +1629,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             cls = reporter.get('module', exc)
             if cls == "blazemeter":
                 self.log.warning("Explicit blazemeter reporting is skipped for cloud")
-            elif cls == "passfail":
-                self.log.warning("Passfail has no effect for cloud, skipped")
             else:
                 new_reporting.append(reporter)
 
