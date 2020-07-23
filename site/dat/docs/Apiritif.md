@@ -186,6 +186,9 @@ Shadow Locator is composed by a sequence of css selectors, e.g.:
 shadow: c-basic, lightning-accordion-section, .slds-button
 ```
 
+The last CSS Selector refers to the target element in a shadow tree. 
+The preceding CSS Selectors refer to the shadow hosts.
+
 Most of the actions in Apiritif support Shadow Locators.
 
 ### Alternative syntax supporting multiple locators
