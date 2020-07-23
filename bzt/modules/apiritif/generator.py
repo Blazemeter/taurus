@@ -74,7 +74,8 @@ class ApiritifScriptGenerator(object):
         'byname': "name",
         'byid': "id",
         'bylinktext': "linktext",
-        'byelement': "byelement"
+        'byelement': "byelement",
+        'byshadow': "shadow"
     }
 
     ACTION_CHAINS = {
@@ -111,7 +112,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 """
 
-    BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement")
+    BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
     COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
 
     ACCESS_TARGET = 'target'
@@ -221,6 +222,8 @@ from selenium.webdriver.common.keys import Keys
             selectors = action_config.get("locators")
         elif action_config.get("element"):
             selectors = self._gen_selector_byelement(action_config)
+        elif action_config.get("shadow"):
+            selectors = [{"shadow" : action_config.get("shadow")}]
         if action_config.get("source") and action_config.get("target"):
             source = action_config.get("source")
             target = action_config.get("target")
@@ -267,9 +270,21 @@ from selenium.webdriver.common.keys import Keys
         # action performed in foreach loop on element
         return len(locators) == 1 and (locators[0].get("byelement") or locators[0].get("element"))
 
+    @staticmethod
+    def _is_shadow_locator(locators):
+        return len(locators) == 1 and locators[0].get("shadow")
+
     def _gen_dynamic_locator(self, var_w_locator, locators):
         if self._is_foreach_element(locators):
             return ast.Name(id=locators[0].get("byelement"))
+        if self._is_shadow_locator(locators):
+            self.selenium_extras.add("find_element_by_shadow")
+            return ast_call(
+                func=ast_attr("find_element_by_shadow"),
+                args=[
+                    ast.Str(locators[0].get("shadow"), kind="")
+                ]
+            )
         return ast_call(
             func=ast_attr("self.driver.find_element"),
             args=[
@@ -292,7 +307,8 @@ from selenium.webdriver.common.keys import Keys
                            args=[ast.List(elts=self._gen_ast_locators_dict(locators))]))
 
     def _gen_get_locator_call(self, var_name, locators):
-        if self._is_foreach_element(locators):  # don't generate 'get_locator' for byElement action
+        # don't generate 'get_locator' for byElement action or shadow locator
+        if self._is_foreach_element(locators) or self._is_shadow_locator(locators):
             return []
         return self._gen_loc_method_call("get_locator", var_name, locators)
 
@@ -517,6 +533,10 @@ from selenium.webdriver.common.keys import Keys
             el = locators[0].get("byelement")
             exc_msg = "The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element"
             exc_args = [ast.Str(el, kind=""), ast_attr(el + ".tag_name"), ast_attr(el + ".text")]
+        elif self._is_shadow_locator(locators):
+            el = locators[0].get("shadow")
+            exc_msg = "The element (shadow: '%s') is not a contenteditable element"
+            exc_args = [ast.Str(el, kind="")]
         else:
             exc_msg = "The element (%s: %r) is not a contenteditable element"
             exc_args = [tag, selector]

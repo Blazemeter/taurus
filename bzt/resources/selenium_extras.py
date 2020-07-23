@@ -16,6 +16,31 @@ BYS = {
     'linktext': By.LINK_TEXT
 }
 
+
+def find_element_by_shadow(shadow_loc):
+    """
+    Enables finding element using the Shadow Locator
+    :param shadow_loc: shadow locator in the string form - css locators divided by commas, e.g. 'c-comp1, c-basic, .std_btn'
+    :return: the found element otherwise NoSuchElementException is raised
+    """
+    el = None
+    css_path = [x.strip() for x in shadow_loc.split(',')]
+    for p in css_path:
+        if not el:
+            el = _get_driver().find_element_by_css_selector(p)
+        else:
+            shadow_root = el.get_property("shadowRoot")
+            if shadow_root:
+                try:
+                    el = shadow_root.find_element_by_css_selector(p)
+                except NoSuchElementException:
+                    # sometimes the element is not located under the shadowRoot so try to look for it the usual way
+                    el = el.find_element_by_css_selector(p)
+            else:
+                el = el.find_element_by_css_selector(p)
+    return el
+
+
 def get_locator(locators, ignore_implicit_wait=False, raise_exception=False):
     """
     :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
@@ -31,6 +56,8 @@ def get_locator(locators, ignore_implicit_wait=False, raise_exception=False):
     first_locator = None
     if ignore_implicit_wait:
         driver.implicitly_wait(0)
+    if len(locators) == 1 and locators[0].get("shadow"):
+        return locators
     for locator in locators:
         locator_type = list(locator.keys())[0]
         locator_value = locator[locator_type]
