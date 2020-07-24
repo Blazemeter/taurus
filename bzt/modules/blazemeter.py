@@ -46,6 +46,7 @@ from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, R
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener, LocalClient
+from bzt.modules.passfail import DataCriterion
 from bzt.modules.services import Unpacker
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.requests_model import has_variable_pattern
@@ -1488,6 +1489,21 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         if not self.launch_existing_test:
             self._filter_reporting()
+
+        for module in self.engine.config['reporting']:
+            if module['module'] == 'passfail':
+                crit_cfg_list = module['criteria']
+
+                if isinstance(crit_cfg_list, dict):
+                    crit_iter = iteritems(crit_cfg_list)
+                else:
+                    crit_iter = enumerate(crit_cfg_list)
+
+                for idx, crit_config in crit_iter:
+                    if isinstance(crit_config, str):
+                        crit_config = DataCriterion.string_to_config(crit_config)
+                        crit_cfg_list[idx] = crit_config
+                module['criteria'] = crit_cfg_list
 
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
