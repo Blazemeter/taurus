@@ -88,6 +88,7 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.check()
         obj.shutdown()
         obj.post_process()
+        widget.update()
         self.assertNotIn('Failed', self.log_recorder.warn_buff.getvalue())
 
     def test_2(self):
