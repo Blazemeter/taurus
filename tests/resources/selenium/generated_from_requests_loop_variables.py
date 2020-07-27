@@ -30,7 +30,7 @@ class TestLocSc(unittest.TestCase):
         timeout = 30.0
         self.driver = None
         options = webdriver.FirefoxOptions()
-        options.set_preference('network.proxy.type', '4')
+        options.set_preference('network.proxy.type', 4)
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
         self.driver = webdriver.Firefox(profile, options=options)
