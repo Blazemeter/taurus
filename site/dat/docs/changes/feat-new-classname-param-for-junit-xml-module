@@ -1,0 +1,1 @@
+Add support for new "classname" parameter on junit-xml module to customize testcase element on JUnit XML report
