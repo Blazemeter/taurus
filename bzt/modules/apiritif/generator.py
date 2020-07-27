@@ -966,7 +966,7 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("webdriver.FirefoxOptions"))),
             ast.Expr(
                 ast_call(func=ast_attr("options.set_preference"),
-                         args=[ast.Str("network.proxy.type", kind=""), ast.Str("4", kind="")]))]
+                         args=[ast.Str("network.proxy.type", kind=""), ast.Num(4, kind="")]))]
 
         return firefox_options + self._get_headless_setup()
 
