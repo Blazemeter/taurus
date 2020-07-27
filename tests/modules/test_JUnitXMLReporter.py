@@ -230,6 +230,7 @@ class TestJUnitXML(BZTestCase):
         test_cases = suite.getchildren()
         self.assertEqual(3, len(test_cases))
         self.assertEqual('testcase', test_cases[0].tag)
+        self.assertListEqual(['bzt', 'http://192.168.1.1/anotherquery', '0.001'], test_cases[0].values())
         self.assertEqual('error', test_cases[0].getchildren()[1].tag)
         self.assertEqual('failure', test_cases[0].getchildren()[2].tag)
         self.assertEqual('system-out', test_cases[0].getchildren()[0].tag)
@@ -302,9 +303,89 @@ class TestJUnitXML(BZTestCase):
         self.assertEqual('testsuites', xml_tree.tag)
         suite = xml_tree.getchildren()[0]
         self.assertEqual('testsuite', suite.tag)
+        self.assertListEqual(['bzt_pass_fail', "bzt"], suite.values())
         test_cases = suite.getchildren()
         self.assertEqual(4, len(test_cases))
         self.assertEqual('testcase', test_cases[0].tag)
+        self.assertListEqual(['bzt', "avg-rt of Sample 1 Triggered<150ms for -1"], test_cases[0].values())
+        self.assertEqual('error', test_cases[0].getchildren()[1].tag)
+        self.assertEqual('error', test_cases[2].getchildren()[1].tag)
+
+        sys_out = test_cases[0].getchildren()[0]
+        self.assertEqual('system-out', sys_out.tag)
+        self.assertIn('BlazeMeter report link: http://test/report/123', sys_out.text)
+
+    def test_xml_format_passfail_with_classname(self):
+        obj = JUnitXMLReporter()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        obj.engine.provisioning = CloudProvisioning()
+        obj.engine.provisioning.results_url = "http://test/report/123"
+
+        pass_fail1 = CriteriaProcessor([], None)
+
+        crit_cfg1 = BetterDict()
+        crit_cfg2 = BetterDict()
+        crit_cfg3 = BetterDict()
+        crit_cfg4 = BetterDict()
+
+        crit_cfg1.merge({
+            'stop': True, 'label': 'Sample 1 Triggered', 'fail': True,
+            'timeframe': -1, 'threshold': '150ms', 'condition': '<', 'subject': 'avg-rt'})
+
+        crit_cfg2.merge({
+            'stop': True, 'label': 'Sample 1 Not Triggered', 'fail': True,
+            'timeframe': -1, 'threshold': '300ms', 'condition': '>', 'subject': 'avg-rt'})
+
+        crit_cfg3.merge({
+            'stop': True, 'label': 'Sample 2 Triggered', 'fail': True, 'timeframe': -1,
+            'threshold': '150ms', 'condition': '<=', 'subject': 'avg-rt'})
+
+        crit_cfg4.merge({
+            'stop': True, 'label': 'Sample 2 Not Triggered', 'fail': True,
+            'timeframe': -1, 'threshold': '300ms', 'condition': '=', 'subject': 'avg-rt'})
+
+        fc1_triggered = DataCriterion(crit_cfg1, pass_fail1)
+        fc1_not_triggered = DataCriterion(crit_cfg2, pass_fail1)
+
+        pass_fail2 = CriteriaProcessor([], None)
+
+        fc2_triggered = DataCriterion(crit_cfg3, pass_fail1)
+        fc2_not_triggered = DataCriterion(crit_cfg4, pass_fail1)
+
+        pass_fail1.criteria.append(fc1_triggered)
+        pass_fail1.criteria.append(fc1_not_triggered)
+        pass_fail2.criteria.append(fc2_triggered)
+        pass_fail2.criteria.append(fc2_not_triggered)
+
+        fc1_triggered.is_triggered = True
+        fc2_triggered.is_triggered = True
+
+        pass_fail = PassFailStatus()
+        pass_fail.processors.append(pass_fail1)
+        pass_fail.processors.append(pass_fail2)
+        obj.engine.reporters.append(pass_fail)
+        obj.engine.reporters.append(BlazeMeterUploader())
+
+        path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml_passfail', dir=obj.engine.artifacts_dir)
+
+        obj.parameters.merge({"filename": path_from_config, "data-source": "pass-fail", "classname" : "demo"})
+        obj.prepare()
+        obj.last_second = DataPoint(0)
+        obj.post_process()
+
+        with open(obj.report_file_path, 'rb') as fds:
+            f_contents = fds.read()
+
+        ROOT_LOGGER.info("File: %s", f_contents)
+        xml_tree = etree.fromstring(f_contents)
+        self.assertEqual('testsuites', xml_tree.tag)
+        suite = xml_tree.getchildren()[0]
+        self.assertEqual('testsuite', suite.tag)
+        test_cases = suite.getchildren()
+        self.assertEqual(4, len(test_cases))
+        self.assertEqual('testcase', test_cases[0].tag)
+        self.assertListEqual(['demo', "avg-rt of Sample 1 Triggered<150ms for -1"], test_cases[0].values())
         self.assertEqual('error', test_cases[0].getchildren()[1].tag)
         self.assertEqual('error', test_cases[2].getchildren()[1].tag)
 

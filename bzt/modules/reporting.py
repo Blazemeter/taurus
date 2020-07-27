@@ -371,6 +371,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
         if not filename:
             filename = self.engine.create_artifact(XUnitFileWriter.REPORT_FILE_NAME, XUnitFileWriter.REPORT_FILE_EXT)
         self.parameters["filename"] = filename  # reflect it in effective config
+        class_name = self.parameters.get("classname", "bzt")
 
         if self.cumulative_results is None:
             test_data_source = self.parameters.get("data-source", "sample-labels")
@@ -379,17 +380,17 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
                 if not self.last_second:
                     self.log.warning("No last second data to generate XUnit.xml")
                 else:
-                    writer = XUnitFileWriter(self.engine)
+                    writer = XUnitFileWriter(self.engine, class_name)
                     self.process_sample_labels(writer)
                     writer.save_report(filename)
             elif test_data_source == "pass-fail":
-                writer = XUnitFileWriter(self.engine)
+                writer = XUnitFileWriter(self.engine, class_name)
                 self.process_pass_fail(writer)
                 writer.save_report(filename)
             else:
                 raise TaurusConfigError("Unsupported data source: %s" % test_data_source)
         else:
-            writer = XUnitFileWriter(self.engine)
+            writer = XUnitFileWriter(self.engine, class_name)
             self.process_functional(writer)
             writer.save_report(filename)
 
@@ -419,7 +420,8 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
                 err_element.text = err_desc
                 errors.append(err_element)
 
-            xunit.report_test_case('sample_labels', key, errors)
+            duration = str(round(labels[key]['avg_rt'], 3))
+            xunit.report_test_case('sample_labels', key, errors, duration)
 
     def process_pass_fail(self, xunit):
         """
@@ -449,7 +451,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
             disp_name = tpl % data
 
             if fc_obj.is_triggered and fc_obj.fail:
-                errors = [etree.Element("error", message=str(fc_obj), type="pass/fail criteria triggered")]
+                error = etree.Element("error", message=str(fc_obj), type="pass/fail criteria triggered")
+                error.text = str(fc_obj)
+                errors = [error]
             else:
                 errors = ()
 
@@ -519,7 +523,7 @@ class XUnitFileWriter(object):
     REPORT_FILE_NAME = "xunit"
     REPORT_FILE_EXT = ".xml"
 
-    def __init__(self, engine):
+    def __init__(self, engine, class_name):
         """
         :type engine: bzt.engine.Engine
         """
@@ -528,7 +532,7 @@ class XUnitFileWriter(object):
         self.log = engine.log.getChild(self.__class__.__name__)
         self.test_suites = OrderedDict()
         bza_report_info = get_bza_report_info(engine, self.log)
-        self.class_name = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
+        self.class_name = class_name
         self.report_urls = ["BlazeMeter report link: %s\n" % info_item[0] for info_item in bza_report_info]
 
     def save_report(self, fname):
@@ -561,7 +565,7 @@ class XUnitFileWriter(object):
         """
         self.add_test_suite(suite_name, attributes={"name": suite_name, "package_name": "bzt"})
 
-    def report_test_case(self, suite_name, case_name, children=None):
+    def report_test_case(self, suite_name, case_name, children=None, duration=None):
         """
         :type suite_name: str
         :type case_name: str
@@ -572,7 +576,10 @@ class XUnitFileWriter(object):
             system_out = etree.Element("system-out")
             system_out.text = "".join(self.report_urls)
             children.insert(0, system_out)
-        self.add_test_case(suite_name, attributes={"classname": self.class_name, "name": case_name}, children=children)
+        if duration is not None:
+            self.add_test_case(suite_name, attributes={"classname": self.class_name, "name": case_name, "time": duration}, children=children)
+        else:
+            self.add_test_case(suite_name, attributes={"classname": self.class_name, "name": case_name}, children=children)
 
     def add_test_suite(self, suite_name, attributes=None, children=()):
         attributes = attributes or {}
