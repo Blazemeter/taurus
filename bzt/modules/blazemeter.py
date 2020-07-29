@@ -46,7 +46,6 @@ from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, R
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener, LocalClient
-from bzt.modules.passfail import DataCriterion
 from bzt.modules.services import Unpacker
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.requests_model import has_variable_pattern
@@ -1085,6 +1084,9 @@ class BaseCloudTest(object):
         self._last_status = self.master.get_status()
         return self._last_status
 
+    def get_passfail_validation(self):
+        pass
+
 
 class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
@@ -1222,6 +1224,12 @@ class CloudTaurusTest(BaseCloudTest):
                     txt += "  Agents in %s: %s\n" % (location, count)
 
         return txt
+
+    def get_passfail_validation(self):
+        test_id = self._test['id']
+        url = f"https://a.blazemeter.com/api/v4/tests/{test_id}/validations"
+        response = self._test.http_request(method='GET', url=url)
+        return True
 
 
 class CloudCollectionTest(BaseCloudTest):
@@ -1490,21 +1498,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if not self.launch_existing_test:
             self._filter_reporting()
 
-        for module in self.engine.config['reporting']:
-            if module['module'] == 'passfail':
-                crit_cfg_list = module['criteria']
-
-                if isinstance(crit_cfg_list, dict):
-                    crit_iter = iteritems(crit_cfg_list)
-                else:
-                    crit_iter = enumerate(crit_cfg_list)
-
-                for idx, crit_config in crit_iter:
-                    if isinstance(crit_config, str):
-                        crit_config = DataCriterion.string_to_config(crit_config)
-                        crit_cfg_list[idx] = crit_config
-                module['criteria'] = crit_cfg_list
-
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
 
@@ -1553,6 +1546,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.results_reader = ResultsFromBZA()
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
+
+        for module in self.engine.config['reporting']:
+            if module['module'] == 'passfail':
+                self.router.get_passfail_validation()
 
     @staticmethod
     def _get_other_modules(config):
