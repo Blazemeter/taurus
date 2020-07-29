@@ -35,6 +35,7 @@ you should utilize the following command line utilities provided by the installe
 
 1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
 1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
+1. Get Microsoft "C++ build tools" from [https://visualstudio.microsoft.com](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16) and install it.
 
 #### Install Taurus Python Dependencies
 
