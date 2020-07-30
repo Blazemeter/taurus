@@ -25,7 +25,6 @@ from json import encoder
 
 import math
 import yaml
-from chardet import UniversalDetector
 from yaml import SafeDumper
 from yaml.representer import SafeRepresenter
 
