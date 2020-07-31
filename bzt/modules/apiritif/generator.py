@@ -220,9 +220,9 @@ from selenium.webdriver.common.keys import Keys
         selectors = []
         if action_config.get("locators"):
             selectors = action_config.get("locators")
-        elif action_config.get("element"):
+        if action_config.get("element"):
             selectors.extend(self._gen_selector_byelement(action_config))
-        elif action_config.get("shadow"):
+        if action_config.get("shadow"):
             selectors = [{"shadow" : action_config.get("shadow")}]
         if action_config.get("source") and action_config.get("target"):
             source = action_config.get("source")
