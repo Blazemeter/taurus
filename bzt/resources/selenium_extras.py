@@ -17,6 +17,30 @@ BYS = {
 }
 
 
+def find_element_by_shadow(shadow_loc):
+    """
+    Enables finding element using the Shadow Locator
+    :param shadow_loc: shadow locator in the string form - css locators divided by commas, e.g. 'c-comp1, c-basic, .std_btn'
+    :return: the found element otherwise NoSuchElementException is raised
+    """
+    el = None
+    css_path = [x.strip() for x in shadow_loc.split(',')]
+    for p in css_path:
+        if not el:
+            el = _get_driver().find_element_by_css_selector(p)
+        else:
+            shadow_root = el.get_property("shadowRoot")
+            if shadow_root:
+                try:
+                    el = shadow_root.find_element_by_css_selector(p)
+                except NoSuchElementException:
+                    # sometimes the element is not located under the shadowRoot so try to look for it the usual way
+                    el = el.find_element_by_css_selector(p)
+            else:
+                el = el.find_element_by_css_selector(p)
+    return el
+
+
 def get_locator(locators, parent_el=None, ignore_implicit_wait=False, raise_exception=False):
     """
     :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
@@ -34,6 +58,8 @@ def get_locator(locators, parent_el=None, ignore_implicit_wait=False, raise_exce
     first_locator = None
     if ignore_implicit_wait:
         driver.implicitly_wait(0)
+    if len(locators) == 1 and locators[0].get("shadow"):
+        return locators
     for locator in locators:
         locator_type = list(locator.keys())[0]
         locator_value = locator[locator_type]
@@ -192,7 +218,7 @@ def dialogs_get_next_alert():
     return _get_driver().execute_script("""
                 if (!window.__webdriverAlerts) { return null } 
                 var t = window.__webdriverAlerts.shift(); 
-                if (t) { t = t.replace(/\\n/g, ' '); }
+                if (t) { t = t.toString().replace(/\\n/g, ' '); }
                 return t;
               """)
 
@@ -211,6 +237,7 @@ def dialogs_answer_on_next_alert(value):
     """
     Simulates click on OK button in the next alert
     """
+    dialogs_replace()
     if str(value).lower() == '#ok':
         _get_driver().execute_script("window.__webdriverNextAlert = true")
 
@@ -220,6 +247,7 @@ def dialogs_answer_on_next_prompt(value):
     :param value: The value to be used to answer the next 'window.prompt', if '#cancel' is provided then
     click on cancel button is simulated by returning null
     """
+    dialogs_replace()
     if str(value).lower() == '#cancel':
         _get_driver().execute_script("window.__webdriverNextPrompt = null")
     else:
@@ -231,6 +259,7 @@ def dialogs_answer_on_next_confirm(value):
     :param value: either '#ok' to click on OK button or '#cancel' to simulate click on Cancel button in the
     next 'window.confirm' method
     """
+    dialogs_replace()
     if str(value).lower() == '#ok':
         confirm = 'true'
     else:

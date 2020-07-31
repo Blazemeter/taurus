@@ -1,0 +1,1 @@
+resolve environment variables from settings.artifacts-dir and settings.env with two depth levels

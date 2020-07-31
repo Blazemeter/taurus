@@ -1,10 +1,10 @@
 import json
 import logging
+from lxml import etree
 
 from bzt.jmx.base import JMX
 from bzt.jmx.tools import ProtocolHandler
-from bzt.six import etree, numeric_types
-from bzt.utils import get_host_ips, simple_body_dict
+from bzt.utils import numeric_types, get_host_ips, simple_body_dict
 
 LOG = logging.getLogger("")
 

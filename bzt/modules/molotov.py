@@ -23,7 +23,7 @@ from bzt import ToolError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.six import unicode_decode
+from bzt.utils import unicode_decode
 from bzt.utils import shutdown_process, RequiredTool, dehumanize_time, get_full_path, LDJSONReader, CALL_PROBLEMS
 
 

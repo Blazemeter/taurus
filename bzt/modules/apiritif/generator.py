@@ -19,6 +19,7 @@ import math
 import re
 import string
 from collections import OrderedDict
+from urllib import parse
 
 import astunparse
 
@@ -26,8 +27,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
-from bzt.six import parse, string_types, iteritems, text_type, PY2
-from bzt.utils import dehumanize_time, ensure_is_dict
+from bzt.utils import iteritems, dehumanize_time, ensure_is_dict
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript
 from .jmeter_functions import JMeterExprCompiler
 
@@ -74,7 +74,8 @@ class ApiritifScriptGenerator(object):
         'byname': "name",
         'byid': "id",
         'bylinktext': "linktext",
-        'byelement': "byelement"
+        'byelement': "byelement",
+        'byshadow': "shadow"
     }
 
     ACTION_CHAINS = {
@@ -111,7 +112,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 """
 
-    BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement")
+    BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
     COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
 
     ACCESS_TARGET = 'target'
@@ -219,8 +220,10 @@ from selenium.webdriver.common.keys import Keys
         selectors = []
         if action_config.get("locators"):
             selectors = action_config.get("locators")
-        if action_config.get("element"):
+        elif action_config.get("element"):
             selectors.extend(self._gen_selector_byelement(action_config))
+        elif action_config.get("shadow"):
+            selectors = [{"shadow" : action_config.get("shadow")}]
         if action_config.get("source") and action_config.get("target"):
             source = action_config.get("source")
             target = action_config.get("target")
@@ -242,7 +245,7 @@ from selenium.webdriver.common.keys import Keys
         return [{"byelement": config.get("element")}]
 
     def _parse_action(self, action_config):
-        if isinstance(action_config, string_types):
+        if isinstance(action_config, str):
             name = action_config
             param = None
         elif isinstance(action_config, dict):
@@ -267,12 +270,25 @@ from selenium.webdriver.common.keys import Keys
         # action performed in foreach loop on element
         return len(locators) == 1 and (locators[0].get("byelement") or locators[0].get("element"))
 
+    @staticmethod
+    def _is_shadow_locator(locators):
+        return len(locators) == 1 and locators[0].get("shadow")
+
     def _gen_dynamic_locator(self, var_w_locator, locators):
         if self._is_foreach_element(locators):
             return ast.Name(id=locators[0].get("byelement"))
         el = self._get_byelement(locators)
         target = el if el else "self.driver"
         method = "%s.find_element" % target
+
+        if self._is_shadow_locator(locators):
+            self.selenium_extras.add("find_element_by_shadow")
+            return ast_call(
+                func=ast_attr("find_element_by_shadow"),
+                args=[
+                    ast.Str(locators[0].get("shadow"), kind="")
+                ]
+            )
         return ast_call(
             func=ast_attr(method),
             args=[
@@ -298,7 +314,8 @@ from selenium.webdriver.common.keys import Keys
                            args=args))
 
     def _gen_get_locator_call(self, var_name, locators):
-        if self._is_foreach_element(locators):  # don't generate 'get_locator' for byElement action
+        # don't generate 'get_locator' for byElement action or shadow locator
+        if self._is_foreach_element(locators) or self._is_shadow_locator(locators):
             return []
         parent_el = self._get_byelement(locators)
         locs = [l for l in locators if not l.get("byelement")]  # remove the byelement locator from the list
@@ -504,7 +521,7 @@ from selenium.webdriver.common.keys import Keys
                             self._gen_dynamic_locator("var_loc_keys", selectors),
                             "clear"))))
             action = "send_keys"
-            if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
+            if isinstance(param, str) and param.startswith("KEY_"):
                 args = [ast_attr("Keys.%s" % param.split("KEY_")[1])]
             else:
                 args = [self._gen_expr(str(param))]
@@ -532,6 +549,10 @@ from selenium.webdriver.common.keys import Keys
             el = locators[0].get("byelement")
             exc_msg = "The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element"
             exc_args = [ast.Str(el, kind=""), ast_attr(el + ".tag_name"), ast_attr(el + ".text")]
+        elif self._is_shadow_locator(locators):
+            el = locators[0].get("shadow")
+            exc_msg = "The element (shadow: '%s') is not a contenteditable element"
+            exc_args = [ast.Str(el, kind="")]
         else:
             exc_msg = "The element (%s: %r) is not a contenteditable element"
             exc_args = [tag, selector]
@@ -546,14 +567,7 @@ from selenium.webdriver.common.keys import Keys
             ]
         )
 
-        if PY2:
-            raise_kwargs = {
-                "type": exc_type,
-                "inst": None,
-                "tback": None
-            }
-        else:
-            raise_kwargs = {
+        raise_kwargs = {
                 "exc": exc_type,
                 "cause": None}
 
@@ -968,7 +982,7 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("webdriver.FirefoxOptions"))),
             ast.Expr(
                 ast_call(func=ast_attr("options.set_preference"),
-                         args=[ast.Str("network.proxy.type", kind=""), ast.Str("4", kind="")]))]
+                         args=[ast.Str("network.proxy.type", kind=""), ast.Num(4, kind="")]))]
 
         return firefox_options + self._get_headless_setup()
 
@@ -1125,6 +1139,12 @@ from selenium.webdriver.common.keys import Keys
                 delimiter.arg = "delimiter"
                 delimiter.value = ast.Str(s=source.get("delimiter"), kind="")
                 keywords.append(delimiter)
+
+            if "encoding" in source:
+                encoding = ast.keyword()
+                encoding.arg = "encoding"
+                encoding.value = ast.Str(s=source.get("encoding"), kind="")
+                keywords.append(encoding)
 
             csv_file = self.scenario.engine.find_file(source["path"])
             reader = ast.Assign(
@@ -1386,7 +1406,7 @@ from selenium.webdriver.common.keys import Keys
             named_args['params'] = self._gen_expr(req.body)
         elif isinstance(req.body, dict):  # form data
             named_args['data'] = self._gen_expr(list(iteritems(req.body)))
-        elif isinstance(req.body, string_types):
+        elif isinstance(req.body, str):
             named_args['data'] = self._gen_expr(req.body)
         elif req.body:
             msg = "Cannot handle 'body' option of type %s: %s"
@@ -1502,7 +1522,7 @@ from selenium.webdriver.common.keys import Keys
         self.log.debug("Generating assertion, config: %s", assertion_config)
         assertion_elements = []
 
-        if isinstance(assertion_config, string_types):
+        if isinstance(assertion_config, str):
             assertion_config = {"contains": [assertion_config]}
 
         for val in assertion_config["contains"]:
@@ -1687,14 +1707,9 @@ from selenium.webdriver.common.keys import Keys
         self.tree = self._build_tree()
 
     def save(self, filename):
-        if PY2:
-            with open(filename, 'wt') as fds:
-                fds.write("# coding=utf-8\n")
-                fds.write(astunparse.unparse(self.tree))
-        else:
-            with open(filename, 'wt', encoding='utf8') as fds:
-                fds.write("# coding=utf-8\n")
-                fds.write(astunparse.unparse(self.tree))
+        with open(filename, 'wt', encoding='utf8') as fds:
+            fds.write("# coding=utf-8\n")
+            fds.write(astunparse.unparse(self.tree))
 
     def _gen_logging(self):
         set_log = ast.Assign(

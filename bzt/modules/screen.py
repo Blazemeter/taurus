@@ -22,16 +22,11 @@ import urwid
 from urwid import BaseScreen
 
 from bzt import ManualShutdown
-from bzt.six import text_type, iteritems, PY2
-from bzt.utils import is_linux
+from bzt.utils import is_linux, iteritems
 import bzt.resources as bztr
 
-if PY2:  # we have to put import logic here to avoid requiring python-tk library on linux
-    import tkFont as tkfont
-    import Tkinter as tkinter
-else:
-    import tkinter as tkinter
-    from tkinter import font as tkfont
+import tkinter
+from tkinter import font as tkfont
 
 
 class GUIScreen(BaseScreen):
@@ -138,7 +133,7 @@ class GUIScreen(BaseScreen):
             pos = 0
             for part in row:
                 txt = part[2]
-                if not isinstance(txt, text_type):
+                if not isinstance(txt, str):
                     txt = txt.decode('utf-8')
                 strlen = len(txt)
                 self.text.insert(tkinter.END, txt)

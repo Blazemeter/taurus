@@ -7,7 +7,7 @@ from os.path import join, exists, dirname
 import bzt
 
 from bzt import ToolError
-from bzt.modules.javascript import WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
+from bzt.modules.javascript import NPMPackage, WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
 from bzt.utils import get_full_path, EXE_SUFFIX
 
 from tests import BUILD_DIR, RESOURCES_DIR, BZTestCase
@@ -264,6 +264,25 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             },
         })
         self.assertIn("--iterations 3", self.CMD_LINE)
+
+
+class TestNPMPackageNameParser(BZTestCase):
+    def test_version_parsing(self):
+        self.tools_dir = "~/.bzt/selenium-taurus/"
+
+        class DummyPackageDefaultFormat(NPMPackage):
+            PACKAGE_NAME = 'package@6.0.1'
+
+        class DummyPackageScopedFormat(NPMPackage):
+            PACKAGE_NAME = '@scope/package@9.0.0'
+
+        self.npmPackageDefaultFormat = DummyPackageDefaultFormat(tools_dir=self.tools_dir, node_tool='', npm_tool='')
+        self.npmPackageScopedFormat = DummyPackageScopedFormat(tools_dir=self.tools_dir, node_tool='', npm_tool='')
+
+        self.assertEqual(self.npmPackageDefaultFormat.package_name, 'package')
+        self.assertEqual(self.npmPackageDefaultFormat.version, '6.0.1')
+        self.assertEqual(self.npmPackageScopedFormat.package_name, '@scope/package')
+        self.assertEqual(self.npmPackageScopedFormat.version, '9.0.0')
 
 
 class TestNewmanExecutor(BZTestCase):

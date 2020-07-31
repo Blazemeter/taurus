@@ -24,14 +24,15 @@ import sys
 import traceback
 from collections import namedtuple, OrderedDict
 from optparse import OptionParser
+from urllib import parse
+from urllib.parse import urlencode
 
 import yaml
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.cli import CLI
 from bzt.engine import Configuration
-from bzt.six import iteritems, parse, urlencode
-from bzt.utils import BetterDict
+from bzt.utils import iteritems, BetterDict
 
 
 def yaml_ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=OrderedDict):

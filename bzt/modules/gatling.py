@@ -28,9 +28,8 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.six import string_types, numeric_types, PY2
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
-from bzt.utils import simple_body_dict, CALL_PROBLEMS
+from bzt.utils import simple_body_dict, CALL_PROBLEMS, numeric_types
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
@@ -115,7 +114,7 @@ class GatlingScriptBuilder(object):
                     self.log.debug('Header "Content-Type: application/json" is required for body: "%s"', req.body)
                     req.body = json.dumps(req.body)
 
-            if isinstance(req.body, string_types):
+            if isinstance(req.body, str):
                 exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
                 exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
             elif isinstance(req.body, dict):
@@ -410,11 +409,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             prop = props[key]
             val_tpl = "%s"
 
-            if isinstance(prop, string_types):
+            if isinstance(prop, str):
                 if not is_windows():  # extend properties support (contained separators/quotes/etc.) on lin/mac
                     val_tpl = "%r"
-                if PY2:
-                    prop = prop.encode("utf-8", 'ignore')  # to convert from unicode into str
 
             self.env.add_java_param({"JAVA_OPTS": ("-D%s=" + val_tpl) % (key, prop)})
 

@@ -23,7 +23,6 @@ from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.jmeter import JTLReader
-from bzt.six import string_types
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, BetterDict, get_assembled_value
 from .tools import SeleniumServer, Hamcrest, Json, TaurusJavaHelper, JavaC, JUnitJupiterApi, JUnitJupiterEngine
 from .tools import JUnitPlatformCommons, JUnitPlatformLauncher, JUnitPlatformEngine, JUnitPlatformRunner
@@ -290,11 +289,11 @@ class JUnitTester(JavaTestRunner):
     def _get_items_list(self, param):
         scenario = self.get_scenario()
         scen_items = scenario.get(param, [])
-        if isinstance(scen_items, string_types):
+        if isinstance(scen_items, str):
             scen_items = scen_items.split(',')
 
         exec_items = self.execution.get(param, scen_items)
-        if isinstance(exec_items, string_types):
+        if isinstance(exec_items, str):
             exec_items = exec_items.split(',')
 
         return exec_items

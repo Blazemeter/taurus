@@ -957,7 +957,7 @@ class TestCloudProvisioning(BZTestCase):
                         "sessions": [
                             {"id": "s1", "status": "JMETER_CONSOLE_INIT", "locationId": "some"},
                             {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
-                    {"result": {"progress": 120, "status": "ENDED"}},  # status should trigger shutdown
+                    {"result": {"progress": 140, "status": "ENDED"}},  # status should trigger shutdown
                 ],
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": [{'id': "s1"}]}},
                 'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {
@@ -1133,7 +1133,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/masters/1/status': [
                     {"result": {"id": id(self.obj)}},
                     {"result": {"id": id(self.obj), 'progress': 100}},
-                    {"result": {"id": id(self.obj), 'progress': 100}},
+                    {"result": {"id": id(self.obj), 'progress': 140}},
                 ],
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
                 'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {"result": [

@@ -14,8 +14,7 @@ from bzt.modules import TransactionListener
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregatorListener
-from bzt.six import b
-from bzt.utils import load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows, temp_file
+from bzt.utils import b, load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows, temp_file
 
 from tests.base import TEST_DIR, ROOT_LOGGER
 
@@ -85,7 +84,7 @@ class MockFileReader(FileReader):
 
 
 class EngineEmul(Engine):
-    def __init__(self):
+    def __init__(self, custom_configs=None):
         super(EngineEmul, self).__init__(ROOT_LOGGER)
         self.aggregator.add_underling = lambda _: None
         directory = get_full_path(TEST_DIR)
@@ -97,7 +96,16 @@ class EngineEmul(Engine):
                 "local": ModuleMock.__module__ + "." + ModuleMock.__name__},
             "settings": {
                 "check-updates": False,
-                "artifacts-dir": get_uniq_name(directory=directory, prefix=prefix)}})
+            }})
+
+        if custom_configs:
+            self.config.merge(custom_configs)
+        else:
+            self.config.merge({
+                "settings": {
+                    "artifacts-dir": get_uniq_name(directory=directory, prefix=prefix),
+                }
+            })
 
         self.check_interval = 0.1
         self.create_artifacts_dir()
@@ -116,8 +124,14 @@ class EngineEmul(Engine):
             raise self.prepare_exc
         return super(EngineEmul, self).prepare()
 
+    def prepare(self):
+        if self.prepare_exc:
+            raise self.prepare_exc
+        return super().prepare()
 
-class ModuleMock(ScenarioExecutor, Provisioning, Reporter, Service, FileLister, HavingInstallableTools, SelfDiagnosable):
+
+class ModuleMock(ScenarioExecutor, Provisioning, Reporter, Service, FileLister, HavingInstallableTools,
+                 SelfDiagnosable):
     """ mock """
 
     def __init__(self):
@@ -342,8 +356,9 @@ class BZMock(object):
                 {'id': 'non-harbor-sandbox', 'sandbox': True, 'title': 'Sandbox Neverexisting'}, ]
         self.mock_get = {
             'https://a.blazemeter.com/api/v4/web/version': {},
-            'https://a.blazemeter.com/api/v4/user': {'id': 1, 'defaultProject': {'id': 1, 'accountId': 1, 'workspaceId': 1}},
-            'https://a.blazemeter.com/api/v4/accounts': {"result": [{'id': 1, 'owner':{'id': 1}}]},
+            'https://a.blazemeter.com/api/v4/user': {'id': 1,
+                                                     'defaultProject': {'id': 1, 'accountId': 1, 'workspaceId': 1}},
+            'https://a.blazemeter.com/api/v4/accounts': {"result": [{'id': 1, 'owner': {'id': 1}}]},
             'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                 "result": [{'id': 1, 'enabled': True}]},
             'https://a.blazemeter.com/api/v4/workspaces?accountId=2&enabled=true&limit=100': {
@@ -418,4 +433,3 @@ class DummyListener(TransactionListener):
 
     def transaction_ended(self, sender, label, end_time):
         self.transactions[label] += 1
-

@@ -8,9 +8,8 @@ from psutil import Popen
 from os.path import join
 
 from bzt import TaurusNetworkError
-from bzt.six import PY2, communicate
 from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient, BetterDict
-from bzt.utils import ensure_is_dict, Environment, temp_file
+from bzt.utils import ensure_is_dict, Environment, temp_file, communicate
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
 
@@ -190,8 +189,6 @@ class TestMisc(BZTestCase):
         obj = MockPopen(out, err)
 
         output = communicate(obj)
-        if PY2:
-            output = output[0].decode(), output[1].decode()    # logging to file converts them to unicode
 
         self.assertEqual(output, ("output", "error"))
 
@@ -293,8 +290,6 @@ class TestFileReader(BZTestCase):
         gen_file_name = temp_file()
 
         mod_str = old_string + '\n'
-        if PY2:
-            mod_str = bytearray(mod_str).decode('utf-8')  # convert to utf-8 on py2 for writing...
 
         with open(gen_file_name, 'wb') as fd:  # use target system encoding for writing
             fd.write(mod_str.encode(self.obj.SYS_ENCODING))  # important on win where it's not 'utf-8'
@@ -306,8 +301,6 @@ class TestFileReader(BZTestCase):
             self.assertEqual(self.obj.SYS_ENCODING, self.obj.cp)  # on win self.obj.cp must be changed during of
             self.assertEqual(1, len(lines))  # reading (see MockFileReader)
             new_string = lines[0].rstrip()
-            if PY2:
-                new_string = new_string.encode('utf-8')
             self.assertEqual(old_string, new_string)
         finally:
             if self.obj.fds:
