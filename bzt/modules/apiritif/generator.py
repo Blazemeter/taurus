@@ -220,9 +220,9 @@ from selenium.webdriver.common.keys import Keys
         selectors = []
         if action_config.get("locators"):
             selectors = action_config.get("locators")
-        elif action_config.get("element"):
-            selectors = self._gen_selector_byelement(action_config)
-        elif action_config.get("shadow"):
+        if action_config.get("element"):
+            selectors.extend(self._gen_selector_byelement(action_config))
+        if action_config.get("shadow"):
             selectors = [{"shadow" : action_config.get("shadow")}]
         if action_config.get("source") and action_config.get("target"):
             source = action_config.get("source")
@@ -277,6 +277,10 @@ from selenium.webdriver.common.keys import Keys
     def _gen_dynamic_locator(self, var_w_locator, locators):
         if self._is_foreach_element(locators):
             return ast.Name(id=locators[0].get("byelement"))
+        el = self._get_byelement(locators)
+        target = el if el else "self.driver"
+        method = "%s.find_element" % target
+
         if self._is_shadow_locator(locators):
             self.selenium_extras.add("find_element_by_shadow")
             return ast_call(
@@ -286,7 +290,7 @@ from selenium.webdriver.common.keys import Keys
                 ]
             )
         return ast_call(
-            func=ast_attr("self.driver.find_element"),
+            func=ast_attr(method),
             args=[
                 gen_subscript(var_w_locator, 0),
                 gen_subscript(var_w_locator, 1)
@@ -300,17 +304,29 @@ from selenium.webdriver.common.keys import Keys
             args.append(ast.Dict([ast.Str(locator_type, kind="")], [self._gen_expr(locator_value)]))
         return args
 
-    def _gen_loc_method_call(self, method, var_name, locators):
+    def _gen_loc_method_call(self, method, var_name, locators, parent_el=None):
+        args = [ast.List(elts=self._gen_ast_locators_dict(locators))]
+        if parent_el:
+            args.append(ast.Name(id=parent_el))
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store(), kind="")],
             value=ast_call(func=method,
-                           args=[ast.List(elts=self._gen_ast_locators_dict(locators))]))
+                           args=args))
 
     def _gen_get_locator_call(self, var_name, locators):
         # don't generate 'get_locator' for byElement action or shadow locator
         if self._is_foreach_element(locators) or self._is_shadow_locator(locators):
             return []
-        return self._gen_loc_method_call("get_locator", var_name, locators)
+        parent_el = self._get_byelement(locators)
+        locs = [l for l in locators if not l.get("byelement")]  # remove the byelement locator from the list
+        return self._gen_loc_method_call("get_locator", var_name, locs, parent_el)
+
+    def _get_byelement(self, locators):
+        for loc in locators:
+            el = loc.get("byelement")
+            if el:
+                return el
+        return None
 
     def _gen_get_elements_call(self, var_name, locators):
         return self._gen_loc_method_call("get_elements", var_name, locators)

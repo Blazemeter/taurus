@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import get_locator, get_elements
+from bzt.resources.selenium_extras import get_elements, get_locator
 
 
 class TestLocSc(unittest.TestCase):
@@ -36,8 +36,8 @@ class TestLocSc(unittest.TestCase):
             service_log_path='/somewhere/webdriver.log',
             options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(timeout=timeout, driver=self.driver, scenario_name='loc_sc', windows={},
-                                       func_mode=False)
+        apiritif.put_into_thread_store(driver=self.driver, timeout=timeout, func_mode=False, windows={},
+                                       scenario_name='loc_sc')
 
     def _1_Foreach_test(self):
         with apiritif.smart_transaction('Foreach test'):
@@ -45,7 +45,11 @@ class TestLocSc(unittest.TestCase):
             elements = get_elements([{'css': 'input'}, {'xpath': '/table/input/'}])
             for el in elements:
                 self.assertEqual(el.get_attribute('innerText').strip(), 'text'.strip())
-                self.assertEqual(el.get_attribute('innerText').strip(), 'text'.strip())
+
+                var_loc_as = get_locator([{'css': 'style'}, {'xpath': '//tr'}], el)
+                self.assertEqual(el.find_element(
+                    var_loc_as[0],
+                    var_loc_as[1]).get_attribute('innerText').strip(), 'text'.strip())
                 self.assertEqual(el.get_attribute('value').strip(), 'value'.strip())
                 self.assertEqual(el.get_attribute('value').strip(), 'value'.strip())
 
@@ -63,7 +67,11 @@ class TestLocSc(unittest.TestCase):
                                                              "The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element" % (
                                                      'el', el.tag_name, el.text)))
                 el.click()
-                el.click()
+
+                var_loc_keys = get_locator([{'css': 'input-cls'}, {'xpath': '//input'}], el)
+                el.find_element(
+                    var_loc_keys[0],
+                    var_loc_keys[1]).click()
                 ActionChains(self.driver).double_click(el).perform()
                 ActionChains(self.driver).double_click(el).perform()
                 ActionChains(self.driver).click_and_hold(el).perform()

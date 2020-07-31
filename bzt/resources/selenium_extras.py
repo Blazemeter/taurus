@@ -41,10 +41,12 @@ def find_element_by_shadow(shadow_loc):
     return el
 
 
-def get_locator(locators, ignore_implicit_wait=False, raise_exception=False):
+def get_locator(locators, parent_el=None, ignore_implicit_wait=False, raise_exception=False):
     """
     :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
     {css: 'my_cls'}]
+    :param parent_el: reference to the parent element (WebElement instance), optional - if provided the find_elements
+    method is called on it instead of global context
     :param ignore_implicit_wait: set it to True to set the implicit wait immediately to 0
     :param raise_exception: set it to True to get the NoSuchElementException in case no elements are matching any
     of the passed locators, if set to False then the first locator is returned in that case
@@ -66,7 +68,10 @@ def get_locator(locators, ignore_implicit_wait=False, raise_exception=False):
         else:
             # set implicit wait to 0 get the result instantly for the other locators
             driver.implicitly_wait(0)
-        elements = driver.find_elements(BYS[locator_type.lower()], locator_value)
+        if parent_el:
+            elements = parent_el.find_elements(BYS[locator_type.lower()], locator_value)
+        else:
+            elements = driver.find_elements(BYS[locator_type.lower()], locator_value)
         if len(elements) > 0:
             locator = (BYS[locator_type.lower()], locator_value)
             break
