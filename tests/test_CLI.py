@@ -328,7 +328,7 @@ class TestConfigOverrider(BZTestCase):
         self.assertEqual(self.config.get("dict"), {"1": 1, "3": 3})
 
     def test_override_multiple(self):
-        self.config["items"] = [1, 2, 3]
+        self.config["items"] = [1, 2, 3] 
         self.config["dict"] = {"listObj":[{"k1":"v1"}, {"k2":"v2"}, {"k3":"v3"}],"lislis":[1,2,3,4],"k1":"v3"}
         self.obj.apply_overrides(['items.*1=v2'], self.config)
         self.obj.apply_overrides(['dict.*k1=v2'], self.config)
