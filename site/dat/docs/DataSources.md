@@ -25,12 +25,10 @@ scenarios:
 Explanation:
   - `path` is a path to a csv file. This option is required.
   - `delimiter` is a CSV delimiter. It is auto-detected by default, but you can use a symbol, i.e. `'.'` for dot, `','` for comma. Also, you can use `'tab'` for a tab symbol.
-  - `quoted` allows quoted data. Can be `true` of `false`. Use "auto" for auto-detection, if there's no `variable-names`.
+  - `quoted` allows quoted data. Can be `true` of `false`. Omit for autodetection.
   - `encoding` allows you to specify encoding type.
   - `loop` allows to loop over in case of end-of-file reached if `true`, stop thread if `false`.
   - `variable-names` delimiter-separated list of variable names, empty by default. When omitted, the first line of CSV file will be used as variable names.
   - `random-order` enables randomizing plugin; false by default. Available only for JMeter.
 
 When `random-order` is `false`, data extraction will proceed in direct manner. Data lines, which contain delimeters, will be read from the top down to the bottom, just the way they were written. Otherwise, the data will be extracted in a random way.
-
-Unfortunately, we currently do not support UTF16 files.
