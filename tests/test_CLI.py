@@ -330,10 +330,10 @@ class TestConfigOverrider(BZTestCase):
     def test_override_multiple(self):
         self.config["items"] = [1, 2, 3]
         self.config["dict"] = {"listObj":[{"k1":"v1"}, {"k2":"v2"}, {"k3":"v3"}],"lislis":[1,2,3,4],"k1":"v3"}
-        self.config["scenarios"] = {"scenario1":[{"requests":[{"follow-redirects": true},{"use-dns-cache-mgr": true}, {"store-cookie": false} , {"default-address":"da"}],"scenario2":[{"requests":[{"follow-redirects": true},{"use-dns-cache-mgr": true}, {"store-cookie": false} , {"default-address":"da"}]}
+        self.config["scenarios"] = {"scenario1":[{"requests":[{"follow-redirects": true},{"use-dns-cache-mgr": true}, {"store-cookie": false} , {"default-address":"da"}},"scenario2":[{"requests":[{"follow-redirects": true},{"use-dns-cache-mgr": true}, {"store-cookie": false} , {"default-address":"da"}]}
         self.obj.apply_overrides(['items.*1=v2'], self.config)
         self.obj.apply_overrides(['dict.*k1=v2'], self.config)
         self.obj.apply_overrides(['scenarios.*default-address=blazemeter.com'], self.config)
         self.assertEqual(self.config.get("dict"), {'listObj': [{'k1': 'v2'}, {'k2': 'v2'}, {'k3': 'v3'}], 'lislis': [1, 2, 3, 4], 'k1': 'v2'})
-        self.assertEqual(self.config.get("scenarios"), {'scenario1':[{'requests':[{'follow-redirects': true},{'use-dns-cache-mgr': true}, {'store-cookie': false} , {'default-address':'blazemeter.com'}],'scenario2':[{'requests':[{'follow-redirects': true},{'use-dns-cache-mgr': true}, {'store-cookie': false} , {'default-address':'blazemeter.com'}]})
+        self.assertEqual(self.config.get("scenarios"), {'scenario1':[{'requests':[{'follow-redirects': true},{'use-dns-cache-mgr': true}, {'store-cookie': false} , {'default-address':'blazemeter.com'}},'scenario2':[{'requests':[{'follow-redirects': true},{'use-dns-cache-mgr': true}, {'store-cookie': false} , {'default-address':'blazemeter.com'}]})
         self.assertEqual(self.config.get("items"), [1, 2, 3])
