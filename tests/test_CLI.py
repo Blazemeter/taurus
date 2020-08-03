@@ -333,5 +333,5 @@ class TestConfigOverrider(BZTestCase):
         self.obj.apply_overrides(['items.*1=v2'], self.config)
         self.obj.apply_overrides(['dict.*k1=v2'], self.config)
         self.obj.apply_overrides(['dict.*default-address=v2'], self.config)
-        self.assertEqual(self.config.get("dict"), {'listObj': [{'k1': 'v2'}, {'k2': 'v2'}, {'k3': 'v3'}, {'default-address': 'v2'}], 'lislis': [1, 2, 3, 4], 'k1': 'v2', {'default-address': 'v2'}})
+        self.assertEqual(self.config.get("dict"), {'listObj': [{'k1': 'v2'}, {'k2': 'v2'}, {'k3': 'v3'}, {'default-address': 'v2'}], 'lislis': [1, 2, 3, 4], 'k1': 'v2', 'default-address': 'v2'})
         self.assertEqual(self.config.get("items"), [1, 2, 3])
