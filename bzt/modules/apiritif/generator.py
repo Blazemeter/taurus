@@ -388,8 +388,10 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr(method),
                 args=[ast.Str(selector, kind="")]))
         else:
-            if tag == "byname":
-                tag = "name"
+            if not tag:
+                tag = "name"    # if tag is not present default it to name
+            elif tag.startswith('by'):
+                tag = tag[2:]   # remove the 'by' prefix
             elements.append(ast_call(
                 func=ast_attr(method),
                 args=[self._gen_locator(tag, selector)]))
