@@ -514,6 +514,11 @@ class Test(BZAObject):
         res = self._request(url, data=coll, method="PATCH")
         return res['result']
 
+    def get_passfail_validation(self):
+        url = f"https://a.blazemeter.com/api/v4/tests/{self['id']}/validations"
+        resp = self._request(url, method='GET')
+        return resp['result'][0]['fileWarnings']
+
 
 class MultiTest(BZAObject):
     def start(self):

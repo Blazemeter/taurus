@@ -1225,11 +1225,21 @@ class CloudTaurusTest(BaseCloudTest):
 
         return txt
 
-    def get_passfail_validation(self):
-        test_id = self._test['id']
-        url = f"https://a.blazemeter.com/api/v4/tests/{test_id}/validations"
-        response = self._test.http_request(method='GET', url=url)
-        return True
+    # def get_passfail_validation(self):
+    #     test_id = self._test['id']
+    #     url = f"https://a.blazemeter.com/api/v4/tests/{test_id}/validations"
+    #     response = self._test.http_request(method='GET', url=url)
+    #
+    #     try:
+    #         response = self._test.http_request(method='GET', url=url)
+    #     except (URLError, TaurusNetworkError):
+    #         self.log.warning("Failed to get test group, will retry in %s seconds...", self.master.timeout)
+    #         self.log.debug("Full exception: %s", traceback.format_exc())
+    #         time.sleep(self.master.timeout)
+    #         response = self._test.http_request(method='GET', url=url)
+    #         self.log.info("Succeeded with retry")
+    #
+    #     return True
 
 
 class CloudCollectionTest(BaseCloudTest):
@@ -1547,10 +1557,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
 
-        for module in self.engine.config['reporting']:
-            if module['module'] == 'passfail':
-                self.router.get_passfail_validation()
-
     @staticmethod
     def _get_other_modules(config):
         used_classes = LocalClient.__name__, BlazeMeterUploader.__name__
@@ -1664,6 +1670,14 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def startup(self):
         super(CloudProvisioning, self).startup()
         self.results_url = self.router.launch_test()
+
+        for module in self.engine.config['reporting']:
+            if module['module'] == 'passfail':
+                validation_result = self.router._test.get_passfail_validation()
+                if validation_result:
+                    for warning_msg in validation_result:
+                        self.log.warning(f"Passfail warning: {warning_msg}")
+
         self.log.info("Started cloud test: %s", self.results_url)
         if self.results_url:
             if self.browser_open in ('start', 'both'):
