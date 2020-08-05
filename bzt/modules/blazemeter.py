@@ -1652,12 +1652,13 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         super(CloudProvisioning, self).startup()
         self.results_url = self.router.launch_test()
 
-        for module in self.engine.config['reporting']:
-            if module['module'] == 'passfail':
-                validation_result = self.router._test.get_passfail_validation()
-                if validation_result:
-                    for warning_msg in validation_result:
-                        self.log.warning(f"Passfail warning: {warning_msg}")
+        if 'reporting' in self.engine.config:
+            for module in self.engine.config['reporting']:
+                if module['module'] == 'passfail':
+                    validation_result = self.router._test.get_passfail_validation()
+                    if validation_result:
+                        for warning_msg in validation_result:
+                            self.log.warning(f"Passfail warning: {warning_msg}")
 
         self.log.info("Started cloud test: %s", self.results_url)
         if self.results_url:
