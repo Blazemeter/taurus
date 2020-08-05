@@ -1084,9 +1084,6 @@ class BaseCloudTest(object):
         self._last_status = self.master.get_status()
         return self._last_status
 
-    def get_passfail_validation(self):
-        pass
-
 
 class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
@@ -1224,22 +1221,6 @@ class CloudTaurusTest(BaseCloudTest):
                     txt += "  Agents in %s: %s\n" % (location, count)
 
         return txt
-
-    # def get_passfail_validation(self):
-    #     test_id = self._test['id']
-    #     url = f"https://a.blazemeter.com/api/v4/tests/{test_id}/validations"
-    #     response = self._test.http_request(method='GET', url=url)
-    #
-    #     try:
-    #         response = self._test.http_request(method='GET', url=url)
-    #     except (URLError, TaurusNetworkError):
-    #         self.log.warning("Failed to get test group, will retry in %s seconds...", self.master.timeout)
-    #         self.log.debug("Full exception: %s", traceback.format_exc())
-    #         time.sleep(self.master.timeout)
-    #         response = self._test.http_request(method='GET', url=url)
-    #         self.log.info("Succeeded with retry")
-    #
-    #     return True
 
 
 class CloudCollectionTest(BaseCloudTest):
