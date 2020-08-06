@@ -8,7 +8,7 @@ There are two ways to install Taurus on Windows. The **recommended** way is to u
 that will install latest Taurus on your PC. Also, if you already have Python installed,
 you can install Taurus manually with pip, Python package manager, but this is not recommended.
 
-###Install Taurus system dependencies beforehand
+### Install Taurus system dependencies beforehand
 
 1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
 1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
