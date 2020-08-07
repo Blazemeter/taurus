@@ -337,5 +337,5 @@ class TestConfigOverrider(BZTestCase):
         self.obj.apply_overrides(['scenarios.*d-addr=bt.com'], self.config)
         self.assertEqual(self.config.get("dict"), {'listObj': [{'k1': 'v2'}, {'k2': 'v2'}, {'k3': 'v3'}], 'lislis': [1, 2, 3, 4], 'k1': 'v2'})
         #self.assertEqual(self.config.get("scenarios"), {'scenario1':{'requests':[{'follow-redirects': True},{'use-dns-cache-mgr': True}, {'store-cookie': False}], 'default-address':'blazemeter.com'},'scenario2':{'requests':[{'follow-redirects': True},{'use-dns-cache-mgr': True}, {'store-cookie': False}], 'default-address':'blazemeter.com'}})
-        self.assertEqual(self.config.get("scenarios"), {'s1':{'req':[{'f-dir': True}], 'd-addr':'bt.com'},'s2':{'req':[{'f-dir': True}], 'd-addr':'bt.com'}})
+        self.assertEqual(self.config.get("scenarios"), {'s1':{'req':[{'f-dir': True}], 'd-addr':'bt.com'},'s2':{'req':[{'f-d': True}], 'd-addr':'bt.com'}})
         self.assertEqual(self.config.get("items"), [1, 2, 3])
