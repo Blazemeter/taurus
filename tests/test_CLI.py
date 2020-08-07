@@ -330,10 +330,12 @@ class TestConfigOverrider(BZTestCase):
     def test_override_multiple(self):
         self.config["items"] = [1, 2, 3]
         self.config["dict"] = {"listObj":[{"k1":"v1"}, {"k2":"v2"}, {"k3":"v3"}],"lislis":[1,2,3,4],"k1":"v3"}
-        self.config["scenarios"] = {"scenario1":{"requests":[{"follow-redirects": True},{"use-dns-cache-mgr": True}, {"store-cookie": False}], "default-address":"da1"},"scenario2":{"requests":[{"follow-redirects": True},{"use-dns-cache-mgr": True}, {"store-cookie": False}], "default-address":"da2"}}
+        #self.config["scenarios"] = {"scenario1":{"requests":[{"follow-redirects": True},{"use-dns-cache-mgr": True}, {"store-cookie": False}], "default-address":"da1"},"scenario2":{"requests":[{"follow-redirects": True},{"use-dns-cache-mgr": True}, {"store-cookie": False}], "default-address":"da2"}}
+        self.config["scenarios"] = {"s1":{"req":[{"f-d": True}], "d-addr":"da1"},"s2":{"req":[{"f-d": True}], "d-addr":"da2"}}
         self.obj.apply_overrides(['items.*1=v2'], self.config)
         self.obj.apply_overrides(['dict.*k1=v2'], self.config)
-        self.obj.apply_overrides(['scenarios.*default-address=blazemeter.com'], self.config)
+        self.obj.apply_overrides(['scenarios.*default-address=bt.com'], self.config)
         self.assertEqual(self.config.get("dict"), {'listObj': [{'k1': 'v2'}, {'k2': 'v2'}, {'k3': 'v3'}], 'lislis': [1, 2, 3, 4], 'k1': 'v2'})
-        self.assertEqual(self.config.get("scenarios"), {'scenario1':{'requests':[{'follow-redirects': True},{'use-dns-cache-mgr': True}, {'store-cookie': False}], 'default-address':'blazemeter.com'},'scenario2':{'requests':[{'follow-redirects': True},{'use-dns-cache-mgr': True}, {'store-cookie': False}], 'default-address':'blazemeter.com'}})
+        #self.assertEqual(self.config.get("scenarios"), {'scenario1':{'requests':[{'follow-redirects': True},{'use-dns-cache-mgr': True}, {'store-cookie': False}], 'default-address':'blazemeter.com'},'scenario2':{'requests':[{'follow-redirects': True},{'use-dns-cache-mgr': True}, {'store-cookie': False}], 'default-address':'blazemeter.com'}})
+        self.assertEqual(self.config.get("scenarios"), {'s1':{'req':[{'f-dir': True}], 'd-addr':'bt.com'},'s2':{'req':[{'f-dir': True}], 'd-addr':'bt.com'}})
         self.assertEqual(self.config.get("items"), [1, 2, 3])
