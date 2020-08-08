@@ -133,46 +133,6 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         })
         self.assertIn("--iterations 3", self.CMD_LINE)
 
-    def test_install_mocha(self):
-        dummy_installation_path = get_full_path(BUILD_DIR + "selenium-taurus/nodejs")
-        mocha_link = get_full_path(RESOURCES_DIR + "selenium/mocha-7.0.0.tgz")
-        wd_link = get_full_path(RESOURCES_DIR + "selenium/selenium-webdriver-1.0.0.tgz")
-
-        shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)
-        self.assertFalse(exists(dummy_installation_path))
-
-        old_node_path = os.environ.get("NODE_PATH")
-        if old_node_path:
-            os.environ.pop("NODE_PATH")
-
-        orig_mocha_package = Mocha.PACKAGE_NAME
-        orig_wd_package = JSSeleniumWebdriver.PACKAGE_NAME
-        try:
-            Mocha.PACKAGE_NAME = mocha_link
-            JSSeleniumWebdriver.PACKAGE_NAME = wd_link
-
-            self.obj.engine.config.merge({
-                "modules": {
-                    "mocha": {
-                        "tools-dir": dummy_installation_path}}})
-
-            self.obj.execution.merge({
-                "runner": "mocha",
-                "scenario": {
-                    "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"}})
-            self.obj.prepare()
-
-            self.assertTrue(exists(join(dummy_installation_path, "node_modules")))
-            self.assertTrue(exists(join(dummy_installation_path, "node_modules", "mocha")))
-            self.assertTrue(exists(join(dummy_installation_path, "node_modules", "mocha", "index.js")))
-            self.assertTrue(exists(join(dummy_installation_path, "node_modules", "selenium-webdriver")))
-            self.assertTrue(exists(join(dummy_installation_path, "node_modules", "selenium-webdriver", "index.js")))
-        finally:
-            Mocha.PACKAGE_NAME = orig_mocha_package
-            JSSeleniumWebdriver.PACKAGE_NAME = orig_wd_package
-            if old_node_path:
-                os.environ["NODE_PATH"] = old_node_path
-
 
 class TestWebdriverIOExecutor(SeleniumTestCase):
     RUNNER_STUB = RESOURCES_DIR + "selenium/js-wdio/wdio" + EXE_SUFFIX

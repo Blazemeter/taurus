@@ -15,7 +15,6 @@ platform:
 
 install:
   #- choco install firefox --version 67.0.3
-  - ps: Install-Product node $env:NODEJS_VERSION
   - "%PYTHON%\\python.exe -m pip install pip wheel --upgrade"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
   - "%PYTHON%\\python.exe -m pip install -r tests/ci/requirements.txt"
@@ -28,7 +27,6 @@ before_test:
   - ruby -v
   - gem -v
   - rspec --version
-  - node --version
   - locust --version
   - ps: Start-Process $env:PYTHON\\python.exe tests/resources/httpserver/start.py
 
