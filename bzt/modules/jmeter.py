@@ -28,8 +28,10 @@ import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from itertools import dropwhile
+from io import StringIO
 
 from cssselect import GenericTranslator
+from lxml import etree
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
 from bzt.engine import Scenario, FileLister, HavingInstallableTools, ScenarioExecutor
@@ -39,7 +41,7 @@ from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
-from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode
+from bzt.utils import iteritems, numeric_types, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
 from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, FileReader
@@ -191,7 +193,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         selector = 'jmeterTestPlan'
         test_plan = jmx.get(selector)[0]
         ver = test_plan.get('jmeter')
-        if isinstance(ver, string_types):
+        if isinstance(ver, str):
             index = ver.find(" ")
             if index != -1:
                 return ver[:index]
@@ -495,26 +497,26 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def __add_result_writers(self, jmx):
         version = LooseVersion(self.tool.version)
-        flags = {}
+        csv_flags = self.settings.get('csv-jtl-flags')
         if version < LooseVersion("2.13"):
-            flags['^connectTime'] = False
+            csv_flags['^connectTime'] = False
 
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-        kpi_lst = jmx.new_kpi_listener(self.kpi_jtl, flags)
+        kpi_lst = jmx.new_kpi_listener(self.kpi_jtl, csv_flags)
         self.__add_listener(kpi_lst, jmx)
 
         verbose = self.engine.config.get(SETTINGS).get("verbose", False)
         jtl_log_level = self.execution.get('write-xml-jtl', "full" if verbose else 'error')
 
-        flags = self.settings.get('xml-jtl-flags')
+        xml_flags = self.settings.get('xml-jtl-flags')
 
         if jtl_log_level == 'error':
             self.log_jtl = self.engine.create_artifact("error", ".jtl")
-            log_lst = jmx.new_xml_listener(self.log_jtl, False, flags)
+            log_lst = jmx.new_xml_listener(self.log_jtl, False, xml_flags)
             self.__add_listener(log_lst, jmx)
         elif jtl_log_level == 'full':
             self.log_jtl = self.engine.create_artifact("trace", ".jtl")
-            log_lst = jmx.new_xml_listener(self.log_jtl, True, flags)
+            log_lst = jmx.new_xml_listener(self.log_jtl, True, xml_flags)
             self.__add_listener(log_lst, jmx)
 
     def __force_tran_parent_sample(self, jmx):
@@ -1143,9 +1145,6 @@ class IncrementalCSVReader(object):
                 self.csv_reader.fieldnames += line.strip().split(self.csv_reader.dialect.delimiter)
                 self.log.debug("Analyzed header line: %s", self.csv_reader.fieldnames)
                 continue
-
-            if PY2:  # todo: fix csv parsing of unicode strings on PY2
-                line = line.encode('utf-8')
 
             self.buffer.write(line)
 

@@ -213,9 +213,16 @@ scenarios:
     follow-redirects: true  # follow redirects for all HTTP requests
     random-source-ip: false  # use one of host IPs to send requests, chosen randomly.
                              # False by default
-    data-sources: # list of external data sources
+    data-sources:  # these are data-sources options for Jmeter. See more info below.
     - path/to/my.csv  # this is a shorthand form
+    - path: path/to/another.csv  # this is a full form
+      delimiter: ';'
+      quoted: false
+      loop: true
+      variable-names: id,name
+      random-order: false
 ```
+See more info about data-sources [here](DataSources.md).
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
 
@@ -228,24 +235,7 @@ It's possible to use follow specific values for choosing of `think-time`:
 * poisson(10s, 3s): poisson distribution, mean is 10s and range of values starts from 3s.
 
 ### Data sources
-Taurus allows you to use external CSV files for testing purposes.
-Here is a full list of options for this:
-```yaml
-scenarios:
-  quick-test:
-    requests:
-    - http://blazedemo.com/${id}-${name}
-    data-sources:
-    - path: path/to/another.csv  # this is full form; required option
-      delimiter: ';'  # CSV delimiter, auto-detected by default
-      quoted: false  # allow quoted data; ignored when random-order is true
-      loop: true  # loop over in case of end-of-file reached if true, stop executing if false
-      variable-names: id,name  # delimiter-separated list of variable names
-      random-order: true # enables randomizing plugin; false by default
-```
-When `random-order` is `false`, data extraction will proceed in direct manner. Data lines, which contain delimeters, will be read from the top down to the bottom, just the way they were written. Otherwise, the data will be extracted in a random way.
-
-Also `variable-names` can be omitted. In such case the first line of CSV file will be used as variable names.
+See more info about data-sources [here](DataSources.md).
 
 ### Requests
 
@@ -513,7 +503,8 @@ modules:
 ##### JSR223 Blocks
 
 Sometimes you may want to use a JSR223 Pre/Post Processor to execute a code block before or
-after each request. Taurus allows that with `jsr223` block.
+after some requests. Taurus allows that with `jsr223` block. You can put this block into 
+scenario level (block will run before/after each request in scenario) or into specific request. 
 
 Minimal example that will generate one JSR223 Post Processor.
 ```yaml
@@ -983,6 +974,88 @@ modules:
 ```
 
 Remember: some logging information might be used by `[assertions](#Assertions)` so change log verbosity can affect them.
+
+### CSV file content configuration
+
+By default, the kpi.jtl file does not have enough fields for JMeter's HTML dashboard generator to operate.   
+You can change this with option `csv-jtl-flags` like this:
+
+```yaml
+modules:
+  jmeter:
+    csv-jtl-flags:
+      saveAssertionResultsFailureMessage: true
+      sentBytes: true
+
+services:
+- module: shellexec
+  post-process:
+  - '[ -f "${TAURUS_ARTIFACTS_DIR}/kpi.jtl" ] && /path/to/jmeter -g "${TAURUS_ARTIFACTS_DIR}/kpi.jtl" -o "${TAURUS_ARTIFACTS_DIR}/dashboard" -j "${TAURUS_ARTIFACTS_DIR}/generate_report.log" '
+```
+
+Next example shows all the default flags with default values (you don't have to use full dictionary if you want to change some from them):
+
+```yaml
+modules:
+  jmeter:
+    csv-jtl-flags:
+      xml: false
+      fieldNames: true
+      time: true
+      timestamp: true
+      latency: true
+      connectTime: true
+      success: true
+      label: true
+      code: true
+      message: true
+      threadName: true
+      dataType: false
+      encoding: false
+      assertions: false
+      subresults: false
+      responseData: false
+      samplerData: false
+      responseHeaders: false
+      requestHeaders: false
+      responseDataOnError: false
+      saveAssertionResultsFailureMessage: false
+      bytes: true
+      hostname: true
+      threadCounts: true
+      url: false
+```
+
+You can also add flags which are not listed above, as long as JMeter recognizes them:
+
+```yaml
+modules:
+  jmeter:
+    csv-jtl-flags:
+      sentBytes: true
+      idleTime: true
+```
+
+Note: JMeter dashboard generator **requires** the following settings:
+
+```yaml
+modules:
+  jmeter:
+    csv-jtl-flags:
+      time: true
+      timestamp: true
+      latency: true
+      connectTime: true
+      success: true
+      label: true
+      code: true
+      message: true
+      threadName: true
+      saveAssertionResultsFailureMessage: true
+      bytes: true
+      threadCounts: true
+      sentBytes: true  # JMeter 4.0 or above
+```
 
 ## JMeter JVM Memory Limit
 

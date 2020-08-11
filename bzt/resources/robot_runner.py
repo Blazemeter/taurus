@@ -4,12 +4,8 @@ import time
 from datetime import datetime
 from optparse import OptionParser
 
-if sys.version_info < (3, 0):
-    from StringIO import StringIO
-else:
-    from io import StringIO
-
 from apiritif.samples import Sample
+from io import StringIO
 from robot import run
 
 

@@ -1,11 +1,9 @@
 import ast
 
-from bzt.six import string_types
-
 
 def ast_attr(fields):
     """ fields is string of attrs (e.g. 'self.call.me.now') or list of ast args"""
-    if isinstance(fields, string_types):
+    if isinstance(fields, str):
         if "." in fields:
             fields_list = fields.split(".")
             return ast.Attribute(attr=fields_list[-1], value=ast_attr(".".join(fields_list[:-1])))
@@ -13,7 +11,7 @@ def ast_attr(fields):
         return ast.Name(id=fields)
     else:
         if len(fields) == 1:
-            if isinstance(fields[0], string_types):
+            if isinstance(fields[0], str):
                 return ast.Name(id=fields[0])
             else:
                 return fields[0]
@@ -23,7 +21,7 @@ def ast_attr(fields):
 
 def ast_call(func, args=None, keywords=None):
     args = args or []
-    if isinstance(func, string_types):
+    if isinstance(func, str):
         func = ast.Name(id=func)
     return ast.Call(func=func, args=args, starargs=None, kwargs=None, keywords=keywords or [])
 
@@ -35,12 +33,12 @@ def gen_empty_line_stmt():
 def gen_subscript(var_name, index):
     """ Generates code like variable[1]  """
     return ast.Expr(value=ast.Subscript(value=ast.Name(id=var_name, ctx=ast.Load()),
-                                        slice=ast.Index(value=ast.Num(n=index)), ctx=ast.Load()))
+                                        slice=ast.Index(value=ast.Num(n=index, kind="")), ctx=ast.Load()))
 
 
 def gen_store(name, value):
     return ast.Assign(
         targets=[ast.Subscript(
             value=ast_attr("self.vars"),
-            slice=ast.Str(name))],
+            slice=ast.Str(name, kind=""))],
         value=value)

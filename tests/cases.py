@@ -9,7 +9,6 @@ from unittest.case import TestCase
 
 from bzt.engine import ScenarioExecutor, EXEC
 from bzt.engine import SelfDiagnosable
-from bzt.six import u
 from bzt.utils import get_full_path
 from tests import ROOT_LOGGER
 from tests.mocks import EngineEmul
@@ -166,6 +165,6 @@ class RecordingHandler(Handler):
     def write_log(self, buff, str_template, args):
         str_template += "\n"
         if args:
-            buff.write(u(str_template % args))
+            buff.write(str_template % args)
         else:
-            buff.write(u(str_template))
+            buff.write(str_template)

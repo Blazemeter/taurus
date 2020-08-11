@@ -19,35 +19,32 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import LocatorsManager, add_flow_markers
+from bzt.resources.selenium_extras import dialogs_replace, get_locator, wait_for, add_flow_markers
 
 
 class TestLocSc(unittest.TestCase):
 
     def setUp(self):
-        self.vars = {
+        self.vars = {}
 
-        }
+        timeout = 3.5
         self.driver = None
         options = webdriver.ChromeOptions()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
-        self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', chrome_options=options)
-        self.driver.implicitly_wait(3.5)
-        self.loc_mng = LocatorsManager(self.driver, 3.5)
+        self.driver = webdriver.Chrome(
+            service_log_path='/somewhere/webdriver.log',
+            options=options)
+        self.driver.implicitly_wait(timeout)
         add_flow_markers()
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc')
+        apiritif.put_into_thread_store(driver=self.driver, scenario_name='loc_sc', timeout=timeout, windows={},
+                                       func_mode=False)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
-
-            var_loc_wait = self.loc_mng.get_locator([{
-                'xpath': "//input[@type='submit']",
-            }])
-            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
-                var_loc_wait[0],
-                var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')
+            dialogs_replace()
+            wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             self.assertEqual(self.driver.title, 'BlazeDemo')
             body = self.driver.page_source
             re_pattern = re.compile('contained_text')

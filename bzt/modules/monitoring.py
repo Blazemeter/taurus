@@ -9,14 +9,14 @@ from collections import OrderedDict, namedtuple
 
 import csv
 import psutil
+from urllib.parse import urlencode
 from urwid import Pile, Text
 
 from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.six import iteritems, urlencode, b, stream_decode, integer_types, PY3
-from bzt.utils import dehumanize_time, BetterDict
+from bzt.utils import iteritems, b, stream_decode, dehumanize_time, BetterDict
 
 
 class Monitoring(Service, WidgetProvider, Singletone):
@@ -188,14 +188,11 @@ class LocalClient(MonitoringClient):
         self.interval = dehumanize_time(self.config.get("interval", self.engine.check_interval))
 
         if self.config.get("logging", False):
-            if not PY3:
-                self.log.warning("Logging option doesn't work on python2.")
-            else:
-                self.logs_file = self.engine.create_artifact("local_monitoring_logs", ".csv")
-                with open(self.logs_file, "a", newline='') as mon_logs:
-                    logs_writer = csv.writer(mon_logs, delimiter=',')
-                    metrics = ['ts'] + sorted([metric for metric in good_list])
-                    logs_writer.writerow(metrics)
+            self.logs_file = self.engine.create_artifact("local_monitoring_logs", ".csv")
+            with open(self.logs_file, "a", newline='') as mon_logs:
+                logs_writer = csv.writer(mon_logs, delimiter=',')
+                metrics = ['ts'] + sorted([metric for metric in good_list])
+                logs_writer.writerow(metrics)
 
     def get_data(self):
         now = time.time()
@@ -205,7 +202,7 @@ class LocalClient(MonitoringClient):
             self._cached_data = []
             metric_values = self._get_resource_stats()
 
-            if self.logs_file and PY3:
+            if self.logs_file:
                 with open(self.logs_file, "a", newline='') as mon_logs:
                     line = [str(round(now))] + [str(metric_values[x]) for x in sorted(metric_values.keys())]
                     logs_writer = csv.writer(mon_logs, delimiter=',')
@@ -345,14 +342,11 @@ class GraphiteClient(MonitoringClient):
             self.host_label = self.address.replace('http://', '').replace('/', '').replace(':', '_')
 
         if self.config.get("logging", False):
-            if not PY3:
-                self.log.warning("Logging option doesn't work on python2.")
-            else:
-                self.logs_file = self.engine.create_artifact("Graphite_logs_{}".format(self.host_label), ".csv")
-                with open(self.logs_file, "a", newline='') as sa_logs:
-                    logs_writer = csv.writer(sa_logs, delimiter=',')
-                    metrics = ['ts'] + [metric for metric in self.config.get("metrics")]
-                    logs_writer.writerow(metrics)
+            self.logs_file = self.engine.create_artifact("Graphite_logs_{}".format(self.host_label), ".csv")
+            with open(self.logs_file, "a", newline='') as sa_logs:
+                logs_writer = csv.writer(sa_logs, delimiter=',')
+                metrics = ['ts'] + [metric for metric in self.config.get("metrics")]
+                logs_writer.writerow(metrics)
 
     def _get_url(self):
         exc = TaurusConfigError('Graphite client requires metrics list')
@@ -408,7 +402,7 @@ class GraphiteClient(MonitoringClient):
 
                 self._cached_data.append(item)
 
-            if self.logs_file and PY3:
+            if self.logs_file:
                 with open(self.logs_file, "a", newline='') as g_logs:
                     logs_writer = csv.writer(g_logs, delimiter=',')
                     logs_writer.writerow(data_line)
@@ -461,14 +455,11 @@ class ServerAgentClient(MonitoringClient):
             raise TaurusNetworkError(msg)
 
         if self.config.get("logging", False):
-            if not PY3:
-                self.log.warning("Logging option doesn't work on python2.")
-            else:
-                self.logs_file = self.engine.create_artifact("SAlogs_{}_{}".format(self.address, self.port), ".csv")
-                with open(self.logs_file, "a", newline='') as sa_logs:
-                    logs_writer = csv.writer(sa_logs, delimiter=',')
-                    metrics = ['ts'] + sorted([metric for metric in self._result_fields])
-                    logs_writer.writerow(metrics)
+            self.logs_file = self.engine.create_artifact("SAlogs_{}_{}".format(self.address, self.port), ".csv")
+            with open(self.logs_file, "a", newline='') as sa_logs:
+                logs_writer = csv.writer(sa_logs, delimiter=',')
+                metrics = ['ts'] + sorted([metric for metric in self._result_fields])
+                logs_writer.writerow(metrics)
 
     def disconnect(self):
         self.log.debug("Closing connection with agent at %s:%s...", self.address, self.port)
@@ -511,7 +502,7 @@ class ServerAgentClient(MonitoringClient):
                 item['source'] = source
                 res.append(item)
 
-                if self.logs_file and PY3:
+                if self.logs_file:
                     with open(self.logs_file, "a", newline='') as sa_logs:
                         line = [str(round(item['ts']))] + line[:-1].split("\t")
                         logs_writer = csv.writer(sa_logs, delimiter=',')
@@ -553,7 +544,7 @@ class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
                 for metric, value in iteritems(metrics):
                     if value[0] is None:
                         rendered = 'N/A'
-                    elif isinstance(value[0], integer_types):
+                    elif isinstance(value[0], int):
                         rendered = "{:,}".format(value[0])
                     elif isinstance(value[0], float):
                         rendered = "{:.3f}".format(value[0])

@@ -16,7 +16,12 @@ class TaskTestCase(BZTestCase):
         self.obj = ShellExecutor()
         self.obj.parameters = BetterDict()
         self.obj.engine = EngineEmul()
-        self.obj.engine.config.merge({"provisioning": "local"})
+        self.obj.engine.config.merge({
+            "provisioning": "local",
+            "modules": {
+                "local": {"class": "bzt.modules.provisioning.Local"},
+                "cloud": {"class": "bzt.modules.blazemeter.CloudProvisioning"},
+            }})
         self.obj.engine.default_cwd = os.getcwd()
         self.sniff_log(self.obj.log)
 
@@ -78,6 +83,79 @@ class TestBlockingTasks(TaskTestCase):
         task = {"command": "pwd", "out": None}
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
+
+    def test_default_prov_context_for_local(self):
+        command = "my_echo"
+        var_name, var_value = "VAR_NAME", "VAR_VALUE"
+        self.obj.parameters.merge({"startup": [{"command": command}]})
+        self.obj.settings.get("env", force_set=True).update({var_name: var_value})
+
+        self.obj.prepare()
+
+        commands = [task.command for task in self.obj.prepare_tasks + self.obj.startup_tasks +
+                    self.obj.check_tasks + self.obj.shutdown_tasks + self.obj.postprocess_tasks]
+        env_vars = self.obj.env.get()
+
+        # handle as usual
+        self.assertEqual(env_vars.get(var_name), var_value)
+        self.assertIn(command, commands)
+
+    def test_default_prov_context_for_cloud(self):
+        command = "my_echo"
+        var_name, var_value = "VAR_NAME", "VAR_VALUE"
+        self.obj.parameters.merge({"startup": [{"command": command}]})
+        self.obj.settings.get("env", force_set=True).update({var_name: var_value})
+        self.obj.engine.config.merge({"provisioning": "cloud"})
+
+        self.obj.prepare()
+
+        commands = [task.command for task in self.obj.prepare_tasks + self.obj.startup_tasks +
+                    self.obj.check_tasks + self.obj.shutdown_tasks + self.obj.postprocess_tasks]
+        env_vars = self.obj.env.get()
+
+        # mustn't be processed for cloud provisioning case
+        self.assertNotEqual(env_vars.get(var_name), var_value)
+        self.assertNotIn(command, commands)
+
+    def test_same_prov_context(self):
+        command = "my_echo"
+        var_name, var_value = "VAR_NAME", "VAR_VALUE"
+        target_prov = "cloud"
+
+        self.obj.parameters.merge({"cloud": {"startup": [{"command": command}]}})
+        self.obj.settings.get("env", force_set=True).update({var_name: var_value})
+        self.obj.settings = BetterDict.from_dict({target_prov: self.obj.settings})
+        self.obj.engine.config.merge({"provisioning": "cloud"})
+
+        self.obj.prepare()
+
+        commands = [task.command for task in self.obj.prepare_tasks + self.obj.startup_tasks +
+                    self.obj.check_tasks + self.obj.shutdown_tasks + self.obj.postprocess_tasks]
+        env_vars = self.obj.env.get()
+
+        # must be handled because current prov specified as target
+        self.assertEqual(env_vars.get(var_name), var_value)
+        self.assertIn(command, commands)
+
+    def test_different_prov_context(self):
+        command = "my_echo"
+        var_name, var_value = "VAR_NAME", "VAR_VALUE"
+        target_prov = "cloud"
+
+        self.obj.parameters.merge({target_prov: {"startup": [{"command": command}]}})
+        self.obj.settings.get("env", force_set=True).update({var_name: var_value})
+        self.obj.settings = BetterDict.from_dict({target_prov: self.obj.settings})
+        self.obj.engine.config.merge({"provisioning": "local"})     # the same as setUp value, just for emphasizing
+
+        self.obj.prepare()
+
+        commands = [task.command for task in self.obj.prepare_tasks + self.obj.startup_tasks +
+                    self.obj.check_tasks + self.obj.shutdown_tasks + self.obj.postprocess_tasks]
+        env_vars = self.obj.env.get()
+
+        # mustn't be handled because settings are specified for different prov
+        self.assertNotEqual(env_vars.get(var_name), var_value)
+        self.assertNotIn(command, commands)
 
 
 class TestNonBlockingTasks(TaskTestCase):

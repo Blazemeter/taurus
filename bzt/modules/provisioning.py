@@ -23,8 +23,7 @@ import traceback
 
 from bzt import ToolError
 from bzt.engine import Provisioning, SelfDiagnosable
-from bzt.six import reraise
-from bzt.utils import dehumanize_time
+from bzt.utils import dehumanize_time, reraise
 
 
 class Local(Provisioning):

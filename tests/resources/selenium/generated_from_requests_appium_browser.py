@@ -19,35 +19,30 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import LocatorsManager
+from bzt.resources.selenium_extras import wait_for, get_locator, dialogs_replace
 
 
 class TestLocScAppium(unittest.TestCase):
 
     def setUp(self):
-        self.vars = {
+        self.vars = {}
 
-        }
+        timeout = 3.5
         self.driver = None
-        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={
-            'browserName': 'chrome',
-            'deviceName': '',
-            'platformName': 'android',
-        })
-        self.driver.implicitly_wait(3.5)
-        self.loc_mng = LocatorsManager(self.driver, 3.5)
-        apiritif.put_into_thread_store(func_mode=False, driver=self.driver, scenario_name='loc_sc_appium')
+        options = None
+        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub',
+                                       desired_capabilities={'browserName': 'chrome', 'deviceName': '',
+                                                             'platformName': 'android'},
+                                       options=options)
+        self.driver.implicitly_wait(timeout)
+        apiritif.put_into_thread_store(scenario_name='loc_sc_appium', timeout=timeout, driver=self.driver, windows={},
+                                       func_mode=False)
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
-
-            var_loc_wait = self.loc_mng.get_locator([{
-                'xpath': "//input[@type='submit']",
-            }])
-            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((
-                var_loc_wait[0],
-                var_loc_wait[1])), 'Element \'xpath\':"//input[@type=\'submit\']" failed to appear within 3.5s')
+            dialogs_replace()
+            wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             self.assertEqual(self.driver.title, 'BlazeDemo')
             body = self.driver.page_source
             re_pattern = re.compile('contained_text')

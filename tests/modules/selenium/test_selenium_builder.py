@@ -3,10 +3,8 @@
 import ast
 import astunparse
 import os
-import unittest
 
 from bzt import TaurusConfigError
-from bzt.six import PY2
 from tests import RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
 
@@ -84,18 +82,17 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        if PY2:
-            print_i = "print i"
-        else:
-            print_i = "print(i)"
+        print_i = "print(i)"
+
+        self.assertNotIn(content, "self.dlg_mng = DialogsManager(self.driver)")
 
         target_lines = [
-            "self.wnd_mng.switch('0')",
+            "switch_window('0')",
             """self.driver.execute_script("window.open('some.url');")""",
-            "self.wnd_mng.close()",
-            "self.wnd_mng.close('win_ser_local')",
-            "self.frm_mng.switch('index=1')",
-            "self.frm_mng.switch('relative=parent')",
+            "close_window()",
+            "close_window('win_ser_local')",
+            "switch_frame('index=1')",
+            "switch_frame('relative=parent')",
             "ActionChains(self.driver).click_and_hold(self.driver.find_element(var_loc_chain[0], "
             "var_loc_chain[1])).perform()",
             "ActionChains(self.driver).move_to_element_with_offset(self.driver.find_element(var_loc_chain[0],"
@@ -127,8 +124,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "raiseNoSuchElementException((\'The element (%s : %r)is not a contenteditable element\'%"
             "(var_edit_content[0], var_edit_content[1])))"
             "print(self.vars['red_pill'])",
-            "WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((var_loc_wait[0],"
-            "var_loc_wait[1])), \"Element 'name':'toPort' failed to appear within 3.5s\")",
+            "wait_for('visible', [{'name': 'toPort'}], 3.5)"
             "sleep(4.6)",
             "self.driver.delete_all_cookies()",
             "self.driver.save_screenshot('screen.png')",
@@ -177,10 +173,11 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         target_lines = [
             "options = webdriver.FirefoxOptions()",
+            "options.set_preference('network.proxy.type', 4)",
             "options.set_headless()",
             "profile = webdriver.FirefoxProfile()",
             "profile.set_preference('webdriver.log.file', '",
-            "driver = webdriver.Firefox(profile, firefox_options=options)"
+            "driver = webdriver.Firefox(profile, options=options)"
         ]
 
         for idx in range(len(target_lines)):
@@ -220,7 +217,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target_lines = [
             "options = webdriver.ChromeOptions()",
             "driver = webdriver.Chrome(service_log_path='",
-            "', chrome_options=options)"
+            "', options=options)"
         ]
 
         for idx in range(len(target_lines)):
@@ -250,6 +247,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         }],
                         "actions": [
                             "waitByXPath(//input[@type='submit'])",
+                            {"waitForByXPath(//input[@name='test,name'], present)": "1m20s"},
                             "assertTitle(BlazeDemo)",
                             "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
                             "doubleClickByXPath(/html/body/div[3]/h2)",
@@ -280,6 +278,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"rawCode": "for i in range(10):\n  if i % 2 == 0:\n    print(i)"},
                             {"dragByID(address)": "elementByName(toPort)"},
                             "switchFrameByName('my_frame')",
+                            "switchFrame('top_frame')",
+                            "switchFrameByXpath(//*[@id='result'])",
+                            "switchFrameByCSS(.my_class)",
+                            "switchFrameById(frame_id)",
                             "switchFrameByIdx(1)",
                             "switchFrame(relative=parent)",
                             {"editContentById(editor)": "lo-la-lu"},
@@ -293,6 +295,12 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"storeEval(0 == false)": "var_eval"},
                             "assertEval(10 === 2*5)",
                             "go(http:\\blazemeter.com)",
+                            {"assertDialog(alert)": "Alert Message"},
+                            {"assertDialog(prompt)": "Enter value"},
+                            {"assertDialog(confirm)": "Are you sure?"},
+                            {"answerDialog(prompt)": "myvalue"},
+                            {"answerDialog(confirm)": "#Ok"},
+                            {"answerDialog(alert)": "#Ok"},
                             "echoString(${red_pill})",
                             "screenshot(screen.png)",
                             "screenshot()",
@@ -711,7 +719,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-    @unittest.skipIf(PY2, "py3 only")
     def test_non_utf(self):
         self.configure({
             "execution": [{
@@ -762,9 +769,9 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "var_loc_keys=self.loc_mng.get_locator([{'name':'btn1',}])",
+            "var_loc_keys=get_locator([{'name':'btn1',}])",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).click()",
-            "var_loc_keys=self.loc_mng.get_locator([{'id':'Id_123',}])",
+            "var_loc_keys=get_locator([{'id':'Id_123',}])",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('London')"
         ]
@@ -802,8 +809,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "source=self.loc_mng.get_locator([{'xpath':'/xpath/to'}])",
-            "target=self.loc_mng.get_locator([{'css':'mycss'},{'id':'ID'}])",
+            "source=get_locator([{'xpath':'/xpath/to'}])",
+            "target=get_locator([{'css':'mycss'},{'id':'ID'}])",
             "ActionChains(self.driver).drag_and_drop(self.driver.find_element(source[0],source[1]),"
             "self.driver.find_element(target[0],target[1])).perform()"
         ]
@@ -1058,6 +1065,15 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         ]
                                     },
                                     {
+                                        "type": "waitFor",
+                                        "param": "visible",
+                                        "locators": [
+                                            {"css": "invalid_css"},
+                                            {"name": "inputName"}
+                                        ],
+                                        "value": "2h30m20s"
+                                    },
+                                    {
                                         "type": "editContent",
                                         "param": "lo-la-lu",
                                         "locators": [{"id": "editor"}]
@@ -1097,7 +1113,37 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     },
                                     {
                                         "type": "closeWindow"
-                                    }
+                                    },
+                                    {
+                                        "type": "answerDialog",
+                                        "param": "prompt",
+                                        "value": "my input"
+                                    },
+                                    {
+                                        "type": "answerDialog",
+                                        "param": "confirm",
+                                        "value": '#Ok'
+                                    },
+                                    {
+                                        "type": "answerDialog",
+                                        "param": "alert",
+                                        "value": '#Ok'
+                                    },
+                                    {
+                                        "type": "assertDialog",
+                                        "param": "alert",
+                                        "value": "Exception occurred!"
+                                    },
+                                    {
+                                        "type": "assertDialog",
+                                        "param": "confirm",
+                                        "value": "Are you sure?"
+                                    },
+                                    {
+                                        "type": "assertDialog",
+                                        "param": "prompt",
+                                        "value": "What is your age?"
+                                    },
                                 ]
                             }
                         ]
@@ -1208,7 +1254,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_if_then_else.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "<somewhere>", python_files=True)
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
     def test_conditions_missing_then(self):
         self.configure({
@@ -1291,7 +1337,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {
                                 "loop": "i",
                                 "start": 1,
-                                "end": 10
+                                "end": 10,
+                                "do": []
                             }
                         ]}]}}})
 
@@ -1324,9 +1371,9 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "for i in range(1, 11)",
+            "for i in get_loop_range(1, 10, 1)",
             "self.vars['i'] = str(i)",
-            "self.loc_mng.get_locator([{'id': self.vars['i']"
+            "get_locator([{'id': self.vars['i']"
 
         ]
         for idx in range(len(target_lines)):
@@ -1359,7 +1406,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "for i in range(1, 11, 2)",
+            "for i in get_loop_range(1, 10, 2)",
             "self.vars['i'] = str(i)"
         ]
         for idx in range(len(target_lines)):
@@ -1390,8 +1437,535 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "for i in range(10, -1, -1)",
+            "for i in get_loop_range(10, 0, -1)",
             "self.vars['i'] = str(i)"
         ]
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_loop_w_variables(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "variables": {
+                        "start": 10,
+                        "end": 20,
+                        "step": 1
+                    },
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": "${start}",
+                                "end": "${end}",
+                                "step": "${step}",
+                                "do": [
+                                    "clickById(id_${i})"
+                                ]
+                            }
+                        ]}]}}})
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_loop_variables.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+    def test_loop_str_var_fields(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "variables": {
+                        "step": 1
+                    },
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loop": "i",
+                                "start": "1",
+                                "end": "10",
+                                "step": '1${step}',
+                                "do": [
+                                    "clickById(id)"
+                                ]
+                            }
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "for i in get_loop_range(1, 10, '1{}'.format(self.vars['step']))",
+            "self.vars['i'] = str(i)"
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_assert_dialog_wrong_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "assertDialog(wrong)": "test"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
+                        in str(context.exception))
+
+    def test_answer_dialog_wrong_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "answerDialog(wrong)": "test"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("answerDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
+                        in str(context.exception))
+
+    def test_answer_confirm_incorrect_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "answerDialog(confirm)": "value"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("answerDialog of type confirm must have value either '#Ok' or '#Cancel'"
+                        in str(context.exception))
+
+    def test_answer_alert_incorrect_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "answerDialog(alert)": "value"
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("answerDialog of type alert must have value '#Ok'"
+                        in str(context.exception))
+
+    def test_wait_for(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "type": "waitFor",
+                                "param": "visible",
+                                "locators": [
+                                    {"css": "invalid_css"},
+                                    {"id": "input_id"}
+                                ],
+                                "value": "2h30m20s"
+                            },
+                            {"waitForById(myId, present)": "10s"},
+                            {"waitForById(myId, clickable)": "10s"},
+                            {"waitForById(myId, notvisible)": "10s"},
+                            {"waitForById(myId, notpresent)": "10s"},
+                            {"waitForById(myId, notclickable)": "10s"}
+                        ]}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "wait_for('visible',[{'css':'invalid_css'},{'id':'input_id'}],9020.0)",
+            "wait_for('present',[{'id':'myId'}],10.0)",
+            "wait_for('clickable',[{'id':'myId'}],10.0)",
+            "wait_for('notvisible',[{'id':'myId'}],10.0)",
+            "wait_for('notpresent',[{'id':'myId'}],10.0)",
+            "wait_for('notclickable',[{'id':'myId'}],10.0)"
+        ]
+        for idx in range(len(target_lines)):
+            target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
+            self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
+                          TestSeleniumScriptGeneration.clear_spaces(content),
+                          msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_wait_for_invalid_cond(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {"waitForById(myId, invisible)": "10s"},
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue('Invalid condition' in str(context.exception),
+                        "Given string was not found in '%s'" % str(context.exception))
+
+    def test_foreach_all_by_element_actions(self):
+        self.configure(
+            {
+                "execution": [
+                    {
+                        "executor": "apiritif",
+                        "scenario": "loc_sc"
+                    }
+                ],
+                "scenarios": {
+                    "loc_sc": {
+                        "default-address": "http://blazedemo.com,",
+                        "browser": "Chrome",
+                        "variables": {
+                            "city_select_name": "fromPort",
+                            "input_name_id": "inputName"
+                        },
+                        "timeout": "3.5s",
+                        "requests": [
+                            {
+                                "label": "Foreach test",
+                                "actions": [
+                                    {
+                                        "foreach": "el",
+                                        "locators": [
+                                            {"css": "input"},
+                                            {"xpath": "/table/input/"},
+                                        ],
+                                        "do": [
+                                            {"assertTextByElement(el)": "text"},
+                                            {
+                                                "type": "assertText",
+                                                "element": "el",
+                                                "param": "text",
+                                                "locators": [
+                                                    {"css": "style"},
+                                                    {"xpath": "//tr"}
+                                                ]
+                                            },
+                                            {"assertValueByElement(el)": "value"},
+                                            {
+                                                "type": "assertValue",
+                                                "element": "el",
+                                                "param": "value"
+                                            },
+                                            {"editContentByElement(el)" : "new text"},
+                                            {
+                                                "type": "editContent",
+                                                "element": "el",
+                                                "param": "new text"
+                                            },
+                                            "clickByElement(el)",
+                                            {
+                                                "type": "click",
+                                                "element": "el",
+                                                "locators": [
+                                                    {"css": "input-cls"},
+                                                    {"xpath": "//input"}
+                                                ]
+                                            },
+                                            "doubleClickByElement(el)",
+                                            {
+                                                "type": "doubleClick",
+                                                "element": "el",
+                                            },
+                                            "mouseDownByElement(el)",
+                                            {
+                                                "type": "mouseDown",
+                                                "element": "el",
+                                            },
+                                            "mouseUpByElement(el)",
+                                            {
+                                                "type": "mouseUp",
+                                                "element": "el",
+                                            },
+                                            "mouseOutByElement(el)",
+                                            {
+                                                "type": "mouseOut",
+                                                "element": "el",
+                                            },
+                                            "mouseOverByElement(el)",
+                                            {
+                                                "type": "mouseOver",
+                                                "element": "el",
+                                            },
+                                            {"dragByElement(el)" : "elementById(id12)"},
+                                            {"dragById(id34)": "elementByElement(el)"},
+                                            {
+                                                "type": "drag",
+                                                "source": [
+                                                    {"element": "el"}
+                                                ],
+                                                "target": [
+                                                        {"id": "id12"}
+                                                ]
+                                            },
+                                            {
+                                                "type": "drag",
+                                                "source": [
+                                                    {"id": "id34"}
+                                                ],
+                                                "target": [
+                                                    {"element": "el"}
+                                                ]
+                                            },
+                                            {"selectByElement(el)": "value"},
+                                            {
+                                                "type": "select",
+                                                "element": "el",
+                                                "param": "value"
+                                            },
+                                            {"storeTextByElement(el)": "my_var"},
+                                            {
+                                                "type": "storeText",
+                                                "element": "el",
+                                                "param": "my_var"
+                                            },
+                                            {"storeValueByElement(el)": "my_var"},
+                                            {
+                                                "type": "storeValue",
+                                                "element": "el",
+                                                "param": "my_var"
+                                            },
+                                            {"typeByElement(el)": "text"},
+                                            {
+                                                "type": "type",
+                                                "element": "el",
+                                                "param": "text"
+                                            },
+                                            "submitByElement(el)",
+                                            {
+                                                "type": "submit",
+                                                "element": "el"
+                                            },
+                                            {"keysByElement(el)": "KEY_ENTER"},
+                                            {
+                                                "type": "keys",
+                                                "element": "el",
+                                                "param": "KEY_ENTER"
+                                            },
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        )
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_foreach.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+    def test_foreach_missing_locators(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "foreach": "element",
+                                "do": [
+                                    "clickByElement(element)"
+                                ]
+                            }
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj.prepare()
+
+        self.assertTrue("Foreach loop must contain locators and do" in str(context.exception))
+
+    def test_all_by_shadow_actions(self):
+        self.configure(
+            {
+                "execution": [
+                    {
+                        "executor": "apiritif",
+                        "scenario": "loc_sc"
+                    }
+                ],
+                "scenarios": {
+                    "loc_sc": {
+                        "default-address": "http://blazedemo.com,",
+                        "browser": "Chrome",
+                        "variables": {
+                            "city_select_name": "fromPort",
+                            "input_name_id": "inputName"
+                        },
+                        "timeout": "3.5s",
+                        "requests": [
+                            {
+                                "label": "Shadow locators test",
+                                "actions": [
+                                    {"assertTextByShadow(c-basic, lightning-accordion-section, .slds-button)": "text"},
+                                    {
+                                        "type": "assertText",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "text"
+                                    },
+                                    {"assertValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "value"},
+                                    {
+                                        "type": "assertValue",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "value"
+                                    },
+                                    {"editContentByShadow(c-basic, lightning-accordion-section, .slds-button)" : "new text"},
+                                    {
+                                        "type": "editContent",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "new text"
+                                    },
+                                    "clickByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "click",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    "doubleClickByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "doubleClick",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    "mouseDownByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "mouseDown",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    "mouseUpByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "mouseUp",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    "mouseOutByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "mouseOut",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    "mouseOverByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "mouseOver",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    {"dragByShadow(c-basic, lightning-accordion-section, .slds-button)" : "elementById(id12)"},
+                                    {"dragById(id34)": "elementByShadow(c-basic, lightning-accordion-section, .slds-button)"},
+                                    {
+                                        "type": "drag",
+                                        "source": [
+                                            {"shadow": "c-basic, lightning-accordion-section, .slds-button"}
+                                        ],
+                                        "target": [
+                                            {"id": "id12"}
+                                        ]
+                                    },
+                                    {
+                                        "type": "drag",
+                                        "source": [
+                                            {"id": "id34"}
+                                        ],
+                                        "target": [
+                                            {"shadow": "c-basic, lightning-accordion-section, .slds-button"}
+                                        ]
+                                    },
+                                    {"selectByShadow(c-basic, lightning-accordion-section, .slds-button)": "value"},
+                                    {
+                                        "type": "select",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "value"
+                                    },
+                                    {"storeTextByShadow(c-basic, lightning-accordion-section, .slds-button)": "my_var"},
+                                    {
+                                        "type": "storeText",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "my_var"
+                                    },
+                                    {"storeValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "my_var"},
+                                    {
+                                        "type": "storeValue",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "my_var"
+                                    },
+                                    {"typeByShadow(c-basic, lightning-accordion-section, .slds-button)": "text"},
+                                    {
+                                        "type": "type",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "text"
+                                    },
+                                    "submitByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "submit",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button"
+                                    },
+                                    {"keysByShadow(c-basic, lightning-accordion-section, .slds-button)": "KEY_ENTER"},
+                                    {
+                                        "type": "keys",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "KEY_ENTER"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        )
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_shadow.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)

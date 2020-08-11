@@ -1,3 +1,6 @@
+image:
+  - Visual Studio 2019
+
 # Do not build feature branch with open Pull Requests
 skip_branch_with_pr: true
 
@@ -12,9 +15,7 @@ platform:
 
 install:
   #- choco install firefox --version 67.0.3
-  - ps: Install-Product node $env:NODEJS_VERSION
   - "%PYTHON%\\python.exe -m pip install pip wheel --upgrade"
-  - "%PYTHON%\\python.exe -m pip install pyyaml==3.12"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
   - "%PYTHON%\\python.exe -m pip install -r tests/ci/requirements.txt"
   - set PATH=C:\Ruby22\bin;%PYTHON%\Scripts\;%PATH%
@@ -26,14 +27,8 @@ before_test:
   - ruby -v
   - gem -v
   - rspec --version
-  - node --version
   - locust --version
-  - ps: Start-Process python tests/resources/httpserver/start.py
+  - ps: Start-Process $env:PYTHON\\python.exe tests/resources/httpserver/start.py
 
 test_script:
-  - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
-      --exclude-dir=tests/ci --with-coverage --cover-inclusive"
-
-after_test:
-  - "coverage report -m"
-  - "codecov"
+  - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci"

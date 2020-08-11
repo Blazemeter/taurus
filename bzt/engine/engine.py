@@ -30,16 +30,17 @@ import time
 import traceback
 import uuid
 from distutils.version import LooseVersion
+from urllib import parse
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
-from bzt.six import string_types, text_type, parse, reraise
-from bzt.utils import load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
+from bzt.utils import reraise, load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient, Environment
 from .dicts import Configuration
 from .modules import Provisioning, Reporter, Service, Aggregator, EngineModule
 from .names import EXEC, TAURUS_ARTIFACTS_DIR, SETTINGS
 from .templates import Singletone
+from ..environment_helpers import expand_variable_with_os, custom_expandvars, expand_envs_with_os
 
 
 class Engine(object):
@@ -411,7 +412,7 @@ class Engine(object):
             artifacts_dir = self.config.get(SETTINGS, force_set=True).get("artifacts-dir", self.ARTIFACTS_DIR)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
 
-        self.artifacts_dir = get_full_path(self.artifacts_dir)
+        self.artifacts_dir = self.__expand_artifacts_dir()
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
         os.environ[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
@@ -430,6 +431,13 @@ class Engine(object):
             merged_config.dump(self.create_artifact("merged", ".json"), Configuration.JSON)
         for artifact in existing_artifacts:
             self.existing_artifact(artifact)
+
+    def __expand_artifacts_dir(self):
+        envs = self.__get_envs_from_config()
+        artifacts_dir = custom_expandvars(self.artifacts_dir, envs)
+        artifacts_dir = expand_variable_with_os(artifacts_dir)
+        artifacts_dir = get_full_path(artifacts_dir)
+        return artifacts_dir
 
     def is_functional_mode(self):
         return self.aggregator is not None and self.aggregator.is_functional
@@ -723,35 +731,38 @@ class Engine(object):
         """
         Should be done after `configure`
         """
-        envs = self.config.get(SETTINGS, force_set=True).get("env", force_set=True)
-        envs[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
-
-        for varname in envs:
-            if envs[varname]:
-                envs[varname] = str(envs[varname])
-                envs[varname] = os.path.expandvars(envs[varname])
-
-        for varname in envs:
-            if envs[varname] is None:
-                if varname in os.environ:
-                    os.environ.pop(varname)
-            else:
-                os.environ[varname] = str(envs[varname])
-
-        def custom_expandvars(value):
-            parts = re.split(r'(\$\{.*?\})', value)
-            value = ''
-            for item in parts:
-                if item and item.startswith("${") and item.endswith("}"):
-                    key = item[2:-1]
-                    if key in envs:
-                        item = envs[key]
-                if item is not None:
-                    value += text_type(item)
-            return value
+        envs = self.__get_envs_from_config()
+        envs = expand_envs_with_os(envs)
 
         def apply_env(value, key, container):
-            if isinstance(value, string_types):
-                container[key] = custom_expandvars(value)
+            if isinstance(value, str):
+                container[key] = custom_expandvars(value, envs)
 
         BetterDict.traverse(self.config, apply_env)
+
+        self.__export_variables_to_os()
+
+    def __export_variables_to_os(self):
+        """
+        Export all user-defined environment variables to the system.
+        Example:
+
+        settings:
+          env:
+            FOO: bbb/ccc
+            BAR: aaa
+        """
+        envs = self.__get_envs_from_config()
+
+        for var_name in envs:
+            if envs[var_name] is None:
+                if var_name in os.environ:
+                    os.environ.pop(var_name)
+            else:
+                os.environ[var_name] = envs[var_name]
+                self.log.debug("OS env: %s=%s", var_name, envs[var_name])
+
+    def __get_envs_from_config(self):
+        envs = self.config.get(SETTINGS, force_set=True).get("env", force_set=True)
+        envs[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
+        return envs

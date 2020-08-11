@@ -1,13 +1,13 @@
 """ unit test """
 import os
 import sys
+
 import yaml
 
 from bzt import TaurusConfigError
 from bzt.engine import Configuration, EXEC
-from bzt.six import string_types, communicate
-from bzt.utils import BetterDict, is_windows
-from tests import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase
+from bzt.utils import BetterDict, is_windows, get_full_path, get_uniq_name, communicate
+from tests import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase, TEST_DIR
 from tests.mocks import EngineEmul
 
 
@@ -181,6 +181,51 @@ class TestEngine(BZTestCase):
             if "BZT_ENV_TEST_UNSET" in os.environ:
                 os.environ.pop("BZT_ENV_TEST_UNSET")
 
+    def test_nested_env_eval(self):
+        try:
+            self.obj.config.merge({
+                "settings": {
+                    "env": {
+                        "FOO": "${BAR}/aaa/bbb",
+                        "FOOBAR": "eee",
+                        "BAR": "${BAZ}/ccc",
+                        "BAZ": "${FOOBAR}/ddd",
+                        "ART": "${FOO}===${TAURUS_ARTIFACTS_DIR}",
+                    }
+                }})
+            self.obj.eval_env()
+
+            self.assertEqual("${FOOBAR}/ddd/ccc/aaa/bbb", self.obj.config["settings"]["env"]["FOO"])
+            self.assertEqual("${FOOBAR}/ddd/ccc/aaa/bbb", os.environ["FOO"])
+
+            self.assertEqual("eee", self.obj.config["settings"]["env"]["FOOBAR"])
+            self.assertEqual("eee", os.environ["FOOBAR"])
+
+            self.assertEqual("eee/ddd/ccc", self.obj.config["settings"]["env"]["BAR"])
+            self.assertEqual("eee/ddd/ccc", os.environ["BAR"])
+
+            self.assertEqual("eee/ddd", self.obj.config["settings"]["env"]["BAZ"])
+            self.assertEqual("eee/ddd", os.environ["BAZ"])
+
+            self.assertEqual("eee/ddd/ccc/aaa/bbb==={}".format(
+                self.obj.config["settings"]["env"]["TAURUS_ARTIFACTS_DIR"]), self.obj.config["settings"]["env"]["ART"])
+            self.assertEqual("eee/ddd/ccc/aaa/bbb==={}".format(
+                self.obj.config["settings"]["env"]["TAURUS_ARTIFACTS_DIR"]), os.environ["ART"])
+
+            self.log.debug("env.ART: {}, os.env.ART: {}".format(
+                self.obj.config["settings"]["env"]["ART"], os.environ["ART"]))
+        finally:
+            if "FOO" in os.environ:
+                os.environ.pop("FOO")
+            if "BAR" in os.environ:
+                os.environ.pop("BAR")
+            if "FOOBAR" in os.environ:
+                os.environ.pop("FOOBAR")
+            if "BAZ" in os.environ:
+                os.environ.pop("BAZ")
+            if "ART" in os.environ:
+                os.environ.pop("ART")
+
     def test_singletone_service(self):
         configs = [
             RESOURCES_DIR + "yaml/singletone-service.yml",
@@ -212,7 +257,7 @@ class TestScenarioExecutor(ExecutorTestCase):
     def test_timers(self):
         """ general executor supports only simplified form of think-time """
         with open(os.path.join(RESOURCES_DIR, "yaml/timers.yml")) as config_file:
-            config = yaml.load(config_file.read())
+            config = yaml.full_load(config_file.read())
 
         self.configure(config)
         timers = [request.get_think_time() for request in self.obj.get_scenario().get_requests()]
@@ -299,7 +344,7 @@ class TestScenarioExecutor(ExecutorTestCase):
         self.obj.get_scenario()
         config = self.engine.config
         scenario = config['execution'][0]['scenario']
-        self.assertTrue(isinstance(scenario, string_types))
+        self.assertTrue(isinstance(scenario, str))
         self.assertIn(scenario, config['scenarios'])
 
     def test_scenario_not_found(self):
@@ -324,6 +369,25 @@ class TestScenarioExecutor(ExecutorTestCase):
         stdout, _ = communicate(process)
         self.assertEquals(self.engine.artifacts_dir, stdout.strip())
 
+    def test_passes_artifacts_dir_with_envs(self):
+        cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
+        engine = EngineEmul({
+            "settings": {
+                "env": {"BZT_ARTIFACTS_DIR_ENV_TEST": "custom_dir_from_env"},
+                "artifacts-dir": get_uniq_name(directory=get_full_path(TEST_DIR),
+                                               prefix="${BZT_ARTIFACTS_DIR_ENV_TEST}/%Y-%m-%d_%H-%M-%S.%f")
+            }})
+        engine.eval_env()
+        engine.prepare()
+        executor = self.obj
+        executor.engine = engine
+        process = executor._execute(cmdline, shell=True)
+        stdout, _ = communicate(process)
+        self.assertEqual(engine.artifacts_dir, stdout.strip())
+
+        if "BZT_ARTIFACTS_DIR_ENV_TEST" in os.environ:
+            os.environ.pop("BZT_ARTIFACTS_DIR_ENV_TEST")
+
     def test_case_of_variables(self):
         env = {'aaa': 333, 'AAA': 666}
         line_tpl = "echo %%%s%%" if is_windows() else "echo $%s"
@@ -341,7 +405,7 @@ class TestScenarioExecutor(ExecutorTestCase):
             self.assertEqual(2, len(results))
 
     def test_get_load(self):
-        self.configure({EXEC:{
+        self.configure({EXEC: {
             "ramp-up": "1", "concurrency": "2", "throughput": "3"}})
         self.assertEqual(self.obj.execution.get("ramp-up"), "1")
         self.assertEqual(self.obj.execution.get("concurrency"), "2")

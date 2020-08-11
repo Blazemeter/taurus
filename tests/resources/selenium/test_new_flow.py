@@ -26,9 +26,10 @@ class TestSdsdsdsSelenium(unittest.TestCase):
 
     def setUp(self):
         self.driver = None
+        timeout = 60.0
         options = webdriver.ChromeOptions()
-        self.driver = webdriver.Chrome(service_log_path='webdriver.log', chrome_options=options)
-        self.driver.implicitly_wait(60.0)
+        self.driver = webdriver.Chrome(service_log_path='webdriver.log', options=options)
+        self.driver.implicitly_wait(timeout)
 
         self.vars = {
 
@@ -38,6 +39,7 @@ class TestSdsdsdsSelenium(unittest.TestCase):
 
         apiritif.put_into_thread_store(
             driver=self.driver,
+            timeout=timeout,
             func_mode=False)  # don't stop after failed test case
 
     def _1_t1(self):

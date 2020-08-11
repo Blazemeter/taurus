@@ -43,13 +43,13 @@ scenarios:
       - http://blazedemo.com/receive/${var1} # get 'receive/val2'
     - include-scenario: inner
 
-    data-sources: # list of external data sources
+    data-sources: # these are data-sources options for Apiritif. See more info below.
     - path/to/my.csv  # this is a shorthand form
-    - path: path/to/another.csv  # this is full form, path option is required
-      delimiter: ';'  # CSV delimiter, auto-detected by default
-      quoted: false  # allow quoted data
-      loop: true  # loop over in case of end-of-file reached if true, stop thread if false
-      variable-names: id,name  # delimiter-separated list of variable names, empty by default
+    - path: path/to/another.csv  # this is a full form
+      delimiter: ';'
+      quoted: false
+      loop: true
+      variable-names: id,name
 
   inner:
     requests:
@@ -57,6 +57,7 @@ scenarios:
         var1: val3
     - http://blazedemo.com/receive/${var1}
 ```
+See more info about data-sources [here](DataSources.md).
 
 It is valid to specify both single Python module (single .py file) and a Python package (folder with Python modules
 and packages).
@@ -173,6 +174,23 @@ We can compose following XPath expressions:
 
 Any of these expressions can be used to fetch the desired element, if these attributes are unique.
 
+__7. By Shadow Locator__
+
+Shadow Locator enables to work with Shadow DOM which is designed as a tool for building component-based 
+applications. For example Salesforce Lightning Component Library is based on Shadow DOM. 
+Shadow DOM is self-contained and thus simple locators will not return nodes inside it.
+
+Shadow Locator is composed by a sequence of css selectors, e.g.:
+
+```html
+shadow: c-basic, lightning-accordion-section, .slds-button
+```
+
+The last CSS Selector refers to the target element in a shadow tree. 
+The preceding CSS Selectors refer to the shadow hosts.
+
+Most of the actions in Apiritif support Shadow Locators.
+
 ### Alternative syntax supporting multiple locators
 It is possible to specify multiple locators for each action. This helps to increase script resiliency. If a locator
 fails (e.g. because of a webpage change and the script was not updated to reflect the changes) an alternative locator
@@ -193,7 +211,7 @@ This is an example how it looks like:
 ```
 You can see full example [here](#Sample-scenario-using-multiple-locators).
 
-##### If Blocks
+### If Blocks
 
 Apiritif allows to control execution flow using `if` blocks. These blocks enable 
 conditional execution of actions.
@@ -290,6 +308,127 @@ For example:
 ``` 
 This will loop through the values \[5, 4, 3, 2, 1\] in the descending order.
 
+Note that you may also use variables in the `start`, `end` and `step` fields. These fields may
+include numbers surrounded by quotes and one can even concatenate in this case numbers with variables.
+
+For example: 
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    variables:
+      step: 1
+      end: '00'
+    requests:
+      - label: example_loop
+        actions:
+          - go(http://blazedemo.com)
+          - loop: i
+            start: '1'
+            end: '1${end}' # will result in 100
+            step: ${step}
+            do: 
+              - clickById(id_${i}) 
+``` 
+
+### Foreach
+
+`foreach` blocks allow to iterate over each element on a page that matches the specified `locators`.
+
+For example:
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_1
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
+            locators:
+              - css: input
+              - xpath: //input
+            do:
+              - clickByElement(el)  # refers to the variable el 
+              - typeByElement(el): text to type
+              - type: storeValue
+                element: el         # refers to the variable el
+                param: my_var
+                             
+```
+
+`locators` is an array of selectors equivalent to those used in 
+[alternative syntax notation](#Alternative-syntax-supporting-multiple-locators).
+The `locators` also work the same way - the selectors in the array are examined 
+one by one and which first returns a not empty set of elements is used then for the iteration.
+
+To refer to the given element in the current iteration you need to use either 
+the suffix `ByElement` for the short version of actions notation or `element` for the alternative version.
+This way explicit locators (e.g. `ById`, `ByXpath`) are replaced by reference to the variable you define
+in the `foreach` loop. You however can still use the explicit locators combined with the `ByElement` actions in 
+the loop. See the example below.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_2
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
+            locators:
+              - css: input
+              - xpath: //input
+            do:
+              - clickByElement(el)  # refers to the variable el 
+              - dragByElement(el): elementById(id_123)
+              - keysById(btn_submit): KEY_ENTER
+```
+
+You can also nest multiple `foreach` blocks, just make sure to 
+use unique names for the variables in each of the blocks.  
+
+Please note that it is not possible to use `wait` and `waitFor` actions in the `foreach` using `ByElement`. 
+However you can still use it inside the loop the common way - e.g. `waitById(my_id)`.
+
+#### Perform actions in foreach using the parent context
+
+It is possible to specify in each action inside the foreach loop additional set of locators besides just the `element` field.
+This way it allows to locate a child element within the parent `element`.
+
+In the following example we iterate over table rows and do a click action on
+the button that should be located on each row.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_context
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             
+            locators:
+              - css: table_row
+              - xpath: //tr
+            do:
+              - type: click
+                element: el
+                locators:         # the list of locators that to find the child element in the parent 'el'
+                  - css: .btn-small
+                  - css: .button-small
+```
+
+Note that this is only supported while using the  
+[alternative syntax](#Alternative-syntax-supporting-multiple-locators) for the action.
+
 
 ### Alert
 For alert handling, use the following methods:
@@ -302,6 +441,8 @@ Besides, you can use [alternative syntax](#Alternative-syntax-supporting-multipl
 - type: alert
   param: OK
 ```
+
+For additional operations with dialogs see [Dialogs management](#Dialogs-management).
 
 ### Assertion
 For requested page source inspection you can use the following actions:
@@ -339,6 +480,64 @@ The same can be written like this:
 ```yaml
 - type: clearCookies
 ```
+
+### Dialogs management
+Besides the basic functionality to handle [Alerts](#Alert) it is also possible to use the
+following actions to do assertion and answering on Dialogs.
+
+#### Assertions
+
+Enables to check whether a dialog of a specified type was previously displayed with the 
+given message. The type can be any of the following: `alert`, `prompt` or `confirm`.
+
+Examples:
+
+```yaml
+- assertDialog(alert): Error occurred
+- assertDialog(prompt): Enter your name
+- assertDialog(confirm): Are you sure to proceed?
+```
+
+Example using the Alternative syntax:
+
+```yaml
+- type: assertDialog
+  param: alert
+  value: Error occurred
+```
+
+#### Answering dialogs
+
+Allows to set the value that will be returned by displaying a dialog. It is applicable
+to `alert`, `prompt` and `confirm` dialogs. This action actually prevents showing the dialog and instead
+returns the specified value directly.
+
+For alert dialogs the value needs to be always '#Ok' for dismissing the dialog.
+For confirmation dialogs the value can only be either `'#Ok'` or `'#Cancel'`, meaning to simulate 
+click on 'Ok' or 'Cancel' buttons.
+
+Examples:
+
+```yaml
+- answerDialog(alert): '#Ok'
+- answerDialog(prompt): John Doe
+- answerDialog(confirm): '#Cancel'
+```
+
+Examples using the alternative syntax:
+
+```yaml
+- type: answerDialog
+  param: alert
+  value: '#Ok'
+- type: answerDialog
+  param: prompt
+  value: Jon Doe
+- type: answerDialog
+  param: confirm
+  value: '#Cancel'
+```
+
 
 ### Echoing
 Use `echoString("echoed text")` to print text string on the Apiritif output execution.
@@ -382,7 +581,6 @@ rawCode: print('This is a python command.')
 ```
 
 See example [here](#Sample-scenario).
-
 
 ### Frame management
 When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command
@@ -473,7 +671,39 @@ Or by using the [multiple locators](#Alternative-syntax-supporting-multiple-loca
 
 ### Pause
 For pause you can use the following actions:
+
+- `waitForByX(X\_name, condition): timeout`
+
+This action allows for checking that the given object meets the `condition` within the `timeout` period.
+
+`condition` is one of the following:
+
+    - Present
+    - Visible
+    - Clickable
+    - NotPresent
+    - NotVisible
+    - NotClickable
+
+
+`timeout` is optional with default value of 10 (10 seconds). Timeout can be provided as a numeric value 
+and that will mean seconds or it can be provided as a formatted string with the pattern 
+1d2h3m4s5ms where you can provide number of days, hours, minutes, seconds and milliseconds it’s required to wait. 
+
+You can also define waitFor using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators) to provide multiple locators:
+```yaml
+- type: waitFor
+  locators: 
+    - css: element_class
+    - id: element_id
+  param: Clickable    # the condition
+  value: 2m30s        # the timeout    
+```
+
+
 - `waitByX(X\_name)` to wait for presence or `waitByX(X\_name): visible` to wait for visibility
+
+**_DEPRECATION WARNING_** `waitByX` is deprecated and will be removed soon, please use the `waitForByX` version above.
 
 You can also define wait using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators) to provide multiple locators:
 ```yaml
@@ -582,13 +812,16 @@ Typing actions with [multiple locators support](#Alternative-syntax-supporting-m
 To manage windows or tabs, the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
-  - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage.
+  - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage. It can be also surrounded with quotes.
+  - `win\_ser\_number`: Provides exactly the same functionality just like using only `number` - e.g. you can use `win\_ser\_0` to navigate to the first window
   - `name`: The name of the window (reference to the name used in the target window attribute in a link).
   - `win\_ser\_name`: In the `name` part, assign a name to the focused opened window, the next time when reference to the same window name, returns with focus to the named window selected.
   - `win\_ser\_local`: Go to the initial window.
   - `no value`: When no value is assigned, it means that the selection action is assigned over the last created window, and if the close action is used, it will also be over the last one created.
 
-Note: When any action command opens a new window (like click over a link with target window assigned), the action of selecting the window must always be declared, otherwise the actions executed by the execution were performed on the default window or the last one used with selectWindow command.
+Note: When any action command opens a new window (like click on a link with target window assigned), 
+the action of selecting the window must always be declared, otherwise the actions executed by the execution 
+will be performed on the default window or the last one used with `switchWindow` command.
 
 Or using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 ```yaml
@@ -628,6 +861,7 @@ scenarios:
           for i in range(10):           # multiline example
             if i % 2 == 0:
               print(i)
+      - clickByShadow(c-basic,form-opened,#mytext)   # sample usage of shadow locator
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
@@ -693,6 +927,8 @@ scenarios:
       - scriptEval("alert('This is Sparta');")
       - type: rawCode
         param: print('It\'s Python')  # insert as-is into script file
+      - type: click   # sample usage of shadow locator
+        shadow: 'c-basic, form-opened, #mytext'
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns

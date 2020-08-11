@@ -19,6 +19,7 @@ import math
 import re
 import string
 from collections import OrderedDict
+from urllib import parse
 
 import astunparse
 
@@ -26,8 +27,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
-from bzt.six import parse, string_types, iteritems, text_type, PY2
-from bzt.utils import dehumanize_time, ensure_is_dict
+from bzt.utils import iteritems, dehumanize_time, ensure_is_dict
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript
 from .jmeter_functions import JMeterExprCompiler
 
@@ -73,7 +73,9 @@ class ApiritifScriptGenerator(object):
         'bycss': "css",
         'byname': "name",
         'byid': "id",
-        'bylinktext': "linktext"
+        'bylinktext': "linktext",
+        'byelement': "byelement",
+        'byshadow': "shadow"
     }
 
     ACTION_CHAINS = {
@@ -86,14 +88,15 @@ class ApiritifScriptGenerator(object):
     }
 
     ACTIONS = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
-                        'mouseOver', 'select', 'wait', 'keys', 'pause', 'clear', 'assert',
-                        'assertText', 'assertValue', 'submit', 'close', 'script', 'editcontent',
+                        'mouseOver', 'select', 'wait', 'keys', 'pauseFor', 'clear', 'assert',
+                        'assertText', 'assertValue', 'assertDialog', 'answerDialog', 'submit',
+                        'close', 'script', 'editcontent',
                         'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
                         'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode',
-                        'resize', 'maximize', 'alert'
+                        'resize', 'maximize', 'alert', 'waitFor'
                         ])
 
-    EXECUTION_BLOCKS = "|".join(['if', 'loop'])
+    EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach'])
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
@@ -109,8 +112,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 """
 
-    BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
-    COMMON_TAGS = ("For", "Cookies", "Title", "Window", "Eval", "ByIdx", "String")
+    BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
+    COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
@@ -158,19 +161,23 @@ from selenium.webdriver.common.keys import Keys
 
         return atype, tag, selector
 
+    @staticmethod
+    def _trim_quotes(selector):
+        if selector.startswith('"') and selector.endswith('"'):
+            selector = selector[1:-1]
+        elif selector.startswith("'") and selector.endswith("'"):
+            selector = selector[1:-1]
+        return selector
+
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
         all_actions = self.ACTIONS + "|" + self.EXECUTION_BLOCKS
-        expr = re.compile("^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
+        expr = re.compile(r"^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
         selectors = []
-        # hello, reviewer!
         if selector:
-            if selector.startswith('"') and selector.endswith('"'):
-                selector = selector[1:-1]
-            elif selector.startswith("'") and selector.endswith("'"):
-                selector = selector[1:-1]
+            selector = self._trim_quotes(selector)
         else:
             selector = ""
 
@@ -184,7 +191,7 @@ from selenium.webdriver.common.keys import Keys
             if tag in self.TO_BYS.keys():
                 tag_name = self.TO_BYS[tag]
                 selectors = [{tag_name: selector}]
-            elif not param:
+            elif param is None:
                 param = selector
             else:
                 value = selector
@@ -196,24 +203,49 @@ from selenium.webdriver.common.keys import Keys
         elif atype == "switchframe":
             # for switchFrameByName we need to get the param
             param = selector
+        elif atype == "waitfor":
+            value = param
+            args = selector.rsplit(",", 1)
+            if len(args) != 2:
+                raise TaurusConfigError("Incorrect amount of arguments (%s) for waitFor (2 expected)." % len(args))
+            param = args[1].strip()
+            selectors = [{self.TO_BYS[tag]: self._trim_quotes(args[0].strip())}]
+        elif atype in ['answerdialog', 'assertdialog']:
+            param, value = value, param
 
         return atype, tag, param, value, selectors
 
     def _parse_dict_action(self, action_config):
         name = action_config["type"]
-        selectors = action_config.get("locators")
+        selectors = []
+        if action_config.get("locators"):
+            selectors = action_config.get("locators")
+        if action_config.get("element"):
+            selectors.extend(self._gen_selector_byelement(action_config))
+        if action_config.get("shadow"):
+            selectors = [{"shadow" : action_config.get("shadow")}]
         if action_config.get("source") and action_config.get("target"):
-            selectors = (action_config.get("source"), action_config.get("target"))
+            source = action_config.get("source")
+            target = action_config.get("target")
+            if self._is_foreach_element(source):
+                source = self._gen_selector_byelement(source[0])
+            if self._is_foreach_element(target):
+                target = self._gen_selector_byelement(target[0])
+            selectors = (source, target)
         param = action_config["param"]
         value = action_config["value"]
-        tags = "|".join(self.COMMON_TAGS) + "|ByName"   # ByName is needed in switchFrameByName
+        tags = "|".join(self.COMMON_TAGS) + "|ByName"  # ByName is needed in switchFrameByName
         expr = re.compile("^(%s)(%s)?$" % (self.ACTIONS, tags), re.IGNORECASE)
         action_params = self._parse_action_params(expr, name)
 
         return action_params[0], action_params[1], param, value, selectors
 
+    @staticmethod
+    def _gen_selector_byelement(config):
+        return [{"byelement": config.get("element")}]
+
     def _parse_action(self, action_config):
-        if isinstance(action_config, string_types):
+        if isinstance(action_config, str):
             name = action_config
             param = None
         elif isinstance(action_config, dict):
@@ -234,25 +266,70 @@ from selenium.webdriver.common.keys import Keys
         return list(set(action_config.keys()).intersection(self.EXECUTION_BLOCKS.split("|")))
 
     @staticmethod
-    def _gen_dynamic_locator(var_w_locator):
+    def _is_foreach_element(locators):
+        # action performed in foreach loop on element
+        return len(locators) == 1 and (locators[0].get("byelement") or locators[0].get("element"))
+
+    @staticmethod
+    def _is_shadow_locator(locators):
+        return len(locators) == 1 and locators[0].get("shadow")
+
+    def _gen_dynamic_locator(self, var_w_locator, locators):
+        if self._is_foreach_element(locators):
+            return ast.Name(id=locators[0].get("byelement"))
+        el = self._get_byelement(locators)
+        target = el if el else "self.driver"
+        method = "%s.find_element" % target
+
+        if self._is_shadow_locator(locators):
+            self.selenium_extras.add("find_element_by_shadow")
+            return ast_call(
+                func=ast_attr("find_element_by_shadow"),
+                args=[
+                    ast.Str(locators[0].get("shadow"), kind="")
+                ]
+            )
         return ast_call(
-            func=ast_attr("self.driver.find_element"),
+            func=ast_attr(method),
             args=[
                 gen_subscript(var_w_locator, 0),
                 gen_subscript(var_w_locator, 1)
             ])
 
-    def _gen_get_locators(self, var_name, locators):
+    def _gen_ast_locators_dict(self, locators):
         args = []
         for loc in locators:
             locator_type = list(loc.keys())[0]
             locator_value = loc[locator_type]
-            args.append(ast.Dict([ast.Str(locator_type)], [self._gen_expr(locator_value)]))
+            args.append(ast.Dict([ast.Str(locator_type, kind="")], [self._gen_expr(locator_value)]))
+        return args
 
+    def _gen_loc_method_call(self, method, var_name, locators, parent_el=None):
+        args = [ast.List(elts=self._gen_ast_locators_dict(locators))]
+        if parent_el:
+            args.append(ast.Name(id=parent_el))
         return ast.Assign(
-            targets=[ast.Name(id=var_name, ctx=ast.Store())],
-            value=ast_call(func="self.loc_mng.get_locator",
-                           args=[ast.List(elts=args)]))
+            targets=[ast.Name(id=var_name, ctx=ast.Store(), kind="")],
+            value=ast_call(func=method,
+                           args=args))
+
+    def _gen_get_locator_call(self, var_name, locators):
+        # don't generate 'get_locator' for byElement action or shadow locator
+        if self._is_foreach_element(locators) or self._is_shadow_locator(locators):
+            return []
+        parent_el = self._get_byelement(locators)
+        locs = [l for l in locators if not l.get("byelement")]  # remove the byelement locator from the list
+        return self._gen_loc_method_call("get_locator", var_name, locs, parent_el)
+
+    def _get_byelement(self, locators):
+        for loc in locators:
+            el = loc.get("byelement")
+            if el:
+                return el
+        return None
+
+    def _gen_get_elements_call(self, var_name, locators):
+        return self._gen_loc_method_call("get_elements", var_name, locators)
 
     def _gen_locator(self, tag, selector):
         return ast_call(
@@ -262,11 +339,12 @@ from selenium.webdriver.common.keys import Keys
                 self._gen_expr(selector)])
 
     def _gen_window_mngr(self, atype, param):
-        self.selenium_extras.add("WindowManager")
         elements = []
         if atype == "switch":
+            method = "switch_window"
+            self.selenium_extras.add(method)
             elements.append(ast_call(
-                func=ast_attr("self.wnd_mng.switch"),
+                func=ast_attr(method),
                 args=[self._gen_expr(param)]))
         elif atype == "resize":
             if not re.compile(r"\d+,\d+").match(param):
@@ -288,41 +366,46 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("self.driver.execute_script"),
                 args=[self._gen_expr("window.open('%s');" % param)]))
         elif atype == "close":
+            method = "close_window"
+            self.selenium_extras.add(method)
             args = []
             if param:
                 args.append(self._gen_expr(param))
             elements.append(ast_call(
-                func=ast_attr("self.wnd_mng.close"),
+                func=ast_attr(method),
                 args=args))
         return elements
 
     def _gen_frame_mngr(self, tag, selector):
-        self.selenium_extras.add("FrameManager")
+        method = "switch_frame"
+        self.selenium_extras.add(method)
         elements = []  # todo: byid/byidx disambiguation?
         if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
             if tag == "byidx":
                 selector = "index=%s" % selector
 
             elements.append(ast_call(
-                func=ast_attr("self.frm_mng.switch"),
-                args=[ast.Str(selector)]))
+                func=ast_attr(method),
+                args=[ast.Str(selector, kind="")]))
         else:
-            if tag == "byname":
-                tag = "name"
+            if not tag:
+                tag = "name"    # if tag is not present default it to name
+            elif tag.startswith('by'):
+                tag = tag[2:]   # remove the 'by' prefix
             elements.append(ast_call(
-                func=ast_attr("self.frm_mng.switch"),
+                func=ast_attr(method),
                 args=[self._gen_locator(tag, selector)]))
         return elements
 
     def _gen_chain_mngr(self, atype, selectors):
         elements = []
         if atype in self.ACTION_CHAINS:
-            elements.append(self._gen_get_locators("var_loc_chain", selectors))
-            locator = self._gen_dynamic_locator("var_loc_chain")
+            elements.append(self._gen_get_locator_call("var_loc_chain", selectors))
+            locator = self._gen_dynamic_locator("var_loc_chain", selectors)
             operator = ast_attr(fields=(
                 ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
                 self.ACTION_CHAINS[atype.lower()]))
-            args = [locator, ast.Num(-10), ast.Num(-10)] if atype == "mouseout" else [locator]
+            args = [locator, ast.Num(-10, kind=""), ast.Num(-10, kind="")] if atype == "mouseout" else [locator]
             elements.append(ast_call(
                 func=ast_attr(
                     fields=(
@@ -338,8 +421,8 @@ from selenium.webdriver.common.keys import Keys
             source = selectors[0]
             target = selectors[1]
 
-            elements = [self._gen_get_locators("source", source),
-                        self._gen_get_locators("target", target)]
+            elements = [self._gen_get_locator_call("source", source),
+                        self._gen_get_locator_call("target", target)]
 
             operator = ast_attr(
                 fields=(
@@ -352,8 +435,8 @@ from selenium.webdriver.common.keys import Keys
                     fields=(
                         ast_call(
                             func=operator,
-                            args=[self._gen_dynamic_locator("source"),
-                                  self._gen_dynamic_locator("target")]),
+                            args=[self._gen_dynamic_locator("source", source),
+                                  self._gen_dynamic_locator("target", target)]),
                         "perform"))))
         return elements
 
@@ -377,7 +460,7 @@ from selenium.webdriver.common.keys import Keys
         elif atype == 'assert' and tag == 'eval':
             elements.append(ast_call(
                 func=ast_attr("self.assertTrue"),
-                args=[self._gen_eval_js_expression(name), ast.Str(name)]))
+                args=[self._gen_eval_js_expression(name), ast.Str(name, kind="")]))
         elif atype == 'store' and tag == 'eval':
             elements.append(
                 gen_store(
@@ -393,13 +476,13 @@ from selenium.webdriver.common.keys import Keys
                 target = "value"
 
             if target:
-                elements.append(self._gen_get_locators("var_loc_as", selectors))
+                elements.append(self._gen_get_locator_call("var_loc_as", selectors))
                 locator_attr = ast_call(
                     func=ast_attr(
                         fields=(
-                            self._gen_dynamic_locator("var_loc_as"),
+                            self._gen_dynamic_locator("var_loc_as", selectors),
                             "get_attribute")),
-                    args=[ast.Str(target)])
+                    args=[ast.Str(target, kind="")])
 
                 if atype.startswith("assert"):
                     elements.append(ast_call(
@@ -426,7 +509,7 @@ from selenium.webdriver.common.keys import Keys
         elements = []
         args = []
         action = None
-        elements.append(self._gen_get_locators("var_loc_keys", selectors))
+        elements.append(self._gen_get_locator_call("var_loc_keys", selectors))
 
         if atype == "click":
             action = "click"
@@ -437,10 +520,10 @@ from selenium.webdriver.common.keys import Keys
                 elements.append(ast_call(
                     func=ast_attr(
                         fields=(
-                            self._gen_dynamic_locator("var_loc_keys"),
+                            self._gen_dynamic_locator("var_loc_keys", selectors),
                             "clear"))))
             action = "send_keys"
-            if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
+            if isinstance(param, str) and param.startswith("KEY_"):
                 args = [ast_attr("Keys.%s" % param.split("KEY_")[1])]
             else:
                 args = [self._gen_expr(str(param))]
@@ -449,7 +532,7 @@ from selenium.webdriver.common.keys import Keys
             elements.append(ast_call(
                 func=ast_attr(
                     fields=(
-                        self._gen_dynamic_locator("var_loc_keys"),
+                        self._gen_dynamic_locator("var_loc_keys", selectors),
                         action)),
                 args=args))
         return elements
@@ -459,36 +542,41 @@ from selenium.webdriver.common.keys import Keys
             raise TaurusConfigError("Missing param for editContent action.")
         var_name = "var_edit_content"
 
-        elements = [self._gen_get_locators(var_name, locators)]
-        locator = self._gen_dynamic_locator(var_name)
+        elements = [self._gen_get_locator_call(var_name, locators)]
+        locator = self._gen_dynamic_locator(var_name, locators)
         tag = gen_subscript(var_name, 0)
         selector = gen_subscript(var_name, 1)
+
+        if self._is_foreach_element(locators):
+            el = locators[0].get("byelement")
+            exc_msg = "The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element"
+            exc_args = [ast.Str(el, kind=""), ast_attr(el + ".tag_name"), ast_attr(el + ".text")]
+        elif self._is_shadow_locator(locators):
+            el = locators[0].get("shadow")
+            exc_msg = "The element (shadow: '%s') is not a contenteditable element"
+            exc_args = [ast.Str(el, kind="")]
+        else:
+            exc_msg = "The element (%s: %r) is not a contenteditable element"
+            exc_args = [tag, selector]
 
         exc_type = ast_call(
             func="NoSuchElementException",
             args=[
                 ast.BinOp(
-                    left=ast.Str("The element (%s: %r) is not a contenteditable element"),
+                    left=ast.Str(exc_msg, kind=""),
                     op=ast.Mod(),
-                    right=ast.Tuple(elts=[tag, selector]))
+                    right=ast.Tuple(elts=exc_args))
             ]
         )
 
-        if PY2:
-            raise_kwargs = {
-                "type": exc_type,
-                "inst": None,
-                "tback": None
-            }
-        else:
-            raise_kwargs = {
+        raise_kwargs = {
                 "exc": exc_type,
                 "cause": None}
 
         body = ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
                                  args=[
                                      ast.BinOp(
-                                         left=ast.Str("arguments[0].innerHTML = '%s';"),
+                                         left=ast.Str("arguments[0].innerHTML = '%s';", kind=""),
                                          op=ast.Mod(),
                                          right=self._gen_expr(param.strip())),
                                      locator]))
@@ -497,7 +585,7 @@ from selenium.webdriver.common.keys import Keys
             test=ast_call(
                 func=ast_attr(
                     fields=(locator, "get_attribute")),
-                args=[ast.Str("contenteditable")]),
+                args=[ast.Str("contenteditable", kind="")]),
             body=[body],
             orelse=[ast.Raise(**raise_kwargs)])
 
@@ -518,14 +606,14 @@ from selenium.webdriver.common.keys import Keys
                     args=[
                         ast_call(
                             func=ast_attr("os.getenv"),
-                            args=[ast.Str('TAURUS_ARTIFACTS_DIR')]),
+                            args=[ast.Str('TAURUS_ARTIFACTS_DIR', kind="")]),
                         ast.BinOp(
-                            left=ast.Str('screenshot-%d.png'),
+                            left=ast.Str('screenshot-%d.png', kind=""),
                             op=ast.Mod(),
                             right=ast.BinOp(
                                 left=ast_call(func="time"),
                                 op=ast.Mult(),
-                                right=ast.Num(1000)))])))
+                                right=ast.Num(1000, kind="")))])))
             elements.append(ast_call(
                 func=ast_attr("self.driver.save_screenshot"),
                 args=[ast.Name(id="filename")]))
@@ -544,52 +632,18 @@ from selenium.webdriver.common.keys import Keys
                 args=args))
         return elements
 
-    def _gen_wait_sleep_mngr(self, atype, tag, param, selectors):
-        elements = []
-        mode = "visibility" if param == 'visible' else 'presence'
-
-        if atype == 'wait':
-            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
-            timeout = dehumanize_time(self.scenario.get("timeout", exc))
-            locator_type = list(selectors[0].keys())[0]
-            locator_value = selectors[0][locator_type]
-            errmsg = "Element %r:%r failed to appear within %ss" % (locator_type, locator_value,
-                                                                    timeout)
-
-            elements.append(self._gen_get_locators("var_loc_wait", selectors))
-
-            elements.append(ast_call(
-                func=ast_attr(
-                    fields=(
-                        ast_call(
-                            func="WebDriverWait",
-                            args=[
-                                ast_attr("self.driver"),
-                                ast.Num(timeout)]),
-                        "until")),
-                args=[
-                    ast_call(
-                        func=ast_attr("econd.%s_of_element_located" % mode),
-                        args=[
-                            ast.Tuple(
-                                elts=[
-                                    gen_subscript("var_loc_wait", 0),
-                                    gen_subscript("var_loc_wait", 1)
-                                    ])]),
-                    ast.Str(errmsg)]))
-
-        elif atype == 'pause' and tag == 'for':
-            elements.append(ast_call(
-                func="sleep",
-                args=[ast.Num(dehumanize_time(param))]))
+    def _gen_sleep_mngr(self, param):
+        elements = [ast_call(
+            func="sleep",
+            args=[ast.Num(dehumanize_time(param), kind="")])]
 
         return elements
 
     def _gen_select_mngr(self, param, selectors):
-        elements = [self._gen_get_locators("var_loc_select", selectors), ast_call(
+        elements = [self._gen_get_locator_call("var_loc_select", selectors), ast_call(
             func=ast_attr(
                 fields=(
-                    ast_call(func="Select", args=[self._gen_dynamic_locator("var_loc_select")]),
+                    ast_call(func="Select", args=[self._gen_dynamic_locator("var_loc_select", selectors)]),
                     "select_by_visible_text")),
             args=[self._gen_expr(param)])]
         return elements
@@ -611,6 +665,10 @@ from selenium.webdriver.common.keys import Keys
             action_elements.extend(self._gen_chain_mngr(atype, selectors))
         elif atype == "select":
             action_elements.extend(self._gen_select_mngr(param, selectors))
+        elif atype == 'assertdialog':
+            action_elements.extend(self._gen_assert_dialog(param, value))
+        elif atype == 'answerdialog':
+            action_elements.extend(self._gen_answer_dialog(param, value))
         elif atype is not None and (atype.startswith("assert") or atype.startswith("store")):
             action_elements.extend(self._gen_assert_store_mngr(atype, tag, param, value, selectors))
 
@@ -632,10 +690,13 @@ from selenium.webdriver.common.keys import Keys
             if param:
                 action_elements.append(ast_call(func=ast_attr("self.driver.get"),
                                                 args=[self._gen_expr(param.strip())]))
+                action_elements.append(self._gen_replace_dialogs())
         elif atype == "editcontent":
             action_elements.extend(self._gen_edit_mngr(param, selectors))
-        elif atype in ('wait', 'pause'):
-            action_elements.extend(self._gen_wait_sleep_mngr(atype, tag, param, selectors))
+        elif atype.startswith('wait'):
+            action_elements.extend(self._gen_wait_for(atype, param, value, selectors))
+        elif atype == 'pausefor':
+            action_elements.extend(self._gen_sleep_mngr(param))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(ast_call(
                 func=ast_attr("self.driver.delete_all_cookies")))
@@ -647,18 +708,118 @@ from selenium.webdriver.common.keys import Keys
             action_elements.append(self._gen_condition_mngr(param, action_config))
         elif atype == 'loop':
             action_elements.append(self._gen_loop_mngr(action_config))
+        elif atype == 'foreach':
+            action_elements.append(self._gen_foreach_mngr(action_config))
 
         if not action_elements and not self.ignore_unknown_actions:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return [ast.Expr(element) for element in action_elements]
 
+    def _gen_foreach_mngr(self, action_config):
+        self.selenium_extras.add("get_elements")
+        exc = TaurusConfigError("Foreach loop must contain locators and do")
+        elements = []
+        locators = action_config.get('locators', exc)
+        body = []
+        for action in action_config.get('do', exc):
+            body = body + self._gen_action(action)
+
+        body_list = []
+        # filter out empty AST expressions that cause empty lines in the generated code
+        for item in body:
+            if isinstance(item.value, list):
+                if len(item.value) > 0:
+                    body_list.append(item)
+            else:
+                body_list.append(item)
+
+        elements.append(self._gen_get_elements_call("elements", locators))
+        elements.append(
+            ast.For(target=ast.Name(id=action_config.get('foreach'), ctx=ast.Store()), iter=ast.Name(id="elements"),
+                    body=body_list,
+                    orelse=[]))
+
+        return elements
+
+    def _gen_wait_for(self, atype, param, value, selectors):
+        self.selenium_extras.add("wait_for")
+        supported_conds = ["present", "visible", "clickable", "notpresent", "notvisible", "notclickable"]
+
+        if not atype.endswith("for"):
+            self.log.warning("Wait command is deprecated and will be removed soon. Use waitFor instead.")
+            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
+            timeout = dehumanize_time(self.scenario.get("timeout", exc))
+            if not param:
+                param = "present"
+        else:
+            if not value:
+                value = 10  # if timeout value is not present set it by default to 10s
+            timeout = dehumanize_time(value)
+
+        if param.lower() not in supported_conds:
+            raise TaurusConfigError("Invalid condition in %s: '%s'. Supported conditions are: %s." %
+                                    (atype, param, ", ".join(supported_conds)))
+
+        return [ast_call(func="wait_for",
+                         args=[ast.Str(param, kind=""),
+                               ast.List(elts=self._gen_ast_locators_dict(selectors)),
+                               ast.Num(timeout, kind="")])]
+
+    def _gen_answer_dialog(self, type, value):
+        if type not in ['alert', 'prompt', 'confirm']:
+            raise TaurusConfigError("answerDialog type must be one of the following: 'alert', 'prompt' or 'confirm'")
+        if type == 'confirm' and str(value).lower() not in ['#ok', '#cancel']:
+            raise TaurusConfigError("answerDialog of type confirm must have value either '#Ok' or '#Cancel'")
+        if type == 'alert' and str(value).lower() != '#ok':
+            raise TaurusConfigError("answerDialog of type alert must have value '#Ok'")
+        dlg_method = "dialogs_answer_on_next_%s" % type
+        self.selenium_extras.add(dlg_method)
+        return [ast_call(func=ast_attr(dlg_method), args=[ast.Str(value, kind="")])]
+
+    def _gen_assert_dialog(self, type, value):
+        if type not in ['alert', 'prompt', 'confirm']:
+            raise TaurusConfigError("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'")
+        elements = []
+        dlg_method = "dialogs_get_next_%s" % type
+        self.selenium_extras.add(dlg_method)
+        elements.append(ast.Assign(targets=[ast.Name(id='dialog', ctx=ast.Store())],
+                                   value=ast_call(
+                                       func=ast_attr(dlg_method))))
+        elements.append(ast_call(
+            func=ast_attr("self.assertIsNotNone"),
+            args=[ast.Name(id='dialog'), ast.Str("No dialog of type %s appeared" % type, kind="")]))
+        elements.append(ast_call(
+            func=ast_attr("self.assertEqual"),
+            args=[ast.Name(id='dialog'), ast.Str(value, kind=""), ast.Str("Dialog message didn't match", kind="")]))
+
+        return elements
+
+    def _gen_replace_dialogs(self):
+        """
+        Generates the call to DialogsManager to replace dialogs
+        """
+        method = "dialogs_replace"
+        self.selenium_extras.add(method)
+        return [
+            gen_empty_line_stmt(),
+            ast_call(
+                func=ast_attr(method))
+        ]
+
+    @staticmethod
+    def _convert_to_number(arg):
+        if isinstance(arg, str) and arg.isdigit():
+            return int(arg)
+        return arg
+
     def _gen_loop_mngr(self, action_config):
+        extra_method = "get_loop_range"
+        self.selenium_extras.add(extra_method)
         exc = TaurusConfigError("Loop must contain start, end and do")
-        start = action_config.get('start', exc)
-        end = action_config.get('end', exc)
-        step = action_config.get('step') or 1
-        end = end + 1 if step > 0 else end - 1
+        start = self._convert_to_number(action_config.get('start', exc))
+        end = self._convert_to_number(action_config.get('end', exc))
+        step = self._convert_to_number(action_config.get('step')) or 1
         elements = []
 
         body = [
@@ -666,18 +827,21 @@ from selenium.webdriver.common.keys import Keys
                 targets=[self._gen_expr("${%s}" % action_config['loop'])],
                 value=ast_call(func=ast_attr("str"), args=[ast.Name(id=action_config['loop'])]))
         ]
-        for action in action_config.get('do', exc):
+        actions = action_config.get('do', exc)
+        if len(actions) == 0:
+            raise exc
+        for action in actions:
             body.append(self._gen_action(action))
 
-        args = [ast.Num(start), ast.Num(end)]
-        if step != 1:
-            args.append(ast.Num(step))
+        range_args = [self.expr_compiler.gen_expr(start),
+                      self.expr_compiler.gen_expr(end),
+                      self.expr_compiler.gen_expr(step)]
 
         elements.append(
             ast.For(target=ast.Name(id=action_config.get('loop'),
-                    ctx=ast.Store()),
-                    iter=ast_call(func=ast_attr("range"),
-                                  args=args),
+                                    ctx=ast.Store()),
+                    iter=ast_call(func=ast_attr(extra_method),
+                                  args=range_args),
                     body=body,
                     orelse=[]))
 
@@ -750,128 +914,156 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_webdriver(self):
         self.log.debug("Generating setUp test method")
-        browser = self._check_platform()
-
-        headless = self.scenario.get("headless", False)
-        headless_setup = []
-        if headless:
-            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
-            headless_setup = [ast.Expr(
-                ast_call(func=ast_attr("options.set_headless")))]
 
         body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
 
+        browser = self._check_platform()
+
         if browser == 'firefox':
-            body.append(ast.Assign(
-                targets=[ast.Name(id="options")],
-                value=ast_call(
-                    func=ast_attr("webdriver.FirefoxOptions"))))
-            body.extend(headless_setup)
-            body.append(ast.Assign(
-                targets=[ast.Name(id="profile")],
-                value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))))
-            body.append(ast.Expr(
-                ast_call(
-                    func=ast_attr("profile.set_preference"),
-                    args=[ast.Str("webdriver.log.file"), ast.Str(self.wdlog)])))
+            body.extend(self._get_firefox_options() + self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
-            body.append(ast.Assign(
-                targets=[ast_attr("self.driver")],
-                value=ast_call(
-                    func=ast_attr("webdriver.Firefox"),
-                    args=[ast.Name(id="profile")],
-                    keywords=[ast.keyword(
-                        arg="firefox_options",
-                        value=ast.Name(id="options"))])))
         elif browser == 'chrome':
-            body.append(ast.Assign(
-                targets=[ast.Name(id="options")],
-                value=ast_call(
-                    func=ast_attr("webdriver.ChromeOptions"))))
-            body.append(ast.Expr(
-                ast_call(
-                    func=ast_attr("options.add_argument"),
-                    args=[ast.Str("%s" % "--no-sandbox")]
-                )))
-            body.append(ast.Expr(
-                ast_call(
-                    func=ast_attr("options.add_argument"),
-                    args=[ast.Str("%s" % "--disable-dev-shm-usage")]
-                )))
-            body.extend(headless_setup)
-            body.append(ast.Assign(
-                targets=[ast_attr("self.driver")],
-                value=ast_call(
-                    func=ast_attr("webdriver.Chrome"),
-                    keywords=[
-                        ast.keyword(
-                            arg="service_log_path",
-                            value=ast.Str(self.wdlog)),
-                        ast.keyword(
-                            arg="chrome_options",
-                            value=ast.Name(id="options"))])))
-        elif browser == 'remote':
-            keys = sorted(self.capabilities.keys())
-            values = [str(self.capabilities[key]) for key in keys]
-            body.append(ast.Assign(
-                targets=[ast_attr("self.driver")],
-                value=ast_call(
-                    func=ast_attr("webdriver.Remote"),
-                    keywords=[
-                        ast.keyword(
-                            arg="command_executor",
-                            value=ast.Str(self.remote_address)),
-                        ast.keyword(
-                            arg="desired_capabilities",
-                            value=ast.Dict(
-                                keys=[ast.Str(key) for key in keys],
-                                values=[ast.Str(value) for value in values]))])))
-        else:
-            if headless:
-                self.log.warning("Browser %r doesn't support headless mode" % browser)
+            body.extend(self._get_chrome_options() + [self._get_chrome_webdriver()])
 
+        elif browser == 'remote':
+            if 'firefox' == self.capabilities.get('browserName'):
+                body.append(self._get_firefox_options())
+            else:
+                empty_options = ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))
+                body.append(empty_options)
+
+            body.append(self._get_remote_webdriver())
+
+        else:
             body.append(ast.Assign(
                 targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
 
-        body.append(ast.Expr(
+        body.append(self._get_timeout())
+        body.extend(self._get_extra_mngrs())
+
+        return body
+
+    def _get_timeout(self):
+        return ast.Expr(
             ast_call(
                 func=ast_attr("self.driver.implicitly_wait"),
-                args=[ast.Num(self._get_scenario_timeout())])))
+                args=[ast_attr("timeout")]))
 
+    def _get_extra_mngrs(self):
+        mngrs = []
         mgr = "WindowManager"
         if mgr in self.selenium_extras:
-            body.append(ast.Assign(
+            mngrs.append(ast.Assign(
                 targets=[ast_attr("self.wnd_mng")],
                 value=ast_call(
-                    func=ast.Name(id=mgr),
-                    args=[ast_attr("self.driver")])))
+                    func=ast.Name(id=mgr))))
 
         mgr = "FrameManager"
         if mgr in self.selenium_extras:
-            body.append(ast.Assign(
+            mngrs.append(ast.Assign(
                 targets=[ast_attr("self.frm_mng")],
                 value=ast_call(
-                    func=ast.Name(id=mgr),
-                    args=[ast_attr("self.driver")])))
+                    func=ast.Name(id=mgr))))
+        return mngrs
 
-        self.selenium_extras.add("LocatorsManager")
-        mgr = "LocatorsManager"
-        body.append(ast.Assign(
-            targets=[ast_attr("self.loc_mng")],
+    def _get_headless_setup(self):
+        if self.scenario.get("headless", False):
+            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
+            return [ast.Expr(
+                ast_call(func=ast_attr("options.set_headless")))]
+        else:
+            return []
+
+    def _get_firefox_options(self):
+        firefox_options = [
+            ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(
+                    func=ast_attr("webdriver.FirefoxOptions"))),
+            ast.Expr(
+                ast_call(func=ast_attr("options.set_preference"),
+                         args=[ast.Str("network.proxy.type", kind=""), ast.Num(4, kind="")]))]
+
+        return firefox_options + self._get_headless_setup()
+
+    def _get_chrome_options(self):
+        chrome_options = [
+            ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(
+                    func=ast_attr("webdriver.ChromeOptions"))),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.add_argument"),
+                    args=[ast.Str("%s" % "--no-sandbox", kind="")])),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.add_argument"),
+                    args=[ast.Str("%s" % "--disable-dev-shm-usage", kind="")]))]
+
+        return chrome_options + self._get_headless_setup()
+
+    def _get_firefox_profile(self):
+        return [
+            ast.Assign(
+                targets=[ast.Name(id="profile")],
+                value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
+            ast.Expr(ast_call(
+                func=ast_attr("profile.set_preference"),
+                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")]))]
+
+    def _get_firefox_webdriver(self):
+        return ast.Assign(
+            targets=[ast_attr("self.driver")],
             value=ast_call(
-                func=ast.Name(id=mgr),
-                args=[ast_attr("self.driver"), ast.Str(self._get_scenario_timeout())])))
+                func=ast_attr("webdriver.Firefox"),
+                args=[ast.Name(id="profile")],
+                keywords=[ast.keyword(
+                    arg="options",
+                    value=ast.Name(id="options"))]))
 
-        return body
+    def _get_chrome_webdriver(self):
+        return ast.Assign(
+            targets=[ast_attr("self.driver")],
+            value=ast_call(
+                func=ast_attr("webdriver.Chrome"),
+                keywords=[
+                    ast.keyword(
+                        arg="service_log_path",
+                        value=ast.Str(self.wdlog, kind="")),
+                    ast.keyword(
+                        arg="options",
+                        value=ast.Name(id="options"))]))
+
+    def _get_remote_webdriver(self):
+        keys = sorted(self.capabilities.keys())
+        values = [str(self.capabilities[key]) for key in keys]
+
+        return ast.Assign(
+            targets=[ast_attr("self.driver")],
+            value=ast_call(
+                func=ast_attr("webdriver.Remote"),
+                keywords=[
+                    ast.keyword(
+                        arg="command_executor",
+                        value=ast.Str(self.remote_address, kind="")),
+                    ast.keyword(
+                        arg="desired_capabilities",
+                        value=ast.Dict(
+                            keys=[ast.Str(key, kind="") for key in keys],
+                            values=[ast.Str(value, kind="") for value in values])),
+                    ast.keyword(
+                        arg="options",
+                        value=ast.Name(id="options"))]))
 
     @staticmethod
     def _gen_impl_wait(timeout):
         return ast.Expr(
             ast_call(
                 func=ast_attr("self.driver.implicitly_wait"),
-                args=[ast.Num(dehumanize_time(timeout))]))
+                args=[ast.Num(dehumanize_time(timeout), kind="")]))
 
     def _gen_module(self):
         stmts = []
@@ -910,13 +1102,13 @@ from selenium.webdriver.common.keys import Keys
                 source = "selenium"
 
             imports.append(ast.parse(self.IMPORTS % source).body)
-            if self.selenium_extras:
-                extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
-                imports.append(
-                    ast.ImportFrom(
-                        module="bzt.resources.selenium_extras",
-                        names=extra_names,
-                        level=0))
+            self.selenium_extras.add("get_locator")
+            extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
+            imports.append(
+                ast.ImportFrom(
+                    module="bzt.resources.selenium_extras",
+                    names=extra_names,
+                    level=0))
 
         return imports
 
@@ -929,7 +1121,7 @@ from selenium.webdriver.common.keys import Keys
                 fieldnames = ast.keyword()
                 fieldnames.arg = "fieldnames"
                 str_names = source.get("fieldnames").split(",")
-                fieldnames.value = ast.List(elts=[ast.Str(s=fname) for fname in str_names])
+                fieldnames.value = ast.List(elts=[ast.Str(s=fname, kind="") for fname in str_names])
                 keywords.append(fieldnames)
 
             if "loop" in source:
@@ -947,15 +1139,21 @@ from selenium.webdriver.common.keys import Keys
             if "delimiter" in source:
                 delimiter = ast.keyword()
                 delimiter.arg = "delimiter"
-                delimiter.value = ast.Str(s=source.get("delimiter"))
+                delimiter.value = ast.Str(s=source.get("delimiter"), kind="")
                 keywords.append(delimiter)
+
+            if "encoding" in source:
+                encoding = ast.keyword()
+                encoding.arg = "encoding"
+                encoding.value = ast.Str(s=source.get("encoding"), kind="")
+                keywords.append(encoding)
 
             csv_file = self.scenario.engine.find_file(source["path"])
             reader = ast.Assign(
                 targets=[ast.Name(id="reader_%s" % idx)],
                 value=ast_call(
                     func=ast_attr("apiritif.CSVReaderPerThread"),
-                    args=[ast.Str(s=csv_file)],
+                    args=[ast.Str(s=csv_file, kind="")],
                     keywords=keywords))
 
             readers.append(reader)
@@ -967,7 +1165,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_classdef(self):
         class_body = [self._gen_test_methods()]
-        class_body = [self._gen_class_setup()] + class_body     # order is important for selenium_extras set
+        class_body = [self._gen_class_setup()] + class_body  # order is important for selenium_extras set
 
         if self.test_mode == "selenium":
             class_body.append(self._gen_class_teardown())
@@ -1004,13 +1202,17 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
 
-        stored_vars = {"func_mode": str(self.executor.engine.is_functional_mode())}
+        stored_vars = {
+            "timeout": "timeout",
+            "func_mode": str(self.executor.engine.is_functional_mode())}
+
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
+                stored_vars["windows"] = "{}"
 
         has_ds = bool(list(self.scenario.get_data_sources()))
-        stored_vars['scenario_name'] = [ast.Str(self.label)]
+        stored_vars['scenario_name'] = [ast.Str(self.label, kind="")]
         if has_ds:
             stored_vars['data_sources'] = str(has_ds)
 
@@ -1021,10 +1223,14 @@ from selenium.webdriver.common.keys import Keys
 
         store_block = [ast.Expr(store_call)]
 
+        timeout_setup = [ast.Expr(ast.Assign(
+            targets=[ast_attr("timeout")],
+            value=ast.Num(self._get_scenario_timeout(), kind="")))]
+
         setup = ast.FunctionDef(
             name="setUp",
             args=[ast_attr("self")],
-            body=data_sources + target_init + handlers + store_block,
+            body=data_sources + timeout_setup + target_init + handlers + store_block,
             decorator_list=[])
         return [setup, gen_empty_line_stmt()]
 
@@ -1087,7 +1293,7 @@ from selenium.webdriver.common.keys import Keys
         for name in sorted(request.mapping.keys()):
             res.append(ast.Assign(
                 targets=[self._gen_expr("${%s}" % name)],
-                value=ast.Str(s="%s" % request.mapping[name])))
+                value=ast.Str(s="%s" % request.mapping[name], kind="")))
 
         return res
 
@@ -1202,7 +1408,7 @@ from selenium.webdriver.common.keys import Keys
             named_args['params'] = self._gen_expr(req.body)
         elif isinstance(req.body, dict):  # form data
             named_args['data'] = self._gen_expr(list(iteritems(req.body)))
-        elif isinstance(req.body, string_types):
+        elif isinstance(req.body, str):
             named_args['data'] = self._gen_expr(req.body)
         elif req.body:
             msg = "Cannot handle 'body' option of type %s: %s"
@@ -1211,7 +1417,7 @@ from selenium.webdriver.common.keys import Keys
         return named_args
 
     # generate transactions recursively
-    def _gen_transaction(self, trans_conf, transaction_class = "apiritif.smart_transaction"):
+    def _gen_transaction(self, trans_conf, transaction_class="apiritif.smart_transaction"):
         body = []
         if isinstance(trans_conf, IncludeScenarioBlock):
             included = self.executor.get_scenario(trans_conf.scenario_name)
@@ -1262,6 +1468,7 @@ from selenium.webdriver.common.keys import Keys
                     ast_call(
                         func=ast_attr("self.driver.get"),
                         args=[self._gen_expr(url)])))
+                lines.append(self._gen_replace_dialogs())
 
             else:
                 method = req.method.lower()
@@ -1317,7 +1524,7 @@ from selenium.webdriver.common.keys import Keys
         self.log.debug("Generating assertion, config: %s", assertion_config)
         assertion_elements = []
 
-        if isinstance(assertion_config, string_types):
+        if isinstance(assertion_config, str):
             assertion_config = {"contains": [assertion_config]}
 
         for val in assertion_config["contains"]:
@@ -1342,19 +1549,19 @@ from selenium.webdriver.common.keys import Keys
                         targets=[ast.Name(id="re_pattern")],
                         value=ast_call(
                             func=ast_attr("re.compile"),
-                            args=[ast.Str(val)])))
+                            args=[ast.Str(val, kind="")])))
 
                 assertion_elements.append(ast.Expr(
                     ast_call(
                         func=ast_attr(method),
                         args=[
-                            ast.Num(0),
+                            ast.Num(0, kind=""),
                             ast_call(
                                 func=ast.Name(id="len"),
                                 args=[ast_call(
                                     func=ast_attr("re.findall"),
                                     args=[ast.Name(id="re_pattern"), ast.Name(id="body")])]),
-                            ast.Str("Assertion: %s" % assert_message)])))
+                            ast.Str("Assertion: %s" % assert_message, kind="")])))
 
             else:
                 if reverse:
@@ -1366,9 +1573,9 @@ from selenium.webdriver.common.keys import Keys
                         ast_call(
                             func=ast_attr(method),
                             args=[
-                                ast.Str(val),
+                                ast.Str(val, kind=""),
                                 ast.Name(id="body"),
-                                ast.Str("Assertion: %s" % assert_message)])))
+                                ast.Str("Assertion: %s" % assert_message, kind="")])))
 
         return assertion_elements
 
@@ -1502,21 +1709,16 @@ from selenium.webdriver.common.keys import Keys
         self.tree = self._build_tree()
 
     def save(self, filename):
-        if PY2:
-            with open(filename, 'wt') as fds:
-                fds.write("# coding=utf-8\n")
-                fds.write(astunparse.unparse(self.tree))
-        else:
-            with open(filename, 'wt', encoding='utf8') as fds:
-                fds.write("# coding=utf-8\n")
-                fds.write(astunparse.unparse(self.tree))
+        with open(filename, 'wt', encoding='utf8') as fds:
+            fds.write("# coding=utf-8\n")
+            fds.write(astunparse.unparse(self.tree))
 
     def _gen_logging(self):
         set_log = ast.Assign(
             targets=[ast.Name(id="log")],
             value=ast_call(
                 func=ast_attr("logging.getLogger"),
-                args=[ast.Str(s="apiritif.http")]))
+                args=[ast.Str(s="apiritif.http", kind="")]))
         add_handler = ast_call(
             func=ast_attr("log.addHandler"),
             args=[ast_call(

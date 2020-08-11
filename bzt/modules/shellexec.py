@@ -16,9 +16,10 @@ limitations under the License.
 from subprocess import CalledProcessError, PIPE
 
 from bzt import TaurusConfigError, RCProvider
-from bzt.six import communicate
 from bzt.engine import Service
-from bzt.utils import ensure_is_dict, Environment, shutdown_process, shell_exec
+from bzt.utils import ensure_is_dict, Environment, shutdown_process, shell_exec, communicate, BetterDict
+from bzt.modules.provisioning import Local
+from bzt.modules.blazemeter import CloudProvisioning
 
 
 class ShellExecutor(Service):
@@ -87,11 +88,36 @@ class ShellExecutor(Service):
             container.append(task)
             self.log.debug("Added %s task: %s", stage, stage_task)
 
+    def _filter_prov_context(self):
+        def filter_conf(conf):
+            if not any(key in conf for key in prov_configs.values()):        # if no specific provisioning is configured
+                conf = BetterDict.from_dict({prov_configs['local']: conf})  # all configuration is local
+
+            return conf.get(current_prov)
+
+        current_prov = self.engine.config.get("provisioning")
+        modules = self.engine.config.get("modules")
+        prov_classes = {'local': Local, 'cloud': CloudProvisioning}
+
+        prov_configs = {}
+        for prov in prov_classes:
+            class_name = prov_classes[prov].__module__ + '.' + prov_classes[prov].__name__
+            for module in modules:  # llo
+                if modules[module] == class_name or (
+                        isinstance(modules[module], dict) and modules[module].get("class") == class_name):
+                    prov_configs[prov] = module
+                    break
+
+        self.settings = filter_conf(self.settings)
+        self.parameters = filter_conf(self.parameters)
+
     def prepare(self):
         """
         Configure Tasks
         :return:
         """
+        self._filter_prov_context()
+
         self.env.set(self.settings.get('env'))
 
         self._load_tasks('prepare', self.prepare_tasks)

@@ -4,6 +4,7 @@ import pprint
 import time
 import unittest
 
+from urllib import parse
 import urwid
 import yaml
 
@@ -12,8 +13,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import EXEC
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchGenerator
-from bzt.six import parse, b
-from bzt.utils import is_windows
+from bzt.utils import b, is_windows
 from tests import RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 from tests.cases import ExecutorTestCase
 
@@ -115,7 +115,7 @@ class TestPBenchExecutor(TestPBench):
 
     def test_improved_request_building(self):
         config = RESOURCES_DIR + "yaml/phantom_improved_request.yml"
-        self.configure(yaml.load(open(config).read()))
+        self.configure(yaml.full_load(open(config).read()))
         self.obj.prepare()
         with open(self.obj.generator.schedule_file) as fds:
             config = fds.readlines()
@@ -129,7 +129,7 @@ class TestPBenchExecutor(TestPBench):
 
     def test_same_address_port(self):
         config = RESOURCES_DIR + "yaml/phantom_request_same_address.yml"
-        self.configure(yaml.load(open(config).read()))
+        self.configure(yaml.full_load(open(config).read()))
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_install_pbench(self):

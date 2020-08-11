@@ -32,8 +32,7 @@ from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, Result
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.functional import FunctionalAggregatorListener
 from bzt.modules.passfail import PassFailStatus
-from bzt.six import etree, iteritems, string_types, integer_types
-from bzt.utils import get_full_path, is_windows
+from bzt.utils import etree, iteritems, get_full_path, is_windows
 
 if is_windows():
     from terminaltables import AsciiTable as SingleTable
@@ -292,9 +291,9 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     def __val_to_str(self, kpi_val):
         if isinstance(kpi_val, float):
             return '%.5f' % kpi_val
-        elif isinstance(kpi_val, integer_types):
+        elif isinstance(kpi_val, int):
             return '%d' % kpi_val
-        elif isinstance(kpi_val, string_types):
+        elif isinstance(kpi_val, str):
             return kpi_val
         else:
             raise TaurusInternalException("Unhandled kpi type: %s" % type(kpi_val))
@@ -558,7 +557,7 @@ class XUnitFileWriter(object):
     def report_test_suite(self, suite_name):
         """
         :type suite_name: str
-        :type children: list[bzt.six.etree.Element]
+        :type children: list[lxml.etree.Element]
         """
         self.add_test_suite(suite_name, attributes={"name": suite_name, "package_name": "bzt"})
 
@@ -566,7 +565,7 @@ class XUnitFileWriter(object):
         """
         :type suite_name: str
         :type case_name: str
-        :type children: list[bzt.six.etree.Element]
+        :type children: list[lxml.etree.Element]
         """
         children = children or []
         if self.report_urls:
