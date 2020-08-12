@@ -1658,7 +1658,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                     validation_result = self.router._test.get_passfail_validation()
                     if validation_result:
                         for warning_msg in validation_result:
-                            self.log.warning(f"Passfail warning: {warning_msg}")
+                            self.log.warning(f"Passfail Warning: {warning_msg}")
 
         self.log.info("Started cloud test: %s", self.results_url)
         if self.results_url:

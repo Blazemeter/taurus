@@ -1936,7 +1936,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.router._test.get_passfail_validation = lambda: ["passfail warning"]
         self.obj.startup()
         warnings = self.log_recorder.warn_buff.getvalue()
-        self.assertIn("Passfail warning: passfail warning", warnings)
+        self.assertIn("Passfail Warning: passfail warning", warnings)
 
 
 class TestResultsFromBZA(BZTestCase):
