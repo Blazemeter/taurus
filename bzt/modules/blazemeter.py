@@ -1629,8 +1629,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             cls = reporter.get('module', exc)
             if cls == "blazemeter":
                 self.log.warning("Explicit blazemeter reporting is skipped for cloud")
-            elif cls == "passfail":
-                self.log.warning("Passfail has no effect for cloud, skipped")
             else:
                 new_reporting.append(reporter)
 
@@ -1653,6 +1651,15 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def startup(self):
         super(CloudProvisioning, self).startup()
         self.results_url = self.router.launch_test()
+
+        if 'reporting' in self.engine.config:
+            for module in self.engine.config['reporting']:
+                if module['module'] == 'passfail':
+                    validation_result = self.router._test.get_passfail_validation()
+                    if validation_result:
+                        for warning_msg in validation_result:
+                            self.log.warning(f"Passfail warning: {warning_msg}")
+
         self.log.info("Started cloud test: %s", self.results_url)
         if self.results_url:
             if self.browser_open in ('start', 'both'):
