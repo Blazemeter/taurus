@@ -156,15 +156,18 @@ class CLI(object):
 
         if self.options.no_system_configs is None:
             self.options.no_system_configs = False
-
-        bzt_rc = os.path.expanduser(os.path.join('~', ".bzt-rc"))
-        if os.path.exists(bzt_rc):
-            self.log.debug("Using personal config: %s" % bzt_rc)
+            
+        if not self.options.no_system_configs:
+            bzt_rc = os.path.expanduser(os.path.join('~', ".bzt-rc"))
+            if os.path.exists(bzt_rc):
+                self.log.debug("Using personal config: %s" % bzt_rc)
+            else:
+                self.log.debug("Adding personal config: %s", bzt_rc)
+                self.log.info("No personal config found, creating one at %s", bzt_rc)
+                shutil.copy(os.path.join(RESOURCES_DIR, 'base-bzt-rc.yml'), bzt_rc)
         else:
-            self.log.debug("Adding personal config: %s", bzt_rc)
-            self.log.info("No personal config found, creating one at %s", bzt_rc)
-            shutil.copy(os.path.join(RESOURCES_DIR, 'base-bzt-rc.yml'), bzt_rc)
-
+            self.log.info("No system configs option set, skipping creation of config files.")
+            
         merged_config = self.engine.configure([bzt_rc] + configs, not self.options.no_system_configs)
 
         # apply aliases
