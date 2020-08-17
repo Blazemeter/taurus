@@ -8,19 +8,19 @@ from bzt.utils import temp_file
 ROOT_LOGGER = logging.getLogger("")
 
 
-def __dir__():
+def _get_cwd():
     filename = inspect.getouterframes(inspect.currentframe())[1][1]
     return os.path.dirname(filename)
 
 
 # execute tests regardless of working directory
-root_dir = __dir__() + '/../'
+root_dir = _get_cwd() + '/../'
 os.chdir(root_dir)
 
-RESOURCES_DIR = os.path.join(__dir__(), 'resources') + os.path.sep
-BUILD_DIR = __dir__() + "/../build/tmp/"
-TEST_DIR = __dir__() + "/../build/test/"
-BASE_CONFIG = __dir__() + "/../bzt/resources/10-base-config.yml"
+RESOURCES_DIR = os.path.join(_get_cwd(), 'resources') + os.path.sep
+BUILD_DIR = _get_cwd() + "/../build/tmp/"
+TEST_DIR = _get_cwd() + "/../build/test/"
+BASE_CONFIG = _get_cwd() + "/../bzt/resources/10-base-config.yml"
 
 from bzt.cli import CLI
 from bzt.utils import EXE_SUFFIX, run_once
