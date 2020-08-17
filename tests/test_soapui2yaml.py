@@ -2,7 +2,7 @@ import yaml
 
 from bzt.soapui2yaml import SoapUI2YAML, process
 
-from tests import BZTestCase, __dir__, RESOURCES_DIR
+from tests import BZTestCase, get_cwd, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 
@@ -22,7 +22,7 @@ class TestConverter(BZTestCase):
         self.engine = EngineEmul()
 
     def _get_soapui2yaml(self, path, file_name=None, test_case=None):
-        return SoapUI2YAML(FakeOptions(file_name=file_name, test_case=test_case), __dir__() + path)
+        return SoapUI2YAML(FakeOptions(file_name=file_name, test_case=test_case), get_cwd() + path)
 
     def _get_tmp(self, prefix='test', suffix='.yml'):
         return self.engine.create_artifact(prefix, suffix)
