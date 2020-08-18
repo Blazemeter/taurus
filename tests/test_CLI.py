@@ -200,7 +200,7 @@ class TestCLI(BZTestCase):
         self.verbose = False
         ret = self.get_ret_code([
             RESOURCES_DIR + "json/mock_normal.json",
-            ])
+        ])
         self.assertEquals(0, ret)
         log_lines = open(os.path.join(self.obj.engine.artifacts_dir, "bzt.log")).readlines()
         checking = False
@@ -328,9 +328,17 @@ class TestConfigOverrider(BZTestCase):
         self.assertEqual(self.config.get("dict"), {"1": 1, "3": 3})
 
     def test_override_multiple(self):
-        self.config["items"] = [1, 2, 3]
-        self.config["dict"] = {"listObj":[{"k1":"v1"}, {"k2":"v2"}, {"k3":"v3"}],"lislis":[1,2,3,4],"k1":"v3"}
-        self.obj.apply_overrides(['items.*1=v2'], self.config)
-        self.obj.apply_overrides(['dict.*k1=v2'], self.config)
-        self.assertEqual(self.config.get("dict"), {'listObj': [{'k1': 'v2'}, {'k2': 'v2'}, {'k3': 'v3'}], 'lislis': [1, 2, 3, 4], 'k1': 'v2'})
-        self.assertEqual(self.config.get("items"), [1, 2, 3])
+        self.config["vals_dict"] = {
+            "nums_list": ['one', 'two', 'three'],
+            "dicts_list": [{"k1": "v1"}, {"k2": "v2"}, {"k3": "v3"}],
+            "k1": "v1",
+            "bool_value": True}
+
+        self.obj.apply_overrides(['vals_dict.*one=zero'], self.config)
+        self.obj.apply_overrides(['vals_dict.*k1=v2'], self.config)
+
+        self.assertEqual(self.config.get("vals_dict"), {
+            "nums_list": ['zero', 'two', 'three'],
+            "dicts_list": [{"k1": "v2"}, {"k2": "v2"}, {"k3": "v3"}],
+            "k1": "v2",
+            "bool_value": True})
