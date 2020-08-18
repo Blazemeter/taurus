@@ -114,12 +114,13 @@ from selenium.webdriver.common.keys import Keys
 
     BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
     COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
+    EXTENDED_LOG_TAG = ("logStart", "logEnd")
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
     SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock)
 
-    def __init__(self, scenario, label, wdlog=None, executor=None,
+    def __init__(self, scenario, label, logger_filename='', wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
                  capabilities=None, wd_addr=None, test_mode="selenium"):
         self.scenario = scenario
@@ -132,6 +133,7 @@ from selenium.webdriver.common.keys import Keys
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
         self.service_methods = []
+        self.logger_filename = logger_filename
 
         self.remote_address = wd_addr
         self.capabilities = capabilities or {}
@@ -171,7 +173,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
-        all_actions = self.ACTIONS + "|" + self.EXECUTION_BLOCKS
+        all_actions = self.ACTIONS + "|" + "|".join(self.EXTENDED_LOG_TAG) + "|" + self.EXECUTION_BLOCKS
         expr = re.compile(r"^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
@@ -657,7 +659,13 @@ from selenium.webdriver.common.keys import Keys
 
         action_elements = []
 
-        if tag == "window":
+        if atype == "logstart":
+            action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
+                                            args=[self._gen_expr(param.strip()), self._gen_expr(self.logger_filename)]))
+        elif atype == "logend":
+            action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
+                                            args=[self._gen_expr(param.strip()), self._gen_expr(self.logger_filename)]))
+        elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
         elif atype == "switchframe":
             action_elements.extend(self._gen_frame_mngr(tag, param))
@@ -1496,7 +1504,9 @@ from selenium.webdriver.common.keys import Keys
 
         if self.test_mode == "selenium":
             for action in req.config.get("actions"):
+                lines.extend(self._gen_action(self._gen_log_action_start(action)))
                 lines.extend(self._gen_action(action))
+                lines.extend(self._gen_action(self._gen_log_action_end(action)))
 
             if "assert" in req.config:
                 lines.append(ast.Assign(
@@ -1519,6 +1529,12 @@ from selenium.webdriver.common.keys import Keys
                     args=[self._gen_expr(think_time)])))
 
         return lines
+
+    def _gen_log_action_start(self, action):
+        return f"logStart({action})"
+
+    def _gen_log_action_end(self, action):
+        return f"logEnd({action})"
 
     def _gen_sel_assertion(self, assertion_config):
         self.log.debug("Generating assertion, config: %s", assertion_config)
