@@ -1629,8 +1629,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             cls = reporter.get('module', exc)
             if cls == "blazemeter":
                 self.log.warning("Explicit blazemeter reporting is skipped for cloud")
-            elif cls == "passfail":
-                self.log.warning("Passfail has no effect for cloud, skipped")
             else:
                 new_reporting.append(reporter)
 
@@ -1653,6 +1651,15 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def startup(self):
         super(CloudProvisioning, self).startup()
         self.results_url = self.router.launch_test()
+
+        if 'reporting' in self.engine.config:
+            for module in self.engine.config['reporting']:
+                if module['module'] == 'passfail':
+                    validation_result = self.router._test.get_passfail_validation()
+                    if validation_result:
+                        for warning_msg in validation_result:
+                            self.log.warning(f"Passfail Warning: {warning_msg}")
+
         self.log.info("Started cloud test: %s", self.results_url)
         if self.results_url:
             if self.browser_open in ('start', 'both'):
@@ -1693,11 +1700,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.__last_master_status = status
             self.log.info("Cloud test status: %s", status)
 
-        #if self.results_reader and progress and progress >= BZA_TEST_DATA_RECEIVED:
-        #    self.results_reader.master = self.router.master
+        if self.results_reader and progress and progress >= BZA_TEST_DATA_RECEIVED:
+            self.results_reader.master = self.router.master
 
         if progress == ENDED:
-            self.results_reader.master = self.router.master
             self.log.info("Test was stopped in the cloud: %s", status)
             self.test_ended = True
             return True

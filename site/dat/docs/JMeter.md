@@ -213,9 +213,16 @@ scenarios:
     follow-redirects: true  # follow redirects for all HTTP requests
     random-source-ip: false  # use one of host IPs to send requests, chosen randomly.
                              # False by default
-    data-sources: # list of external data sources
+    data-sources:  # these are data-sources options for Jmeter. See more info below.
     - path/to/my.csv  # this is a shorthand form
+    - path: path/to/another.csv  # this is a full form
+      delimiter: ';'
+      quoted: false
+      loop: true
+      variable-names: id,name
+      random-order: false
 ```
+See more info about data-sources [here](DataSources.md).
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
 

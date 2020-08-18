@@ -30,7 +30,7 @@ class TestLocScRemote(unittest.TestCase):
         timeout = 3.5
         self.driver = None
         options = webdriver.FirefoxOptions()
-        options.set_preference('network.proxy.type', '4')
+        options.set_preference('network.proxy.type', 4)
         self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub',
                                        desired_capabilities={'app': '', 'browserName': 'firefox', 'deviceName': '',
                                                              'javascriptEnabled': 'True', 'platformName': 'linux',

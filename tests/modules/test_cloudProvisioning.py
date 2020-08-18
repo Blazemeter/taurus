@@ -1267,7 +1267,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()  # this one should skip
         self.obj.engine.aggregator.check()
 
-        self.assertEqual(22, len(self.mock.requests))  # todo: return 32, it's added temporary for 'read once' flow only
+        self.assertEqual(32, len(self.mock.requests))
 
     def test_dump_locations(self):
         self.configure()
@@ -1919,6 +1919,24 @@ class TestCloudProvisioning(BZTestCase):
             self.obj.post_process()
         except AutomatedShutdown as exc:
             self.fail("Raised automated shutdown %s" % exc)
+
+    def test_passfail_criteria(self):
+        criteria = ['avg-rt<100ms', 'bytes<1kb']
+        self.configure(
+            engine_cfg={
+                EXEC: {"executor": "mock"},
+                "reporting": [{"module": "passfail", "criteria": criteria}],
+            }
+        )
+        self.sniff_log(self.obj.log)
+
+        self.obj.prepare()
+        self.assertEqual(self.obj.engine.config['reporting'][0]['criteria'], criteria)
+
+        self.obj.router._test.get_passfail_validation = lambda: ["passfail warning"]
+        self.obj.startup()
+        warnings = self.log_recorder.warn_buff.getvalue()
+        self.assertIn("Passfail Warning: passfail warning", warnings)
 
 
 class TestResultsFromBZA(BZTestCase):

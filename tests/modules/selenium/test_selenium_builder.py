@@ -3,7 +3,6 @@
 import ast
 import astunparse
 import os
-import unittest
 
 from bzt import TaurusConfigError
 from tests import RESOURCES_DIR
@@ -174,7 +173,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         target_lines = [
             "options = webdriver.FirefoxOptions()",
-            "options.set_preference('network.proxy.type', '4')",
+            "options.set_preference('network.proxy.type', 4)",
             "options.set_headless()",
             "profile = webdriver.FirefoxProfile()",
             "profile.set_preference('webdriver.log.file', '",
@@ -279,6 +278,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"rawCode": "for i in range(10):\n  if i % 2 == 0:\n    print(i)"},
                             {"dragByID(address)": "elementByName(toPort)"},
                             "switchFrameByName('my_frame')",
+                            "switchFrame('top_frame')",
+                            "switchFrameByXpath(//*[@id='result'])",
+                            "switchFrameByCSS(.my_class)",
+                            "switchFrameById(frame_id)",
                             "switchFrameByIdx(1)",
                             "switchFrame(relative=parent)",
                             {"editContentById(editor)": "lo-la-lu"},
@@ -1684,7 +1687,11 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                             {
                                                 "type": "assertText",
                                                 "element": "el",
-                                                "param": "text"
+                                                "param": "text",
+                                                "locators": [
+                                                    {"css": "style"},
+                                                    {"xpath": "//tr"}
+                                                ]
                                             },
                                             {"assertValueByElement(el)": "value"},
                                             {
@@ -1702,6 +1709,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                             {
                                                 "type": "click",
                                                 "element": "el",
+                                                "locators": [
+                                                    {"css": "input-cls"},
+                                                    {"xpath": "//input"}
+                                                ]
                                             },
                                             "doubleClickByElement(el)",
                                             {
@@ -1820,3 +1831,141 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             self.obj.prepare()
 
         self.assertTrue("Foreach loop must contain locators and do" in str(context.exception))
+
+    def test_all_by_shadow_actions(self):
+        self.configure(
+            {
+                "execution": [
+                    {
+                        "executor": "apiritif",
+                        "scenario": "loc_sc"
+                    }
+                ],
+                "scenarios": {
+                    "loc_sc": {
+                        "default-address": "http://blazedemo.com,",
+                        "browser": "Chrome",
+                        "variables": {
+                            "city_select_name": "fromPort",
+                            "input_name_id": "inputName"
+                        },
+                        "timeout": "3.5s",
+                        "requests": [
+                            {
+                                "label": "Shadow locators test",
+                                "actions": [
+                                    {"assertTextByShadow(c-basic, lightning-accordion-section, .slds-button)": "text"},
+                                    {
+                                        "type": "assertText",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "text"
+                                    },
+                                    {"assertValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "value"},
+                                    {
+                                        "type": "assertValue",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "value"
+                                    },
+                                    {"editContentByShadow(c-basic, lightning-accordion-section, .slds-button)" : "new text"},
+                                    {
+                                        "type": "editContent",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "new text"
+                                    },
+                                    "clickByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "click",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    "doubleClickByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "doubleClick",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    "mouseDownByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "mouseDown",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    "mouseUpByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "mouseUp",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    "mouseOutByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "mouseOut",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    "mouseOverByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "mouseOver",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    {"dragByShadow(c-basic, lightning-accordion-section, .slds-button)" : "elementById(id12)"},
+                                    {"dragById(id34)": "elementByShadow(c-basic, lightning-accordion-section, .slds-button)"},
+                                    {
+                                        "type": "drag",
+                                        "source": [
+                                            {"shadow": "c-basic, lightning-accordion-section, .slds-button"}
+                                        ],
+                                        "target": [
+                                            {"id": "id12"}
+                                        ]
+                                    },
+                                    {
+                                        "type": "drag",
+                                        "source": [
+                                            {"id": "id34"}
+                                        ],
+                                        "target": [
+                                            {"shadow": "c-basic, lightning-accordion-section, .slds-button"}
+                                        ]
+                                    },
+                                    {"selectByShadow(c-basic, lightning-accordion-section, .slds-button)": "value"},
+                                    {
+                                        "type": "select",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "value"
+                                    },
+                                    {"storeTextByShadow(c-basic, lightning-accordion-section, .slds-button)": "my_var"},
+                                    {
+                                        "type": "storeText",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "my_var"
+                                    },
+                                    {"storeValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "my_var"},
+                                    {
+                                        "type": "storeValue",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "my_var"
+                                    },
+                                    {"typeByShadow(c-basic, lightning-accordion-section, .slds-button)": "text"},
+                                    {
+                                        "type": "type",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "text"
+                                    },
+                                    "submitByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "submit",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button"
+                                    },
+                                    {"keysByShadow(c-basic, lightning-accordion-section, .slds-button)": "KEY_ENTER"},
+                                    {
+                                        "type": "keys",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "KEY_ENTER"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        )
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_shadow.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)

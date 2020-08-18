@@ -43,8 +43,13 @@ scenarios:
       - http://blazedemo.com/receive/${var1} # get 'receive/val2'
     - include-scenario: inner
 
-    data-sources: # list of external data sources
-    - path/to/my.csv
+    data-sources: # these are data-sources options for Apiritif. See more info below.
+    - path/to/my.csv  # this is a shorthand form
+    - path: path/to/another.csv  # this is a full form
+      delimiter: ';'
+      quoted: false
+      loop: true
+      variable-names: id,name
 
   inner:
     requests:
@@ -52,7 +57,6 @@ scenarios:
         var1: val3
     - http://blazedemo.com/receive/${var1}
 ```
-
 See more info about data-sources [here](DataSources.md).
 
 It is valid to specify both single Python module (single .py file) and a Python package (folder with Python modules
@@ -170,6 +174,23 @@ We can compose following XPath expressions:
 
 Any of these expressions can be used to fetch the desired element, if these attributes are unique.
 
+__7. By Shadow Locator__
+
+Shadow Locator enables to work with Shadow DOM which is designed as a tool for building component-based 
+applications. For example Salesforce Lightning Component Library is based on Shadow DOM. 
+Shadow DOM is self-contained and thus simple locators will not return nodes inside it.
+
+Shadow Locator is composed by a sequence of css selectors, e.g.:
+
+```html
+shadow: c-basic, lightning-accordion-section, .slds-button
+```
+
+The last CSS Selector refers to the target element in a shadow tree. 
+The preceding CSS Selectors refer to the shadow hosts.
+
+Most of the actions in Apiritif support Shadow Locators.
+
 ### Alternative syntax supporting multiple locators
 It is possible to specify multiple locators for each action. This helps to increase script resiliency. If a locator
 fails (e.g. because of a webpage change and the script was not updated to reflect the changes) an alternative locator
@@ -190,7 +211,7 @@ This is an example how it looks like:
 ```
 You can see full example [here](#Sample-scenario-using-multiple-locators).
 
-##### If Blocks
+### If Blocks
 
 Apiritif allows to control execution flow using `if` blocks. These blocks enable 
 conditional execution of actions.
@@ -375,6 +396,38 @@ use unique names for the variables in each of the blocks.
 
 Please note that it is not possible to use `wait` and `waitFor` actions in the `foreach` using `ByElement`. 
 However you can still use it inside the loop the common way - e.g. `waitById(my_id)`.
+
+#### Perform actions in foreach using the parent context
+
+It is possible to specify in each action inside the foreach loop additional set of locators besides just the `element` field.
+This way it allows to locate a child element within the parent `element`.
+
+In the following example we iterate over table rows and do a click action on
+the button that should be located on each row.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_context
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             
+            locators:
+              - css: table_row
+              - xpath: //tr
+            do:
+              - type: click
+                element: el
+                locators:         # the list of locators that to find the child element in the parent 'el'
+                  - css: .btn-small
+                  - css: .button-small
+```
+
+Note that this is only supported while using the  
+[alternative syntax](#Alternative-syntax-supporting-multiple-locators) for the action.
 
 
 ### Alert
@@ -808,6 +861,7 @@ scenarios:
           for i in range(10):           # multiline example
             if i % 2 == 0:
               print(i)
+      - clickByShadow(c-basic,form-opened,#mytext)   # sample usage of shadow locator
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
@@ -873,6 +927,8 @@ scenarios:
       - scriptEval("alert('This is Sparta');")
       - type: rawCode
         param: print('It\'s Python')  # insert as-is into script file
+      - type: click   # sample usage of shadow locator
+        shadow: 'c-basic, form-opened, #mytext'
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns

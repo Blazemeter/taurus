@@ -25,7 +25,7 @@ scenarios:
 
 Example locust file `sample.py`:
 ```python
-from locust import HttpLocust, TaskSet, task, between
+from locust import HttpUser, TaskSet, task, between
 
 class WebsiteTasks(TaskSet):
     def on_start(self):
@@ -42,12 +42,12 @@ class WebsiteTasks(TaskSet):
     def about(self):
         self.client.get("/about/")
 
-class WebsiteUser(HttpLocust):
-    task_set = WebsiteTasks
+class WebsiteUser(HttpUser):
+    tasks = [WebsiteTasks]
     wait_time = between(0.100, 1.500)
 ```
 
-For files generation we use syntax of Locust 0.13+. Latest supported version is 0.13.5.
+For files generation we use syntax of Locust 1.0+. Latest supported version is 1.0.3.
 
 ## Requests Scenario
 
@@ -83,3 +83,67 @@ scenarios:
 Keep in mind: locust requires default url for its work (empty string is accepted). You have to set `host`
 in python script or `default-address` in script for Taurus. If both are found value from Taurus script has priority.
  
+## Run Locust in Distributed Mode
+Distributed mode for Locust is enabled with two option `master` and `workers` under execution settings:
+
+```yaml
+execution:
+- executor: locust
+  master: True
+  workers: 10
+
+scenarios:
+  request_example:
+...
+```
+Keep in mind: taurus starts locust master node only. All other workers should be configured and started manually.  
+ 
+## Migration notes
+
+Since you can read this migration notes, all latest dev builds and releases after 1.14.2 of taurus support 1.0+ 
+locust version with new syntax. Here are some tips for updating to the latest locust version from version 0.13.*.
+
+#### In .yaml files `slaves` field is renamed to `workers` according to locust
+
+##### old version
+```yaml
+execution:
+- executor: locust
+  slaves: 10
+...
+```
+##### new version
+```yaml
+execution:
+- executor: locust
+  workers: 10
+...
+```
+
+#### Locust file migrations
+- `Locusts` is renamed to `Users`
+- Use property `tasks` instead of `task_set` 
+
+##### old version
+```python 
+from locust import HttpLocust, TaskSet, ...
+
+class WebsiteTasks(TaskSet):
+...
+
+class WebsiteUser(HttpLocust):
+    task_set = WebsiteTasks
+...
+```
+
+##### new version
+```python 
+from locust import HttpUser, TaskSet, ...
+
+class WebsiteTasks(TaskSet):
+...
+
+class WebsiteUser(HttpUser):
+    tasks = [WebsiteTasks]
+...
+```

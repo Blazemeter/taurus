@@ -2,7 +2,7 @@
 
 from gevent import sleep
 from re import findall, compile
-from locust import HttpLocust, TaskSet, task, constant
+from locust import HttpUser, TaskSet, task, constant
 
 class UserBehaviour(TaskSet):
     @task(1)
@@ -26,8 +26,8 @@ class UserBehaviour(TaskSet):
         sleep(1.0)
 
 
-class GeneratedSwarm(HttpLocust):
-    task_set = UserBehaviour
+class GeneratedSwarm(HttpUser):
+    tasks = [UserBehaviour]
     host = "http://blazedemo.com"
     wait_time = constant(0)
 

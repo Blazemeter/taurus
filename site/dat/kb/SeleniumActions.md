@@ -50,7 +50,7 @@ The Taurus Console displays the execution of this one test:
 
 ![](sel-act1.png)
 
-The results of the test are displayed in the console the by default. If you want to see the testing process in detail you can look it up in the _artifacts directory_. The artifacts directory is created in the same folder where the script was launched from. If you want your artifact directory to be created in another location, you can change the artifact directory route. Look [here](http://gettaurus.org/docs/ConfigSyntax/#Top-Level-Settings?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium) for more information about how this can be done.
+The results of the test are displayed in the console the by default. If you want to see the testing process in detail you can look it up in the [artifacts directory](../docs/ArtifactsDir.md). The artifacts directory is created in the same folder where the script was launched from. If you want your artifact directory to be created in another location, you can change the artifact directory route. Look [here](http://gettaurus.org/docs/ConfigSyntax/#Top-Level-Settings?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium) for more information about how this can be done.
 
 The name of the folder is created according to the format `%Y-%m-%d\_%H-%M-%S.%f`. This folder stores some files that interest us:
  - `test\_requests.py` - the Selenium test generated in Python

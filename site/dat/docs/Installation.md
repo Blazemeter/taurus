@@ -8,7 +8,14 @@ There are two ways to install Taurus on Windows. The **recommended** way is to u
 that will install latest Taurus on your PC. Also, if you already have Python installed,
 you can install Taurus manually with pip, Python package manager, but this is not recommended.
 
+### Install Taurus system dependencies
+
+1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
+1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
+
 ### Installing Taurus With Prebuilt Installer
+
+#### Basic Installation
 
 Download an [installer](RELEASE_SNAPSHOT) and run it on your system. It will install
 local Python 3.7 and Taurus with all its dependencies.
@@ -19,21 +26,21 @@ Notes:
 After the installation is finished, you can run Taurus with `bzt` from command prompt. Also, you'll have 'Taurus'
 shortcut in the Start menu.
 
-If you want to install additional Python packages along with Taurus (for example Locust, Molotov or others),
+
+#### Installing Additional Packages
+
+If you want to install additional Python packages along with Taurus (for example Locust, Molotov, etc),
+you should install the latest [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/) and
 you should utilize the following command line utilities provided by the installer:
 - `bzt-pip` is a wrapper for pip that can be used to install packages, for example `bzt-pip install locust`
 - `bzt-run` can be used to launch packages that were installed with `bzt-pip`, for example `bzt-run locust locustfile.py`
 
-Notes:
-- You need to install fresh `setuptools` and `wheel` before installing everything else with `bzt-pip`, so the command is
-  `bzt-pip install setuptools wheel`.
+
+**Important!**
+- You need to install fresh `setuptools` and `wheel` before installing everything else with `bzt-pip`, 
+ with the following command: `bzt-pip install setuptools wheel`. 
 
 ### Installing Taurus Manually
-
-####  Install Taurus System Dependencies
-
-1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
-1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
 
 #### Install Taurus Python Dependencies
 
@@ -42,6 +49,8 @@ from context menu). Then run the following command to update Python package mana
 ```
 pip install --upgrade pip wheel
 ```
+
+Make sure you have [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/) tools installed beforehand.
 
 #### Install Taurus
 

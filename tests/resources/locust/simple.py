@@ -1,4 +1,4 @@
-from locust import HttpLocust, TaskSet, task, between
+from locust import HttpUser, TaskSet, task, between
 
 
 class WebsiteTasks(TaskSet):
@@ -17,6 +17,6 @@ class WebsiteTasks(TaskSet):
         self.client.get("/about/")
 
 
-class WebsiteUser(HttpLocust):
-    task_set = WebsiteTasks
+class WebsiteUser(HttpUser):
+    tasks = [WebsiteTasks]
     wait_time = between(0.100, 1.500)

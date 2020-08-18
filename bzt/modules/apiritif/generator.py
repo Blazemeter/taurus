@@ -74,7 +74,8 @@ class ApiritifScriptGenerator(object):
         'byname': "name",
         'byid': "id",
         'bylinktext': "linktext",
-        'byelement': "byelement"
+        'byelement': "byelement",
+        'byshadow': "shadow"
     }
 
     ACTION_CHAINS = {
@@ -111,7 +112,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 """
 
-    BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement")
+    BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
     COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
 
     ACCESS_TARGET = 'target'
@@ -219,8 +220,10 @@ from selenium.webdriver.common.keys import Keys
         selectors = []
         if action_config.get("locators"):
             selectors = action_config.get("locators")
-        elif action_config.get("element"):
-            selectors = self._gen_selector_byelement(action_config)
+        if action_config.get("element"):
+            selectors.extend(self._gen_selector_byelement(action_config))
+        if action_config.get("shadow"):
+            selectors = [{"shadow" : action_config.get("shadow")}]
         if action_config.get("source") and action_config.get("target"):
             source = action_config.get("source")
             target = action_config.get("target")
@@ -267,11 +270,27 @@ from selenium.webdriver.common.keys import Keys
         # action performed in foreach loop on element
         return len(locators) == 1 and (locators[0].get("byelement") or locators[0].get("element"))
 
+    @staticmethod
+    def _is_shadow_locator(locators):
+        return len(locators) == 1 and locators[0].get("shadow")
+
     def _gen_dynamic_locator(self, var_w_locator, locators):
         if self._is_foreach_element(locators):
             return ast.Name(id=locators[0].get("byelement"))
+        el = self._get_byelement(locators)
+        target = el if el else "self.driver"
+        method = "%s.find_element" % target
+
+        if self._is_shadow_locator(locators):
+            self.selenium_extras.add("find_element_by_shadow")
+            return ast_call(
+                func=ast_attr("find_element_by_shadow"),
+                args=[
+                    ast.Str(locators[0].get("shadow"), kind="")
+                ]
+            )
         return ast_call(
-            func=ast_attr("self.driver.find_element"),
+            func=ast_attr(method),
             args=[
                 gen_subscript(var_w_locator, 0),
                 gen_subscript(var_w_locator, 1)
@@ -285,16 +304,29 @@ from selenium.webdriver.common.keys import Keys
             args.append(ast.Dict([ast.Str(locator_type, kind="")], [self._gen_expr(locator_value)]))
         return args
 
-    def _gen_loc_method_call(self, method, var_name, locators):
+    def _gen_loc_method_call(self, method, var_name, locators, parent_el=None):
+        args = [ast.List(elts=self._gen_ast_locators_dict(locators))]
+        if parent_el:
+            args.append(ast.Name(id=parent_el))
         return ast.Assign(
             targets=[ast.Name(id=var_name, ctx=ast.Store(), kind="")],
             value=ast_call(func=method,
-                           args=[ast.List(elts=self._gen_ast_locators_dict(locators))]))
+                           args=args))
 
     def _gen_get_locator_call(self, var_name, locators):
-        if self._is_foreach_element(locators):  # don't generate 'get_locator' for byElement action
+        # don't generate 'get_locator' for byElement action or shadow locator
+        if self._is_foreach_element(locators) or self._is_shadow_locator(locators):
             return []
-        return self._gen_loc_method_call("get_locator", var_name, locators)
+        parent_el = self._get_byelement(locators)
+        locs = [l for l in locators if not l.get("byelement")]  # remove the byelement locator from the list
+        return self._gen_loc_method_call("get_locator", var_name, locs, parent_el)
+
+    def _get_byelement(self, locators):
+        for loc in locators:
+            el = loc.get("byelement")
+            if el:
+                return el
+        return None
 
     def _gen_get_elements_call(self, var_name, locators):
         return self._gen_loc_method_call("get_elements", var_name, locators)
@@ -356,8 +388,10 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr(method),
                 args=[ast.Str(selector, kind="")]))
         else:
-            if tag == "byname":
-                tag = "name"
+            if not tag:
+                tag = "name"    # if tag is not present default it to name
+            elif tag.startswith('by'):
+                tag = tag[2:]   # remove the 'by' prefix
             elements.append(ast_call(
                 func=ast_attr(method),
                 args=[self._gen_locator(tag, selector)]))
@@ -517,6 +551,10 @@ from selenium.webdriver.common.keys import Keys
             el = locators[0].get("byelement")
             exc_msg = "The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element"
             exc_args = [ast.Str(el, kind=""), ast_attr(el + ".tag_name"), ast_attr(el + ".text")]
+        elif self._is_shadow_locator(locators):
+            el = locators[0].get("shadow")
+            exc_msg = "The element (shadow: '%s') is not a contenteditable element"
+            exc_args = [ast.Str(el, kind="")]
         else:
             exc_msg = "The element (%s: %r) is not a contenteditable element"
             exc_args = [tag, selector]
@@ -946,7 +984,7 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("webdriver.FirefoxOptions"))),
             ast.Expr(
                 ast_call(func=ast_attr("options.set_preference"),
-                         args=[ast.Str("network.proxy.type", kind=""), ast.Str("4", kind="")]))]
+                         args=[ast.Str("network.proxy.type", kind=""), ast.Num(4, kind="")]))]
 
         return firefox_options + self._get_headless_setup()
 
@@ -1103,6 +1141,12 @@ from selenium.webdriver.common.keys import Keys
                 delimiter.arg = "delimiter"
                 delimiter.value = ast.Str(s=source.get("delimiter"), kind="")
                 keywords.append(delimiter)
+
+            if "encoding" in source:
+                encoding = ast.keyword()
+                encoding.arg = "encoding"
+                encoding.value = ast.Str(s=source.get("encoding"), kind="")
+                keywords.append(encoding)
 
             csv_file = self.scenario.engine.find_file(source["path"])
             reader = ast.Assign(

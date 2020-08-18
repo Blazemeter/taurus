@@ -39,7 +39,7 @@ class TestLocSc(unittest.TestCase):
         timeout = 3.5
         self.driver = None
         options = webdriver.FirefoxOptions()
-        options.set_preference('network.proxy.type', '4')
+        options.set_preference('network.proxy.type', 4)
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
         self.driver = webdriver.Firefox(profile, options=options)
@@ -160,6 +160,10 @@ class TestLocSc(unittest.TestCase):
                 target[0],
                 target[1])).perform()
             switch_frame(self.driver.find_element(By.NAME, 'my_frame'))
+            switch_frame(self.driver.find_element(By.NAME, 'top_frame'))
+            switch_frame(self.driver.find_element(By.XPATH, "//*[@id='result']"))
+            switch_frame(self.driver.find_element(By.CSS_SELECTOR, '.my_class'))
+            switch_frame(self.driver.find_element(By.ID, 'frame_id'))
             switch_frame('index=1')
             switch_frame('relative=parent')
 

@@ -36,7 +36,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         super(LocustIOExecutor, self).__init__()
         self.process = None
         self.is_master = False
-        self.expected_slaves = 0
+        self.expected_workers = 0
         self.scenario = None
         self.script = None
         self.log_file = None
@@ -57,11 +57,11 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.is_master = self.execution.get("master", self.is_master)
 
         if self.is_master:
-            count_error = TaurusConfigError("Slaves count required when starting in master mode")
-            self.expected_slaves = int(self.execution.get("slaves", count_error))
-            slaves_ldjson = self.engine.create_artifact("locust-slaves", ".ldjson")
-            self.reader = SlavesReader(slaves_ldjson, self.expected_slaves, self.log)
-            self.env.set({"SLAVES_LDJSON": slaves_ldjson})
+            count_error = TaurusConfigError("Workers count required when starting in master mode")
+            self.expected_workers = int(self.execution.get("workers", count_error))
+            workers_ldjson = self.engine.create_artifact("locust-workers", ".ldjson")
+            self.reader = WorkersReader(workers_ldjson, self.expected_workers, self.log)
+            self.env.set({"WORKERS_LDJSON": workers_ldjson})
         else:
             kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
             self.reader = JTLReader(kpi_jtl, self.log)
@@ -78,9 +78,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
     def startup(self):
         load = self.get_load()
         concurrency = load.concurrency or 1
+        run_time = 10  # seconds
 
         if self.is_master:
-            concurrency = math.ceil(concurrency / float(self.expected_slaves))
+            concurrency = math.ceil(concurrency / float(self.expected_workers))
 
         if load.ramp_up:
             hatch = concurrency / float(load.ramp_up)
@@ -90,7 +91,8 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         wrapper = os.path.join(RESOURCES_DIR, "locustio-taurus-wrapper.py")
 
         if load.duration:
-            self.env.set({"LOCUST_DURATION": dehumanize_time(load.duration)})
+            run_time = dehumanize_time(load.duration)
+            self.env.set({"LOCUST_DURATION": run_time})
 
         self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
         self.env.add_path({"PYTHONPATH": self.engine.artifacts_dir})
@@ -98,14 +100,16 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.log_file = self.engine.create_artifact("locust", ".log")
         args = [sys.executable, wrapper, '-f', self.script]
         args += ['--logfile=%s' % self.log_file]
-        args += ["--no-web", "--only-summary", ]
-        args += ["--clients=%d" % concurrency, "--hatch-rate=%f" % hatch]
+        args += ["--headless", "--only-summary", ]
+        args += ["--users=%d" % concurrency, "--hatch-rate=%f" % hatch]
+        args += ["--run-time=%d" % run_time, "--stop-timeout=10"]
+
         if load.iterations:
             num_requests = load.iterations * concurrency
             self.env.set({"LOCUST_NUMREQUESTS": num_requests})
 
         if self.is_master:
-            args.extend(["--master", '--expect-slaves=%s' % self.expected_slaves])
+            args.extend(["--master", '--expect-workers=%s' % self.expected_workers])
 
         host = self.get_scenario().get("default-address")
         if host:
@@ -196,7 +200,7 @@ class LocustIO(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
-            out, err = self.call([self.tool_path, "--version"])
+            out, err = self.call([sys.executable, "-m", self.tool_path, "--version"])
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
@@ -207,17 +211,17 @@ class LocustIO(RequiredTool):
         return True
 
 
-class SlavesReader(ResultsProvider):
-    def __init__(self, filename, num_slaves, parent_logger):
+class WorkersReader(ResultsProvider):
+    def __init__(self, filename, num_workers, parent_logger):
         """
         :type filename: str
-        :type num_slaves: int
+        :type num_workers: int
         :type parent_logger: logging.Logger
         """
-        super(SlavesReader, self).__init__()
+        super(WorkersReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.join_buffer = {}
-        self.num_slaves = num_slaves
+        self.num_workers = num_workers
         self.file = FileReader(filename=filename, parent_logger=self.log)
         self.read_buffer = ""
 
@@ -253,12 +257,12 @@ class SlavesReader(ResultsProvider):
     def get_max_full_ts(self):
         max_full_ts = None
         for key in sorted(self.join_buffer.keys(), key=int):
-            if len(key) >= self.num_slaves:
+            if len(key) >= self.num_workers:
                 max_full_ts = int(key)
         return max_full_ts
 
     def fill_join_buffer(self, data):
-        self.log.debug("Got slave data: %s", data)
+        self.log.debug("Got worker data: %s", data)
         for stats_item in data['stats']:
             for timestamp in stats_item['num_reqs_per_sec'].keys():
                 if timestamp not in self.join_buffer:
@@ -308,14 +312,14 @@ class LocustIOScriptBuilder(PythonGenerator):
     IMPORTS = """
 from gevent import sleep
 from re import findall, compile
-from locust import HttpLocust, TaskSet, task, constant
+from locust import HttpUser, TaskSet, task, constant
 """
 
     def build_source_code(self):
         self.log.debug("Generating Python script for LocustIO")
         header_comment = self.gen_comment("This script was generated by Taurus", indent=0)
         scenario_class = self.gen_class_definition("UserBehaviour", ["TaskSet"])
-        swarm_class = self.gen_class_definition("GeneratedSwarm", ["HttpLocust"])
+        swarm_class = self.gen_class_definition("GeneratedSwarm", ["HttpUser"])
         imports = self.add_imports()
 
         self.root.append(header_comment)
@@ -323,7 +327,7 @@ from locust import HttpLocust, TaskSet, task, constant
         self.root.append(scenario_class)
         self.root.append(swarm_class)
 
-        swarm_class.append(self.gen_statement('task_set = UserBehaviour', indent=self.INDENT_STEP))
+        swarm_class.append(self.gen_statement('tasks = [UserBehaviour]', indent=self.INDENT_STEP))
 
         default_address = self.scenario.get("default-address", "")
         swarm_class.append(self.gen_statement('host = "%s"' % default_address, indent=self.INDENT_STEP))
