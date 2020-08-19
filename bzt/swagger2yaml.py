@@ -276,8 +276,8 @@ class Swagger(object):
     @staticmethod
     def get_data_for_schema(schema):
         builder = {}
-        if isinstance(schema, dict) and items in schema:
-           return {}
+        if not isinstance(schema, dict):
+           return builder
         for key, value in schema.items():
             if isinstance(value,dict) and not value.get('type'):
                builder[key]=Swagger.__buildRecursiveModel(value)
