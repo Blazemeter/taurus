@@ -311,7 +311,7 @@ class Swagger(object):
         elif type == "array":
             return [1, 2, 3]
         else:
-            raise ValueError("Can't generate dummy data for type %s" % type)
+            return None
 
 class SwaggerConverter(object):
     def __init__(
