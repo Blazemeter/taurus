@@ -276,7 +276,7 @@ class Swagger(object):
     @staticmethod
     def get_data_for_schema(schema):
         builder = {}
-        if isinstance(schema, dict) and items in schema:
+        if isinstance(schema, dict):
            return {}
         for key, value in schema.items():
             if isinstance(value,dict) and not value.get('type'):
