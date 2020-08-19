@@ -2816,7 +2816,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         })
         self.obj.prepare()
 
-    def test_res_files_from_blocks(self):
+    def test_once_block_res_files(self):
         body_file = "body.file"
         self.configure({
             "execution": {
