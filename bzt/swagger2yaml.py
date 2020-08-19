@@ -24,6 +24,8 @@ import sys
 import traceback
 from collections import namedtuple, OrderedDict
 from optparse import OptionParser
+from urllib import parse
+from urllib.parse import urlencode
 
 import yaml
 
