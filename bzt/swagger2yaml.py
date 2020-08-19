@@ -148,10 +148,13 @@ class Swagger(object):
                 if "$ref" in param["schema"]:
                     param["schema"]=param["schema"]
                     param["$ref"] = self.__refDeepResolve(self._lookup_reference(param["schema"]["$ref"]))
+                else:
+                    param["$ref"]= {"properties":{}}
                 param_name = param["name"]
             elif 'name' in param:
                 param_name = param["name"]
                 param["$ref"]= {"properties":{}}
+               
             ref = param['$ref']
             parameter = Swagger.Parameter(name=param_name, location=param.get("in"),
                                           description=param.get("description"), required=param.get("required"),
