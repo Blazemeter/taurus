@@ -149,7 +149,7 @@ class Swagger(object):
                     param["schema"]=param["schema"]
                     param["$ref"] = self.__refDeepResolve(self._lookup_reference(param["schema"]["$ref"]))
                 param_name = param["name"]
-            else:
+            else if name in param:
                 param_name = param["name"]
                 param["$ref"]= {"properties":{}}
             ref = None
