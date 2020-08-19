@@ -152,9 +152,7 @@ class Swagger(object):
             elif 'name' in param:
                 param_name = param["name"]
                 param["$ref"]= {"properties":{}}
-            ref = None
-            if isinstance(param,dict) and "$ref" in param:
-                ref =  param.get("$ref").get("properties")
+            ref = param['$ref']
             parameter = Swagger.Parameter(name=param_name, location=param.get("in"),
                                           description=param.get("description"), required=param.get("required"),
                                           schema=param.get("schema"), type=param.get("type"),
