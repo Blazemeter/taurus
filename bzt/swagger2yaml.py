@@ -144,6 +144,7 @@ class Swagger(object):
     def _extract_operation(self, operation):
         parameters = OrderedDict()
         for param in operation.get("parameters", []):
+            param_name=None
             if "schema" in param:
                 if "$ref" in param["schema"]:
                     param["schema"]=param["schema"]
@@ -154,7 +155,7 @@ class Swagger(object):
             elif 'name' in param:
                 param_name = param["name"]
                 param["$ref"]= {"properties":{}}
-               
+             
             ref = param['$ref']
             parameter = Swagger.Parameter(name=param_name, location=param.get("in"),
                                           description=param.get("description"), required=param.get("required"),
