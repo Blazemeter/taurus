@@ -16,6 +16,7 @@ class FakeOptions(object):
         self.log = log
         self.scenarios_from_paths = scenarios_from_paths
         self.parameter_interpolation = parameter_interpolation
+        self.ignore_paths={}
 
 
 class TestSwagger2YAML(BZTestCase):
