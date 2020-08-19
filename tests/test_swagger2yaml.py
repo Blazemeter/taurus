@@ -8,7 +8,7 @@ from tests.mocks import EngineEmul
 
 class FakeOptions(object):
     def __init__(self, verbose=True, file_name=None, quiet=False, json=False, log=False,
-                 scenarios_from_paths=False, parameter_interpolation='values'):
+                 scenarios_from_paths=False, parameter_interpolation='values',path={}):
         self.verbose = verbose
         self.file_name = file_name
         self.quiet = quiet
@@ -16,7 +16,7 @@ class FakeOptions(object):
         self.log = log
         self.scenarios_from_paths = scenarios_from_paths
         self.parameter_interpolation = parameter_interpolation
-        self.ignore_paths={}
+        self.ignore_paths=path
 
 
 class TestSwagger2YAML(BZTestCase):
