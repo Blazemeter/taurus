@@ -278,7 +278,7 @@ class Swagger(object):
         builder = {}
         if not isinstance(schema, dict):
            return builder
-        for key, value in schema.items():
+        for key, value in schema.items(): 
             if isinstance(value,dict) and not value.get('type'):
                builder[key]=Swagger.__buildRecursiveModel(value)
             else:                 
