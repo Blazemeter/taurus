@@ -282,8 +282,8 @@ class Swagger(object):
         for key, value in schema.items():
             if isinstance(value,dict) and not value.get('type'):
                builder[key]=Swagger.__buildRecursiveModel(value)
-            else:                 
-               builder[key]= Swagger.__resolveDefaultsForType(value.get('type'))            
+            elif isinstance(value,dict):                 
+               builder[key]= Swagger.__resolveDefaultsForType(value.get('type'))
         return json.dumps(builder)
     
     @staticmethod
