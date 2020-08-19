@@ -190,7 +190,7 @@ class Swagger(object):
                 parameter = Swagger.Parameter(name=param_name, location=param.get("in"),
                                               description=param.get("description"), required=param.get("required"),
                                               schema=param.get("schema"), type=param.get("type"),
-                                              format=param.get("format"))
+                                              format=param.get("format"),ref=None)
                 path["parameters"][param_name] = parameter
             self.paths[name] = Swagger.Path(**path)
 
