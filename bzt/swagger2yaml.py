@@ -24,15 +24,14 @@ import sys
 import traceback
 from collections import namedtuple, OrderedDict
 from optparse import OptionParser
-from urllib import parse
-from urllib.parse import urlencode
 
 import yaml
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.cli import CLI
 from bzt.engine import Configuration
-from bzt.utils import iteritems, BetterDict
+from bzt.six import iteritems, parse, urlencode
+from bzt.utils import BetterDict
 
 
 def yaml_ordered_load(stream, Loader=yaml.SafeLoader, object_pairs_hook=OrderedDict):
@@ -57,7 +56,7 @@ class Swagger(object):
     INTERPOLATE_DISABLE = 'none'
 
     Definition = namedtuple("Definition", "name, schema")
-    Parameter = namedtuple("Parameter", "name, location, description, required, schema, type, format")
+    Parameter = namedtuple("Parameter", "name, location, description, required, schema, type, format, ref")
     Response = namedtuple("Response", "name, description, schema, headers")
     Path = namedtuple("Path", "ref, get, put, post, delete, options, head, patch, parameters")
     Operation = namedtuple("Operation",
@@ -129,16 +128,36 @@ class Swagger(object):
         self.log.debug("Found by reference %r: %r", reference, pointer)
         return pointer
 
+    def __refDeepResolve(self, ref):
+        if not isinstance(ref,dict):
+           return ref
+        for key, value in ref.items():
+            if isinstance(value,dict) and value.get('$ref'):
+               if '#/definitions/' in value.get('$ref'):
+                  ref[key]=  self.__refDeepResolve(self._lookup_reference(value['$ref'])).get('properties')
+            if 'properties' in key:
+               if isinstance(value,dict):
+                  ref[key]=self.__refDeepResolve(value)
+        return ref
+
     def _extract_operation(self, operation):
         parameters = OrderedDict()
         for param in operation.get("parameters", []):
+            if "schema" in param:
+                if "$ref" in param["schema"]:
+                    param["schema"]=param["schema"]
+                    param["$ref"] = self.__refDeepResolve(self._lookup_reference(param["schema"]["$ref"]))
+                param_name = param["name"]
+            else:
+                param_name = param["name"]
+                param["$ref"]= {"properties":{}}
+            ref = None
             if "$ref" in param:
-                param = self._lookup_reference(param["$ref"])
-            param_name = param["name"]
+                ref =  param.get("$ref").get("properties")
             parameter = Swagger.Parameter(name=param_name, location=param.get("in"),
                                           description=param.get("description"), required=param.get("required"),
                                           schema=param.get("schema"), type=param.get("type"),
-                                          format=param.get("format"))
+                                          format=param.get("format"),ref=ref)
             parameters[param_name] = parameter
 
         responses = OrderedDict()
@@ -255,10 +274,40 @@ class Swagger(object):
 
     @staticmethod
     def get_data_for_schema(schema):
-        del schema
-        # TODO: generate dummy data from JSONSchema
-        return None
+        builder = {}
+        for key, value in schema.items():
+            if isinstance(value,dict) and not value.get('type'):
+               builder[key]=Swagger.__buildRecursiveModel(value)
+            else:                 
+               builder[key]= Swagger.__resolveDefaultsForType(value.get('type'))            
+        return json.dumps(builder)
+    
+    @staticmethod
+    def __buildRecursiveModel(model):
+        builder ={}
+        for key, value in model.items():
+            if not value.get('type'):
+               builder[key]=Swagger.__buildRecursiveModel(value)
+            else:
+               builder[key]= Swagger.__resolveDefaultsForType(value.get('type'))
+        return builder;
 
+    @staticmethod
+    def __resolveDefaultsForType(type):
+        if type == 'integer':
+           return 0
+        elif type == 'string':
+           return ''
+        elif data_type == "number":
+            return 1
+        elif type == 'double':
+           return 0.0
+        elif data_type == "boolean":
+            return True
+        elif data_type == "array":
+            return [1, 2, 3]
+        else:
+            raise ValueError("Can't generate dummy data for type %s" % data_type)
 
 class SwaggerConverter(object):
     def __init__(
@@ -266,10 +315,13 @@ class SwaggerConverter(object):
             parent_log,
             scenarios_from_paths=False,
             parameter_interpolation=Swagger.INTERPOLATE_WITH_VALUES,
+            path={},
     ):
         self.scenarios_from_paths = scenarios_from_paths
         self.parameter_interpolation = parameter_interpolation
         self.log = parent_log.getChild(self.__class__.__name__)
+        self.ignore_paths=path
+        self.log.info("ignore-paths =%s",self.ignore_paths)
         self.swagger = Swagger(self.log)
 
     def _interpolate_parameter(self, param):
@@ -282,7 +334,7 @@ class SwaggerConverter(object):
 
     def _interpolate_body(self, param):
         if self.parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
-            return Swagger.get_data_for_schema(param.schema)
+            return Swagger.get_data_for_schema(param.ref)
         elif self.parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
             return '${body}'
         else:
@@ -425,6 +477,14 @@ class SwaggerConverter(object):
             global_vars["default-path"] = base_path
 
         for path, path_obj in iteritems(paths):
+            #if '/actuator' in path or '/error' in path:
+            ignore = True if len([x for x in self.ignore_paths if re.search(x, path)]) >0 else False
+            #ignore = True if len(found) > 0 else False
+            #if path in self.ignore_paths:
+            self.log.info('can ignore path=%s - %s',path,ignore)
+            if ignore:
+               self.log.info("Skipping path:%s",path)
+               continue
             self.log.info("Handling path %s", path)
 
             scenario_name = path
@@ -631,6 +691,7 @@ class Swagger2YAML(object):
             self.log,
             scenarios_from_paths=self.options.scenarios_from_paths,
             parameter_interpolation=self.options.parameter_interpolation,
+            path=self.options.ignore_paths,
         )
         try:
             converted_config = self.converter.convert_path(self.file_to_convert)
@@ -654,6 +715,9 @@ def process(parsed_options, args):
     tool = Swagger2YAML(parsed_options, args[0])
     tool.process()
 
+def get_comma_separated_args(option, opt, value, parser):
+    setattr(parser.values, option.dest, value.split(','))
+
 
 def main():
     usage = "Usage: swagger2yaml [input Swagger spec] [options]"
@@ -671,6 +735,8 @@ def main():
                       help="Generate one scenario per path (disabled by default)")
     parser.add_option('--parameter-interpolation', action='store', default='values',
                       help="Templated parameters interpolation. Valid values are 'variables', 'values', 'none'")
+    parser.add_option('--ignore-paths', action='callback', default='',type='string', dest='ignore_paths',callback=get_comma_separated_args,
+                      help="Paths to ignore in conversion - spring boot spits some managemnet url's like /actuator,/error and can be filtered and provided as comma separated values")
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
         try:
