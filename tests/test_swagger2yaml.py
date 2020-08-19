@@ -122,7 +122,7 @@ class TestSwagger2YAML(BZTestCase):
         source = RESOURCES_DIR + "/swagger/bzm-api.json"
         expected = RESOURCES_DIR + "/swagger/bzm-converted-none.yaml"
         result = self._get_tmp()
-        options = FakeOptions(file_name=result, parameter_interpolation=Swagger.INTERPOLATE_DISABLE)
+        options = FakeOptions(file_name=result, parameter_interpolation=Swagger.INTERPOLATE_DISABLE,path={})
         process(options, [source])
         # shutil.copy(result, expected)
         actual = yaml.full_load(open(result).read())
