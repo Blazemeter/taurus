@@ -297,16 +297,16 @@ class Swagger(object):
            return 0
         elif type == 'string':
            return ''
-        elif data_type == "number":
+        elif type == "number":
             return 1
         elif type == 'double':
            return 0.0
-        elif data_type == "boolean":
+        elif type == "boolean":
             return True
-        elif data_type == "array":
+        elif type == "array":
             return [1, 2, 3]
         else:
-            raise ValueError("Can't generate dummy data for type %s" % data_type)
+            raise ValueError("Can't generate dummy data for type %s" % type)
 
 class SwaggerConverter(object):
     def __init__(
