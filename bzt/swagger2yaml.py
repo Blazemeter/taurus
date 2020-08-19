@@ -290,7 +290,7 @@ class Swagger(object):
     def __buildRecursiveModel(model):
         builder ={}
         for key, value in model.items():
-            if not value.get('type'):
+            if not isinstance(value,dict):
                builder[key]=Swagger.__buildRecursiveModel(value)
             else:
                builder[key]= Swagger.__resolveDefaultsForType(value.get('type'))
