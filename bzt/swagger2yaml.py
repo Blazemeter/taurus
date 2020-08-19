@@ -108,7 +108,7 @@ class Swagger(object):
         for name, param in iteritems(self.swagger.get("parameters", {})):
             parameter = Swagger.Parameter(name=name, location=param.get("in"), description=param.get("description"),
                                           required=param.get("required"), schema=param.get("schema"),
-                                          type=param.get("type"), format=param.get("format"))
+                                          type=param.get("type"), format=param.get("format"), ref={})
             self.parameters[name] = parameter
 
         for name, secdef in iteritems(self.swagger.get("securityDefinitions", {})):
@@ -276,9 +276,9 @@ class Swagger(object):
     @staticmethod
     def get_data_for_schema(schema):
         builder = {}
-        if not isinstance(schema, dict):
-           return builder
-        for key, value in schema.items(): 
+        if isinstance(schema, dict) and items in schema:
+           return {}
+        for key, value in schema.items():
             if isinstance(value,dict) and not value.get('type'):
                builder[key]=Swagger.__buildRecursiveModel(value)
             else:                 
