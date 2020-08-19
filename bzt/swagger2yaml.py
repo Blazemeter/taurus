@@ -280,7 +280,7 @@ class Swagger(object):
            return {}
         builder = {}
         for key, value in schema.items():
-            if isinstance(value,dict) and not value.get('type'):
+            if isinstance(value,dict) and 'type' in value:
                builder[key]=Swagger.__buildRecursiveModel(value)
             elif isinstance(value,dict):                 
                builder[key]= Swagger.__resolveDefaultsForType(value.get('type'))
