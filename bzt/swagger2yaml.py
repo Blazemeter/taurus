@@ -281,6 +281,10 @@ class Swagger(object):
             return 0.0
         elif data_type == "integer":
             return 1
+        elif data_type == "int32":
+            return 1
+        elif data_type == "int64":
+            return 1
         elif data_type == "boolean":
             return True
         elif data_type == "array":
