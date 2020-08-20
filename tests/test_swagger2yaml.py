@@ -42,7 +42,7 @@ class TestSwagger2YAML(BZTestCase):
 
     def test_convert_scenarios_from_paths(self):
         source = RESOURCES_DIR + "/swagger/bzm-api.json"
-        expected = RESOURCES_DIR + "/swagger/bzm-api-converted.yml"
+        expected = RESOURCES_DIR + "/swagger/bzm-api-converted.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result, scenarios_from_paths=True)
         process(options, [source])
@@ -53,7 +53,7 @@ class TestSwagger2YAML(BZTestCase):
 
     def test_convert_scenarios_with_multiple_types(self):
         source = RESOURCES_DIR + "/swagger/swagger-with-multiple-types.json"
-        expected = RESOURCES_DIR + "/swagger/swagger-with-multiple-types.yaml"
+        expected = RESOURCES_DIR + "/swagger/swagger-with-multiple-types.yml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result, scenarios_from_paths=True)
         process(options, [source])
