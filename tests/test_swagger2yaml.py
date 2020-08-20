@@ -52,7 +52,7 @@ class TestSwagger2YAML(BZTestCase):
         self.assertEqual(actual, expected)
 
     def test_convert_scenarios_with_multiple_types(self):
-        source = RESOURCES_DIR + "/swagger-with-multiple-types.json"
+        source = RESOURCES_DIR + "/swagger/swagger-with-multiple-types.json"
         expected = RESOURCES_DIR + "/swagger/swagger-with-multiple-types.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result, scenarios_from_paths=True)
