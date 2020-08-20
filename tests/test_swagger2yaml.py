@@ -5,7 +5,6 @@ from bzt.swagger2yaml import SwaggerConverter, Swagger, Swagger2YAML, process
 from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
-
 class FakeOptions(object):
     def __init__(self, verbose=True, file_name=None, quiet=False, json=False, log=False,
                  scenarios_from_paths=False, parameter_interpolation='values'):
