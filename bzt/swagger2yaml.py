@@ -267,12 +267,12 @@ class Swagger(object):
         if set(['type', 'properties']).issubset(model.keys()):
             for key, value in model['properties'].items():
                 if 'type' in value:
-                    builder[key]= self.get_data_for_type(value['type'])
+                    builder[key]= self.__get_data_for_type(value['type'])
                 elif '$ref' in value:
                     builder[key]= self.__buildRecursiveModel(self._lookup_reference(value["$ref"]))
         return builder      
           
-    def get_data_for_type(self,data_type):
+    def __get_data_for_type(self,data_type):
         if data_type == "string":
             return ""
         elif data_type == "number":
