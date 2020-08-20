@@ -314,7 +314,6 @@ class SwaggerConverter(object):
 
     def _interpolate_body(self, param):
         if self.parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
-            self.log.info('param:%s',param)
             return self.swagger.get_data_for_schema(param.schema)
         elif self.parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
             return '${body}'
