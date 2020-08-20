@@ -1,0 +1,84 @@
+---
+execution:
+- concurrency: 1
+  hold-for: 1m
+  scenario: /actuator
+- concurrency: 1
+  hold-for: 1m
+  scenario: /actuator/health
+- concurrency: 1
+  hold-for: 1m
+  scenario: /actuator/health/**
+- concurrency: 1
+  hold-for: 1m
+  scenario: /actuator/info
+- concurrency: 1
+  hold-for: 1m
+  scenario: /error
+- concurrency: 1
+  hold-for: 1m
+  scenario: /test
+- concurrency: 1
+  hold-for: 1m
+  scenario: /testWithBody
+scenarios:
+  /actuator:
+    default-address: ${default-address}
+    requests:
+    - label: linksUsingGET
+      url: ${default-path}/actuator
+  /actuator/health:
+    default-address: ${default-address}
+    requests:
+    - label: handleUsingGET_1
+      url: ${default-path}/actuator/health
+  /actuator/health/**:
+    default-address: ${default-address}
+    requests:
+    - label: handleUsingGET
+      url: ${default-path}/actuator/health/**
+  /actuator/info:
+    default-address: ${default-address}
+    requests:
+    - label: handleUsingGET_2
+      url: ${default-path}/actuator/info
+  /error:
+    default-address: ${default-address}
+    requests:
+    - label: errorUsingGET
+      url: ${default-path}/error
+    - label: errorUsingPUT
+      method: PUT
+      url: ${default-path}/error
+    - label: errorUsingPOST
+      method: POST
+      url: ${default-path}/error
+    - label: errorUsingDELETE
+      method: DELETE
+      url: ${default-path}/error
+    - label: errorUsingOPTIONS
+      method: OPTIONS
+      url: ${default-path}/error
+    - label: errorUsingHEAD
+      method: HEAD
+      url: ${default-path}/error
+    - label: errorUsingPATCH
+      method: PATCH
+      url: ${default-path}/error
+  /test:
+    default-address: ${default-address}
+    requests:
+    - label: executeTestUsingGET
+      url: ${default-path}/test
+  /testWithBody:
+    default-address: ${default-address}
+    requests:
+    - body: '{"active": true, "age": 1, "id": {}, "model2": {"age": 1, "duration": 1, "id": {}, "model3": {"active": true, "age": 1, "id": {}, "name": "", "salary": 0.0}, "name": "", "salary": 0.0, "secured": true}, "name": "", "salary": 0.0}'
+      label: executeWithRequestBodyUsingPOST
+      method: POST
+      url: ${default-path}/testWithBody
+settings:
+  env:
+    default-address: http://localhost:8080
+    default-path: /
+
