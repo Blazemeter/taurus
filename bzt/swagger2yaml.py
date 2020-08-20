@@ -267,23 +267,18 @@ class Swagger(object):
         if set(['type', 'properties']).issubset(model.keys()):
             for key, value in model['properties'].items():
                 if 'type' in value:
-                    builder[key]= self.__get_data_for_type(value['type'])
+                    format= value['format'] if 'format' in value else None
+                    builder[key]= self.__get_data_for_type(value['type'],format)
                 elif '$ref' in value:
                     builder[key]= self.__buildRecursiveModel(self._lookup_reference(value["$ref"]))
         return builder      
           
-    def __get_data_for_type(self,data_type):
+    def __get_data_for_type(self,data_type,format):
         if data_type == "string":
             return ""
         elif data_type == "number":
-            return 1
-        elif data_type == "double":
-            return 0.0
+        	return 0.0 if 'double' == format else 1
         elif data_type == "integer":
-            return 1
-        elif data_type == "int32":
-            return 1
-        elif data_type == "int64":
             return 1
         elif data_type == "boolean":
             return True
@@ -314,6 +309,7 @@ class SwaggerConverter(object):
 
     def _interpolate_body(self, param):
         if self.parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
+            self.log.info('param:%s',param)
             return self.swagger.get_data_for_schema(param.schema)
         elif self.parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
             return '${body}'
