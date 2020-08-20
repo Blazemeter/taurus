@@ -8,7 +8,7 @@ from tests.mocks import EngineEmul
 
 class FakeOptions(object):
     def __init__(self, verbose=True, file_name=None, quiet=False, json=False, log=False,
-                 scenarios_from_paths=False, parameter_interpolation='values',path={}):
+                 scenarios_from_paths=False, parameter_interpolation='values'):
         self.verbose = verbose
         self.file_name = file_name
         self.quiet = quiet
@@ -16,7 +16,6 @@ class FakeOptions(object):
         self.log = log
         self.scenarios_from_paths = scenarios_from_paths
         self.parameter_interpolation = parameter_interpolation
-        self.ignore_paths=path
 
 
 class TestSwagger2YAML(BZTestCase):
@@ -122,7 +121,7 @@ class TestSwagger2YAML(BZTestCase):
         source = RESOURCES_DIR + "/swagger/bzm-api.json"
         expected = RESOURCES_DIR + "/swagger/bzm-converted-none.yaml"
         result = self._get_tmp()
-        options = FakeOptions(file_name=result, parameter_interpolation=Swagger.INTERPOLATE_DISABLE,path={})
+        options = FakeOptions(file_name=result, parameter_interpolation=Swagger.INTERPOLATE_DISABLE)
         process(options, [source])
         # shutil.copy(result, expected)
         actual = yaml.full_load(open(result).read())
