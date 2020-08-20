@@ -259,35 +259,7 @@ class Swagger(object):
         # TODO: generate dummy data from JSONSchema
         return None
 
-    def get_data_for_schema(self,schema):
-        return json.dumps(self.__buildRecursiveModel(self._lookup_reference(schema["$ref"]))) if '$ref' in schema else None
 
-    def __buildRecursiveModel(self,model):
-        builder = {}
-        if set(['type', 'properties']).issubset(model.keys()):
-            for key, value in model['properties'].items():
-                if 'type' in value:
-                    builder[key]= self.get_data_for_type(value['type'])
-                elif '$ref' in value:
-                    builder[key]= self.__buildRecursiveModel(self._lookup_reference(value["$ref"]))
-        return builder      
-          
-    def get_data_for_type(self,data_type):
-        if data_type == "string":
-            return ""
-        elif data_type == "number":
-            return 1
-        elif data_type == "double":
-            return 0.0
-        elif data_type == "integer":
-            return 1
-        elif data_type == "boolean":
-            return True
-        elif data_type == "array":
-            return [1, 2, 3]
-        else:
-            raise ValueError("Can't generate dummy data for type %s" % data_type)
-            
 class SwaggerConverter(object):
     def __init__(
             self,
@@ -310,8 +282,7 @@ class SwaggerConverter(object):
 
     def _interpolate_body(self, param):
         if self.parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
-            self.log.info('param:%s',param)
-            return self.swagger.get_data_for_schema(param.schema)
+            return Swagger.get_data_for_schema(param.schema)
         elif self.parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
             return '${body}'
         else:
