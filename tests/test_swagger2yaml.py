@@ -51,6 +51,17 @@ class TestSwagger2YAML(BZTestCase):
         expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
 
+    def test_convert_scenarios_with_multiple_types(self):
+        source = RESOURCES_DIR + "/swagger-with-multiple-types.json"
+        expected = RESOURCES_DIR + "/swagger/swagger-with-multiple-types.yaml"
+        result = self._get_tmp()
+        options = FakeOptions(file_name=result, scenarios_from_paths=True)
+        process(options, [source])
+        # shutil.copy(result, expected)
+        actual = yaml.full_load(open(result).read())
+        expected = yaml.full_load(open(expected).read())
+        self.assertEqual(actual, expected)
+        
     def test_convert_security_apikey_header(self):
         source = RESOURCES_DIR + "/swagger/auth-key.json"
         expected = RESOURCES_DIR + "/swagger/auth-key-converted.yaml"
