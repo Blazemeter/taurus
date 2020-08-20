@@ -7,10 +7,12 @@ scenarios:
   Swagger-Petstore:
     default-address: ${default-address}
     requests:
-    - label: updatePet
+    - body: '{"category": {"id": 1, "name": ""}, "id": 1, "name": "", "photoUrls": [1, 2, 3], "status": "", "tags": [1, 2, 3]}'
+      label: updatePet
       method: PUT
       url: ${default-path}/pet
-    - label: addPet
+    - body: '{"category": {"id": 1, "name": ""}, "id": 1, "name": "", "photoUrls": [1, 2, 3], "status": "", "tags": [1, 2, 3]}'
+      label: addPet
       method: POST
       url: ${default-path}/pet
     - label: findPetsByStatus
@@ -30,7 +32,8 @@ scenarios:
       url: ${default-path}/pet/1/uploadImage
     - label: getInventory
       url: ${default-path}/store/inventory
-    - label: placeOrder
+    - body: '{"complete": true, "id": 1, "petId": 1, "quantity": 1, "shipDate": "", "status": ""}'
+      label: placeOrder
       method: POST
       url: ${default-path}/store/order
     - label: getOrderById
@@ -38,7 +41,8 @@ scenarios:
     - label: deleteOrder
       method: DELETE
       url: ${default-path}/store/order/1
-    - label: createUser
+    - body: '{"email": "", "firstName": "", "id": 1, "lastName": "", "password": "", "phone": "", "userStatus": 1, "username": ""}'
+      label: createUser
       method: POST
       url: ${default-path}/user
     - label: createUsersWithArrayInput
@@ -53,7 +57,8 @@ scenarios:
       url: ${default-path}/user/logout
     - label: getUserByName
       url: ${default-path}/user/some_string
-    - label: updateUser
+    - body: '{"email": "", "firstName": "", "id": 1, "lastName": "", "password": "", "phone": "", "userStatus": 1, "username": ""}'
+      label: updateUser
       method: PUT
       url: ${default-path}/user/some_string
     - label: deleteUser
