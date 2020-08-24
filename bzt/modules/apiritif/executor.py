@@ -75,6 +75,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         test_mode = self.execution.get("test-mode", "apiritif")
         scenario = self.get_scenario()
         logger_filename = self.engine.create_artifact("extended", ".log")
+        open(logger_filename, 'xt')
 
         if test_mode == "apiritif":
             builder = ApiritifScriptGenerator(scenario, self.label, executor=self,
@@ -105,7 +106,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
                 generate_markers=generate_markers,
                 capabilities=capabilities,
-                wd_addr=remote, test_mode=test_mode)
+                wd_addr=remote, test_mode=test_mode, logger_filename=logger_filename)
 
         builder.build_source_code()
         builder.save(filename)

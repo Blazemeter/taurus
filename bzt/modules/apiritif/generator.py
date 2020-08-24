@@ -120,9 +120,9 @@ from selenium.webdriver.common.keys import Keys
     ACCESS_PLAIN = 'plain'
     SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock)
 
-    def __init__(self, scenario, label, logger_filename='', wdlog=None, executor=None,
+    def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="selenium"):
+                 capabilities=None, wd_addr=None, test_mode="selenium", logger_filename=''):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -661,10 +661,10 @@ from selenium.webdriver.common.keys import Keys
 
         if atype == "logstart":
             action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
-                                            args=[self._gen_expr(param.strip()), self._gen_expr(self.logger_filename)]))
+                                            args=[self._gen_expr('action start = ' + param.strip()), self._gen_expr(self.logger_filename)]))
         elif atype == "logend":
             action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
-                                            args=[self._gen_expr(param.strip()), self._gen_expr(self.logger_filename)]))
+                                            args=[self._gen_expr('action end = ' + param.strip()), self._gen_expr(self.logger_filename)]))
         elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
         elif atype == "switchframe":
