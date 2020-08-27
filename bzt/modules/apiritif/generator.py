@@ -122,7 +122,7 @@ from selenium.webdriver.common.keys import Keys
 
     def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="selenium", logger_filename=''):
+                 capabilities=None, wd_addr=None, test_mode="selenium"):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -133,7 +133,6 @@ from selenium.webdriver.common.keys import Keys
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
         self.service_methods = []
-        self.logger_filename = logger_filename
 
         self.remote_address = wd_addr
         self.capabilities = capabilities or {}
@@ -661,10 +660,10 @@ from selenium.webdriver.common.keys import Keys
 
         if atype == "logstart":
             action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
-                                            args=[self._gen_expr('action start = ' + param.strip()), self._gen_expr(self.logger_filename)]))
+                                            args=[self._gen_expr('action start = ' + param.strip())]))
         elif atype == "logend":
             action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
-                                            args=[self._gen_expr('action end = ' + param.strip()), self._gen_expr(self.logger_filename)]))
+                                            args=[self._gen_expr('action end = ' + param.strip())]))
         elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
         elif atype == "switchframe":
@@ -1209,6 +1208,9 @@ from selenium.webdriver.common.keys import Keys
             func_name = "add_flow_markers"
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
+
+        self.selenium_extras.add("add_logging_handlers")
+        handlers.append(ast.Expr(ast_call(func="add_logging_handlers")))
 
         stored_vars = {
             "timeout": "timeout",
