@@ -92,7 +92,10 @@ class PipInstaller(Service):
         if not self.packages:
             return
 
-        self.temp = self.settings.get("temp", self.temp)   # install into artifacts dir, otherwise into .bzt
+        # install into artifacts dir if temp, otherwise into .bzt
+        self.temp = self.settings.get("temp", self.temp)
+        self.temp = self.parameters.get("temp", self.temp)
+
         self.target_dir = self.engine.temp_pythonpath if self.temp else self.engine.user_pythonpath
 
         if not os.path.exists(self.target_dir):
