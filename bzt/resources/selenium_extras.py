@@ -2,7 +2,7 @@
 import time
 import datetime
 
-from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, get_logging_handler, set_logging_handler
+from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, get_logging_handlers, set_logging_handlers
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
     TimeoutException
 from selenium.webdriver.common.by import By
@@ -133,9 +133,9 @@ def add_flow_markers():
 
 
 def add_logging_handlers():
-    handlers = get_logging_handler()
+    handlers = get_logging_handlers()
     handlers.append(_output_into_file)
-    set_logging_handler(handlers)
+    set_logging_handlers(handlers)
 
 
 def _output_into_file(string):
