@@ -132,9 +132,9 @@ def add_flow_markers():
     set_transaction_handlers(handlers)
 
 
-def add_logging_handlers():
+def add_logging_handlers(method):
     handlers = get_logging_handlers()
-    handlers.append(_output_into_file)
+    handlers.append(method)
     set_logging_handlers(handlers)
 
 

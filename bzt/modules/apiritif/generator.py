@@ -1216,7 +1216,8 @@ from selenium.webdriver.common.keys import Keys
 
         if self.generate_extended_logging:
             self.selenium_extras.add("add_logging_handlers")
-            handlers.append(ast.Expr(ast_call(func="add_logging_handlers")))
+            self.selenium_extras.add("_output_into_file")
+            handlers.append(ast.Expr(ast_call(func="add_logging_handlers", args=[ast_attr("_output_into_file")])))
 
         stored_vars = {
             "timeout": "timeout",
