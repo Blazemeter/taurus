@@ -114,7 +114,7 @@ from selenium.webdriver.common.keys import Keys
 
     BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
     COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
-    EXTENDED_LOG_TAG = ("logStart", "logEnd")
+    EXTENDED_LOG_TAG = ("logStart", "logEnd", "log")
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
@@ -122,7 +122,7 @@ from selenium.webdriver.common.keys import Keys
 
     def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="selenium"):
+                 capabilities=None, wd_addr=None, test_mode="selenium", generate_extended_logging=None):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -142,6 +142,7 @@ from selenium.webdriver.common.keys import Keys
         self.appium = False
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
+        self.generate_extended_logging = generate_extended_logging
         self.test_mode = test_mode
 
     def _parse_action_params(self, expr, name):
@@ -660,10 +661,14 @@ from selenium.webdriver.common.keys import Keys
 
         if atype == "logstart":
             action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
-                                            args=[self._gen_expr('action start = ' + param.strip())]))
+                                            args=[self._gen_expr('action start logged: ' + param.strip())]))
         elif atype == "logend":
             action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
-                                            args=[self._gen_expr('action end = ' + param.strip())]))
+                                            args=[self._gen_expr('action end logged: ' + param.strip())]))
+        elif atype == "log":
+            action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
+                                            args=[self._gen_expr('action custom logged: ' + param.strip())]))
+
         elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
         elif atype == "switchframe":
@@ -1209,8 +1214,9 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
 
-        self.selenium_extras.add("add_logging_handlers")
-        handlers.append(ast.Expr(ast_call(func="add_logging_handlers")))
+        if self.generate_extended_logging:
+            self.selenium_extras.add("add_logging_handlers")
+            handlers.append(ast.Expr(ast_call(func="add_logging_handlers")))
 
         stored_vars = {
             "timeout": "timeout",
@@ -1506,9 +1512,12 @@ from selenium.webdriver.common.keys import Keys
 
         if self.test_mode == "selenium":
             for action in req.config.get("actions"):
-                lines.extend(self._gen_action(self._gen_log_action_start(action)))
-                lines.extend(self._gen_action(action))
-                lines.extend(self._gen_action(self._gen_log_action_end(action)))
+                if not self.generate_extended_logging or action.startswith("log"):
+                    lines.extend(self._gen_action(action))
+                else:
+                    lines.extend(self._gen_action(self._gen_log_action_start(action)))
+                    lines.extend(self._gen_action(action))
+                    lines.extend(self._gen_action(self._gen_log_action_end(action)))
 
             if "assert" in req.config:
                 lines.append(ast.Assign(
@@ -1532,11 +1541,19 @@ from selenium.webdriver.common.keys import Keys
 
         return lines
 
-    def _gen_log_action_start(self, action):
-        return f"logStart({action})"
+    @staticmethod
+    def _gen_log_action_start(action):
+        if isinstance(action, dict):
+            return f"logStart({action.get('action')})"
+        elif isinstance(action, str):
+            return f"logStart({action})"
 
-    def _gen_log_action_end(self, action):
-        return f"logEnd({action})"
+    @staticmethod
+    def _gen_log_action_end(action):
+        if isinstance(action, dict):
+            return f"logEnd({action.get('action')})"
+        elif isinstance(action, str):
+            return f"logEnd({action})"
 
     def _gen_sel_assertion(self, assertion_config):
         self.log.debug("Generating assertion, config: %s", assertion_config)
