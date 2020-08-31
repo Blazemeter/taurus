@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import add_logging_handlers, get_locator, dialogs_replace, _output_into_file
+from bzt.resources.selenium_extras import add_logging_handlers, get_locator, dialogs_replace
 
 
 class TestSample(unittest.TestCase):
@@ -34,18 +34,20 @@ class TestSample(unittest.TestCase):
         options.add_argument('--disable-dev-shm-usage')
         self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', options=options)
         self.driver.implicitly_wait(timeout)
-        add_logging_handlers(_output_into_file)
+        add_logging_handlers()
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='sample')
 
     def _1_Test(self):
         with apiritif.smart_transaction('Test'):
-            apiritif.extended_log('action start logged: go(http://blazedemo.com/)')
+            apiritif.extended_log('start: go(http://blazedemo.com/)')
             self.driver.get('http://blazedemo.com/')
 
             dialogs_replace()
-            apiritif.extended_log('action end logged: go(http://blazedemo.com/)')
-            apiritif.extended_log('action custom logged: leaving blazedemo')
+            apiritif.extended_log('end: go(http://blazedemo.com/)')
+            apiritif.extended_log('start: log(leaving blazedemo)')
+            apiritif.extended_log('leaving blazedemo')
+            apiritif.extended_log('end: log(leaving blazedemo)')
 
     def test_sample(self):
         self._1_Test()
