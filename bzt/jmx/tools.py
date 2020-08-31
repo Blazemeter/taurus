@@ -429,8 +429,8 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __gen_requests(self, scenario):
-        require_url = not(scenario.data.get('protocol', None) == "rte")
-        requests = scenario.get_requests(parser=HierarchicRequestParser, require_url=require_url)
+        is_protocol_rte = scenario.data.get('protocol', None) == "rte"
+        requests = scenario.get_requests(parser=HierarchicRequestParser, require_url=not(is_protocol_rte))
 
         elements = []
         for compiled in self.compile_requests(requests):
