@@ -1112,9 +1112,13 @@ modules:
 
 ### Extended logging
 
-Extended logging tool allows running custom methods inbetween actions in runtime, and can be used to track progress or execute some user script. Requires handler, which will be executed between actions. As handler example `_output_into_file` in `selenium_extras`, which logs action timestamps in user file.
+Extended logging can be used to track progress or debug your test. It requires handler which will be executed
+between actions. Please see for handler example `log_into_file` function in `selenium_extras` module
+which logs action timestamps in user file.
 
-To enable it, you can use flag `extended-logging: true` in  scenario settings (handler will be executed on start and finish of each action) or use action `log('some string')` to explicitly call handler.
+To enable extended logging you can use flag `extended-logging: true` in  scenario settings (handler
+will be executed on start and finish of each action) or use action `log('some string')` to explicitly call handler.
+
 ```yaml
 execution:
 - executor: selenium
@@ -1122,10 +1126,10 @@ execution:
 
 scenarios:
   sample:
-    extended-logging: true # will execute handler before and after all actions 
+    extended-logging: true          # call handler before and after all actions
     actions:
     - go(http://blazedemo.com/) 
-    - log('leaving blazedemo') # explicit way
+    - log('leaving blazedemo')      # explicit logging way
     - go(https://gettaurus.org/docs/Index/)
     - log('finished part 1 of my test') 
 ```
