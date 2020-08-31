@@ -2,7 +2,8 @@
 import time
 import datetime
 
-from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, get_logging_handlers, set_logging_handlers
+from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
+from apiritif import get_logging_handlers, set_logging_handlers
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
     TimeoutException
 from selenium.webdriver.common.by import By
@@ -132,13 +133,15 @@ def add_flow_markers():
     set_transaction_handlers(handlers)
 
 
-def add_logging_handlers(method):
-    handlers = get_logging_handlers()
-    handlers.append(method)
-    set_logging_handlers(handlers)
+def add_logging_handlers(methods=None):
+    methods = [log_into_file]
+    if methods:
+        handlers = get_logging_handlers()
+        handlers.extend(methods)
+        set_logging_handlers(handlers)
 
 
-def _output_into_file(string):
+def log_into_file(string):
     with open('/tmp/taurus/extended.log', 'at') as log:
         log.write(f"{datetime.datetime.now()} {string} \n")
 

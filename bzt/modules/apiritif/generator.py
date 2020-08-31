@@ -659,16 +659,9 @@ from selenium.webdriver.common.keys import Keys
 
         action_elements = []
 
-        if atype == "logstart":
-            action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
-                                            args=[self._gen_expr('action start logged: ' + param.strip())]))
-        elif atype == "logend":
-            action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
-                                            args=[self._gen_expr('action end logged: ' + param.strip())]))
-        elif atype == "log":
-            action_elements.append(ast_call(func=ast_attr("apiritif.extended_log"),
-                                            args=[self._gen_expr('action custom logged: ' + param.strip())]))
-
+        if atype == "log":
+            action_elements.append(
+                ast_call(func=ast_attr("apiritif.extended_log"), args=[self._gen_expr(param.strip())]))
         elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
         elif atype == "switchframe":
@@ -1216,8 +1209,8 @@ from selenium.webdriver.common.keys import Keys
 
         if self.generate_extended_logging:
             self.selenium_extras.add("add_logging_handlers")
-            self.selenium_extras.add("_output_into_file")
-            handlers.append(ast.Expr(ast_call(func="add_logging_handlers", args=[ast_attr("_output_into_file")])))
+
+            handlers.append(ast.Expr(ast_call(func="add_logging_handlers")))
 
         stored_vars = {
             "timeout": "timeout",
@@ -1513,12 +1506,11 @@ from selenium.webdriver.common.keys import Keys
 
         if self.test_mode == "selenium":
             for action in req.config.get("actions"):
-                if not self.generate_extended_logging or action.startswith("log"):
-                    lines.extend(self._gen_action(action))
-                else:
-                    lines.extend(self._gen_action(self._gen_log_action_start(action)))
-                    lines.extend(self._gen_action(action))
-                    lines.extend(self._gen_action(self._gen_log_action_end(action)))
+                action_lines = self._gen_action(action)
+                if self.generate_extended_logging:
+                    action_lines = self._gen_log_start(action) + action_lines + self._gen_log_end(action)
+
+                lines.extend(action_lines)
 
             if "assert" in req.config:
                 lines.append(ast.Assign(
@@ -1542,19 +1534,11 @@ from selenium.webdriver.common.keys import Keys
 
         return lines
 
-    @staticmethod
-    def _gen_log_action_start(action):
-        if isinstance(action, dict):
-            return f"logStart({action.get('action')})"
-        elif isinstance(action, str):
-            return f"logStart({action})"
+    def _gen_log_start(self, action):
+        return self._gen_action("log('start: %s')" % action)
 
-    @staticmethod
-    def _gen_log_action_end(action):
-        if isinstance(action, dict):
-            return f"logEnd({action.get('action')})"
-        elif isinstance(action, str):
-            return f"logEnd({action})"
+    def _gen_log_end(self, action):
+        return self._gen_action("log('end: %s')" % action)
 
     def _gen_sel_assertion(self, assertion_config):
         self.log.debug("Generating assertion, config: %s", assertion_config)
