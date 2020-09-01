@@ -389,6 +389,9 @@ class ResourceFilesCollector(RequestVisitor):
                     files.append(jsr.get('script-file'))
         return files
 
+    def visit_onceblock(self, block):
+        return self.visit_loopblock(block)
+
     def visit_ifblock(self, block):
         files = []
         for request in block.then_clause:
