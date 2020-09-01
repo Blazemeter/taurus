@@ -1110,13 +1110,13 @@ modules:
     generate-flow-markers: true  # global setting
 ```
 
-### Extended logging
+### External logging
 
-Extended logging can be used to track progress or debug your test. It requires handler which will be executed
+This feature can be used to track progress or debug your test. It requires handler which will be executed
 between actions. Please see for handler example `log_into_file` function in `selenium_extras` module
 which logs action timestamps in user file.
 
-To enable extended logging you can use flag `extended-logging: true` in  scenario settings (handler
+To enable external logging you can use flag `external-logging: true` in  scenario settings (handler
 will be executed on start and finish of each action) or use action `log('some string')` to explicitly call handler.
 
 ```yaml
@@ -1126,7 +1126,7 @@ execution:
 
 scenarios:
   sample:
-    extended-logging: true          # call handler before and after all actions
+    external-logging: true          # call handler before and after all actions
     actions:
     - go(http://blazedemo.com/) 
     - log('leaving blazedemo')      # explicit logging way

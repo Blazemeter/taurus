@@ -659,7 +659,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 "scenario": "sample"}],
             "scenarios": {
                 "sample": {
-                    "extended-logging": True,
+                    "external-logging": True,
                     "browser": "Chrome",
                     "requests": [{
                         "label": "Test",
@@ -672,7 +672,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             }
         })
         self.obj.prepare()
-        exp_file = RESOURCES_DIR + "selenium/generated_from_external_logging.py"
+        exp_file = RESOURCES_DIR + "selenium/external_logging.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
