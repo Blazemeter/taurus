@@ -122,7 +122,7 @@ from selenium.webdriver.common.keys import Keys
 
     def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="selenium", generate_extended_logging=None):
+                 capabilities=None, wd_addr=None, test_mode="selenium", generate_external_logging=None):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -142,7 +142,7 @@ from selenium.webdriver.common.keys import Keys
         self.appium = False
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
-        self.generate_extended_logging = generate_extended_logging
+        self.generate_external_logging = generate_external_logging
         self.test_mode = test_mode
 
     def _parse_action_params(self, expr, name):
@@ -661,7 +661,7 @@ from selenium.webdriver.common.keys import Keys
 
         if atype == "log":
             action_elements.append(
-                ast_call(func=ast_attr("apiritif.extended_log"), args=[self._gen_expr(param.strip())]))
+                ast_call(func=ast_attr("apiritif.external_log"), args=[self._gen_expr(param.strip())]))
         elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
         elif atype == "switchframe":
@@ -1207,7 +1207,7 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
 
-        if self.generate_extended_logging:
+        if self.generate_external_logging:
             self.selenium_extras.add("add_logging_handlers")
 
             handlers.append(ast.Expr(ast_call(func="add_logging_handlers")))
@@ -1507,7 +1507,7 @@ from selenium.webdriver.common.keys import Keys
         if self.test_mode == "selenium":
             for action in req.config.get("actions"):
                 action_lines = self._gen_action(action)
-                if self.generate_extended_logging:
+                if self.generate_external_logging:
                     action_lines = self._gen_log_start(action) + action_lines + self._gen_log_end(action)
 
                 lines.extend(action_lines)

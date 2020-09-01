@@ -74,14 +74,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         filename = self.engine.create_artifact("test_requests", ".py")
         test_mode = self.execution.get("test-mode", "apiritif")
         scenario = self.get_scenario()
-        generate_extended_logging = scenario.get('extended-logging')
 
         if test_mode == "apiritif":
-            builder = ApiritifScriptGenerator(scenario, self.label, executor=self,
-                                              test_mode=test_mode,
-                                              ignore_unknown_actions=self.settings.get(
-                                                  "ignore-unknown-actions", False),
-                                              generate_extended_logging=generate_extended_logging)
+            builder = ApiritifScriptGenerator(scenario, self.label, executor=self, test_mode=test_mode)
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
@@ -107,7 +102,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 generate_markers=generate_markers,
                 capabilities=capabilities,
                 wd_addr=remote, test_mode=test_mode,
-                generate_extended_logging=generate_extended_logging)
+                generate_external_logging=scenario.get("external-logging", False))
 
         builder.build_source_code()
         builder.save(filename)

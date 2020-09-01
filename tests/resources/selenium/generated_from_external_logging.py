@@ -40,14 +40,14 @@ class TestSample(unittest.TestCase):
 
     def _1_Test(self):
         with apiritif.smart_transaction('Test'):
-            apiritif.extended_log('start: go(http://blazedemo.com/)')
+            apiritif.external_log('start: go(http://blazedemo.com/)')
             self.driver.get('http://blazedemo.com/')
 
             dialogs_replace()
-            apiritif.extended_log('end: go(http://blazedemo.com/)')
-            apiritif.extended_log('start: log(leaving blazedemo)')
-            apiritif.extended_log('leaving blazedemo')
-            apiritif.extended_log('end: log(leaving blazedemo)')
+            apiritif.external_log('end: go(http://blazedemo.com/)')
+            apiritif.external_log('start: log(leaving blazedemo)')
+            apiritif.external_log('leaving blazedemo')
+            apiritif.external_log('end: log(leaving blazedemo)')
 
     def test_sample(self):
         self._1_Test()

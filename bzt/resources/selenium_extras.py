@@ -134,16 +134,17 @@ def add_flow_markers():
 
 
 def add_logging_handlers(methods=None):
-    methods = [log_into_file]
+    if methods is None:
+        methods = [log_into_file]
     if methods:
         handlers = get_logging_handlers()
         handlers.extend(methods)
         set_logging_handlers(handlers)
 
 
-def log_into_file(string):
-    with open('/tmp/taurus/extended.log', 'at') as log:
-        log.write(f"{datetime.datetime.now()} {string} \n")
+def log_into_file(log_line):
+    with open('/tmp/apiritif_external.log', 'at') as log_file:
+        log_file.write(f"{datetime.datetime.now()} {log_line} \n")
 
 
 def _send_marker(stage, params):
