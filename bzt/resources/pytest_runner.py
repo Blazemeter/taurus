@@ -75,7 +75,7 @@ class RecordingPlugin(object):
             self._sample.error_msg = call.excinfo.exconly().strip()
             self._sample.error_trace = "\n".join(traceback.format_tb(call.excinfo.tb)).strip()
             if call.excinfo.errisinstance(AssertionError):
-                self._sample.add_assertion(call.excinfo.exconly())
+                self._sample.add_assertion(call.excinfo.exconly(), {'args': '', 'kwargs': ''})
                 self._sample.set_assertion_failed(call.excinfo.exconly(), str(call.excinfo.value),
                                                   str(call.excinfo.getrepr(style="native")))
 

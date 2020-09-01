@@ -1,7 +1,9 @@
 # Utility functions and classes for Taurus Selenium tests
 import time
+import datetime
 
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
+from apiritif import get_logging_handlers, set_logging_handlers
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
     TimeoutException
 from selenium.webdriver.common.by import By
@@ -129,6 +131,20 @@ def add_flow_markers():
     handlers["enter"].append(_send_start_flow_marker)
     handlers["exit"].append(_send_exit_flow_marker)
     set_transaction_handlers(handlers)
+
+
+def add_logging_handlers(methods=None):
+    if methods is None:
+        methods = [log_into_file]
+    if methods:
+        handlers = get_logging_handlers()
+        handlers.extend(methods)
+        set_logging_handlers(handlers)
+
+
+def log_into_file(log_line):
+    with open('/tmp/apiritif_external.log', 'at') as log_file:
+        log_file.write(f"{datetime.datetime.now()} {log_line} \n")
 
 
 def _send_marker(stage, params):
