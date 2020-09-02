@@ -9,6 +9,7 @@
 - allow to set up Firefox proxy in Selenium test
 - add `pip-installer` service
 - support RTE Jmeter plugin
+- support jsr223 processor at the scenario level
 - improve Apiritif/Selenium Data Sources:
     - detect quoting
     - support encoding
@@ -48,7 +49,6 @@
 - fix exit flow on windows
 - fix result files encoding
 - fix video link and https access on site
-- support jsr223 processor at the scenario level
 
 ## 1.14.1<sup> 12 Feb 2020</sup>
 - add alert windows handling to apiritif
