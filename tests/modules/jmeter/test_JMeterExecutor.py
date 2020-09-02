@@ -3014,3 +3014,112 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual(keystore_config_end_index.text, '99')
         keystore_config_preload = xml_tree.find(".//KeystoreConfig/stringProp[@name='preload']")
         self.assertEqual(keystore_config_preload.text, 'true')
+
+    def test_rte_server_and_connect(self):
+        self.obj.settings.merge({'protocol-handlers': {"rte": "bzt.jmx.rte.RTEProtocolHandler"}})
+
+        self.configure({"execution":
+            {"scenario":
+                {
+                    "protocol": "rte",
+                    "rte-server": "myHost",
+                    "rte-config": {
+                        "terminal-type": "IBM-3179-2",
+                        "connection-timeout": "60s0ms"
+                    },
+                    "rte-protocol": "TN5250",
+                    "requests": [{
+                        "rte-action": "CONNECT",
+                        "label": "Connection to server"
+                    }]}}})
+        self.obj.prepare()
+        xml_tree = open(self.obj.modified_jmx, "rb").read().decode("utf-8")
+        self.assertTrue("RTEConnectionConfig.server" in xml_tree)
+        self.assertTrue("RTEConnectionConfig.protocol" in xml_tree)
+        self.assertTrue("RTEConnectionConfig.terminalType" in xml_tree)
+        self.assertTrue("RTEConnectionConfig.connectTimeout" in xml_tree)
+
+    def test_rte_send_text(self):
+        self.obj.settings.merge({'protocol-handlers': {"rte": "bzt.jmx.rte.RTEProtocolHandler"}})
+
+        self.configure({"execution":
+            {"scenario":
+                {
+                    "protocol": "rte",
+                    "rte-server": "myHost",
+                    "rte-config": {
+                        "terminal-type": "IBM-3179-2",
+                        "connection-timeout": "60s0ms"
+                    },
+                    "rte-protocol": "TN5250",
+                    "requests": [{
+                        "rte-action": "CONNECT",
+                        "label": "Connection to server"
+                    },
+                    {
+                        "rte-action": "SEND_INPUT",
+                        "label": "RTE Action",
+                        "attention-key": "ENTER",
+                        "fields": [
+                            {"tabs": "0",
+                             "text": "MyHost"}
+
+                        ]
+                    }
+                    ]}}})
+        self.obj.prepare()
+        xml_tree = open(self.obj.modified_jmx, "rb").read().decode("utf-8")
+        self.assertTrue("RTEConnectionConfig.server" in xml_tree)
+        self.assertTrue("RTEConnectionConfig.protocol" in xml_tree)
+        self.assertTrue("RTEConnectionConfig.terminalType" in xml_tree)
+        self.assertTrue("RTEConnectionConfig.connectTimeout" in xml_tree)
+
+    def test_full_config_parsed(self):
+        self.obj.settings.merge({'protocol-handlers': {"rte": "bzt.jmx.rte.RTEProtocolHandler"}})
+
+        self.configure({"execution": {
+            "scenario": {
+                "protocol": "rte",
+                "rte-server": "myHost:8080",
+                "rte-config": {
+                    "ssl": "ssl",
+                    "terminal-type": "IBM-3179-2",
+                    "connection-timeout": "60s0ms"
+                },
+                "rte-protocol": "TN5250",
+                "requests": [
+                    {
+                        "rte-action": "CONNECT",
+                        "label": "Connection to server"
+                    },
+                    {
+                        "rte-action": "SEND_INPUT",
+                        "wait-for": {
+                            "sync": "10",
+                            "cursor": {"position": "5,8", "timeout": "120"},
+                            "silent": {"stable-time": "14", "timeout": "15"},
+                            "text": {"regex": ".+", "timeout": "15", "search-area": "5,5,5,5"}
+                        },
+                        "label": "RTE Action",
+                        "attention-key": "ENTER",
+                        "extract-cursor-position": {
+                            "varname": "cursorPos"
+                        },
+                        "extract-field-position": {
+                            "varname": "fieldPos",
+                            "base-position": "(5,7)",
+                            "field-offset": "0"
+                        },
+                        "fields": [
+                            {"tabs": "0", "text": "MyHost", "row": "1", "col": "4", "label": "host"}
+                        ]
+                    }
+                ]
+            }
+        }})
+        self.obj.prepare()
+        xml_tree = open(self.obj.modified_jmx, "rb").read().decode("utf-8")
+        self.assertTrue("RTEConnectionConfig.server" in xml_tree)
+        self.assertTrue("RTEConnectionConfig.protocol" in xml_tree)
+        self.assertTrue("RTEConnectionConfig.terminalType" in xml_tree)
+        self.assertTrue("RTEConnectionConfig.connectTimeout" in xml_tree)
