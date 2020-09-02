@@ -1,2 +1,0 @@
-fix for issue that the window.alert, window.prompt and window.confirm methods may not be patched
-call the dialogs_replace also before answering the next dialog

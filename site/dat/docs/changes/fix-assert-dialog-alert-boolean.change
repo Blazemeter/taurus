@@ -1,2 +1,0 @@
-Fixed issue for assertDialog of type alert when an alert is displayed with true of false values that were
-treated as booleans instead of as strings

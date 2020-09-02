@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.15.0<sup> 03 Sep 2020</sup>
+- allow to use new Apiritif external logging feature
+- support variables in the Apiritif loop
+- implemented support for parent context in foreach loop for Apiritif tests
+- support some loop fields for Apiritif
+- support Lightning Components using Shadow locator
+- allow to set up Firefox proxy in Selenium test
+- add `pip-installer` service
+- support RTE Jmeter plugin
+- improve Apiritif/Selenium Data Sources:
+    - detect quoting
+    - support encoding
+    - add `tab` synonym as delimiter
+- support PassFail criteria in cloud
+- improve environment variables resolving
+- move to modern Locust tool
+- move to up-to-date Chrome Driver
+- support Python v3.8 on Linux/Mac
+- allow to specify where exactly Shellexec must be processed
+- fix resource files gathering in once block for Cloud Provisioning
+- improve Cloud test status reporting
+- update pyvirtualdisplay dependency
+- fix frames/windows switching in selenium tests
+- fix `assertDialog` action treating
+- fix get_locator behavior for selenium tests
+- fix dialog replace call
+- fix locust jtl errors
+- fix usage statistics order on gettaurus.org
+
+- improve docs:
+    - describe artifact directory (folder for test results & logs)
+    - describe custom python packages install process on Windows
+    
 ## 1.14.2<sup> 12 Apr 2020</sup>
 - implement new apritif actions:
   - `assertEval` and `storeEval`
@@ -15,6 +48,7 @@
 - fix exit flow on windows
 - fix result files encoding
 - fix video link and https access on site
+- support jsr223 processor at the scenario level
 
 ## 1.14.1<sup> 12 Feb 2020</sup>
 - add alert windows handling to apiritif
