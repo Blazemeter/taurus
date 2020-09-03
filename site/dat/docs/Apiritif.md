@@ -1109,3 +1109,27 @@ modules:
   apiritif:
     generate-flow-markers: true  # global setting
 ```
+
+### External logging
+
+This feature can be used to track progress or debug your test. It requires handler which will be executed
+between actions. Please see for handler example `log_into_file` function in `selenium_extras` module
+which logs action timestamps in user file.
+
+To enable external logging you can use flag `external-logging: true` in  scenario settings (handler
+will be executed on start and finish of each action) or use action `log('some string')` to explicitly call handler.
+
+```yaml
+execution:
+- executor: selenium
+  scenario: sample
+
+scenarios:
+  sample:
+    external-logging: true          # call handler before and after all actions
+    actions:
+    - go(http://blazedemo.com/) 
+    - log('leaving blazedemo')      # explicit logging way
+    - go(https://gettaurus.org/docs/Index/)
+    - log('finished part 1 of my test') 
+```

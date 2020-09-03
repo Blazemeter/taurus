@@ -652,6 +652,31 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
+    def test_add_external_logging(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "sample"}],
+            "scenarios": {
+                "sample": {
+                    "external-logging": True,
+                    "browser": "Chrome",
+                    "requests": [{
+                        "label": "Test",
+                        "actions": [
+                            "go(http://blazedemo.com/)",
+                            "log(leaving blazedemo)",
+                        ],
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/external_logging.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+
     def test_resize_window(self):
         self.configure({
             "execution": [{
