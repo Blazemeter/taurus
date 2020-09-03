@@ -18,7 +18,7 @@ pipelineJob('TAURUS-COMMUNITY-STABLE'){
             causeString('job triggered with $ref, commit hash - $commit')
             token('Q6QyWaD4rdY42Kqt')
             regexpFilterText('$ref')
-            regexpFilterExpression('^(refs/tags/.+)$')
+            regexpFilterExpression('^(refs\/tags\/.+)$')
         }
     }
     logRotator {
