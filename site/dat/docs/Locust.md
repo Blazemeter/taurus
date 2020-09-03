@@ -80,7 +80,7 @@ scenarios:
         not: false  # inverse assertion condition
 ```
 
-Keep in mind: locust requires default url for its work (empty string is accepted). You have to set `host`
+Keep in mind that Locust requires default url for its work (empty string is accepted). You have to set `host`
 in python script or `default-address` in script for Taurus. If both are found value from Taurus script has priority.
  
 ## Run Locust in Distributed Mode
@@ -96,23 +96,26 @@ scenarios:
   request_example:
 ...
 ```
-Keep in mind: taurus starts locust master node only. All other workers should be configured and started manually.  
+Keep in mind that Taurus starts locust master node only. All other workers should be configured and started manually.  
  
 ## Migration notes
 
-Since you can read this migration notes, all latest dev builds and releases after 1.14.2 of taurus support 1.0+ 
-locust version with new syntax. Here are some tips for updating to the latest locust version from version 0.13.*.
+Since you can read this migration notes, all latest Taurus releases after 1.14.2 support 1.0+ 
+Locust version with the new syntax. Below you will see some updates to the latest Locust version 
+from version 0.13.*.
 
-#### In .yaml files `slaves` field is renamed to `workers` according to locust
+### Change in yaml files 
 
-##### old version
+Field `slaves` was renamed to `workers`.
+
+Old version:
 ```yaml
 execution:
 - executor: locust
   slaves: 10
 ...
 ```
-##### new version
+New version:
 ```yaml
 execution:
 - executor: locust
@@ -120,11 +123,11 @@ execution:
 ...
 ```
 
-#### Locust file migrations
-- `Locusts` is renamed to `Users`
-- Use property `tasks` instead of `task_set` 
+### Locust file changes
+- `Locusts` were renamed to `Users`
+- Property `tasks` instead of `task_set` 
 
-##### old version
+Old version:
 ```python 
 from locust import HttpLocust, TaskSet, ...
 
@@ -136,7 +139,7 @@ class WebsiteUser(HttpLocust):
 ...
 ```
 
-##### new version
+New version:
 ```python 
 from locust import HttpUser, TaskSet, ...
 
