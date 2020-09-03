@@ -21,6 +21,8 @@ import json
 import os
 import time
 import zipfile
+import sys
+import shutil
 
 from urllib.request import urlopen
 from urllib.error import URLError
@@ -36,6 +38,82 @@ if not is_windows():
         from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
     except ImportError:
         from pyvirtualdisplay import Display
+
+
+class PipInstaller(Service):
+    def __init__(self):
+        super(PipInstaller, self).__init__()
+        self.packages = []
+        self.temp = True
+        self.target_dir = None
+        self.interpreter = sys.executable
+        self.pip_cmd = [self.interpreter, "-m", "pip"]  # todo: change for win to bzt-pip
+
+    def _install(self, packages):
+        if not packages:
+            self.log.debug("Nothing to install")
+            return
+        cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
+        cmdline += self.packages
+        self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
+        out, err = exec_and_communicate(cmdline)
+        if err:
+            self.log.error("pip-installer stderr:\n%s" % err)
+        self.log.debug("pip-installer stdout: \n%s" % out)
+
+    def _missed(self, packages):
+        # todo: add version handling
+        cmdline = self.pip_cmd + ["list"]
+        out, _ = exec_and_communicate(cmdline)
+        list_of_installed = [line.split(' ')[0] for line in out.split('\n')[2:-1]]
+
+        missed = []
+        for package in packages:
+            if package not in list_of_installed:
+                missed.append(package)
+        return missed
+
+    def _uninstall(self, packages):
+        pass     # todo:
+
+    def _reload(self, packages):
+        pass     # todo:
+
+    def prepare(self):
+        """
+        pip-installer expect follow definition:
+        - service pip-install
+          temp: false   # install to ~/.bzt instead of artifacts dir
+          packages:
+          - first_pkg
+          - second_pkg
+        """
+        self.packages = self.parameters.get("packages", self.packages)  # todo: add versions (dict format?)
+        if not self.packages:
+            return
+
+        # install into artifacts dir if temp, otherwise into .bzt
+        self.temp = self.settings.get("temp", self.temp)
+        self.temp = self.parameters.get("temp", self.temp)
+
+        self.target_dir = self.engine.temp_pythonpath if self.temp else self.engine.user_pythonpath
+
+        if not os.path.exists(self.target_dir):
+            os.makedirs(get_full_path(self.target_dir), exist_ok=True)
+
+        if self._missed(["pip"]):   # extend to windows (bzt-pip)
+            raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
+        self.packages = self._missed(self.packages)
+        if not self.packages:
+            return
+
+        self._install(self.packages)
+
+    def post_process(self):
+        if self.packages and self.temp and not is_windows():    # might be forbidden on win as tool still work
+            self.log.debug("remove packages: %s" % self.packages)
+
+            shutil.rmtree(self.target_dir)  # it removes all content of directory in reality, not only self.packages
 
 
 class Unpacker(Service):

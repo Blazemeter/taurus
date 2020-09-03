@@ -141,3 +141,20 @@ modules:
     avd: android10_arm128
     timeout: 20     # timeout for android emulator startup, adb should be available through the PATH for startup detection 
 ```    
+
+## Pip-installer
+
+This service allows you to use additional python packages in your scripts. Typical config is
+ 
+```yaml
+services:
+- module: pip-install
+  packages:
+    - tz  # list of packages
+
+modules:
+  pip-install:
+    temp: false
+``` 
+`temp` module parameter points where to put packages, into `artifacts dir` (by default value is `true`) or ~/.bzt.
+In the second case they will be installed once and shared with the next bzt launches.

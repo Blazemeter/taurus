@@ -7,10 +7,18 @@ from os.path import join
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning
-from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader
+from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller
 from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node
 from tests import BZTestCase, get_cwd, RESOURCES_DIR
 from tests.mocks import EngineEmul, ModuleMock, BZMock
+
+
+class TestPipInstaller(BZTestCase):
+    def setUp(self):
+        engine = EngineEmul()
+        engine.config.merge({'services': {'pip-installer': []}})
+        self.obj = PipInstaller()
+        self.obj.engine = engine
 
 
 class TestZipFolder(BZTestCase):

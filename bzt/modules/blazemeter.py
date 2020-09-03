@@ -1718,6 +1718,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         return self.router.get_master_status()
 
     def post_process(self):
+        self.log.warning('Part of result data might be missed here due to BM API specifics')
+
         if not self.detach and self.router and not self.test_ended:
             self.router.stop_test()
 
