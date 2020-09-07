@@ -80,7 +80,7 @@ scenarios:
         not: false  # inverse assertion condition
 ```
 
-Keep in mind: locust requires default url for its work (empty string is accepted). You have to set `host`
+Keep in mind that Locust requires default url for its work (empty string is accepted). You have to set `host`
 in python script or `default-address` in script for Taurus. If both are found value from Taurus script has priority.
  
 ## Run Locust in Distributed Mode
@@ -96,4 +96,4 @@ scenarios:
   request_example:
 ...
 ```
-Keep in mind: taurus starts locust master node only. All other workers should be configured and started manually.
+Keep in mind that Taurus starts locust master node only. All other workers should be configured and started manually.  
