@@ -1082,10 +1082,8 @@ def shutdown_process(process_obj, log_obj):
                         child_proc.send_signal(kill_signal)
                     os.kill(process_obj.pid, kill_signal)
             else:
-                if(os.getpgid(process_obj.pid) != 0)
-                    os.killpg(os.getpgid(process_obj.pid), kill_signal)
-                else
-                    os.killpg(process_obj.pid, kill_signal)
+                os.killpg(process_obj.pid, kill_signal)
+                os.killpg(os.getpgid(process_obj.pid), kill_signal)
         except OSError as exc:
             log_obj.debug("Failed to terminate process: %s", exc)
 
