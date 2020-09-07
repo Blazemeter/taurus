@@ -1,0 +1,1 @@
+Fixed gatling pass fail criteria as the SIGTERM wasn't able to shut down the process so have used the group id PID instead of PID to shut down the process.

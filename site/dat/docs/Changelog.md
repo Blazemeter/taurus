@@ -29,7 +29,7 @@
 - fix dialog replace call
 - fix locust jtl errors
 - fix usage statistics order on gettaurus.org
-
+- fix pass fail criteria for gatling
 - improve docs:
     - describe artifact directory (folder for test results & logs)
     - describe custom python packages install process on Windows
@@ -48,7 +48,7 @@
 - fix `virtual display` doc
 - fix exit flow on windows
 - fix result files encoding
-- fix video link and https access on site
+- fix video link and https access on site 
 
 ## 1.14.1<sup> 12 Feb 2020</sup>
 - add alert windows handling to apiritif
