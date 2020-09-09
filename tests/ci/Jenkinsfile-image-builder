@@ -44,8 +44,8 @@ def buildImage(imageName) {
       imageTag = "${imageName}:unstable"
   } else if (BRANCH_NAME.startsWith('release-')) {
       imageTag = "${imageName}:${editedBranch}"
-  } else {
-      imageTag = "${imageName}:${editedBranch} -t ${imageName}:latest"
+  } else if (env.TAG_NAME) {
+      imageTag = "${imageName}:${env.TAG_NAME} -t ${imageName}:latest"
   }
 
   sh "docker build --no-cache -t ${imageTag} ."
