@@ -13,16 +13,19 @@ pipeline {
                 script {
                     scmVars = checkout scm
                     commitHash = scmVars.GIT_COMMIT
-                    isTag =  scmVars.GIT_BRANCH.startsWith("refs/tags/")
+                    tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
+                    isTag = !tagName.isEmpty()
                     IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
                     IMAGE_TAG = IMAGE_TAG.toLowerCase()
+                    imageName = "blazemeter/taurus"
+                    extraImageTag = isTag ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
                 }
             }
         }
         stage("Docker Image Build") {
             steps {
                 sh """
-                   docker build -t ${JOB_NAME} .
+                   docker build -t ${JOB_NAME} -t ${extraImageTag}.
                    """
             }
         }
@@ -31,6 +34,13 @@ pipeline {
                 sh """
                    docker run -v `pwd`:/bzt-configs -v `pwd`/integr-artifacts:/tmp/artifacts ${JOB_NAME} -sequential examples/all-executors.yml
                    """
+            }
+        }
+        stage("Docker Image Push") {
+            steps {
+                withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
+                    sh "docker push ${imageName}"
+                }
             }
         }
         stage("Create Artifacts") {
