@@ -14,11 +14,11 @@ pipeline {
                     scmVars = checkout scm
                     commitHash = scmVars.GIT_COMMIT
                     tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
-                    isTag = !tagName.isEmpty()
+                    isRelease = !tagName.isEmpty()
                     IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
                     IMAGE_TAG = IMAGE_TAG.toLowerCase()
                     imageName = "blazemeter/taurus"
-                    extraImageTag = isTag ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
+                    extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
                 }
             }
         }
@@ -50,7 +50,7 @@ pipeline {
                        sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py
                        """
 
-                    if (!isTag) {
+                    if (!isRelease) {
                         sh """
                            sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
                            """
@@ -82,7 +82,7 @@ pipeline {
                            -u root \
                            -v /var/run/docker.sock:/var/run/docker.sock \
                            -v `pwd`:/bzt -t deploy-image \
-                           ${isTag}
+                           ${isRelease}
                           """
                     }
                 }
