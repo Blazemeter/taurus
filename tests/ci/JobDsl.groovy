@@ -1,17 +1,41 @@
-multibranchPipelineJob('TAURUS-IMAGE-BUILDER'){
+multibranchPipelineJob('TAURUS-IMAGE-BUILDER') {
+    factory {
+        workflowBranchProjectFactory {
+            scriptPath('tests/ci/Jenkinsfile-image-builder')
+        }
+    }
     branchSources {
-        git {
-            id('1') // IMPORTANT: use a constant and unique identifier per branch source
-            remote('https://github.com/Blazemeter/taurus.git')
-            credentialsId('github-token')
-            includes('*')
-            excludes('master fix/* feat/*')
+        branchSource {
+            source {
+                git {
+                    remote('https://github.com/Blazemeter/taurus.git')
+                    credentialsId('github-token')
+                    traits {
+                        gitBranchDiscovery()
+                        gitTagDiscovery()
+                        headWildcardFilter {
+                            includes('master release-* 1.*')
+                            excludes('')
+                        }
+                    }
+                }
+            }
         }
     }
     configure {
-        it / factory(class: 'org.jenkinsci.plugins.workflow.multibranch.WorkflowBranchProjectFactory') {
-            owner(class: 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject', reference: '../..')
-            scriptPath("tests/ci/Jenkinsfile-image-builder") //Set a specific scriptPath in MultiBranchPipelineJob DSL
+        def buildStrategies = it / sources / data / 'jenkins.branch.BranchSource' / buildStrategies
+        buildStrategies << 'jenkins.branch.buildstrategies.basic.TagBuildStrategyImpl' {
+            atLeastMillis '-1'
+            atMostMillis '604800000'
+        }
+        buildStrategies << 'jenkins.branch.buildstrategies.basic.NamedBranchBuildStrategyImpl' {
+            filters {
+                'jenkins.branch.buildstrategies.basic.NamedBranchBuildStrategyImpl_-WildcardsNameFilter' {
+                    includes('*')
+                    excludes('')
+                    caseSensitive false
+                }
+            }
         }
     }
     orphanedItemStrategy {
@@ -21,6 +45,6 @@ multibranchPipelineJob('TAURUS-IMAGE-BUILDER'){
         }
     }
     triggers {
-        periodic(30)
+        periodic(1)
     }
 }

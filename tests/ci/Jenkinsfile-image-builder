@@ -2,8 +2,6 @@ clearWorkspaceAsRoot()
 
 @Library ("jenkins_library") _
 
-properties([pipelineTriggers([githubPush()])]) //Enable Git webhook triggering
-
 pipeline {
 
   options {
@@ -15,43 +13,46 @@ pipeline {
 
   agent {
     docker {
-      image 'registry.blazemeter.net/jenkins-docker-agent:master.20'
+      image 'us.gcr.io/verdant-bulwark-278/jenkins-docker-agent:master.82'
       args "-u root -v /var/run/docker.sock:/var/run/docker.sock"
     }
   }
 
   stages {
-    stage('Building an image'){
-      steps{
-        script{
-          imageTag = buildImage()
+    stage('Building an image') {
+      steps {
+        script {
+          def imageName = "blazemeter/taurus"
+          buildImage(imageName)
         }
       }
     }
 
-    stage('Pushing an image'){
-      steps{
+    stage('Pushing an image') {
+      steps {
         script {
-          pushImage(imageTag)
+          pushImage(imageName)
         }
       }
     }
   }
 }
 
-def buildImage() {
-  def branch = BRANCH_NAME.toString().replace("origin/", "");
-  git branch: "${branch}", credentialsId: 'github-token', url: 'https://github.com/Blazemeter/taurus.git'
-  def editedBranch = branch.replaceAll("/", "-");
-  def TAURUS_VERSION = "${editedBranch}" + "-${BUILD_NUMBER}"
-  def imageTag = "blazemeter/taurus:${TAURUS_VERSION}"
-  sh "docker build --no-cache -t ${imageTag} ."
+def buildImage(imageName) {
+  def editedBranch = BRANCH_NAME.replaceAll("/", "-")
+  if (BRANCH_NAME == 'master') {
+      imageTag = "${imageName}:unstable"
+  } else if (BRANCH_NAME.startsWith('release-')) {
+      imageTag = "${imageName}:${editedBranch}"
+  } else {
+      imageTag = "${imageName}:${editedBranch} -t ${imageName}:latest"
+  }
 
-  return imageTag;
+  sh "docker build --no-cache -t ${imageTag} ."
 }
 
-def pushImage(imageTag) {
+def pushImage(imageName) {
   withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
-    sh "docker push ${imageTag}"
+    sh "docker push ${imageName}"
   }
 }
