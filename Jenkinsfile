@@ -25,7 +25,7 @@ pipeline {
         stage("Docker Image Build") {
             steps {
                 sh """
-                   docker build -t ${JOB_NAME} -t ${extraImageTag}.
+                   docker build -t ${JOB_NAME} -t ${extraImageTag} .
                    """
             }
         }
