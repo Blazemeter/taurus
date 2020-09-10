@@ -53,7 +53,7 @@ pip install --upgrade pip wheel
 Make sure you have [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) 
 tools installed beforehand. Please check that the 'Desktop Development with C++' box is checked during installation. 
 
-![Microsoft Visual C++ Installation](win-tools-install.png)
+![Windows Tools Installation](win-tools-install.png)
 
 #### Install Taurus
 
