@@ -422,7 +422,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def startup(self):
         self._set_env()
-        self.process = self._execute(self._get_cmdline(), pgrp=False)
+        self.process = self._execute(self._get_cmdline())
 
     def _get_cmdline(self):
         cmdline = [self.tool.tool_path]
