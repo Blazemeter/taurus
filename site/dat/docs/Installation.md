@@ -30,7 +30,7 @@ shortcut in the Start menu.
 #### Installing Additional Packages
 
 If you want to install additional Python packages along with Taurus (for example Locust, Molotov, etc),
-you should install the latest [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/) and
+you should install the latest [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) and
 you should utilize the following command line utilities provided by the installer:
 - `bzt-pip` is a wrapper for pip that can be used to install packages, for example `bzt-pip install locust`
 - `bzt-run` can be used to launch packages that were installed with `bzt-pip`, for example `bzt-run locust locustfile.py`
@@ -50,7 +50,10 @@ from context menu). Then run the following command to update Python package mana
 pip install --upgrade pip wheel
 ```
 
-Make sure you have [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/) tools installed beforehand.
+Make sure you have [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) 
+tools installed beforehand. Please check that the 'Desktop Development with C++' box is checked during installation. 
+
+![Microsoft Visual C++ Installation](win-tools-install.png)
 
 #### Install Taurus
 
