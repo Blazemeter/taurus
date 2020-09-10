@@ -13,16 +13,19 @@ pipeline {
                 script {
                     scmVars = checkout scm
                     commitHash = scmVars.GIT_COMMIT
-                    isTag =  scmVars.GIT_BRANCH.startsWith("refs/tags/")
+                    tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
+                    isRelease = !tagName.isEmpty()
                     IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
                     IMAGE_TAG = IMAGE_TAG.toLowerCase()
+                    imageName = "blazemeter/taurus"
+                    extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
                 }
             }
         }
         stage("Docker Image Build") {
             steps {
                 sh """
-                   docker build -t ${JOB_NAME} .
+                   docker build -t ${JOB_NAME} -t ${extraImageTag} .
                    """
             }
         }
@@ -33,6 +36,13 @@ pipeline {
                    """
             }
         }
+        stage("Docker Image Push") {
+            steps {
+                withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
+                    sh "docker push ${imageName}"
+                }
+            }
+        }
         stage("Create Artifacts") {
             steps {
                 script {
@@ -40,7 +50,7 @@ pipeline {
                        sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py
                        """
 
-                    if (!isTag) {
+                    if (!isRelease) {
                         sh """
                            sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
                            """
@@ -72,7 +82,7 @@ pipeline {
                            -u root \
                            -v /var/run/docker.sock:/var/run/docker.sock \
                            -v `pwd`:/bzt -t deploy-image \
-                           ${isTag}
+                           ${isRelease}
                           """
                     }
                 }
