@@ -96,4 +96,4 @@ scenarios:
   request_example:
 ...
 ```
-Keep in mind that Taurus starts locust master node only. All other workers should be configured and started manually.
+Keep in mind that Taurus starts locust master node only. All other workers should be configured and started manually.  
