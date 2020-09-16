@@ -23,7 +23,7 @@ pipeline {
                 }
                 sh """
                    echo "build = \"${JOB_NAME}\"" > bzt/utils/build.py
-                """
+                   """
             }
         }
         stage("Docker Image Build") {
