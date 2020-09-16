@@ -1,1 +1,1 @@
-GIT_INFO = "n/a"
+GIT_INFO = "DEV"
