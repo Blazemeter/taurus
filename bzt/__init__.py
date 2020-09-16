@@ -18,7 +18,8 @@ import platform
 import sys
 from abc import abstractmethod
 
-from bzt.utils import VERSION, GIT_INFO, BUILD_NUM
+from bzt.utils import VERSION, GIT_INFO, BUILD_NUM, TaurusException, TaurusCalledProcessError, TaurusNetworkError
+from bzt.utils import TaurusConfigError, InvalidTaurusConfiguration, TaurusInternalException, ToolError
 
 
 class RCProvider(object):
@@ -32,36 +33,6 @@ class RCProvider(object):
         Must be implemented in subclasses
         """
         pass
-
-
-class TaurusException(BaseException):
-    pass
-
-
-class TaurusConfigError(TaurusException):
-    pass
-
-
-class InvalidTaurusConfiguration(TaurusConfigError):
-    pass
-
-
-class TaurusInternalException(TaurusException):
-    pass
-
-
-class ToolError(TaurusException):
-    def __init__(self, message, diagnostics=None):
-        """
-        :type message: str
-        :type diagnostics: list[str]
-        """
-        super(ToolError, self).__init__(message)
-        self.diagnostics = diagnostics
-
-
-class TaurusNetworkError(TaurusException):
-    pass
 
 
 class NormalShutdown(KeyboardInterrupt, RCProvider):

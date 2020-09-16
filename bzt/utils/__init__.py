@@ -60,7 +60,8 @@ from urllib import parse
 from urllib.request import url2pathname
 from urwid import BaseScreen
 
-from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
+from .errors import TaurusException, TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
+from .errors import InvalidTaurusConfiguration
 
 try:
     from .release import VERSION
