@@ -62,6 +62,12 @@ from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
 
+try:
+    from .release import VERSION
+    from .gitinfo import GIT_INFO
+except ImportError:
+    GIT_INFO = VERSION = 'dev'
+
 LOG = logging.getLogger("")
 CALL_PROBLEMS = (CalledProcessError, OSError)
 numeric_types = (int, float, complex)
