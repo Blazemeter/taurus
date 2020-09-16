@@ -19,7 +19,11 @@ pipeline {
                     IMAGE_TAG = IMAGE_TAG.toLowerCase()
                     imageName = "blazemeter/taurus"
                     extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
+
                 }
+                sh """
+                   echo "build = \"${JOB_NAME}\"" > bzt/utils/build.py
+                """
             }
         }
         stage("Docker Image Build") {
