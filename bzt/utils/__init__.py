@@ -65,8 +65,9 @@ from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusCo
 try:
     from .release import VERSION
     from .gitinfo import GIT_INFO
+    from .build import BUILD_NUM
 except ImportError:
-    GIT_INFO = VERSION = 'dev'
+    GIT_INFO = VERSION = BUILD_NUM = 'n/a'
 
 LOG = logging.getLogger("")
 CALL_PROBLEMS = (CalledProcessError, OSError)

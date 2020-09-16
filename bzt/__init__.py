@@ -18,7 +18,7 @@ import platform
 import sys
 from abc import abstractmethod
 
-VERSION = "1.15.0"
+from bzt.utils import VERSION, GIT_INFO, BUILD_NUM
 
 
 class RCProvider(object):

@@ -31,13 +31,11 @@ from urllib.error import HTTPError
 import yaml
 from colorlog import ColoredFormatter
 
-import bzt
-
 from bzt import ManualShutdown, NormalShutdown, RCProvider, TaurusException, AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError, ToolError
 from bzt.engine import Engine, Configuration, SETTINGS, EXEC
 from bzt.linter import ConfigurationLinter
-from bzt.utils import get_stacktrace, is_int, BetterDict, is_url, RESOURCES_DIR
+from bzt.utils import get_stacktrace, is_int, BetterDict, is_url, RESOURCES_DIR, VERSION, GIT_INFO, BUILD_NUM
 
 
 class CLI(object):
@@ -55,7 +53,9 @@ class CLI(object):
         self.options = options
         self.setup_logging(options)
         self.log = logging.getLogger('')
-        self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
+        self.log.info("Taurus CLI Tool v%s", VERSION)
+        self.log.debug("Build number: %s", BUILD_NUM)
+        self.log.debug("Extended git info: %s", GIT_INFO)
         self.log.debug("Command-line options: %s", self.options)
         self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
         self.log.debug("OS: %s", platform.uname())
