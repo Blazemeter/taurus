@@ -1,1 +1,0 @@
-GIT_INFO = "DEV"

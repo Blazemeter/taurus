@@ -63,9 +63,12 @@ from urwid import BaseScreen
 from .errors import TaurusException, TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
 from .errors import InvalidTaurusConfiguration
 
-from .version import VERSION
-from .gitinfo import GIT_INFO
-from .build import BUILD_NUM
+try:
+    from .version import VERSION
+    from .gitinfo import GIT_INFO
+    from .build import BUILD_NUM
+except ImportError:
+    VERSION = GIT_INFO = BUILD_NUM = "DEV"
 
 LOG = logging.getLogger("")
 CALL_PROBLEMS = (CalledProcessError, OSError)
