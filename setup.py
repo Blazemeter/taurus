@@ -16,7 +16,7 @@ limitations under the License.
 import pkg_resources
 from setuptools import setup
 
-import bzt
+from bzt.utils import VERSION
 
 with open('requirements.txt') as _f:
     content = _f.read()
@@ -24,7 +24,7 @@ with open('requirements.txt') as _f:
 
 setup(
     name="bzt",
-    version=bzt.VERSION,
+    version=VERSION,
     description='Taurus Tool for Continuous Testing',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
