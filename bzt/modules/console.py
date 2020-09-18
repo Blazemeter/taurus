@@ -40,7 +40,8 @@ from urwid.widget import Divider
 from bzt.engine import Reporter, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
-from bzt.utils import humanize_time, is_windows, DummyScreen, VERSION
+from bzt.utils import humanize_time, is_windows, DummyScreen
+from bzt.resources.version import VERSION
 
 try:
     from bzt.modules.screen import GUIScreen

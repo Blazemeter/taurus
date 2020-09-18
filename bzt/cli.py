@@ -36,7 +36,8 @@ from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError, 
 
 from bzt.engine import Engine, Configuration, SETTINGS, EXEC
 from bzt.linter import ConfigurationLinter
-from bzt.utils import get_stacktrace, is_int, BetterDict, is_url, RESOURCES_DIR, VERSION, GIT_INFO, BUILD_NUM
+from bzt.utils import get_stacktrace, is_int, BetterDict, is_url, RESOURCES_DIR
+from bzt.resources.version import VERSION, GIT_INFO, BUILD_NUM
 
 
 class CLI(object):

@@ -40,7 +40,7 @@ from .names import EXEC, TAURUS_ARTIFACTS_DIR, SETTINGS
 from .templates import Singletone
 from ..environment_helpers import expand_variable_with_os, custom_expandvars, expand_envs_with_os
 
-from bzt.utils import VERSION
+from bzt.resources.version import VERSION
 
 
 class Engine(object):
