@@ -22,7 +22,7 @@ pipeline {
 
                 }
                 sh """
-                   echo "build = \"${JOB_NAME}\"" > bzt/utils/build.py
+                   echo "BUILD_NUM = \"${BUILD_NUMBER}\"" > bzt/utils/build.py
                    """
             }
         }
