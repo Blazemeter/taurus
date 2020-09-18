@@ -16,7 +16,7 @@ limitations under the License.
 import pkg_resources
 from setuptools import setup
 
-from bzt.utils import VERSION
+from bzt.resources.version import VERSION
 
 with open('requirements.txt') as _f:
     content = _f.read()

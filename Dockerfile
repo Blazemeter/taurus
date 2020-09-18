@@ -6,7 +6,7 @@ WORKDIR /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 ADD https://deb.nodesource.com/setup_12.x /tmp
 RUN apt-get -y update \
-  && apt-get -y install dirmngr \
+  && apt-get -y install dirmngr git \
   && $APT_INSTALL software-properties-common apt-utils \
   && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF \
   && cat /tmp/linux_signing_key.pub | apt-key add - \
