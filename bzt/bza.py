@@ -10,8 +10,8 @@ from urllib.parse import urlencode
 
 import requests
 
-from bzt import TaurusNetworkError, ManualShutdown, VERSION, TaurusException
-from bzt.utils import to_json, MultiPartForm
+from bzt import TaurusNetworkError, ManualShutdown, TaurusException
+from bzt.utils import to_json, MultiPartForm, VERSION
 
 BZA_TEST_DATA_RECEIVED = 100
 ENDED = 140
