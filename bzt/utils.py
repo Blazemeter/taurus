@@ -62,6 +62,13 @@ from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
 
+try:
+    from bzt.resources.version.version import VERSION
+    from bzt.resources.version.gitinfo import GIT_INFO
+    from bzt.resources.version.build import BUILD_NUM
+except ImportError:
+    VERSION = GIT_INFO = BUILD_NUM = "DEV"
+
 LOG = logging.getLogger("")
 CALL_PROBLEMS = (CalledProcessError, OSError)
 numeric_types = (int, float, complex)
