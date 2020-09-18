@@ -31,11 +31,12 @@ from urllib.error import HTTPError
 import yaml
 from colorlog import ColoredFormatter
 
-from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
+from bzt import ManualShutdown, NormalShutdown, RCProvider, TaurusException, AutomatedShutdown
+from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError, ToolError
+
 from bzt.engine import Engine, Configuration, SETTINGS, EXEC
 from bzt.linter import ConfigurationLinter
 from bzt.utils import get_stacktrace, is_int, BetterDict, is_url, RESOURCES_DIR, VERSION, GIT_INFO, BUILD_NUM
-from bzt.utils import TaurusException, TaurusInternalException, TaurusConfigError, TaurusNetworkError, ToolError
 
 
 class CLI(object):

@@ -60,13 +60,12 @@ from urllib import parse
 from urllib.request import url2pathname
 from urwid import BaseScreen
 
-from .errors import TaurusException, TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
-from .errors import InvalidTaurusConfiguration
+from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
 
 try:
-    from .version import VERSION
-    from .gitinfo import GIT_INFO
-    from .build import BUILD_NUM
+    from bzt.resources.version.version import VERSION
+    from bzt.resources.version.gitinfo import GIT_INFO
+    from bzt.resources.version.build import BUILD_NUM
 except ImportError:
     VERSION = GIT_INFO = BUILD_NUM = "DEV"
 
