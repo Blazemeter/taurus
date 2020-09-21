@@ -1,12 +1,8 @@
 import os
 import sys
 import time
-import unittest
+from unittest import mock
 
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
 import bzt
 from bzt import ToolError
 from bzt.utils import dehumanize_time, EXE_SUFFIX

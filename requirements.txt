@@ -5,7 +5,6 @@ colorlog
 cssselect
 fuzzyset==0.0.19
 hdrpy>=0.3.3
-ipaddress; python_version < '3.0'
 lxml>=3.8.0,!=4.2.0
 progressbar33
 psutil>=5.6.6
