@@ -884,14 +884,12 @@ from selenium.webdriver.common.keys import Keys
         browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
         browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
+        local_browsers = ["firefox", "chrome", "ie", "opera"] + mobile_browsers
 
         browser_platform = None
         if browser:
             browser_split = browser.split("-")
             browser = browser_split[0]
-            browsers = ["firefox", "chrome", "ie", "opera"] + mobile_browsers
-            if browser not in browsers:
-                raise TaurusConfigError("Unsupported browser name: %s" % browser)
             if len(browser_split) > 1:
                 browser_platform = browser_split[1]
 
@@ -911,7 +909,8 @@ from selenium.webdriver.common.keys import Keys
             browser = "remote"  # Force to use remote web driver
         elif not browser:
             browser = "firefox"
-
+        elif browser not in local_browsers:   # browser isn't supported
+            raise TaurusConfigError("Unsupported browser name: %s" % browser)
         return browser
 
     def _get_scenario_timeout(self):
