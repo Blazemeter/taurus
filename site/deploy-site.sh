@@ -21,14 +21,14 @@ else
     cp dist/*.whl site/builds
     cp build/nsis/*.exe site/builds
 
+    # cut BUILD_NUMBER off
+    TAURUS_VERSION=${TAURUS_VERSION%.*}
+
     # prepare content for installation docs
     SNAPSHOT_HEADER="## Latest Unstable Snapshots"
     WHL_SNAPSHOT="Python wheel package: [bzt-${TAURUS_VERSION}-py2.py3-none-any.whl](${PREFIX}bzt-${TAURUS_VERSION}-py2.py3-none-any.whl)"
     EXE_SNAPSHOT="Windows installer: [TaurusInstaller_${TAURUS_VERSION}_x64.exe](${PREFIX}TaurusInstaller_${TAURUS_VERSION}_x64.exe)"
     UNSTABLE_SNAPSHOT=${SNAPSHOT_HEADER}\\n\\n${WHL_SNAPSHOT}\\n\\n${EXE_SNAPSHOT}
-
-    # cut BUILD_NUMBER off
-    TAURUS_VERSION=${TAURUS_VERSION%.*}
 fi
 
 STABLE_EXE=TaurusInstaller_${TAURUS_VERSION}_x64.exe
