@@ -7,7 +7,7 @@ echo "Getting build info"
 VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
 GIT_INFO="$(git rev-parse --abbrev-ref HEAD) $(git show --oneline -s)"
 echo "VERSION=\"$VERSION\"" > bzt/resources/version/version.py
-echo "GIT_INFO=\"$GIT_INFO\"" > bzt/resources/version/git_info.py
+echo "GIT_INFO=\"$GIT_INFO\"" > bzt/resources/version/gitinfo.py
 
 echo "Cleaning environment"
 python3 setup.py clean
