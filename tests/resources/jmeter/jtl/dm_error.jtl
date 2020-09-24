@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="160" lt="160" ts="1588571299942" s="false" lb="Same label error" rc="403" rm="Forbidden" tn="Errors Thread Group 1-3" dt="text" de="" by="338" ng="10" na="10">
+  <responseHeader class="java.lang.String">HTTP/1.1 403 Forbidden
+Server: openresty/1.15.8.2
+Date: Mon, 04 May 2020 05:48:20 GMT
+Content-Type: text/html
+Content-Length: 159
+Connection: close
+Vary: Accept-Encoding
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: close
+Host: blazeo.com
+User-Agent: Apache-HttpClient/4.5.7 (Java/1.8.0_242)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;html&gt;&#xd;
+&lt;head&gt;&lt;title&gt;403 Forbidden&lt;/title&gt;&lt;/head&gt;&#xd;
+&lt;body&gt;&#xd;
+&lt;center&gt;&lt;h1&gt;403 Forbidden&lt;/h1&gt;&lt;/center&gt;&#xd;
+&lt;hr&gt;&lt;center&gt;openresty/1.15.8.2&lt;/center&gt;&#xd;
+&lt;/body&gt;&#xd;
+&lt;/html&gt;&#xd;
+</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://blazeo.com</java.net.URL>
+</httpSample>
+<httpSample t="154" lt="154" ts="1588571299947" s="false" lb="Same label error" rc="403" rm="Forbidden" tn="Errors Thread Group 1-1" dt="text" de="" by="338" ng="10" na="10">
+  <responseHeader class="java.lang.String">HTTP/1.1 403 Forbidden
+Server: openresty/1.15.8.2
+Date: Mon, 04 May 2020 05:48:20 GMT
+Content-Type: text/html
+Content-Length: 159
+Connection: close
+Vary: Accept-Encoding
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: close
+Host: blazeo.com
+User-Agent: Apache-HttpClient/4.5.7 (Java/1.8.0_242)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;html&gt;&#xd;
+&lt;head&gt;&lt;title&gt;403 Forbidden&lt;/title&gt;&lt;/head&gt;&#xd;
+&lt;body&gt;&#xd;
+&lt;center&gt;&lt;h1&gt;403 Forbidden&lt;/h1&gt;&lt;/center&gt;&#xd;
+&lt;hr&gt;&lt;center&gt;openresty/1.15.8.2&lt;/center&gt;&#xd;
+&lt;/body&gt;&#xd;
+&lt;/html&gt;&#xd;
+</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://blazeo.com</java.net.URL>
+</httpSample>
+<httpSample t="156" lt="156" ts="1588571299945" s="false" lb="Same label error" rc="403" rm="Forbidden" tn="Errors Thread Group 1-4" dt="text" de="" by="338" ng="10" na="10">
+  <responseHeader class="java.lang.String">HTTP/1.1 403 Forbidden
+Server: openresty/1.15.8.2
+Date: Mon, 04 May 2020 05:48:20 GMT
+Content-Type: text/html
+Content-Length: 159
+Connection: close
+Vary: Accept-Encoding
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: close
+Host: blazeo.com
+User-Agent: Apache-HttpClient/4.5.7 (Java/1.8.0_242)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;html&gt;&#xd;
+&lt;head&gt;&lt;title&gt;403 Forbidden&lt;/title&gt;&lt;/head&gt;&#xd;
+&lt;body&gt;&#xd;
+&lt;center&gt;&lt;h1&gt;403 Forbidden&lt;/h1&gt;&lt;/center&gt;&#xd;
+&lt;hr&gt;&lt;center&gt;openresty/1.15.8.2&lt;/center&gt;&#xd;
+&lt;/body&gt;&#xd;
+&lt;/html&gt;&#xd;
+</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://blazeo.com</java.net.URL>
+</httpSample>
+<httpSample t="160" lt="160" ts="1588571299943" s="false" lb="Same label error" rc="403" rm="Forbidden" tn="Errors Thread Group 1-5" dt="text" de="" by="338" ng="10" na="10">
+  <responseHeader class="java.lang.String">HTTP/1.1 403 Forbidden
+Server: openresty/1.15.8.2
+Date: Mon, 04 May 2020 05:48:20 GMT
+Content-Type: text/html
+Content-Length: 159
+Connection: close
+Vary: Accept-Encoding
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: close
+Host: blazeo.com
+User-Agent: Apache-HttpClient/4.5.7 (Java/1.8.0_242)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;html&gt;&#xd;
+&lt;head&gt;&lt;title&gt;403 Forbidden&lt;/title&gt;&lt;/head&gt;&#xd;
+&lt;body&gt;&#xd;
+&lt;center&gt;&lt;h1&gt;403 Forbidden&lt;/h1&gt;&lt;/center&gt;&#xd;
+&lt;hr&gt;&lt;center&gt;openresty/1.15.8.2&lt;/center&gt;&#xd;
+&lt;/body&gt;&#xd;
+&lt;/html&gt;&#xd;
+</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://blazeo.com</java.net.URL>
+</httpSample>
+<httpSample t="154" lt="154" ts="1588571299947" s="false" lb="Same label error" rc="403" rm="Forbidden" tn="Errors Thread Group 1-2" dt="text" de="" by="338" ng="10" na="10">
+  <responseHeader class="java.lang.String">HTTP/1.1 403 Forbidden
+Server: openresty/1.15.8.2
+Date: Mon, 04 May 2020 05:48:20 GMT
+Content-Type: text/html
+Content-Length: 159
+Connection: close
+Vary: Accept-Encoding
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: close
+Host: blazeo.com
+User-Agent: Apache-HttpClient/4.5.7 (Java/1.8.0_242)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;html&gt;&#xd;
+&lt;head&gt;&lt;title&gt;403 Forbidden&lt;/title&gt;&lt;/head&gt;&#xd;
+&lt;body&gt;&#xd;
+&lt;center&gt;&lt;h1&gt;403 Forbidden&lt;/h1&gt;&lt;/center&gt;&#xd;
+&lt;hr&gt;&lt;center&gt;openresty/1.15.8.2&lt;/center&gt;&#xd;
+&lt;/body&gt;&#xd;
+&lt;/html&gt;&#xd;
+</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://blazeo.com</java.net.URL>
+</httpSample>
+</testResults>

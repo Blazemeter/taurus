@@ -99,6 +99,30 @@ class TestExternalResultsLoader(ExecutorTestCase):
         cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
         self.assertEqual(8, cumulative_kpis[KPISet.SAMPLE_COUNT])
 
+    def test_errors_types_jtl(self):
+        self.configure({
+            "execution": [{
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/dm_kpi.jtl",
+                "errors-jtl": RESOURCES_DIR + "/jmeter/jtl/dm_error.jtl",
+            }]
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        cnt = 0
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        results = self.results_listener.results
+        self.assertGreater(len(results), 0)
+        last_dp = results[-1]
+        cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
+        errortype_error = len(list(filter(lambda error: error['type'] == 0, cumulative_kpis['errors'])))
+        errortype_assert = len(list(filter(lambda error: error['type'] == 1, cumulative_kpis['errors'])))
+        errortype_embedded = len(list(filter(lambda error: error['type'] == 2, cumulative_kpis['errors'])))
+        self.assertEqual(1, errortype_error)
+        self.assertEqual(1, errortype_assert)
+        self.assertEqual(1, errortype_embedded)
+
     def test_ab(self):
         self.configure({
             "execution": [{
