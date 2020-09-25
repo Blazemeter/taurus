@@ -508,6 +508,25 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_remote.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
+    def test_remote_without_browser_validation(self):
+        browser_name = "some strange browser"
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {"browserName": browser_name},
+                    "requests": [{"url": "/"}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as script:
+            content = script.read()
+
+        sample = "desired_capabilities={'browserName': '%s'}" % browser_name
+        self.assertIn(sample, content)
+
     def test_build_script_appium_browser(self):
         self.configure({
             "execution": [{

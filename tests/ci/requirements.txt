@@ -2,8 +2,7 @@ codecov
 nose-exclude
 locust
 coverage
-mock; python_version < '3.3'
-molotov; python_version >= '3.5'
+molotov
 robotframework
 http-here
 nose-timer

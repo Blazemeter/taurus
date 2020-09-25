@@ -22,7 +22,6 @@ import json
 import logging
 import os
 import pkgutil
-import re
 import shutil
 import sys
 import threading
@@ -32,7 +31,6 @@ import uuid
 from distutils.version import LooseVersion
 from urllib import parse
 
-import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
 from bzt.utils import reraise, load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient, Environment
@@ -41,6 +39,8 @@ from .modules import Provisioning, Reporter, Service, Aggregator, EngineModule
 from .names import EXEC, TAURUS_ARTIFACTS_DIR, SETTINGS
 from .templates import Singletone
 from ..environment_helpers import expand_variable_with_os, custom_expandvars, expand_envs_with_os
+
+from bzt.resources.version import VERSION
 
 
 class Engine(object):
@@ -130,7 +130,7 @@ class Engine(object):
             self.config.load(included_configs)
         self.config['included-configs'] = all_includes
 
-        self.config.merge({"version": bzt.VERSION})
+        self.config.merge({"version": VERSION})
         self.get_http_client()
 
         if self.config.get(SETTINGS).get("check-updates", True):
@@ -706,7 +706,7 @@ class Engine(object):
 
     def _check_updates(self, install_id):
         try:
-            params = (bzt.VERSION, install_id)
+            params = (VERSION, install_id)
             addr = "https://gettaurus.org/updates/?version=%s&installID=%s" % params
             self.log.debug("Requesting updates info: %s", addr)
             client = self.get_http_client()
@@ -714,7 +714,7 @@ class Engine(object):
 
             data = response.json()
             self.log.debug("Taurus updates info: %s", data)
-            mine = LooseVersion(bzt.VERSION)
+            mine = LooseVersion(VERSION)
             latest = LooseVersion(data['latest'])
             if mine < latest or data['needsUpgrade']:
                 msg = "There is newer version of Taurus %s available, consider upgrading. " \

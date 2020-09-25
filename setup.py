@@ -16,7 +16,7 @@ limitations under the License.
 import pkg_resources
 from setuptools import setup
 
-import bzt
+from bzt import VERSION
 
 with open('requirements.txt') as _f:
     content = _f.read()
@@ -24,7 +24,7 @@ with open('requirements.txt') as _f:
 
 setup(
     name="bzt",
-    version=bzt.VERSION,
+    version=VERSION,
     description='Taurus Tool for Continuous Testing',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
@@ -34,8 +34,8 @@ setup(
     download_url='http://gettaurus.org/docs/DeveloperGuide/#Python-Egg-Snapshots',
     license='Apache 2.0',
     install_requires=requires,
-    packages=['bzt', 'bzt.engine', 'bzt.jmx', 'bzt.modules',
-              'bzt.modules.java', 'bzt.modules.apiritif', 'bzt.resources', 'bzt.modules.python'],
+    packages=['bzt', 'bzt.engine', 'bzt.jmx', 'bzt.modules', 'bzt.resources', 'bzt.resources.version',
+              'bzt.modules.java', 'bzt.modules.apiritif', 'bzt.modules.python'],
     entry_points={
         'console_scripts': [
             'bzt=bzt.cli:main',

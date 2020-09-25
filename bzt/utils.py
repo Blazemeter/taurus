@@ -62,6 +62,7 @@ from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
 
+
 LOG = logging.getLogger("")
 CALL_PROBLEMS = (CalledProcessError, OSError)
 numeric_types = (int, float, complex)

@@ -37,11 +37,11 @@ from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
-import bzt
 from bzt.engine import Reporter, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
 from bzt.utils import humanize_time, is_windows, DummyScreen
+from bzt.resources.version import VERSION
 
 try:
     from bzt.modules.screen import GUIScreen
@@ -1103,7 +1103,7 @@ class TaurusLogo(Pile):
         """
         Update rotating sticks
         """
-        txt = self.by_text % (self.seq[self.idx], bzt.VERSION, self.seq[self.idx])
+        txt = self.by_text % (self.seq[self.idx], VERSION, self.seq[self.idx])
         # noinspection PyPropertyAccess
         self.byb.body.set_text(txt)
         self.idx += 1
