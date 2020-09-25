@@ -19,8 +19,8 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_replace, get_locator, wait_for, add_flow_markers
-
+from collections import OrderedDict
+from bzt.resources.selenium_extras import add_flow_markers, go, get_locator, wait_for
 
 class TestLocSc(unittest.TestCase):
 
@@ -37,13 +37,13 @@ class TestLocSc(unittest.TestCase):
             options=options)
         self.driver.implicitly_wait(timeout)
         add_flow_markers()
-        apiritif.put_into_thread_store(driver=self.driver, scenario_name='loc_sc', timeout=timeout, windows={},
-                                       func_mode=False)
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows=OrderedDict(),
+                                       scenario_name='loc_sc')
+
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
-            self.driver.get('http://blazedemo.com/')
-            dialogs_replace()
+            go('http://blazedemo.com/')
             wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             self.assertEqual(self.driver.title, 'BlazeDemo')
             body = self.driver.page_source

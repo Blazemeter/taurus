@@ -19,10 +19,8 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import close_window, dialogs_answer_on_next_alert, dialogs_get_next_alert, \
-    dialogs_get_next_confirm, switch_window, wait_for, dialogs_get_next_prompt, get_locator, switch_frame, \
-    dialogs_answer_on_next_confirm, dialogs_answer_on_next_prompt, dialogs_replace
-
+from collections import OrderedDict
+from bzt.resources.selenium_extras import dialogs_get_next_alert, dialogs_answer_on_next_confirm, switch_window, close_window, get_locator, dialogs_answer_on_next_alert, open_window, check_opened_new_window, dialogs_get_next_confirm, go, dialogs_get_next_prompt, switch_frame, dialogs_answer_on_next_prompt, wait_for
 
 class TestLocSc(unittest.TestCase):
 
@@ -37,14 +35,13 @@ class TestLocSc(unittest.TestCase):
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
         self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows=OrderedDict(),
                                        scenario_name='loc_sc')
+
 
     def _1_Test_V2(self):
         with apiritif.smart_transaction('Test V2'):
-            self.driver.get('http://blazedemo.com')
-
-            dialogs_replace()
+            go('http://blazedemo.com')
             self.driver.set_window_size('750', '750')
             switch_window(0)
 
@@ -100,9 +97,9 @@ class TestLocSc(unittest.TestCase):
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
+            check_opened_new_window()
 
-            var_loc_keys = get_locator([{'xpath': '/doc/abc'}, {
-                'css': 'body > div.container > table > tbody > tr:nth-child(1) > td:nth-child(2) > input'}])
+            var_loc_keys = get_locator([{'xpath': '/doc/abc'}, {'css': 'body > div.container > table > tbody > tr:nth-child(1) > td:nth-child(2) > input'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).send_keys(Keys.ENTER)
@@ -152,7 +149,7 @@ class TestLocSc(unittest.TestCase):
 
             filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), ('screenshot-%d.png' % (time() * 1000)))
             self.driver.save_screenshot(filename)
-            self.driver.execute_script("window.open('vacation.html');")
+            open_window('vacation.html')
             self.driver.maximize_window()
             switch_frame('index=1')
             switch_frame('relative=parent')

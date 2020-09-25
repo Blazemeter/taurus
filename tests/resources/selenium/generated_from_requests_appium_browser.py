@@ -19,8 +19,8 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import wait_for, get_locator, dialogs_replace
-
+from collections import OrderedDict
+from bzt.resources.selenium_extras import wait_for, go, get_locator
 
 class TestLocScAppium(unittest.TestCase):
 
@@ -35,13 +35,13 @@ class TestLocScAppium(unittest.TestCase):
                                                              'platformName': 'android'},
                                        options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(scenario_name='loc_sc_appium', timeout=timeout, driver=self.driver, windows={},
-                                       func_mode=False)
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows=OrderedDict(),
+                                       scenario_name='loc_sc_appium')
+
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
-            self.driver.get('http://blazedemo.com/')
-            dialogs_replace()
+            go('http://blazedemo.com/')
             wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             self.assertEqual(self.driver.title, 'BlazeDemo')
             body = self.driver.page_source

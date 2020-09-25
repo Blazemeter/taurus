@@ -19,8 +19,8 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import get_elements, get_locator
-
+from collections import OrderedDict
+from bzt.resources.selenium_extras import get_elements, check_opened_new_window, get_locator
 
 class TestLocSc(unittest.TestCase):
 
@@ -36,8 +36,9 @@ class TestLocSc(unittest.TestCase):
             service_log_path='/somewhere/webdriver.log',
             options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(driver=self.driver, timeout=timeout, func_mode=False, windows={},
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows=OrderedDict(),
                                        scenario_name='loc_sc')
+
 
     def _1_Foreach_test(self):
         with apiritif.smart_transaction('Foreach test'):
@@ -56,22 +57,20 @@ class TestLocSc(unittest.TestCase):
                 if el.get_attribute('contenteditable'):
                     self.driver.execute_script(("arguments[0].innerHTML = '%s';" % 'new text'), el)
                 else:
-                    raise NoSuchElementException((
-                                                             "The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element" % (
-                                                     'el', el.tag_name, el.text)))
+                    raise NoSuchElementException(("The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element" % ('el', el.tag_name, el.text)))
 
                 if el.get_attribute('contenteditable'):
                     self.driver.execute_script(("arguments[0].innerHTML = '%s';" % 'new text'), el)
                 else:
-                    raise NoSuchElementException((
-                                                             "The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element" % (
-                                                     'el', el.tag_name, el.text)))
+                    raise NoSuchElementException(("The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element" % ('el', el.tag_name, el.text)))
                 el.click()
+                check_opened_new_window()
 
                 var_loc_keys = get_locator([{'css': 'input-cls'}, {'xpath': '//input'}], el)
                 el.find_element(
                     var_loc_keys[0],
                     var_loc_keys[1]).click()
+                check_opened_new_window()
                 ActionChains(self.driver).double_click(el).perform()
                 ActionChains(self.driver).double_click(el).perform()
                 ActionChains(self.driver).click_and_hold(el).perform()

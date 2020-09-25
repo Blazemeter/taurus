@@ -384,11 +384,40 @@ def switch_window(window_name=None):
         raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
 
 
+def _wait_for_opened_window(raise_exception, expected_windows_no, timeout=2):
+    driver = _get_driver()
+    windows = get_from_thread_store("windows")
+    try:
+        WebDriverWait(driver, timeout).until(econd.number_of_windows_to_be(expected_windows_no))
+        windows_after = driver.window_handles
+        new_window = [x for x in windows_after if x not in list(windows.values())][0]
+        name = "wnd_name_internal_%s" % expected_windows_no    # just any unique name
+        windows[name] = new_window
+        driver.switch_to.window(new_window)
+    except TimeoutException as te:
+        if raise_exception:
+            raise te
+        else:
+            pass    # the action didn't open a new window
+
+
+def open_window(url):
+    driver = _get_driver()
+    prev_windows = get_from_thread_store("windows")
+    driver.execute_script("window.open('%s');" % url)
+    _wait_for_opened_window(True, len(prev_windows)+1, _get_timeout())
+
+
+def check_opened_new_window():
+    windows = get_from_thread_store("windows")
+    _wait_for_opened_window(False, len(windows)+1)
+
+
 def _switch_by_idx(win_index):
     driver = _get_driver()
-    wnd_handlers = driver.window_handles
-    if 0 <= win_index < len(wnd_handlers):
-        driver.switch_to.window(wnd_handlers[win_index])
+    windows = get_from_thread_store("windows")
+    if 0 <= win_index < len(windows):
+        driver.switch_to.window(list(windows.items())[win_index][1])
     else:
         raise NoSuchWindowException("Invalid Window ID: %s" % str(win_index))
 
@@ -411,6 +440,29 @@ def _switch_by_win_ser(window_name):
 
 
 def close_window(window_name=None):
+    driver = _get_driver()
+    prev_windows = get_from_thread_store("windows")
+    prev_no_of_windows = len(prev_windows)
     if window_name:
         switch_window(window_name)
     _get_driver().close()
+    WebDriverWait(driver, _get_timeout()).until(econd.number_of_windows_to_be(prev_no_of_windows-1))
+    windows_after = driver.window_handles
+    closed_window = [x for x in list(prev_windows.values()) if x not in windows_after][0]
+    key_list = list(prev_windows.keys())
+    val_list = list(prev_windows.values())
+    key = key_list[val_list.index(closed_window)]
+    del prev_windows[key]
+
+
+def go(url):
+    dialogs_replace()
+    driver = _get_driver()
+    windows = get_from_thread_store("windows")
+    wait_for_wnd_open = False
+    if len(windows) == 0:
+        wait_for_wnd_open = True
+    driver.get(url)
+    if wait_for_wnd_open:
+        WebDriverWait(driver, _get_timeout()).until(econd.number_of_windows_to_be(1))
+        windows["wnd_name_internal_0"] = driver.window_handles[0]
