@@ -2,7 +2,7 @@
 execution:
 - concurrency: 1
   iterations: 1
-  ramp-up: 10s
+  hold-for: 10s
   scenario: BlazeDemo LoadTest
 - concurrency: 10
   hold-for: 60
