@@ -421,6 +421,35 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         self.assertNotIn("options.set_headless()", gen_contents)
 
+    def test_capabilities_type(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "proxy": {"key": "val"},
+                        "string_cap": "string_val"},
+                    "requests": [{
+                        "url": "https://blazedemo.com"}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "'proxy': {'key': 'val'}",
+            "'string_cap': 'string_val'"
+        ]
+        wrong_line = "'proxy': \"{'key': 'val'}\""
+
+        for line in target_lines:
+            self.assertIn(line, content)
+
+        self.assertNotIn(wrong_line, content)
+
     def test_capabilities_order(self):
         self.configure({
             "execution": [{
