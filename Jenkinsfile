@@ -1,7 +1,12 @@
 @Library("jenkins_library") _
 
 pipeline {
-    agent any
+    agent {
+        dockerfile {
+            filename 'tests/ci/Dockerfile'
+            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
     options {
         timestamps()
         skipDefaultCheckout()
