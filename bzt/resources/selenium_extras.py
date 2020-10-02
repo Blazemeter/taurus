@@ -384,33 +384,30 @@ def switch_window(window_name=None):
         raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
 
 
-def _wait_for_opened_window(raise_exception, expected_windows_no, timeout=2):
+def _wait_for_opened_window(expected_windows_no, timeout=2):
     driver = _get_driver()
     windows = get_from_thread_store("windows")
-    try:
-        WebDriverWait(driver, timeout).until(econd.number_of_windows_to_be(expected_windows_no))
-        windows_after = driver.window_handles
-        new_window = [x for x in windows_after if x not in list(windows.values())][0]
-        name = "wnd_name_internal_%s" % expected_windows_no    # just any unique name
-        windows[name] = new_window
-        driver.switch_to.window(new_window)
-    except TimeoutException as te:
-        if raise_exception:
-            raise te
-        else:
-            pass    # the action didn't open a new window
+    WebDriverWait(driver, timeout).until(econd.number_of_windows_to_be(expected_windows_no))
+    windows_after = driver.window_handles
+    new_window = [x for x in windows_after if x not in list(windows.values())][0]
+    name = "wnd_name_internal_%s" % expected_windows_no    # just any unique name
+    windows[name] = new_window
+    driver.switch_to.window(new_window)
 
 
 def open_window(url):
     driver = _get_driver()
     prev_windows = get_from_thread_store("windows")
     driver.execute_script("window.open('%s');" % url)
-    _wait_for_opened_window(True, len(prev_windows)+1, _get_timeout())
+    _wait_for_opened_window(len(prev_windows)+1, _get_timeout())
 
 
 def check_opened_new_window():
     windows = get_from_thread_store("windows")
-    _wait_for_opened_window(False, len(windows)+1)
+    try:
+        _wait_for_opened_window(len(windows)+1)
+    except TimeoutException:
+        pass                # OK, the action didn't open a new window
 
 
 def _switch_by_idx(win_index):
