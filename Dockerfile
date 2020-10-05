@@ -42,8 +42,6 @@ RUN ./build-artifacts.sh
 
 FROM ubuntu:18.04
 
-COPY --from=builder dist /tmp/bzt-src
-
 ENV DBUS_SESSION_BUS_ADDRESS=/dev/null DEBIAN_FRONTEND=noninteractive APT_INSTALL="apt-get -y install --no-install-recommends"
 
 WORKDIR /tmp
@@ -84,6 +82,7 @@ RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
   && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
   && chmod +x /opt/google/chrome/google-chrome
 
+COPY --from=builder dist /tmp/bzt-src
 WORKDIR /tmp/bzt-src
 RUN google-chrome-stable --version && firefox --version && mono --version && nuget | head -1 \
   && python3 -m pip install bzt-*.tar.gz \
