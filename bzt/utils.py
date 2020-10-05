@@ -2283,7 +2283,7 @@ class SoapUIScriptConverter(object):
         execution = {
             "concurrency": 1,
             "iterations": 1,
-            "ramp-up": "10s",
+            "hold-for": "10s",
             "scenario": project_name
         }
         scenarios = {}

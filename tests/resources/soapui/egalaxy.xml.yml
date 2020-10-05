@@ -2,7 +2,7 @@
 execution:
 - concurrency: 1
   iterations: 1
-  ramp-up: 10s
+  hold-for: 10s
   scenario: eGalaxy
 - concurrency: 1
   hold-for: 15

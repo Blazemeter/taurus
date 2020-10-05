@@ -64,4 +64,4 @@ script:
 - coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
 
 after_success:
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m && codecov; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then coverage report -m && codecov; fi

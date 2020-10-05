@@ -1043,7 +1043,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _get_remote_webdriver(self):
         keys = sorted(self.capabilities.keys())
-        values = [str(self.capabilities[key]) for key in keys]
+        values = [self.capabilities[key] for key in keys]
 
         return ast.Assign(
             targets=[ast_attr("self.driver")],
