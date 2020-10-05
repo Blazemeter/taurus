@@ -21,7 +21,7 @@ pipeline {
                     IMAGE_TAG = IMAGE_TAG.toLowerCase()
                     imageName = "blazemeter/taurus"
                     extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
-                    VERSION = sh(returnStdout: true, script: "git describe --tags $(git rev-list --tags --max-count=1)").trim()
+                    VERSION = sh(returnStdout: true, script: "git describe --tags \$(git rev-list --tags --max-count=1)").trim()
                     if (!isRelease) {
                         VERSION = "${VERSION}.${BUILD_NUMBER}"
                     }
