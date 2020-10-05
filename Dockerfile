@@ -32,8 +32,8 @@ RUN apt-get update -y \
     libreadline-dev libtk8.5 libgdm-dev libdb4o-cil-dev libpcap-dev curl \
     && apt-get clean
 
-COPY . /build-artifacts
-WORKDIR /build-artifacts
+COPY . /artifacts
+WORKDIR /artifacts
 RUN ./build-sdist.sh
 RUN ./build-artifacts.sh
 
@@ -79,7 +79,7 @@ RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
   && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
   && chmod +x /opt/google/chrome/google-chrome
 
-COPY --from=builder /build-artifacts/dist /tmp/bzt-src
+COPY --from=builder /artifacts/dist /tmp/bzt-src
 WORKDIR /tmp/bzt-src
 RUN google-chrome-stable --version && firefox --version && mono --version && nuget | head -1 \
   && python3 -m pip install bzt-*.tar.gz \
