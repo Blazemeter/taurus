@@ -18,6 +18,7 @@ def run_cmd(label, cmdline, **kwargs):
 
 def extract_bzt_version(bzt_dist):
     matches = re.findall(r'(\d+\.\d+\.\d+(\.\d+)?)', bzt_dist)
+    print(matches)
     if not matches:
         raise ValueError("Can't extract version from string %r" % bzt_dist)
     version = matches[0]
