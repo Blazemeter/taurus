@@ -29,7 +29,6 @@ pipeline {
                 sh """
                    echo "BUILD_NUM=\"${BUILD_NUMBER}\"" > bzt/resources/version/build.py
                    echo "VERSION=\"${VERSION}\"" > bzt/resources/version/version.py
-                   sed -ri "s/OS: /Rev: ${GIT_COMMIT}; OS: /" bzt/cli.py
                    """
             }
         }
