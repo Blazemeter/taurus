@@ -1,12 +1,13 @@
 @Library("jenkins_library") _
 
 pipeline {
-    agent {
-        dockerfile {
-            filename 'tests/ci/Dockerfile'
-            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    // agent {
+    //     dockerfile {
+    //         filename 'tests/ci/Dockerfile'
+    //         args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+    //     }
+    // }
+    agent any
     options {
         timestamps()
     }
@@ -30,7 +31,7 @@ pipeline {
         stage("Create Artifacts") {
             steps {
                 script {
-                    sh "./build-sdist.sh"
+                    sh "docker build -t ${JOB_NAME} -t ${extraImageTag} ."
 
                     sh """
                        sed -ri "s/OS: /Rev: ${GIT_COMMIT}; OS: /" bzt/cli.py
@@ -42,21 +43,20 @@ pipeline {
                            """
                     }
 
-                    // sh """
-                    //    docker run --entrypoint /bzt-configs/build-artifacts.sh -v `pwd`:/bzt-configs ${JOB_NAME} ${BUILD_NUMBER}
-                    //    """
+                    sh """
+                       docker run --entrypoint /bzt-configs/build-artifacts.sh -v `pwd`:/bzt-configs ${JOB_NAME} ${BUILD_NUMBER}
+                       """
                 }
                 archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
             }
         }
-        stage("Docker Image Build") {
-            steps {
-                sh "ls -la dist"
-                sh """
-                   docker build -t ${JOB_NAME} -t ${extraImageTag} .
-                   """
-            }
-        }
+        // stage("Docker Image Build") {
+        //     steps {
+        //         sh """
+        //            docker build -t ${JOB_NAME} -t ${extraImageTag} .
+        //            """
+        //     }
+        // }
         stage("Integration Tests") {
             steps {
                 sh """
@@ -97,9 +97,10 @@ pipeline {
         //     }
         // }
     }
-    // post {
-    //     always {
-    //         smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
-    //     }
-    // }
+    post {
+        always {
+            // smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
+            cleanWs()
+        }
+    }
 }
