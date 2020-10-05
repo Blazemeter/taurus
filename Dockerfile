@@ -34,6 +34,7 @@ RUN apt-get update -y \
 
 COPY . .
 RUN ./build-sdist.sh
+COPY . /bzt-configs
 RUN ./build-artifacts.sh
 
 FROM ubuntu:18.04
