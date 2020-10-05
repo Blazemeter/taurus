@@ -23,7 +23,7 @@ pipeline {
                     extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
                     VERSION = sh(returnStdout: true, script: "git describe --tags \$(git rev-list --tags --max-count=1)").trim()
                     if (!isRelease) {
-                        VERSION = "${VERSION}.${BUILD_NUMBER}"
+                        VERSION = "${VERSION}.dev${BUILD_NUMBER}"
                     }
                 }
                 sh """
