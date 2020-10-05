@@ -26,10 +26,10 @@ pipeline {
                         VERSION = "${VERSION}.dev${BUILD_NUMBER}"
                     }
                 }
-                sh """
+                sh '''
                    echo "BUILD_NUM=\"${BUILD_NUMBER}\"" > bzt/resources/version/build.py
                    echo "VERSION=\"${VERSION}\"" > bzt/resources/version/version.py
-                   """
+                   '''
             }
         }
         stage("Docker Image Build") {
