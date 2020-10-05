@@ -1,5 +1,4 @@
 #!/bin/bash -xe
-BUILD_NUMBER=$1
 
 # # build source distribution
 # ./build-sdist.sh
