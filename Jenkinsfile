@@ -9,15 +9,12 @@ pipeline {
     }
     options {
         timestamps()
-        skipDefaultCheckout()
     }
     stages {
         stage('Checkout') {
             steps {
                 cleanWs()
                 script {
-                    scmVars = checkout scm
-                    commitHash = scmVars.GIT_COMMIT
                     tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
                     isRelease = !tagName.isEmpty()
                     IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
@@ -37,7 +34,7 @@ pipeline {
                     sh "./build-sdist.sh"
 
                     sh """
-                       sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py
+                       sed -ri "s/OS: /Rev: ${GIT_COMMIT}; OS: /" bzt/cli.py
                        """
 
                     if (!isRelease) {
