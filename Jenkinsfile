@@ -3,7 +3,7 @@
 pipeline {
     agent {
         dockerfile {
-            filename 'tests/ci/Dockerfile'
+            filename 'taurus/tests/ci/Dockerfile'
             args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
@@ -35,7 +35,7 @@ pipeline {
             steps {
                 script {
                     sh "./build-sdist.sh"
-                    
+
                     sh """
                        sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py
                        """
