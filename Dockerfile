@@ -32,9 +32,12 @@ RUN apt-get update -y \
     libreadline-dev libtk8.5 libgdm-dev libdb4o-cil-dev libpcap-dev curl \
     && apt-get clean
 
-COPY . .
+COPY . /tmp/bzt-src
+WORKDIR /tmp/bzt-src
 RUN ./build-sdist.sh
+
 COPY . /bzt-configs
+WORKDIR /bzt-configs
 RUN ./build-artifacts.sh
 
 FROM ubuntu:18.04
