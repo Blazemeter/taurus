@@ -36,7 +36,7 @@ pipeline {
         stage("Docker Image Build") {
             steps {
                 script {
-                    sh "docker build -t ${JOB_NAME} -t ${extraImageTag} ."
+                    sh "docker build --no-cache -t ${JOB_NAME} -t ${extraImageTag} ."
                 }
                 archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
             }
