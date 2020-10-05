@@ -51,6 +51,7 @@ pipeline {
         }
         stage("Docker Image Build") {
             steps {
+                sh "ls -la dist"
                 sh """
                    docker build -t ${JOB_NAME} -t ${extraImageTag} .
                    """
