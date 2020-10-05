@@ -13,7 +13,6 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                cleanWs()
                 script {
                     tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
                     isRelease = !tagName.isEmpty()
