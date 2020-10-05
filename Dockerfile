@@ -26,6 +26,7 @@ RUN apt-get -y update \
   && nuget update -self \
   && apt-get clean
 
+COPY . .
 RUN ./build-sdist.sh
 
 FROM ubuntu:18.04
