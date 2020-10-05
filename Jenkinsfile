@@ -41,13 +41,6 @@ pipeline {
                 archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
             }
         }
-        // stage("Docker Image Build") {
-        //     steps {
-        //         sh """
-        //            docker build -t ${JOB_NAME} -t ${extraImageTag} .
-        //            """
-        //     }
-        // }
         stage("Integration Tests") {
             steps {
                 sh """
