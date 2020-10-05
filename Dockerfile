@@ -26,8 +26,15 @@ RUN apt-get -y update \
   && nuget update -self \
   && apt-get clean
 
+RUN apt-get update -y \
+    && apt-get install -y --force-yes \
+    gcc-mingw-w64-x86-64 nsis libssl-dev libncurses5-dev libsqlite3-dev \
+    libreadline-dev libtk8.5 libgdm-dev libdb4o-cil-dev libpcap-dev \
+    && apt-get clean
+
 COPY . .
 RUN ./build-sdist.sh
+RUN ./build-artifacts.sh
 
 FROM ubuntu:18.04
 

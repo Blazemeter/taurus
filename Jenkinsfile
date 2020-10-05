@@ -21,31 +21,22 @@ pipeline {
                     IMAGE_TAG = IMAGE_TAG.toLowerCase()
                     imageName = "blazemeter/taurus"
                     extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
-
+                    VERSION = sh(returnStdout: true, script: "git describe --tags $(git rev-list --tags --max-count=1)").trim()
+                    if (!isRelease) {
+                        VERSION = "${VERSION}.${BUILD_NUMBER}"
+                    }
                 }
                 sh """
-                   echo "BUILD_NUM = \"${BUILD_NUMBER}\"" > bzt/resources/version/build.py
+                   echo "BUILD_NUM=\"${BUILD_NUMBER}\"" > bzt/resources/version/build.py
+                   echo "VERSION=\"${VERSION}\"" > bzt/resources/version/version.py
+                   sed -ri "s/OS: /Rev: ${GIT_COMMIT}; OS: /" bzt/cli.py
                    """
             }
         }
-        stage("Create Artifacts") {
+        stage("Docker Image Build") {
             steps {
                 script {
                     sh "docker build -t ${JOB_NAME} -t ${extraImageTag} ."
-
-                    sh """
-                       sed -ri "s/OS: /Rev: ${GIT_COMMIT}; OS: /" bzt/cli.py
-                       """
-
-                    if (!isRelease) {
-                        sh """
-                           sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
-                           """
-                    }
-
-                    sh """
-                       docker run --entrypoint /bzt-configs/build-artifacts.sh -v `pwd`:/bzt-configs ${JOB_NAME} ${BUILD_NUMBER}
-                       """
                 }
                 archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
             }
