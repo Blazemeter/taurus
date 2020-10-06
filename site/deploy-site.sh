@@ -1,21 +1,17 @@
 #!/bin/bash -xe
 
-gcloud auth activate-service-account --key-file ${KEY_FILE}
-gcloud config set project ${PROJECT_ID}
-gcloud config set compute/zone us-central1-a
-
 GOOGLE_STORAGE="https:\/\/storage.cloud.google.com\/taurus-site\/"
 UNSTABLE_SNAPSHOT=""
-TAURUS_VERSION=$(python -c 'import bzt; print(bzt.VERSION)')
+TAURUS_VERSION=$(python3 -c 'from bzt.resources.version import VERSION; print(VERSION)')
 
 mkdir site/builds
 PREFIX="\/builds\/"
 
 if [ "$1" = "true" ]; then
-    gsutil cp build/nsis/*.exe gs://taurus-site/releases/
+    # gsutil cp build/nsis/*.exe gs://taurus-site/releases/
 else
-    gsutil cp -s regional dist/*.whl gs://taurus-site/snapshots/
-    gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
+    # gsutil cp -s regional dist/*.whl gs://taurus-site/snapshots/
+    # gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
 
     # copy unstable snapshots into site
     cp dist/*.whl site/builds
@@ -38,7 +34,7 @@ RELEASE_SNAPSHOT="${PREFIX}${STABLE_EXE}"
 sed -ri "s/RELEASE_SNAPSHOT/${RELEASE_SNAPSHOT}/" site/dat/docs/Installation.md
 sed -ri "s/UNSTABLE_SNAPSHOT/${UNSTABLE_SNAPSHOT}/" site/dat/docs/Installation.md
 
-python site/Taurus/kwindexer.py site/dat/docs site/dat/docs/KeywordIndex.md
+python3 site/Taurus/kwindexer.py site/dat/docs site/dat/docs/KeywordIndex.md
 
 gsutil cp gs://taurus-site/learn.zip learn.zip
 unzip -o learn.zip -d site
@@ -48,8 +44,8 @@ docker build -t taurus-site.${BUILD_NUMBER} site
 
 gcloud auth --quiet configure-docker
 
-docker tag  taurus-site.${BUILD_NUMBER} gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
-docker push gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
-gcloud container clusters get-credentials taurus-site
+# docker tag taurus-site.${BUILD_NUMBER} gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
+# docker push gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
+# gcloud container clusters get-credentials taurus-site
 
-kubectl set image deployment/taurus-site taurus-site=gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
+# kubectl set image deployment/taurus-site taurus-site=gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}

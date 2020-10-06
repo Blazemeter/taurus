@@ -63,31 +63,21 @@ pipeline {
         //         }
         //     }
         // }
-        // stage("Deploy site") {
-        //     steps {
-        //         sh """
-        //            docker build -t deploy-image -f site/Dockerfile.deploy .
-        //            """
-        //         script {
-        //             PROJECT_ID="blazemeter-taurus-website-prod"
-        //             withCredentials([file(credentialsId: "${PROJECT_ID}", variable: 'CRED_JSON')]) {
-        //                 def WORKSPACE_JSON = 'Google_credentials.json'
-        //                 def input = readJSON file: CRED_JSON
-        //                 writeJSON file: WORKSPACE_JSON, json: input
-        //                 sh """
-        //                    docker run --entrypoint /bzt/site/deploy-site.sh \
-        //                    -e KEY_FILE=${WORKSPACE_JSON} \
-        //                    -e PROJECT_ID=${PROJECT_ID} \
-        //                    -e BUILD_NUMBER=${BUILD_NUMBER} \
-        //                    -u root \
-        //                    -v /var/run/docker.sock:/var/run/docker.sock \
-        //                    -v `pwd`:/bzt -t deploy-image \
-        //                    ${isRelease}
-        //                   """
-        //             }
-        //         }
-        //     }
-        // }
+        stage("Deploy site") {
+            steps {
+                script {
+                    PROJECT_ID = "blazemeter-taurus-website-prod"
+                    withCredentials([file(credentialsId: PROJECT_ID, variable: 'CRED_JSON')]) {
+                        sh """
+                           gcloud auth activate-service-account --key-file ${CRED_JSON}
+                           gcloud config set project ${PROJECT_ID}
+                           gcloud config set compute/zone us-central1-a
+                           """
+                    }
+                    sh "./site/deploy-site.sh ${isRelease}"
+                }
+            }
+        }
     }
     post {
         always {
