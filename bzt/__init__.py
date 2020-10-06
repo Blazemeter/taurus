@@ -19,7 +19,7 @@ import sys
 from abc import abstractmethod
 
 
-VERSION = '1.15.0'
+from bzt.resources.version import VERSION
 
 
 class RCProvider(object):

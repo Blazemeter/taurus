@@ -3,11 +3,10 @@
 pipeline {
     agent {
         dockerfile {
-            filename 'tests/ci/Dockerfile'
+            filename 'tests/ci/Dockerfile.build'
             args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
-    // agent any
     options {
         timestamps()
     }
@@ -22,6 +21,7 @@ pipeline {
                     imageName = "blazemeter/taurus"
                     extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
                     VERSION = sh(returnStdout: true, script: "git describe --tags \$(git rev-list --tags --max-count=1)").trim()
+                    GIT_INFO = sh(returnStdout: true, script: "\$(git rev-parse --abbrev-ref HEAD) \$(git show --oneline -s)").trim()
                     if (!isRelease) {
                         VERSION = "${VERSION}.${BUILD_NUMBER}"
                     }
@@ -29,18 +29,17 @@ pipeline {
                 sh """
                    echo 'BUILD_NUM=\"${BUILD_NUMBER}\"' > bzt/resources/version/build.py
                    echo 'VERSION=\"${VERSION}\"' > bzt/resources/version/version.py
+                   echo 'GIT_INFO=\"${GIT_INFO}\"' > bzt/resources/version/gitinfo.py
                    """
             }
         }
         stage("Create artifacts") {
             steps {
                 script {
-                    sh """
-                       ./build-sdist.sh
-                       ./build-artifacts.sh
-                       """
+                    sh "./build-artifacts.sh"
                 }
                 archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
+                archiveArtifacts artifacts: 'build/nsis/*._x64.exe', fingerprint: true
             }
         }
         stage("Docker Image Build") {

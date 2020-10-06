@@ -38,8 +38,3 @@ RUN apt-get update -y \
     gcc-mingw-w64-x86-64 nsis libssl-dev libncurses5-dev libsqlite3-dev \
     libreadline-dev libtk8.5 libgdm-dev libdb4o-cil-dev libpcap-dev curl \
     && apt-get clean
-
-# COPY . /artifacts
-# WORKDIR /artifacts
-# RUN ./build-sdist.sh
-# RUN ./build-artifacts.sh
