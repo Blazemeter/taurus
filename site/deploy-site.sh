@@ -9,6 +9,7 @@ PREFIX="\/builds\/"
 
 if [ "$1" = "true" ]; then
     # gsutil cp build/nsis/*.exe gs://taurus-site/releases/
+    echo "if block"
 else
     # gsutil cp -s regional dist/*.whl gs://taurus-site/snapshots/
     # gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
