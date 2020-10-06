@@ -90,10 +90,10 @@ pipeline {
         //     }
         // }
     }
-    // post {
-    //     always {
-    //         smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
-    //         cleanWs()
-    //     }
-    // }
+    post {
+        always {
+            // smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
+            cleanWs()
+        }
+    }
 }
