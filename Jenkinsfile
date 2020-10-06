@@ -39,7 +39,7 @@ pipeline {
                     sh "./build-artifacts.sh"
                 }
                 archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
-                archiveArtifacts artifacts: 'build/**/*._x64.exe', fingerprint: true
+                archiveArtifacts artifacts: 'build/nsis/*_x64.exe', fingerprint: true
             }
         }
         stage("Docker Image Build") {
