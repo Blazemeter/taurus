@@ -71,6 +71,10 @@ class TestLocSc(unittest.TestCase):
 
             ActionChains(self.driver).double_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
 
+            ActionChains(self.driver).context_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+
+            ActionChains(self.driver).context_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+
             ActionChains(self.driver).click_and_hold(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
 
             ActionChains(self.driver).click_and_hold(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()

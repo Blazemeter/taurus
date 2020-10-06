@@ -80,6 +80,7 @@ class ApiritifScriptGenerator(object):
 
     ACTION_CHAINS = {
         'doubleclick': "double_click",
+        'contextclick': "context_click",
         'mousedown': "click_and_hold",
         'mouseup': "release",
         'mousemove': "move_to_element",
@@ -87,7 +88,7 @@ class ApiritifScriptGenerator(object):
         'mouseout': "move_to_element_with_offset"
     }
 
-    ACTIONS = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
+    ACTIONS = "|".join(['click', 'doubleClick', 'contextClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
                         'mouseOver', 'select', 'wait', 'keys', 'pauseFor', 'clear', 'assert',
                         'assertText', 'assertValue', 'assertDialog', 'answerDialog', 'submit',
                         'close', 'script', 'editcontent',
