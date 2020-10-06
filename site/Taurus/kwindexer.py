@@ -33,7 +33,7 @@ def get_keys(struct, ignore_first_level=False):
 
 
 def index_file(fname):
-    with open(fname) as fhd:
+    with open(fname, encoding='utf8') as fhd:
         content = fhd.read()
     blocks_re = re.compile(r'```yaml([^`]+)```')
     blocks = blocks_re.findall(content)
