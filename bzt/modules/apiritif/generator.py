@@ -110,6 +110,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
+from collections import OrderedDict
 """
 
     BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
@@ -364,9 +365,12 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("self.driver.maximize_window"),
                 args=args))
         elif atype == "open":
+            method = "open_window"
+            self.selenium_extras.add(method)
             elements.append(ast_call(
-                func=ast_attr("self.driver.execute_script"),
-                args=[self._gen_expr("window.open('%s');" % param)]))
+                func=ast_attr(method),
+                args=[ast.Str(param, kind="")]
+            ))
         elif atype == "close":
             method = "close_window"
             self.selenium_extras.add(method)
@@ -537,6 +541,10 @@ from selenium.webdriver.common.keys import Keys
                         self._gen_dynamic_locator("var_loc_keys", selectors),
                         action)),
                 args=args))
+            if atype == "click":
+                method = "check_opened_new_window"
+                self.selenium_extras.add(method)
+                elements.append(ast_call(func=ast_attr(method)))
         return elements
 
     def _gen_edit_mngr(self, param, locators):
@@ -641,6 +649,14 @@ from selenium.webdriver.common.keys import Keys
 
         return elements
 
+    def _go_to_url(self, url):
+        method = "go"
+        self.selenium_extras.add(method)
+        return [ast_call(
+            func=ast_attr(method),
+            args=[self._gen_expr(url.strip())]
+        )]
+
     def _gen_select_mngr(self, param, selectors):
         elements = [self._gen_get_locator_call("var_loc_select", selectors), ast_call(
             func=ast_attr(
@@ -693,9 +709,7 @@ from selenium.webdriver.common.keys import Keys
             action_elements.append(ast.parse(param))
         elif atype == 'go':
             if param:
-                action_elements.append(ast_call(func=ast_attr("self.driver.get"),
-                                                args=[self._gen_expr(param.strip())]))
-                action_elements.append(self._gen_replace_dialogs())
+                action_elements.append(self._go_to_url(param))
         elif atype == "editcontent":
             action_elements.extend(self._gen_edit_mngr(param, selectors))
         elif atype.startswith('wait'):
@@ -799,18 +813,6 @@ from selenium.webdriver.common.keys import Keys
             args=[ast.Name(id='dialog'), ast.Str(value, kind=""), ast.Str("Dialog message didn't match", kind="")]))
 
         return elements
-
-    def _gen_replace_dialogs(self):
-        """
-        Generates the call to DialogsManager to replace dialogs
-        """
-        method = "dialogs_replace"
-        self.selenium_extras.add(method)
-        return [
-            gen_empty_line_stmt(),
-            ast_call(
-                func=ast_attr(method))
-        ]
 
     @staticmethod
     def _convert_to_number(arg):
@@ -1218,7 +1220,7 @@ from selenium.webdriver.common.keys import Keys
         if target_init:
             if self.test_mode == "selenium":
                 stored_vars["driver"] = "self.driver"
-                stored_vars["windows"] = "{}"
+                stored_vars["windows"] = "OrderedDict()"
 
         has_ds = bool(list(self.scenario.get_data_sources()))
         stored_vars['scenario_name'] = [ast.Str(self.label, kind="")]
@@ -1472,13 +1474,8 @@ from selenium.webdriver.common.keys import Keys
                     url = default_address + req.url
                 else:
                     url = req.url
-
-                lines.append(ast.Expr(
-                    ast_call(
-                        func=ast_attr("self.driver.get"),
-                        args=[self._gen_expr(url)])))
-                lines.append(self._gen_replace_dialogs())
-
+                lines.append(gen_empty_line_stmt())
+                lines.append(self._go_to_url(url))
             else:
                 method = req.method.lower()
                 named_args = self._extract_named_args(req)

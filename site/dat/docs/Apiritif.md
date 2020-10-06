@@ -819,10 +819,6 @@ These actions require a value parameter, the possible values are:
   - `win\_ser\_local`: Go to the initial window.
   - `no value`: When no value is assigned, it means that the selection action is assigned over the last created window, and if the close action is used, it will also be over the last one created.
 
-Note: When any action command opens a new window (like click on a link with target window assigned), 
-the action of selecting the window must always be declared, otherwise the actions executed by the execution 
-will be performed on the default window or the last one used with `switchWindow` command.
-
 Or using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 ```yaml
 - type: switchWindow
