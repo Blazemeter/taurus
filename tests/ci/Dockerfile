@@ -1,13 +1,6 @@
-FROM ubuntu:18.04
+FROM ubuntu:18.04 as builder
 
 ENV DBUS_SESSION_BUS_ADDRESS=/dev/null DEBIAN_FRONTEND=noninteractive APT_INSTALL="apt-get -y install --no-install-recommends"
-
-RUN apt-get update && \
-    apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common && \
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - && \
-    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
-    apt-get update && \
-    apt-get install -y docker-ce docker-ce-cli containerd.io
 
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 RUN apt-get -y update \
@@ -32,3 +25,14 @@ RUN apt-get -y update \
   && python3 -m pip install --user --upgrade setuptools wheel \
   && nuget update -self \
   && apt-get clean
+
+RUN apt-get update -y \
+    && apt-get install -y \
+    gcc-mingw-w64-x86-64 nsis libssl-dev libncurses5-dev libsqlite3-dev \
+    libreadline-dev libtk8.5 libgdm-dev libdb4o-cil-dev libpcap-dev curl \
+    && apt-get clean
+
+# COPY . /artifacts
+# WORKDIR /artifacts
+# RUN ./build-sdist.sh
+# RUN ./build-artifacts.sh

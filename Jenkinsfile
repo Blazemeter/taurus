@@ -1,13 +1,13 @@
 @Library("jenkins_library") _
 
 pipeline {
-    // agent {
-    //     dockerfile {
-    //         filename 'tests/ci/Dockerfile'
-    //         args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
-    //     }
-    // }
-    agent any
+    agent {
+        dockerfile {
+            filename 'tests/ci/Dockerfile'
+            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
+    // agent any
     options {
         timestamps()
     }
@@ -32,12 +32,22 @@ pipeline {
                    """
             }
         }
+        stage("Create artifacts") {
+            steps {
+                script {
+                    sh """
+                       ./build-sdist.sh
+                       ./build-artifacts.sh
+                       """
+                }
+                archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
+            }
+        }
         stage("Docker Image Build") {
             steps {
                 script {
                     sh "docker build --no-cache -t ${JOB_NAME} -t ${extraImageTag} ."
                 }
-                archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
             }
         }
         stage("Integration Tests") {
