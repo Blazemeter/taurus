@@ -48,10 +48,10 @@ pipeline {
     }
   }
   post {
-        always {
-            cleanWs()
-        }
+    always {
+        cleanWs()
     }
+  }
 }
 
 def buildArtifacts() {
