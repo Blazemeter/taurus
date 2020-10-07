@@ -109,8 +109,8 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.obj.prepare()
         expected_datafile = RESOURCES_DIR + "jmeter/jtl/kpi-pair2.jtl"
         expected_errorsfile = RESOURCES_DIR + "jmeter/jtl/error-pair2.jtl"
-        self.assertEqual(expected_datafile, self.obj.data_file)
-        self.assertEqual(expected_errorsfile, self.obj.errors_file)
+        self.assertEqual(expected_datafile.replace('\\', '/'), self.obj.data_file.replace('\\', '/'))
+        self.assertEqual(expected_errorsfile.replace('\\', '/'), self.obj.errors_file.replace('\\', '/'))
 
     def test_execution_parsing_priority(self):
         self.configure({
@@ -129,8 +129,8 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.obj.prepare()
         expected_datafile = RESOURCES_DIR + "jmeter/jtl/kpi-pair1.jtl"
         expected_errorsfile = RESOURCES_DIR + "jmeter/jtl/error-pair1.jtl"
-        self.assertEqual(expected_datafile, self.obj.data_file)
-        self.assertEqual(expected_errorsfile, self.obj.errors_file)
+        self.assertEqual(expected_datafile.replace('\\', '/'), self.obj.data_file.replace('\\', '/'))
+        self.assertEqual(expected_errorsfile.replace('\\', '/'), self.obj.errors_file.replace('\\', '/'))
 
 
     def test_ab(self):
