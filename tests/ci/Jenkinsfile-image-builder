@@ -22,23 +22,25 @@ pipeline {
 
   stages {
     stage('Building artifacts') {
-      steps{
-        script{
+      steps {
+        script {
+          VERSION = sh(returnStdout: true, script: "git describe --tags \$(git rev-list --tags --max-count=1)").trim()
+          GIT_INFO = sh(returnStdout: true, script: "echo \$(git rev-parse --abbrev-ref HEAD) \$(git show --oneline -s)").trim()
           buildArtifacts()
         }
       }
     }
 
     stage('Building an image') {
-      steps{
-        script{
+      steps {
+        script {
           imageTag = buildImage()
         }
       }
     }
 
     stage('Pushing an image') {
-      steps{
+      steps {
         script {
           pushImage(imageTag)
         }
@@ -48,8 +50,6 @@ pipeline {
 }
 
 def buildArtifacts() {
-  VERSION = sh(returnStdout: true, script: "git describe --tags \$(git rev-list --tags --max-count=1)").trim()
-  GIT_INFO = sh(returnStdout: true, script: "echo \$(git rev-parse --abbrev-ref HEAD) \$(git show --oneline -s)").trim()
   sh """
      echo 'BUILD_NUM=\"${BUILD_NUMBER}\"' > bzt/resources/version/build.py
      echo 'VERSION=\"${VERSION}\"' > bzt/resources/version/version.py
