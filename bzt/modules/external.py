@@ -63,7 +63,7 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
 
         # execution level overrides scenario level
         self.data_file = self.execution.get("data-file", self.data_file)
-        self.errors_file = self.execution.get("errors-jtl", None)
+        self.errors_file = self.execution.get("errors-file", self.errors_file)
         self._data_file_pattern = self.execution.get("data-file-pattern", self._data_file_pattern)
 
     def _try_make_reader(self):
