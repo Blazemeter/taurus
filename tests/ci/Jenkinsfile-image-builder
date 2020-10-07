@@ -14,12 +14,7 @@ pipeline {
     skipDefaultCheckout()
   }
 
-  agent {
-    dockerfile {
-      filename 'tests/ci/Dockerfile.build'
-      args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
-    }
-  }
+  agent any
 
   stages {
     stage('Checkout') {
@@ -29,27 +24,37 @@ pipeline {
         }
       }
     }
-
-    stage('Building artifacts') {
-      steps {
-        script {
-          buildArtifacts()
+    
+    stage('Running a build') {
+      stages {
+        agent {
+          dockerfile {
+            filename 'tests/ci/Dockerfile.build'
+            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+          }
         }
-      }
-    }
-
-    stage('Building an image') {
-      steps {
-        script {
-          imageTag = buildImage()
+        stage('Building artifacts') {
+          steps {
+            script {
+              buildArtifacts()
+            }
+          }
         }
-      }
-    }
 
-    stage('Pushing an image') {
-      steps {
-        script {
-          pushImage(imageTag)
+        stage('Building an image') {
+          steps {
+            script {
+              imageTag = buildImage()
+            }
+          }
+        }
+
+        stage('Pushing an image') {
+          steps {
+            script {
+              pushImage(imageTag)
+            }
+          }
         }
       }
     }
