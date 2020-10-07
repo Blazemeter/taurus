@@ -47,6 +47,11 @@ pipeline {
       }
     }
   }
+  post {
+        always {
+            cleanWs()
+        }
+    }
 }
 
 def buildArtifacts() {
