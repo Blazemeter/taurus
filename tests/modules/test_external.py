@@ -99,6 +99,40 @@ class TestExternalResultsLoader(ExecutorTestCase):
         cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
         self.assertEqual(8, cumulative_kpis[KPISet.SAMPLE_COUNT])
 
+    def test_execution_file_parsing(self):
+        self.configure({
+            "execution": [{
+                "data-file": RESOURCES_DIR + "jmeter/jtl/kpi-pair2.jtl",
+                "errors-file": RESOURCES_DIR + "jmeter/jtl/error-pair2.jtl",
+            }]
+        })
+        self.obj.prepare()
+        expected_datafile = RESOURCES_DIR + "jmeter/jtl/kpi-pair2.jtl"
+        expected_errorsfile = RESOURCES_DIR + "jmeter/jtl/error-pair2.jtl"
+        self.assertEqual(expected_datafile, self.obj.data_file)
+        self.assertEqual(expected_errorsfile, self.obj.errors_file)
+
+    def test_execution_parsing_priority(self):
+        self.configure({
+            "execution": [{
+                "data-file": RESOURCES_DIR + "jmeter/jtl/kpi-pair1.jtl",
+                "errors-file": RESOURCES_DIR + "jmeter/jtl/error-pair1.jtl",
+                "scenario": "sample"
+            }],
+            "scenarios": {
+                "sample": {
+                    "data-file": RESOURCES_DIR + "jmeter/jtl/kpi-pair2.jtl",
+                    "errors-file": RESOURCES_DIR + "jmeter/jtl/error-pair2.jtl",
+                }
+            }
+        })
+        self.obj.prepare()
+        expected_datafile = RESOURCES_DIR + "jmeter/jtl/kpi-pair1.jtl"
+        expected_errorsfile = RESOURCES_DIR + "jmeter/jtl/error-pair1.jtl"
+        self.assertEqual(expected_datafile, self.obj.data_file)
+        self.assertEqual(expected_errorsfile, self.obj.errors_file)
+
+
     def test_ab(self):
         self.configure({
             "execution": [{
