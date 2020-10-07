@@ -14,14 +14,22 @@ pipeline {
   }
 
   agent {
-    docker {
-      image 'registry.blazemeter.net/jenkins-docker-agent:master.20'
-      args "-u root -v /var/run/docker.sock:/var/run/docker.sock"
+    dockerfile {
+      filename 'tests/ci/Dockerfile.build'
+      args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
 
   stages {
-    stage('Building an image'){
+    stage('Building artifacts') {
+      steps{
+        script{
+          buildArtifacts()
+        }
+      }
+    }
+
+    stage('Building an image') {
       steps{
         script{
           imageTag = buildImage()
@@ -29,7 +37,7 @@ pipeline {
       }
     }
 
-    stage('Pushing an image'){
+    stage('Pushing an image') {
       steps{
         script {
           pushImage(imageTag)
@@ -37,6 +45,17 @@ pipeline {
       }
     }
   }
+}
+
+def buildArtifacts() {
+  VERSION = sh(returnStdout: true, script: "git describe --tags \$(git rev-list --tags --max-count=1)").trim()
+  GIT_INFO = sh(returnStdout: true, script: "echo \$(git rev-parse --abbrev-ref HEAD) \$(git show --oneline -s)").trim()
+  sh """
+     echo 'BUILD_NUM=\"${BUILD_NUMBER}\"' > bzt/resources/version/build.py
+     echo 'VERSION=\"${VERSION}\"' > bzt/resources/version/version.py
+     echo 'GIT_INFO=\"${GIT_INFO}\"' > bzt/resources/version/gitinfo.py
+     ./build-artifacts.sh
+     """
 }
 
 def buildImage() {
