@@ -6,7 +6,7 @@ WORKDIR /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 ADD https://deb.nodesource.com/setup_12.x /tmp
 RUN apt-get -y update \
-  && apt-get -y install dirmngr git \
+  && apt-get -y install dirmngr \
   && $APT_INSTALL software-properties-common apt-utils \
   && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF \
   && cat /tmp/linux_signing_key.pub | apt-key add - \
@@ -40,11 +40,10 @@ RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
   && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
   && chmod +x /opt/google/chrome/google-chrome
 
-COPY . /tmp/bzt-src
+COPY dist /tmp/bzt-src
 WORKDIR /tmp/bzt-src
 RUN google-chrome-stable --version && firefox --version && mono --version && nuget | head -1 \
-  && ./build-sdist.sh \
-  && python3 -m pip install dist/bzt-*.tar.gz \
+  && python3 -m pip install bzt-*.tar.gz \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar

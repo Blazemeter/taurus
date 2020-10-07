@@ -1,36 +1,52 @@
 @Library("jenkins_library") _
 
 pipeline {
-    agent any
+    agent {
+        dockerfile {
+            filename 'tests/ci/Dockerfile.build'
+            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
     options {
         timestamps()
-        skipDefaultCheckout()
     }
     stages {
         stage('Checkout') {
             steps {
-                cleanWs()
                 script {
-                    scmVars = checkout scm
-                    commitHash = scmVars.GIT_COMMIT
                     tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
                     isRelease = !tagName.isEmpty()
                     IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
                     IMAGE_TAG = IMAGE_TAG.toLowerCase()
                     imageName = "blazemeter/taurus"
                     extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
-
+                    VERSION = sh(returnStdout: true, script: "git describe --tags \$(git rev-list --tags --max-count=1)").trim()
+                    GIT_INFO = sh(returnStdout: true, script: "echo \$(git rev-parse --abbrev-ref HEAD) \$(git show --oneline -s)").trim()
+                    if (!isRelease) {
+                        VERSION = "${VERSION}.${BUILD_NUMBER}"
+                    }
                 }
                 sh """
-                   echo "BUILD_NUM = \"${BUILD_NUMBER}\"" > bzt/resources/version/build.py
+                   echo 'BUILD_NUM=\"${BUILD_NUMBER}\"' > bzt/resources/version/build.py
+                   echo 'VERSION=\"${VERSION}\"' > bzt/resources/version/version.py
+                   echo 'GIT_INFO=\"${GIT_INFO}\"' > bzt/resources/version/gitinfo.py
                    """
+            }
+        }
+        stage("Create artifacts") {
+            steps {
+                script {
+                    sh "./build-artifacts.sh"
+                }
+                archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
+                archiveArtifacts artifacts: 'build/nsis/*_x64.exe', fingerprint: true
             }
         }
         stage("Docker Image Build") {
             steps {
-                sh """
-                   docker build -t ${JOB_NAME} -t ${extraImageTag} .
-                   """
+                script {
+                    sh "docker build --no-cache -t ${JOB_NAME} -t ${extraImageTag} ."
+                }
             }
         }
         stage("Integration Tests") {
@@ -47,48 +63,18 @@ pipeline {
                 }
             }
         }
-        stage("Create Artifacts") {
-            steps {
-                script {
-                    sh """
-                       sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py
-                       """
-
-                    if (!isRelease) {
-                        sh """
-                           sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
-                           """
-                    }
-
-                    sh """
-                       docker run --entrypoint /bzt-configs/build-artifacts.sh -v `pwd`:/bzt-configs ${JOB_NAME} ${BUILD_NUMBER}
-                       """
-                }
-                archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
-            }
-        }
         stage("Deploy site") {
             steps {
-                sh """
-                   docker build -t deploy-image -f site/Dockerfile.deploy .
-                   """
                 script {
-                    PROJECT_ID="blazemeter-taurus-website-prod"
-                    withCredentials([file(credentialsId: "${PROJECT_ID}", variable: 'CRED_JSON')]) {
-                        def WORKSPACE_JSON = 'Google_credentials.json'
-                        def input = readJSON file: CRED_JSON
-                        writeJSON file: WORKSPACE_JSON, json: input
+                    PROJECT_ID = "blazemeter-taurus-website-prod"
+                    withCredentials([file(credentialsId: PROJECT_ID, variable: 'CRED_JSON')]) {
                         sh """
-                           docker run --entrypoint /bzt/site/deploy-site.sh \
-                           -e KEY_FILE=${WORKSPACE_JSON} \
-                           -e PROJECT_ID=${PROJECT_ID} \
-                           -e BUILD_NUMBER=${BUILD_NUMBER} \
-                           -u root \
-                           -v /var/run/docker.sock:/var/run/docker.sock \
-                           -v `pwd`:/bzt -t deploy-image \
-                           ${isRelease}
-                          """
+                           gcloud auth activate-service-account --key-file ${CRED_JSON}
+                           gcloud config set project ${PROJECT_ID}
+                           gcloud config set compute/zone us-central1-a
+                           """
                     }
+                    sh "./site/deploy-site.sh ${isRelease}"
                 }
             }
         }
@@ -96,6 +82,7 @@ pipeline {
     post {
         always {
             smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
+            cleanWs()
         }
     }
 }

@@ -1,12 +1,24 @@
 #!/bin/bash -xe
-BUILD_NUMBER=$1
 
-apt-get update -y
-apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis
-apt-get install -y libssl-dev libncurses5-dev libsqlite3-dev libreadline-dev libtk8.5 libgdm-dev libdb4o-cil-dev libpcap-dev
+PREV_DIR=`pwd`
+cd "$(dirname $0)"
 
-# build source distribution
-./build-sdist.sh
+echo "Cleaning environment"
+python3 setup.py clean
+
+echo "Building NUnit plugin"
+pushd ./dotnet/NUnitRunner
+./rebuild.sh
+popd
+
+echo "Building chrome-loader.exe"
+rm -f bzt/resources/chrome-loader.exe
+x86_64-w64-mingw32-gcc -std=c99 -o bzt/resources/chrome-loader.exe bzt/resources/chrome-loader.c
+
+echo "Creating distribution packages"
+python3 ./setup.py sdist bdist_wheel
+
+cd "${PREV_DIR}"
 
 # build a windows installer
 pip3 install virtualenv
