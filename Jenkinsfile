@@ -74,7 +74,10 @@ pipeline {
                            gcloud config set compute/zone us-central1-a
                            """
                     }
-                    sh "./site/deploy-site.sh ${isRelease} ${PROJECT_ID}"
+                    sh """
+                       export PROJECT_ID=${PROJECT_ID}
+                       ./site/deploy-site.sh ${isRelease}
+                       """
                 }
             }
         }
