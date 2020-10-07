@@ -11,6 +11,7 @@ pipeline {
     ansiColor('xterm')
     timeout time: 60, unit: 'MINUTES'
     timestamps()
+    skipDefaultCheckout()
   }
 
   agent {
@@ -21,11 +22,17 @@ pipeline {
   }
 
   stages {
+    stage('Checkout') {
+      steps {
+        script {
+          checkout scm
+        }
+      }
+    }
+
     stage('Building artifacts') {
       steps {
         script {
-          VERSION = sh(returnStdout: true, script: "git describe --tags \$(git rev-list --tags --max-count=1)").trim()
-          GIT_INFO = sh(returnStdout: true, script: "echo \$(git rev-parse --abbrev-ref HEAD) \$(git show --oneline -s)").trim()
           buildArtifacts()
         }
       }
@@ -55,6 +62,8 @@ pipeline {
 }
 
 def buildArtifacts() {
+  VERSION = sh(returnStdout: true, script: "git describe --tags \$(git rev-list --tags --max-count=1)").trim()
+  GIT_INFO = sh(returnStdout: true, script: "echo \$(git rev-parse --abbrev-ref HEAD) \$(git show --oneline -s)").trim()
   sh """
      echo 'BUILD_NUM=\"${BUILD_NUMBER}\"' > bzt/resources/version/build.py
      echo 'VERSION=\"${VERSION}\"' > bzt/resources/version/version.py
