@@ -56,13 +56,13 @@ pipeline {
                    """
             }
         }
-        // stage("Docker Image Push") {
-        //     steps {
-        //         withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
-        //             sh "docker push ${imageName}"
-        //         }
-        //     }
-        // }
+        stage("Docker Image Push") {
+            steps {
+                withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
+                    sh "docker push ${imageName}"
+                }
+            }
+        }
         stage("Deploy site") {
             steps {
                 script {
@@ -81,7 +81,7 @@ pipeline {
     }
     post {
         always {
-            // smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
+            smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
             cleanWs()
         }
     }

@@ -8,11 +8,10 @@ mkdir site/builds
 PREFIX="\/builds\/"
 
 if [ "$1" = "true" ]; then
-    # gsutil cp build/nsis/*.exe gs://taurus-site/releases/
-    echo "if block"
+    gsutil cp build/nsis/*.exe gs://taurus-site/releases/
 else
-    # gsutil cp -s regional dist/*.whl gs://taurus-site/snapshots/
-    # gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
+    gsutil cp -s regional dist/*.whl gs://taurus-site/snapshots/
+    gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
 
     # copy unstable snapshots into site
     cp dist/*.whl site/builds
@@ -45,8 +44,8 @@ docker build -t taurus-site.${BUILD_NUMBER} site
 
 gcloud auth --quiet configure-docker
 
-# docker tag taurus-site.${BUILD_NUMBER} gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
-# docker push gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
-# gcloud container clusters get-credentials taurus-site
+docker tag taurus-site.${BUILD_NUMBER} gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
+docker push gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
+gcloud container clusters get-credentials taurus-site
 
-# kubectl set image deployment/taurus-site taurus-site=gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
+kubectl set image deployment/taurus-site taurus-site=gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
