@@ -44,8 +44,8 @@ docker build -t taurus-site.${BUILD_NUMBER} site
 
 gcloud auth --quiet configure-docker
 
-docker tag taurus-site.${BUILD_NUMBER} gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
-docker push gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
+docker tag taurus-site.${BUILD_NUMBER} gcr.io/$2/taurus-site.${BUILD_NUMBER}
+docker push gcr.io/$2/taurus-site.${BUILD_NUMBER}
 gcloud container clusters get-credentials taurus-site
 
-kubectl set image deployment/taurus-site taurus-site=gcr.io/${PROJECT_ID}/taurus-site.${BUILD_NUMBER}
+kubectl set image deployment/taurus-site taurus-site=gcr.io/$2/taurus-site.${BUILD_NUMBER}
