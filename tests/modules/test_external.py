@@ -60,7 +60,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.configure({
             "execution": [{
                 "data-file": RESOURCES_DIR + "/jmeter/jtl/simple.kpi.jtl",
-                "errors-jtl": RESOURCES_DIR + "/jmeter/jtl/simple.error.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/simple.error.jtl",
             }]
         })
         self.obj.prepare()
@@ -80,7 +80,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.configure({
             "execution": [{
                 "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi-pair1.jtl",
-                "errors-jtl": RESOURCES_DIR + "/jmeter/jtl/error-pair1.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/error-pair1.jtl",
             }]
         })
         self.obj.prepare()
@@ -156,7 +156,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.configure({
             "execution": [{
                 "data-file": RESOURCES_DIR + "/pbench/pbench-kpi.txt",
-                "errors-jtl": RESOURCES_DIR + "/pbench/pbench-additional.ldjson"
+                "errors-file": RESOURCES_DIR + "/pbench/pbench-additional.ldjson"
             }]
         })
         self.obj.prepare()
