@@ -251,6 +251,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "assertTitle(BlazeDemo)",
                             "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
                             "doubleClickByXPath(/html/body/div[3]/h2)",
+                            "contextClickByXPath(/html/body/div[3]/form/select[1])",
                             "mouseDownByXPath(/html/body/div[3]/form/select[1])",
                             "mouseUpByXPath(/html/body/div[3]/form/select[1]/option[6])",
                             {"selectByName(toPort)": "London"},
@@ -1792,6 +1793,11 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                                 "type": "doubleClick",
                                                 "element": "el",
                                             },
+                                            "contextClickByElement(el)",
+                                            {
+                                                "type": "contextClick",
+                                                "element": "el",
+                                            },
                                             "mouseDownByElement(el)",
                                             {
                                                 "type": "mouseDown",
@@ -1953,6 +1959,11 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     "doubleClickByShadow(c-basic, lightning-accordion-section, .slds-button)",
                                     {
                                         "type": "doubleClick",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                    },
+                                    "contextClickByShadow(c-basic, lightning-accordion-section, .slds-button)",
+                                    {
+                                        "type": "contextClick",
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
                                     },
                                     "mouseDownByShadow(c-basic, lightning-accordion-section, .slds-button)",

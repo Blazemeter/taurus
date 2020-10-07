@@ -73,6 +73,8 @@ class TestLocSc(unittest.TestCase):
                 check_opened_new_window()
                 ActionChains(self.driver).double_click(el).perform()
                 ActionChains(self.driver).double_click(el).perform()
+                ActionChains(self.driver).context_click(el).perform()
+                ActionChains(self.driver).context_click(el).perform()
                 ActionChains(self.driver).click_and_hold(el).perform()
                 ActionChains(self.driver).click_and_hold(el).perform()
                 ActionChains(self.driver).release(el).perform()

@@ -626,6 +626,7 @@ Use `go(url)` to redirect to another website.
 For mouse imitating actions you can use the following:
 - `clickByX(X\_name)`
 - `doubleClickByX(X\_name)`
+- `contextClickByX(X\_name)`
 - `mouseDownByX(X\_name)`
 - `mouseUpByX(X\_name)`
 - `mouseOutByX(X\_name)`
@@ -641,6 +642,10 @@ Or by using the [multiple locators](#Alternative-syntax-supporting-multiple-loca
      - css: element_class
      - xpath: /xpath/
 - type: doubleClick
+  locators:
+     - css: element_class
+     - xpath: /xpath/
+- type: contextClick
   locators:
      - css: element_class
      - xpath: /xpath/

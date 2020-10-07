@@ -42,8 +42,7 @@ class TestLocSc(unittest.TestCase):
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
         self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=True, driver=self.driver, windows=OrderedDict(),
-                                       scenario_name='loc_sc', data_sources=True)
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=True, driver=self.driver, windows=OrderedDict(), scenario_name='loc_sc', data_sources=True)
 
 
     def _1_(self):
@@ -60,6 +59,11 @@ class TestLocSc(unittest.TestCase):
 
             var_loc_chain = get_locator([{'xpath': '/html/body/div[3]/h2'}])
             ActionChains(self.driver).double_click(self.driver.find_element(
+                var_loc_chain[0],
+                var_loc_chain[1])).perform()
+
+            var_loc_chain = get_locator([{'xpath': '/html/body/div[3]/form/select[1]'}])
+            ActionChains(self.driver).context_click(self.driver.find_element(
                 var_loc_chain[0],
                 var_loc_chain[1])).perform()
 
