@@ -6,6 +6,9 @@ multibranchPipelineJob('TAURUS-IMAGE-BUILDER'){
             credentialsId('github-token')
             includes('*')
             excludes('master fix/* feat/*')
+            cloneOptions {
+                noTags(boolean noTags = false)
+            }
         }
     }
     configure {
