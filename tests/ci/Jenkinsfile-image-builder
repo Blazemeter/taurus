@@ -11,59 +11,45 @@ pipeline {
     ansiColor('xterm')
     timeout time: 60, unit: 'MINUTES'
     timestamps()
-    skipDefaultCheckout()
   }
 
-  agent any
+  agent {
+    dockerfile {
+      filename 'tests/ci/Dockerfile.build'
+      args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
 
   stages {
-    stage('Checkout') {
+    stage('Building artifacts') {
       steps {
         script {
-          checkout scm
+          buildArtifacts()
         }
       }
     }
-    
-    stage('Running a build') {
-      agent {
-        dockerfile {
-          filename 'tests/ci/Dockerfile.build'
-          args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+
+    stage('Building an image') {
+      steps {
+        script {
+          imageTag = buildImage()
         }
       }
-      stages {
-        stage('Building artifacts') {
-          steps {
-            script {
-              buildArtifacts()
-            }
-          }
-        }
+    }
 
-        stage('Building an image') {
-          steps {
-            script {
-              imageTag = buildImage()
-            }
-          }
-        }
-
-        stage('Pushing an image') {
-          steps {
-            script {
-              pushImage(imageTag)
-            }
-          }
+    stage('Pushing an image') {
+      steps {
+        script {
+          pushImage(imageTag)
         }
       }
     }
   }
-  // post {
-  //   always {
-  //       cleanWs()
-  //   }
-  // }
+  post {
+    always {
+        cleanWs()
+    }
+  }
 }
 
 def buildArtifacts() {
