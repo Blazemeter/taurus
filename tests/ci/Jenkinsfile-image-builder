@@ -26,13 +26,13 @@ pipeline {
     }
     
     stage('Running a build') {
-      stages {
-        agent {
-          dockerfile {
-            filename 'tests/ci/Dockerfile.build'
-            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
-          }
+      agent {
+        dockerfile {
+          filename 'tests/ci/Dockerfile.build'
+          args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
         }
+      }
+      stages {
         stage('Building artifacts') {
           steps {
             script {
