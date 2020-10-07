@@ -5,9 +5,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const respLaunchByWeek = await fetch('./week.php');
     const launchByWeek = await respLaunchByWeek.json();
+    launchByWeek.sort(weekSort);
 
     const respLaunchByMonth = await fetch('./month.php');
     const launchByMonth = await respLaunchByMonth.json();
+    launchByMonth.sort(monthSort);
 
     let form = document.querySelector("form")
     let out = form.querySelector("#out")
@@ -128,4 +130,55 @@ document.addEventListener("DOMContentLoaded", async () => {
         return { period_name: periodName, categories: categoriesArr, new_users: newUsersData, cloud_users: cloudUsersData, desktop_users: desctopUsersData }
     }
 
+    function weekSort(date1, date2) {
+        year1 = date1.year;
+        week1 = date1.week;
+
+        year2 = date2.year;
+        week2 = date2.week;
+
+        if (year1 === year2) {
+            if (week1 > week2) {
+                return 1;
+            }
+
+            if (week1 < week2) {
+                return -1;
+            }
+
+            return 0;
+        } else {
+            if (year1 > year2) {
+                return 1;
+            } else {
+                return -1;
+            }
+        }
+    }
+
+    function monthSort(date1, date2) {
+        month1 = date1.month.split('.')[0];
+        year1 = date1.month.split('.')[1];
+
+        month2 = date2.month.split('.')[0];
+        year2 = date2.month.split('.')[1];
+
+        if (year1 === year2) {
+            if (month1 > month2) {
+                return 1;
+            }
+
+            if (month1 < month2) {
+                return -1;
+            }
+
+            return 0;
+        } else {
+            if (year1 > year2) {
+                return 1;
+            } else {
+                return -1;
+            }
+        }
+    }
 })
