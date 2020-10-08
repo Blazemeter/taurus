@@ -24,7 +24,9 @@ pipeline {
     stage('Building artifacts') {
       steps {
         script {
-          buildArtifacts()
+          tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
+          isRelease = !tagName.isEmpty()
+          buildArtifacts(isRelease)
         }
       }
     }
@@ -52,9 +54,9 @@ pipeline {
   }
 }
 
-def buildArtifacts() {
+def buildArtifacts(isRelease) {
   sh """
-     ./build-info.sh
+     ./build-info.sh ${isRelease}
      ./build-artifacts.sh
      """
 }
