@@ -20,17 +20,8 @@ pipeline {
                     IMAGE_TAG = IMAGE_TAG.toLowerCase()
                     imageName = "blazemeter/taurus"
                     extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
-                    VERSION = sh(returnStdout: true, script: "git describe --tags \$(git rev-list --tags --max-count=1)").trim()
-                    GIT_INFO = sh(returnStdout: true, script: "echo \$(git rev-parse --abbrev-ref HEAD) \$(git show --oneline -s)").trim()
-                    if (!isRelease) {
-                        VERSION = "${VERSION}.${BUILD_NUMBER}"
-                    }
+                    sh "./build-info.sh ${isRelease}"
                 }
-                sh """
-                   echo 'BUILD_NUM=\"${BUILD_NUMBER}\"' > bzt/resources/version/build.py
-                   echo 'VERSION=\"${VERSION}\"' > bzt/resources/version/version.py
-                   echo 'GIT_INFO=\"${GIT_INFO}\"' > bzt/resources/version/gitinfo.py
-                   """
             }
         }
         stage("Create artifacts") {

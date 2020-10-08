@@ -14,27 +14,45 @@ pipeline {
   }
 
   agent {
-    docker {
-      image 'registry.blazemeter.net/jenkins-docker-agent:master.20'
-      args "-u root -v /var/run/docker.sock:/var/run/docker.sock"
+    dockerfile {
+      filename 'tests/ci/Dockerfile.build'
+      args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
 
   stages {
-    stage('Building an image'){
-      steps{
-        script{
+    stage('Building artifacts') {
+      steps {
+        script {
+          tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
+          isRelease = !tagName.isEmpty()
+          sh """
+            ./build-info.sh ${isRelease}
+            ./build-artifacts.sh
+            """
+        }
+      }
+    }
+
+    stage('Building an image') {
+      steps {
+        script {
           imageTag = buildImage()
         }
       }
     }
 
-    stage('Pushing an image'){
-      steps{
+    stage('Pushing an image') {
+      steps {
         script {
           pushImage(imageTag)
         }
       }
+    }
+  }
+  post {
+    always {
+        cleanWs()
     }
   }
 }
