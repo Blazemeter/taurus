@@ -26,7 +26,10 @@ pipeline {
         script {
           tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
           isRelease = !tagName.isEmpty()
-          buildArtifacts(isRelease)
+          sh """
+            ./build-info.sh ${isRelease}
+            ./build-artifacts.sh
+            """
         }
       }
     }
@@ -52,13 +55,6 @@ pipeline {
         cleanWs()
     }
   }
-}
-
-def buildArtifacts(isRelease) {
-  sh """
-     ./build-info.sh ${isRelease}
-     ./build-artifacts.sh
-     """
 }
 
 def buildImage() {
