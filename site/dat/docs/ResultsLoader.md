@@ -26,7 +26,7 @@ List of supported file formats:
 - TSV files (Apache Benchmark)
 - `pbench-kpis.txt` (PBench)
 
-You can put `data-file`, and `errors-file` under scenario definition also, and point execution item onto corresponding scenario. If file is defined in both scenario and execution, execution will a have higher priority.
+You can put `data-file`, and `errors-file` under scenario definition also, and point execution item onto corresponding scenario. If file is defined in both scenario and execution blocks, execution will have a higher priority.
 
 
 ## Dynamic File Detection

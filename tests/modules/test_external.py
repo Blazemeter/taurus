@@ -100,37 +100,39 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.assertEqual(8, cumulative_kpis[KPISet.SAMPLE_COUNT])
 
     def test_execution_file_parsing(self):
+        datafile_pair = RESOURCES_DIR + "jmeter/jtl/kpi-pair2.jtl"
+        errorfile_pair = RESOURCES_DIR + "jmeter/jtl/error-pair2.jtl"
         self.configure({
             "execution": [{
-                "data-file": RESOURCES_DIR + "jmeter/jtl/kpi-pair2.jtl",
-                "errors-file": RESOURCES_DIR + "jmeter/jtl/error-pair2.jtl",
+                "data-file": datafile_pair,
+                "errors-file": errorfile_pair,
             }]
         })
         self.obj.prepare()
-        expected_datafile = RESOURCES_DIR + "jmeter/jtl/kpi-pair2.jtl"
-        expected_errorsfile = RESOURCES_DIR + "jmeter/jtl/error-pair2.jtl"
-        self.assertEqual(expected_datafile.replace('\\', '/'), self.obj.data_file.replace('\\', '/'))
-        self.assertEqual(expected_errorsfile.replace('\\', '/'), self.obj.errors_file.replace('\\', '/'))
+        self.assertEqual(datafile_pair.replace('\\', '/'), self.obj.data_file.replace('\\', '/'))
+        self.assertEqual(errorfile_pair.replace('\\', '/'), self.obj.errors_file.replace('\\', '/'))
 
     def test_execution_parsing_priority(self):
+        datafile_pair = RESOURCES_DIR + "jmeter/jtl/kpi-pair1.jtl"
+        errorfile_pair = RESOURCES_DIR + "jmeter/jtl/error-pair1.jtl"
+        another_datafile_pair = RESOURCES_DIR + "jmeter/jtl/kpi-pair2.jtl"
+        another_errorfile_pair = RESOURCES_DIR + "jmeter/jtl/error-pair2.jtl"
         self.configure({
             "execution": [{
-                "data-file": RESOURCES_DIR + "jmeter/jtl/kpi-pair1.jtl",
-                "errors-file": RESOURCES_DIR + "jmeter/jtl/error-pair1.jtl",
+                "data-file": datafile_pair,
+                "errors-file": errorfile_pair,
                 "scenario": "sample"
             }],
             "scenarios": {
                 "sample": {
-                    "data-file": RESOURCES_DIR + "jmeter/jtl/kpi-pair2.jtl",
-                    "errors-file": RESOURCES_DIR + "jmeter/jtl/error-pair2.jtl",
+                    "data-file": another_datafile_pair,
+                    "errors-file": another_errorfile_pair,
                 }
             }
         })
         self.obj.prepare()
-        expected_datafile = RESOURCES_DIR + "jmeter/jtl/kpi-pair1.jtl"
-        expected_errorsfile = RESOURCES_DIR + "jmeter/jtl/error-pair1.jtl"
-        self.assertEqual(expected_datafile.replace('\\', '/'), self.obj.data_file.replace('\\', '/'))
-        self.assertEqual(expected_errorsfile.replace('\\', '/'), self.obj.errors_file.replace('\\', '/'))
+        self.assertEqual(datafile_pair.replace('\\', '/'), self.obj.data_file.replace('\\', '/'))
+        self.assertEqual(errorfile_pair.replace('\\', '/'), self.obj.errors_file.replace('\\', '/'))
 
 
     def test_ab(self):
