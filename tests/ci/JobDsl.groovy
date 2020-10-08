@@ -1,4 +1,9 @@
 multibranchPipelineJob('TAURUS-IMAGE-BUILDER'){
+    factory {
+        workflowBranchProjectFactory {
+            scriptPath('tests/ci/Jenkinsfile-image-builder')
+        }
+    }
     branchSources {
         git {
             id('1') // IMPORTANT: use a constant and unique identifier per branch source
@@ -6,15 +11,14 @@ multibranchPipelineJob('TAURUS-IMAGE-BUILDER'){
             credentialsId('github-token')
             includes('*')
             excludes('master fix/* feat/*')
-            cloneOptions {
-                noTags(boolean noTags = false)
-            }
         }
     }
     configure {
-        it / factory(class: 'org.jenkinsci.plugins.workflow.multibranch.WorkflowBranchProjectFactory') {
-            owner(class: 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject', reference: '../..')
-            scriptPath("tests/ci/Jenkinsfile-image-builder") //Set a specific scriptPath in MultiBranchPipelineJob DSL
+        def traits = it / sources / data / 'jenkins.branch.BranchSource' / source / traits
+        traits << 'jenkins.plugins.git.traits.CloneOptionTrait' {
+            extension( class: 'hudson.plugins.git.extensions.impl.CloneOption' ) {
+                noTags(false)
+            }
         }
     }
     orphanedItemStrategy {
