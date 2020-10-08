@@ -60,7 +60,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.configure({
             "execution": [{
                 "data-file": RESOURCES_DIR + "/jmeter/jtl/simple.kpi.jtl",
-                "errors-jtl": RESOURCES_DIR + "/jmeter/jtl/simple.error.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/simple.error.jtl",
             }]
         })
         self.obj.prepare()
@@ -80,7 +80,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.configure({
             "execution": [{
                 "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi-pair1.jtl",
-                "errors-jtl": RESOURCES_DIR + "/jmeter/jtl/error-pair1.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/error-pair1.jtl",
             }]
         })
         self.obj.prepare()
@@ -98,6 +98,42 @@ class TestExternalResultsLoader(ExecutorTestCase):
         last_dp = results[-1]
         cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
         self.assertEqual(8, cumulative_kpis[KPISet.SAMPLE_COUNT])
+
+    def test_execution_file_parsing(self):
+        datafile_pair = RESOURCES_DIR + "jmeter/jtl/kpi-pair2.jtl"
+        errorfile_pair = RESOURCES_DIR + "jmeter/jtl/error-pair2.jtl"
+        self.configure({
+            "execution": [{
+                "data-file": datafile_pair,
+                "errors-file": errorfile_pair,
+            }]
+        })
+        self.obj.prepare()
+        self.assertEqual(datafile_pair.replace('\\', '/'), self.obj.data_file.replace('\\', '/'))
+        self.assertEqual(errorfile_pair.replace('\\', '/'), self.obj.errors_file.replace('\\', '/'))
+
+    def test_execution_parsing_priority(self):
+        datafile_pair = RESOURCES_DIR + "jmeter/jtl/kpi-pair1.jtl"
+        errorfile_pair = RESOURCES_DIR + "jmeter/jtl/error-pair1.jtl"
+        another_datafile_pair = RESOURCES_DIR + "jmeter/jtl/kpi-pair2.jtl"
+        another_errorfile_pair = RESOURCES_DIR + "jmeter/jtl/error-pair2.jtl"
+        self.configure({
+            "execution": [{
+                "data-file": datafile_pair,
+                "errors-file": errorfile_pair,
+                "scenario": "sample"
+            }],
+            "scenarios": {
+                "sample": {
+                    "data-file": another_datafile_pair,
+                    "errors-file": another_errorfile_pair,
+                }
+            }
+        })
+        self.obj.prepare()
+        self.assertEqual(datafile_pair.replace('\\', '/'), self.obj.data_file.replace('\\', '/'))
+        self.assertEqual(errorfile_pair.replace('\\', '/'), self.obj.errors_file.replace('\\', '/'))
+
 
     def test_ab(self):
         self.configure({
@@ -122,7 +158,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.configure({
             "execution": [{
                 "data-file": RESOURCES_DIR + "/pbench/pbench-kpi.txt",
-                "errors-jtl": RESOURCES_DIR + "/pbench/pbench-additional.ldjson"
+                "errors-file": RESOURCES_DIR + "/pbench/pbench-additional.ldjson"
             }]
         })
         self.obj.prepare()
