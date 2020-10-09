@@ -21,7 +21,7 @@ pipeline {
                     imageName = "blazemeter/taurus"
                     date = sh(returnStdout: true, script: "echo \$(date '+%Y-%m-%d')").trim()
                     commitSha = GIT_COMMIT.take(8)
-                    imageTag = "master-${commitSha}-${date}"
+                    imageTag = "${imageName}:master-${commitSha}-${date}"
                     extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageTag} -t ${imageName}:latest" : "${imageName}:unstable -t ${imageTag}"
                     sh "./build-info.sh ${isRelease}"
                 }
