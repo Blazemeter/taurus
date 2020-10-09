@@ -19,7 +19,10 @@ pipeline {
                     IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
                     IMAGE_TAG = IMAGE_TAG.toLowerCase()
                     imageName = "blazemeter/taurus"
-                    extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageName}:latest" : "${imageName}:unstable"
+                    date = sh(returnStdout: true, script: "echo \$(date '+%Y-%m-%d')").trim()
+                    commitSha = GIT_COMMIT.take(8)
+                    imageTag = "master-${commitSha}-${date}"
+                    extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageTag} -t ${imageName}:latest" : "${imageName}:unstable -t ${imageTag}"
                     sh "./build-info.sh ${isRelease}"
                 }
             }
