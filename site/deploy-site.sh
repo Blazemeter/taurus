@@ -3,6 +3,7 @@
 GOOGLE_STORAGE="https:\/\/storage.cloud.google.com\/taurus-site\/"
 UNSTABLE_SNAPSHOT=""
 TAURUS_VERSION=$(python3 -c 'from bzt.resources.version import VERSION; print(VERSION)')
+STABLE_EXE_NAME=TaurusInstaller_${TAURUS_VERSION}_x64.exe
 
 mkdir site/builds
 PREFIX="\/builds\/"
@@ -10,26 +11,25 @@ PREFIX="\/builds\/"
 if [ "$1" = "true" ]; then
     gsutil cp build/nsis/*.exe gs://taurus-site/releases/
 else
-    gsutil cp -s regional dist/*.whl gs://taurus-site/snapshots/
-    gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/
+    SNAPSHOT_VERSION="${TAURUS_VERSION}.${BUILD_NUMBER}"
+    WHL_NAME="bzt-${SNAPSHOT_VERSION}-py2.py3-none-any.whl"
+    EXE_NAME="TaurusInstaller_${SNAPSHOT_VERSION}_x64.exe"
+    gsutil cp -s regional dist/*.whl gs://taurus-site/snapshots/${WHL_NAME}
+    gsutil cp -s regional build/nsis/*.exe gs://taurus-site/snapshots/${EXE_NAME}
 
     # copy unstable snapshots into site
-    cp dist/*.whl site/builds
-    cp build/nsis/*.exe site/builds
+    cp dist/*.whl site/builds/${WHL_NAME}
+    cp build/nsis/*.exe site/builds/${EXE_NAME}
 
     # prepare content for installation docs
     SNAPSHOT_HEADER="## Latest Unstable Snapshots"
-    WHL_SNAPSHOT="Python wheel package: [bzt-${TAURUS_VERSION}-py2.py3-none-any.whl](${PREFIX}bzt-${TAURUS_VERSION}-py2.py3-none-any.whl)"
-    EXE_SNAPSHOT="Windows installer: [TaurusInstaller_${TAURUS_VERSION}_x64.exe](${PREFIX}TaurusInstaller_${TAURUS_VERSION}_x64.exe)"
+    WHL_SNAPSHOT="Python wheel package: [${WHL_NAME}](${PREFIX}${WHL_NAME})"
+    EXE_SNAPSHOT="Windows installer: [${EXE_NAME}](${PREFIX}${EXE_NAME})"
     UNSTABLE_SNAPSHOT=${SNAPSHOT_HEADER}\\n\\n${WHL_SNAPSHOT}\\n\\n${EXE_SNAPSHOT}
-
-    # cut BUILD_NUMBER off
-    TAURUS_VERSION=${TAURUS_VERSION%.*}
 fi
 
-STABLE_EXE=TaurusInstaller_${TAURUS_VERSION}_x64.exe
-gsutil cp gs://taurus-site/releases/${STABLE_EXE} site/builds
-RELEASE_SNAPSHOT="${PREFIX}${STABLE_EXE}"
+gsutil cp gs://taurus-site/releases/${STABLE_EXE_NAME} site/builds
+RELEASE_SNAPSHOT="${PREFIX}${STABLE_EXE_NAME}"
 
 sed -ri "s/RELEASE_SNAPSHOT/${RELEASE_SNAPSHOT}/" site/dat/docs/Installation.md
 sed -ri "s/UNSTABLE_SNAPSHOT/${UNSTABLE_SNAPSHOT}/" site/dat/docs/Installation.md
