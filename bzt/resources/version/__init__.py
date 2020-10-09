@@ -9,6 +9,6 @@ except ImportError:
     GIT_INFO = "DEV"
 
 try:
-    from .build import BUILD_NUM
+    from .build import BUILD
 except ImportError:
-    BUILD_NUM = "DEV"
+    BUILD = "DEV"

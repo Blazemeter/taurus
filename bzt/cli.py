@@ -37,7 +37,7 @@ from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError, 
 from bzt.engine import Engine, Configuration, SETTINGS, EXEC
 from bzt.linter import ConfigurationLinter
 from bzt.utils import get_stacktrace, is_int, BetterDict, is_url, RESOURCES_DIR
-from bzt.resources.version import VERSION, GIT_INFO, BUILD_NUM
+from bzt.resources.version import VERSION, GIT_INFO, BUILD
 
 
 class CLI(object):
@@ -56,7 +56,7 @@ class CLI(object):
         self.setup_logging(options)
         self.log = logging.getLogger('')
         self.log.info("Taurus CLI Tool v%s", VERSION)
-        self.log.debug("Build number: %s", BUILD_NUM)
+        self.log.debug("Build: %s", BUILD)
         self.log.debug("Extended git info: %s", GIT_INFO)
         self.log.debug("Command-line options: %s", self.options)
         self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
