@@ -4,12 +4,13 @@ ENV DBUS_SESSION_BUS_ADDRESS=/dev/null DEBIAN_FRONTEND=noninteractive APT_INSTAL
 
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 RUN apt-get -y update \
-  && apt-get -y install dirmngr git \
+  && apt-get -y install dirmngr \
   && $APT_INSTALL software-properties-common apt-utils \
   && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF \
   && cat /tmp/linux_signing_key.pub | apt-key add - \
   && apt-add-repository multiverse -y \
   && echo "deb http://download.mono-project.com/repo/ubuntu bionic main" | tee /etc/apt/sources.list.d/mono-official.list \
+  && add-apt-repository ppa:git-core/ppa -y \
   && apt-add-repository ppa:yandex-load/main -y \
   && apt-add-repository ppa:nilarimogard/webupd8 -y \
   && $APT_INSTALL tzdata \
@@ -27,7 +28,7 @@ RUN apt-get -y update \
   && apt-get clean
 
 RUN apt-get update && \
-    apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common && \
+    apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common git && \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - && \
     add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
     apt-get update && \
