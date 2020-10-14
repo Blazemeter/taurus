@@ -5,4 +5,4 @@ coverage
 molotov
 robotframework
 http-here
-nose-timer
+nose2
