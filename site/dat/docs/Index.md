@@ -45,6 +45,7 @@
  1. [Keywords Index](KeywordIndex.md)
  1. [Troubleshooting, Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)
  1. [Artifacts Directory Information](ArtifactsDir.md)
+ 1. [Apiritif tool](ApiritifTool.md)
 
 ## Developer Documentation
 
