@@ -26,7 +26,7 @@ namespace DotnetTestRunner.Services.NUnit
             return command;
         }
 
-        private static async void Handler(int iterations, int duration, int concurrency, int rampUp, string reportFile, string target)
+        private static async Task Handler(int iterations, int duration, int concurrency, int rampUp, string reportFile, string target)
         {
             if (string.IsNullOrEmpty(target))
             {

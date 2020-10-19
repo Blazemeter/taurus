@@ -27,7 +27,7 @@ namespace DotnetTestRunner.Services.xUnit
             return command;
         }
 
-        private static async void Handler(int iterations, int duration, int concurrency, int rampUp, string reportFile, string target)
+        private static async Task Handler(int iterations, int duration, int concurrency, int rampUp, string reportFile, string target)
         {
             var reportWriter = new ReportWriter(reportFile);
             
