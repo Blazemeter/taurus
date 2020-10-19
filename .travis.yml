@@ -39,14 +39,14 @@ addons:
   apt:
     packages:
     - openjdk-8-jdk
-    - mono-complete
+    - dotnet-sdk-3.1
     - python-tk
     - python3-tk
 
 install:
 - |
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    mono --version
+    dotnet --version
   else
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
