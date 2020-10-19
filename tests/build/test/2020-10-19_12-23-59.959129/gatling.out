@@ -1,0 +1,9 @@
+me
+Fake gatling output
+dir:
+/home/taras/Projects/taurus
+started...
+/home/taras/Projects/taurus/tests/resources
+::/home/taras/Projects/taurus/tests/resources/gatling/simulations.jar
+TRUE
+-server -XX:+UseThreadPriorities -XX:ThreadPriorityPolicy=42 -Xms512M -Xmx512M -Xmn100M -XX:+HeapDumpOnOutOfMemoryError -XX:+AggressiveOpts -XX:+OptimizeStringConcat -XX:+UseFastAccessorMethods -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -Djava.net.preferIPv4Stack='true' -Djava.net.preferIPv6Addresses='false' -Diterations=1 -Dhold-for=0 -Dgatling.http.ahc.keepAlive='true' -Dgatling.http.ahc.allowPoolingSslConnections='true' -Dgatling.http.ahc.allowPoolingConnections='true' -Dgatling.core.simulationClass='tests.gatling.BasicSimulation' -Dgatling.core.outputDirectoryBaseName='gatling-140013524935776' -Dgatling.core.directory.results='/home/taras/Projects/taurus/tests/build/test/2020-10-19_12-23-59.959129' -Dgatling.core.directory.resources='/home/taras/Projects/taurus/tests/build/test/2020-10-19_12-23-59.959129'

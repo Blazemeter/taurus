@@ -1,0 +1,11 @@
+---
+modules:
+  local: tests.unit.mocks.ModuleMock
+  mock: tests.unit.mocks.ModuleMock
+provisioning: local
+settings:
+  artifacts-dir: /home/taras/Projects/taurus/tests/build/test/2020-10-19_12-27-09.279323
+  check-updates: false
+  env:
+    TAURUS_ARTIFACTS_DIR: /home/taras/Projects/taurus/tests/build/test/2020-10-19_12-27-09.279323
+

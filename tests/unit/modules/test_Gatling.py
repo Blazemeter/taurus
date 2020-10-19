@@ -9,7 +9,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.gatling import GatlingExecutor, DataLogReader, is_gatling2
 from bzt.modules.provisioning import Local
 from bzt.utils import EXE_SUFFIX, get_full_path, is_windows
-from tests.unit import ExecutorTestCase, BZTestCase, get_cwd, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
+from tests.unit import ExecutorTestCase, BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 
 
 class TestGatlingExecutor(ExecutorTestCase):
@@ -452,7 +452,6 @@ class TestGatlingExecutor(ExecutorTestCase):
     def test_files_find_file(self):
         curdir = get_full_path(os.curdir)
         try:
-            os.chdir(get_cwd() + "/../")
             self.obj.engine.file_search_paths.append(RESOURCES_DIR + "gatling/")
             self.obj.engine.config.merge({
                 "execution": {

@@ -3,28 +3,25 @@ import inspect
 import os
 import logging
 
-from bzt.utils import temp_file
+from bzt.cli import CLI
+from bzt.utils import EXE_SUFFIX, run_once, temp_file, get_full_path
 
 ROOT_LOGGER = logging.getLogger("")
 
 
-def get_cwd():
+def _get_dir():
     filename = inspect.getouterframes(inspect.currentframe())[1][1]
-    return os.path.dirname(filename)
+    return get_full_path(filename, step_up=1)
 
 
 # execute tests regardless of working directory
-root_dir = get_cwd() + '/../'
-os.chdir(root_dir)
+BZT_DIR = get_full_path(_get_dir(), step_up=2)
+RESOURCES_DIR = os.path.join(BZT_DIR, 'tests', 'resources') + os.path.sep   # we need this sep cos a lot of
+BUILD_DIR = os.path.join(BZT_DIR, 'tests', 'build', 'tmp') + os.path.sep    # wrong sting joining in tests
+TEST_DIR = os.path.join(BZT_DIR, 'tests', 'build', 'test') + os.path.sep
+BASE_CONFIG = os.path.join(BZT_DIR, 'bzt', 'resources', '10-base-config.yml')
 
-RESOURCES_DIR = os.path.join(get_cwd(), 'resources') + os.path.sep
-BUILD_DIR = get_cwd() + "/../build/tmp/"
-TEST_DIR = get_cwd() + "/../build/test/"
-BASE_CONFIG = get_cwd() + "/../bzt/resources/10-base-config.yml"
-
-from bzt.cli import CLI
-from bzt.utils import EXE_SUFFIX, run_once
-
+os.chdir(BZT_DIR)
 
 @run_once
 def setup_test_logging():

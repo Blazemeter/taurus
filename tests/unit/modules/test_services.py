@@ -9,7 +9,7 @@ from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller
 from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node
-from tests.unit import BZTestCase, get_cwd, RESOURCES_DIR
+from tests.unit import BZTestCase, RESOURCES_DIR
 from tests.unit.mocks import EngineEmul, ModuleMock, BZMock
 
 
@@ -94,7 +94,7 @@ class TestZipFolder(BZTestCase):
         obj.parameters["files"] = ["java_package.zip"]
 
         # create archive and put it in artifact dir
-        source = get_cwd() + "/../selenium/junit/java_package"
+        source = RESOURCES_DIR + "selenium/junit/java_package"
         zip_name = obj.engine.create_artifact('java_package', '.zip')
         with zipfile.ZipFile(zip_name, 'w') as zip_file:
             for filename in get_files_recursive(source):
