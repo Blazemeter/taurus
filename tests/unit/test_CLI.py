@@ -5,7 +5,7 @@ import re
 import shutil
 
 from bzt import TaurusException
-from tests.unit import BZTestCase, RESOURCES_DIR
+from tests.unit import BZTestCase, RESOURCES_DIR, BUILD_DIR
 
 from bzt.cli import CLI, ConfigOverrider, get_option_parser
 from bzt.engine import Configuration
@@ -17,12 +17,11 @@ class TestCLI(BZTestCase):
     def setUp(self):
         super(TestCLI, self).setUp()
         self.logger = self.log
-        self.log = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
+        self.log = os.path.join(BUILD_DIR, "bzt.log")
         self.verbose = False
         self.quiet = False
         self.no_system_configs = True
         self.option = []
-        self.datadir = os.path.join(os.path.dirname(__file__), "..", "build", "acli")
         self.obj = CLI(self)
         self.assertTrue(os.path.exists(self.log))
 

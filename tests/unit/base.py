@@ -23,6 +23,7 @@ BASE_CONFIG = os.path.join(BZT_DIR, 'bzt', 'resources', '10-base-config.yml')
 
 os.chdir(BZT_DIR)
 
+
 @run_once
 def setup_test_logging():
     """ set up test logging for convenience in IDE """
