@@ -86,7 +86,7 @@ namespace DotnetTestRunner.Services.NUnit
             }
         }
 
-        private IDictionary<object, object> GetXmlNodeProperties(XmlNode node)
+        private Dictionary<object, object> GetXmlNodeProperties(XmlNode node)
         {
             var propertiesNodeList = node.SelectNodes("properties");
             var properties = new Dictionary<object, object>();

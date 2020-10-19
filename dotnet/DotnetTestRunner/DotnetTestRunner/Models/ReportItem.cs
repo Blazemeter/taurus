@@ -1,6 +1,6 @@
-﻿﻿using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
- namespace DotnetTestRunner.Models
+namespace DotnetTestRunner.Models
 {
     public class ReportItem
     {
@@ -12,6 +12,6 @@
         public string Status { get; set; }
         public string ErrorMessage { get; set; }
         public string ErrorTrace { get; set; }
-        public IDictionary<object, object> Extras { get; set; }
+        public Dictionary<object, object> Extras { get; set; }
     }
 }
