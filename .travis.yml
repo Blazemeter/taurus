@@ -39,7 +39,6 @@ addons:
   apt:
     packages:
     - openjdk-8-jdk
-    - dotnet-sdk-3.1
     - python-tk
     - python3-tk
 
