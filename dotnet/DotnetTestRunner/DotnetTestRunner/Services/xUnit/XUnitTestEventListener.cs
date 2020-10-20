@@ -2,7 +2,7 @@
 using DotnetTestRunner.Models;
 using Xunit.Runners;
 
-namespace DotnetTestRunner.Services.XUnit
+namespace DotnetTestRunner.Services.xUnit
 {
     public class XUnitTestEventListener
     {
@@ -16,7 +16,7 @@ namespace DotnetTestRunner.Services.XUnit
         }
 
         public static void OnDiscoveryComplete(DiscoveryCompleteInfo info)
-        {            
+        {
             if (info.TestCasesToRun == 0)
             {
                 throw new ArgumentException("Nothing to run, no tests were loaded");
@@ -28,14 +28,14 @@ namespace DotnetTestRunner.Services.XUnit
             var item = new ReportItem
             {
                 ThreadName = _threadName,
-                Duration = (double)info.ExecutionTime,
+                Duration = (double) info.ExecutionTime,
                 TestCase = info.MethodName,
                 TestSuite = info.TypeName,
                 ErrorMessage = "",
                 ErrorTrace = "",
                 Status = "PASSED"
             };
-            
+
             _reportWriter.AddItemToReport(item);
         }
 
@@ -51,7 +51,7 @@ namespace DotnetTestRunner.Services.XUnit
                 ErrorTrace = "",
                 Status = "SKIPPED"
             };
-            
+
             _reportWriter.AddItemToReport(item);
         }
 
@@ -60,14 +60,14 @@ namespace DotnetTestRunner.Services.XUnit
             var item = new ReportItem
             {
                 ThreadName = _threadName,
-                Duration = (double)info.ExecutionTime,
+                Duration = (double) info.ExecutionTime,
                 TestCase = info.MethodName,
                 TestSuite = info.TypeName,
                 ErrorMessage = info.ExceptionMessage,
                 ErrorTrace = info.ExceptionStackTrace,
                 Status = "FAILED"
             };
-            
+
             _reportWriter.AddItemToReport(item);
         }
     }

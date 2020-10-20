@@ -5,7 +5,6 @@ using System.CommandLine.Invocation;
 using System.Threading;
 using System.Threading.Tasks;
 using DotnetTestRunner.Models;
-using DotnetTestRunner.Services.XUnit;
 using Xunit.Runners;
 
 namespace DotnetTestRunner.Services.xUnit
@@ -27,36 +26,37 @@ namespace DotnetTestRunner.Services.xUnit
             return command;
         }
 
-        private static async Task Handler(int iterations, int duration, int concurrency, int rampUp, string reportFile, string target)
+        private static async Task Handler(int iterations, int duration, int concurrency, int rampUp, string reportFile, 
+            string target)
         {
             var reportWriter = new ReportWriter(reportFile);
-            
+
             var userStepTime = rampUp / concurrency;
             var testTasks = new List<Task>();
             var startTime = DateTime.UtcNow;
 
             var testAssembly = System.Reflection.Assembly.LoadFrom(target);
-            
+
             for (var i = 1; i <= concurrency; ++i)
             {
                 var threadName = $"worker_{i}";
                 var eventListener = new XUnitTestEventListener(reportWriter, threadName);
-                
-                 var runner = AssemblyRunner.WithoutAppDomain(target);
-                 runner.OnDiscoveryComplete = XUnitTestEventListener.OnDiscoveryComplete;
-                
-                 runner.OnTestFailed = eventListener.OnTestFailed;
-                 runner.OnTestSkipped = eventListener.OnTestSkipped;
-                 runner.OnTestFinished = eventListener.OnTestFinished;
+
+                var runner = AssemblyRunner.WithoutAppDomain(target);
+                runner.OnDiscoveryComplete = XUnitTestEventListener.OnDiscoveryComplete;
+
+                runner.OnTestFailed = eventListener.OnTestFailed;
+                runner.OnTestSkipped = eventListener.OnTestSkipped;
+                runner.OnTestFinished = eventListener.OnTestFinished;
 
                 testTasks.Add(Task.Run(() => StartWorker(runner, startTime, iterations, duration)));
                 Thread.Sleep(userStepTime * 1000);
             }
-            
+
             await Task.WhenAll(testTasks);
             await reportWriter.StopWritingAsync();
         }
-        
+
         private static void StartWorker(AssemblyRunner runner, DateTime startTime, int iterations, int duration)
         {
             try
@@ -68,7 +68,7 @@ namespace DotnetTestRunner.Services.xUnit
                     var offset = DateTime.UtcNow - startTime;
                     var durationStop = ((duration > 0) && (offset.TotalSeconds > duration));
                     var iterationsStop = ((iterations > 0) && (++iteration >= iterations));
-                    if  (durationStop || iterationsStop)
+                    if (durationStop || iterationsStop)
                     {
                         break;
                     }
@@ -76,7 +76,8 @@ namespace DotnetTestRunner.Services.xUnit
             }
             catch (Exception e)
             {
-                Console.WriteLine("EXCEPTION: {0}", e); ;
+                Console.WriteLine("EXCEPTION: {0}", e);
+                ;
             }
         }
 

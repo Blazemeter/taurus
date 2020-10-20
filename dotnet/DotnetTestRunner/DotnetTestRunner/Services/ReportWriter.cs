@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -25,7 +24,10 @@ namespace DotnetTestRunner.Services
 
         public void AddItemToReport(ReportItem item)
         {
-            _reportItems.Enqueue(item);
+            if (!_stopWriting)
+            {
+                _reportItems.Enqueue(item);
+            }
         }
 
         public void StopWriting()
@@ -48,7 +50,6 @@ namespace DotnetTestRunner.Services
             {
                 if (_reportItems.TryDequeue(out var item))
                 {
-                    Console.WriteLine(_reportItems.Count);
                     var reportLine = GetReportLine(item);
                     await streamWriter.WriteLineAsync(reportLine);
                 }
@@ -59,17 +60,17 @@ namespace DotnetTestRunner.Services
         {
             var sample = new Dictionary<string, object>
             {
-                { "start_time", item.StartTime },
-                { "workerID", item.ThreadName },
-                { "duration", item.Duration },
-                { "test_case", item.TestCase },
-                { "test_suite", item.TestSuite },
-                { "status", item.Status },
-                { "error_msg", item.ErrorMessage },
-                { "error_trace", item.ErrorTrace },
-                { "extras", item.Extras.ToString() }
+                {"start_time", item.StartTime},
+                {"workerID", item.ThreadName},
+                {"duration", item.Duration},
+                {"test_case", item.TestCase},
+                {"test_suite", item.TestSuite},
+                {"status", item.Status},
+                {"error_msg", item.ErrorMessage},
+                {"error_trace", item.ErrorTrace},
+                {"extras", item.Extras}
             };
-            
+
             return JsonConvert.SerializeObject(sample);
         }
     }

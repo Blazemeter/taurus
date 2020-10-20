@@ -26,24 +26,26 @@ namespace DotnetTestRunner.Services.NUnit
             return command;
         }
 
-        private static async Task Handler(int iterations, int duration, int concurrency, int rampUp, string reportFile, string target)
+        private static async Task Handler(int iterations, int duration, int concurrency, int rampUp, string reportFile, 
+            string target)
         {
             if (string.IsNullOrEmpty(target))
             {
                 throw new ArgumentException("Nothing to run, no tests library provided");
             }
+
             var testAssembly = System.Reflection.Assembly.LoadFrom(target);
-            
+
             var engine = TestEngineActivator.CreateInstance();
             var package = new TestPackage(target);
             var runner = engine.GetRunner(package);
             var testCount = runner.CountTestCases(TestFilter.Empty);
-            
+
             if (testCount == 0)
             {
                 throw new ArgumentException("Nothing to run, no tests were loaded");
             }
-            
+
             var reportWriter = new ReportWriter(reportFile);
 
             var userStepTime = rampUp / concurrency;
@@ -53,14 +55,14 @@ namespace DotnetTestRunner.Services.NUnit
             for (var i = 1; i <= concurrency; ++i)
             {
                 var threadName = $"worker_{i}";
-                
-                testTasks.Add(Task.Run(() => 
-                    StartWorker(
-                        runner,
-                        new NUnitTestEventListener(reportWriter, threadName),
-                        startTime,
-                        iterations,
-                        duration)
+
+                testTasks.Add(Task.Run(() =>
+                        StartWorker(
+                            runner,
+                            new NUnitTestEventListener(reportWriter, threadName),
+                            startTime,
+                            iterations,
+                            duration)
                     )
                 );
                 Thread.Sleep(userStepTime * 1000);
@@ -70,7 +72,8 @@ namespace DotnetTestRunner.Services.NUnit
             await reportWriter.StopWritingAsync();
         }
 
-        private static void StartWorker(ITestRunner runner, ITestEventListener testEventListener, DateTime startTime, int iterations, int duration)
+        private static void StartWorker(ITestRunner runner, ITestEventListener testEventListener, DateTime startTime,
+            int iterations, int duration)
         {
             try
             {
@@ -81,7 +84,7 @@ namespace DotnetTestRunner.Services.NUnit
                     var offset = DateTime.UtcNow - startTime;
                     var durationStop = ((duration > 0) && (offset.TotalSeconds > duration));
                     var iterationsStop = ((iterations > 0) && (++iteration >= iterations));
-                    if  (durationStop || iterationsStop)
+                    if (durationStop || iterationsStop)
                     {
                         break;
                     }
@@ -89,7 +92,7 @@ namespace DotnetTestRunner.Services.NUnit
             }
             catch (Exception e)
             {
-                Console.WriteLine("EXCEPTION: {0}", e); ;
+                Console.WriteLine("EXCEPTION: {0}", e);
             }
         }
     }

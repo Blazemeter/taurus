@@ -14,7 +14,7 @@ namespace DotnetTestRunner
                 NUnitTestRunner.GetNUnitCommand(),
                 XUnitTestRunner.GetNUnitCommand()
             };
-            
+
             await command.InvokeAsync(args);
         }
     }

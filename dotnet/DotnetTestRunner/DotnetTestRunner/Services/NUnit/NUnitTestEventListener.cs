@@ -11,7 +11,7 @@ namespace DotnetTestRunner.Services.NUnit
     {
         private const long EpochTicks = 621355968000000000; // ticks from 1.1.0000 to 1.1.1970
         private const long NanosecondsInSecond = 10000000;
-        
+
         private readonly ReportWriter _reportWriter;
         private readonly string _threadName;
 
@@ -32,9 +32,7 @@ namespace DotnetTestRunner.Services.NUnit
                 {
                     return;
                 }
-                
-                Console.WriteLine(report);
-                
+
                 var start = DateTime.Parse(node.Attributes["start-time"].Value);
                 var item = new ReportItem
                 {
