@@ -8,8 +8,7 @@ import unittest
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JTLErrorsReader, JTLReader, FuncJTLReader
 from bzt.utils import to_json
-from tests.unit import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
-from tests.unit.mocks import EngineEmul
+from tests.unit import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER, EngineEmul
 
 
 class TestFuncJTLReader(BZTestCase):

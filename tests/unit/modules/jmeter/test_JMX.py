@@ -2,8 +2,7 @@
 from . import MockJMeterExecutor
 from bzt.engine import Provisioning
 from bzt.jmx import JMX, LoadSettingsProcessor
-from tests.unit import BZTestCase, RESOURCES_DIR
-from tests.unit.mocks import EngineEmul
+from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
 
 
 class TestLoadSettingsProcessor(BZTestCase):

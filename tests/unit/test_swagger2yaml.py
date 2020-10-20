@@ -2,8 +2,7 @@ import yaml
 
 from bzt.utils import iteritems
 from bzt.swagger2yaml import SwaggerConverter, Swagger, Swagger2YAML, process
-from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
-from tests.unit.mocks import EngineEmul
+from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
 
 
 class FakeOptions(object):

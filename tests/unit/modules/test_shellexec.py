@@ -6,8 +6,7 @@ from bzt import ManualShutdown
 from bzt.engine import Service
 from bzt.modules.shellexec import ShellExecutor
 from bzt.utils import BetterDict, is_windows, temp_file
-from tests.unit import BZTestCase
-from tests.unit.mocks import EngineEmul
+from tests.unit import BZTestCase, EngineEmul
 
 
 class TaskTestCase(BZTestCase):

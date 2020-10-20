@@ -14,8 +14,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader
 from bzt.modules.blazemeter import MonitoringBuffer
 from bzt.utils import iteritems, viewvalues
-from tests.unit import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER
-from tests.unit.mocks import EngineEmul, BZMock
+from tests.unit import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER, EngineEmul, BZMock
 
 
 class TestBlazeMeterUploader(BZTestCase):

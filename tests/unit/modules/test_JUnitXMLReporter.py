@@ -9,8 +9,7 @@ from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus, DataCriterion, CriteriaProcessor
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.utils import etree, BetterDict
-from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
-from tests.unit.mocks import EngineEmul
+from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
 
 
 class TestJUnitXML(BZTestCase):

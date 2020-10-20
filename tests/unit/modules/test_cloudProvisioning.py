@@ -19,8 +19,8 @@ from bzt.modules.reporting import FinalStatus
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.modules.apiritif import ApiritifTester
 from bzt.utils import get_full_path, BetterDict
-from tests.unit import BZTestCase, BZT_DIR, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
-from tests.unit.mocks import EngineEmul, ModuleMock, BZMock
+from tests.unit import BZTestCase, BZT_DIR, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER, EngineEmul
+from tests.unit.mocks import ModuleMock, BZMock
 
 
 class TestCloudProvisioning(BZTestCase):

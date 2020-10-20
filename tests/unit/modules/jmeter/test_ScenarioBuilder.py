@@ -3,8 +3,7 @@ import os
 from bzt.jmx.http import HTTPProtocolHandler
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.utils import etree, temp_file
-from tests.unit import BZTestCase, RESOURCES_DIR
-from tests.unit.mocks import EngineEmul
+from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
 from . import MockJMeterExecutor
 
 

@@ -13,8 +13,8 @@ from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import LDJSONReader, FileReader
-from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
-from tests.unit.mocks import EngineEmul, DummyListener
+from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
+from tests.unit.mocks import DummyListener
 from tests.unit.modules.selenium import SeleniumTestCase
 
 

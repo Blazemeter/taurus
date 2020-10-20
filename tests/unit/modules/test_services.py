@@ -9,8 +9,8 @@ from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller
 from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node
-from tests.unit import BZTestCase, RESOURCES_DIR
-from tests.unit.mocks import EngineEmul, ModuleMock, BZMock
+from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
+from tests.unit.mocks import ModuleMock, BZMock
 
 
 class TestPipInstaller(BZTestCase):

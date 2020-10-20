@@ -10,8 +10,7 @@ from bzt import ToolError
 from bzt.modules.javascript import NPMPackage, WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
 from bzt.utils import get_full_path, EXE_SUFFIX
 
-from tests.unit import BUILD_DIR, RESOURCES_DIR, BZTestCase
-from tests.unit.mocks import EngineEmul
+from tests.unit import RESOURCES_DIR, BZTestCase, EngineEmul
 from tests.unit.modules.selenium import SeleniumTestCase
 
 

@@ -1,14 +1,14 @@
 import sys
 import time
 
-from tests.unit import BZTestCase, RESOURCES_DIR
+from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
 
 from bzt.engine import Provisioning, ScenarioExecutor
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.console import ConsoleStatusReporter
 from bzt.modules.provisioning import Local
 from bzt.utils import is_windows, EXE_SUFFIX
-from tests.unit.mocks import r, rc, EngineEmul
+from tests.unit.mocks import r, rc
 from tests.unit.modules.jmeter import MockJMeterExecutor
 
 

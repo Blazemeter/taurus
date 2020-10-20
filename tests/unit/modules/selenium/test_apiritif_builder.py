@@ -7,8 +7,7 @@ from bzt.modules import ConsolidatingAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.modules.apiritif.executor import ApiritifLoadReader, ApiritifFuncReader
-from tests.unit import RESOURCES_DIR, ExecutorTestCase
-from tests.unit.mocks import EngineEmul
+from tests.unit import RESOURCES_DIR, ExecutorTestCase, EngineEmul
 
 
 class TestApiritifScriptGeneration(ExecutorTestCase):

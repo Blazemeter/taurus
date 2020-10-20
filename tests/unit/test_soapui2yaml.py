@@ -2,8 +2,7 @@ import yaml
 
 from bzt.soapui2yaml import process
 
-from tests.unit import BZTestCase, RESOURCES_DIR
-from tests.unit.mocks import EngineEmul
+from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
 
 
 class FakeOptions(object):

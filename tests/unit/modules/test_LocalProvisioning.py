@@ -5,8 +5,7 @@ import datetime
 from bzt import ToolError
 from bzt.engine import EXEC
 from bzt.modules.provisioning import Local
-from tests.unit import BZTestCase
-from tests.unit.mocks import EngineEmul
+from tests.unit import BZTestCase, EngineEmul
 
 
 class ScenarioExecutorEmul(object):

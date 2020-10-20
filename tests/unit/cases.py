@@ -10,8 +10,7 @@ from unittest.case import TestCase
 from bzt.engine import ScenarioExecutor, EXEC
 from bzt.engine import SelfDiagnosable
 from bzt.utils import get_full_path
-from tests.unit import ROOT_LOGGER
-from tests.unit.mocks import EngineEmul
+from tests.unit import ROOT_LOGGER, EngineEmul
 
 TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
 

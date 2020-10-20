@@ -10,7 +10,8 @@ from tests.unit import BZTestCase, RESOURCES_DIR, BUILD_DIR
 from bzt.cli import CLI, ConfigOverrider, get_option_parser
 from bzt.engine import Configuration
 import bzt.modules.shellexec
-from tests.unit.mocks import EngineEmul, ModuleMock
+from tests.unit import EngineEmul
+from tests.unit.mocks import ModuleMock
 
 
 class TestCLI(BZTestCase):

@@ -13,8 +13,7 @@ from bzt.modules.java.tools import JavaC, JarTool, Hamcrest, SeleniumServer
 from bzt.modules.jmeter import JTLReader
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import ToolError
-from tests.unit import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ExecutorTestCase
-from tests.unit.mocks import EngineEmul
+from tests.unit import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ExecutorTestCase, EngineEmul
 from tests.unit.modules.selenium import SeleniumTestCase
 
 

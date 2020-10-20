@@ -4,8 +4,8 @@ import time
 from bzt import AutomatedShutdown, TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.passfail import PassFailStatus, DataCriterion, CriteriaProcessor
-from tests.unit import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER
-from tests.unit.mocks import EngineEmul, ModuleMock
+from tests.unit import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
+from tests.unit.mocks import ModuleMock
 
 
 class PassFailStatusMock(PassFailStatus):

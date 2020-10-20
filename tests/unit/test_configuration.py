@@ -3,8 +3,7 @@ import json
 
 from bzt.engine import Configuration
 from bzt.utils import BetterDict, dehumanize_time, temp_file
-from tests.unit import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
-from tests.unit.mocks import EngineEmul
+from tests.unit import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER, EngineEmul
 
 
 class TestConfiguration(BZTestCase):

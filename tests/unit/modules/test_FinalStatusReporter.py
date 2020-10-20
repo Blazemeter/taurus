@@ -8,8 +8,7 @@ from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.functional import ResultsTree, FunctionalSample
 from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
-from tests.unit import BZTestCase, random_datapoint
-from tests.unit.mocks import EngineEmul
+from tests.unit import BZTestCase, random_datapoint, EngineEmul
 
 
 class TestFinalStatusReporter(BZTestCase):
