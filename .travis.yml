@@ -49,11 +49,10 @@ addons:
 install:
 - |
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    dotnet --version
+    sudo snap alias dotnet-sdk.dotnet dotnet
   else
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
-- sudo snap alias dotnet-sdk.dotnet dotnet
 - gem install rspec
 - $PIP_INSTALL --upgrade pip
 - $PIP_INSTALL -r requirements.txt
