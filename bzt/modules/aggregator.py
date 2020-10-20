@@ -598,7 +598,7 @@ class ResultsProvider(object):
     @abstractmethod
     def _get_ramp_up_setting(self):
         """
-        :rtype : list[DataPoint]
+        :rtype : bool
         """
         return False
 
@@ -872,11 +872,13 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             if self.engine.config['scenarios'][scenario]['requests'][0]['url'] == url:
                 for execution in self.engine.config['execution']:
                     if execution['scenario'] == scenario:
-                        return execution['ramp-up'] if 'ramp-up' in execution else None
-        return None
+                        if 'ramp-up' in execution:
+                            return execution['ramp-up']
 
     def _get_ramp_up_setting(self):
-        return self.engine.config['settings']['ramp-up-exclude']
+        settings = self.engine.config.get('settings')
+        if settings:
+            return settings.get('ramp-up-exclude')
 
     def _calculate_datapoints(self, final_pass=False):
         """
