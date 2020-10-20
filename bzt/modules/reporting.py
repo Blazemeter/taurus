@@ -96,12 +96,13 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             self.__report_duration()
 
         if self.last_sec:
-            summary_kpi = self.last_sec[DataPoint.CUMULATIVE][""]
+            if '' in self.last_sec[DataPoint.CUMULATIVE]:
+                summary_kpi = self.last_sec[DataPoint.CUMULATIVE][""]
 
-            if self.parameters.get("summary", True):
-                self.__report_samples_count(summary_kpi)
-            if self.parameters.get("percentiles", True):
-                self.__report_percentiles(summary_kpi)
+                if self.parameters.get("summary", True):
+                    self.__report_samples_count(summary_kpi)
+                if self.parameters.get("percentiles", True):
+                    self.__report_percentiles(summary_kpi)
 
             if self.parameters.get("summary-labels", True):
                 self.__report_summary_labels(self.last_sec[DataPoint.CUMULATIVE])
@@ -302,11 +303,12 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         self.log.info("Dumping final status as CSV: %s", filename)
         # FIXME: what if there's no last_sec
         with open(get_full_path(filename), 'wt') as fhd:
-            fieldnames = self.__get_csv_dict('', self.last_sec[DataPoint.CUMULATIVE]['']).keys()
-            writer = csv.DictWriter(fhd, fieldnames)
-            writer.writeheader()
-            for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
-                writer.writerow(self.__get_csv_dict(label, kpiset))
+            if '' in self.last_sec[DataPoint.CUMULATIVE]:
+                fieldnames = self.__get_csv_dict('', self.last_sec[DataPoint.CUMULATIVE]['']).keys()
+                writer = csv.DictWriter(fhd, fieldnames)
+                writer.writeheader()
+                for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
+                    writer.writerow(self.__get_csv_dict(label, kpiset))
 
     def __get_csv_dict(self, label, kpiset):
         kpi_copy = copy.deepcopy(kpiset)

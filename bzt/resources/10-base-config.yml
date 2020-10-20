@@ -160,6 +160,7 @@ cli:
 settings:
   aggregator: consolidator
   default-executor: jmeter
+  ramp-up-exclude: false
   env:
     OBJC_DISABLE_INITIALIZE_FORK_SAFETY: "YES" # for Mac to not crash Apiritif
 

@@ -579,9 +579,10 @@ class ResultsProvider(object):
         """
         for datapoint in self._calculate_datapoints(final_pass):
             current = datapoint[DataPoint.CURRENT]
-            self.__merge_to_cumulative(current)
-            datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)  # FIXME: this line eats RAM like hell!
-            datapoint.recalculate()
+            if datapoint[DataPoint.CUMULATIVE] or not self._get_ramp_up_setting():
+                self.__merge_to_cumulative(current)
+                datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)  # FIXME: this line eats RAM like hell!
+                datapoint.recalculate()
 
             for listener in self.listeners:
                 listener.aggregated_second(datapoint)
@@ -593,6 +594,13 @@ class ResultsProvider(object):
         :rtype : list[DataPoint]
         """
         yield
+
+    @abstractmethod
+    def _get_ramp_up_setting(self):
+        """
+        :rtype : list[DataPoint]
+        """
+        return False
 
 
 class ResultsReader(ResultsProvider):
@@ -751,6 +759,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.buffer = {}
         self.histogram_max = 5.0
         self._sticky_concurrencies = {}
+        self.timestamps = {}
 
     def prepare(self):
         """
@@ -858,6 +867,17 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 tstamp = mints
         self.buffer.setdefault(tstamp, []).append(point)
 
+    def _get_ramp_up(self, url):
+        for scenario in self.engine.config['scenarios'].keys():
+            if self.engine.config['scenarios'][scenario]['requests'][0]['url'] == url:
+                for execution in self.engine.config['execution']:
+                    if execution['scenario'] == scenario:
+                        return execution['ramp-up'] if 'ramp-up' in execution else None
+        return None
+
+    def _get_ramp_up_setting(self):
+        return self.engine.config['settings']['ramp-up-exclude']
+
     def _calculate_datapoints(self, final_pass=False):
         """
         Override ResultsProvider._calculate_datapoints
@@ -875,6 +895,16 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             points_to_consolidate = self.buffer.pop(tstamp)
 
             for subresult in points_to_consolidate:
+                if self.engine.config['settings']['ramp-up-exclude']:
+                    label = list(filter(None, subresult[DataPoint.CURRENT].keys()))[0]
+                    if label not in self.timestamps:
+                        self.timestamps[label] = subresult['ts']
+
+                    ramp_up = self._get_ramp_up(label)
+                    if ramp_up:
+                        if subresult['ts'] < self.timestamps[label] + ramp_up:
+                            subresult[DataPoint.CUMULATIVE] = dict()
+
                 if not subresult[DataPoint.SOURCE_ID]:
                     raise ValueError("Reader must provide source ID for datapoint")
                 self._sticky_concurrencies[subresult[DataPoint.SOURCE_ID]] = {
