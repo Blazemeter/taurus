@@ -7,6 +7,7 @@ from apiritif import get_logging_handlers, set_logging_handlers
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
     TimeoutException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as econd
 
@@ -463,3 +464,37 @@ def go(url):
     if wait_for_wnd_open:
         WebDriverWait(driver, _get_timeout()).until(econd.number_of_windows_to_be(1))
         windows["wnd_name_internal_0"] = driver.window_handles[0]
+
+
+def _is_range_type(element):
+    if element.tag_name == "input" and element.get_property("type") == "range":
+        return True
+    return False
+
+
+def send_keys(loc_or_elem, value):
+    """
+    Standard Selenium send_keys method doesn't work well with inputs of type range so we need to invoke custom
+    JavaScript call to set it manually
+    :param loc_or_elem: the target locator or WebElement
+    :param value: the value to be set
+    """
+    element = None
+    if isinstance(loc_or_elem, WebElement):
+        element = loc_or_elem
+    elif loc_or_elem[0] in BYS.keys():
+        loc_dict = {loc_or_elem[0]: loc_or_elem[1]}
+        element = get_elements([loc_dict])[0]
+    else:
+        for key, value in BYS.items():
+            if value == loc_or_elem[0]:
+                loc_dict = {key: loc_or_elem[1]}
+                element = get_elements([loc_dict])[0]
+                break
+    if _is_range_type(element):
+        _get_driver().execute_script("""
+            arguments[0].value = arguments[1];
+            arguments[0].dispatchEvent(new Event('input'));
+        """, element, value)
+    else:
+        element.send_keys(value)

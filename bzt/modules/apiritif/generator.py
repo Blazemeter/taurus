@@ -281,18 +281,13 @@ from collections import OrderedDict
     def _gen_dynamic_locator(self, var_w_locator, locators):
         if self._is_foreach_element(locators):
             return ast.Name(id=locators[0].get("byelement"))
+        if self._is_shadow_locator(locators):
+            return ast.Name(id=var_w_locator)
+
         el = self._get_byelement(locators)
         target = el if el else "self.driver"
         method = "%s.find_element" % target
 
-        if self._is_shadow_locator(locators):
-            self.selenium_extras.add("find_element_by_shadow")
-            return ast_call(
-                func=ast_attr("find_element_by_shadow"),
-                args=[
-                    ast.Str(locators[0].get("shadow"), kind="")
-                ]
-            )
         return ast_call(
             func=ast_attr(method),
             args=[
@@ -318,9 +313,16 @@ from collections import OrderedDict
                            args=args))
 
     def _gen_get_locator_call(self, var_name, locators):
-        # don't generate 'get_locator' for byElement action or shadow locator
-        if self._is_foreach_element(locators) or self._is_shadow_locator(locators):
+        # don't generate 'get_locator' for byElement action
+        if self._is_foreach_element(locators):
             return []
+        if self._is_shadow_locator(locators):
+            self.selenium_extras.add("find_element_by_shadow")
+            return ast.Assign(
+                targets=[ast.Name(id=var_name, ctx=ast.Store(), kind="")],
+                value=ast_call(func="find_element_by_shadow",
+                               args=[ast.Str(locators[0].get("shadow"), kind="")]))
+
         parent_el = self._get_byelement(locators)
         locs = [l for l in locators if not l.get("byelement")]  # remove the byelement locator from the list
         return self._gen_loc_method_call("get_locator", var_name, locs, parent_el)
@@ -530,11 +532,21 @@ from collections import OrderedDict
                             self._gen_dynamic_locator("var_loc_keys", selectors),
                             "clear"))))
             action = "send_keys"
+            self.selenium_extras.add(action)
             if isinstance(param, str) and param.startswith("KEY_"):
                 args = [ast_attr("Keys.%s" % param.split("KEY_")[1])]
             else:
                 args = [self._gen_expr(str(param))]
-
+            if self._is_foreach_element(selectors):
+                elements.append(ast_call(
+                    func=ast_attr(action),
+                    args=[self._gen_dynamic_locator("var_loc_keys", selectors), args]))
+            else:
+                elements.append(self._gen_dynamic_locator("var_loc_keys", selectors))
+                elements.append(ast_call(
+                    func=ast_attr(action),
+                    args=[ast.Name(id='var_loc_keys'), args]))
+            return elements
         if action:
             elements.append(ast_call(
                 func=ast_attr(

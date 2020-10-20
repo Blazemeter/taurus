@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from collections import OrderedDict
-from bzt.resources.selenium_extras import check_opened_new_window, go, get_locator
+from bzt.resources.selenium_extras import get_locator, go, check_opened_new_window, send_keys
 
 class TestLocSc(unittest.TestCase):
 
@@ -72,7 +72,8 @@ class TestLocSc(unittest.TestCase):
                             var_loc_keys[1]).clear()
                         self.driver.find_element(
                             var_loc_keys[0],
-                            var_loc_keys[1]).send_keys('John Doe')
+                            var_loc_keys[1])
+                        send_keys(var_loc_keys, 'John Doe')
                     else:
 
                         var_loc_keys = get_locator([{'id': self.vars['input_name_id']}])
@@ -81,7 +82,8 @@ class TestLocSc(unittest.TestCase):
                             var_loc_keys[1]).clear()
                         self.driver.find_element(
                             var_loc_keys[0],
-                            var_loc_keys[1]).send_keys('Jack Green')
+                            var_loc_keys[1])
+                        send_keys(var_loc_keys, 'Jack Green')
 
                     var_loc_keys = get_locator([{'xpath': '/html/body/div[2]/form/div[11]/div/input'}])
                     self.driver.find_element(
@@ -100,7 +102,8 @@ class TestLocSc(unittest.TestCase):
                         var_loc_keys[1]).clear()
                     self.driver.find_element(
                         var_loc_keys[0],
-                        var_loc_keys[1]).send_keys('my text')
+                        var_loc_keys[1])
+                    send_keys(var_loc_keys, 'my text')
 
                     test = self.driver.execute_script('return window.screen.width > 1000;')
                     if test:

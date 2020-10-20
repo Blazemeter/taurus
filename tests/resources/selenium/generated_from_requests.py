@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from collections import OrderedDict
-from bzt.resources.selenium_extras import dialogs_get_next_alert, dialogs_answer_on_next_confirm, switch_window, close_window, get_locator, dialogs_get_next_confirm, open_window, check_opened_new_window, dialogs_get_next_prompt, go, dialogs_answer_on_next_alert, switch_frame, dialogs_answer_on_next_prompt, wait_for
+from bzt.resources.selenium_extras import wait_for, switch_window, go, dialogs_answer_on_next_alert, close_window, switch_frame, dialogs_get_next_prompt, get_locator, open_window, send_keys, dialogs_answer_on_next_prompt, dialogs_answer_on_next_confirm, dialogs_get_next_confirm, dialogs_get_next_alert, check_opened_new_window
 reader_1 = apiritif.CSVReaderPerThread('first.csv', loop=True)
 reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)
 
@@ -85,7 +85,8 @@ class TestLocSc(unittest.TestCase):
             var_loc_keys = get_locator([{'css': 'body input.btn.btn-primary'}])
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1]).send_keys(Keys.ENTER)
+                var_loc_keys[1])
+            send_keys(var_loc_keys, Keys.ENTER)
 
             var_loc_as = get_locator([{'id': 'address'}])
             self.assertEqual(self.driver.find_element(
@@ -101,7 +102,8 @@ class TestLocSc(unittest.TestCase):
             var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1]).send_keys('B')
+                var_loc_keys[1])
+            send_keys(var_loc_keys, 'B')
 
             var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
@@ -109,12 +111,14 @@ class TestLocSc(unittest.TestCase):
                 var_loc_keys[1]).clear()
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1]).send_keys('B')
+                var_loc_keys[1])
+            send_keys(var_loc_keys, 'B')
 
             var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1]).send_keys(Keys.ENTER)
+                var_loc_keys[1])
+            send_keys(var_loc_keys, Keys.ENTER)
 
             var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
@@ -122,7 +126,8 @@ class TestLocSc(unittest.TestCase):
                 var_loc_keys[1]).clear()
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1]).send_keys(Keys.ENTER)
+                var_loc_keys[1])
+            send_keys(var_loc_keys, Keys.ENTER)
 
             var_loc_keys = get_locator([{'xpath': '//div[3]/form/select[1]//option[3]'}])
             self.driver.find_element(
