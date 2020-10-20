@@ -19,7 +19,7 @@ from bzt.modules.reporting import FinalStatus
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.modules.apiritif import ApiritifTester
 from bzt.utils import get_full_path, BetterDict
-from tests.unit import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
+from tests.unit import BZTestCase, BZT_DIR, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
 from tests.unit.mocks import EngineEmul, ModuleMock, BZMock
 
 
@@ -1036,11 +1036,11 @@ class TestCloudProvisioning(BZTestCase):
             for _file in files_in_home[1:]:
                 open(_file['fullname'], 'a').close()
 
-            self.obj.engine.file_search_paths = ['tests']  # config not in cwd
+            self.obj.engine.file_search_paths = ['tests', os.path.join('tests', 'unit')]  # config not in cwd
 
             # 'files' are treated similar in all executors so check only one
             self.obj.engine.config[EXEC][0]['files'] = [
-                os.path.join(os.getcwd(), 'tests', 'test_CLI.py'),  # full path
+                os.path.join(BZT_DIR, 'tests', 'unit', 'test_CLI.py'),  # full path
                 files_in_home[2]['shortname'],  # path from ~
                 os.path.join('resources', 'jmeter', 'jmeter-loader.bat'),  # relative path
                 'mocks.py',  # only basename (look at file_search_paths)
