@@ -46,9 +46,7 @@ addons:
 
 install:
 - |
-  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    dotnet --version
-  else
+  if [ "$TRAVIS_OS_NAME" != "linux" ]; then
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
 - gem install rspec
