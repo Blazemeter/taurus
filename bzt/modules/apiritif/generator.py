@@ -542,7 +542,8 @@ from collections import OrderedDict
                     func=ast_attr(action),
                     args=[self._gen_dynamic_locator("var_loc_keys", selectors), args]))
             else:
-                elements.append(self._gen_dynamic_locator("var_loc_keys", selectors))
+                if not self._is_shadow_locator(selectors):
+                    elements.append(self._gen_dynamic_locator("var_loc_keys", selectors))
                 elements.append(ast_call(
                     func=ast_attr(action),
                     args=[ast.Name(id='var_loc_keys'), args]))

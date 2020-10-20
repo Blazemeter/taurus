@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from collections import OrderedDict
-from bzt.resources.selenium_extras import get_locator, send_keys, find_element_by_shadow, check_opened_new_window
+from bzt.resources.selenium_extras import check_opened_new_window, find_element_by_shadow, send_keys, get_locator
 
 class TestLocSc(unittest.TestCase):
 
@@ -162,12 +162,10 @@ class TestLocSc(unittest.TestCase):
 
             var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
             var_loc_keys.clear()
-            var_loc_keys
             send_keys(var_loc_keys, 'text')
 
             var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
             var_loc_keys.clear()
-            var_loc_keys
             send_keys(var_loc_keys, 'text')
 
             var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
@@ -177,11 +175,9 @@ class TestLocSc(unittest.TestCase):
             var_loc_keys.submit()
 
             var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            var_loc_keys
             send_keys(var_loc_keys, Keys.ENTER)
 
             var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            var_loc_keys
             send_keys(var_loc_keys, Keys.ENTER)
 
     def test_locsc(self):
