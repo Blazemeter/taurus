@@ -42,7 +42,6 @@ modules:
 settings:
   check-interval: 5s
   default-executor: jmeter
-  ramp-up-exclude: false
 
 provisioning: local
 ```
