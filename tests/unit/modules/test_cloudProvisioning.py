@@ -483,7 +483,7 @@ class TestCloudProvisioning(BZTestCase):
             'blazemeter': {'strange_param': False},
             'selenium': {'virtual-display': False},
             'apiritif': {'verbose': False},
-            'private_mod': {'class': 'tests.mocks.ModuleMock', 'send-to-blazemeter': True}
+            'private_mod': {'class': 'tests.unit.mocks.ModuleMock', 'send-to-blazemeter': True}
         })
 
         self.assertEqual(target, cloud_config.get("modules"))
