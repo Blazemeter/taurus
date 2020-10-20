@@ -895,7 +895,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             points_to_consolidate = self.buffer.pop(tstamp)
 
             for subresult in points_to_consolidate:
-                if self.engine.config['settings']['ramp-up-exclude']:
+                if self.engine and 'ramp-up-exclude' in self.engine.config['settings'] and \
+                        self.engine.config['settings']['ramp-up-exclude']:
                     label = list(filter(None, subresult[DataPoint.CURRENT].keys()))[0]
                     if label not in self.timestamps:
                         self.timestamps[label] = subresult['ts']
