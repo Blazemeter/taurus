@@ -17,4 +17,4 @@ reporting:
 
 modules:
   singletone-mock:
-    class: tests.mocks.SingletoneServiceMock
+    class: tests.unit.mocks.SingletoneServiceMock
