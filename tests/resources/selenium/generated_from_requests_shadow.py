@@ -19,8 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from collections import OrderedDict
-from bzt.resources.selenium_extras import find_element_by_shadow, check_opened_new_window, get_locator
+from bzt.resources.selenium_extras import find_element_by_shadow, get_locator
 
 class TestLocSc(unittest.TestCase):
 
@@ -34,7 +33,7 @@ class TestLocSc(unittest.TestCase):
         options.add_argument('--disable-dev-shm-usage')
         self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows=OrderedDict(),
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc')
 
 
@@ -62,10 +61,8 @@ class TestLocSc(unittest.TestCase):
                 raise NoSuchElementException(("The element (shadow: '%s') is not a contenteditable element" % ('c-basic, lightning-accordion-section, .slds-button',)))
 
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').click()
-            check_opened_new_window()
 
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').click()
-            check_opened_new_window()
 
             ActionChains(self.driver).double_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
 
