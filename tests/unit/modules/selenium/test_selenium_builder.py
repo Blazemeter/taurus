@@ -115,7 +115,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "for i in range(10):",
             "if ((i % 2) == 0):",
             print_i,
-            "go('http:\\\\blazemeter.com')",
+            "self.driver.get(\'http:\\\\blazemeter.com\')",
             "ifself.driver.find_element(var_edit_content[0], var_edit_content[1])."
             "get_attribute('contenteditable'):"
             "self.driver.execute_script((\"arguments[0].innerHTML=\'%s\';\"%\'lo-la-lu\'),"
@@ -813,7 +813,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         target_lines = [
             "with apiritif.smart_transaction('http://blazedemo.com/测试')",
-            "go('http://blazedemo.com/测试')"
+            "self.driver.get(\'http://blazedemo.com/测试')"
         ]
 
         for idx in range(len(target_lines)):

@@ -19,8 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from collections import OrderedDict
-from bzt.resources.selenium_extras import get_elements, check_opened_new_window, get_locator
+from bzt.resources.selenium_extras import get_locator, get_elements
 
 class TestLocSc(unittest.TestCase):
 
@@ -36,7 +35,7 @@ class TestLocSc(unittest.TestCase):
             service_log_path='/somewhere/webdriver.log',
             options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows=OrderedDict(),
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc')
 
 
@@ -64,13 +63,11 @@ class TestLocSc(unittest.TestCase):
                 else:
                     raise NoSuchElementException(("The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element" % ('el', el.tag_name, el.text)))
                 el.click()
-                check_opened_new_window()
 
                 var_loc_keys = get_locator([{'css': 'input-cls'}, {'xpath': '//input'}], el)
                 el.find_element(
                     var_loc_keys[0],
                     var_loc_keys[1]).click()
-                check_opened_new_window()
                 ActionChains(self.driver).double_click(el).perform()
                 ActionChains(self.driver).double_click(el).perform()
                 ActionChains(self.driver).context_click(el).perform()
