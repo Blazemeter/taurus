@@ -1,0 +1,12 @@
+---
+execution:
+- executor: jmeter
+  iterations: 1
+  scenario: sc
+scenarios:
+  sc:
+    requests:
+    - assert:
+      - bla-bla-bla
+      url: https://tut.by
+

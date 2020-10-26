@@ -106,7 +106,7 @@ class Engine(object):
         except:
             user_packages = []
 
-        self.log.debug("Content of user packages dir: %s".format(user_packages))
+        self.log.debug("Content of user packages dir: {}".format(user_packages))
 
         os.environ['PYTHONPATH'] = os.pathsep.join(paths)
 

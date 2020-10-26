@@ -1,0 +1,196 @@
+---
+cli:
+  linter:
+    disable: false
+    ignored-warnings: []
+    lint-and-exit: false
+    warn-on-unfamiliar-fields: false
+cli-aliases:
+  cloud:
+    provisioning: cloud
+  detach:
+    modules:
+      cloud:
+        detach: true
+  func:
+    modules:
+      console:
+        disable: true
+    settings:
+      aggregator: functional-consolidator
+  gui:
+    modules:
+      jmeter:
+        gui: true
+  install-tools:
+    services:
+    - install-checker
+  lint:
+    cli:
+      linter:
+        lint-and-exit: true
+  local:
+    provisioning: local
+  locations:
+    modules:
+      cloud:
+        dump-locations: true
+    provisioning: cloud
+  nolint:
+    cli:
+      linter:
+        disable: true
+  public:
+    modules:
+      blazemeter:
+        public-report: true
+  report:
+    reporting:
+    - blazemeter
+  sequential:
+    modules:
+      local:
+        sequential: true
+execution:
+- executor: jmeter
+  iterations: 1
+  scenario: sc
+included-configs: []
+modules:
+  ab:
+    class: bzt.modules.ab.ApacheBenchmarkExecutor
+  android-emulator:
+    class: bzt.modules.services.AndroidEmulatorLoader
+  apiritif:
+    class: bzt.modules.apiritif.ApiritifNoseExecutor
+  appium:
+    class: bzt.modules.services.AppiumLoader
+  blazemeter:
+    class: bzt.modules.blazemeter.BlazeMeterUploader
+  capturehar:
+    class: bzt.modules.blazemeter.ServiceStubCaptureHAR
+  cloud:
+    class: bzt.modules.blazemeter.CloudProvisioning
+    default-location: us-central1-a
+  console:
+    class: bzt.modules.console.ConsoleStatusReporter
+  consolidator:
+    class: bzt.modules.aggregator.ConsolidatingAggregator
+  external-results-loader:
+    class: bzt.modules.external.ExternalResultsLoader
+  final-stats:
+    class: bzt.modules.reporting.FinalStatus
+  final_stats:
+    class: bzt.modules.reporting.FinalStatus
+  functional-consolidator:
+    class: bzt.modules.functional.FunctionalAggregator
+  gatling:
+    class: bzt.modules.gatling.GatlingExecutor
+    properties:
+      gatling.data.file.bufferSize: 256
+  grinder:
+    class: bzt.modules.grinder.GrinderExecutor
+    properties:
+      grinder.useConsole: false
+  install-checker:
+    class: bzt.modules.services.InstallChecker
+  jmeter:
+    class: bzt.modules.jmeter.JMeterExecutor
+    plugins:
+    - jpgc-casutg
+    - jpgc-dummy
+    - jpgc-ffw
+    - jpgc-fifo
+    - jpgc-functions
+    - jpgc-json
+    - jpgc-perfmon
+    - jpgc-prmctl
+    - jpgc-tst
+    properties:
+      jmeter.save.saveservice.autoflush: 'true'
+      jmeter.save.saveservice.connect_time: 'true'
+      jmeterengine.force.system.exit: 'true'
+      summariser.name: ''
+    protocol-handlers:
+      http: bzt.jmx.http.HTTPProtocolHandler
+  junit:
+    class: bzt.modules.java.JUnitTester
+  junit-xml:
+    class: bzt.modules.reporting.JUnitXMLReporter
+  local:
+    class: bzt.modules.provisioning.Local
+  locust:
+    class: bzt.modules.locustio.LocustIOExecutor
+  mocha:
+    class: bzt.modules.javascript.MochaTester
+  molotov:
+    class: bzt.modules.molotov.MolotovExecutor
+  monitoring:
+    class: bzt.modules.monitoring.Monitoring
+  newman:
+    class: bzt.modules.javascript.NewmanExecutor
+  nunit:
+    class: bzt.modules.csharp.NUnitExecutor
+  passfail:
+    class: bzt.modules.passfail.PassFailStatus
+  pbench:
+    class: bzt.modules.pbench.PBenchExecutor
+  pip-install:
+    class: bzt.modules.services.PipInstaller
+  proxy2jmx:
+    class: bzt.modules.proxy2jmx.Proxy2JMX
+  pytest:
+    class: bzt.modules.pytest.PyTestExecutor
+  robot:
+    class: bzt.modules.robot.RobotExecutor
+  rspec:
+    class: bzt.modules.ruby.RSpecTester
+  screenshoter:
+    class: bzt.modules.blazemeter.ServiceStubScreenshoter
+  selenium:
+    class: bzt.modules.selenium.SeleniumExecutor
+  shellexec:
+    class: bzt.modules.shellexec.ShellExecutor
+  siege:
+    class: bzt.modules.siege.SiegeExecutor
+  testng:
+    class: bzt.modules.java.TestNGTester
+  tsung:
+    class: bzt.modules.tsung.TsungExecutor
+  unpacker:
+    class: bzt.modules.services.Unpacker
+  virtual-display:
+    class: bzt.modules.services.VirtualDisplay
+  wdio:
+    class: bzt.modules.javascript.WebdriverIOExecutor
+provisioning: local
+reporting:
+- final-stats
+- console
+scenarios:
+  sc:
+    requests:
+    - assert:
+      - bla-bla-bla
+      url: https://tut.by
+services:
+- local:
+  - metrics:
+    - cpu
+    - mem
+    - bytes-sent
+    - bytes-recv
+    - disk-read
+    - disk-write
+    - disk-space
+    - engine-loop
+    - conn-all
+  module: monitoring
+settings:
+  aggregator: consolidator
+  default-executor: jmeter
+  env:
+    OBJC_DISABLE_INITIALIZE_FORK_SAFETY: 'YES'
+    TAURUS_ARTIFACTS_DIR: 2020-10-26_12-29-36.114501
+version: DEV
+
