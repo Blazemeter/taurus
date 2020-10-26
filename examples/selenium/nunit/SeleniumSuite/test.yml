@@ -3,4 +3,4 @@ execution:
 - executor: selenium
   iterations: 10
   scenario:
-    script: SeleniumSuite/bin/Release/SeleniumSuite.dll  # assembly containing test suites
+    script: SeleniumSuite/bin/Release/netcoreapp3.1/SeleniumSuite.dll  # assembly containing test suites
