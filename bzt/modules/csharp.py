@@ -15,7 +15,7 @@ limitations under the License.
 """
 import os
 
-from bzt import TaurusConfigError
+from bzt import TaurusConfigError, TaurusInternalException
 from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools
 from bzt.utils import get_full_path, is_windows, RequiredTool, RESOURCES_DIR, CALL_PROBLEMS
@@ -48,7 +48,7 @@ class CSharpExecutor(SubprocessedExecutor, HavingInstallableTools):
 
     def startup(self):
         if not self.executor_name:
-            return
+            raise TaurusInternalException("C# executor is not specified, use NUnit or XUnit instead.")
 
         cmdline = []
 
