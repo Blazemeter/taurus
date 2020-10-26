@@ -61,6 +61,12 @@ class CLI(object):
         self.log.debug("Command-line options: %s", self.options)
         self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
         self.log.debug("OS: %s", platform.uname())
+
+        self.log.debug("Path to interpreter: {}".format(sys.executable))
+        self.log.debug("Path to packages: {}".format(sys.path))
+        self.log.debug("Default python: {}".format(shutil.which('python' or 'not found')))
+        self.log.debug("Default python3: {}".format(shutil.which('python3' or 'not found')))
+
         self.engine = Engine(self.log)
         self.exit_code = 0
 

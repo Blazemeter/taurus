@@ -1616,17 +1616,6 @@ class DummyScreen(BaseScreen):
         LOG.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
 
 
-def which(filename):
-    """unix-style `which` implementation"""
-    locations = os.environ.get("PATH").split(os.pathsep)
-    candidates = []
-    for location in locations:
-        candidate = os.path.join(location, filename)
-        if os.path.isfile(candidate):
-            candidates.append(candidate)
-    return candidates
-
-
 class PythonGenerator(object):
     IMPORTS = ''
     INDENT_STEP = 4

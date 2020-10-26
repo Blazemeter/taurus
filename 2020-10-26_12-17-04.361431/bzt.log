@@ -1,0 +1,68 @@
+[2020-10-26 12:17:04,284 INFO root] Taurus CLI Tool vDEV
+[2020-10-26 12:17:04,285 DEBUG root] Build: DEV
+[2020-10-26 12:17:04,285 DEBUG root] Extended git info: DEV
+[2020-10-26 12:17:04,285 DEBUG root] Command-line options: {'log': '/tmp/bzt_l0qpe0p8.log', 'option': None, 'quiet': None, 'verbose': True, 'no_system_configs': None, 'aliases': []}
+[2020-10-26 12:17:04,285 DEBUG root] Python: CPython 3.8.5
+[2020-10-26 12:17:04,285 DEBUG root] OS: uname_result(system='Linux', node='nactus', release='5.4.0-48-generic', version='#52-Ubuntu SMP Thu Sep 10 10:58:49 UTC 2020', machine='x86_64', processor='x86_64')
+[2020-10-26 12:17:04,286 INFO root] Starting with configs: []
+[2020-10-26 12:17:04,286 DEBUG root] Using personal config: /home/taras/.bzt-rc
+[2020-10-26 12:17:04,286 INFO Engine] Configuring...
+[2020-10-26 12:17:04,300 DEBUG Engine] Base configs list: ['./bzt/resources/10-base-config.yml']
+[2020-10-26 12:17:04,301 DEBUG Engine.Configuration] Configs: ['./bzt/resources/10-base-config.yml']
+[2020-10-26 12:17:04,301 DEBUG Engine.Configuration] Reading ./bzt/resources/10-base-config.yml as YAML
+[2020-10-26 12:17:04,344 DEBUG Engine] User configs list: ['/home/taras/.bzt-rc']
+[2020-10-26 12:17:04,344 DEBUG Engine.Configuration] Configs: ['/home/taras/.bzt-rc']
+[2020-10-26 12:17:04,345 DEBUG Engine.Configuration] Reading /home/taras/.bzt-rc as YAML
+[2020-10-26 12:17:04,352 DEBUG Engine.Configuration] Configs: ['/home/taras/.bzt-rc']
+[2020-10-26 12:17:04,353 DEBUG Engine.Configuration] Reading /home/taras/.bzt-rc as YAML
+[2020-10-26 12:17:04,361 DEBUG Engine] Requesting updates info: https://gettaurus.org/updates/?version=DEV&installID=linux-a5664cf7a4b9
+[2020-10-26 12:17:04,361 INFO Engine] Artifacts dir: /home/taras/Projects/taurus/2020-10-26_12-17-04.361431
+[2020-10-26 12:17:04,362 DEBUG HTTPClient] Making HTTP request GET https://gettaurus.org/updates/?version=DEV&installID=linux-a5664cf7a4b9
+[2020-10-26 12:17:04,365 DEBUG urllib3.connectionpool] Starting new HTTPS connection (1): gettaurus.org:443
+[2020-10-26 12:17:04,367 DEBUG Engine] New artifact filename: /home/taras/Projects/taurus/2020-10-26_12-17-04.361431/effective
+[2020-10-26 12:17:04,369 DEBUG Engine.Configuration] Dumping YAML config into /home/taras/Projects/taurus/2020-10-26_12-17-04.361431/effective.yml
+[2020-10-26 12:17:04,402 DEBUG Engine.Configuration] Dumping JSON config into /home/taras/Projects/taurus/2020-10-26_12-17-04.361431/effective.json
+[2020-10-26 12:17:04,403 DEBUG Engine] Interpreter: /home/taras/tmp/p38/bin/python
+[2020-10-26 12:17:04,404 DEBUG Engine] Path to packages: ['/home/taras/Projects/taurus', '/usr/lib/python38.zip', '/usr/lib/python3.8', '/usr/lib/python3.8/lib-dynload', '/home/taras/tmp/p38/lib/python3.8/site-packages']
+[2020-10-26 12:17:04,404 DEBUG Engine] Default python: /home/taras/tmp/p38/bin/python
+[2020-10-26 12:17:04,404 DEBUG Engine] Default python3: /home/taras/tmp/p38/bin/python3
+[2020-10-26 12:17:04,404 DEBUG Engine] Set PYTHONPATH to :
+	USER: '/home/taras/.bzt/python-packages/3.8.5' +
+	TEMP: '/home/taras/Projects/taurus/2020-10-26_12-17-04.361431/python-packages/3.8.5' +
+	CURRENT: ''
+[2020-10-26 12:17:04,404 DEBUG Engine] Content of user packages dir: %s
+[2020-10-26 12:17:04,405 DEBUG Engine] OS env: OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+[2020-10-26 12:17:04,406 DEBUG Engine] OS env: TAURUS_ARTIFACTS_DIR=/home/taras/Projects/taurus/2020-10-26_12-17-04.361431
+[2020-10-26 12:17:04,406 DEBUG root] Closing log handler: /tmp/bzt_l0qpe0p8.log
+[2020-10-26 12:17:04,406 DEBUG root] Switched writing logs to /home/taras/Projects/taurus/2020-10-26_12-17-04.361431/bzt.log
+[2020-10-26 12:17:04,406 DEBUG root] Linting config
+[2020-10-26 12:17:04,413 INFO Engine] Preparing...
+[2020-10-26 12:17:04,414 DEBUG Engine] Module config: consolidator {'class': 'bzt.modules.aggregator.ConsolidatingAggregator'}
+[2020-10-26 12:17:04,415 DEBUG root] Importing module: bzt.modules.aggregator
+[2020-10-26 12:17:04,554 DEBUG root] Loading class: 'ConsolidatingAggregator' from <module 'bzt.modules.aggregator' from '/home/taras/Projects/taurus/bzt/modules/aggregator.py'>
+[2020-10-26 12:17:04,554 DEBUG Engine.consolidator] Buffer scaling setup: percentile 95.0 from [0.0, 50.0, 90.0, 95.0, 99.0, 99.9, 100.0] selected
+[2020-10-26 12:17:04,555 DEBUG Engine] Module config: monitoring {'class': 'bzt.modules.monitoring.Monitoring'}
+[2020-10-26 12:17:04,555 DEBUG root] Importing module: bzt.modules.monitoring
+[2020-10-26 12:17:04,557 DEBUG root] Loading class: 'Monitoring' from <module 'bzt.modules.monitoring' from '/home/taras/Projects/taurus/bzt/modules/monitoring.py'>
+[2020-10-26 12:17:04,558 DEBUG Engine] Module config: local {'class': 'bzt.modules.provisioning.Local'}
+[2020-10-26 12:17:04,558 DEBUG root] Importing module: bzt.modules.provisioning
+[2020-10-26 12:17:04,558 DEBUG root] Loading class: 'Local' from <module 'bzt.modules.provisioning' from '/home/taras/Projects/taurus/bzt/modules/provisioning.py'>
+[2020-10-26 12:17:04,558 ERROR root] Config Error: No 'execution' is configured. Did you forget to pass config files?
+[2020-10-26 12:17:04,560 DEBUG root] TaurusConfigError: No 'execution' is configured. Did you forget to pass config files?
+  File "/home/taras/Projects/taurus/bzt/cli.py", line 261, in perform
+    self.engine.prepare()
+  File "/home/taras/Projects/taurus/bzt/engine/engine.py", line 221, in prepare
+    self.__prepare_provisioning()
+  File "/home/taras/Projects/taurus/bzt/engine/engine.py", line 624, in __prepare_provisioning
+    self.provisioning.prepare()
+  File "/home/taras/Projects/taurus/bzt/modules/provisioning.py", line 69, in prepare
+    super(Local, self).prepare()
+  File "/home/taras/Projects/taurus/bzt/engine/modules.py", line 128, in prepare
+    raise exc
+[2020-10-26 12:17:04,560 INFO Engine] Post-processing...
+[2020-10-26 12:17:04,561 DEBUG Engine.consolidator] Consolidator buffer[0]: dict_keys([])
+[2020-10-26 12:17:04,563 DEBUG Engine.Configuration] Dumping YAML config into /home/taras/Projects/taurus/2020-10-26_12-17-04.361431/effective.yml
+[2020-10-26 12:17:04,580 DEBUG Engine.Configuration] Dumping JSON config into /home/taras/Projects/taurus/2020-10-26_12-17-04.361431/effective.json
+[2020-10-26 12:17:04,581 INFO root] Artifacts dir: /home/taras/Projects/taurus/2020-10-26_12-17-04.361431
+[2020-10-26 12:17:04,581 WARNING root] Done performing with code: 1
+[2020-10-26 12:17:04,581 DEBUG root] Closing log handler: /home/taras/Projects/taurus/2020-10-26_12-17-04.361431/bzt.log
