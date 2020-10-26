@@ -19,8 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from collections import OrderedDict
-from bzt.resources.selenium_extras import check_opened_new_window, get_loop_range, get_locator
+from bzt.resources.selenium_extras import get_loop_range, get_locator
 
 class TestLocSc(unittest.TestCase):
 
@@ -35,7 +34,7 @@ class TestLocSc(unittest.TestCase):
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
         self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows=OrderedDict(),
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc')
 
 
@@ -49,7 +48,6 @@ class TestLocSc(unittest.TestCase):
                 self.driver.find_element(
                     var_loc_keys[0],
                     var_loc_keys[1]).click()
-                check_opened_new_window()
 
     def test_locsc(self):
         self._1_None()

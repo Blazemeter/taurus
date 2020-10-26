@@ -7,7 +7,7 @@
   ],
   "modules": {
     "mock": {
-      "class": "tests.mocks.ModuleMock",
+      "class": "tests.unit.mocks.ModuleMock",
       "check_iterations": 30
     },
     "console": {
