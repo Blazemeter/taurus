@@ -56,9 +56,10 @@ namespace DotnetTestRunner.Services.NUnit
             {
                 var threadName = $"worker_{i}";
 
+                var runnerForThread = engine.GetRunner(package);
                 testTasks.Add(Task.Run(() =>
                         StartWorker(
-                            runner,
+                            runnerForThread,
                             new NUnitTestEventListener(reportWriter, threadName),
                             startTime,
                             iterations,

@@ -17,7 +17,9 @@ class TestNUnitExecutor(SeleniumTestCase):
         self.obj.execution.merge({
             "scenario": {
                 "script": RESOURCES_DIR + "selenium/dotnet/NUnitTests.dll"
-            }
+            },
+            "concurrency": 3,
+            "iterations": 2
         })
         self.obj.prepare()
         self.setup_mock()
@@ -28,7 +30,7 @@ class TestNUnitExecutor(SeleniumTestCase):
         self.obj.post_process()
         samples = [json.loads(line) for line in open(self.obj.runner.report_file).readlines()]
         statuses = [sample["status"] for sample in samples]
-        self.assertEqual(statuses, ["PASSED"])
+        self.assertEqual(statuses, ["PASSED", "PASSED", "PASSED", "PASSED", "PASSED", "PASSED"])
 
 
 class TestXUnitExecutor(SeleniumTestCase):
