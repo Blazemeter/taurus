@@ -19,8 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from collections import OrderedDict
-from bzt.resources.selenium_extras import check_opened_new_window, get_locator, get_elements, send_keys
+from bzt.resources.selenium_extras import get_locator, get_elements
 
 class TestLocSc(unittest.TestCase):
 
@@ -36,7 +35,7 @@ class TestLocSc(unittest.TestCase):
             service_log_path='/somewhere/webdriver.log',
             options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows=OrderedDict(),
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc')
 
 
@@ -64,13 +63,11 @@ class TestLocSc(unittest.TestCase):
                 else:
                     raise NoSuchElementException(("The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element" % ('el', el.tag_name, el.text)))
                 el.click()
-                check_opened_new_window()
 
                 var_loc_keys = get_locator([{'css': 'input-cls'}, {'xpath': '//input'}], el)
                 el.find_element(
                     var_loc_keys[0],
                     var_loc_keys[1]).click()
-                check_opened_new_window()
                 ActionChains(self.driver).double_click(el).perform()
                 ActionChains(self.driver).double_click(el).perform()
                 ActionChains(self.driver).context_click(el).perform()
@@ -114,13 +111,13 @@ class TestLocSc(unittest.TestCase):
 
                 self.vars['my_var'] = el.get_attribute('value')
                 el.clear()
-                send_keys(el, 'text')
+                el.send_keys('text')
                 el.clear()
-                send_keys(el, 'text')
+                el.send_keys('text')
                 el.submit()
                 el.submit()
-                send_keys(el, Keys.ENTER)
-                send_keys(el, Keys.ENTER)
+                el.send_keys(Keys.ENTER)
+                el.send_keys(Keys.ENTER)
 
     def test_locsc(self):
         self._1_Foreach_test()

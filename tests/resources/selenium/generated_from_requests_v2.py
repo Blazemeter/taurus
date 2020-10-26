@@ -19,8 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from collections import OrderedDict
-from bzt.resources.selenium_extras import wait_for, dialogs_get_next_confirm, go, switch_frame, switch_window, dialogs_answer_on_next_alert, get_locator, open_window, check_opened_new_window, dialogs_answer_on_next_prompt, dialogs_get_next_prompt, dialogs_answer_on_next_confirm, send_keys, close_window, dialogs_get_next_alert
+from bzt.resources.selenium_extras import switch_window, open_window, dialogs_get_next_prompt, dialogs_answer_on_next_confirm, dialogs_answer_on_next_alert, wait_for, dialogs_replace, dialogs_get_next_alert, dialogs_get_next_confirm, get_locator, close_window, dialogs_answer_on_next_prompt, switch_frame
 
 class TestLocSc(unittest.TestCase):
 
@@ -35,13 +34,15 @@ class TestLocSc(unittest.TestCase):
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
         self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows=OrderedDict(),
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc')
 
 
     def _1_Test_V2(self):
         with apiritif.smart_transaction('Test V2'):
-            go('http://blazedemo.com')
+            self.driver.get('http://blazedemo.com')
+
+            dialogs_replace()
             self.driver.set_window_size('750', '750')
             switch_window(0)
 
@@ -97,13 +98,11 @@ class TestLocSc(unittest.TestCase):
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
-            check_opened_new_window()
 
             var_loc_keys = get_locator([{'xpath': '/doc/abc'}, {'css': 'body > div.container > table > tbody > tr:nth-child(1) > td:nth-child(2) > input'}])
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1])
-            send_keys(var_loc_keys, Keys.ENTER)
+                var_loc_keys[1]).send_keys(Keys.ENTER)
 
             var_loc_keys = get_locator([{'id': 'fjkafjk'}, {'css': 'testCss'}])
             self.driver.find_element(
@@ -111,8 +110,7 @@ class TestLocSc(unittest.TestCase):
                 var_loc_keys[1]).clear()
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1])
-            send_keys(var_loc_keys, 'myusername')
+                var_loc_keys[1]).send_keys('myusername')
 
             var_loc_select = get_locator([{'css': 'myclass'}, {'xpath': '//*[@id="cardType"]'}])
             Select(self.driver.find_element(

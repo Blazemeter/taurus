@@ -2,8 +2,8 @@
   "provisioning": "mock1",
   "modules": {
     "mock1": {
-      "class": "tests.mocks.ModuleMock",
-      "prepare": "tests.mocks.KeyboardInterrupt"
+      "class": "tests.unit.mocks.ModuleMock",
+      "prepare": "tests.unit.mocks.KeyboardInterrupt"
     }
   }
 }

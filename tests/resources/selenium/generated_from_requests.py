@@ -19,8 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from collections import OrderedDict
-from bzt.resources.selenium_extras import wait_for, switch_window, go, dialogs_answer_on_next_alert, close_window, switch_frame, dialogs_get_next_prompt, get_locator, open_window, send_keys, dialogs_answer_on_next_prompt, dialogs_answer_on_next_confirm, dialogs_get_next_confirm, dialogs_get_next_alert, check_opened_new_window
+from bzt.resources.selenium_extras import dialogs_answer_on_next_confirm, dialogs_get_next_alert, dialogs_answer_on_next_prompt, dialogs_get_next_confirm, dialogs_answer_on_next_alert, get_locator, wait_for, switch_window, close_window, dialogs_replace, switch_frame, dialogs_get_next_prompt, open_window
 reader_1 = apiritif.CSVReaderPerThread('first.csv', loop=True)
 reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)
 
@@ -42,12 +41,14 @@ class TestLocSc(unittest.TestCase):
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
         self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=True, driver=self.driver, windows=OrderedDict(), scenario_name='loc_sc', data_sources=True)
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=True, driver=self.driver, windows={},
+                                       scenario_name='loc_sc', data_sources=True)
 
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
-            go('http://blazedemo.com/')
+            self.driver.get('http://blazedemo.com/')
+            dialogs_replace()
             wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             wait_for('present', [{'xpath': "//input[@name='test,name']"}], 80.0)
             self.assertEqual(self.driver.title, 'BlazeDemo')
@@ -85,8 +86,7 @@ class TestLocSc(unittest.TestCase):
             var_loc_keys = get_locator([{'css': 'body input.btn.btn-primary'}])
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1])
-            send_keys(var_loc_keys, Keys.ENTER)
+                var_loc_keys[1]).send_keys(Keys.ENTER)
 
             var_loc_as = get_locator([{'id': 'address'}])
             self.assertEqual(self.driver.find_element(
@@ -102,8 +102,7 @@ class TestLocSc(unittest.TestCase):
             var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1])
-            send_keys(var_loc_keys, 'B')
+                var_loc_keys[1]).send_keys('B')
 
             var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
@@ -111,14 +110,12 @@ class TestLocSc(unittest.TestCase):
                 var_loc_keys[1]).clear()
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1])
-            send_keys(var_loc_keys, 'B')
+                var_loc_keys[1]).send_keys('B')
 
             var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1])
-            send_keys(var_loc_keys, Keys.ENTER)
+                var_loc_keys[1]).send_keys(Keys.ENTER)
 
             var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
@@ -126,20 +123,17 @@ class TestLocSc(unittest.TestCase):
                 var_loc_keys[1]).clear()
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1])
-            send_keys(var_loc_keys, Keys.ENTER)
+                var_loc_keys[1]).send_keys(Keys.ENTER)
 
             var_loc_keys = get_locator([{'xpath': '//div[3]/form/select[1]//option[3]'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
-            check_opened_new_window()
 
             var_loc_keys = get_locator([{'xpath': '//div[3]/form/select[2]//option[6]'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
-            check_opened_new_window()
             switch_window('0')
             open_window('some.url')
             switch_window('win_ser_local')
@@ -195,7 +189,6 @@ class TestLocSc(unittest.TestCase):
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
-            check_opened_new_window()
 
             self.vars['Title'] = self.driver.title
 
@@ -215,7 +208,9 @@ class TestLocSc(unittest.TestCase):
 
             self.vars['var_eval'] = self.driver.execute_script('return 0 == false;')
             self.assertTrue(self.driver.execute_script('return 10 === 2*5;'), '10 === 2*5')
-            go('http:\\blazemeter.com')
+            self.driver.get('http:\\blazemeter.com')
+
+            dialogs_replace()
 
             dialog = dialogs_get_next_alert()
             self.assertIsNotNone(dialog, 'No dialog of type alert appeared')
