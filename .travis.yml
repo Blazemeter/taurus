@@ -27,10 +27,6 @@ matrix:
     name: "Python 3 on macOS"
     osx_image: xcode11    # Python 3.7.4 running on macOS 10.14.4
     language: shell
-    before_install:
-      - brew update
-      - brew cask install dotnet-sdk
-      - export PATH="$PATH:/usr/local/share/dotnet"
     env:
     - PYTHON=python3
     - PIP_INSTALL="sudo pip3 install"
@@ -45,16 +41,10 @@ addons:
     - openjdk-8-jdk
     - python-tk
     - python3-tk
-  snaps:
-    - name: dotnet-sdk
-      confinement: classic
-      channel: 3.1/stable
 
 install:
 - |
-  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    sudo snap alias dotnet-sdk.dotnet dotnet
-  else
+  if [ "$TRAVIS_OS_NAME" != "linux" ]; then
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
 - gem install rspec

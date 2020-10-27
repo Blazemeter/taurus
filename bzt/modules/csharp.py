@@ -27,6 +27,7 @@ class CSharpExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.runner_dir = os.path.join(RESOURCES_DIR, "dotnet", "DotnetTestRunner")
         self.dotnet = None
         self.executor_name = None
+        self.runner_executable = "dotnet"
 
     def install_required_tools(self):
         if is_windows():
@@ -52,7 +53,7 @@ class CSharpExecutor(SubprocessedExecutor, HavingInstallableTools):
 
         cmdline = []
 
-        cmdline += ["dotnet", "run", "--project", self.runner_dir, "--", self.executor_name,
+        cmdline += [self.runner_executable, "run", "--project", self.runner_dir, "--", self.executor_name,
                     "--target", self.script,
                     "--report-file", self.report_file]
 

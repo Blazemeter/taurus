@@ -31,6 +31,7 @@ RUN apt-get -y update \
   && gem install selenium-webdriver \
   && wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
   && dpkg -i packages-microsoft-prod.deb \
+  # Update required because packages-microsoft-prod.deb instalation add repositories for dotnet
   && apt-get -y update \
   && $APT_INSTALL dotnet-sdk-3.1 \
   && wget https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
