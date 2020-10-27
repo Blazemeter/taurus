@@ -62,10 +62,15 @@ class CLI(object):
         self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
         self.log.debug("OS: %s", platform.uname())
 
-        self.log.debug("Path to interpreter: {}".format(sys.executable))
-        self.log.debug("Path to packages: {}".format(sys.path))
-        self.log.debug("Default python: {}".format(shutil.which('python' or 'not found')))
-        self.log.debug("Default python3: {}".format(shutil.which('python3' or 'not found')))
+        try:
+            self.log.debug("Path to interpreter: {}".format(sys.executable))
+            self.log.debug("Path to packages: {}".format(sys.path))
+            self.log.debug("Default python: {}".format(shutil.which('python' or 'not found')))
+            self.log.debug("Default python3: {}".format(shutil.which('python3' or 'not found')))
+
+        except BaseException as exc:
+            self.log.warning("Extended python info getting error: {}".format(exc))
+
 
         self.engine = Engine(self.log)
         self.exit_code = 0
@@ -275,6 +280,14 @@ class CLI(object):
                 self.engine.post_process()
             except BaseException as exc:
                 self.handle_exception(exc)
+
+        if self.options.verbose:
+            for module_name in sys.modules:
+                version = str(getattr(sys.modules[module_name], '__version__', ""))
+                file = getattr(sys.modules[module_name], '__file__', "")
+                if version:
+                    module_name = "-".join((module_name, version))
+                    self.log.debug("\t{}\t{}".format(module_name, file))
 
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
         if self.engine.artifacts_dir is None:
