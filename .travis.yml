@@ -27,6 +27,10 @@ matrix:
     name: "Python 3 on macOS"
     osx_image: xcode11    # Python 3.7.4 running on macOS 10.14.4
     language: shell
+    before_install:
+      - brew update
+      - brew cask install dotnet-sdk
+      - export PATH="$PATH:/usr/local/share/dotnet"
     env:
     - PYTHON=python3
     - PIP_INSTALL="sudo pip3 install"
