@@ -914,7 +914,6 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             test_script = fds.read()
         self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, delimiter='\\t')", test_script)
 
-
     def test_encoding(self):
         self.configure({
             "execution": [{
@@ -929,3 +928,19 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, encoding='UTF-16')", test_script)
+
+    def test_build_api_cert(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "user-certificate": "alice.p12",
+                    "requests": ["localhost", "blazedemo.com"],
+                }
+            }
+        })
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "apiritif/test_generated_cert.py"
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
