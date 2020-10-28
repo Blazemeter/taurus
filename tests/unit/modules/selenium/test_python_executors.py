@@ -684,3 +684,37 @@ class TestRobotExecutor(ExecutorTestCase):
         self.assertTrue('--include' in self.CMD_LINE)
         tags = self.CMD_LINE[self.CMD_LINE.index('--include')+1]
         self.assertEqual(tags, 'create,database')
+
+    def test_build_api_cert(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "generate-flow-markers": True,
+                    "browser": "Chrome",
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                }
+            }
+        })
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_api_cert.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
