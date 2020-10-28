@@ -2,7 +2,7 @@
   "provisioning": "mock1",
   "modules": {
     "mock1": {
-      "class": "tests.mocks.ModuleMock",
+      "class": "tests.unit.mocks.ModuleMock",
       "postproc": "bzt.AutomatedShutdown"
     }
   }

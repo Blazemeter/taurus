@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotnetTestRunner", "DotnetTestRunner\DotnetTestRunner.csproj", "{38189703-A671-4854-A6D1-59A21E53674A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NUnitTests", "NUnitTests\NUnitTests.csproj", "{0FBE5E78-3301-40BC-B438-6E059FBDE1F2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitTests", "XUnitTests\XUnitTests.csproj", "{1A7FA4F7-675B-4F66-98DE-9F4767938A20}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{38189703-A671-4854-A6D1-59A21E53674A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38189703-A671-4854-A6D1-59A21E53674A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38189703-A671-4854-A6D1-59A21E53674A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38189703-A671-4854-A6D1-59A21E53674A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FBE5E78-3301-40BC-B438-6E059FBDE1F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FBE5E78-3301-40BC-B438-6E059FBDE1F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FBE5E78-3301-40BC-B438-6E059FBDE1F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FBE5E78-3301-40BC-B438-6E059FBDE1F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A7FA4F7-675B-4F66-98DE-9F4767938A20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A7FA4F7-675B-4F66-98DE-9F4767938A20}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A7FA4F7-675B-4F66-98DE-9F4767938A20}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A7FA4F7-675B-4F66-98DE-9F4767938A20}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

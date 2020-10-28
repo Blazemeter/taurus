@@ -31,7 +31,7 @@ matrix:
     - PYTHON=python3
     - PIP_INSTALL="sudo pip3 install"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
-    - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
+    - OSX_EXCLUDE="--exclude-test=tests.unit.modules.selenium.test_csharp"
 
 addons:
   firefox: latest
@@ -39,15 +39,12 @@ addons:
   apt:
     packages:
     - openjdk-8-jdk
-    - mono-complete
     - python-tk
     - python3-tk
 
 install:
 - |
-  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    mono --version
-  else
+  if [ "$TRAVIS_OS_NAME" != "linux" ]; then
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
 - gem install rspec
