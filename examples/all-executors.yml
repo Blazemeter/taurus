@@ -111,7 +111,14 @@ execution:
   hold-for: 10s
   iterations: 10
   scenario:
-    script: selenium/nunit/AssemblyDemo/NUnitSuite.dll
+    script: selenium/dotnet/NUnitTests.dll
+
+- executor: xunit
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/dotnet/XUnitTests.dll
 
 - executor: pytest
   concurrency: 1

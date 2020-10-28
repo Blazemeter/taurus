@@ -7,6 +7,7 @@ Selenium is virtual executor provided you ability to run functional tests locall
 - [RSpec](RSpec.md) (Ruby)
 - [Mocha](Mocha.md) (JavaScript)
 - [NUnit](NUnit.md) (C#)
+- [xUnit](XUnit.md) (C#)
 
 Selenium Grid isn't supported for tests described with Taurus language, but if you have your own test suite that uses
 Selenium Grid to manage browser instances - Taurus will run these tests just fine.
@@ -33,7 +34,6 @@ Test scenario may be presented not only as single file but as a folder (or, in c
   - .js/single file
   - .js/folder
   - .dll/single file
-  - .dll/folder
 
 ## Specifying Test Runner Explicitly
 
@@ -48,9 +48,10 @@ Supported values:
 - `rspec`: [RSpec](RSpec.md)-based Ruby tests
 - `mocha`: [Mocha](Mocha.md)-based JavaScript tests
 - `nunit`: [NUnit](NUnit.md)-based C# tests
+- `xunit`: [xUnit](XUnit.md)-based C# tests
 
 Note that automatic detection can't differentiate between `apiritif` and `pytest`-based test suites,
-so if you want to run `pytest` - you have to specify it as a `runner` explicitly.
+so if you want to run `pytest` - you have to specify it as a `runner` explicitly. Same situation with `nunit` and `xunit`.
 
 Usage:
 ```yaml
