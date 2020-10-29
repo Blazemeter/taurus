@@ -1427,6 +1427,13 @@ from selenium.webdriver.common.keys import Keys
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(req.body), req.body))
 
+        cert_name = self.scenario.get("user-certificate")
+        cert_key = self.scenario.get("user-certificate-key")
+        if cert_name and cert_key:
+            named_args['cert'] = (cert_name, cert_key)
+        elif cert_name:
+            named_args['cert'] = cert_name
+
         return named_args
 
     # generate transactions recursively

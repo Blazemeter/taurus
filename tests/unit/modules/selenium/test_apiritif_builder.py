@@ -936,7 +936,8 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
-                    "user-certificate": "configs/alice.p12",
+                    "user-certificate": "configs/alice_cert.pem",
+                    "user-certificate-key": "configs/alice_key.pem",
                     "requests": ["localhost", "blazedemo.com"],
                 }
             }
