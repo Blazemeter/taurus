@@ -684,4 +684,3 @@ class TestRobotExecutor(ExecutorTestCase):
         self.assertTrue('--include' in self.CMD_LINE)
         tags = self.CMD_LINE[self.CMD_LINE.index('--include')+1]
         self.assertEqual(tags, 'create,database')
-
