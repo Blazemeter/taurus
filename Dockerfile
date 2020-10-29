@@ -11,6 +11,7 @@ RUN apt-get -y update \
   && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF \
   && cat /tmp/linux_signing_key.pub | apt-key add - \
   && apt-add-repository multiverse \
+  && echo "deb http://download.mono-project.com/repo/ubuntu bionic main" | tee /etc/apt/sources.list.d/mono-official.list \
   && apt-add-repository ppa:yandex-load/main \
   && apt-add-repository ppa:nilarimogard/webupd8 \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
@@ -22,7 +23,7 @@ RUN apt-get -y update \
     libxslt1-dev libffi-dev libxi6 libgconf-2-4 libexif12 libyaml-dev \
     udev openjdk-8-jdk xvfb siege tsung apache2-utils phantom phantom-ssl \
     firefox google-chrome-stable pepperflashplugin-nonfree flashplugin-installer \
-    ruby ruby-dev nodejs apt-transport-https nuget net-tools gcc-mingw-w64-x86-64 \
+    ruby ruby-dev nodejs apt-transport-https mono-complete nuget net-tools gcc-mingw-w64-x86-64 \
   && $APT_INSTALL python3-dev python3-pip \
   && python3 -m pip install --upgrade pip \
   && python3 -m pip install --user --upgrade setuptools wheel \
