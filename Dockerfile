@@ -23,7 +23,7 @@ RUN apt-get -y update \
     libxslt1-dev libffi-dev libxi6 libgconf-2-4 libexif12 libyaml-dev \
     udev openjdk-8-jdk xvfb siege tsung apache2-utils phantom phantom-ssl \
     firefox google-chrome-stable pepperflashplugin-nonfree flashplugin-installer \
-    ruby ruby-dev nodejs apt-transport-https mono-complete nuget net-tools gcc-mingw-w64-x86-64 \
+    ruby ruby-dev nodejs apt-transport-https mono-devel nuget net-tools gcc-mingw-w64-x86-64 \
   && $APT_INSTALL python3-dev python3-pip \
   && python3 -m pip install --upgrade pip \
   && python3 -m pip install --user --upgrade setuptools wheel \
