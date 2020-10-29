@@ -21,11 +21,11 @@ class TestLocSc(unittest.TestCase):
 
     def _1_localhost(self):
         with apiritif.smart_transaction('localhost'):
-            response = apiritif.http.get('localhost', cert=("configs/alice_cert.pem", "configs/alice_key.pem"))
+            response = apiritif.http.get('localhost', cert=("config/alice_cert.pem", "config/alice_key.pem"))
 
     def _2_blazedemocom(self):
         with apiritif.smart_transaction('blazedemo.com'):
-            response = apiritif.http.get('blazedemo.com', cert=("configs/alice_cert.pem", "configs/alice_key.pem"))
+            response = apiritif.http.get('blazedemo.com', cert=("config/alice_cert.pem", "config/alice_key.pem"))
 
     def test_locsc(self):
         self._1_localhost()

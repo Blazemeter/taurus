@@ -7,7 +7,7 @@ from bzt.modules import ConsolidatingAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.modules.apiritif.executor import ApiritifLoadReader, ApiritifFuncReader
-from tests.unit import RESOURCES_DIR, ExecutorTestCase, EngineEmul
+from tests.unit import RESOURCES_DIR, BZT_DIR, ExecutorTestCase, EngineEmul
 
 
 class TestApiritifScriptGeneration(ExecutorTestCase):
@@ -936,12 +936,13 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
-                    "user-certificate": "configs/alice_cert.pem",
-                    "user-certificate-key": "configs/alice_key.pem",
+                    "user-certificate": "config/alice_cert.pem",
+                    "user-certificate-key": "config/alice_key.pem",
                     "requests": ["localhost", "blazedemo.com"],
                 }
             }
         })
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "apiritif/test_generated_cert.py"
-        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+        filepath_start = BZT_DIR.replace('\\', '/')
+        self.assertFilesEqual(exp_file, self.obj.script, filepath_start, '', python_files=True)
