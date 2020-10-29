@@ -50,7 +50,7 @@ pipeline {
                    """
             }
         }
-        stage("Docker an artifact to PyPi") {
+        stage("Deploy an artifact to PyPi") {
             when { expression { isRelease } }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'bzt-pypi', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
