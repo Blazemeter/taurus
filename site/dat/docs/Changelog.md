@@ -9,7 +9,9 @@
 - fix `locust` run-time `concurrency` info
 - fix `gatling` launch problem
 - fix `selenium` desired capabilities format
+- fix SoapUI converter (`ramp-up` and `hold-for`) 
 - fix colors in windows console
+- fix errors handling in external loader 
 
 ## 1.15.0<sup> 03 Sep 2020</sup>
 - allow to use new Apiritif external logging feature
