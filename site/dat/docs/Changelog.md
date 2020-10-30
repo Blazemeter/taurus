@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.15.1<sup> 30 Oct 2020</sup>
+- update C# tools to use .NET Core 3.1
+- add `xUnit` executor
+- add contextClick action to `Apiritif` executor
+- improve debug features (snapshot version, interpreter info)
+- fix switching windows by index `selenium` action
+- fix `locust` run-time `concurrency` info
+- fix `gatling` launch problem
+- fix `selenium` desired capabilities format
+- fix colors in windows console
+
 ## 1.15.0<sup> 03 Sep 2020</sup>
 - allow to use new Apiritif external logging feature
 - support variables in the Apiritif loop
