@@ -1,7 +1,6 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeleniumSuite", "SeleniumSuite\SeleniumSuite.csproj", "{668E2B3B-9C55-46B3-BCBC-2368D62C0385}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeleniumSuite", "SeleniumSuite\SeleniumSuite.csproj", "{15309610-25EB-469E-A2BB-9F144A317B1F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -9,9 +8,9 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{668E2B3B-9C55-46B3-BCBC-2368D62C0385}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{668E2B3B-9C55-46B3-BCBC-2368D62C0385}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{668E2B3B-9C55-46B3-BCBC-2368D62C0385}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{668E2B3B-9C55-46B3-BCBC-2368D62C0385}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15309610-25EB-469E-A2BB-9F144A317B1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15309610-25EB-469E-A2BB-9F144A317B1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15309610-25EB-469E-A2BB-9F144A317B1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15309610-25EB-469E-A2BB-9F144A317B1F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

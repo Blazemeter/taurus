@@ -1,42 +1,39 @@
-﻿using System;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Firefox;
 
 
 namespace SeleniumSuite
 {
-    [TestFixture()]
+    [TestFixture]
     public class Test
     {
-		IWebDriver driver = null;
+        private IWebDriver _driver;
 
-		[SetUp]
-		public void Initialize()
-		{
-			driver = new ChromeDriver();
-		}
+        [SetUp]
+        public void Initialize()
+        {
+            _driver = new ChromeDriver();
+        }
 
-		[Test()]
-		public void IndexPage()
-		{
-			driver.Navigate().GoToUrl("http://blazedemo.com");
-			Assert.AreEqual(driver.Title, "BlazeDemo");
-		}
+        [Test]
+        public void IndexPage()
+        {
+            _driver.Navigate().GoToUrl("http://blazedemo.com");
+            Assert.AreEqual(_driver.Title, "BlazeDemo");
+        }
 
-		[Test()]
-		public void ReservePage()
-		{
-			driver.Navigate().GoToUrl("http://blazedemo.com/reserve.php");
-			Assert.AreEqual(driver.Title, "BlazeDemo - reserve");
-		}
+        [Test]
+        public void ReservePage()
+        {
+            _driver.Navigate().GoToUrl("http://blazedemo.com/reserve.php");
+            Assert.AreEqual(_driver.Title, "BlazeDemo - reserve");
+        }
 
-	    [TearDown]
-		public void AfterTest()
-		{
-			if (this.driver != null)
-				driver.Close();
-		}
-	}
+        [TearDown]
+        public void AfterTest()
+        {
+            _driver?.Close();
+        }
+    }
 }

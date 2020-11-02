@@ -15,30 +15,31 @@ limitations under the License.
 """
 import os
 
-from bzt import TaurusConfigError
+from bzt import TaurusConfigError, TaurusInternalException
 from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools
 from bzt.utils import get_full_path, is_windows, RequiredTool, RESOURCES_DIR, CALL_PROBLEMS
 
 
-class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
+class CSharpExecutor(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
-        super(NUnitExecutor, self).__init__()
-        self.runner_dir = os.path.join(RESOURCES_DIR, "NUnitRunner")
-        self.runner_executable = os.path.join(self.runner_dir, "NUnitRunner.exe")
-        self.mono = None
+        super(CSharpExecutor, self).__init__()
+        self.runner_dir = os.path.join(RESOURCES_DIR, "dotnet", "DotnetTestRunner")
+        self.dotnet = None
+        self.executor_name = None
+        self.runner_executable = "dotnet"
 
     def install_required_tools(self):
         if is_windows():
             return
 
-        self.mono = self._get_tool(Mono)
-        self.log.debug("Checking for Mono")
-        if not self.mono.check_if_installed():
-            self.mono.install()
+        self.dotnet = self._get_tool(Dotnet)
+        self.log.debug("Checking for dotnet")
+        if not self.dotnet.check_if_installed():
+            self.dotnet.install()
 
     def prepare(self):
-        super(NUnitExecutor, self).prepare()
+        super(CSharpExecutor, self).prepare()
         self.script = get_full_path(self.get_script_path())
         if not self.script:
             raise TaurusConfigError("Script not passed to runner %s" % self)
@@ -47,12 +48,12 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix=".ldjson")
 
     def startup(self):
-        cmdline = []
-        if not is_windows():
-            if self.mono.tool_path:
-                cmdline.append(self.mono.tool_path)
+        if not self.executor_name:
+            raise TaurusInternalException("C# executor is not specified, use NUnit or XUnit instead.")
 
-        cmdline += [self.runner_executable,
+        cmdline = []
+
+        cmdline += [self.runner_executable, "run", "--project", self.runner_dir, "--", self.executor_name,
                     "--target", self.script,
                     "--report-file", self.report_file]
 
@@ -64,16 +65,26 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         if load.concurrency:
             cmdline += ['--concurrency', str(int(load.concurrency))]
         if load.ramp_up:
-            cmdline += ['--ramp_up', str(int(load.ramp_up))]
-        if not is_windows():
-            self.env.add_path({"MONO_PATH": self.runner_dir})
+            cmdline += ['--ramp-up', str(int(load.ramp_up))]
 
         self.process = self._execute(cmdline)
 
 
-class Mono(RequiredTool):
+class NUnitExecutor(CSharpExecutor):
+    def __init__(self):
+        super(NUnitExecutor, self).__init__()
+        self.executor_name = "nUnit"
+
+
+class XUnitExecutor(CSharpExecutor):
+    def __init__(self):
+        super(XUnitExecutor, self).__init__()
+        self.executor_name = "xUnit"
+
+
+class Dotnet(RequiredTool):
     def __init__(self, **kwargs):
-        super(Mono, self).__init__(tool_path="mono", installable=False, **kwargs)
+        super(Dotnet, self).__init__(tool_path="dotnet", installable=False, **kwargs)
 
     def check_if_installed(self):
         self.log.debug('Trying %s: %s', self.tool_name, self.tool_path)

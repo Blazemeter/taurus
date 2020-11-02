@@ -13,10 +13,10 @@
     }
   ],
   "modules": {
-    "mock1": {"class": "tests.mocks.ModuleMock"},
-    "mock2": "tests.mocks.ModuleMock",
-    "mock3": "tests.mocks.ModuleMock",
-    "mock4": "tests.mocks.ModuleMock"
+    "mock1": {"class": "tests.unit.mocks.ModuleMock"},
+    "mock2": "tests.unit.mocks.ModuleMock",
+    "mock3": "tests.unit.mocks.ModuleMock",
+    "mock4": "tests.unit.mocks.ModuleMock"
   },
   "test": [
     1,

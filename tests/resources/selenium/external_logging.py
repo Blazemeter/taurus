@@ -19,8 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from collections import OrderedDict
-from bzt.resources.selenium_extras import go, get_locator, add_logging_handlers
+from bzt.resources.selenium_extras import dialogs_replace, add_logging_handlers, get_locator
 
 class TestSample(unittest.TestCase):
 
@@ -35,14 +34,16 @@ class TestSample(unittest.TestCase):
         self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', options=options)
         self.driver.implicitly_wait(timeout)
         add_logging_handlers()
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows=OrderedDict(),
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='sample')
 
 
     def _1_Test(self):
         with apiritif.smart_transaction('Test'):
             apiritif.external_log('start: go(http://blazedemo.com/)')
-            go('http://blazedemo.com/')
+            self.driver.get('http://blazedemo.com/')
+
+            dialogs_replace()
             apiritif.external_log('end: go(http://blazedemo.com/)')
             apiritif.external_log('start: log(leaving blazedemo)')
             apiritif.external_log('leaving blazedemo')
