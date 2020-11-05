@@ -202,7 +202,7 @@ class OpenTest4j(JarTool):
 
 
 class JUnit(JarTool):
-    VERSION = "4.12"
+    VERSION = "4.13.1"
     REMOTE_PATH = "junit/junit/{version}/junit-{version}.jar"
     TOOL_FILE = "junit-{version}.jar"
 
