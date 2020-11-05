@@ -170,7 +170,7 @@ class TestConsoleStatusReporter(BZTestCase):
     def test_screen(self):
         obj = ConsoleStatusReporter()
         obj.settings["screen"] = "console"
-        if not sys.stdout.isatty():
+        if not (sys.stdout and sys.stdout.isatty()):
             self.assertEqual(obj._get_screen_type(), "dummy")
         elif is_windows():
             self.assertEqual(obj._get_screen(), "gui")
@@ -180,7 +180,7 @@ class TestConsoleStatusReporter(BZTestCase):
     def test_screen_invalid(self):
         obj = ConsoleStatusReporter()
         obj.settings["screen"] = "invalid"
-        if not sys.stdout.isatty():
+        if not (sys.stdout and sys.stdout.isatty()):
             self.assertEqual(obj._get_screen_type(), "dummy")
         elif is_windows():
             self.assertEqual(obj._get_screen(), "gui")

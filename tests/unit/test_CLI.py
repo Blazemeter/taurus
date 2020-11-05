@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 
 from bzt import TaurusException
 from tests.unit import BZTestCase, RESOURCES_DIR, BUILD_DIR
@@ -224,6 +225,8 @@ class TestCLI(BZTestCase):
         self.assertTrue(found_line)
 
     def test_cover_option_parser(self):
+        sys.stdout = None
+        sys.stderr = None
         parser = get_option_parser()
         parser.print_usage()
 
