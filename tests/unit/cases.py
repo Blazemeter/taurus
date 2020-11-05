@@ -24,9 +24,11 @@ class BZTestCase(TestCase):
         self.log = ROOT_LOGGER
         self.clean_log()
 
-    def clean_log(self):
-        self.log.setLevel(logging.DEBUG)
-        for handler in self.log.handlers:
+    def clean_log(self, logger=None):
+        if not logger:
+            logger = self.log
+        logger.setLevel(logging.DEBUG)
+        for handler in logger.handlers:
             handler.setLevel(logging.FATAL)
 
     def func_mock(self, *args, **kwargs):

@@ -18,13 +18,17 @@ class TestCLI(BZTestCase):
     def setUp(self):
         super(TestCLI, self).setUp()
         self.logger = self.log
+        os.makedirs(BUILD_DIR, exist_ok=True)
         self.log = os.path.join(BUILD_DIR, "bzt.log")
         self.verbose = False
-        self.quiet = False
+        self.quiet = True
         self.no_system_configs = True
         self.option = []
+
         self.obj = CLI(self)
         self.assertTrue(os.path.exists(self.log))
+
+        self.clean_log(self.logger)
 
         self.aliases = []
         self.obj.engine = EngineEmul()
@@ -71,6 +75,9 @@ class TestCLI(BZTestCase):
     def test_unicode_logging(self):
         """ check whether unicode symbols are logged correctly into file """
         self.verbose = False
+        for handler in self.logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+                handler.setLevel(logging.DEBUG)
         u_symbol = b'\xe3\x81\xbc'.decode(encoding='utf-8')  # U+307C, uniform for py2/3
         self.obj.options.option = ['bo=%s' % u_symbol]
 
@@ -218,15 +225,16 @@ class TestCLI(BZTestCase):
 
     def test_cover_option_parser(self):
         parser = get_option_parser()
-        parser.print_usage()
+        self.assertEqual(6, len(parser.option_list))
 
     def test_http_shorthand(self):
+        self.sniff_log()
         self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
         self.option.append("provisioning=mock")
         self.option.append("settings.default-executor=mock")
         code = self.get_ret_code(["http://blazedemo.com/"])
         self.assertEqual(code, 0)
-        log_content = open(os.path.join(self.obj.engine.artifacts_dir, "bzt.log")).read()
+        log_content = self.log_recorder.debug_buff.getvalue()
         configs = re.findall(r'[^\s\']*http_.*\.yml', log_content)
         self.assertGreater(len(configs), 0)
 
