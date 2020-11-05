@@ -1387,7 +1387,7 @@ class ProgressBarContext(ProgressBar):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         del exc_type, exc_val, exc_tb
-        if sys.stdout.isatty():
+        if sys.stdout and sys.stdout.isatty():
             self.finish()
 
     def download_callback(self, block_count, blocksize, totalsize):
