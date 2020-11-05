@@ -313,6 +313,7 @@ class TestPassFailStatus(BZTestCase):
         self.obj.post_process()
 
     def test_bytes(self):
+        raise BaseException('approached!')
         self.configure({"criteria": [  # bytes number can only be generated in range from 1 to 1000
             "bytes>0 for 1s, continue as successful",
             "bytes<1kb for 1s, continue as successful",
