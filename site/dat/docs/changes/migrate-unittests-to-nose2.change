@@ -5,7 +5,7 @@ todo: fix:
     4. remove nose-timers. can we replace it with something?
     5. check total time on nose2 (nose: 134-220s)
     6. remove console pseudo graph
-    7. remove tools (soap, jmx) verbose test log
+  + 7. remove tools (soap, jmx) verbose test log
     8. check coverage
     9. should we add nose2 to tests/ci requirements?
 

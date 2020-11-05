@@ -30,4 +30,4 @@ before_test:
   - ps: Start-Process $env:PYTHON\\python.exe tests/resources/httpserver/start.py
 
 test_script:
-  - "%PYTHON%\\python.exe -m nose2 -s tests/unit"
+  - "%PYTHON%\\python.exe -m nose2 -s tests/unit -v"
