@@ -23,6 +23,8 @@ class BZTestCase(TestCase):
         self.func_results = None
         self.log = ROOT_LOGGER
         self.clean_log()
+        sys.stdout = None
+        sys.stderr = None
 
     def clean_log(self, logger=None):
         if not logger:

@@ -225,7 +225,7 @@ class TestCLI(BZTestCase):
 
     def test_cover_option_parser(self):
         parser = get_option_parser()
-        self.assertEqual(6, len(parser.option_list))
+        parser.print_usage()
 
     def test_http_shorthand(self):
         self.sniff_log()
