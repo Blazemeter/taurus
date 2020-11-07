@@ -8,4 +8,5 @@ todo: fix:
   + 7. remove tools (soap, jmx) verbose test log
     8. check coverage
     9. should we add nose2 to tests/ci requirements?
+  + 10. fix fuzzyset problem on 3.9
 
