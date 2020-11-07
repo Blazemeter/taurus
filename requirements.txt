@@ -3,6 +3,7 @@ astunparse>=1.6.0
 colorama; sys_platform == 'win32'
 colorlog
 cssselect
+Cython; python_version >= '3.9'
 fuzzyset==0.0.19
 hdrpy>=0.3.3
 lxml>=3.8.0,!=4.2.0
@@ -11,7 +12,6 @@ psutil>=5.6.6
 pytest>=3
 zipp==2.2.0
 pyvirtualdisplay; sys_platform != 'win32'
-Cython; python_version >= '3.9'
 pyyaml
 requests>=2.18.1
 selenium
