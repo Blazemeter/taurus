@@ -7,7 +7,7 @@ todo: fix:
     6. remove console pseudo graph
   + 7. remove tools (soap, jmx) verbose test log
   + 8. check coverage
-    9. should we add nose2 to tests/ci requirements?
+  + 9. should we add nose2 to tests/ci requirements?
   + 10. fix fuzzyset problem on 3.9
     11. fix "test_selenium_startup_shutdown_python_folder" problem
 
