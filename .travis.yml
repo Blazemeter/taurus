@@ -61,5 +61,5 @@ before_script:
 script:
 - $PYTHON -m nose2 -s tests/unit -v
 
-#after_success:
-#- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then coverage report -m && codecov; fi
+after_success:
+- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then coverage report -m && codecov; fi
