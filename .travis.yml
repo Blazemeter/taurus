@@ -59,7 +59,7 @@ before_script:
 - $PYTHON tests/resources/httpserver/start.py &
 
 script:
-  - $PYTHON -m unittest discover -s tests/unit -v
+- $PYTHON -m unittest discover -s tests/unit -v
 #- coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
 
 #after_success:
