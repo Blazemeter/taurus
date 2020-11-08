@@ -13,6 +13,7 @@ python:
 - "3.6"
 - "3.7"
 - "3.8"
+- "3.9"
 
 env:
   global:
@@ -58,7 +59,8 @@ before_script:
 - $PYTHON tests/resources/httpserver/start.py &
 
 script:
-- coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
+  - $PYTHON -m unittest discover -s tests/unit -v
+#- coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
 
-after_success:
-- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then coverage report -m && codecov; fi
+#after_success:
+#- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then coverage report -m && codecov; fi
