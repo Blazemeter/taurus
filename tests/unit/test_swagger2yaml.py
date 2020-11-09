@@ -1,7 +1,7 @@
 import yaml
 
 from bzt.utils import iteritems
-from bzt.swagger2yaml import SwaggerConverter, Swagger, Swagger2YAML, process
+from bzt.swagger2yaml import SwaggerConverter, Swagger, Swagger2YAML
 from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
 
 
@@ -22,8 +22,9 @@ class TestSwagger2YAML(BZTestCase):
         super(TestSwagger2YAML, self).setUp()
         self.engine = EngineEmul()
 
-    def _get_swagger2yaml(self, path, file_name=None):
-        return Swagger2YAML(FakeOptions(file_name=file_name), RESOURCES_DIR + path)
+    def configure(self, options, source):
+        self.tool = Swagger2YAML(options, source)
+        self.clean_log()
 
     def _get_tmp(self, prefix='test', suffix='.yml'):
         return self.engine.create_artifact(prefix, suffix)
@@ -33,8 +34,8 @@ class TestSwagger2YAML(BZTestCase):
         expected = RESOURCES_DIR + "/swagger/petstore-converted.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
-        process(options, [source])
-        # shutil.copy(result, expected)
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
@@ -44,8 +45,8 @@ class TestSwagger2YAML(BZTestCase):
         expected = RESOURCES_DIR + "/swagger/bzm-api-converted.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result, scenarios_from_paths=True)
-        process(options, [source])
-        # shutil.copy(result, expected)
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
@@ -55,8 +56,8 @@ class TestSwagger2YAML(BZTestCase):
         expected = RESOURCES_DIR + "/swagger/auth-key-converted.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
-        process(options, [source])
-        # shutil.copy(result, expected)
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
@@ -66,8 +67,8 @@ class TestSwagger2YAML(BZTestCase):
         expected = RESOURCES_DIR + "/swagger/auth-basic-converted.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
-        process(options, [source])
-        # shutil.copy(result, expected)
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
@@ -77,8 +78,8 @@ class TestSwagger2YAML(BZTestCase):
         expected = RESOURCES_DIR + "/swagger/auth-basic-local-converted.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
-        process(options, [source])
-        # shutil.copy(result, expected)
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
@@ -88,8 +89,8 @@ class TestSwagger2YAML(BZTestCase):
         expected = RESOURCES_DIR + "/swagger/auth-key-as-param-converted.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
-        process(options, [source])
-        # shutil.copy(result, expected)
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
@@ -99,8 +100,8 @@ class TestSwagger2YAML(BZTestCase):
         expected = RESOURCES_DIR + "/swagger/bzm-converted-values.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
-        process(options, [source])
-        # shutil.copy(result, expected)
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
@@ -110,8 +111,8 @@ class TestSwagger2YAML(BZTestCase):
         expected = RESOURCES_DIR + "/swagger/bzm-converted-variables.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result, parameter_interpolation=Swagger.INTERPOLATE_WITH_JMETER_VARS)
-        process(options, [source])
-        # shutil.copy(result, expected)
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
@@ -121,8 +122,8 @@ class TestSwagger2YAML(BZTestCase):
         expected = RESOURCES_DIR + "/swagger/bzm-converted-none.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result, parameter_interpolation=Swagger.INTERPOLATE_DISABLE)
-        process(options, [source])
-        # shutil.copy(result, expected)
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)
@@ -132,8 +133,8 @@ class TestSwagger2YAML(BZTestCase):
         expected = RESOURCES_DIR + "/swagger/auth-key-multiscenarios-converted.yaml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result, scenarios_from_paths=True)
-        process(options, [source])
-        # shutil.copy(result, expected)
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(expected).read())
         self.assertEqual(actual, expected)

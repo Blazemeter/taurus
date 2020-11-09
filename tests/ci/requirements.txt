@@ -1,8 +1,8 @@
 codecov
-nose-exclude
 locust
 coverage
 molotov
 robotframework
 http-here
 nose2
+nose2-timer

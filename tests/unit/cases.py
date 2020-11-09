@@ -21,10 +21,15 @@ class BZTestCase(TestCase):
         self.log_recorder = None
         self.func_args = []
         self.func_results = None
-        ROOT_LOGGER.setLevel(logging.DEBUG)
-        for handler in ROOT_LOGGER.handlers:
-            handler.setLevel(logging.FATAL)
         self.log = ROOT_LOGGER
+        self.clean_log()
+
+    def clean_log(self, logger=None):
+        if not logger:
+            logger = self.log
+        logger.setLevel(logging.DEBUG)
+        for handler in logger.handlers:
+            handler.setLevel(logging.FATAL)
 
     def func_mock(self, *args, **kwargs):
         self.func_args.append({'args': args, 'kargs': kwargs})

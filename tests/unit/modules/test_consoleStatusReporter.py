@@ -13,7 +13,20 @@ from tests.unit.modules.jmeter import MockJMeterExecutor
 
 
 class TestConsoleStatusReporter(BZTestCase):
-    def __get_datapoint(self, n):
+    def setUp(self):
+        super(TestConsoleStatusReporter, self).setUp()
+        self.stdout = sys.stdout
+        self.stderr = sys.stderr
+        sys.stdout = None
+        sys.stderr = None
+
+    def tearDown(self):
+        sys.stdout = self.stdout
+        sys.stderr = self.stderr
+        super(TestConsoleStatusReporter, self).tearDown()
+
+    @staticmethod
+    def __get_datapoint(n):
         point = DataPoint(n)
         overall = point[DataPoint.CURRENT].setdefault('', KPISet())
         overall[KPISet.CONCURRENCY] = r(100)
@@ -170,7 +183,7 @@ class TestConsoleStatusReporter(BZTestCase):
     def test_screen(self):
         obj = ConsoleStatusReporter()
         obj.settings["screen"] = "console"
-        if not sys.stdout.isatty():
+        if not (sys.stdout and sys.stdout.isatty()):
             self.assertEqual(obj._get_screen_type(), "dummy")
         elif is_windows():
             self.assertEqual(obj._get_screen(), "gui")
@@ -180,7 +193,7 @@ class TestConsoleStatusReporter(BZTestCase):
     def test_screen_invalid(self):
         obj = ConsoleStatusReporter()
         obj.settings["screen"] = "invalid"
-        if not sys.stdout.isatty():
+        if not (sys.stdout and sys.stdout.isatty()):
             self.assertEqual(obj._get_screen_type(), "dummy")
         elif is_windows():
             self.assertEqual(obj._get_screen(), "gui")

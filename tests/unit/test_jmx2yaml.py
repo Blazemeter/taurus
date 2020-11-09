@@ -24,6 +24,7 @@ class TestConverter(BZTestCase):
     def setUp(self):
         super(TestConverter, self).setUp()
         self.obj = JMX2YAML(file_name=None, options=FakeOptions())
+        self.clean_log()
 
     def configure(self, src_file, dst_file=None, dump_jmx=None):
         self.obj.src_file = src_file
