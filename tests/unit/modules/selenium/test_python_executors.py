@@ -4,6 +4,8 @@ import os
 import time
 import yaml
 
+from platform import python_version
+from unittest import skipIf
 import apiritif
 from selenium.common.exceptions import NoSuchElementException
 
@@ -18,7 +20,7 @@ from bzt.modules.robot import RobotExecutor
 from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase
 from tests.unit.modules.selenium import SeleniumTestCase
 from bzt.resources.selenium_extras import get_locator, BYS
-from bzt.utils import EXE_SUFFIX
+from bzt.utils import EXE_SUFFIX, is_windows
 
 
 class MockWebDriver(object):
@@ -106,6 +108,7 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
         self.obj.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")))
 
+    @skipIf(python_version() >= '3.8' and is_windows(), "Temporary disabled")
     def test_selenium_startup_shutdown_python_folder(self):
         """
         run tests from .py files
