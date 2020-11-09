@@ -21,14 +21,14 @@ import os
 import re
 import traceback
 from urllib import parse
+from shutil import which
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import FileLister, ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.utils import etree, iteritems
-from bzt.utils import CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, which, FileReader
+from bzt.utils import CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, FileReader, etree, iteritems
 
 
 class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -439,9 +439,8 @@ class Tsung(RequiredTool):
         if os.path.exists(abspath):
             return abspath
 
-        executables = which(self.tool_path)
-        if executables:
-            return executables[0]
+        return which(self.tool_path)
+
 
     @staticmethod
     def get_tool_prefix(tool_abspath):
