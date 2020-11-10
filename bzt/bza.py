@@ -516,7 +516,7 @@ class Test(BZAObject):
         return res['result']
 
     def get_passfail_validation(self):
-        url = f"https://a.blazemeter.com/api/v4/tests/{self['id']}/validations"
+        url = f"https://{self.address}/api/v4/tests/{self['id']}/validations"
         resp = self._request(url, method='GET')
         return resp['result'][0]['warnings'] + resp['result'][0]['fileWarnings']
 
