@@ -11,6 +11,8 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as econd
 
+from bzt.resources.shadow_element import ShadowElement
+
 BYS = {
     'xpath': By.XPATH,
     'css': By.CSS_SELECTOR,
@@ -32,16 +34,28 @@ def find_element_by_shadow(shadow_loc):
         if not el:
             el = _get_driver().find_element_by_css_selector(p)
         else:
-            shadow_root = el.get_property("shadowRoot")
-            if shadow_root:
-                try:
-                    el = shadow_root.find_element_by_css_selector(p)
-                except NoSuchElementException:
-                    # sometimes the element is not located under the shadowRoot so try to look for it the usual way
-                    el = el.find_element_by_css_selector(p)
-            else:
-                el = el.find_element_by_css_selector(p)
-    return el
+            try:
+                el = _find_element_in_shadow(el, p)
+            except NoSuchElementException:
+                # try to search in the shadowRoot of the parent element
+                parent_el = el.find_element_by_xpath('..')
+                el = _find_element_in_shadow(parent_el, p)
+
+    return ShadowElement(el, _get_driver())
+
+
+def _find_element_in_shadow(el, css_selector):
+    shadow_root = el.get_property("shadowRoot")
+    element = None
+    if shadow_root:
+        try:
+            element = shadow_root.find_element_by_css_selector(css_selector)
+        except NoSuchElementException:
+            pass
+    if element is None:
+        # sometimes the element is not located under the shadowRoot so try to look for it the usual way
+        element = el.find_element_by_css_selector(css_selector)
+    return element
 
 
 def get_locator(locators, parent_el=None, ignore_implicit_wait=False, raise_exception=False):
@@ -442,6 +456,8 @@ def send_keys(loc_or_elem, value):
     element = None
     if isinstance(loc_or_elem, WebElement):
         element = loc_or_elem
+    elif isinstance(loc_or_elem, ShadowElement):
+        element = loc_or_elem.element
     elif loc_or_elem[0] in BYS.keys():
         loc_dict = {loc_or_elem[0]: loc_or_elem[1]}
         element = get_elements([loc_dict])[0]
