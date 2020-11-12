@@ -34,27 +34,34 @@ def find_element_by_shadow(shadow_loc):
         if not el:
             el = _get_driver().find_element_by_css_selector(p)
         else:
-            try:
-                el = _find_element_in_shadow(el, p)
-            except NoSuchElementException:
+            curr_el = _find_element_in_shadow(el, p, False)
+            if curr_el is None:
                 # try to search in the shadowRoot of the parent element
                 parent_el = el.find_element_by_xpath('..')
-                el = _find_element_in_shadow(parent_el, p)
-
+                curr_el = _find_element_in_shadow(parent_el, p, True)
+            el = curr_el
     return ShadowElement(el, _get_driver())
 
 
-def _find_element_in_shadow(el, css_selector):
+def _find_element_in_shadow(el, css_selector, raise_exception):
     shadow_root = el.get_property("shadowRoot")
     element = None
     if shadow_root:
-        try:
-            element = shadow_root.find_element_by_css_selector(css_selector)
-        except NoSuchElementException:
-            pass
+        element = _find_by_css_selector(shadow_root, css_selector, False)
     if element is None:
         # sometimes the element is not located under the shadowRoot so try to look for it the usual way
-        element = el.find_element_by_css_selector(css_selector)
+        element = _find_by_css_selector(el, css_selector, raise_exception)
+    return element
+
+
+def _find_by_css_selector(root, css_selector, raise_exception):
+    element = None
+    try:
+        element = root.find_element_by_css_selector(css_selector)
+    except NoSuchElementException as nse:
+        if raise_exception:
+            raise nse
+        pass
     return element
 
 
