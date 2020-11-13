@@ -17,7 +17,7 @@ from bzt.modules.pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
 from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase
 from tests.unit.modules.selenium import SeleniumTestCase
-from bzt.resources.selenium_extras import get_locator, BYS
+from bzt.resources.selenium_extras import get_locator, BYS, find_element_by_shadow, send_keys
 from bzt.utils import EXE_SUFFIX
 
 
@@ -29,6 +29,7 @@ class MockWebDriver(object):
             self.content.append((BYS[key.lower()], val))
         self.timeout = timeout
         self.waiting_time = 0
+        self.executed_script = None
 
     def implicitly_wait(self, timeout):
         self.timeout = timeout
@@ -36,6 +37,12 @@ class MockWebDriver(object):
     def find_elements(self, *target):
         self.waiting_time += self.timeout
         return [element for element in self.content if element == target]
+
+    def find_element_by_css_selector(self, *target):
+        return self.find_elements(target)
+
+    def execute_script(self, script, *args):
+        self.executed_script = script
 
 
 class TestLocatorsMagager(BZTestCase):
@@ -62,6 +69,16 @@ class TestLocatorsMagager(BZTestCase):
         existed_locators = [{'css': 'existed_css'}]
         get_locator(existed_locators)
         self.assertEqual(30, driver.waiting_time)
+
+    def test_shadow_element_actions(self):
+        content = [{'css': 'lightning_card'}]
+        timeout = 30
+        driver = MockWebDriver(content=content, timeout=timeout)
+
+        apiritif.put_into_thread_store(driver=driver, timeout=timeout, func_mode=False)
+        el = find_element_by_shadow('lightning_card')
+        el.click()
+        self.assertEqual('arguments[0].click();', driver.executed_script)
 
 
 class TestSeleniumApiritifRunner(SeleniumTestCase):
