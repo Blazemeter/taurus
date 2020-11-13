@@ -894,7 +894,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             points_to_consolidate = self.buffer.pop(tstamp)
 
             for subresult in points_to_consolidate:
-                if self.engine and self._ramp_up_exclude():
+                if self._ramp_up_exclude():
                     if not self.min_timestamp:
                         self.min_timestamp = subresult['ts']
 
