@@ -90,6 +90,7 @@ Available settings are:
  - `check-interval` - polling interval that used by engine after startup and until shutdown to determine if test is need to be stopped 
  - `aggregator` - module alias for top-level [results aggregator](Reporting.md#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
  - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings.md)
+ - `ramp-up-exclude` - exclude ramp-up data from cumulative stats
  - `proxy` - proxy settings for BZA feeding, Taurus will use proxy settings from OS environment by default.
  - `env` - environment variables to set for Taurus, useful with [evaluating feature](#Environment-Variable-Access). Setting environment variable to `null` makes it to delete variable, if one is set. Special `TAURUS\_ARTIFACTS\_DIR` variable is set by Taurus, pointing onto artifacts dir location.
  
@@ -100,6 +101,7 @@ settings:
   artifacts-dir: /tmp/%H%M%S # path where to save artifacts, default is %Y-%m-%d_%H-%M-%S.%f
   aggregator: consolidator
   default-executor: jmeter
+  ramp-up-exclude: false
   check-interval: 1
   proxy:  # custom proxy settings
     address: http://127.0.0.1:8080  # proxy server address

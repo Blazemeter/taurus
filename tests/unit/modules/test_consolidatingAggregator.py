@@ -2,7 +2,7 @@ from random import random, choice
 
 from apiritif import random_string
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
-from bzt.utils import to_json
+from bzt.utils import to_json, BetterDict
 from tests.unit import BZTestCase, EngineEmul
 from tests.unit.mocks import r, MockReader
 
@@ -295,6 +295,25 @@ class TestConsolidatingAggregator(BZTestCase):
             self.obj.log.info(to_json(point))
 
         self.assertIn("Negative response time reported", self.log_recorder.warn_buff.getvalue())
+
+    def test_ramp_up_exclude(self):
+        self.obj.track_percentiles = [50]
+        self.obj.prepare()
+        self.obj.engine.config['settings']['ramp-up-exclude'] = True
+        self.obj.engine.config['execution'] = [
+            {'scenario': 'first', 'ramp-up': 50},
+            {'scenario': 'second', 'ramp-up': 1},
+            {'scenario': 'third'}
+        ]
+        self.obj.engine.config['scenarios'] = BetterDict.from_dict({
+            'first': {'requests': [{'url': 'first'}]},
+            'second': {'requests': [{'url': 'second'}]},
+            'third': {'requests': [{'url': 'third'}]}})
+        reader = get_success_reader()
+        self.obj.add_underling(reader)
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.assertEquals(self.obj.cumulative, {})
 
 
 class MockListener(AggregatorListener):
