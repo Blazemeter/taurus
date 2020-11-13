@@ -12,7 +12,7 @@ from bzt.modules.locustio import LocustIOExecutor, WorkersReader
 from bzt.modules.provisioning import Local
 
 
-from tests.unit import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER
+from tests.unit import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
 
 
 class TestLocustIOExecutor(ExecutorTestCase):
@@ -160,6 +160,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.obj.prepare()
         self.obj.reader = WorkersReader(RESOURCES_DIR + "locust/locust-workers.ldjson", 2, ROOT_LOGGER)
         self.obj.engine.aggregator = ConsolidatingAggregator()
+        self.obj.engine.aggregator.engine = EngineEmul()
         self.obj.engine.aggregator.add_underling(self.obj.reader)
         self.assertEqual(107, len(list(self.obj.engine.aggregator.datapoints(final_pass=True))))
         self.obj.post_process()
