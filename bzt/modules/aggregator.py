@@ -579,7 +579,7 @@ class ResultsProvider(object):
         """
         for datapoint in self._calculate_datapoints(final_pass):
             current = datapoint[DataPoint.CURRENT]
-            if datapoint[DataPoint.CUMULATIVE] or not self._get_ramp_up_setting():
+            if datapoint[DataPoint.CUMULATIVE] or not self._ramp_up_exclude():
                 self.__merge_to_cumulative(current)
                 datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)  # FIXME: this line eats RAM like hell!
                 datapoint.recalculate()
@@ -596,7 +596,7 @@ class ResultsProvider(object):
         yield
 
     @abstractmethod
-    def _get_ramp_up_setting(self):
+    def _ramp_up_exclude(self):
         """
         :rtype : bool
         """
@@ -874,10 +874,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 ramp_ups.append(execution['ramp-up'])
         return max(ramp_ups)
 
-    def _get_ramp_up_setting(self):
-        settings = self.engine.config.get('settings')
-        if settings:
-            return settings.get('ramp-up-exclude')
+    def _ramp_up_exclude(self):
+        return self.engine.config.get('settings').get('ramp-up-exclude')
 
     def _calculate_datapoints(self, final_pass=False):
         """
@@ -896,8 +894,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             points_to_consolidate = self.buffer.pop(tstamp)
 
             for subresult in points_to_consolidate:
-                if self.engine and 'ramp-up-exclude' in self.engine.config['settings'] and \
-                        self.engine.config['settings']['ramp-up-exclude']:
+                if self._ramp_up_exclude():
                     if not self.min_timestamp:
                         self.min_timestamp = subresult['ts']
 
