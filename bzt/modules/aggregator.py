@@ -759,7 +759,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.buffer = {}
         self.histogram_max = 5.0
         self._sticky_concurrencies = {}
-        self.timestamps = {}
+        self.min_timestamp = None
 
     def prepare(self):
         """
@@ -867,13 +867,12 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 tstamp = mints
         self.buffer.setdefault(tstamp, []).append(point)
 
-    def _get_ramp_up(self, url):
-        for scenario in self.engine.config['scenarios'].keys():
-            if self.engine.config['scenarios'][scenario]['requests'][0]['url'] == url:
-                for execution in self.engine.config['execution']:
-                    if execution['scenario'] == scenario:
-                        if 'ramp-up' in execution:
-                            return execution['ramp-up']
+    def _get_max_ramp_up(self):
+        ramp_ups = [0]
+        for execution in self.engine.config['execution']:
+            if 'ramp-up' in execution:
+                ramp_ups.append(execution['ramp-up'])
+        return max(ramp_ups)
 
     def _get_ramp_up_setting(self):
         settings = self.engine.config.get('settings')
@@ -899,13 +898,12 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             for subresult in points_to_consolidate:
                 if self.engine and 'ramp-up-exclude' in self.engine.config['settings'] and \
                         self.engine.config['settings']['ramp-up-exclude']:
-                    label = list(filter(None, subresult[DataPoint.CURRENT].keys()))[0]
-                    if label not in self.timestamps:
-                        self.timestamps[label] = subresult['ts']
+                    if not self.min_timestamp:
+                        self.min_timestamp = subresult['ts']
 
-                    ramp_up = self._get_ramp_up(label)
+                    ramp_up = self._get_max_ramp_up()
                     if ramp_up:
-                        if subresult['ts'] < self.timestamps[label] + ramp_up:
+                        if subresult['ts'] < self.min_timestamp + ramp_up:
                             subresult[DataPoint.CUMULATIVE] = dict()
 
                 if not subresult[DataPoint.SOURCE_ID]:
