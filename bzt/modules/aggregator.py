@@ -898,10 +898,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                     if not self.min_timestamp:
                         self.min_timestamp = subresult['ts']
 
-                    ramp_up = self._get_max_ramp_up()
-                    if ramp_up:
-                        if subresult['ts'] < self.min_timestamp + ramp_up:
-                            subresult[DataPoint.CUMULATIVE] = dict()
+                    if subresult['ts'] < self.min_timestamp + self._get_max_ramp_up():
+                        subresult[DataPoint.CUMULATIVE] = dict()
 
                 if not subresult[DataPoint.SOURCE_ID]:
                     raise ValueError("Reader must provide source ID for datapoint")
