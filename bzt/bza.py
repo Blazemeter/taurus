@@ -523,9 +523,9 @@ class Test(BZAObject):
             resp = self._request(url, method='GET')
             if resp and resp['result'][0]['status'] == 100:
                 return resp['result'][0]['warnings'] + resp['result'][0]['fileWarnings']
-            self.log.warning(f"Passfail warning: unable to validate by {url}. Retry...")
+            self.log.warning(f"Passfail warning: unable to validate. Retry...")
 
-        self.log.error(f"Passfail error: Unable to validate by {url}")
+        self.log.error(f"Passfail error: Unable to validate by {url}.")
         return []
 
 
