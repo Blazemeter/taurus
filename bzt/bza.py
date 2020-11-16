@@ -7,7 +7,6 @@ import json
 import logging
 from collections import OrderedDict
 from urllib.parse import urlencode
-from time import sleep
 
 import requests
 
