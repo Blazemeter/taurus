@@ -521,7 +521,7 @@ class Test(BZAObject):
         retries = 5
         for tries in range(retries):
             resp = self._request(url, method='GET')
-            if resp and resp['result'][0]['status'] != 100:
+            if resp and resp['result'][0]['status'] == 100:
                 return resp['result'][0]['warnings'] + resp['result'][0]['fileWarnings']
             self.log.warning(f"Passfail warning: unable to validate by {url}. Retry...")
 
