@@ -7,6 +7,7 @@ import json
 import logging
 from collections import OrderedDict
 from urllib.parse import urlencode
+from time import sleep
 
 import requests
 
@@ -518,6 +519,11 @@ class Test(BZAObject):
     def get_passfail_validation(self):
         url = f"{self.address}/api/v4/tests/{self['id']}/validations"
         resp = self._request(url, method='GET')
+        while resp['result']['0']['status'] != '100':
+            self.log.warning("Passfail validation: {url}. Retry...")
+            sleep(0.1)
+            resp = self._request(url, method='GET')
+
         return resp['result'][0]['warnings'] + resp['result'][0]['fileWarnings']
 
 
