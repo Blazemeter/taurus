@@ -1655,10 +1655,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if 'reporting' in self.engine.config:
             for module in self.engine.config['reporting']:
                 if module['module'] == 'passfail':
-                    validation_result = self.router._test.get_passfail_validation()
-                    if validation_result:
-                        for warning_msg in validation_result:
-                            self.log.warning(f"Passfail Warning: {warning_msg}")
+                    self.router._test.passfail_validation()
 
         self.log.info("Started cloud test: %s", self.results_url)
         if self.results_url:
