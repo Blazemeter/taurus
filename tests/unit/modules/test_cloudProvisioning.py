@@ -1950,7 +1950,8 @@ class TestCloudProvisioning(BZTestCase):
     def patch_request(self, url, method='GET'):
         self.patch_url = url
         return {'result': [
-            {'warnings': ["passfail warning"],
+            {'status': 100,
+             'warnings': ["passfail warning"],
              'fileWarnings': ["passfail file warning"]}]}
 
 
