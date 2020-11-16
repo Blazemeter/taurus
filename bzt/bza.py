@@ -518,13 +518,15 @@ class Test(BZAObject):
 
     def get_passfail_validation(self):
         url = f"{self.address}/api/v4/tests/{self['id']}/validations"
-        resp = self._request(url, method='GET')
-        while resp['result'][0]['status'] != 100:
-            self.log.warning("Passfail validation: {url}. Retry...")
-            sleep(0.1)
+        retries = 5
+        for tries in range(retries):
             resp = self._request(url, method='GET')
+            if resp and resp['result'][0]['status'] != 100:
+                return resp['result'][0]['warnings'] + resp['result'][0]['fileWarnings']
+            self.log.warning(f"Passfail warning: unable to validate by {url}. Retry...")
 
-        return resp['result'][0]['warnings'] + resp['result'][0]['fileWarnings']
+        self.log.error(f"Passfail error: Unable to validate by {url}")
+        return []
 
 
 class MultiTest(BZAObject):
