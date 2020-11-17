@@ -162,11 +162,12 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
         line = "Current: %s vu\t%s succ\t%s fail\t%.3f avg rt"
         stats = (cur[KPISet.CONCURRENCY], cur[KPISet.SUCCESSES], cur[KPISet.FAILURES],
                  cur[KPISet.AVG_RESP_TIME])
-        cumul = self._last_datapoint[DataPoint.CUMULATIVE]['']
-        line += "\t/\t"  # separator
-        line += "Cumulative: %.3f avg rt, %d%% failures"
-        stats += (cumul[KPISet.AVG_RESP_TIME], 100 * (cumul[KPISet.FAILURES] / cumul[KPISet.SAMPLE_COUNT]))
-        log_method(line % stats)
+        if '' in self._last_datapoint[DataPoint.CUMULATIVE]:
+            cumul = self._last_datapoint[DataPoint.CUMULATIVE]['']
+            line += "\t/\t"  # separator
+            line += "Cumulative: %.3f avg rt, %d%% failures"
+            stats += (cumul[KPISet.AVG_RESP_TIME], 100 * (cumul[KPISet.FAILURES] / cumul[KPISet.SAMPLE_COUNT]))
+            log_method(line % stats)
 
     def __start_screen(self):
         """
@@ -1011,15 +1012,18 @@ class DetailedErrorString(ListBox):
 
         self.body.append(Text(("stat-hdr", " Errors: ")))
         overall = data.get(self.key)
-        errors = overall.get('').get(KPISet.ERRORS)
-        if errors:
-            err_template = "{0} of: {1}"
-            for error in sorted(errors, key=lambda _err: _err.get('cnt'), reverse=True):
-                err_description = error.get('msg')
-                err_count = error.get('cnt')
+        if '' in overall:
+            errors = overall.get('').get(KPISet.ERRORS)
+            if errors:
+                err_template = "{0} of: {1}"
+                for error in sorted(errors, key=lambda _err: _err.get('cnt'), reverse=True):
+                    err_description = error.get('msg')
+                    err_count = error.get('cnt')
 
-                self.body.append(
-                    Text(("stat-txt", err_template.format(err_count, err_description)), wrap=CLIP))
+                    self.body.append(
+                        Text(("stat-txt", err_template.format(err_count, err_description)), wrap=CLIP))
+            else:
+                self.body.append(Text(("stat-txt", "No failures occured")))
         else:
             self.body.append(Text(("stat-txt", "No failures occured")))
 

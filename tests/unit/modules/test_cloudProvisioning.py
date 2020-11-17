@@ -1933,10 +1933,25 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.assertEqual(self.obj.engine.config['reporting'][0]['criteria'], criteria)
 
-        self.obj.router._test.get_passfail_validation = lambda: ["passfail warning"]
+        tmp_request, tmp_launch = self.obj.router._test._request, self.obj.router.launch_test
+        bzm_link = "https://some-bzm-link.com"
+        self.obj.router.launch_test = lambda: f'{bzm_link}/app/#/masters/0'
+        self.obj.router._test.address = bzm_link
+        self.obj.router._test._request = self.patch_request
+
         self.obj.startup()
+        self.obj.router._test._request, self.obj.router.launch_test = tmp_request, tmp_launch
+        self.assertIn(bzm_link, self.patch_url)
+
         warnings = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Passfail Warning: passfail warning", warnings)
+        self.assertIn("Passfail Warning: passfail file warning", warnings)
+
+    def patch_request(self, url, method='GET'):
+        self.patch_url = url
+        return {'result': [
+            {'warnings': ["passfail warning"],
+             'fileWarnings': ["passfail file warning"]}]}
 
 
 class TestResultsFromBZA(BZTestCase):

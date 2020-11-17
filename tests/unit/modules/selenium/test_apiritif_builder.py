@@ -623,6 +623,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
 
     def test_load_reader(self):
         reader = ApiritifLoadReader(self.obj.log)
+        reader.engine = EngineEmul()
 
         # add empty reader
         with tempfile.NamedTemporaryFile() as f_name:
