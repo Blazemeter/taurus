@@ -1458,7 +1458,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self._workspaces = []
         self.launch_existing_test = None
         self.disallow_empty_execution = False
-        self.is_passfail_validated = False
+        self.validate_passfail = False   # don't ask for validation by default
 
     @staticmethod
     def merge_with_blazemeter_config(module):
@@ -1471,6 +1471,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         module.settings = bm_settings
 
     def prepare(self):
+        reporting = self.engine.config.get(Reporter.REP)
+        self.validate_passfail = any(reporter.get('module') == 'passfail' for reporter in reporting)
+
         CloudProvisioning.merge_with_blazemeter_config(self)
         CloudProvisioning.configure_client(self)
         self._workspaces = self.user.accounts().workspaces()
@@ -1674,11 +1677,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             return True
 
     def check(self):
-        if not self.is_passfail_validated:
-            if 'reporting' in self.engine.config:
-                for module in self.engine.config['reporting']:
-                    if module['module'] == 'passfail':
-                        self.is_passfail_validated = self.router._test.passfail_validation()
+        if self.validate_passfail:
+            self.validate_passfail = not self.router._test.passfail_validation()
 
         if self.detach:
             self.log.warning('Detaching Taurus from started test...')
