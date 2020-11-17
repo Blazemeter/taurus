@@ -521,8 +521,10 @@ class Test(BZAObject):
         if resp and resp['result'][0]['status'] == 100:
             for warning_msg in resp['result'][0]['warnings'] + resp['result'][0]['fileWarnings']:
                 self.log.warning(f"Passfail Warning: {warning_msg}")
+            return True
         else:
             self.log.error(f"Passfail error: Unable to validate by {url}.")
+            return False
 
 
 class MultiTest(BZAObject):
