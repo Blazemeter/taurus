@@ -173,7 +173,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         target_lines = [
             "options = webdriver.FirefoxOptions()",
-            "options.set_preference('network.proxy.type', 4)",
             "options.set_headless()",
             "profile = webdriver.FirefoxProfile()",
             "profile.set_preference('webdriver.log.file', '",
