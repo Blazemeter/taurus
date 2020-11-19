@@ -515,10 +515,16 @@ class Test(BZAObject):
         res = self._request(url, data=coll, method="PATCH")
         return res['result']
 
-    def get_passfail_validation(self):
+    def passfail_validation(self):
         url = f"{self.address}/api/v4/tests/{self['id']}/validations"
         resp = self._request(url, method='GET')
-        return resp['result'][0]['warnings'] + resp['result'][0]['fileWarnings']
+        if resp and resp['result'][0]['status'] == 100:
+            for warning_msg in resp['result'][0]['warnings'] + resp['result'][0]['fileWarnings']:
+                self.log.warning(f"Passfail Warning: {warning_msg}")
+            return True
+        else:
+            self.log.error(f"Passfail error: Unable to validate by {url}.")
+            return False
 
 
 class MultiTest(BZAObject):
