@@ -446,7 +446,7 @@ class TestCloudProvisioning(BZTestCase):
                             "us-east-1": 1,
                             "us-west": 2},
                         "scenario": {"requests": ["http://blazedemo.com"]}}
-                    ],
+                ],
                 "modules": {
                     "selenium": {
                         "class": SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__,
@@ -1398,7 +1398,7 @@ class TestCloudProvisioning(BZTestCase):
 
         self.configure(
             engine_cfg={
-                EXEC: {"executor": "selenium",  "scenario": {"requests": ["http://blazedemo.com"]}},
+                EXEC: {"executor": "selenium", "scenario": {"requests": ["http://blazedemo.com"]}},
                 "modules": {
                     "selenium": {
                         "class": SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__,
@@ -1436,7 +1436,7 @@ class TestCloudProvisioning(BZTestCase):
 
         self.configure(
             engine_cfg={
-                EXEC: {"executor": "selenium",  "scenario": {"requests": ["http://blazedemo.com"]}},
+                EXEC: {"executor": "selenium", "scenario": {"requests": ["http://blazedemo.com"]}},
                 "modules": {
                     "selenium": {
                         "class": SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__,
@@ -1926,32 +1926,32 @@ class TestCloudProvisioning(BZTestCase):
             engine_cfg={
                 EXEC: {"executor": "mock"},
                 "reporting": [{"module": "passfail", "criteria": criteria}],
-            }
+            },
+            get={
+                'https://some-bzm-link.com/api/v4/tests/1/validations': {'result': [
+                    {'status': 100,
+                     'warnings': ["passfail warning"],
+                     'fileWarnings': ["passfail file warning"]}]},
+                'https://some-bzm-link.com/api/v4/masters/1/status': {'result': {"status": "CREATED", "progress": 100}},
+                'https://some-bzm-link.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+            },
+            post={
+                'https://some-bzm-link.com/api/v4/tests/1/start': {"result": {"id": 1}},
+            },
         )
         self.sniff_log(self.obj.log)
 
         self.obj.prepare()
         self.assertEqual(self.obj.engine.config['reporting'][0]['criteria'], criteria)
 
-        tmp_request, tmp_launch = self.obj.router._test._request, self.obj.router.launch_test
         bzm_link = "https://some-bzm-link.com"
-        self.obj.router.launch_test = lambda: f'{bzm_link}/app/#/masters/0'
         self.obj.router._test.address = bzm_link
-        self.obj.router._test._request = self.patch_request
-
         self.obj.startup()
-        self.obj.router._test._request, self.obj.router.launch_test = tmp_request, tmp_launch
-        self.assertIn(bzm_link, self.patch_url)
+        self.obj.check()
 
         warnings = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Passfail Warning: passfail warning", warnings)
         self.assertIn("Passfail Warning: passfail file warning", warnings)
-
-    def patch_request(self, url, method='GET'):
-        self.patch_url = url
-        return {'result': [
-            {'warnings': ["passfail warning"],
-             'fileWarnings': ["passfail file warning"]}]}
 
 
 class TestResultsFromBZA(BZTestCase):

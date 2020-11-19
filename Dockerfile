@@ -26,7 +26,7 @@ RUN apt-get -y update \
   && $APT_INSTALL python3-dev python3-pip \
   && python3 -m pip install --upgrade pip \
   && python3 -m pip install --user --upgrade setuptools wheel \
-  && python3 -m pip install locust robotframework robotframework-seleniumlibrary molotov twine \
+  && python3 -m pip install locust robotframework robotframework-seleniumlibrary molotov==1.6 twine \
   && gem install rspec rake \
   && gem install selenium-webdriver \
   && wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
