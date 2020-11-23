@@ -7,5 +7,5 @@ coverage:
 
 ignore:
   - bzt/resources/.*
-  - tests/resources/.*
+  - tests/.*
   - scripts/installer/.*

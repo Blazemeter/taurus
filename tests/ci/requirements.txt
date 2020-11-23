@@ -1,8 +1,5 @@
-codecov
 locust
-coverage
 molotov<=1.6
 robotframework
 http-here
 nose2
-nose2-timer

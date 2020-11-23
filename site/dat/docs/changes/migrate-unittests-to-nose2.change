@@ -1,5 +1,5 @@
 todo: fix:
-    1. 979 (nose) vs 978 (nose2) tests number discrepancy
+  + 1. 979 (nose) vs 978 (nose2) tests number discrepancy
   + 2. 2 test fails (linux, mac)
   + 3. add py3.8,py3.9 to appveyor
   - 4. remove nose-timers. can we replace it with something?
