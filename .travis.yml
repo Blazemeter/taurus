@@ -49,16 +49,22 @@ install:
   fi
 - gem install rspec
 - $PIP_INSTALL --upgrade pip
-- $PIP_INSTALL -r requirements.txt
-- $PIP_INSTALL -r tests/ci/requirements.txt
+- $PIP_INSTALL -r requirements.txt -r tests/ci/requirements.txt
 
 before_script:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then nohup bash -c "Xvfb :99 &"; fi
 - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
 - $PYTHON tests/resources/httpserver/start.py &
+- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then CHECK_COV=true; fi
+- |
+  if [ "$CHECK_COV" = true ]; then
+    _PREFIX="coverage run --source=bzt"
+  elif
+    _PREFIX=$PYTHON
+  fi
 
 script:
-- coverage run --source=bzt -m nose2 -s tests/unit -v
+- $_PREFIX -m nose2 -s tests/unit -v
 
 after_success:
-- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then coverage report -m && codecov; fi
+- if [ "$CHECK_COV" = true ]; then coverage report -m && codecov; fi

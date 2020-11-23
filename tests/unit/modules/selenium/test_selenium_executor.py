@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import time
+import unittest
 
 import yaml
 from io import BytesIO
@@ -107,12 +108,14 @@ class TestSeleniumExecutor(SeleniumTestCase):
         for arg in ["t3", "Exception"]:
             self.assertIn(arg, samples[3])
 
+    @unittest.skipIf(is_windows(), "disabled on windows")
     def test_selenium_old_flow(self):
         self.run_script("test_old_flow")
         self.check_transaction_logged()
         self.check_flow_markers()
         self.check_samples()
 
+    @unittest.skipIf(is_windows(), "disabled on windows")
     def test_selenium_new_flow(self):
         self.run_script("test_new_flow")
         self.check_transaction_logged()
