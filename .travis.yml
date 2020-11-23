@@ -1,4 +1,3 @@
-sudo: false
 language: python
 dist: bionic
 cache: pip  # use caching for pip's packages to speed up builds
@@ -22,7 +21,7 @@ env:
   - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
   - PYTHON=python
 
-matrix:
+jobs:
   include:
   - os: osx
     name: "Python 3 on macOS"
