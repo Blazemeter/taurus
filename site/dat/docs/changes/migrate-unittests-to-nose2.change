@@ -10,5 +10,5 @@ todo: fix:
   + 9. should we add nose2 to tests/ci requirements?
   + 10. fix fuzzyset problem on 3.9
   - 11. fix "test_selenium_startup_shutdown_python_folder" problem
-  - 12. remove the rest of direct output
+    12. remove the rest of direct output
 

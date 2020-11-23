@@ -9,7 +9,6 @@ branches:
 os: linux
 
 python:
-- "3.6"
 - "3.7"
 - "3.8"
 - "3.9"
@@ -59,6 +58,7 @@ before_script:
 - |
   if [ "$CHECK_COV" = true ]; then
     _PREFIX="coverage run --source=bzt"
+    echo "let's check code coverage..."
   else
     _PREFIX=$PYTHON
   fi
