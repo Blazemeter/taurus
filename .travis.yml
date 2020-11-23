@@ -59,7 +59,7 @@ before_script:
 - |
   if [ "$CHECK_COV" = true ]; then
     _PREFIX="coverage run --source=bzt"
-  elif
+  else
     _PREFIX=$PYTHON
   fi
 

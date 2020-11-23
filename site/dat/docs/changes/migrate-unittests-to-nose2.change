@@ -2,7 +2,7 @@ todo: fix:
   + 1. 979 (nose) vs 978 (nose2) tests number discrepancy
   + 2. 2 test fails (linux, mac)
   + 3. add py3.8,py3.9 to appveyor
-  - 4. remove nose-timers. can we replace it with something?
+  - 4. nose-timers - can we replace it with something?
   + 5. check total time on nose2 (nose: 134-220s)
   + 6. remove console pseudo graph
   + 7. remove tools (soap, jmx) verbose test log
