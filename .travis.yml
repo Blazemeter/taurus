@@ -1,5 +1,5 @@
 language: python
-dist: bionic
+dist: focal
 cache: pip  # use caching for pip's packages to speed up builds
 
 branches:
