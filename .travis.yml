@@ -17,7 +17,6 @@ env:
   global:
   - DISPLAY=:99.0
   - PIP_INSTALL="pip install"
-  - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
   - PYTHON=python
 
 jobs:
@@ -54,16 +53,12 @@ before_script:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then nohup bash -c "Xvfb :99 &"; fi
 - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
 - $PYTHON tests/resources/httpserver/start.py &
+- SCRIPT_RUNNER=$PYTHON
 - if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then CHECK_COV=true; fi
-- |
-  if [ "$CHECK_COV" = true ]; then
-    _PREFIX="coverage run --source=bzt"
-  else
-    _PREFIX=$PYTHON
-  fi
+- if [ "$CHECK_COV" = true ]; then SCRIPT_RUNNER="coverage run --source=bzt" fi
 
 script:
-- $_PREFIX -m nose2 -s tests/unit -v
+- $SCRIPT_RUNNER -m nose2 -s tests/unit -v
 
 after_success:
 - if [ "$CHECK_COV" = true ]; then coverage report -m && codecov; fi
