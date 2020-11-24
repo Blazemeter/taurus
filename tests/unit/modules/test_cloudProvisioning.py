@@ -1928,15 +1928,16 @@ class TestCloudProvisioning(BZTestCase):
                 "reporting": [{"module": "passfail", "criteria": criteria}],
             },
             get={
-                'https://some-bzm-link.com/api/v4/tests/1/validations': {'result': [
+                'https://a.blazemeter.com/api/v4/tests/1/validations': {'result': [
                     {'status': 100,
                      'warnings': ["passfail warning"],
                      'fileWarnings': ["passfail file warning"]}]},
-                'https://some-bzm-link.com/api/v4/masters/1/status': {'result': {"status": "CREATED", "progress": 100}},
-                'https://some-bzm-link.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1/status': {'result': {"status": "CREATED", "progress": 100}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
             },
             post={
-                'https://some-bzm-link.com/api/v4/tests/1/start': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/tests/1/validate': {},
             },
         )
         self.sniff_log(self.obj.log)
@@ -1944,8 +1945,6 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.assertEqual(self.obj.engine.config['reporting'][0]['criteria'], criteria)
 
-        bzm_link = "https://some-bzm-link.com"
-        self.obj.router._test.address = bzm_link
         self.obj.startup()
         self.obj.check()
 
