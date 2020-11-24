@@ -55,7 +55,7 @@ before_script:
 - $PYTHON tests/resources/httpserver/start.py &
 - SCRIPT_RUNNER=$PYTHON
 - if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then CHECK_COV=true; fi
-- if [ "$CHECK_COV" = true ]; then SCRIPT_RUNNER="coverage run --source=bzt" fi
+- if [ "$CHECK_COV" = true ]; then SCRIPT_RUNNER="coverage run --source=bzt"; fi
 
 script:
 - $SCRIPT_RUNNER -m nose2 -s tests/unit -v
