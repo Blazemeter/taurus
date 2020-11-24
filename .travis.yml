@@ -36,7 +36,6 @@ addons:
   chrome: stable
   apt:
     packages:
-    - openjdk-8-jdk
     - python-tk
     - python3-tk
 
