@@ -156,7 +156,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             cmdline += ['--verbose']
 
         cmdline += [self.script]
-        raise BaseException('real apiritif!')
         self.process = self._execute(cmdline)
         self._tailer = FileReader(filename=self.stdout.name, parent_logger=self.log)
 
