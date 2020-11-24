@@ -30,6 +30,7 @@ from functools import wraps
 from io import BytesIO
 from ssl import SSLError
 from urllib.error import HTTPError, URLError
+from time import sleep
 
 import requests
 import yaml
@@ -1472,7 +1473,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def prepare(self):
         reporting = self.engine.config.get(Reporter.REP)
-        self.validate_passfail = any(reporter.get('module') == 'passfail' for reporter in reporting)
 
         CloudProvisioning.merge_with_blazemeter_config(self)
         CloudProvisioning.configure_client(self)
@@ -1541,6 +1541,21 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.results_reader = ResultsFromBZA()
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
+
+        self.validate_passfail = any(reporter.get('module') == 'passfail' for reporter in reporting)
+
+        if self.validate_passfail:
+            self.router._test.passfail_validate()
+            timeout = 100
+            for i in range(timeout):
+                validation_result = self.router._test.passfail_validation()
+                if validation_result:
+                    return
+                self.log.warning(f"Unsuccessful Passfail validation attempt [{i+1}]. Retrying...")
+                if i % 10:
+                    self.log.warning("Please keep in mind that validation can take time.")
+                sleep(1)
+            self.log.error("Unable get Passfail validation!")
 
     @staticmethod
     def _get_other_modules(config):
@@ -1677,9 +1692,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             return True
 
     def check(self):
-        if self.validate_passfail:
-            self.validate_passfail = not self.router._test.passfail_validation()
-
         if self.detach:
             self.log.warning('Detaching Taurus from started test...')
             return True
