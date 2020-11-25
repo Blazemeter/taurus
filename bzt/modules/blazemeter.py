@@ -1459,7 +1459,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self._workspaces = []
         self.launch_existing_test = None
         self.disallow_empty_execution = False
-        self.validate_passfail = False   # don't ask for validation by default
 
     @staticmethod
     def merge_with_blazemeter_config(module):
@@ -1542,13 +1541,13 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
 
-        self.validate_passfail = any(reporter.get('module') == 'passfail' for reporter in reporting)
+        validate_passfail = any(reporter.get('module') == 'passfail' for reporter in reporting)
 
-        if self.validate_passfail:
-            self.router._test.passfail_validate()
+        if validate_passfail:
+            self.router._test.validate_passfail()
             timeout = 100
             for i in range(timeout):
-                validation_result = self.router._test.passfail_validation()
+                validation_result = self.router._test.get_passfail_validation()
                 if validation_result:
                     return
                 self.log.warning(f"Unsuccessful Passfail validation attempt [{i+1}]. Retrying...")
