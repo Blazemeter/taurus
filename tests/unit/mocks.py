@@ -83,6 +83,17 @@ class MockFileReader(FileReader):
     SYS_ENCODING = 'cp1251' if is_windows() else 'utf-8'
 
 
+class DummyOut:
+    def write(self, _):
+        pass
+
+    def flush(self):
+        pass
+
+    def isatty(self):
+        return False
+
+
 class EngineEmul(Engine):
     def __init__(self, custom_configs=None):
         super(EngineEmul, self).__init__(ROOT_LOGGER)
