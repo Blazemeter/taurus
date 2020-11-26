@@ -6,6 +6,5 @@ coverage:
   round: up
 
 ignore:
-  - bzt/resources/.*
-  - tests/.*
-  - scripts/installer/.*
+  - bzt/resources
+
