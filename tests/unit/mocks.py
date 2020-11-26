@@ -124,11 +124,6 @@ class EngineEmul(Engine):
             raise self.prepare_exc
         return super(EngineEmul, self).prepare()
 
-    def prepare(self):
-        if self.prepare_exc:
-            raise self.prepare_exc
-        return super().prepare()
-
 
 class ModuleMock(ScenarioExecutor, Provisioning, Reporter, Service, FileLister, HavingInstallableTools,
                  SelfDiagnosable):

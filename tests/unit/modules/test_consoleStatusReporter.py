@@ -15,13 +15,10 @@ from tests.unit.modules.jmeter import MockJMeterExecutor
 class TestConsoleStatusReporter(BZTestCase):
     def setUp(self):
         super(TestConsoleStatusReporter, self).setUp()
-        self.stdout = sys.stdout
         self.stderr = sys.stderr
-        sys.stdout = None
         sys.stderr = None
 
     def tearDown(self):
-        sys.stdout = self.stdout
         sys.stderr = self.stderr
         super(TestConsoleStatusReporter, self).tearDown()
 

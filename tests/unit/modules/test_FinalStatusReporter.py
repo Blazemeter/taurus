@@ -31,14 +31,8 @@ class TestFinalStatusReporter(BZTestCase):
                     "| http://192.168.1.1/somequery     |   OK   | 100.00% |  0.001 |           |\n"
                     "| http://192.168.100.100/somequery |   OK   | 100.00% |  0.001 |           |\n"
                     "+----------------------------------+--------+---------+--------+-----------+\n")
-
-        stdout = sys.stdout
-        sys.stdout = None  # turn off tty
-        try:
-            obj.post_process()
-            self.assertIn(expected, self.log_recorder.info_buff.getvalue())
-        finally:
-            sys.stdout = stdout
+        obj.post_process()
+        self.assertIn(expected, self.log_recorder.info_buff.getvalue())
 
     def test_log_messages_failed_labels(self):
         obj = FinalStatus()
@@ -77,13 +71,8 @@ class TestFinalStatusReporter(BZTestCase):
                          "|         100.0 |         0.081 |\n"
                          "+---------------+---------------+\n"
                          )
-        stdout = sys.stdout
-        sys.stdout = None  # turn off tty
-        try:
-            obj.post_process()
-            self.assertEqual(target_output, self.log_recorder.info_buff.getvalue())
-        finally:
-            sys.stdout = stdout
+        obj.post_process()
+        self.assertEqual(target_output, self.log_recorder.info_buff.getvalue())
 
     def test_log_messages_samples_count(self):
         obj = FinalStatus()

@@ -225,8 +225,6 @@ class TestCLI(BZTestCase):
         self.assertTrue(found_line)
 
     def test_cover_option_parser(self):
-        sys.stdout = None
-        sys.stderr = None
         parser = get_option_parser()
         parser.print_usage()
 

@@ -23,6 +23,8 @@ class BZTestCase(TestCase):
         self.func_results = None
         self.log = ROOT_LOGGER
         self.clean_log()
+        self.stdout_backup = sys.stdout
+        sys.stdout = None
 
     def clean_log(self, logger=None):
         if not logger:
@@ -58,6 +60,9 @@ class BZTestCase(TestCase):
         if self.captured_logger:
             self.captured_logger.removeHandler(self.log_recorder)
             self.log_recorder.close()
+
+        sys.stdout = self.stdout_backup
+        super(BZTestCase, self).tearDown()
 
     @staticmethod
     def assertFilesEqual(expected, actual, replace_str="", replace_with="", python_files=False):
