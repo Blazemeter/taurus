@@ -1,10 +1,12 @@
 FROM ubuntu:18.04
 
-ENV DBUS_SESSION_BUS_ADDRESS=/dev/null DEBIAN_FRONTEND=noninteractive APT_INSTALL="apt-get -y install --no-install-recommends"
+ENV DBUS_SESSION_BUS_ADDRESS=/dev/null DEBIAN_FRONTEND=noninteractive
+ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 
 WORKDIR /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 ADD https://deb.nodesource.com/setup_12.x /tmp
+
 RUN apt-get -y update \
   && apt-get -y install dirmngr \
   && $APT_INSTALL software-properties-common apt-utils \
@@ -14,29 +16,26 @@ RUN apt-get -y update \
   && apt-add-repository ppa:yandex-load/main \
   && apt-add-repository ppa:nilarimogard/webupd8 \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
-  && bash /tmp/setup_12.x \
-  && $APT_INSTALL tzdata \
+  && bash /tmp/setup_12.x
+RUN $APT_INSTALL tzdata \
   && dpkg-reconfigure --frontend noninteractive tzdata \
   && $APT_INSTALL \
-    language-pack-en mc kmod unzip build-essential \
-    libxslt1-dev libffi-dev libxi6 libgconf-2-4 libexif12 libyaml-dev \
-    udev openjdk-8-jdk xvfb siege tsung apache2-utils phantom phantom-ssl \
-    firefox google-chrome-stable pepperflashplugin-nonfree flashplugin-installer \
-    ruby ruby-dev nodejs apt-transport-https net-tools gcc-mingw-w64-x86-64 \
-  && $APT_INSTALL python3-dev python3-pip \
-  && python3 -m pip install --upgrade pip \
-  && python3 -m pip install --user --upgrade setuptools wheel \
-  && python3 -m pip install locust robotframework robotframework-seleniumlibrary molotov==1.6 twine \
-  && gem install rspec rake \
-  && gem install selenium-webdriver \
-  && wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
+    language-pack-en mc kmod unzip build-essential libxslt1-dev libffi-dev libxi6 libgconf-2-4 libexif12 libyaml-dev \
+    udev openjdk-8-jdk xvfb siege tsung apache2-utils phantom phantom-ssl firefox google-chrome-stable \
+    pepperflashplugin-nonfree flashplugin-installer ruby ruby-dev nodejs apt-transport-https net-tools \
+    gcc-mingw-w64-x86-64 python3-dev python3-pip
+RUN python3 -m pip install --upgrade pip setuptools wheel \
+  && python3 -m pip install locust robotframework robotframework-seleniumlibrary molotov==1.6 twine
+RUN gem install rspec rake \
+  && gem install selenium-webdriver
+RUN wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
   && dpkg -i packages-microsoft-prod.deb \
   # Update required because packages-microsoft-prod.deb instalation add repositories for dotnet
   && apt-get -y update \
-  && $APT_INSTALL dotnet-sdk-3.1 \
-  && wget https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
+  && $APT_INSTALL dotnet-sdk-3.1
+RUN wget https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
   && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
-  && apt-get clean
+RUN apt-get clean
 
 COPY bzt/resources/chrome_launcher.sh /tmp
 RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
@@ -48,8 +47,11 @@ WORKDIR /tmp/bzt-src
 RUN google-chrome-stable --version && firefox --version && dotnet --version | head -1 \
   && python3 -m pip install bzt-*.tar.gz \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
-  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
+  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
+RUN bzt -install-tools -v
+RUN ls -la /tmp \
+  && cat /tmp/jpgc-*.log \
+  && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
 
 RUN mkdir /bzt-configs \
   && rm -rf /tmp/* \
