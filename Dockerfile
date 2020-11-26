@@ -34,8 +34,7 @@ RUN wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-p
   && apt-get -y update \
   && $APT_INSTALL dotnet-sdk-3.1
 RUN wget https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
-  && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
-RUN apt-get clean
+  && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb
 
 COPY bzt/resources/chrome_launcher.sh /tmp
 RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
@@ -51,11 +50,14 @@ RUN google-chrome-stable --version && firefox --version && dotnet --version | he
 RUN bzt -install-tools -v
 RUN ls -la /tmp \
   && cat /tmp/jpgc-*.log \
-  && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
+  && ls -la ~/.bzt/jmeter-taurus/*/lib/ext \
+  && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
 
 RUN mkdir /bzt-configs \
   && rm -rf /tmp/* \
   && mkdir /tmp/artifacts
+
+RUN apt-get clean
 
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
