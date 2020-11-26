@@ -1928,15 +1928,16 @@ class TestCloudProvisioning(BZTestCase):
                 "reporting": [{"module": "passfail", "criteria": criteria}],
             },
             get={
-                'https://some-bzm-link.com/api/v4/tests/1/validations': {'result': [
+                'https://a.blazemeter.com/api/v4/tests/1/validations': {'result': [
                     {'status': 100,
                      'warnings': ["passfail warning"],
                      'fileWarnings': ["passfail file warning"]}]},
-                'https://some-bzm-link.com/api/v4/masters/1/status': {'result': {"status": "CREATED", "progress": 100}},
-                'https://some-bzm-link.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1/status': {'result': {"status": "CREATED", "progress": 100}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
             },
             post={
-                'https://some-bzm-link.com/api/v4/tests/1/start': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/tests/1/validate': {},
             },
         )
         self.sniff_log(self.obj.log)
@@ -1944,14 +1945,46 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.assertEqual(self.obj.engine.config['reporting'][0]['criteria'], criteria)
 
-        bzm_link = "https://some-bzm-link.com"
-        self.obj.router._test.address = bzm_link
         self.obj.startup()
         self.obj.check()
 
         warnings = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Passfail Warning: passfail warning", warnings)
         self.assertIn("Passfail Warning: passfail file warning", warnings)
+
+    def test_nonstandard_env(self):
+        self.obj.user.address = "https://some-bzm-link.com"
+        self.obj.user.data_address = "https://some-bzm-link.com"
+        self.configure(
+            engine_cfg={EXEC: {"executor": "mock"}},
+            get={
+                'https://some-bzm-link.com/api/v4/accounts': {"result": [{'id': 1, 'owner': {'id': 1}}]},
+                'https://some-bzm-link.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
+                    "result": [{'id': 1, 'enabled': True}]},
+                'https://some-bzm-link.com/api/v4/user': {'id': 1,
+                                                          'defaultProject': {'id': 1, 'accountId': 1,
+                                                                             'workspaceId': 1}},
+                'https://some-bzm-link.com/api/v4/projects?workspaceId=1&limit=1000': {"result": []},
+                'https://some-bzm-link.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": []},
+                'https://some-bzm-link.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {"result": []},
+                'https://some-bzm-link.com/api/v4/workspaces/1': {"result": {"locations": [
+                    {'id': 'us-east-1', 'sandbox': False, 'title': 'East'}]}},
+            },
+            post={
+                'https://some-bzm-link.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1, 'limit': 1000}},
+                'https://some-bzm-link.com/api/v4/tests': {"result": {"id": 1, "configuration": {"type": "taurus"}}},
+                'https://some-bzm-link.com/api/v4/tests/1/files': {"result": {"id": 1}},
+                'https://some-bzm-link.com/api/v4/tests/1/start': {"result": {"id": 1}},
+            },
+            patch={
+                'https://some-bzm-link.com/api/v4/tests/1': {"result": {}},
+            },
+        )
+
+        self.sniff_log(self.obj.log)
+        self.obj.prepare()
+        self.obj.startup()
+        self.assertIn("https://some-bzm-link.com", self.log_recorder.info_buff.getvalue())
 
 
 class TestResultsFromBZA(BZTestCase):

@@ -515,7 +515,13 @@ class Test(BZAObject):
         res = self._request(url, data=coll, method="PATCH")
         return res['result']
 
-    def passfail_validation(self):
+    def validate_passfail(self):
+        # validate passfail configuration
+        url = f"{self.address}/api/v4/tests/{self['id']}/validate"
+        self._request(url, method='POST')
+
+    def get_passfail_validation(self):
+        # get passfail validation status and results, log warnings if present
         url = f"{self.address}/api/v4/tests/{self['id']}/validations"
         resp = self._request(url, method='GET')
         if resp and resp['result'][0]['status'] == 100:
