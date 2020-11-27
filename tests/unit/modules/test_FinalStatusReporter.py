@@ -1,6 +1,6 @@
-import unittest
 import os
 import time
+import sys
 from collections import Counter
 
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -22,7 +22,6 @@ class TestFinalStatusReporter(BZTestCase):
         obj.startup()
         obj.shutdown()
         obj.aggregated_second(self.__get_datapoint())
-        obj.post_process()
 
         expected = ("Request label stats:\n"
                     "+----------------------------------+--------+---------+--------+-----------+\n"
@@ -32,7 +31,7 @@ class TestFinalStatusReporter(BZTestCase):
                     "| http://192.168.1.1/somequery     |   OK   | 100.00% |  0.001 |           |\n"
                     "| http://192.168.100.100/somequery |   OK   | 100.00% |  0.001 |           |\n"
                     "+----------------------------------+--------+---------+--------+-----------+\n")
-
+        obj.post_process()
         self.assertIn(expected, self.log_recorder.info_buff.getvalue())
 
     def test_log_messages_failed_labels(self):
@@ -58,7 +57,6 @@ class TestFinalStatusReporter(BZTestCase):
         obj.startup()
         obj.shutdown()
         obj.aggregated_second(self.__get_datapoint())
-        obj.post_process()
         target_output = ("Average times: total 0.001, latency 0.000, connect 0.000\n"
                          "Percentiles:\n"
                          "+---------------+---------------+\n"
@@ -73,6 +71,7 @@ class TestFinalStatusReporter(BZTestCase):
                          "|         100.0 |         0.081 |\n"
                          "+---------------+---------------+\n"
                          )
+        obj.post_process()
         self.assertEqual(target_output, self.log_recorder.info_buff.getvalue())
 
     def test_log_messages_samples_count(self):

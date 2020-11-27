@@ -17,6 +17,7 @@ class TestSiegeExecutor(ExecutorTestCase):
 
     def setUp(self):
         super(TestSiegeExecutor, self).setUp()
+        #self.sniff_log()
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.engine.aggregator.engine = self.obj.engine
         self.obj.settings.merge({"path": TOOL_PATH})
@@ -68,6 +69,7 @@ class TestSiegeExecutor(ExecutorTestCase):
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {}})
+
         self.assertRaises(ToolError, self.obj.prepare)
 
     def test_repetition_exceptions(self):

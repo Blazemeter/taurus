@@ -92,7 +92,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
             self.log.info("Invalid screen type %r, trying 'console'", screen_type)
             screen_type = "console"
 
-        if not sys.stdout.isatty():
+        if not (sys.stdout and sys.stdout.isatty()):
             self.log.debug("Not in terminal, using dummy screen")
             screen_type = "dummy"
 
@@ -117,7 +117,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
 
         disable = self.settings.get('disable', 'auto')
         explicit_disable = isinstance(disable, (bool, int)) and disable
-        auto_disable = str(disable).lower() == 'auto' and not sys.stdout.isatty()
+        auto_disable = str(disable).lower() == 'auto' and not (sys.stdout and sys.stdout.isatty())
         if explicit_disable or auto_disable or self.engine.is_functional_mode():
             self.disabled = True
             return
@@ -259,7 +259,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
         if isinstance(self.screen, DummyScreen):
             return
 
-        if sys.stdout.isatty():
+        if sys.stdout and sys.stdout.isatty():
             if not is_windows():
                 self.__detect_console_logger()
 

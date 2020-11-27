@@ -1375,19 +1375,19 @@ class ProgressBarContext(ProgressBar):
         super(ProgressBarContext, self).__init__(widgets=widgets, maxval=maxval, fd=sys.stdout)
 
     def __enter__(self):
-        if not sys.stdout.isatty():
+        if not (sys.stdout and sys.stdout.isatty()):
             LOG.debug("No progressbar for non-tty output: %s", sys.stdout)
 
         self.start()
         return self
 
     def update(self, value=None):
-        if sys.stdout.isatty():
+        if sys.stdout and sys.stdout.isatty():
             super(ProgressBarContext, self).update(value)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         del exc_type, exc_val, exc_tb
-        if sys.stdout.isatty():
+        if sys.stdout and sys.stdout.isatty():
             self.finish()
 
     def download_callback(self, block_count, blocksize, totalsize):

@@ -1,6 +1,6 @@
 import yaml
 
-from bzt.soapui2yaml import process
+from bzt.soapui2yaml import SoapUI2YAML
 
 from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
 
@@ -23,11 +23,16 @@ class TestConverter(BZTestCase):
     def _get_tmp(self, prefix='test', suffix='.yml'):
         return self.engine.create_artifact(prefix, suffix)
 
+    def configure(self, options, source):
+        self.tool = SoapUI2YAML(options, source)
+        self.clean_log()
+
     def test_convert(self):
         source = RESOURCES_DIR + "soapui/project.xml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result, test_case="index")
-        process(options, [source])
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(RESOURCES_DIR + "soapui/project.xml.yml").read())
         self.assertEqual(actual, expected)
@@ -36,7 +41,8 @@ class TestConverter(BZTestCase):
         source = RESOURCES_DIR + "soapui/flickr-sample.xml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
-        process(options, [source])
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(RESOURCES_DIR + "soapui/flickr-sample.xml.yml").read())
         self.assertEqual(actual, expected)
@@ -45,7 +51,8 @@ class TestConverter(BZTestCase):
         source = RESOURCES_DIR + "soapui/egalaxy.xml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
-        process(options, [source])
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(RESOURCES_DIR + "soapui/egalaxy.xml.yml").read())
         self.assertEqual(actual, expected)
@@ -54,7 +61,10 @@ class TestConverter(BZTestCase):
         source = RESOURCES_DIR + "soapui/smart.xml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
-        process(options, [source])
+        self.configure(options, source)
+        self.tool.process()
+        self.configure(options, source)
+        self.tool.process()
         actual = yaml.full_load(open(result).read())
         expected = yaml.full_load(open(RESOURCES_DIR + "soapui/smart.xml.yml").read())
         self.assertEqual(actual, expected)

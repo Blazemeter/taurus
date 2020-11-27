@@ -1,6 +1,5 @@
-sudo: false
 language: python
-dist: bionic
+dist: focal
 cache: pip  # use caching for pip's packages to speed up builds
 
 branches:
@@ -10,18 +9,17 @@ branches:
 os: linux
 
 python:
-- "3.6"
 - "3.7"
 - "3.8"
+- "3.9"
 
 env:
   global:
   - DISPLAY=:99.0
   - PIP_INSTALL="pip install"
-  - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
   - PYTHON=python
 
-matrix:
+jobs:
   include:
   - os: osx
     name: "Python 3 on macOS"
@@ -38,7 +36,6 @@ addons:
   chrome: stable
   apt:
     packages:
-    - openjdk-8-jdk
     - python-tk
     - python3-tk
 
@@ -49,16 +46,18 @@ install:
   fi
 - gem install rspec
 - $PIP_INSTALL --upgrade pip
-- $PIP_INSTALL -r requirements.txt
-- $PIP_INSTALL -r tests/ci/requirements.txt
+- $PIP_INSTALL -r requirements.txt -r tests/ci/requirements.txt
 
 before_script:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then nohup bash -c "Xvfb :99 &"; fi
 - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
 - $PYTHON tests/resources/httpserver/start.py &
+- SCRIPT_RUNNER=$PYTHON
+- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then CHECK_COV=true; fi
+- if [ "$CHECK_COV" = true ]; then SCRIPT_RUNNER="coverage run --source=bzt"; fi
 
 script:
-- coverage run --source=. -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE --with-timer --timer-top-n 30
+- $SCRIPT_RUNNER -m nose2 -s tests/unit -v
 
 after_success:
-- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then coverage report -m && codecov; fi
+- if [ "$CHECK_COV" = true ]; then coverage report -m && codecov; fi

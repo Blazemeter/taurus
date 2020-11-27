@@ -88,7 +88,7 @@ class CLI(object):
             'CRITICAL': 'bold_red',
         }
         fmt_file = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
-        if sys.stdout.isatty():
+        if sys.stdout and sys.stdout.isatty():
             fmt_verbose = ColoredFormatter("%(log_color)s[%(asctime)s %(levelname)s %(name)s] %(message)s",
                                            log_colors=colors)
             fmt_regular = ColoredFormatter("%(log_color)s%(asctime)s %(levelname)s: %(message)s",

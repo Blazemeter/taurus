@@ -176,7 +176,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         for key in sorted(summary_kpi_set[KPISet.PERCENTILES].keys(), key=float):
             data.append((float(key), summary_kpi_set[KPISet.PERCENTILES][key]))
             # self.log.info("Percentile %.1f%%: %.3f", )
-        table = SingleTable(data) if sys.stdout.isatty() else AsciiTable(data)
+        table = SingleTable(data) if sys.stdout and sys.stdout.isatty() else AsciiTable(data)
         table.justify_columns[0] = 'right'
         table.justify_columns[1] = 'right'
         self.log.info("Percentiles:\n%s", table.table)
@@ -223,7 +223,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         for sample_label in sorted_labels:
             if sample_label != "":
                 data.append(self.__get_sample_element(cumulative[sample_label], sample_label))
-        table = SingleTable(data) if sys.stdout.isatty() else AsciiTable(data)
+        table = SingleTable(data) if sys.stdout and sys.stdout.isatty() else AsciiTable(data)
         table.justify_columns = justify
         self.log.info("Request label stats:\n%s", table.table)
 

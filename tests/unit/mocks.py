@@ -83,6 +83,17 @@ class MockFileReader(FileReader):
     SYS_ENCODING = 'cp1251' if is_windows() else 'utf-8'
 
 
+class DummyOut:
+    def write(self, _):
+        pass
+
+    def flush(self):
+        pass
+
+    def isatty(self):
+        return False
+
+
 class EngineEmul(Engine):
     def __init__(self, custom_configs=None):
         super(EngineEmul, self).__init__(ROOT_LOGGER)
@@ -123,11 +134,6 @@ class EngineEmul(Engine):
         if self.prepare_exc:
             raise self.prepare_exc
         return super(EngineEmul, self).prepare()
-
-    def prepare(self):
-        if self.prepare_exc:
-            raise self.prepare_exc
-        return super().prepare()
 
 
 class ModuleMock(ScenarioExecutor, Provisioning, Reporter, Service, FileLister, HavingInstallableTools,

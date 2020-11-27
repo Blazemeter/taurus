@@ -11,6 +11,7 @@ from bzt.engine import ScenarioExecutor, EXEC
 from bzt.engine import SelfDiagnosable
 from bzt.utils import get_full_path
 from tests.unit import ROOT_LOGGER, EngineEmul
+from tests.unit.mocks import DummyOut
 
 TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
 
@@ -22,6 +23,16 @@ class BZTestCase(TestCase):
         self.func_args = []
         self.func_results = None
         self.log = ROOT_LOGGER
+        self.clean_log()
+        self.stdout_backup = sys.stdout
+        sys.stdout = DummyOut()
+
+    def clean_log(self, logger=None):
+        if not logger:
+            logger = self.log
+        logger.setLevel(logging.DEBUG)
+        for handler in logger.handlers:
+            handler.setLevel(logging.FATAL)
 
     def func_mock(self, *args, **kwargs):
         self.func_args.append({'args': args, 'kargs': kwargs})
@@ -50,6 +61,9 @@ class BZTestCase(TestCase):
         if self.captured_logger:
             self.captured_logger.removeHandler(self.log_recorder)
             self.log_recorder.close()
+
+        sys.stdout = self.stdout_backup
+        super(BZTestCase, self).tearDown()
 
     @staticmethod
     def assertFilesEqual(expected, actual, replace_str="", replace_with="", python_files=False):

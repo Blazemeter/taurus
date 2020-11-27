@@ -4,7 +4,9 @@ import os
 import time
 import yaml
 
-import apiritif
+from platform import python_version
+from unittest import skipIf
+from apiritif import put_into_thread_store
 from selenium.common.exceptions import NoSuchElementException
 
 import bzt
@@ -17,8 +19,8 @@ from bzt.modules.pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
 from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase
 from tests.unit.modules.selenium import SeleniumTestCase
-from bzt.resources.selenium_extras import get_locator, BYS, find_element_by_shadow, send_keys
-from bzt.utils import EXE_SUFFIX
+from bzt.utils import EXE_SUFFIX, is_windows
+from bzt.resources.selenium_extras import get_locator, BYS, find_element_by_shadow
 
 
 class MockWebDriver(object):
@@ -51,7 +53,7 @@ class TestLocatorsMagager(BZTestCase):
         timeout = 30
         driver = MockWebDriver(content=content, timeout=timeout)
 
-        apiritif.put_into_thread_store(driver=driver, timeout=timeout, func_mode=False)
+        put_into_thread_store(driver=driver, timeout=timeout, func_mode=False)
 
         # exception should be raised when raise_exception is True
         missing_locators = [{'css': 'missing_css'}, {'xpath': 'missing_xpath'}]
@@ -75,7 +77,7 @@ class TestLocatorsMagager(BZTestCase):
         timeout = 30
         driver = MockWebDriver(content=content, timeout=timeout)
 
-        apiritif.put_into_thread_store(driver=driver, timeout=timeout, func_mode=False)
+        put_into_thread_store(driver=driver, timeout=timeout, func_mode=False)
         el = find_element_by_shadow('lightning_card')
         el.click()
         self.assertEqual('arguments[0].click();', driver.executed_script)
@@ -123,6 +125,7 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
         self.obj.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")))
 
+    @skipIf(python_version() >= '3.8' and is_windows(), "Temporary disabled")
     def test_selenium_startup_shutdown_python_folder(self):
         """
         run tests from .py files
