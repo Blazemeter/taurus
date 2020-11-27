@@ -1,3 +1,12 @@
+-- use this query for add this trigger to DB
+-- CREATE TRIGGER agg_data BEFORE INSERT OR UPDATE ON public.raw_data FOR EACH ROW EXECUTE PROCEDURE public.agg_data();
+
+-- for update trigger code in DB
+-- 1. DROP TRIGGER IF EXISTS agg_data ON public.raw_data;
+-- 2. DROP FUNCTION public.agg_data();
+-- 3. run code below for create function
+-- 4. CREATE TRIGGER agg_data BEFORE INSERT OR UPDATE ON public.raw_data FOR EACH ROW EXECUTE PROCEDURE public.agg_data();
+
 CREATE FUNCTION public.agg_data() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -5,6 +14,7 @@ CREATE FUNCTION public.agg_data() RETURNS trigger
         cloud_users_env TEXT[] := '{"jenkins", "travis", "bamboo", "teamcity", "docker", "amazon", "google_cloud", "azure"}';
         desktop_users_env TEXT[] := '{"linux", "windows", "macos"}';
     BEGIN
+        LOCK TABLE aggregate_data IN ROW EXCLUSIVE MODE;
         -- Checking the existence of this day
         IF NOT EXISTS (SELECT date FROM aggregate_data WHERE date = CAST(NEW.date AS TEXT)) THEN
             INSERT INTO aggregate_data VALUES
