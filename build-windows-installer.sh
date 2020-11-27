@@ -27,6 +27,11 @@ PYTHONZ_HOME="${HOME}/.pythonz/bin/pythonz"
 PYTHONZ_SYSTEM="/usr/local/pythonz/bin/pythonz"
 [ -f "$PYTHONZ_HOME" ] && PYTHONZ="$PYTHONZ_HOME" || PYTHONZ="$PYTHONZ_SYSTEM"
 
+if ! command -v python &> /dev/null
+then
+    echo "create symlink for python"
+    ln -s "$(which python3)" /usr/bin/python
+fi
 # install specific version of python
 $PYTHONZ install 3.7.5
 
