@@ -2,3 +2,4 @@
 Dockerfile
 vendor
 composer.lock
+aggregate_func.sql
