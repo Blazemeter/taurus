@@ -85,6 +85,10 @@ execution:
 In `selenium` mode follow request features are supported:
 
   - `browser` for the following browser types: Chrome, Firefox, Ie, Opera, Android-Chrome, iOS-Safari, Remote
+  - `headless` for running tests without GUI overhead. available only for Chrome/Firefox and only on Selenium 3.8.0+, disabled by default
+  - `user-agent` for specifying a special user-agent to use for the browser session. available only for Chrome/Firefox  
+  - `window-size` for setting browser window size. available only for Chrome/Firefox 
+  - `proxy-server` for using a browser proxy. currently available only for Chrome
   - `remote` for local webdriver, local remote webdriver or [remote webdriver](#Remote-WebDriver)
   - `capabilities` of [remote webdriver](#Remote-WebDriver): `browser`, `version`, `javascript`, `platform`, `os\_version`, `selenium`, `device`, `app`
   - `request` only for GET method

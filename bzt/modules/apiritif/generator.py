@@ -1002,7 +1002,19 @@ from selenium.webdriver.common.keys import Keys
             ast.Assign(
                 targets=[ast.Name(id="options")],
                 value=ast_call(
-                    func=ast_attr("webdriver.FirefoxOptions")))]
+                    func=ast_attr("webdriver.FirefoxOptions"))),
+            ast.Expr(
+                ast_call(func=ast_attr("options.set_preference"),
+                         args=[ast.Str("network.proxy.type", kind=""), ast.Num(4, kind="")]))]
+
+        if self.scenario.get("window-size", None):
+            firefox_options.append(
+                ast.Expr(
+                    ast_call(
+                        func=ast_attr("options.add_argument"),
+                        args=[
+                            ast.Str("--width=%s" % self.scenario.get("window-size").split(",", 1)[1], kind=""),
+                            ast.Str("--height=%s" % self.scenario.get("window-size").split(",", 2)[2], kind="") ])))
 
         return firefox_options + self._get_headless_setup()
 
@@ -1020,17 +1032,45 @@ from selenium.webdriver.common.keys import Keys
                 ast_call(
                     func=ast_attr("options.add_argument"),
                     args=[ast.Str("%s" % "--disable-dev-shm-usage", kind="")]))]
+        if self.scenario.get("user-agent", None):
+            chrome_options.append(
+                ast.Expr(
+                    ast_call(
+                        func=ast_attr("options.add_argument"),
+                        args=[ast.Str("--user-agent=%s" % self.scenario.get("user-agent") , kind="")])))
+        if self.scenario.get("proxy-server", None):
+            chrome_options.append(
+                ast.Expr(
+                    ast_call(
+                        func=ast_attr("options.add_argument"),
+                        args=[
+                            ast.Str("--proxy-server=%s" % self.scenario.get("proxy-server"), kind="")])))
+        if self.scenario.get("window-size", None):
+            chrome_options.append(
+                ast.Expr(
+                    ast_call(
+                        func=ast_attr("options.add_argument"),
+                        args=[
+                            ast.Str("--window-size=%s" % self.scenario.get("window-size"), kind="")])))
 
         return chrome_options + self._get_headless_setup()
 
     def _get_firefox_profile(self):
-        return [
+        firefox_profile =  [
             ast.Assign(
                 targets=[ast.Name(id="profile")],
                 value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
             ast.Expr(ast_call(
                 func=ast_attr("profile.set_preference"),
                 args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")]))]
+
+        if self.scenario.get("user-agent", None):
+            firefox_profile.append(
+                ast.Expr(
+                    ast_call(
+                        func=ast_attr("profile.set_preference"),
+                        args=[ast.Str("general.useragent.override", kind=""), ast.Str( self.scenario.get("user-agent") , kind="")])))
+        return firefox_profile
 
     def _get_firefox_webdriver(self):
         return ast.Assign(
