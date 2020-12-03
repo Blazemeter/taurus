@@ -45,6 +45,7 @@ install:
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
 - gem install rspec
+- if [ "$TRAVIS_PYTHON_VERSION" = "3.9" ]; then sudo apt install python3.9-dev; fi
 - $PIP_INSTALL --upgrade pip
 - $PIP_INSTALL -r requirements.txt -r tests/ci/requirements.txt
 
