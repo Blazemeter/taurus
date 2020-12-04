@@ -7,7 +7,7 @@ from bzt.modules import ConsolidatingAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.modules.apiritif.executor import ApiritifLoadReader, ApiritifFuncReader
-from tests.unit import RESOURCES_DIR, ExecutorTestCase, EngineEmul
+from tests.unit import RESOURCES_DIR, BZT_DIR, ExecutorTestCase, EngineEmul
 
 
 class TestApiritifScriptGeneration(ExecutorTestCase):
@@ -915,7 +915,6 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             test_script = fds.read()
         self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, delimiter='\\t')", test_script)
 
-
     def test_encoding(self):
         self.configure({
             "execution": [{
@@ -930,3 +929,21 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, encoding='UTF-16')", test_script)
+
+    def test_build_api_cert(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "user-certificate": "config/alice_cert.pem",
+                    "user-certificate-key": "config/alice_key.pem",
+                    "requests": ["localhost", "blazedemo.com"],
+                }
+            }
+        })
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "apiritif/test_generated_cert.py"
+        filepath_start = BZT_DIR.replace('\\', '/')
+        self.assertFilesEqual(exp_file, self.obj.script, filepath_start, '', python_files=True)
