@@ -5,20 +5,15 @@ FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
-#ENV TZ="America/New_York"
 ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 #
 RUN apt-get -y update \
    && $APT_INSTALL dirmngr gnupg python3-pip software-properties-common gcc-mingw-w64-x86-64 curl build-essential \
-   zlib1g-dev \
-   apt-transport-https ca-certificates \
- libxslt1-dev libffi-dev libxi6 libgconf-2-4 libexif12 \
-   libyaml-dev udev net-tools python3-dev python3-pip nsis libssl-dev libncurses5-dev \
-       libsqlite3-dev libreadline-dev
-#libdb4o-cil-dev
+   zlib1g-dev apt-transport-https ca-certificates \
+   libffi-dev libxi6 libgconf-2-4 libexif12 \
+   libyaml-dev net-tools python3-dev nsis libssl-dev libncurses5-dev
 
 # following block should be optimized
-#RUN apt-key adv --fetch-keys https://dl-ssl.google.com/linux/linux_signing_key.pub
 RUN echo "deb http://packages.cloud.google.com/apt cloud-sdk main" >> /etc/apt/sources.list.d/google-cloud-sdk.list \
  && echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" >> /etc/apt/sources.list.d/kubernetes.list \
  && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - \
