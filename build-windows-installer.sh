@@ -52,6 +52,8 @@ $PYTHON -m pip install -U pip-custom-platform wheel
 $PYTHON -m pip install pynsist==2.1 pip==19.3
 $PYTHON scripts/installer/gen_installer.py "$TAURUS_DIST"
 
+echo "gen_installer result: $?"
+
 # deactivate venv afterwards
 deactivate
 # Installer was saved to ${BUILD_DIR}/TaurusInstaller_${TAURUS_VERSION}_x64.exe
