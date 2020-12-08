@@ -17,7 +17,7 @@ RUN echo "deb http://packages.cloud.google.com/apt cloud-sdk main" >> /etc/apt/s
  && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - \
  && curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
  && add-apt-repository -n "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-RUN apt-get update && $APT_INSTALL docker-ce-cli containerd.io kubectl google-cloud-sdk
+RUN apt-get update && $APT_INSTALL docker-ce-cli kubectl google-cloud-sdk
 
 # at the moment setuptools is included to python3-pip
 RUN python3 -m pip install setuptools twine pythonz-bd virtualenv
