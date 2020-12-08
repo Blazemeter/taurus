@@ -9,7 +9,7 @@ ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 
 RUN apt-get -y update \
    && $APT_INSTALL dirmngr gnupg python3-pip software-properties-common gcc-mingw-w64-x86-64 curl build-essential \
-   zlib1g-dev apt-transport-https ca-certificates libffi-dev nsis libssl-dev
+   zlib1g-dev apt-transport-https ca-certificates libffi-dev nsis libssl-dev git
 
 # following block should be optimized
 RUN echo "deb http://packages.cloud.google.com/apt cloud-sdk main" >> /etc/apt/sources.list.d/google-cloud-sdk.list \
