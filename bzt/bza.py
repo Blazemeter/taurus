@@ -518,13 +518,17 @@ class Test(BZAObject):
     def validate_passfail(self):
         # validate passfail configuration
         url = f"{self.address}/api/v4/tests/{self['id']}/validate"
-        self._request(url, method='POST')
+        resp = self._request(url, method='POST')
+        result = resp.get('result')
+        if 'success' in result:
+            return result['success']
+        return False
 
     def get_passfail_validation(self):
         # get passfail validation status and results, log warnings if present
         url = f"{self.address}/api/v4/tests/{self['id']}/validations"
         resp = self._request(url, method='GET')
-        if resp and resp['result'][0]['status'] == 100:
+        if resp and resp.get('result') and resp['result'][0]['status'] == 100:
             for warning_msg in resp['result'][0]['warnings'] + resp['result'][0]['fileWarnings']:
                 self.log.warning(f"Passfail Warning: {warning_msg}")
             return True
