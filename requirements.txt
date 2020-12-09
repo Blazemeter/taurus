@@ -4,7 +4,7 @@ colorama; sys_platform == 'win32'
 colorlog
 cssselect
 Cython; python_version >= '3.9'
-fuzzyset==0.0.18
+fuzzyset==0.0.19
 hdrpy>=0.3.3
 lxml>=3.8.0,!=4.2.0
 progressbar33
