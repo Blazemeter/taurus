@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import send_keys, get_locator, get_elements
+from bzt.resources.selenium_extras import get_locator, get_elements
 
 class TestLocSc(unittest.TestCase):
 
@@ -111,13 +111,13 @@ class TestLocSc(unittest.TestCase):
 
                 self.vars['my_var'] = el.get_attribute('value')
                 el.clear()
-                send_keys(el, 'text')
+                el.send_keys('text')
                 el.clear()
-                send_keys(el, 'text')
+                el.send_keys('text')
                 el.submit()
                 el.submit()
-                send_keys(el, Keys.ENTER)
-                send_keys(el, Keys.ENTER)
+                el.send_keys(Keys.ENTER)
+                el.send_keys(Keys.ENTER)
 
     def test_locsc(self):
         self._1_Foreach_test()

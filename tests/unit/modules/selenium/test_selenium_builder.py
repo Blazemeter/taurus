@@ -110,7 +110,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "self.assertEqual(self.driver.find_element(var_loc_as[0],var_loc_as[1])."
             "get_attribute('value').strip(),\'123 Beautiful st.\'.strip())",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
-            "send_keys(var_loc_keys,'B')",
+            "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('B')",
             "self.driver.execute_script(\"alert('This is Sparta');\")",
             "for i in range(10):",
             "if ((i % 2) == 0):",
@@ -846,7 +846,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).click()",
             "var_loc_keys=get_locator([{'id':'Id_123',}])",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
-            "send_keys(var_loc_keys,'London')"
+            "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('London')"
         ]
 
         for idx in range(len(target_lines)):

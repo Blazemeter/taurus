@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_answer_on_next_prompt, open_window, switch_window, dialogs_answer_on_next_confirm, dialogs_answer_on_next_alert, send_keys, dialogs_replace, get_locator, dialogs_get_next_alert, wait_for, switch_frame, close_window, dialogs_get_next_confirm, dialogs_get_next_prompt
+from bzt.resources.selenium_extras import switch_window, open_window, dialogs_get_next_prompt, dialogs_answer_on_next_confirm, dialogs_answer_on_next_alert, wait_for, dialogs_replace, dialogs_get_next_alert, dialogs_get_next_confirm, get_locator, close_window, dialogs_answer_on_next_prompt, switch_frame
 
 class TestLocSc(unittest.TestCase):
 
@@ -101,8 +101,7 @@ class TestLocSc(unittest.TestCase):
             var_loc_keys = get_locator([{'xpath': '/doc/abc'}, {'css': 'body > div.container > table > tbody > tr:nth-child(1) > td:nth-child(2) > input'}])
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1])
-            send_keys(var_loc_keys, Keys.ENTER)
+                var_loc_keys[1]).send_keys(Keys.ENTER)
 
             var_loc_keys = get_locator([{'id': 'fjkafjk'}, {'css': 'testCss'}])
             self.driver.find_element(
@@ -110,8 +109,7 @@ class TestLocSc(unittest.TestCase):
                 var_loc_keys[1]).clear()
             self.driver.find_element(
                 var_loc_keys[0],
-                var_loc_keys[1])
-            send_keys(var_loc_keys, 'myusername')
+                var_loc_keys[1]).send_keys('myusername')
 
             var_loc_select = get_locator([{'css': 'myclass'}, {'xpath': '//*[@id="cardType"]'}])
             Select(self.driver.find_element(
