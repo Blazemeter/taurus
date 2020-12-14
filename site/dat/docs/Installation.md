@@ -86,6 +86,24 @@ brew upgrade bzt
 ```
 If your brew auto update is switched off don't forget to manage it manually.
 
+NOTE: There is an issue with brew installation connected with numpy. In order to avoid this problem we suggest to install taurus using pip.
+
+To install taurus with pip you need command line developers tools and python 3.6+ installed.
+Then you need to install `cython` if it is not installed using the following command:
+```
+pip3 install cython
+```
+
+Then just install bzt:
+```
+pip3 install bzt
+```
+
+To upgrade use:
+
+```
+pip3 install --upgrade bzt
+```
 
 ## Linux
 
