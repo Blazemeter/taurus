@@ -19,7 +19,8 @@ install:
   - "%PYTHON%\\python.exe -m pip install pip wheel --upgrade"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt -r tests/ci/requirements.txt"
   - set PATH=C:\Ruby22\bin;%PYTHON%\Scripts\;%PATH%
-  - gem install --local rspec
+  - set SSL_CERT_FILE=C:/ruby24-x64/ssl/cert.pem
+  - gem install rspec
 
 build: off
 
