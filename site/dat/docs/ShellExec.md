@@ -75,18 +75,3 @@ modules:
       VARNAME: value
       VARNAME2: value2
 ```
-
- ##Provisioning Context Configuration
- By default all tasks will be handled on the host where test is executed. In `Cloud Provisioning` case you ask (locally)
- to run test in the BM Cloud and all task will be executed there. It's possible to specify target provisioning
- for tasks or module settings, just use provisioning nicks for that:
-```yaml
-services:
-- module: shellexec
-  prepare:
-  - command: echo # will be executed with test together
-- module: shellexec
-  cloud:
-    prepare:
-    - command: kill_them_all # only on your local host when you start cloud test
-```
