@@ -19,8 +19,7 @@ install:
   - "%PYTHON%\\python.exe -m pip install pip wheel --upgrade"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt -r tests/ci/requirements.txt"
   - set PATH=C:\Ruby22\bin;%PYTHON%\Scripts\;%PATH%
-  - gem update --system
-  - gem install rspec
+  - gem install --local rspec
 
 build: off
 
