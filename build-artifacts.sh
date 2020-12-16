@@ -15,5 +15,3 @@ rm -rf ./dist
 python3 ./setup.py sdist bdist_wheel
 
 cd "${PREV_DIR}"
-
-./build-windows-installer.sh ./dist/bzt-*.whl
