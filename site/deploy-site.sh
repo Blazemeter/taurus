@@ -1,7 +1,7 @@
 #!/bin/bash -xe
 
 GOOGLE_STORAGE="https:\/\/storage.cloud.google.com\/taurus-site\/"
-UNSTABLE_SNAPSHOT="## No Unstable Snapshots"
+UNSTABLE_SNAPSHOT=""
 TAURUS_VERSION=$(python3 -c 'from bzt.resources.version import VERSION; print(VERSION)')
 
 mkdir site/builds
