@@ -46,7 +46,7 @@ install:
   fi
 - gem install rspec
 - $PIP_INSTALL --upgrade pip
-- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.9" ]; $PIP_INSTALL Cython; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.9" ]; then $PIP_INSTALL Cython; fi
 - $PIP_INSTALL -r requirements.txt -r tests/ci/requirements.txt
 
 before_script:
