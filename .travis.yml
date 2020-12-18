@@ -23,7 +23,7 @@ jobs:
   include:
   - os: osx
     name: "Python 3 on macOS"
-    osx_image: xcode12.2    # Python 3.7.4 running on macOS 10.14.4
+    osx_image: xcode12.2    # Python 3.9.0 running on macOS 10.15.7
     language: shell
     env:
     - PYTHON=python3
@@ -47,7 +47,7 @@ install:
 - gem install rspec
 - $PIP_INSTALL --upgrade pip
 - $PYTHON -V
-- if [ "$TRAVIS_PYTHON_VERSION" = "3.9" ]; then $PIP_INSTALL Cython; fi
+- if [ "$TRAVIS_PYTHON_VERSION" = "3.9" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.9.0" ]; then $PIP_INSTALL Cython; fi
 - $PIP_INSTALL -r requirements.txt -r tests/ci/requirements.txt
 
 before_script:
