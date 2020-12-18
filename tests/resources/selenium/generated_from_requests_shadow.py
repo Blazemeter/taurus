@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import find_element_by_shadow, get_locator
+from bzt.resources.selenium_extras import waiter, find_element_by_shadow, get_locator
 
 class TestLocSc(unittest.TestCase):
 
@@ -61,16 +61,22 @@ class TestLocSc(unittest.TestCase):
                 raise NoSuchElementException(("The element (shadow: '%s') is not a contenteditable element" % ('c-basic, lightning-accordion-section, .slds-button',)))
 
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').click()
+            waiter()
 
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').click()
+            waiter()
 
             ActionChains(self.driver).double_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
             ActionChains(self.driver).double_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
             ActionChains(self.driver).context_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
             ActionChains(self.driver).context_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
             ActionChains(self.driver).click_and_hold(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
 
@@ -93,28 +99,34 @@ class TestLocSc(unittest.TestCase):
             ActionChains(self.driver).drag_and_drop(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button'), self.driver.find_element(
                 target[0],
                 target[1])).perform()
+            waiter()
 
             source = get_locator([{'id': 'id34'}])
 
             ActionChains(self.driver).drag_and_drop(self.driver.find_element(
                 source[0],
                 source[1]), find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
 
             target = get_locator([{'id': 'id12'}])
             ActionChains(self.driver).drag_and_drop(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button'), self.driver.find_element(
                 target[0],
                 target[1])).perform()
+            waiter()
 
             source = get_locator([{'id': 'id34'}])
 
             ActionChains(self.driver).drag_and_drop(self.driver.find_element(
                 source[0],
                 source[1]), find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
             Select(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).select_by_visible_text('value')
+            waiter()
 
             Select(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).select_by_visible_text('value')
+            waiter()
 
 
             self.vars['my_var'] = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('innerText')
@@ -130,9 +142,11 @@ class TestLocSc(unittest.TestCase):
 
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').clear()
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys('text')
+            waiter()
 
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').clear()
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys('text')
+            waiter()
 
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').submit()
 
