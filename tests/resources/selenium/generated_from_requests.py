@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_answer_on_next_confirm, dialogs_get_next_alert, dialogs_answer_on_next_prompt, dialogs_get_next_confirm, dialogs_answer_on_next_alert, get_locator, wait_for, switch_window, close_window, dialogs_replace, switch_frame, dialogs_get_next_prompt, open_window
+from bzt.resources.selenium_extras import dialogs_get_next_prompt, close_window, open_window, switch_window, dialogs_replace, get_locator, waiter, dialogs_answer_on_next_confirm, dialogs_get_next_alert, dialogs_answer_on_next_prompt, switch_frame, dialogs_answer_on_next_alert, dialogs_get_next_confirm, wait_for
 reader_1 = apiritif.CSVReaderPerThread('first.csv', loop=True)
 reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)
 
@@ -61,11 +61,13 @@ class TestLocSc(unittest.TestCase):
             ActionChains(self.driver).double_click(self.driver.find_element(
                 var_loc_chain[0],
                 var_loc_chain[1])).perform()
+            waiter()
 
             var_loc_chain = get_locator([{'xpath': '/html/body/div[3]/form/select[1]'}])
             ActionChains(self.driver).context_click(self.driver.find_element(
                 var_loc_chain[0],
                 var_loc_chain[1])).perform()
+            waiter()
 
             var_loc_chain = get_locator([{'xpath': '/html/body/div[3]/form/select[1]'}])
             ActionChains(self.driver).click_and_hold(self.driver.find_element(
@@ -81,6 +83,7 @@ class TestLocSc(unittest.TestCase):
             Select(self.driver.find_element(
                 var_loc_select[0],
                 var_loc_select[1])).select_by_visible_text('London')
+            waiter()
 
             var_loc_keys = get_locator([{'css': 'body input.btn.btn-primary'}])
             self.driver.find_element(
@@ -110,6 +113,7 @@ class TestLocSc(unittest.TestCase):
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).send_keys('B')
+            waiter()
 
             var_loc_keys = get_locator([{'name': 'toPort'}])
             self.driver.find_element(
@@ -123,16 +127,19 @@ class TestLocSc(unittest.TestCase):
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).send_keys(Keys.ENTER)
+            waiter()
 
             var_loc_keys = get_locator([{'xpath': '//div[3]/form/select[1]//option[3]'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
+            waiter()
 
             var_loc_keys = get_locator([{'xpath': '//div[3]/form/select[2]//option[6]'}])
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
+            waiter()
             switch_window('0')
             open_window('some.url')
             switch_window('win_ser_local')
@@ -148,6 +155,7 @@ class TestLocSc(unittest.TestCase):
                 var_loc_keys[0],
                 var_loc_keys[1]).submit()
             self.driver.execute_script("alert('This is Sparta');")
+            waiter()
 
             for i in range(10):
                 if ((i % 2) == 0):
@@ -161,6 +169,7 @@ class TestLocSc(unittest.TestCase):
                 source[1]), self.driver.find_element(
                 target[0],
                 target[1])).perform()
+            waiter()
             switch_frame(self.driver.find_element(By.NAME, 'my_frame'))
             switch_frame(self.driver.find_element(By.NAME, 'top_frame'))
             switch_frame(self.driver.find_element(By.XPATH, "//*[@id='result']"))
@@ -188,6 +197,7 @@ class TestLocSc(unittest.TestCase):
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
+            waiter()
 
             self.vars['Title'] = self.driver.title
 
@@ -210,6 +220,7 @@ class TestLocSc(unittest.TestCase):
             self.driver.get('http:\\blazemeter.com')
 
             dialogs_replace()
+            waiter()
 
             dialog = dialogs_get_next_alert()
             self.assertIsNotNone(dialog, 'No dialog of type alert appeared')

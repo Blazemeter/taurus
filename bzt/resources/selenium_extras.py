@@ -445,3 +445,12 @@ def close_window(window_name=None):
         switch_window(window_name)
     _get_driver().close()
 
+
+def waiter():
+    """
+    Allows waiting for page to finish loading before performing other actions on non completely loaded page
+    """
+    WebDriverWait(_get_driver(), _get_timeout())\
+        .until(lambda driver: driver.execute_script('return document.readyState') == 'complete',
+               message="Timeout occurred while waiting for page to finish loading.")
+

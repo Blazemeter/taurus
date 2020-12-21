@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import get_loop_range, get_locator
+from bzt.resources.selenium_extras import get_locator, get_loop_range, waiter
 
 class TestLocSc(unittest.TestCase):
 
@@ -47,6 +47,7 @@ class TestLocSc(unittest.TestCase):
                 self.driver.find_element(
                     var_loc_keys[0],
                     var_loc_keys[1]).click()
+                waiter()
 
     def test_locsc(self):
         self._1_None()
