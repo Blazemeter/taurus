@@ -1544,7 +1544,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         validate_passfail = any(reporter.get('module') == 'passfail' for reporter in reporting)
 
         if validate_passfail:
-            validation_result = self.router._test.validate_passfail()
+            validation_result = self.router._test.started_passfail_validation()
             if validation_result:
                 timeout = 100
                 for i in range(timeout):

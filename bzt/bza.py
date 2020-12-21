@@ -515,8 +515,8 @@ class Test(BZAObject):
         res = self._request(url, data=coll, method="PATCH")
         return res['result']
 
-    def validate_passfail(self):
-        # validate passfail configuration
+    def started_passfail_validation(self):
+        # validate passfail configuration, get success if started
         url = f"{self.address}/api/v4/tests/{self['id']}/validate"
         resp = self._request(url, data={"files": [{"fileName": "taurus.yml"}], "performDataMerge": False})
         result = resp.get('result')
