@@ -8,7 +8,7 @@ ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 
 RUN apt-get -y update \
-   && $APT_INSTALL gnupg curl python3-pip software-properties-common apt-transport-https git
+   && $APT_INSTALL gnupg curl python3-pip software-properties-common apt-transport-https git gcc-mingw-w64-x86-64
 
 # following block should be optimized
 RUN echo "deb http://packages.cloud.google.com/apt cloud-sdk main" >> /etc/apt/sources.list.d/google-cloud-sdk.list \
