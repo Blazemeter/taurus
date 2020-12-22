@@ -1544,17 +1544,18 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         validate_passfail = any(reporter.get('module') == 'passfail' for reporter in reporting)
 
         if validate_passfail:
-            self.router._test.validate_passfail()
-            timeout = 100
-            for i in range(timeout):
-                validation_result = self.router._test.get_passfail_validation()
-                if validation_result:
-                    return
-                self.log.warning(f"Unsuccessful Passfail validation attempt [{i+1}]. Retrying...")
-                if i % 10:
-                    self.log.warning("Please keep in mind that validation can take time.")
-                sleep(1)
-            self.log.error("Unable get Passfail validation!")
+            if self.router._test.started_passfail_validation():
+                timeout = 100
+                for i in range(timeout):
+                    if self.router._test.get_passfail_validation():
+                        return
+                    self.log.warning(f"Unsuccessful Passfail validation attempt [{i+1}]. Retrying...")
+                    if not i % 10:
+                        self.log.warning("Please keep in mind that validation can take time.")
+                    sleep(1)
+                self.log.error("Unable get Passfail validation!")
+            else:
+                self.log.error("Unable to validate Passfail configuration!")
 
     @staticmethod
     def _get_other_modules(config):

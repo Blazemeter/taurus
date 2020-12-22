@@ -60,7 +60,7 @@ pipeline {
         stage("Docker Image Push") {
             steps {
                 withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
-                    sh "docker push ${imageName}"
+                    sh "docker image push --all-tags ${imageName}"
                 }
             }
         }

@@ -515,22 +515,28 @@ class Test(BZAObject):
         res = self._request(url, data=coll, method="PATCH")
         return res['result']
 
-    def validate_passfail(self):
-        # validate passfail configuration
+    def started_passfail_validation(self):
+        # validate passfail configuration, get success if started
         url = f"{self.address}/api/v4/tests/{self['id']}/validate"
-        self._request(url, method='POST')
+        resp = self._request(url, data={"files": [{"fileName": "taurus.yml"}], "performDataMerge": False})
+        result = resp.get('result')
+        if 'success' in result:
+            return result['success']
+        return False
 
     def get_passfail_validation(self):
         # get passfail validation status and results, log warnings if present
         url = f"{self.address}/api/v4/tests/{self['id']}/validations"
         resp = self._request(url, method='GET')
-        if resp and resp['result'][0]['status'] == 100:
-            for warning_msg in resp['result'][0]['warnings'] + resp['result'][0]['fileWarnings']:
-                self.log.warning(f"Passfail Warning: {warning_msg}")
-            return True
-        else:
+        validated = False
+        for result in resp.get('result'):
+            if result['status'] == 100:
+                for warning_msg in result['warnings'] + result['fileWarnings']:
+                    self.log.warning(f"Passfail Warning: {warning_msg}")
+                validated = True
+        if not validated:
             self.log.error(f"Passfail error: Unable to validate by {url}.")
-            return False
+        return validated
 
 
 class MultiTest(BZAObject):

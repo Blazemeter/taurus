@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import get_locator, get_elements
+from bzt.resources.selenium_extras import get_locator, waiter, get_elements
 
 class TestLocSc(unittest.TestCase):
 
@@ -63,15 +63,21 @@ class TestLocSc(unittest.TestCase):
                 else:
                     raise NoSuchElementException(("The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element" % ('el', el.tag_name, el.text)))
                 el.click()
+                waiter()
 
                 var_loc_keys = get_locator([{'css': 'input-cls'}, {'xpath': '//input'}], el)
                 el.find_element(
                     var_loc_keys[0],
                     var_loc_keys[1]).click()
+                waiter()
                 ActionChains(self.driver).double_click(el).perform()
+                waiter()
                 ActionChains(self.driver).double_click(el).perform()
+                waiter()
                 ActionChains(self.driver).context_click(el).perform()
+                waiter()
                 ActionChains(self.driver).context_click(el).perform()
+                waiter()
                 ActionChains(self.driver).click_and_hold(el).perform()
                 ActionChains(self.driver).click_and_hold(el).perform()
                 ActionChains(self.driver).release(el).perform()
@@ -85,23 +91,29 @@ class TestLocSc(unittest.TestCase):
                 ActionChains(self.driver).drag_and_drop(el, self.driver.find_element(
                     target[0],
                     target[1])).perform()
+                waiter()
 
                 source = get_locator([{'id': 'id34'}])
                 ActionChains(self.driver).drag_and_drop(self.driver.find_element(
                     source[0],
                     source[1]), el).perform()
+                waiter()
 
                 target = get_locator([{'id': 'id12'}])
                 ActionChains(self.driver).drag_and_drop(el, self.driver.find_element(
                     target[0],
                     target[1])).perform()
+                waiter()
 
                 source = get_locator([{'id': 'id34'}])
                 ActionChains(self.driver).drag_and_drop(self.driver.find_element(
                     source[0],
                     source[1]), el).perform()
+                waiter()
                 Select(el).select_by_visible_text('value')
+                waiter()
                 Select(el).select_by_visible_text('value')
+                waiter()
 
                 self.vars['my_var'] = el.get_attribute('innerText')
 
@@ -112,8 +124,10 @@ class TestLocSc(unittest.TestCase):
                 self.vars['my_var'] = el.get_attribute('value')
                 el.clear()
                 el.send_keys('text')
+                waiter()
                 el.clear()
                 el.send_keys('text')
+                waiter()
                 el.submit()
                 el.submit()
                 el.send_keys(Keys.ENTER)

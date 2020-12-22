@@ -1937,7 +1937,7 @@ class TestCloudProvisioning(BZTestCase):
             },
             post={
                 'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
-                'https://a.blazemeter.com/api/v4/tests/1/validate': {},
+                'https://a.blazemeter.com/api/v4/tests/1/validate': {'result': {'success': True}},
             },
         )
         self.sniff_log(self.obj.log)

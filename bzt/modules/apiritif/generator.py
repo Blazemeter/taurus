@@ -97,6 +97,8 @@ class ApiritifScriptGenerator(object):
                         'resize', 'maximize', 'alert', 'waitFor'
                         ])
 
+    ACTIONS_WITH_WAITER = ['go', 'click', 'doubleclick', 'contextclick', 'drag', 'select', 'type', 'script']
+
     EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach'])
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
@@ -723,6 +725,9 @@ from selenium.webdriver.common.keys import Keys
         if not action_elements and not self.ignore_unknown_actions:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
+        if atype.lower() in self.ACTIONS_WITH_WAITER:
+            action_elements.append(ast_call(func=ast_attr("waiter"), args=[]))
+
         return [ast.Expr(element) for element in action_elements]
 
     def _gen_foreach_mngr(self, action_config):
@@ -1108,6 +1113,7 @@ from selenium.webdriver.common.keys import Keys
 
             imports.append(ast.parse(self.IMPORTS % source).body)
             self.selenium_extras.add("get_locator")
+            self.selenium_extras.add("waiter")
             extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
             imports.append(
                 ast.ImportFrom(

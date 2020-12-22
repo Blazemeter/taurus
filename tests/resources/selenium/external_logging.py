@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_replace, add_logging_handlers, get_locator
+from bzt.resources.selenium_extras import dialogs_replace, add_logging_handlers, waiter, get_locator
 
 class TestSample(unittest.TestCase):
 
@@ -44,6 +44,7 @@ class TestSample(unittest.TestCase):
             self.driver.get('http://blazedemo.com/')
 
             dialogs_replace()
+            waiter()
             apiritif.external_log('end: go(http://blazedemo.com/)')
             apiritif.external_log('start: log(leaving blazedemo)')
             apiritif.external_log('leaving blazedemo')

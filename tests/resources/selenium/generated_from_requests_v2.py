@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import switch_window, open_window, dialogs_get_next_prompt, dialogs_answer_on_next_confirm, dialogs_answer_on_next_alert, wait_for, dialogs_replace, dialogs_get_next_alert, dialogs_get_next_confirm, get_locator, close_window, dialogs_answer_on_next_prompt, switch_frame
+from bzt.resources.selenium_extras import switch_frame, waiter, dialogs_replace, dialogs_get_next_alert, close_window, wait_for, dialogs_get_next_confirm, dialogs_answer_on_next_alert, dialogs_get_next_prompt, get_locator, open_window, switch_window, dialogs_answer_on_next_confirm, dialogs_answer_on_next_prompt
 
 class TestLocSc(unittest.TestCase):
 
@@ -42,6 +42,7 @@ class TestLocSc(unittest.TestCase):
             self.driver.get('http://blazedemo.com')
 
             dialogs_replace()
+            waiter()
             self.driver.set_window_size('750', '750')
             switch_window(0)
 
@@ -68,6 +69,7 @@ class TestLocSc(unittest.TestCase):
                 source[1]), self.driver.find_element(
                 target[0],
                 target[1])).perform()
+            waiter()
 
             var_loc_as = get_locator([{'css': 'myclass'}, {'xpath': '/html/body/div[3]/h2'}])
             self.assertEqual(self.driver.find_element(
@@ -97,6 +99,7 @@ class TestLocSc(unittest.TestCase):
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).click()
+            waiter()
 
             var_loc_keys = get_locator([{'xpath': '/doc/abc'}, {'css': 'body > div.container > table > tbody > tr:nth-child(1) > td:nth-child(2) > input'}])
             self.driver.find_element(
@@ -110,12 +113,15 @@ class TestLocSc(unittest.TestCase):
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).send_keys('myusername')
+            waiter()
 
             var_loc_select = get_locator([{'css': 'myclass'}, {'xpath': '//*[@id="cardType"]'}])
             Select(self.driver.find_element(
                 var_loc_select[0],
                 var_loc_select[1])).select_by_visible_text('American Express')
+            waiter()
             self.driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
+            waiter()
 
             for i in range(10):
                 if ((i % 2) == 0):

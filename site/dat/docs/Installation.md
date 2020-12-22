@@ -18,7 +18,7 @@ Below you can see some specific info for different operation systems.
 
 ## Linux
 
-You will need Python 3.6+ and Java installed. To install Taurus on Linux, do the following instructions:
+You will need Python 3.7+ and Java installed. To install Taurus on Linux, do the following instructions:
 
 ```
 sudo apt-get update
@@ -64,7 +64,7 @@ NOTE: There is an issue with brew installation connected with numpy.
 In order to avoid this problem we suggest to install taurus using `pip` tool.
 
 To install taurus with `pip` you need command line developers tools and python 3.6+ installed.
-Then you need to install `cython` if it is not installed using the following command:
+Then you need to install `Cython` if it is not installed using the following command:
 ```
 pip3 install Cython
 ```
@@ -146,3 +146,4 @@ UNSTABLE_SNAPSHOT
 
 We have [Usage Statisctics](/bzt-usage-stats) on our website. That's why we collect the name of desktop OS, 
 where you have run Taurus.
+
