@@ -66,7 +66,7 @@ In order to avoid this problem we suggest to install taurus using `pip` tool.
 To install taurus with `pip` you need command line developers tools and python 3.6+ installed.
 Then you need to install `cython` if it is not installed using the following command:
 ```
-pip3 install cython
+pip3 install Cython
 ```
 
 Then just install bzt:
@@ -81,14 +81,14 @@ pip3 install --upgrade bzt
 ```
 
 ## Windows
-Unfortunately windows installer is unsupported now. Please use standard python mechanism to get taurus 
+Unfortunately windows installer is unsupported now. Please use standard python mechanism to get Taurus 
 (see the top of the page).
 
 1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, 
 don't forget to enable "Add python.exe to Path" checkbox.
 1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
 
-#### Installing Additional Packages
+### Installing Additional Packages
 If you want to install additional Python packages along with Taurus (for example Locust, Molotov, etc),
 you should use `pip`, also `setuptools` and `wheel` packages and the latest 
 [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16)
