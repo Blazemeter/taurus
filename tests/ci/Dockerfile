@@ -8,8 +8,7 @@ ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 
 RUN apt-get -y update \
-   && $APT_INSTALL dirmngr gnupg python3-pip software-properties-common gcc-mingw-w64-x86-64 curl build-essential \
-   zlib1g-dev apt-transport-https ca-certificates libffi-dev nsis libssl-dev git unzip
+   && $APT_INSTALL gnupg curl build-essential apt-transport-https ca-certificates git
 
 # following block should be optimized
 RUN echo "deb http://packages.cloud.google.com/apt cloud-sdk main" >> /etc/apt/sources.list.d/google-cloud-sdk.list \
@@ -20,4 +19,4 @@ RUN echo "deb http://packages.cloud.google.com/apt cloud-sdk main" >> /etc/apt/s
 RUN apt-get update && $APT_INSTALL docker-ce-cli kubectl google-cloud-sdk
 
 # at the moment setuptools is included to python3-pip
-RUN python3 -m pip install setuptools twine pythonz-bd virtualenv pyyaml
+RUN python3 -m pip install setuptools twine

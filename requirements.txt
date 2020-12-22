@@ -10,11 +10,10 @@ lxml>=3.8.0,!=4.2.0
 progressbar33
 psutil>=5.6.6
 pytest>=3
-zipp==2.2.0
 pyvirtualdisplay; sys_platform != 'win32'
 pyyaml
 requests>=2.18.1
 selenium
 Appium-Python-Client
-urwid==2.0.1
+urwid
 terminaltables>=3.1.0
