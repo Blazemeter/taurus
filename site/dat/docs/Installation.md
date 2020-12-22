@@ -38,7 +38,7 @@ you should utilize the following command line utilities provided by the installe
 
 **Important!**
 - You need to install fresh `setuptools`, `wheel`, and `Cython` before installing everything else with `bzt-pip`, 
- with the following command: `bzt-pip install setuptools wheel`. 
+ with the following command: `bzt-pip install setuptools wheel Cython`. 
 
 ### Installing Taurus Manually
 
