@@ -19,4 +19,4 @@ RUN echo "deb http://packages.cloud.google.com/apt cloud-sdk main" >> /etc/apt/s
 RUN apt-get update && $APT_INSTALL docker-ce-cli kubectl google-cloud-sdk
 
 # at the moment setuptools is included to python3-pip
-RUN python3 -m pip install setuptools twine yaml
+RUN python3 -m pip install setuptools twine pyyaml
