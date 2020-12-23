@@ -20,7 +20,7 @@ RUN apt-get -y update \
   && $APT_INSTALL \
     language-pack-en mc kmod unzip build-essential \
     libxslt1-dev libffi-dev libxi6 libgconf-2-4 libexif12 libyaml-dev \
-    udev openjdk-8-jdk xvfb siege tsung apache2-utils phantom phantom-ssl \
+    udev openjdk-8-jdk xvfb siege tsung apache2-utils phantom \
     firefox google-chrome-stable pepperflashplugin-nonfree flashplugin-installer \
     ruby ruby-dev nodejs apt-transport-https net-tools gcc-mingw-w64-x86-64 \
   && $APT_INSTALL python3-dev python3-pip \
