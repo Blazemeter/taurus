@@ -12,12 +12,10 @@ RUN apt-get -y update \
   && $APT_INSTALL software-properties-common apt-utils \
   && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF \
   && cat /tmp/linux_signing_key.pub | apt-key add - \
-  && apt-add-repository multiverse \
   && apt-add-repository ppa:yandex-load/main \
   && apt-add-repository ppa:nilarimogard/webupd8 \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
   && bash /tmp/setup_12.x \
-  && $APT_INSTALL tzdata \
   && dpkg-reconfigure --frontend noninteractive tzdata \
   && $APT_INSTALL \
     language-pack-en mc kmod unzip build-essential \
