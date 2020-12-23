@@ -1,6 +1,8 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
-ENV DBUS_SESSION_BUS_ADDRESS=/dev/null DEBIAN_FRONTEND=noninteractive APT_INSTALL="apt-get -y install --no-install-recommends"
+ENV DEBIAN_FRONTEND=noninteractive
+ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
+ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 
 WORKDIR /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
@@ -49,7 +51,8 @@ RUN google-chrome-stable --version && firefox --version && dotnet --version | he
   && python3 -m pip install bzt-*.tar.gz \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
+  && bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log \
+  && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
 
 RUN mkdir /bzt-configs \
   && rm -rf /tmp/* \
