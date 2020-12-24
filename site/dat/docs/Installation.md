@@ -1,5 +1,10 @@
 # Installing and Upgrading
 
+Before Taurus installation, check if you have the following modules installed:
+```
+pip install --upgrade wheel setuptools Cython
+```
+
 The simplest Taurus installation requires you to use `pip` package manager:
 
 ```
@@ -12,9 +17,9 @@ and for upgrade:
 pip install --upgrade bzt
 ```
 
-Keep in mind that some additional software can be required depend of test type. 
-(Java, specific python tools like locust, etc.)
-Below you can see some specific info for different operation systems.
+Keep in mind that some additional software can be required depend on the test type
+(Java, specific Python tools like locust, etc).
+Below you can see some specific info for different operating systems.
 
 ## Linux
 
@@ -50,7 +55,7 @@ pip install --upgrade bzt
 
 ## Mac OS
 ### Install Homebrew Package
-You can use [brew](https://brew.sh/) package manager to install taurus:
+You can use [brew](https://brew.sh/) package manager to install Taurus:
 ```bash
 brew install bzt
 ```
@@ -61,9 +66,9 @@ brew upgrade bzt
 If your brew auto update is switched off don't forget to manage it manually.
 
 NOTE: There is an issue with brew installation connected with numpy. 
-In order to avoid this problem we suggest to install taurus using `pip` tool.
+In order to avoid this problem we suggest installing Taurus using `pip` tool.
 
-To install taurus with `pip` you need command line developers tools and python 3.6+ installed.
+To install Taurus with `pip` you need command line developers tools and Python 3.7+ installed.
 Then you need to install `Cython` if it is not installed using the following command:
 ```
 pip3 install Cython
@@ -81,7 +86,7 @@ pip3 install --upgrade bzt
 ```
 
 ## Windows
-Unfortunately windows installer is unsupported now. Please use standard python mechanism to get Taurus 
+Unfortunately Windows installer is unsupported now. Please use standard Python mechanism to get Taurus 
 (see the top of the page).
 
 1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, 
@@ -114,7 +119,7 @@ Here's [what happens](https://github.com/Blazemeter/taurus/blob/master/Dockerfil
  1. Current directory changed to `/bzt-configs`
  1. Taurus is started with the config files you specified: `bzt /bzt-configs/my-config.yml
 
-You can also specify multile config files in the `docker run` command with wildcards or as 
+You can also specify multiple config files in the `docker run` command with wildcards or as 
 separate arguments like so:
 
 ```
@@ -133,7 +138,7 @@ docker run -it --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config-1.y
 
 
 ### Accessing Taurus Artifacts
-If you want to receive Taurus artifacts from container, just mount some directory as `/tmp/artifacts` and 
+If you want to receive Taurus artifacts from a container, just mount some directory as `/tmp/artifacts` and 
 files will get there. Following example gives you artifacts in `/tmp/my-run-artifacts` directory.
 
 ```bash
@@ -144,6 +149,6 @@ UNSTABLE_SNAPSHOT
 
 ## Data Collection Disclaimer
 
-We have [Usage Statisctics](/bzt-usage-stats) on our website. That's why we collect the name of desktop OS, 
+We have [Usage Statistics](/bzt-usage-stats) on our website. That's why we collect the name of desktop OS, 
 where you have run Taurus.
 
