@@ -16,8 +16,6 @@ modules:
     class: bzt.modules.locustio.LocustIOExecutor
   molotov:
     class: bzt.modules.molotov.MolotovExecutor
-  pbench:
-    class: bzt.modules.pbench.PBenchExecutor
   siege:
     class: bzt.modules.siege.SiegeExecutor
   tsung:
