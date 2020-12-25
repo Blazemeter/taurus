@@ -10,7 +10,6 @@ from bzt.modules.aggregator import AggregatorListener, ConsolidatingAggregator, 
 from bzt.modules.gatling import DataLogReader as GatlingLogReader
 from bzt.modules.grinder import DataLogReader as GrinderLogReader
 from bzt.modules.jmeter import JTLReader, XMLJTLReader
-from bzt.modules.pbench import PBenchKPIReader
 from bzt.utils import dehumanize_time
 
 
@@ -109,8 +108,6 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
             return reader
         elif header.startswith("<?xml"):
             return XMLJTLReader(self.data_file, self.log)
-        elif self.PBENCH_FORMAT.match(header):
-            return PBenchKPIReader(self.data_file, self.log, self.errors_file)
         elif header.startswith("RUN\t") or "\tRUN\t" in header:
             return GatlingLogReader(self.data_file, self.log, None)
         elif "timestamp" in header.lower() and "elapsed" in header.lower():
