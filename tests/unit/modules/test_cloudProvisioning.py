@@ -1103,8 +1103,6 @@ class TestCloudProvisioning(BZTestCase):
                 'file-in-home-09.siege',  # 12 (script)
                 'http_simple.xml',  # 13 (script)
                 'file-in-home-10.xml',  # 14 (script)
-                'pbench.src',  # 15 (script)
-                'file-in-home-13.src',  # 16 (script)
                 'file-in-home-00.jmx',  # 17 (script)
                 'TestBlazemeterFail.java',  # 18 (script)
                 'file-in-home-20.jar',  # 18 (additional-classpath)

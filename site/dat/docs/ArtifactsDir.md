@@ -16,7 +16,6 @@ These are the files that are common for each executor:
 The following files are executor-specific:
 - **apiritif.X.csv** contains data of all requests which were made with [Apiritif](Apiritif.md)
 - **simulation.log** contains data of all requests which were made with [Gatling](Gatling.md)
-- **pbench-kpi.txt** and **pbench-additional.ldjson** contain data of all requests which were made with [PBench](PBench.md)
 - **test\_requests.py** is a Python file, generated for [Apiritif](Apiritif.md)
 - **webdriver.log** is a log of a [Selenium](Selenium.md) webdriver
 - **generated\_locust.py** is a Python file, generated for [Locust](Locust.md)
@@ -26,5 +25,4 @@ The following files are executor-specific:
 - **log.html** and **output.xml** are specific [Robot Executor](Robot.md) files with its data
 - **gatling-launcher.sh** contains launch data for [Gatling](Gatling.md)
 - **TaurusSimulation\_X.scala** contains Scala code for launching [Gatling](Gatling.md)
-- **pbench.conf**, **pbench.sched**, **pbench.src** and **pbench-request-response.txt** contain specific [PBench](PBench.md) data
 - **tsung-config.xml** is a configuration for [Tsung](Tsung.md)

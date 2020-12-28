@@ -171,15 +171,6 @@ execution:
       - url: http://localhost:8000/
         label: gatling
 
-- executor: pbench
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://localhost:8000/
-        label: pbench
-
 - executor: grinder
   concurrency: 1
   hold-for: 10s

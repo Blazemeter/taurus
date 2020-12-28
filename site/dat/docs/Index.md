@@ -23,7 +23,6 @@
     1. [Gatling Executor](Gatling.md)
     1. [Grinder Executor](Grinder.md)
     1. [Locust Executor](Locust.md)
-    1. [PBench Executor](PBench.md)
     1. [Siege Executor](Siege.md)
     1. [ApacheBenchmark Executor](ApacheBenchmark.md)
     1. [Tsung Executor](Tsung.md)
