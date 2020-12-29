@@ -3,16 +3,17 @@ FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 ENV APT_INSTALL="apt-get -y install --no-install-recommends"
+ENV APT_UPDATE="apt-get -y update"
 
 WORKDIR /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 ADD https://deb.nodesource.com/setup_12.x /tmp
-RUN apt-get -y update \
-  && apt-get -y install dirmngr \
+RUN $APT_UPDATE \
+  && $APT_INSTALL install dirmngr \
   && $APT_INSTALL software-properties-common apt-utils \
   && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF \
   && cat /tmp/linux_signing_key.pub | apt-key add - \
-  && apt-add-repository ppa:nilarimogard/webupd8 \
+  && apt-add-repository -n ppa:nilarimogard/webupd8 \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
   && bash /tmp/setup_12.x \
   && dpkg-reconfigure --frontend noninteractive tzdata \
@@ -22,18 +23,17 @@ RUN apt-get -y update \
     udev openjdk-8-jdk xvfb siege tsung apache2-utils \
     firefox google-chrome-stable pepperflashplugin-nonfree flashplugin-installer \
     ruby ruby-dev nodejs apt-transport-https net-tools gcc-mingw-w64-x86-64 \
+  && $APT_INSTALL python3.9 \
   && $APT_INSTALL python3-dev python3-pip \
-  && python3 -m pip install --upgrade pip \
-  && python3 -m pip install --user --upgrade setuptools wheel \
+  && python3 -m pip install setuptools wheel cython \
   && python3 -m pip install locust robotframework robotframework-seleniumlibrary molotov==1.6 twine \
   && gem install rspec rake \
   && gem install selenium-webdriver \
   && wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
   && dpkg -i packages-microsoft-prod.deb \
   # Update required because packages-microsoft-prod.deb instalation add repositories for dotnet
-  && apt-get -y update \
-  && $APT_INSTALL dotnet-sdk-3.1 \
-  && apt-get clean
+  && $APT_UPDATE \
+  && $APT_INSTALL dotnet-sdk-3.1
 
 COPY bzt/resources/chrome_launcher.sh /tmp
 RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
@@ -44,6 +44,7 @@ COPY dist /tmp/bzt-src
 WORKDIR /tmp/bzt-src
 RUN google-chrome-stable --version && firefox --version && dotnet --version | head -1 \
   && python3 -m pip install bzt-*.tar.gz \
+  && mkdir -p /etc/bzt.d \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log \
