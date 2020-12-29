@@ -32,7 +32,6 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [Gatling](Gatling.md), executor type `gatling`
   - [Grinder](Grinder.md), executor type `grinder`
   - [Locust](Locust.md), executor type `locust`
-  - [PBench](PBench.md), executor type `pbench`
   - [Siege](Siege.md), executor type `siege`
   - [ApacheBenchmark](ApacheBenchmark.md), executor type `ab`
   - [Tsung](Tsung.md), executor type `tsung`

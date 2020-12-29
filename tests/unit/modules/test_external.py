@@ -2,7 +2,6 @@ from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.external import ExternalResultsLoader
 from bzt.modules.jmeter import FuncJTLReader, JTLReader
 from bzt.modules.ab import TSVDataReader
-from bzt.modules.pbench import PBenchKPIReader
 from bzt.modules.gatling import DataLogReader as GatlingLogReader
 from bzt.modules.grinder import DataLogReader as GrinderLogReader
 
@@ -153,26 +152,6 @@ class TestExternalResultsLoader(ExecutorTestCase):
         last_dp = results[-1]
         cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
         self.assertEqual(10, cumulative_kpis[KPISet.SUCCESSES])
-
-    def test_pbench(self):
-        self.configure({
-            "execution": [{
-                "data-file": RESOURCES_DIR + "/pbench/pbench-kpi.txt",
-                "errors-file": RESOURCES_DIR + "/pbench/pbench-additional.ldjson"
-            }]
-        })
-        self.obj.prepare()
-        self.assertIsInstance(self.obj.reader, PBenchKPIReader)
-        self.obj.startup()
-        self.obj.check()
-        self.obj.shutdown()
-        self.obj.post_process()
-        self.obj.engine.aggregator.post_process()
-        results = self.results_listener.results
-        self.assertGreater(len(results), 0)
-        last_dp = results[-1]
-        cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
-        self.assertEqual(8, cumulative_kpis[KPISet.SUCCESSES])
 
     def test_gatling(self):
         self.configure({

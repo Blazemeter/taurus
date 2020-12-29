@@ -74,14 +74,6 @@ execution:
   scenario:
     script: ~/file-in-home-10.xml
 
-# 15, 16
-- executor: pbench
-  scenario:
-    script: resources/pbench/pbench.src
-- executor: pbench
-  scenario:
-    script: ~/file-in-home-13.src
-
 # 17
 - executor: jmeter
   scenario:

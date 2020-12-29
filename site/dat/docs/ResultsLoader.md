@@ -24,7 +24,6 @@ List of supported file formats:
 - `simulation.log` (Gatling)
 - `grinder-bzt-kpi.log` (Grinder)
 - TSV files (Apache Benchmark)
-- `pbench-kpis.txt` (PBench)
 
 You can put `data-file`, and `errors-file` under scenario definition also, and point execution item onto corresponding scenario. If file is defined in both scenario and execution blocks, execution will have higher priority.
 
