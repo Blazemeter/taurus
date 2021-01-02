@@ -8,7 +8,7 @@ ENV APT_UPDATE="apt-get -y update"
 ADD https://deb.nodesource.com/setup_12.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
 ADD https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb /tmp
-COPY dist/bzt-*.tar.gz /tmp
+COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
@@ -32,14 +32,14 @@ RUN $APT_INSTALL ./packages-microsoft-prod.deb \
    && $APT_INSTALL dotnet-sdk-3.1
 
 # Install Taurus & tools
-RUN google-chrome-stable --version && firefox --version && dotnet --version | head -1 \
-  && python3 -m pip install bzt-*.tar.gz \
+RUN python3 -m pip install ./bzt*whl \
   && mkdir -p /etc/bzt.d \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && ln -s `python -c "import bzt; print('{}/resources/chrome_launcher.sh'.format(bzt.__path__[0]))"` \
+  && cp `python3 -c "import bzt; print('{}/resources/chrome_launcher.sh'.format(bzt.__path__[0]))"` \
     /opt/google/chrome/google-chrome \
-  && bzt -install-tools -v
+  && bzt -install-tools -v \
+  && google-chrome-stable --version && firefox --version && dotnet --version | head -1
 
 RUN rm -rf /tmp/* \
   && mkdir /bzt-configs /tmp/artifacts
