@@ -5,50 +5,44 @@ ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 ENV APT_UPDATE="apt-get -y update"
 
-WORKDIR /tmp
-ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 ADD https://deb.nodesource.com/setup_12.x /tmp
-RUN $APT_UPDATE \
-  && $APT_INSTALL gnupg python3-pip unzip build-essential python3-dev software-properties-common apt-transport-https \
-  && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF \
-  && cat /tmp/linux_signing_key.pub | apt-key add - \
-  && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
-  && bash /tmp/setup_12.x \
-  && $APT_INSTALL \
-    libxslt1-dev libffi-dev libxi6 libgconf-2-4 libexif12 libyaml-dev \
-    udev openjdk-8-jdk xvfb siege tsung apache2-utils \
-    firefox google-chrome-stable \
-    ruby ruby-dev nodejs net-tools \
-  && python3 -m pip install setuptools wheel cython \
-  && python3 -m pip install locust robotframework robotframework-seleniumlibrary molotov==1.6 twine \
-  && gem install rspec rake \
-  && gem install selenium-webdriver \
-  && wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
-  && dpkg -i packages-microsoft-prod.deb \
-  # Update required because packages-microsoft-prod.deb instalation add repositories for dotnet
-  && $APT_UPDATE \
-  && $APT_INSTALL dotnet-sdk-3.1
+ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
+ADD https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb /tmp
+COPY dist/bzt-*.tar.gz /tmp
 
-COPY bzt/resources/chrome_launcher.sh /tmp
-RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
-  && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
-  && chmod +x /opt/google/chrome/google-chrome
+WORKDIR /tmp
+# add node repo and call 'apt-get update'
+RUN bash ./setup_12.x \
+   && $APT_INSTALL \
+     python3-pip unzip build-essential python3-dev software-properties-common \
+     apt-transport-https openjdk-8-jdk xvfb siege tsung apache2-utils firefox ruby nodejs
 
-COPY dist /tmp/bzt-src
-WORKDIR /tmp/bzt-src
+RUN python3 -m pip install setuptools wheel cython \
+   && python3 -m pip install locust robotframework robotframework-seleniumlibrary molotov==1.6 twine
+RUN gem install rspec rake selenium-webdriver
+
+# Get Google Chrome
+RUN $APT_INSTALL ./google-chrome-stable_current_amd64.deb \
+  && mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome
+COPY bzt/resources/chrome_launcher.sh /opt/google/chrome/google-chrome
+RUN chmod +x /opt/google/chrome/google-chrome
+
+# Get .NET Core
+RUN apt-get install ./packages-microsoft-prod.deb \
+   # Update is required because packages-microsoft-prod.deb installation add repositories for dotnet
+   && $APT_UPDATE \
+   && $APT_INSTALL dotnet-sdk-3.1
+
+# Install Taurus & tools
 RUN google-chrome-stable --version && firefox --version && dotnet --version | head -1 \
   && python3 -m pip install bzt-*.tar.gz \
   && mkdir -p /etc/bzt.d \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log \
-  && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar
+  && bzt -install-tools -v
 
-RUN mkdir /bzt-configs \
-  && rm -rf /tmp/* \
-  && mkdir /tmp/artifacts
+RUN rm -rf /tmp/* \
+  && mkdir /bzt-configs /tmp/artifacts
 
-ENV LANG en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
 WORKDIR /bzt-configs
 ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
