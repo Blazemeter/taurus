@@ -4,6 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 ENV APT_UPDATE="apt-get -y update"
+ENV PIP_INSTALL="python3 -m pip install"
 
 ADD https://deb.nodesource.com/setup_12.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
@@ -17,8 +18,8 @@ RUN bash ./setup_12.x \
      python3-pip unzip build-essential python3-dev software-properties-common \
      apt-transport-https openjdk-8-jdk xvfb siege tsung apache2-utils firefox ruby nodejs
 
-RUN python3 -m pip install setuptools wheel \
-   && python3 -m pip install locust robotframework robotframework-seleniumlibrary molotov==1.6
+RUN $PIP_INSTALL setuptools wheel \
+   && $PIP_INSTALL locust robotframework robotframework-seleniumlibrary molotov==1.6
 RUN gem install rspec rake selenium-webdriver
 
 # Get Google Chrome
@@ -32,7 +33,7 @@ RUN $APT_INSTALL ./packages-microsoft-prod.deb \
    && $APT_INSTALL dotnet-sdk-3.1
 
 # Install Taurus & tools
-RUN python3 -m pip install ./bzt*whl \
+RUN $PIP_INSTALL ./bzt*whl \
   && mkdir -p /etc/bzt.d \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
