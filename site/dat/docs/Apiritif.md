@@ -473,6 +473,13 @@ Using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators)
   param: js_expr
 ```
 
+### Certificates
+You can define a personal certificate via the following lines:
+```yaml
+- certificate: path/to/certficate
+  passpharse: "passphrase" # if present
+```
+
 ### Cookies
 To delete all cookies use `clearCookies()` action.
 
