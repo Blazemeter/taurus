@@ -1430,12 +1430,13 @@ from selenium.webdriver.common.keys import Keys
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(req.body), req.body))
 
-        cert_name = self.scenario.get("user-certificate")
-        cert_key = self.scenario.get("user-certificate-key")
-        if cert_name and cert_key:
-            named_args['cert'] = (self.executor.engine.find_file(cert_name), self.executor.engine.find_file(cert_key))
-        elif cert_name:
-            named_args['cert'] = self.executor.engine.find_file(cert_name)
+        cert = self.scenario.get("certificate")
+        cert_pass = self.scenario.get("passphrase")
+        if cert:
+            named_args['cert'] = (self.executor.engine.find_file(cert), cert_pass)
+
+        if cert_pass and not cert:
+            self.log.warning("Passphrase was found, but certificate is missing!")
 
         return named_args
 

@@ -841,8 +841,8 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
     def test_include_scenario(self):
         self.configure({
             "execution": [{
-                    "executor": "apiritif",
-                    "scenario": "simple"
+                "executor": "apiritif",
+                "scenario": "simple"
             }],
             "scenarios": {
                 "simple": {
@@ -854,7 +854,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 },
                 "inner": {
                     "requests": [{
-                            "url": "http://blazedemo.com/vacation.html"
+                        "url": "http://blazedemo.com/vacation.html"
                     }]
                 }
             }
@@ -867,8 +867,8 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
     def test_double_include(self):
         self.configure({
             "execution": [{
-                    "executor": "apiritif",
-                    "scenario": "simple"
+                "executor": "apiritif",
+                "scenario": "simple"
             }],
             "scenarios": {
                 "simple": {
@@ -885,7 +885,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 },
                 "inner2": {
                     "requests": [{
-                            "url": "http://blazedemo.com/vacation.html"
+                        "url": "http://blazedemo.com/vacation.html"
                     }]
                 }
             }
@@ -930,20 +930,39 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             test_script = fds.read()
         self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, encoding='UTF-16')", test_script)
 
-    def test_build_api_cert(self):
+    def test_cert_pass(self):
         self.configure({
             "execution": [{
                 "test-mode": "apiritif",
-                "scenario": "loc_sc"}],
-            "scenarios": {
-                "loc_sc": {
-                    "user-certificate": "config/alice_cert.pem",
-                    "user-certificate-key": "config/alice_key.pem",
-                    "requests": ["localhost", "blazedemo.com"],
-                }
-            }
-        })
+                "scenario": {
+                    "requests": ["http://blazedemo.com/"],
+                    "certificate": "certificate_file.pem",
+                    "passphrase": "certificate-passphrase"}}]})
         self.obj.prepare()
-        exp_file = RESOURCES_DIR + "apiritif/test_generated_cert.py"
+        exp_file = RESOURCES_DIR + "apiritif/test_generated_cert_pass.py"
         filepath_start = BZT_DIR.replace('\\', '/')
         self.assertFilesEqual(exp_file, self.obj.script, filepath_start, '', python_files=True)
+
+    def test_cert_no_pass(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": ["http://blazedemo.com/"],
+                    "certificate": "certificate_file.pem"}}]})
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "apiritif/test_generated_cert_no_pass.py"
+        filepath_start = BZT_DIR.replace('\\', '/')
+        self.assertFilesEqual(exp_file, self.obj.script, filepath_start, '', python_files=True)
+
+    def test_no_cert_pass(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": ["http://blazedemo.com/"],
+                    "passphrase": "certificate-passphrase"}}]})
+        self.sniff_log(self.obj.log)
+        self.obj.prepare()
+        warnings = self.log_recorder.warn_buff.getvalue()
+        self.assertIn("Passphrase was found, but certificate is missing!", warnings)
