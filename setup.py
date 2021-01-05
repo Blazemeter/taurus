@@ -62,8 +62,9 @@ setup(
         'Operating System :: MacOS',
         'Operating System :: POSIX :: Linux',
 
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
-    python_requires='>=3.5',
+    python_requires='>=3.5',    # should be '>=3.7', but let's keep it for obsolete configuration
 )

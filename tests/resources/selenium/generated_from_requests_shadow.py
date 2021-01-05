@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import send_keys, get_locator, find_element_by_shadow
+from bzt.resources.selenium_extras import waiter, find_element_by_shadow, get_locator
 
 class TestLocSc(unittest.TestCase):
 
@@ -40,143 +40,121 @@ class TestLocSc(unittest.TestCase):
     def _1_Shadow_locators_test(self):
         with apiritif.smart_transaction('Shadow locators test'):
 
-            var_loc_as = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            self.assertEqual(var_loc_as.get_attribute('innerText').strip(), 'text'.strip())
+            self.assertEqual(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('innerText').strip(), 'text'.strip())
 
-            var_loc_as = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            self.assertEqual(var_loc_as.get_attribute('innerText').strip(), 'text'.strip())
+            self.assertEqual(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('innerText').strip(), 'text'.strip())
 
-            var_loc_as = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            self.assertEqual(var_loc_as.get_attribute('value').strip(), 'value'.strip())
+            self.assertEqual(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('value').strip(), 'value'.strip())
 
-            var_loc_as = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            self.assertEqual(var_loc_as.get_attribute('value').strip(), 'value'.strip())
+            self.assertEqual(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('value').strip(), 'value'.strip())
 
-            var_edit_content = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
 
-            if var_edit_content.get_attribute('contenteditable'):
-                self.driver.execute_script(("arguments[0].innerHTML = '%s';" % 'new text'), var_edit_content)
+            if find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('contenteditable'):
+                self.driver.execute_script(("arguments[0].innerHTML = '%s';" % 'new text'), find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button'))
             else:
                 raise NoSuchElementException(("The element (shadow: '%s') is not a contenteditable element" % ('c-basic, lightning-accordion-section, .slds-button',)))
 
-            var_edit_content = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
 
-            if var_edit_content.get_attribute('contenteditable'):
-                self.driver.execute_script(("arguments[0].innerHTML = '%s';" % 'new text'), var_edit_content)
+            if find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('contenteditable'):
+                self.driver.execute_script(("arguments[0].innerHTML = '%s';" % 'new text'), find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button'))
             else:
                 raise NoSuchElementException(("The element (shadow: '%s') is not a contenteditable element" % ('c-basic, lightning-accordion-section, .slds-button',)))
 
-            var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            var_loc_keys.click()
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').click()
+            waiter()
 
-            var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            var_loc_keys.click()
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').click()
+            waiter()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).double_click(var_loc_chain).perform()
+            ActionChains(self.driver).double_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).double_click(var_loc_chain).perform()
+            ActionChains(self.driver).double_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).context_click(var_loc_chain).perform()
+            ActionChains(self.driver).context_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).context_click(var_loc_chain).perform()
+            ActionChains(self.driver).context_click(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).click_and_hold(var_loc_chain).perform()
+            ActionChains(self.driver).click_and_hold(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).click_and_hold(var_loc_chain).perform()
+            ActionChains(self.driver).click_and_hold(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).release(var_loc_chain).perform()
+            ActionChains(self.driver).release(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).release(var_loc_chain).perform()
+            ActionChains(self.driver).release(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).move_to_element_with_offset(var_loc_chain, -10, -10).perform()
+            ActionChains(self.driver).move_to_element_with_offset(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button'), -10, -10).perform()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).move_to_element_with_offset(var_loc_chain, -10, -10).perform()
+            ActionChains(self.driver).move_to_element_with_offset(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button'), -10, -10).perform()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).move_to_element(var_loc_chain).perform()
+            ActionChains(self.driver).move_to_element(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
 
-            var_loc_chain = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            ActionChains(self.driver).move_to_element(var_loc_chain).perform()
+            ActionChains(self.driver).move_to_element(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
 
-            source = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
 
             target = get_locator([{'id': 'id12'}])
-            ActionChains(self.driver).drag_and_drop(source, self.driver.find_element(
+            ActionChains(self.driver).drag_and_drop(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button'), self.driver.find_element(
                 target[0],
                 target[1])).perform()
+            waiter()
 
             source = get_locator([{'id': 'id34'}])
 
-            target = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
             ActionChains(self.driver).drag_and_drop(self.driver.find_element(
                 source[0],
-                source[1]), target).perform()
+                source[1]), find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
-            source = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
 
             target = get_locator([{'id': 'id12'}])
-            ActionChains(self.driver).drag_and_drop(source, self.driver.find_element(
+            ActionChains(self.driver).drag_and_drop(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button'), self.driver.find_element(
                 target[0],
                 target[1])).perform()
+            waiter()
 
             source = get_locator([{'id': 'id34'}])
 
-            target = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
             ActionChains(self.driver).drag_and_drop(self.driver.find_element(
                 source[0],
-                source[1]), target).perform()
+                source[1]), find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).perform()
+            waiter()
 
-            var_loc_select = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            Select(var_loc_select).select_by_visible_text('value')
+            Select(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).select_by_visible_text('value')
+            waiter()
 
-            var_loc_select = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            Select(var_loc_select).select_by_visible_text('value')
+            Select(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')).select_by_visible_text('value')
+            waiter()
 
-            var_loc_as = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
 
-            self.vars['my_var'] = var_loc_as.get_attribute('innerText')
+            self.vars['my_var'] = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('innerText')
 
-            var_loc_as = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
 
-            self.vars['my_var'] = var_loc_as.get_attribute('innerText')
+            self.vars['my_var'] = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('innerText')
 
-            var_loc_as = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
 
-            self.vars['my_var'] = var_loc_as.get_attribute('value')
+            self.vars['my_var'] = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('value')
 
-            var_loc_as = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
 
-            self.vars['my_var'] = var_loc_as.get_attribute('value')
+            self.vars['my_var'] = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('value')
 
-            var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            var_loc_keys.clear()
-            send_keys(var_loc_keys, 'text')
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').clear()
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys('text')
+            waiter()
 
-            var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            var_loc_keys.clear()
-            send_keys(var_loc_keys, 'text')
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').clear()
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys('text')
+            waiter()
 
-            var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            var_loc_keys.submit()
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').submit()
 
-            var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            var_loc_keys.submit()
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').submit()
 
-            var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            send_keys(var_loc_keys, Keys.ENTER)
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys(Keys.ENTER)
 
-            var_loc_keys = find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button')
-            send_keys(var_loc_keys, Keys.ENTER)
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys(Keys.ENTER)
 
     def test_locsc(self):
         self._1_Shadow_locators_test()

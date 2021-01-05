@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import send_keys, dialogs_replace, get_locator
+from bzt.resources.selenium_extras import dialogs_replace, waiter, get_locator
 
 class TestLocSc(unittest.TestCase):
 
@@ -44,6 +44,7 @@ class TestLocSc(unittest.TestCase):
             self.driver.get('http://blazedemo.com')
 
             dialogs_replace()
+            waiter()
 
             test = self.driver.execute_script('return document.getElementsByName("fromPort")[0].length > 0;')
             if test:
@@ -52,6 +53,7 @@ class TestLocSc(unittest.TestCase):
                 self.driver.find_element(
                     var_loc_keys[0],
                     var_loc_keys[1]).click()
+                waiter()
                 sleep(1.0)
 
                 test = self.driver.execute_script('return document.getElementsByClassName("table")[0].rows.length > 5;')
@@ -61,6 +63,7 @@ class TestLocSc(unittest.TestCase):
                     self.driver.find_element(
                         var_loc_keys[0],
                         var_loc_keys[1]).click()
+                    waiter()
 
                     test = self.driver.execute_script('return document.getElementById("{}").value === \'\';'.format(self.vars['input_name_id']))
                     if test:
@@ -71,8 +74,8 @@ class TestLocSc(unittest.TestCase):
                             var_loc_keys[1]).clear()
                         self.driver.find_element(
                             var_loc_keys[0],
-                            var_loc_keys[1])
-                        send_keys(var_loc_keys, 'John Doe')
+                            var_loc_keys[1]).send_keys('John Doe')
+                        waiter()
                     else:
 
                         var_loc_keys = get_locator([{'id': self.vars['input_name_id']}])
@@ -81,13 +84,14 @@ class TestLocSc(unittest.TestCase):
                             var_loc_keys[1]).clear()
                         self.driver.find_element(
                             var_loc_keys[0],
-                            var_loc_keys[1])
-                        send_keys(var_loc_keys, 'Jack Green')
+                            var_loc_keys[1]).send_keys('Jack Green')
+                        waiter()
 
                     var_loc_keys = get_locator([{'xpath': '/html/body/div[2]/form/div[11]/div/input'}])
                     self.driver.find_element(
                         var_loc_keys[0],
                         var_loc_keys[1]).click()
+                    waiter()
                     sleep(5.0)
             else:
 
@@ -100,8 +104,8 @@ class TestLocSc(unittest.TestCase):
                         var_loc_keys[1]).clear()
                     self.driver.find_element(
                         var_loc_keys[0],
-                        var_loc_keys[1])
-                    send_keys(var_loc_keys, 'my text')
+                        var_loc_keys[1]).send_keys('my text')
+                    waiter()
 
                     test = self.driver.execute_script('return window.screen.width > 1000;')
                     if test:
@@ -114,6 +118,7 @@ class TestLocSc(unittest.TestCase):
                     self.driver.find_element(
                         var_loc_keys[0],
                         var_loc_keys[1]).click()
+                    waiter()
 
     def test_locsc(self):
         self._1_Conditions_test()

@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import wait_for, dialogs_replace, get_locator
+from bzt.resources.selenium_extras import dialogs_replace, get_locator, wait_for, waiter
 
 class TestLocScAppium(unittest.TestCase):
 

@@ -3,7 +3,7 @@
 pipeline {
     agent {
         dockerfile {
-            filename 'tests/ci/Dockerfile.build'
+            filename 'tests/ci/Dockerfile'
             args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
@@ -33,7 +33,6 @@ pipeline {
                     sh "./build-artifacts.sh"
                 }
                 archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
-                archiveArtifacts artifacts: 'build/nsis/*_x64.exe', fingerprint: true
             }
         }
         stage("Docker Image Build") {
@@ -61,7 +60,7 @@ pipeline {
         stage("Docker Image Push") {
             steps {
                 withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
-                    sh "docker push ${imageName}"
+                    sh "docker image push --all-tags ${imageName}"
                 }
             }
         }
