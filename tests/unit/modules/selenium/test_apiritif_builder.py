@@ -940,8 +940,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     "passphrase": "certificate-passphrase"}}]})
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "apiritif/test_generated_cert_pass.py"
-        filepath_start = BZT_DIR.replace('\\', '/')
-        self.assertFilesEqual(exp_file, self.obj.script, filepath_start, '', python_files=True)
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
     def test_cert_no_pass(self):
         self.configure({
@@ -952,8 +951,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     "certificate": "certificate_file.pem"}}]})
         self.obj.prepare()
         exp_file = RESOURCES_DIR + "apiritif/test_generated_cert_no_pass.py"
-        filepath_start = BZT_DIR.replace('\\', '/')
-        self.assertFilesEqual(exp_file, self.obj.script, filepath_start, '', python_files=True)
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
     def test_no_cert_pass(self):
         self.configure({
