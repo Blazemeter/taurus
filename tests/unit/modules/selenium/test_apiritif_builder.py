@@ -939,8 +939,9 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     "certificate": "certificate_file.pem",
                     "passphrase": "certificate-passphrase"}}]})
         self.obj.prepare()
-        exp_file = RESOURCES_DIR + "apiritif/test_generated_cert_pass.py"
-        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("cert=('certificate_file.pem', 'certificate-passphrase'))", test_script)
 
     def test_cert_no_pass(self):
         self.configure({
@@ -950,8 +951,9 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     "requests": ["http://blazedemo.com/"],
                     "certificate": "certificate_file.pem"}}]})
         self.obj.prepare()
-        exp_file = RESOURCES_DIR + "apiritif/test_generated_cert_no_pass.py"
-        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("cert=('certificate_file.pem', None)", test_script)
 
     def test_no_cert_pass(self):
         self.configure({

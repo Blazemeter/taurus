@@ -1431,7 +1431,7 @@ from selenium.webdriver.common.keys import Keys
             raise TaurusConfigError(msg % (type(req.body), req.body))
 
         cert = self.scenario.get("certificate")
-        cert_pass = self.scenario.get("passphrase")
+        cert_pass = self.scenario.get("passphrase", None)
         if cert:
             named_args['encrypted_cert'] = (self.executor.engine.find_file(cert), cert_pass)
 
