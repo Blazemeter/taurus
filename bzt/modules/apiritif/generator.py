@@ -1433,7 +1433,7 @@ from selenium.webdriver.common.keys import Keys
         cert = self.scenario.get("certificate")
         cert_pass = self.scenario.get("passphrase")
         if cert:
-            named_args['cert'] = (self.executor.engine.find_file(cert), cert_pass)
+            named_args['encrypted_cert'] = (self.executor.engine.find_file(cert), cert_pass)
 
         if cert_pass and not cert:
             self.log.warning("Passphrase was found, but certificate is missing!")
