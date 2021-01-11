@@ -191,7 +191,7 @@ The preceding CSS Selectors refer to the shadow hosts.
 
 Most of the actions in Apiritif support Shadow Locators.
 
-### Alternative syntax supporting multiple locators
+#### Alternative syntax supporting multiple locators
 It is possible to specify multiple locators for each action. This helps to increase script resiliency. If a locator
 fails (e.g. because of a webpage change and the script was not updated to reflect the changes) an alternative locator
 will be used. If no locator succeeds then the script fails.
@@ -210,225 +210,6 @@ This is an example how it looks like:
       - name: select_name
 ```
 You can see full example [here](#Sample-scenario-using-multiple-locators).
-
-### If Blocks
-
-Apiritif allows to control execution flow using `if` blocks. These blocks enable 
-conditional execution of actions.
-
-Each `if` block should contain a mandatory `then` field, and an optional `else` field. Both `then` and `else` fields
-should contain list of actions.
-
-Here's a simple example:
-
-```yaml
-scenarios:
-  example:
-    browser: Chrome
-    variables:
-      elem_id: id_123
-    timeout: 10s
-    requests:
-      - label: example1
-        actions:
-          - go(http://blazedemo.com)
-          - if: 'document.getElementById("${elem_id}") !== undefined'
-            then:
-              - clickById(${elem_id})
-            else:
-              - go(http://blazedemo.com/login)
-```
-
-Logic blocks can also be nested:
-
-```yaml
-scenarios:
-  nested_example:
-    requests:
-      - label: nested_req
-        actions:
-          - if: <condition1>
-            then:
-              - if: <condition2>
-                then:
-                  - go(https://google.com/)
-                else:
-                  - go(https://yahoo.com/)
-            else:
-              - go(https://bing.com/)
-```
-
-Note that `<conditions>` are evaluated as JavaScript code so they must contain valid JavaScript expression 
-that yields boolean value.
-
-### Loops
-
-`Loop` blocks allow repeated execution of actions. 
-
-It is necessary to specify variable name used in the loop,
-along with the `start` and `end` indexes. The actions that shall be executed in the loop are defined in the `do` field.
-In these action you can then reference the variable by the name you defined next to the `loop` keyword.
- 
-Optionally you can set the `step` field which defines the difference between each number in the sequence 
-(it can also be negative). If `step` is not explicitly set then it will default to 1.
-
-```yaml
-scenarios:
-  example:
-    browser: Chrome
-    timeout: 10s
-    requests:
-      - label: example_loop
-        actions:
-          - go(http://blazedemo.com)
-          - loop: var_i
-            start: 1
-            end: 10
-            do:
-              - clickById(id_${var_i})
-              - typeById(input_${var_i}): My Item ${var_i} 
-``` 
-
-Note that both the `start` and `end` index are included in the loop. So for 
-example setting `start` to 1 and `end` to 5 will loop through these values: \[1, 2, 3, 4, 5\].
-
-It is also possible to specify the `step` negative. In that case the loop will go from the higher 
-numbers to the lower ones. However it is also necessary that the `start` index is higher than the 
-`end` index. 
-
-For example:
-
-```yaml
-  - loop: i
-    start: 5
-    end: 1
-    step: -1
-    do: 
-      - clickById(id_${i})
-``` 
-This will loop through the values \[5, 4, 3, 2, 1\] in the descending order.
-
-Note that you may also use variables in the `start`, `end` and `step` fields. These fields may
-include numbers surrounded by quotes and one can even concatenate in this case numbers with variables.
-
-For example: 
-
-```yaml
-scenarios:
-  example:
-    browser: Chrome
-    timeout: 10s
-    variables:
-      step: 1
-      end: '00'
-    requests:
-      - label: example_loop
-        actions:
-          - go(http://blazedemo.com)
-          - loop: i
-            start: '1'
-            end: '1${end}' # will result in 100
-            step: ${step}
-            do: 
-              - clickById(id_${i}) 
-``` 
-
-### Foreach
-
-`foreach` blocks allow to iterate over each element on a page that matches the specified `locators`.
-
-For example:
-
-```yaml
-scenarios:
-  example:
-    browser: Chrome
-    timeout: 10s
-    requests:
-      - label: example_foreach_1
-        actions:
-          - go(http://blazedemo.com)
-          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
-            locators:
-              - css: input
-              - xpath: //input
-            do:
-              - clickByElement(el)  # refers to the variable el 
-              - typeByElement(el): text to type
-              - type: storeValue
-                element: el         # refers to the variable el
-                param: my_var
-                             
-```
-
-`locators` is an array of selectors equivalent to those used in 
-[alternative syntax notation](#Alternative-syntax-supporting-multiple-locators).
-The `locators` also work the same way - the selectors in the array are examined 
-one by one and which first returns a not empty set of elements is used then for the iteration.
-
-To refer to the given element in the current iteration you need to use either 
-the suffix `ByElement` for the short version of actions notation or `element` for the alternative version.
-This way explicit locators (e.g. `ById`, `ByXpath`) are replaced by reference to the variable you define
-in the `foreach` loop. You however can still use the explicit locators combined with the `ByElement` actions in 
-the loop. See the example below.
-
-```yaml
-scenarios:
-  example:
-    browser: Chrome
-    timeout: 10s
-    requests:
-      - label: example_foreach_2
-        actions:
-          - go(http://blazedemo.com)
-          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
-            locators:
-              - css: input
-              - xpath: //input
-            do:
-              - clickByElement(el)  # refers to the variable el 
-              - dragByElement(el): elementById(id_123)
-              - keysById(btn_submit): KEY_ENTER
-```
-
-You can also nest multiple `foreach` blocks, just make sure to 
-use unique names for the variables in each of the blocks.  
-
-Please note that it is not possible to use `wait` and `waitFor` actions in the `foreach` using `ByElement`. 
-However you can still use it inside the loop the common way - e.g. `waitById(my_id)`.
-
-#### Perform actions in foreach using the parent context
-
-It is possible to specify in each action inside the foreach loop additional set of locators besides just the `element` field.
-This way it allows to locate a child element within the parent `element`.
-
-In the following example we iterate over table rows and do a click action on
-the button that should be located on each row.
-
-```yaml
-scenarios:
-  example:
-    browser: Chrome
-    timeout: 10s
-    requests:
-      - label: example_foreach_context
-        actions:
-          - go(http://blazedemo.com)
-          - foreach: el             
-            locators:
-              - css: table_row
-              - xpath: //tr
-            do:
-              - type: click
-                element: el
-                locators:         # the list of locators that to find the child element in the parent 'el'
-                  - css: .btn-small
-                  - css: .button-small
-```
-
-Note that this is only supported while using the  
-[alternative syntax](#Alternative-syntax-supporting-multiple-locators) for the action.
-
 
 ### Alert
 For alert handling, use the following methods:
@@ -582,6 +363,103 @@ rawCode: print('This is a python command.')
 
 See example [here](#Sample-scenario).
 
+### Foreach
+
+`foreach` blocks allow to iterate over each element on a page that matches the specified `locators`.
+
+For example:
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_1
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
+            locators:
+              - css: input
+              - xpath: //input
+            do:
+              - clickByElement(el)  # refers to the variable el 
+              - typeByElement(el): text to type
+              - type: storeValue
+                element: el         # refers to the variable el
+                param: my_var
+                             
+```
+
+`locators` is an array of selectors equivalent to those used in 
+[alternative syntax notation](#Alternative-syntax-supporting-multiple-locators).
+The `locators` also work the same way - the selectors in the array are examined 
+one by one and which first returns a not empty set of elements is used then for the iteration.
+
+To refer to the given element in the current iteration you need to use either 
+the suffix `ByElement` for the short version of actions notation or `element` for the alternative version.
+This way explicit locators (e.g. `ById`, `ByXpath`) are replaced by reference to the variable you define
+in the `foreach` loop. You however can still use the explicit locators combined with the `ByElement` actions in 
+the loop. See the example below.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_2
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
+            locators:
+              - css: input
+              - xpath: //input
+            do:
+              - clickByElement(el)  # refers to the variable el 
+              - dragByElement(el): elementById(id_123)
+              - keysById(btn_submit): KEY_ENTER
+```
+
+You can also nest multiple `foreach` blocks, just make sure to 
+use unique names for the variables in each of the blocks.  
+
+Please note that it is not possible to use `wait` and `waitFor` actions in the `foreach` using `ByElement`. 
+However you can still use it inside the loop the common way - e.g. `waitById(my_id)`.
+
+#### Perform actions in foreach using the parent context
+
+It is possible to specify in each action inside the foreach loop additional set of locators besides just the `element` field.
+This way it allows to locate a child element within the parent `element`.
+
+In the following example we iterate over table rows and do a click action on
+the button that should be located on each row.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_context
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             
+            locators:
+              - css: table_row
+              - xpath: //tr
+            do:
+              - type: click
+                element: el
+                locators:         # the list of locators that to find the child element in the parent 'el'
+                  - css: .btn-small
+                  - css: .button-small
+```
+
+Note that this is only supported while using the  
+[alternative syntax](#Alternative-syntax-supporting-multiple-locators) for the action.
+
+
 ### Frame management
 When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command
 to activate the frame before perform any action.
@@ -621,6 +499,128 @@ Use `go(url)` to redirect to another website.
 - type: go
   param: url
 ```
+
+### If Blocks
+
+Apiritif allows to control execution flow using `if` blocks. These blocks enable 
+conditional execution of actions.
+
+Each `if` block should contain a mandatory `then` field, and an optional `else` field. Both `then` and `else` fields
+should contain list of actions.
+
+Here's a simple example:
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    variables:
+      elem_id: id_123
+    timeout: 10s
+    requests:
+      - label: example1
+        actions:
+          - go(http://blazedemo.com)
+          - if: 'document.getElementById("${elem_id}") !== undefined'
+            then:
+              - clickById(${elem_id})
+            else:
+              - go(http://blazedemo.com/login)
+```
+
+Logic blocks can also be nested:
+
+```yaml
+scenarios:
+  nested_example:
+    requests:
+      - label: nested_req
+        actions:
+          - if: <condition1>
+            then:
+              - if: <condition2>
+                then:
+                  - go(https://google.com/)
+                else:
+                  - go(https://yahoo.com/)
+            else:
+              - go(https://bing.com/)
+```
+
+Note that `<conditions>` are evaluated as JavaScript code so they must contain valid JavaScript expression 
+that yields boolean value.
+
+### Loops
+
+`Loop` blocks allow repeated execution of actions. 
+
+It is necessary to specify variable name used in the loop,
+along with the `start` and `end` indexes. The actions that shall be executed in the loop are defined in the `do` field.
+In these action you can then reference the variable by the name you defined next to the `loop` keyword.
+ 
+Optionally you can set the `step` field which defines the difference between each number in the sequence 
+(it can also be negative). If `step` is not explicitly set then it will default to 1.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_loop
+        actions:
+          - go(http://blazedemo.com)
+          - loop: var_i
+            start: 1
+            end: 10
+            do:
+              - clickById(id_${var_i})
+              - typeById(input_${var_i}): My Item ${var_i} 
+``` 
+
+Note that both the `start` and `end` index are included in the loop. So for 
+example setting `start` to 1 and `end` to 5 will loop through these values: \[1, 2, 3, 4, 5\].
+
+It is also possible to specify the `step` negative. In that case the loop will go from the higher 
+numbers to the lower ones. However it is also necessary that the `start` index is higher than the 
+`end` index. 
+
+For example:
+
+```yaml
+  - loop: i
+    start: 5
+    end: 1
+    step: -1
+    do: 
+      - clickById(id_${i})
+``` 
+This will loop through the values \[5, 4, 3, 2, 1\] in the descending order.
+
+Note that you may also use variables in the `start`, `end` and `step` fields. These fields may
+include numbers surrounded by quotes and one can even concatenate in this case numbers with variables.
+
+For example: 
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    variables:
+      step: 1
+      end: '00'
+    requests:
+      - label: example_loop
+        actions:
+          - go(http://blazedemo.com)
+          - loop: i
+            start: '1'
+            end: '1${end}' # will result in 100
+            step: ${step}
+            do: 
+              - clickById(id_${i}) 
+``` 
 
 ### Mouse actions
 For mouse imitating actions you can use the following:
