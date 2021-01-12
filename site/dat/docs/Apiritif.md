@@ -216,7 +216,7 @@ Below you can find a list of all supported actions:
 
 [alert](#Alert), [answerDialog](#Answering-dialogs), [assertDialog](#Assertions), [assertEval](#Assertion), 
 [assertTextByX](#Assertion), [assertTitle](#Assertion), [assertValueByX](#Assertion), [clearCookies](#Cookies), 
-[clickByX](#Mouse actions), [closeWindow](#Window-management), [contextClickByX](#Mouse-actions), 
+[clickByX](#Mouse-actions), [closeWindow](#Window-management), [contextClickByX](#Mouse-actions), 
 [doubleClickByX](#Mouse-actions), [dragByX](#Mouse-actions), [echoString](#Echoing), [editContentByX](#Editing), 
 [foreach](#Foreach), [go](#Go), [if](#If-BLocks), [keysByX](#Typing), [loop](#Loops), [mouseDownByX](#Mouse-actions), 
 [mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), [mouseUpByX](#Mouse-actions), [rawCode](#Execution), 
