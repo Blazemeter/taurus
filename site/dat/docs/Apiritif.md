@@ -211,7 +211,20 @@ This is an example how it looks like:
 ```
 You can see full example [here](#Sample-scenario-using-multiple-locators).
 
-### Alert
+### Keywords
+Below you can find a list of all supported actions:
+
+[alert](#Alert), [answerDialog](#Answering dialogs), [assertDialog](#Assertions), [assertEval](#Assertion), 
+[assertTextByX](#Assertion), [assertTitle](#Assertion), [assertValueByX](#Assertion), [clearCookies](#Cookies), 
+[clickByX](#Mouse actions), [closeWindow](#Window management), [contextClickByX](#Mouse actions), 
+[doubleClickByX](#Mouse actions), [dragByX](#Mouse actions), [echoString](#Echoing), [editContentByX](#Editing), 
+[foreach](#Foreach), [go](#Go), [if](#If BLocks), [keysByX](#Typing), [loop](#Loops), [mouseDownByX](#Mouse actions), 
+[mouseOutByX](#Mouse actions), [mouseOverByX](#Mouse actions), [mouseUpByX](#Mouse actions), [rawCode](#Execution), 
+[screenshot](#Screenshot), [scriptEval](#Execution), [selectByX](#Select), [storeEval](#Store), [storeString](#Store), 
+[storeTextByX](#Store), [storeTitle](#Store), [storeValueByX](#Store), [submitByX](#Typing), 
+[switchFrame](#Frame management), [switchWindow](#Window management), [typeByX](#Typing), [waitForByX](#Pause).
+
+#### Alert
 For alert handling, use the following methods:
 - `alert("OK")` to click "OK" on an alert
 - `alert("Dismiss")` to dismiss alert
@@ -225,7 +238,7 @@ Besides, you can use [alternative syntax](#Alternative-syntax-supporting-multipl
 
 For additional operations with dialogs see [Dialogs management](#Dialogs-management).
 
-### Assertion
+#### Assertion
 For requested page source inspection you can use the following actions:
 - `assertTextByX(X\_name): "text"` to assert text to an element
 - `assertValueByX(X\_name): value` to assert value
@@ -254,7 +267,7 @@ Using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators)
   param: js_expr
 ```
 
-### Cookies
+#### Cookies
 To delete all cookies use `clearCookies()` action.
 
 The same can be written like this: 
@@ -262,11 +275,11 @@ The same can be written like this:
 - type: clearCookies
 ```
 
-### Dialogs management
+#### Dialogs management
 Besides the basic functionality to handle [Alerts](#Alert) it is also possible to use the
 following actions to do assertion and answering on Dialogs.
 
-#### Assertions
+##### Assertions
 
 Enables to check whether a dialog of a specified type was previously displayed with the 
 given message. The type can be any of the following: `alert`, `prompt` or `confirm`.
@@ -287,7 +300,7 @@ Example using the Alternative syntax:
   value: Error occurred
 ```
 
-#### Answering dialogs
+##### Answering dialogs
 
 Allows to set the value that will be returned by displaying a dialog. It is applicable
 to `alert`, `prompt` and `confirm` dialogs. This action actually prevents showing the dialog and instead
@@ -319,8 +332,7 @@ Examples using the alternative syntax:
   value: '#Cancel'
 ```
 
-
-### Echoing
+#### Echoing
 Use `echoString("echoed text")` to print text string on the Apiritif output execution.
 
 Or you may use:
@@ -329,7 +341,7 @@ Or you may use:
   param: echoed text
 ```
 
-### Editing
+#### Editing
 `editContentByX(X\_name): "new test for X"` will help you change text in an editable field.
 
 Or by using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
@@ -340,7 +352,7 @@ Or by using the [alternative syntax](#Alternative-syntax-supporting-multiple-loc
     - css: element_class
 ```
 
-### Execution
+#### Execution
 For execution of a non-yaml code you can use the following options:
 - `scriptEval("script")` to execute JS command like this
 ```yaml
@@ -363,7 +375,7 @@ rawCode: print('This is a python command.')
 
 See example [here](#Sample-scenario).
 
-### Foreach
+#### Foreach
 
 `foreach` blocks allow to iterate over each element on a page that matches the specified `locators`.
 
@@ -427,7 +439,7 @@ use unique names for the variables in each of the blocks.
 Please note that it is not possible to use `wait` and `waitFor` actions in the `foreach` using `ByElement`. 
 However you can still use it inside the loop the common way - e.g. `waitById(my_id)`.
 
-#### Perform actions in foreach using the parent context
+##### Perform actions in foreach using the parent context
 
 It is possible to specify in each action inside the foreach loop additional set of locators besides just the `element` field.
 This way it allows to locate a child element within the parent `element`.
@@ -459,8 +471,7 @@ scenarios:
 Note that this is only supported while using the  
 [alternative syntax](#Alternative-syntax-supporting-multiple-locators) for the action.
 
-
-### Frame management
+#### Frame management
 When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command
 to activate the frame before perform any action.
 
@@ -493,14 +504,14 @@ It is also possible to use the alternative syntax for Frame management, however 
   param: frame_name
 ```
 
-### Go
+#### Go
 Use `go(url)` to redirect to another website.
 ```yaml
 - type: go
   param: url
 ```
 
-### If Blocks
+#### If Blocks
 
 Apiritif allows to control execution flow using `if` blocks. These blocks enable 
 conditional execution of actions.
@@ -550,7 +561,7 @@ scenarios:
 Note that `<conditions>` are evaluated as JavaScript code so they must contain valid JavaScript expression 
 that yields boolean value.
 
-### Loops
+#### Loops
 
 `Loop` blocks allow repeated execution of actions. 
 
@@ -622,7 +633,7 @@ scenarios:
               - clickById(id_${i}) 
 ``` 
 
-### Mouse actions
+#### Mouse actions
 For mouse imitating actions you can use the following:
 - `clickByX(X\_name)`
 - `doubleClickByX(X\_name)`
@@ -674,7 +685,7 @@ Or by using the [multiple locators](#Alternative-syntax-supporting-multiple-loca
     - xpath: /xpath/
 ```
 
-### Pause
+#### Pause
 For pause you can use the following actions:
 
 - `waitForByX(X\_name, condition): timeout`
@@ -729,7 +740,7 @@ You can also define wait using the [alternative syntax](#Alternative-syntax-supp
 
 `X` here is for one of [locators](#Locators).
 
-### Screenshot
+#### Screenshot
 To take a screenshot of a viewport and save it in a file use this: `screenshot(file\_name)`
 
 Or like this by using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
@@ -739,7 +750,7 @@ Or like this by using the [alternative syntax](#Alternative-syntax-supporting-mu
   param: file_name
 ```
 
-### Select
+#### Select
 To select a value use this: `selectByX(X\_name): value`.
 
 See documentation for `X` [here](#Locators).
@@ -752,7 +763,7 @@ Or by using the [alternative syntax](#Alternative-syntax-supporting-multiple-loc
     - id: element_id
 ```
 
-### Store
+#### Store
 For storing variables use the following actions:
 - `storeTitle(): var_title`
 - `storeString(value): "var_string"`
@@ -789,7 +800,7 @@ Or use the [alternative syntax](#Alternative-syntax-supporting-multiple-locators
   value: js_expr
 ```
 
-### Typing
+#### Typing
 Typing actions are the following:
 - `typeByX(X\_name): "text\_to\_type"` clears `X` value and then types text.
 - `submitByX(X\_name)`
@@ -813,7 +824,7 @@ Typing actions with [multiple locators support](#Alternative-syntax-supporting-m
     - id: element_id  
 ```
 
-### Window management
+#### Window management
 To manage windows or tabs, the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
