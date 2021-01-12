@@ -214,15 +214,15 @@ You can see full example [here](#Sample-scenario-using-multiple-locators).
 ### Keywords
 Below you can find a list of all supported actions:
 
-[alert](#Alert), [answerDialog](#Answering dialogs), [assertDialog](#Assertions), [assertEval](#Assertion), 
+[alert](#Alert), [answerDialog](#Answering-dialogs), [assertDialog](#Assertions), [assertEval](#Assertion), 
 [assertTextByX](#Assertion), [assertTitle](#Assertion), [assertValueByX](#Assertion), [clearCookies](#Cookies), 
-[clickByX](#Mouse actions), [closeWindow](#Window management), [contextClickByX](#Mouse actions), 
-[doubleClickByX](#Mouse actions), [dragByX](#Mouse actions), [echoString](#Echoing), [editContentByX](#Editing), 
-[foreach](#Foreach), [go](#Go), [if](#If BLocks), [keysByX](#Typing), [loop](#Loops), [mouseDownByX](#Mouse actions), 
-[mouseOutByX](#Mouse actions), [mouseOverByX](#Mouse actions), [mouseUpByX](#Mouse actions), [rawCode](#Execution), 
+[clickByX](#Mouse actions), [closeWindow](#Window-management), [contextClickByX](#Mouse-actions), 
+[doubleClickByX](#Mouse-actions), [dragByX](#Mouse-actions), [echoString](#Echoing), [editContentByX](#Editing), 
+[foreach](#Foreach), [go](#Go), [if](#If-BLocks), [keysByX](#Typing), [loop](#Loops), [mouseDownByX](#Mouse-actions), 
+[mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), [mouseUpByX](#Mouse-actions), [rawCode](#Execution), 
 [screenshot](#Screenshot), [scriptEval](#Execution), [selectByX](#Select), [storeEval](#Store), [storeString](#Store), 
 [storeTextByX](#Store), [storeTitle](#Store), [storeValueByX](#Store), [submitByX](#Typing), 
-[switchFrame](#Frame management), [switchWindow](#Window management), [typeByX](#Typing), [waitForByX](#Pause).
+[switchFrame](#Frame-management), [switchWindow](#Window-management), [typeByX](#Typing), [waitForByX](#Pause).
 
 #### Alert
 For alert handling, use the following methods:
