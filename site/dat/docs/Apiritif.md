@@ -191,7 +191,7 @@ The preceding CSS Selectors refer to the shadow hosts.
 
 Most of the actions in Apiritif support Shadow Locators.
 
-### Alternative syntax supporting multiple locators
+#### Alternative syntax supporting multiple locators
 It is possible to specify multiple locators for each action. This helps to increase script resiliency. If a locator
 fails (e.g. because of a webpage change and the script was not updated to reflect the changes) an alternative locator
 will be used. If no locator succeeds then the script fails.
@@ -211,7 +211,307 @@ This is an example how it looks like:
 ```
 You can see full example [here](#Sample-scenario-using-multiple-locators).
 
-### If Blocks
+### Keywords
+Below you can find a list of all supported actions:
+
+[alert](#Alert), [answerDialog](#Answering-dialogs), [assertDialog](#Assertions), [assertEval](#Assertion), 
+[assertTextByX](#Assertion), [assertTitle](#Assertion), [assertValueByX](#Assertion), [clearCookies](#Cookies), 
+[clickByX](#Mouse-actions), [closeWindow](#Window-management), [contextClickByX](#Mouse-actions), 
+[doubleClickByX](#Mouse-actions), [dragByX](#Mouse-actions), [echoString](#Echoing), [editContentByX](#Editing), 
+[foreach](#Foreach), [go](#Go), [if](#If-BLocks), [keysByX](#Typing), [loop](#Loops), [mouseDownByX](#Mouse-actions), 
+[mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), [mouseUpByX](#Mouse-actions), [rawCode](#Execution), 
+[screenshot](#Screenshot), [scriptEval](#Execution), [selectByX](#Select), [storeEval](#Store), [storeString](#Store), 
+[storeTextByX](#Store), [storeTitle](#Store), [storeValueByX](#Store), [submitByX](#Typing), 
+[switchFrame](#Frame-management), [switchWindow](#Window-management), [typeByX](#Typing), [waitForByX](#Pause).
+
+#### Alert
+For alert handling, use the following methods:
+- `alert("OK")` to click "OK" on an alert
+- `alert("Dismiss")` to dismiss alert
+ 
+Besides, you can use [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
+
+```yaml
+- type: alert
+  param: OK
+```
+
+For additional operations with dialogs see [Dialogs management](#Dialogs-management).
+
+#### Assertion
+For requested page source inspection you can use the following actions:
+- `assertTextByX(X\_name): "text"` to assert text to an element
+- `assertValueByX(X\_name): value` to assert value
+- `assertTitle(title)` to assert page title
+- `assertEval(js_expr)` to assert that evaluation of a JavaScript expression returns true value
+
+Don't forget to replace `X` with the right [locators](#Locators).
+See sample usage in [Frame Management](#Frame-management) section.
+
+For assertion you can also use special assertion block. See example [here](#Sample-scenario).
+
+Using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators): 
+```yaml
+- type: assertText
+  param: text
+  locators:
+    - id: element_id
+    - xpath: /xpath
+- type: assertValue
+  param: value
+  locators:
+    - id: element_id
+- type: assertTitle
+  param: title
+- type: assertEval
+  param: js_expr
+```
+
+#### Cookies
+To delete all cookies use `clearCookies()` action.
+
+The same can be written like this: 
+```yaml
+- type: clearCookies
+```
+
+#### Dialogs management
+Besides the basic functionality to handle [Alerts](#Alert) it is also possible to use the
+following actions to do assertion and answering on Dialogs.
+
+##### Assertions
+
+Enables to check whether a dialog of a specified type was previously displayed with the 
+given message. The type can be any of the following: `alert`, `prompt` or `confirm`.
+
+Examples:
+
+```yaml
+- assertDialog(alert): Error occurred
+- assertDialog(prompt): Enter your name
+- assertDialog(confirm): Are you sure to proceed?
+```
+
+Example using the Alternative syntax:
+
+```yaml
+- type: assertDialog
+  param: alert
+  value: Error occurred
+```
+
+##### Answering dialogs
+
+Allows to set the value that will be returned by displaying a dialog. It is applicable
+to `alert`, `prompt` and `confirm` dialogs. This action actually prevents showing the dialog and instead
+returns the specified value directly.
+
+For alert dialogs the value needs to be always '#Ok' for dismissing the dialog.
+For confirmation dialogs the value can only be either `'#Ok'` or `'#Cancel'`, meaning to simulate 
+click on 'Ok' or 'Cancel' buttons.
+
+Examples:
+
+```yaml
+- answerDialog(alert): '#Ok'
+- answerDialog(prompt): John Doe
+- answerDialog(confirm): '#Cancel'
+```
+
+Examples using the alternative syntax:
+
+```yaml
+- type: answerDialog
+  param: alert
+  value: '#Ok'
+- type: answerDialog
+  param: prompt
+  value: Jon Doe
+- type: answerDialog
+  param: confirm
+  value: '#Cancel'
+```
+
+#### Echoing
+Use `echoString("echoed text")` to print text string on the Apiritif output execution.
+
+Or you may use:
+```yaml
+- type: echoString
+  param: echoed text
+```
+
+#### Editing
+`editContentByX(X\_name): "new test for X"` will help you change text in an editable field.
+
+Or by using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
+```yaml
+- type: editContent
+  param: new text for X
+  locators:
+    - css: element_class
+```
+
+#### Execution
+For execution of a non-yaml code you can use the following options:
+- `scriptEval("script")` to execute JS command like this
+```yaml
+scriptEval("alert('This is a JavaScript command.');")
+```
+Which can be written also like:
+```yaml
+- type: scriptEval
+  param: alert('This is a JavaScript command.')
+```
+- `rawCode: Python code` to insert python code as it is.
+```yaml
+rawCode: print('This is a python command.')
+```
+
+```yaml
+- type: rawCode
+  param: print('This is a python command.')
+```
+
+See example [here](#Sample-scenario).
+
+#### Foreach
+
+`foreach` blocks allow to iterate over each element on a page that matches the specified `locators`.
+
+For example:
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_1
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
+            locators:
+              - css: input
+              - xpath: //input
+            do:
+              - clickByElement(el)  # refers to the variable el 
+              - typeByElement(el): text to type
+              - type: storeValue
+                element: el         # refers to the variable el
+                param: my_var
+                             
+```
+
+`locators` is an array of selectors equivalent to those used in 
+[alternative syntax notation](#Alternative-syntax-supporting-multiple-locators).
+The `locators` also work the same way - the selectors in the array are examined 
+one by one and which first returns a not empty set of elements is used then for the iteration.
+
+To refer to the given element in the current iteration you need to use either 
+the suffix `ByElement` for the short version of actions notation or `element` for the alternative version.
+This way explicit locators (e.g. `ById`, `ByXpath`) are replaced by reference to the variable you define
+in the `foreach` loop. You however can still use the explicit locators combined with the `ByElement` actions in 
+the loop. See the example below.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_2
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
+            locators:
+              - css: input
+              - xpath: //input
+            do:
+              - clickByElement(el)  # refers to the variable el 
+              - dragByElement(el): elementById(id_123)
+              - keysById(btn_submit): KEY_ENTER
+```
+
+You can also nest multiple `foreach` blocks, just make sure to 
+use unique names for the variables in each of the blocks.  
+
+Please note that it is not possible to use `wait` and `waitFor` actions in the `foreach` using `ByElement`. 
+However you can still use it inside the loop the common way - e.g. `waitById(my_id)`.
+
+##### Perform actions in foreach using the parent context
+
+It is possible to specify in each action inside the foreach loop additional set of locators besides just the `element` field.
+This way it allows to locate a child element within the parent `element`.
+
+In the following example we iterate over table rows and do a click action on
+the button that should be located on each row.
+
+```yaml
+scenarios:
+  example:
+    browser: Chrome
+    timeout: 10s
+    requests:
+      - label: example_foreach_context
+        actions:
+          - go(http://blazedemo.com)
+          - foreach: el             
+            locators:
+              - css: table_row
+              - xpath: //tr
+            do:
+              - type: click
+                element: el
+                locators:         # the list of locators that to find the child element in the parent 'el'
+                  - css: .btn-small
+                  - css: .button-small
+```
+
+Note that this is only supported while using the  
+[alternative syntax](#Alternative-syntax-supporting-multiple-locators) for the action.
+
+#### Frame management
+When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command
+to activate the frame before perform any action.
+
+Sample usage:
+```yaml
+scenarios:
+  sample_frame:
+    requests:
+    - url: http://a-frame-sample.com
+      actions:
+      - switchFrame(index=0) # Select First Frame
+      - assertTextByCSS(body): "First Frame Body"
+      - switchFrame(relative=parent) # Go to parent
+      - switchFrame(index=1) # Select Second frame
+      - switchFrame(index=0) # Nested Frame, Select the First frame inside the Top Second frame
+      - assertTextByID(content): "First Frame Body inside Second Frame Body"
+      - switchFrame(relative=top) # Go to top frame (main document)
+```
+Note: For first level frames, it is possible to use `switchFrameByX` and using selector to match the frame to switch.
+
+Disclaimer: Currently there are problems in the support of this functionality by geckodriver and chromedriver, depending on the case to test some of these methods can generate a failure, mainly in cases where you have nested frames or frames mixed between frame and iframes.
+
+It is also possible to use the alternative syntax for Frame management, however there is currently no support for multiple locators:
+```yaml
+- type: switchFrame
+  param: index=0
+- type: switchFrame
+  param: relative=parent
+- type: switchFrameByName
+  param: frame_name
+```
+
+#### Go
+Use `go(url)` to redirect to another website.
+```yaml
+- type: go
+  param: url
+```
+
+#### If Blocks
 
 Apiritif allows to control execution flow using `if` blocks. These blocks enable 
 conditional execution of actions.
@@ -261,7 +561,7 @@ scenarios:
 Note that `<conditions>` are evaluated as JavaScript code so they must contain valid JavaScript expression 
 that yields boolean value.
 
-### Loops
+#### Loops
 
 `Loop` blocks allow repeated execution of actions. 
 
@@ -333,296 +633,7 @@ scenarios:
               - clickById(id_${i}) 
 ``` 
 
-### Foreach
-
-`foreach` blocks allow to iterate over each element on a page that matches the specified `locators`.
-
-For example:
-
-```yaml
-scenarios:
-  example:
-    browser: Chrome
-    timeout: 10s
-    requests:
-      - label: example_foreach_1
-        actions:
-          - go(http://blazedemo.com)
-          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
-            locators:
-              - css: input
-              - xpath: //input
-            do:
-              - clickByElement(el)  # refers to the variable el 
-              - typeByElement(el): text to type
-              - type: storeValue
-                element: el         # refers to the variable el
-                param: my_var
-                             
-```
-
-`locators` is an array of selectors equivalent to those used in 
-[alternative syntax notation](#Alternative-syntax-supporting-multiple-locators).
-The `locators` also work the same way - the selectors in the array are examined 
-one by one and which first returns a not empty set of elements is used then for the iteration.
-
-To refer to the given element in the current iteration you need to use either 
-the suffix `ByElement` for the short version of actions notation or `element` for the alternative version.
-This way explicit locators (e.g. `ById`, `ByXpath`) are replaced by reference to the variable you define
-in the `foreach` loop. You however can still use the explicit locators combined with the `ByElement` actions in 
-the loop. See the example below.
-
-```yaml
-scenarios:
-  example:
-    browser: Chrome
-    timeout: 10s
-    requests:
-      - label: example_foreach_2
-        actions:
-          - go(http://blazedemo.com)
-          - foreach: el             # specify the name of the variable that will be used in the actions referring that element
-            locators:
-              - css: input
-              - xpath: //input
-            do:
-              - clickByElement(el)  # refers to the variable el 
-              - dragByElement(el): elementById(id_123)
-              - keysById(btn_submit): KEY_ENTER
-```
-
-You can also nest multiple `foreach` blocks, just make sure to 
-use unique names for the variables in each of the blocks.  
-
-Please note that it is not possible to use `wait` and `waitFor` actions in the `foreach` using `ByElement`. 
-However you can still use it inside the loop the common way - e.g. `waitById(my_id)`.
-
-#### Perform actions in foreach using the parent context
-
-It is possible to specify in each action inside the foreach loop additional set of locators besides just the `element` field.
-This way it allows to locate a child element within the parent `element`.
-
-In the following example we iterate over table rows and do a click action on
-the button that should be located on each row.
-
-```yaml
-scenarios:
-  example:
-    browser: Chrome
-    timeout: 10s
-    requests:
-      - label: example_foreach_context
-        actions:
-          - go(http://blazedemo.com)
-          - foreach: el             
-            locators:
-              - css: table_row
-              - xpath: //tr
-            do:
-              - type: click
-                element: el
-                locators:         # the list of locators that to find the child element in the parent 'el'
-                  - css: .btn-small
-                  - css: .button-small
-```
-
-Note that this is only supported while using the  
-[alternative syntax](#Alternative-syntax-supporting-multiple-locators) for the action.
-
-
-### Alert
-For alert handling, use the following methods:
-- `alert("OK")` to click "OK" on an alert
-- `alert("Dismiss")` to dismiss alert
- 
-Besides, you can use [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
-
-```yaml
-- type: alert
-  param: OK
-```
-
-For additional operations with dialogs see [Dialogs management](#Dialogs-management).
-
-### Assertion
-For requested page source inspection you can use the following actions:
-- `assertTextByX(X\_name): "text"` to assert text to an element
-- `assertValueByX(X\_name): value` to assert value
-- `assertTitle(title)` to assert page title
-- `assertEval(js_expr)` to assert that evaluation of a JavaScript expression returns true value
-
-Don't forget to replace `X` with the right [locators](#Locators).
-See sample usage in [Frame Management](#Frame-management) section.
-
-For assertion you can also use special assertion block. See example [here](#Sample-scenario).
-
-Using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators): 
-```yaml
-- type: assertText
-  param: text
-  locators:
-    - id: element_id
-    - xpath: /xpath
-- type: assertValue
-  param: value
-  locators:
-    - id: element_id
-- type: assertTitle
-  param: title
-- type: assertEval
-  param: js_expr
-```
-
-### Cookies
-To delete all cookies use `clearCookies()` action.
-
-The same can be written like this: 
-```yaml
-- type: clearCookies
-```
-
-### Dialogs management
-Besides the basic functionality to handle [Alerts](#Alert) it is also possible to use the
-following actions to do assertion and answering on Dialogs.
-
-#### Assertions
-
-Enables to check whether a dialog of a specified type was previously displayed with the 
-given message. The type can be any of the following: `alert`, `prompt` or `confirm`.
-
-Examples:
-
-```yaml
-- assertDialog(alert): Error occurred
-- assertDialog(prompt): Enter your name
-- assertDialog(confirm): Are you sure to proceed?
-```
-
-Example using the Alternative syntax:
-
-```yaml
-- type: assertDialog
-  param: alert
-  value: Error occurred
-```
-
-#### Answering dialogs
-
-Allows to set the value that will be returned by displaying a dialog. It is applicable
-to `alert`, `prompt` and `confirm` dialogs. This action actually prevents showing the dialog and instead
-returns the specified value directly.
-
-For alert dialogs the value needs to be always '#Ok' for dismissing the dialog.
-For confirmation dialogs the value can only be either `'#Ok'` or `'#Cancel'`, meaning to simulate 
-click on 'Ok' or 'Cancel' buttons.
-
-Examples:
-
-```yaml
-- answerDialog(alert): '#Ok'
-- answerDialog(prompt): John Doe
-- answerDialog(confirm): '#Cancel'
-```
-
-Examples using the alternative syntax:
-
-```yaml
-- type: answerDialog
-  param: alert
-  value: '#Ok'
-- type: answerDialog
-  param: prompt
-  value: Jon Doe
-- type: answerDialog
-  param: confirm
-  value: '#Cancel'
-```
-
-
-### Echoing
-Use `echoString("echoed text")` to print text string on the Apiritif output execution.
-
-Or you may use:
-```yaml
-- type: echoString
-  param: echoed text
-```
-
-### Editing
-`editContentByX(X\_name): "new test for X"` will help you change text in an editable field.
-
-Or by using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
-```yaml
-- type: editContent
-  param: new text for X
-  locators:
-    - css: element_class
-```
-
-### Execution
-For execution of a non-yaml code you can use the following options:
-- `scriptEval("script")` to execute JS command like this
-```yaml
-scriptEval("alert('This is a JavaScript command.');")
-```
-Which can be written also like:
-```yaml
-- type: scriptEval
-  param: alert('This is a JavaScript command.')
-```
-- `rawCode: Python code` to insert python code as it is.
-```yaml
-rawCode: print('This is a python command.')
-```
-
-```yaml
-- type: rawCode
-  param: print('This is a python command.')
-```
-
-See example [here](#Sample-scenario).
-
-### Frame management
-When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command
-to activate the frame before perform any action.
-
-Sample usage:
-```yaml
-scenarios:
-  sample_frame:
-    requests:
-    - url: http://a-frame-sample.com
-      actions:
-      - switchFrame(index=0) # Select First Frame
-      - assertTextByCSS(body): "First Frame Body"
-      - switchFrame(relative=parent) # Go to parent
-      - switchFrame(index=1) # Select Second frame
-      - switchFrame(index=0) # Nested Frame, Select the First frame inside the Top Second frame
-      - assertTextByID(content): "First Frame Body inside Second Frame Body"
-      - switchFrame(relative=top) # Go to top frame (main document)
-```
-Note: For first level frames, it is possible to use `switchFrameByX` and using selector to match the frame to switch.
-
-Disclaimer: Currently there are problems in the support of this functionality by geckodriver and chromedriver, depending on the case to test some of these methods can generate a failure, mainly in cases where you have nested frames or frames mixed between frame and iframes.
-
-It is also possible to use the alternative syntax for Frame management, however there is currently no support for multiple locators:
-```yaml
-- type: switchFrame
-  param: index=0
-- type: switchFrame
-  param: relative=parent
-- type: switchFrameByName
-  param: frame_name
-```
-
-### Go
-Use `go(url)` to redirect to another website.
-```yaml
-- type: go
-  param: url
-```
-
-### Mouse actions
+#### Mouse actions
 For mouse imitating actions you can use the following:
 - `clickByX(X\_name)`
 - `doubleClickByX(X\_name)`
@@ -674,7 +685,7 @@ Or by using the [multiple locators](#Alternative-syntax-supporting-multiple-loca
     - xpath: /xpath/
 ```
 
-### Pause
+#### Pause
 For pause you can use the following actions:
 
 - `waitForByX(X\_name, condition): timeout`
@@ -729,7 +740,7 @@ You can also define wait using the [alternative syntax](#Alternative-syntax-supp
 
 `X` here is for one of [locators](#Locators).
 
-### Screenshot
+#### Screenshot
 To take a screenshot of a viewport and save it in a file use this: `screenshot(file\_name)`
 
 Or like this by using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
@@ -739,7 +750,7 @@ Or like this by using the [alternative syntax](#Alternative-syntax-supporting-mu
   param: file_name
 ```
 
-### Select
+#### Select
 To select a value use this: `selectByX(X\_name): value`.
 
 See documentation for `X` [here](#Locators).
@@ -752,7 +763,7 @@ Or by using the [alternative syntax](#Alternative-syntax-supporting-multiple-loc
     - id: element_id
 ```
 
-### Store
+#### Store
 For storing variables use the following actions:
 - `storeTitle(): var_title`
 - `storeString(value): "var_string"`
@@ -789,7 +800,7 @@ Or use the [alternative syntax](#Alternative-syntax-supporting-multiple-locators
   value: js_expr
 ```
 
-### Typing
+#### Typing
 Typing actions are the following:
 - `typeByX(X\_name): "text\_to\_type"` clears `X` value and then types text.
 - `submitByX(X\_name)`
@@ -813,7 +824,7 @@ Typing actions with [multiple locators support](#Alternative-syntax-supporting-m
     - id: element_id  
 ```
 
-### Window management
+#### Window management
 To manage windows or tabs, the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
