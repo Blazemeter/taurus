@@ -1148,6 +1148,7 @@ class CloudTaurusTest(BaseCloudTest):
         if self._test is None:
             test_config = {
                 "type": self.test_type,
+                "testMode": "script",
                 "plugins": {
                     "taurus": {
                         "filename": ""  # without this line it does not work
