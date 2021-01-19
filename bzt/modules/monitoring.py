@@ -232,7 +232,7 @@ class LocalMonitor(object):
     def resource_stats(self):
         if not self._last_check:
             self._disk_counters = self.__get_disk_counters()
-            self._net_counters = psutil.net_io_counters()
+            self._net_counters = self.__get_net_counters()
             self._last_check = time.time()
             time.sleep(0.2)  # small enough for human, big enough for machine
 
@@ -240,15 +240,6 @@ class LocalMonitor(object):
         interval = now - self._last_check
         self._last_check = now
         return self._calc_resource_stats(interval)
-
-    def __get_mem_info(self):
-        try:
-            return psutil.virtual_memory().percent
-        except KeyError:
-            if not self._informed_on_mem_issue:
-                self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
-                self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
-                self._informed_on_mem_issue = True
 
     def _calc_resource_stats(self, interval):
         """
@@ -262,7 +253,7 @@ class LocalMonitor(object):
             result['mem'] = self.__get_mem_info()
 
         if 'disk-space' in self.metrics:
-            result['disk-space'] = psutil.disk_usage(self.engine.artifacts_dir).percent
+            result['disk-space'] = self.__get_disk_usage(self.engine.artifacts_dir).percent
 
         if 'engine-loop' in self.metrics:
             result['engine-loop'] = self.engine.engine_loop_utilization
@@ -279,10 +270,10 @@ class LocalMonitor(object):
                 result['conn-all'] = 0
 
         if 'cpu' in self.metrics:
-            result['cpu'] = psutil.cpu_percent()
+            result['cpu'] = self.__get_cpu_percent()
 
         if 'bytes-recv' in self.metrics or 'bytes-sent' in self.metrics:
-            net = psutil.net_io_counters()
+            net = self.__get_net_counters()
             if net is not None:
                 tx_bytes = int((net.bytes_sent - self._net_counters.bytes_sent) / float(interval))
                 rx_bytes = int((net.bytes_recv - self._net_counters.bytes_recv) / float(interval))
@@ -313,16 +304,58 @@ class LocalMonitor(object):
 
         return result
 
+    def __get_mem_info(self):
+        try:
+            return psutil.virtual_memory().percent
+        except KeyError:
+            if not self._informed_on_mem_issue:
+                self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
+                self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
+                self._informed_on_mem_issue = True
+
     def __get_disk_counters(self):
         counters = None
         try:
             counters = psutil.disk_io_counters()
         except RuntimeError as exc:
-            self.log.debug("Failed to get disk metrics: %s", exc)
+            self.log.debug("Failed to get disk io counters: %s", exc)
         if counters is None:
             counters = psutil._common.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
             # noinspection PyProtectedMember
         return counters
+
+    def __get_net_counters(self):
+        counters = None
+        try:
+            counters = psutil.net_io_counters()
+        except RuntimeError as exc:
+            self.log.debug("Failed to get net io counters: %s", exc)
+        if counters is None:
+            counters = psutil._common.snetio(0, 0, 0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
+            # noinspection PyProtectedMember
+        return counters
+
+    def __get_disk_usage(self, path):
+        disk = None
+        try:
+            disk = psutil.disk_usage(path)
+        except RuntimeError as exc:
+            self.log.debug("Failed to get disk usage metrics: %s", exc)
+        if disk is None:
+            disk = psutil._common.sdiskusage(0, 0, 0, 0)  # pylint: disable=protected-access
+            # noinspection PyProtectedMember
+        return disk
+
+    def __get_cpu_percent(self):
+        cpu = None
+        try:
+            cpu = psutil.cpu_percent()
+        except RuntimeError as exc:
+            self.log.debug("Failed to get cpu percent metrics: %s", exc)
+        if cpu is None:
+            cpu = 0
+
+        return cpu
 
 
 class GraphiteClient(MonitoringClient):
