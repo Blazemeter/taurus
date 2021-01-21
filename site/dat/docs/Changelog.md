@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.15.2<sup> 21 Jan 2020</sup>
+## 1.15.2<sup> 21 Jan 2021</sup>
  - add support for client side certificates
  - add option to exclude ramp-up from cumulative stats
  - Docker image optimization
