@@ -1,16 +1,11 @@
-import os
 import re
-import sys
-
-import time
 
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import ScenarioExecutor, FileLister, SelfDiagnosable
-from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.console import WidgetProvider
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
 from bzt.utils import RequiredTool, CALL_PROBLEMS, FileReader, shutdown_process
-from bzt.utils import get_full_path, RESOURCES_DIR
 
 
 class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallableTools, SelfDiagnosable):
@@ -77,20 +72,10 @@ class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallable
 
 
 class K6LogReader(ResultsReader):
-    DELIMITER = ","
-    DETAILS_REGEX = re.compile(r"worker\.(\S+) (.+) -> (\S+) (.+), (\d+) bytes")
-
     def __init__(self, filename, parent_logger):
         super(K6LogReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.file = FileReader(filename=filename, parent_logger=self.log)
-        self.idx = {}
-        self.partial_buffer = ""
-        self.start_time = 0
-        self.end_time = 0
-        self.concurrency = 0
-        self.test_names = {}
-        self.known_threads = set()
 
     def _read(self, last_pass=False):
         self.lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
