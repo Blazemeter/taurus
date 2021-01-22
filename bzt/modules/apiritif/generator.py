@@ -1430,6 +1430,14 @@ from selenium.webdriver.common.keys import Keys
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(req.body), req.body))
 
+        cert = self.scenario.get("certificate")
+        cert_pass = self.scenario.get("passphrase", None)
+        if cert:
+            named_args['encrypted_cert'] = (self.executor.engine.find_file(cert), cert_pass)
+
+        if cert_pass and not cert:
+            self.log.warning("Passphrase was found, but certificate is missing!")
+
         return named_args
 
     # generate transactions recursively

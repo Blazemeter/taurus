@@ -92,14 +92,10 @@ Unfortunately Windows installer is unsupported now. Please use standard Python m
 1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, 
 don't forget to enable "Add python.exe to Path" checkbox.
 1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
-
-### Installing Additional Packages
-If you want to install additional Python packages along with Taurus (for example Locust, Molotov, etc),
-you should use `pip`, also `setuptools` and `wheel` packages and the latest 
+1. you should use `pip`, also `setuptools` and `wheel` packages and the latest
 [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16)
  might be necessary.
 ![Windows Tools Installation](win-tools-install.png)
-
 Please check that the 'Desktop Development with C++' box is checked during installation. 
 
 ## Docker Image

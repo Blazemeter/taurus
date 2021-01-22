@@ -218,7 +218,7 @@ Below you can find a list of all supported actions:
 [assertTextByX](#Assertion), [assertTitle](#Assertion), [assertValueByX](#Assertion), [clearCookies](#Cookies), 
 [clickByX](#Mouse-actions), [closeWindow](#Window-management), [contextClickByX](#Mouse-actions), 
 [doubleClickByX](#Mouse-actions), [dragByX](#Mouse-actions), [echoString](#Echoing), [editContentByX](#Editing), 
-[foreach](#Foreach), [go](#Go), [if](#If-BLocks), [keysByX](#Typing), [loop](#Loops), [mouseDownByX](#Mouse-actions), 
+[foreach](#Foreach), [go](#Go), [if](#If-Blocks), [keysByX](#Typing), [loop](#Loops), [mouseDownByX](#Mouse-actions), 
 [mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), [mouseUpByX](#Mouse-actions), [rawCode](#Execution), 
 [screenshot](#Screenshot), [scriptEval](#Execution), [selectByX](#Select), [storeEval](#Store), [storeString](#Store), 
 [storeTextByX](#Store), [storeTitle](#Store), [storeValueByX](#Store), [submitByX](#Typing), 
@@ -856,6 +856,8 @@ scenarios:
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
     default-address: http://blazedemo.com/  # specify a base address, so you can use short urls in requests
+    certificate: /path/to/certficate
+    passpharse: "passphrase" # if present
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
@@ -953,6 +955,14 @@ scenarios:
         not: false  # inverse assertion condition
 ```
 
+
+## Certificates
+You can define a client-side certificate to your configuration via the following lines:
+```yaml
+- certificate: path/to/certficate
+  passpharse: "passphrase" # if present
+```
+See example [above](#Sample-scenario).
 
 ## Variables
 

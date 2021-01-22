@@ -1,7 +1,7 @@
 try:
     from .version import VERSION
 except ImportError:
-    VERSION = "1.15.1"
+    VERSION = "DEV"
 
 try:
     from .gitinfo import GIT_INFO

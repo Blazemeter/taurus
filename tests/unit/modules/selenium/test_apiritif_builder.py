@@ -841,8 +841,8 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
     def test_include_scenario(self):
         self.configure({
             "execution": [{
-                    "executor": "apiritif",
-                    "scenario": "simple"
+                "executor": "apiritif",
+                "scenario": "simple"
             }],
             "scenarios": {
                 "simple": {
@@ -854,7 +854,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 },
                 "inner": {
                     "requests": [{
-                            "url": "http://blazedemo.com/vacation.html"
+                        "url": "http://blazedemo.com/vacation.html"
                     }]
                 }
             }
@@ -867,8 +867,8 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
     def test_double_include(self):
         self.configure({
             "execution": [{
-                    "executor": "apiritif",
-                    "scenario": "simple"
+                "executor": "apiritif",
+                "scenario": "simple"
             }],
             "scenarios": {
                 "simple": {
@@ -885,7 +885,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 },
                 "inner2": {
                     "requests": [{
-                            "url": "http://blazedemo.com/vacation.html"
+                        "url": "http://blazedemo.com/vacation.html"
                     }]
                 }
             }
@@ -915,7 +915,6 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             test_script = fds.read()
         self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, delimiter='\\t')", test_script)
 
-
     def test_encoding(self):
         self.configure({
             "execution": [{
@@ -930,3 +929,40 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, encoding='UTF-16')", test_script)
+
+    def test_cert_pass(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": ["http://blazedemo.com/"],
+                    "certificate": "certificate_file.pem",
+                    "passphrase": "certificate-passphrase"}}]})
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("cert=('certificate_file.pem', 'certificate-passphrase'))", test_script)
+
+    def test_cert_no_pass(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": ["http://blazedemo.com/"],
+                    "certificate": "certificate_file.pem"}}]})
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("cert=('certificate_file.pem', None)", test_script)
+
+    def test_no_cert_pass(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": ["http://blazedemo.com/"],
+                    "passphrase": "certificate-passphrase"}}]})
+        self.sniff_log(self.obj.log)
+        self.obj.prepare()
+        warnings = self.log_recorder.warn_buff.getvalue()
+        self.assertIn("Passphrase was found, but certificate is missing!", warnings)

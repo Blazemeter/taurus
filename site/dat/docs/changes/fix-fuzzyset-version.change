@@ -1,1 +1,0 @@
-fix ci fail on fuzzyset installation; install cython beforehand
