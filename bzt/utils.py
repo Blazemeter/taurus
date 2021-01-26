@@ -1170,11 +1170,15 @@ class HTTPClient(object):
             return props
 
         proxy_url = parse.urlsplit(self.proxy_settings.get("address"))
+        non_proxy_hosts = self.proxy_settings.get("non-proxy-hosts")
         username = self.proxy_settings.get("username")
         pwd = self.proxy_settings.get("password")
+
         for protocol in ["http", "https"]:
             props[protocol + '.proxyHost'] = proxy_url.hostname
             props[protocol + '.proxyPort'] = proxy_url.port or 80
+            if non_proxy_hosts:
+                props[protocol + '.nonProxyHosts'] = non_proxy_hosts
             if username and pwd:
                 props[protocol + '.proxyUser'] = username
                 props[protocol + '.proxyPass'] = pwd

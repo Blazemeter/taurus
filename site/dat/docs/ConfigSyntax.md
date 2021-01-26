@@ -109,6 +109,7 @@ settings:
     password: 12345
     ssl-cert: path/to/cert  # SSL server-side certificate. You can set it to `false` to disable cert validation.
     ssl-client-cert: path/to/cert  # SSL client-side certificate
+    non-proxy-hosts: blazedemo.com|localhost  # (JMeter only) hosts list to use without proxy 
   check-updates: true  # check for newer version of Taurus on startup
   verbose: false  # whenever you run bzt with -v option, it sets debug=true, 
                   # some modules might use it for debug features,

@@ -338,10 +338,11 @@ class TestHTTPClient(BZTestCase):
         obj = HTTPClient()
         obj.add_proxy_settings({"address": "http://localhost:3128",
                                 "username": "me",
-                                "password": "too"})
+                                "password": "too",
+                                "non-proxy-hosts": "localhost"})
         jvm_args = obj.get_proxy_props()
         for protocol in ['http', 'https']:
-            for key in ['proxyHost', 'proxyPort', 'proxyUser', 'proxyPass']:
+            for key in ['proxyHost', 'proxyPort', 'proxyUser', 'proxyPass', 'nonProxyHosts']:
                 combo_key = protocol + '.' + key
                 self.assertIn(combo_key, jvm_args)
 
