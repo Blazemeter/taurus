@@ -1,9 +1,22 @@
-import re
+"""
+Copyright 2021 BlazeMeter Inc.
 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import ScenarioExecutor, FileLister, SelfDiagnosable
-from bzt.modules.console import WidgetProvider
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
 from bzt.utils import RequiredTool, CALL_PROBLEMS, FileReader, shutdown_process
 
@@ -29,7 +42,7 @@ class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallable
         self.stdout = open(self.engine.create_artifact("k6", ".out"), "w")
         self.stderr = open(self.engine.create_artifact("k6", ".err"), "w")
 
-        self.kpi_file = self.engine.create_artifact("kpi", ".jtl")
+        self.kpi_file = self.engine.create_artifact("kpi", ".csv")
         self.reader = K6LogReader(self.kpi_file, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -49,6 +62,12 @@ class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallable
 
         cmdline += [self.script]
         self.process = self._execute(cmdline)
+
+    def get_widget(self):
+        if not self.widget:
+            label = "%s" % self
+            self.widget = ExecutorWidget(self, "K6: " + label.split('/')[1])
+        return self.widget
 
     def check(self):
         retcode = self.process.poll()
@@ -76,56 +95,54 @@ class K6LogReader(ResultsReader):
         super(K6LogReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.data = {'timestamp': [], 'label': [], 'r_code': [], 'error_msg': [], 'http_req_duration': [],
+                     'http_req_connecting': [], 'http_req_tls_handshaking': [], 'http_req_waiting': [], 'vus': [],
+                     'data_received': []}
 
     def _read(self, last_pass=False):
         self.lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
 
-        self.timestamp_list = []
-        self.label_list = []
-        self.r_code_list = []
-        self.error_msg_list = []
-        self.http_req_duration_list = []
-        self.http_req_connecting_list = []
-        self.http_req_receiving_list = []
-        self.vus_list = []
-        self.data_received_list = []
-
         for line in self.lines:
             if line.startswith("http_reqs"):
-                self.timestamp_list.append(int(line.split(',')[1]))
-                self.label_list.append(line.split(',')[8])
-                self.r_code_list.append(line.split(',')[12])
-                self.error_msg_list.append(line.split(',')[4])
+                self.data['timestamp'].append(int(line.split(',')[1]))
+                self.data['label'].append(line.split(',')[8])
+                self.data['r_code'].append(line.split(',')[12])
+                self.data['error_msg'].append(line.split(',')[4])
             elif line.startswith("http_req_duration"):
-                self.http_req_duration_list.append(float(line.split(',')[2]))
+                self.data['http_req_duration'].append(float(line.split(',')[2]))
             elif line.startswith("http_req_connecting"):
-                self.http_req_connecting_list.append(float(line.split(',')[2]))
-            elif line.startswith("http_req_receiving"):
-                self.http_req_receiving_list.append(float(line.split(',')[2]))
+                self.data['http_req_connecting'].append(float(line.split(',')[2]))
+            elif line.startswith("http_req_tls_handshaking"):
+                self.data['http_req_tls_handshaking'].append(float(line.split(',')[2]))
+            elif line.startswith("http_req_waiting"):
+                self.data['http_req_waiting'].append(float(line.split(',')[2]))
             elif line.startswith("vus"):
-                self.vus_list.append(int(float(line.split(',')[2])))
+                self.data['vus'].append(int(float(line.split(',')[2])))
             elif line.startswith("data_received"):
-                self.data_received_list.append(float(line.split(',')[2]))
+                self.data['data_received'].append(float(line.split(',')[2]))
 
-            if self.vus_list and len(self.data_received_list) == self.vus_list[0] and \
-                    len(self.http_req_receiving_list) == self.vus_list[0]:
-                for i in range(self.vus_list[0]):
-                    kpi_set = (self.timestamp_list[0], self.label_list[0], self.vus_list[0], self.http_req_duration_list[0],
-                               self.http_req_connecting_list[0],
-                               self.http_req_duration_list[0] - self.http_req_receiving_list[0],
-                               self.r_code_list[0], self.error_msg_list[0], '', self.data_received_list[0])
-                    self.timestamp_list.pop(0)
-                    self.label_list.pop(0)
-                    self.http_req_connecting_list.pop(0)
-                    self.http_req_duration_list.pop(0)
-                    self.http_req_receiving_list.pop(0)
-                    self.r_code_list.pop(0)
-                    self.error_msg_list.pop(0)
-                    self.data_received_list.pop(0)
+            if self.data['vus'] and len(self.data['data_received']) == self.data['vus'][0] and \
+                    len(self.data['http_req_waiting']) == self.data['vus'][0]:
+                for i in range(self.data['vus'][0]):
+                    kpi_set = (
+                        self.data['timestamp'][0],
+                        self.data['label'][0],
+                        self.data['vus'][0],
+                        self.data['http_req_duration'][0] / 1000,
+                        (self.data['http_req_connecting'][0] + self.data['http_req_tls_handshaking'][0]) / 1000,
+                        self.data['http_req_waiting'][0] / 1000,
+                        self.data['r_code'][0],
+                        None if not self.data['error_msg'][0] else self.data['error_msg'][0],
+                        '',
+                        self.data['data_received'][0])
+
+                    for key in self.data.keys():
+                        if key != 'vus':
+                            self.data[key].pop(0)
 
                     yield kpi_set
 
-                self.vus_list.pop(0)
+                self.data['vus'].pop(0)
 
 
 class K6(RequiredTool):
