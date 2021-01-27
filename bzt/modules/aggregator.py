@@ -191,6 +191,7 @@ class KPISet(dict):
 
     def __init__(self, perc_levels=(), hist_max_rt=1000.0):
         super(KPISet, self).__init__()
+        self.service = False    # unusual element, shouldn't be merged to 'overall' set
         self.sum_rt = 0
         self.sum_lt = 0
         self.sum_cn = 0
@@ -658,24 +659,30 @@ class ResultsReader(ResultsProvider):
         """
         current = datapoint[DataPoint.CURRENT]
         for sample in samples:
-            label, concur, r_time, con_time, latency, r_code, error, trname, byte_count = sample
+            # sample format: label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
+            label = sample[0]
+
+            # empty means overall
             if label == '':
                 label = '[empty]'
 
             if self.generalize_labels:
                 label = self._generalize_label(label)
 
-            if label not in current:
-                current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))
-
-            # empty means overall
-            current[label].add_sample((concur, r_time, con_time, latency, r_code, error, trname, byte_count))
+            self.__add_sample(current, label, sample[1:])
 
         overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
-        for label in current.values():
-            overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
+        for label in current:
+            if not current[label].service:
+                overall.merge_kpis(current[label], datapoint[DataPoint.SOURCE_ID])
         current[''] = overall
         return current
+
+    def __add_sample(self, current, label, kpis, rule=None):
+        if label not in current:
+            current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))
+
+        current[label].add_sample(kpis)
 
     def __get_rtimes_max(self, label):
         if label in self.cumulative:
