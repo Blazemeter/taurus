@@ -47,6 +47,29 @@ class TestResultsReader(BZTestCase):
             overall = point[DataPoint.CURRENT]['']
             self.assertTrue(len(overall[KPISet.PERCENTILES]) > 0)
 
+    def test_new_agg(self):
+        mock = MockReader()
+        mock.buffer_scale_idx = '100.0'
+        # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
+        mock.data.append((1, "a", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((2, "b", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((2, "b", 1, r(), r(), r(), 404, "Not Found", '', 0))
+        mock.data.append((3, "c", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((3, "d", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((4, "b", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((4, "a", 1, r(), r(), r(), 200, None, '', 0))
+
+        for point in mock.datapoints():
+            self.assertNotEquals(0, point[DataPoint.CUMULATIVE][''][KPISet.CONCURRENCY])
+
+        list(mock.datapoints())
+        list(mock.datapoints(True))
+
+        failed = mock.results[1]
+        self.assertEqual(2, failed['ts'])
+        self.assertEqual(1, failed['current']['b']['fail'])
+        self.assertEqual(1, failed['cumulative']['b']['fail'])
+
     def test_sample_ignores(self):
         mock = MockReader()
         mock.ignored_labels = ["ignore"]
