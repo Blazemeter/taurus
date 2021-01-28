@@ -189,9 +189,9 @@ class KPISet(dict):
     ERRTYPE_ASSERT = 1
     ERRTYPE_SUBSAMPLE = 2
 
-    def __init__(self, perc_levels=(), hist_max_rt=1000.0):
+    def __init__(self, perc_levels=(), hist_max_rt=1000.0, service=False):
         super(KPISet, self).__init__()
-        self.service = False    # unusual element, shouldn't be merged to 'overall' set
+        self.service = service    # unusual element, shouldn't be merged to 'overall' set
         self.sum_rt = 0
         self.sum_lt = 0
         self.sum_cn = 0
@@ -670,6 +670,7 @@ class ResultsReader(ResultsProvider):
                 label = self._generalize_label(label)
 
             self.__add_sample(current, label, sample[1:])
+            self.__add_sample(current, label, sample[1:], self._rule)
 
         overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
         for label in current:
@@ -678,9 +679,22 @@ class ResultsReader(ResultsProvider):
         current[''] = overall
         return current
 
+    @staticmethod
+    def _rule(kpis):
+        return 'succ' if kpis[4] == 200 else 'fail'
+
+    @staticmethod
+    def __get_service_label(label, rule, kpis):
+        return '-'.join((label, rule(kpis)))
+
     def __add_sample(self, current, label, kpis, rule=None):
+        service = False
+        if rule:
+            label = self.__get_service_label(label, rule, kpis)
+            service = True
+
         if label not in current:
-            current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))
+            current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label), service=service)
 
         current[label].add_sample(kpis)
 

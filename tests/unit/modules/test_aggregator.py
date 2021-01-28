@@ -57,13 +57,8 @@ class TestResultsReader(BZTestCase):
         mock.data.append((2, "c", 1, r(), r(), r(), 200, None, '', 0))
         mock.data.append((3, "d", 1, r(), r(), r(), 200, None, '', 0))
         mock.data.append((4, "b", 1, r(), r(), r(), 200, None, '', 0))
-        mock.data.append((4, "a", 1, r(), r(), r(), 200, None, '', 0))
-
-        for point in mock.datapoints():
-            self.assertNotEquals(0, point[DataPoint.CUMULATIVE][''][KPISet.CONCURRENCY])
 
         list(mock.datapoints())
-        list(mock.datapoints(True))
 
         failed = mock.results[1]
         self.assertEqual(2, failed['ts'])
