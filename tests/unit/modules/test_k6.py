@@ -27,7 +27,14 @@ class TestK6Executor(ExecutorTestCase):
             "hold-for": "30",
             "iterations": 50,
             "scenario": {"script": K6_SCRIPT}}})
-        self.obj.prepare()
+
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
+
         self.obj.get_widget()
         self.obj.k6.tool_name = TOOL_NAME
         self.obj.startup()

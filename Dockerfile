@@ -32,6 +32,12 @@ RUN $APT_INSTALL ./packages-microsoft-prod.deb \
    && $APT_UPDATE \
    && $APT_INSTALL dotnet-sdk-3.1
 
+# Install K6
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 379CE192D401AB61 \
+   && echo "deb https://dl.bintray.com/loadimpact/deb stable main" | tee -a /etc/apt/sources.list \
+   && $APT_UPDATE \
+   && $APT_INSTALL k6
+
 # Install Taurus & tools
 RUN $PIP_INSTALL ./bzt*whl \
   && mkdir -p /etc/bzt.d \
