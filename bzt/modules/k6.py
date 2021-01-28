@@ -48,7 +48,7 @@ class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallable
             self.engine.aggregator.add_underling(self.reader)
 
     def startup(self):
-        cmdline = ["k6", "run", "--out", f"csv={self.kpi_file}"]
+        cmdline = [self.k6.tool_name, "run", "--out", f"csv={self.kpi_file}"]
 
         load = self.get_load()
         if load.concurrency:
@@ -86,6 +86,7 @@ class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallable
 
     def install_required_tools(self):
         self.k6 = self._get_tool(K6, config=self.settings)
+        self.k6.tool_name = self.k6.tool_name.lower()
         if not self.k6.check_if_installed():
             self.k6.install()
 
@@ -116,13 +117,13 @@ class K6LogReader(ResultsReader):
                 self.data['http_req_tls_handshaking'].append(float(line.split(',')[2]))
             elif line.startswith("http_req_waiting"):
                 self.data['http_req_waiting'].append(float(line.split(',')[2]))
-            elif line.startswith("vus"):
+            elif line.startswith("vus") and not line.startswith("vus_max"):
                 self.data['vus'].append(int(float(line.split(',')[2])))
             elif line.startswith("data_received"):
                 self.data['data_received'].append(float(line.split(',')[2]))
 
-            if self.data['vus'] and len(self.data['data_received']) == self.data['vus'][0] and \
-                    len(self.data['http_req_waiting']) == self.data['vus'][0]:
+            if self.data['vus'] and len(self.data['data_received']) >= self.data['vus'][0] and \
+                    len(self.data['http_req_waiting']) >= self.data['vus'][0]:
                 for i in range(self.data['vus'][0]):
                     kpi_set = (
                         self.data['timestamp'][0],
