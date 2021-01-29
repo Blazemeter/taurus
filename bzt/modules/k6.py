@@ -57,7 +57,7 @@ class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallable
         if load.hold:
             cmdline += ['--duration', str(int(load.hold)) + "s"]
 
-        if load.iterations and 'iterations' in self.engine.config['execution']:
+        if load.iterations:
             cmdline += ['--iterations', str(load.iterations)]
 
         cmdline += [self.script]
