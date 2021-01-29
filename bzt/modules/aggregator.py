@@ -615,7 +615,7 @@ class ResultsReader(ResultsProvider):
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
         self.min_timestamp = 0
-        #self._rule = lambda label, kpis: label
+        self.get_label = None
         if perc_levels is not None:
             self.track_percentiles = perc_levels
 
@@ -671,20 +671,24 @@ class ResultsReader(ResultsProvider):
 
             self.__add_sample(current, base_label, sample[1:])
 
-        overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
+        overall = {}
         for label in current:
-            overall.merge_kpis(current[label], datapoint[DataPoint.SOURCE_ID])
-        current[''] = overall
+            suffix = self._get_base_label(label)
+            if suffix not in overall:
+                overall[suffix] = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
+            overall[suffix].merge_kpis(current[label], datapoint[DataPoint.SOURCE_ID])
+
+        current.update(overall)
         return current
 
-    @staticmethod
-    def _rule(label, kpis):
-        # generate exted label
-        suffix = 'succ' if kpis[4] == 200 else 'fail'
-        return '-'.join((label, suffix))
+    def _get_base_label(self, label):
+        if self.get_label:
+            return label[label.rfind('-'):]  # todo: improve, it allows only one rule
+        return ''
 
     def __add_sample(self, current, label, kpis):
-        label = self._rule(label, kpis)
+        if self.get_label:
+            label = self.get_label(label, kpis)
 
         if label not in current:
             current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))

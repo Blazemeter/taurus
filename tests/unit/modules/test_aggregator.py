@@ -47,8 +47,22 @@ class TestResultsReader(BZTestCase):
             overall = point[DataPoint.CURRENT]['']
             self.assertTrue(len(overall[KPISet.PERCENTILES]) > 0)
 
+    # move to ResultsReader
+    @staticmethod
+    def _get_label_generator(rule):
+        def get_label(label, kpis):
+            suffix = str(rule(kpis))
+            return '-'.join((label, suffix))
+        return get_label
+
     def test_new_agg(self):
+
         mock = MockReader()
+
+        # move to appropriate results reader (according to the rule - jtlreader?)
+        get_label = self._get_label_generator(lambda kpis: kpis[4] == 200)  # r_code
+        mock.get_label = get_label
+
         mock.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
         mock.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
