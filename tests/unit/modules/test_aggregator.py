@@ -51,14 +51,14 @@ class TestResultsReader(BZTestCase):
         mock = MockReader()
         mock.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        mock.data.append((1, "a", 1, r(), r(), r(), 200, None, '', 0))
-        mock.data.append((2, "b", 1, r(), r(), r(), 200, None, '', 0))
-        mock.data.append((2, "b", 1, r(), r(), r(), 404, "Not Found", '', 0))
-        mock.data.append((2, "c", 1, r(), r(), r(), 200, None, '', 0))
-        mock.data.append((3, "d", 1, r(), r(), r(), 200, None, '', 0))
-        mock.data.append((4, "b", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
+        mock.data.append((2, "b", 1, 2, 2, 2, 200, None, '', 0))
+        mock.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
+        mock.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
+        mock.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
+        mock.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
 
-        list(mock.datapoints())
+        list(mock.datapoints(True))
 
         failed = mock.results[1]
         self.assertEqual(2, failed['ts'])

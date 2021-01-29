@@ -189,9 +189,8 @@ class KPISet(dict):
     ERRTYPE_ASSERT = 1
     ERRTYPE_SUBSAMPLE = 2
 
-    def __init__(self, perc_levels=(), hist_max_rt=1000.0, service=False):
+    def __init__(self, perc_levels=(), hist_max_rt=1000.0):
         super(KPISet, self).__init__()
-        self.service = service    # unusual element, shouldn't be merged to 'overall' set
         self.sum_rt = 0
         self.sum_lt = 0
         self.sum_cn = 0
@@ -616,6 +615,7 @@ class ResultsReader(ResultsProvider):
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
         self.min_timestamp = 0
+        #self._rule = lambda label, kpis: label
         if perc_levels is not None:
             self.track_percentiles = perc_levels
 
@@ -660,41 +660,34 @@ class ResultsReader(ResultsProvider):
         current = datapoint[DataPoint.CURRENT]
         for sample in samples:
             # sample format: label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-            label = sample[0]
+            base_label = sample[0]
 
             # empty means overall
-            if label == '':
-                label = '[empty]'
+            if base_label == '':
+                base_label = '[empty]'
 
             if self.generalize_labels:
-                label = self._generalize_label(label)
+                base_label = self._generalize_label(base_label)
 
-            self.__add_sample(current, label, sample[1:])
-            self.__add_sample(current, label, sample[1:], self._rule)
+            self.__add_sample(current, base_label, sample[1:])
 
         overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
         for label in current:
-            if not current[label].service:
-                overall.merge_kpis(current[label], datapoint[DataPoint.SOURCE_ID])
+            overall.merge_kpis(current[label], datapoint[DataPoint.SOURCE_ID])
         current[''] = overall
         return current
 
     @staticmethod
-    def _rule(kpis):
-        return 'succ' if kpis[4] == 200 else 'fail'
+    def _rule(label, kpis):
+        # generate exted label
+        suffix = 'succ' if kpis[4] == 200 else 'fail'
+        return '-'.join((label, suffix))
 
-    @staticmethod
-    def __get_service_label(label, rule, kpis):
-        return '-'.join((label, rule(kpis)))
-
-    def __add_sample(self, current, label, kpis, rule=None):
-        service = False
-        if rule:
-            label = self.__get_service_label(label, rule, kpis)
-            service = True
+    def __add_sample(self, current, label, kpis):
+        label = self._rule(label, kpis)
 
         if label not in current:
-            current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label), service=service)
+            current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))
 
         current[label].add_sample(kpis)
 
