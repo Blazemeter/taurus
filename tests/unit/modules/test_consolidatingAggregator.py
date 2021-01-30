@@ -113,11 +113,21 @@ class TestTools(BZTestCase):
         self.assertEquals(0.15, dst[DataPoint.CUMULATIVE][''][KPISet.AVG_RESP_TIME])
 
 
+class SmartMockReader(MockReader):
+    # reader example with 'r_code' rule support
+    def add_rule(self, rule):
+        if rule.lower() == 'r_code':
+            get_label = self._get_label_generator(lambda kpis: kpis[4] == 200)  # r_code
+            self.get_label = get_label
+        else:
+            super(SmartMockReader, self).add_rule(rule)     # just raise exception
+
+
 class TestConsolidatingAggregator(BZTestCase):
     def setUp(self):
         super(TestConsolidatingAggregator, self).setUp()
         self.obj = ConsolidatingAggregator()
-        self.obj.engine=EngineEmul()
+        self.obj.engine = EngineEmul()
 
     def test_two_executions(self):
         self.obj.track_percentiles = [0, 50, 100]
@@ -140,31 +150,38 @@ class TestConsolidatingAggregator(BZTestCase):
         self.assertEquals(2, cnt)
 
     def test_new_aggregator(self):
+        # aggregator's config
+        self.obj.settings['rules'] = ['r_code']
 
-        mock = MockReader()
+        mock_reader = SmartMockReader()
+        mock_reporter = MockReader()
 
-        # move to appropriate results reader (according to the rule - jtlreader?)
-        get_label = mock._get_label_generator(lambda kpis: kpis[4] == 200)  # r_code
-        mock.get_label = get_label
+        self.obj.add_underling(mock_reader)
+        self.obj.add_listener(mock_reporter)
 
-        self.obj.add_underling(mock)
+        # send rules to underlings
+        rules = self.obj.settings.get('rules')
+        for rule in rules:
+            for underling in self.obj.underlings:
+                underling.add_rule(rule)
 
-        mock.buffer_scale_idx = '100.0'
+        mock_reader.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        mock.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
-        mock.data.append((2, "b", 1, 2, 2, 2, 200, None, '', 0))
-        mock.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
-        mock.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
-        mock.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
-        mock.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
+        mock_reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
+        mock_reader.data.append((2, "b", 1, 2, 2, 2, 200, None, '', 0))
+        mock_reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
+        mock_reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
+        mock_reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
+        mock_reader.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
 
         list(self.obj.datapoints(True))
-
-        failed = mock.results[1]
+        self.obj.shutdown()
+        self.obj.post_process()
+        failed = mock_reader.results[1]
         self.assertEqual(2, failed['ts'])
 
-        for kpis in (failed['current'], failed['cumulative']):
-            self.assertEqual(1, kpis['b']['fail'])
+        cumulative = mock_reporter.results[-1][DataPoint.CUMULATIVE]
+        self.assertEquals(7, len(cumulative))
 
     def test_errors_cumulative(self):
         self.obj.track_percentiles = [50]

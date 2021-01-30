@@ -571,6 +571,9 @@ class ResultsProvider(object):
             cumul.merge_kpis(data)
             cumul.recalculate()
 
+    def add_rule(self, rule):
+        raise TaurusConfigError(f'unsupported rule: {rule}')
+
     def datapoints(self, final_pass=False):
         """
         Generator object that returns datapoints from the reader
