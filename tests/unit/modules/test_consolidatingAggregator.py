@@ -160,10 +160,7 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.add_listener(mock_reporter)
 
         # send rules to underlings
-        rules = self.obj.settings.get('rules')
-        for rule in rules:
-            for underling in self.obj.underlings:
-                underling.add_rule(rule)
+        self.obj.startup()
 
         mock_reader.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count

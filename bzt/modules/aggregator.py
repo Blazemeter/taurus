@@ -771,6 +771,7 @@ class ResultsReader(ResultsProvider):
 
         return get_label
 
+
 class ConsolidatingAggregator(Aggregator, ResultsProvider):
     """
 
@@ -829,6 +830,15 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
         self.histogram_max = dehumanize_time(self.settings.get("histogram-initial", self.histogram_max))
         self.max_error_count = self.settings.get("max-error-variety", self.max_error_count)
+
+    def startup(self):
+        super(Aggregator, self).startup()
+
+        # send rules to underlings
+        rules = self.settings.get('rules')
+        for rule in rules:
+            for underling in self.underlings:
+                underling.add_rule(rule)
 
     def add_underling(self, underling):
         """
