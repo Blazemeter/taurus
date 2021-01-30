@@ -176,8 +176,10 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
-        cumulative = watcher.results[-1][DataPoint.CUMULATIVE]
-        self.assertEquals(7, len(cumulative))
+        data_points = watcher.results[-1][DataPoint.CUMULATIVE]
+        self.assertEquals(7, len(data_points))
+        sample_labels = {'a-succ', 'b-succ', 'b-fail', 'c-succ', 'd-succ', '-succ', '-fail'}
+        self.assertEquals(sample_labels, set(data_points.keys()))
 
     def test_errors_cumulative(self):
         self.obj.track_percentiles = [50]
