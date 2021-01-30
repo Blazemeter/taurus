@@ -153,31 +153,30 @@ class TestConsolidatingAggregator(BZTestCase):
         # aggregator's config
         self.obj.settings['rules'] = ['r_code']
 
-        mock_reader = SmartMockReader()
-        mock_reporter = MockReader()
+        reader = SmartMockReader()
+        watcher = MockReader()
 
-        self.obj.add_underling(mock_reader)
-        self.obj.add_listener(mock_reporter)
+        # executor/reporter prepare level
+        self.obj.add_underling(reader)
+        self.obj.add_listener(watcher)
 
         # send rules to underlings
         self.obj.startup()
 
-        mock_reader.buffer_scale_idx = '100.0'
+        reader.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        mock_reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
-        mock_reader.data.append((2, "b", 1, 2, 2, 2, 200, None, '', 0))
-        mock_reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
-        mock_reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
-        mock_reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
-        mock_reader.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
+        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
+        reader.data.append((2, "b", 1, 2, 2, 2, 200, None, '', 0))
+        reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
+        reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
+        reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
+        reader.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
 
-        list(self.obj.datapoints(True))
+        # let's collect data to seconds and send something aggregated to watcher
         self.obj.shutdown()
         self.obj.post_process()
-        failed = mock_reader.results[1]
-        self.assertEqual(2, failed['ts'])
 
-        cumulative = mock_reporter.results[-1][DataPoint.CUMULATIVE]
+        cumulative = watcher.results[-1][DataPoint.CUMULATIVE]
         self.assertEquals(7, len(cumulative))
 
     def test_errors_cumulative(self):

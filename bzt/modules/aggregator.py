@@ -676,7 +676,7 @@ class ResultsReader(ResultsProvider):
 
         overall = {}
         for label in current:
-            suffix = self._get_base_label(label)
+            suffix = self._get_suffix(label)
             if suffix not in overall:
                 overall[suffix] = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
             overall[suffix].merge_kpis(current[label], datapoint[DataPoint.SOURCE_ID])
@@ -684,7 +684,9 @@ class ResultsReader(ResultsProvider):
         current.update(overall)
         return current
 
-    def _get_base_label(self, label):
+    def _get_suffix(self, label):
+        # to collect kpisets to overall sets according to rules result we need to split base label and suffix
+        # the suffixes replace '' label in meaning of 'summary result'
         if self.get_label:
             return label[label.rfind('-'):]  # todo: improve, it allows only one rule
         return ''
