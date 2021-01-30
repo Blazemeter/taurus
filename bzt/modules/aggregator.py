@@ -688,7 +688,7 @@ class ResultsReader(ResultsProvider):
         # to collect kpisets to overall sets according to rules result we need to split base label and suffix
         # the suffixes replace '' label in meaning of 'summary result'
         if self.get_label:
-            return label[label.rfind('-'):]  # todo: improve, it allows only one rule
+            return label[label.rfind('-'):]
         return ''
 
     def __add_sample(self, current, label, kpis):
@@ -837,8 +837,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         super(Aggregator, self).startup()
 
         # send rules to underlings
-        rules = self.settings.get('rules')
-        for rule in rules:
+        rule = self.settings.get('rule')
+        if rule:
             for underling in self.underlings:
                 underling.add_rule(rule)
 
