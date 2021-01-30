@@ -139,6 +139,33 @@ class TestConsolidatingAggregator(BZTestCase):
 
         self.assertEquals(2, cnt)
 
+    def test_new_aggregator(self):
+
+        mock = MockReader()
+
+        # move to appropriate results reader (according to the rule - jtlreader?)
+        get_label = mock._get_label_generator(lambda kpis: kpis[4] == 200)  # r_code
+        mock.get_label = get_label
+
+        self.obj.add_underling(mock)
+
+        mock.buffer_scale_idx = '100.0'
+        # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
+        mock.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
+        mock.data.append((2, "b", 1, 2, 2, 2, 200, None, '', 0))
+        mock.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
+        mock.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
+        mock.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
+        mock.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
+
+        list(self.obj.datapoints(True))
+
+        failed = mock.results[1]
+        self.assertEqual(2, failed['ts'])
+
+        for kpis in (failed['current'], failed['cumulative']):
+            self.assertEqual(1, kpis['b']['fail'])
+
     def test_errors_cumulative(self):
         self.obj.track_percentiles = [50]
         self.obj.prepare()

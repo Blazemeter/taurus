@@ -760,6 +760,13 @@ class ResultsReader(ResultsProvider):
         """
         yield
 
+    @staticmethod
+    def _get_label_generator(rule):
+        def get_label(label, kpis):
+            suffix = str(rule(kpis))
+            return '-'.join((label, suffix))
+
+        return get_label
 
 class ConsolidatingAggregator(Aggregator, ResultsProvider):
     """
