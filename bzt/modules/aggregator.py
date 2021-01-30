@@ -768,7 +768,7 @@ class ResultsReader(ResultsProvider):
     @staticmethod
     def _get_label_generator(rule):
         def get_label(label, kpis):
-            suffix = str(rule(kpis))
+            suffix = str(int(rule(kpis)))
             return '-'.join((label, suffix))
 
         return get_label

@@ -151,7 +151,7 @@ class TestConsolidatingAggregator(BZTestCase):
 
     def test_new_aggregator(self):
         # aggregator's config
-        self.obj.settings['rules'] = ['r_code']
+        self.obj.settings['rule'] = 'r_code'
 
         reader = SmartMockReader()
         watcher = MockReader()
