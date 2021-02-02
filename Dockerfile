@@ -19,7 +19,7 @@ RUN bash ./setup_12.x \
      apt-transport-https openjdk-8-jdk xvfb siege tsung apache2-utils firefox ruby nodejs
 
 RUN $PIP_INSTALL setuptools wheel \
-   && $PIP_INSTALL locust robotframework robotframework-seleniumlibrary molotov
+   && $PIP_INSTALL locust robotframework robotframework-seleniumlibrary molotov==1.6
 RUN gem install rspec rake selenium-webdriver
 
 # Get Google Chrome
