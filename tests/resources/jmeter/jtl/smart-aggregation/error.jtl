@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="1441" lt="847" ts="1612333832827" s="false" lb="https://blazedemo.com" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="UTF-8" by="286136" ng="1" na="1">
+  <assertionResult>
+    <name>Assert has [&quot;blaze&quot;]</name>
+    <failure>true</failure>
+    <error>false</error>
+    <failureMessage>Test failed: text expected to contain /blaze/</failureMessage>
+  </assertionResult>
+  <assertionResult>
+    <name>Timeout Check</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <httpSample t="857" lt="847" ts="1612333832827" s="true" lb="https://blazedemo.com-0" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="UTF-8" by="3228" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+x-powered-by: PHP/7.3.17
+cache-control: no-cache, private
+vary: Accept-Encoding
+content-type: text/html; charset=UTF-8
+X-Cloud-Trace-Context: fb5f966a544cac7e44f5363e0df16b66
+Date: Wed, 03 Feb 2021 06:30:33 GMT
+Server: Google Frontend
+Content-Length: 2945
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/</java.net.URL>
+  </httpSample>
+  <httpSample t="149" lt="69" ts="1612333833725" s="true" lb="https://blazedemo.com-1" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="UTF-8" by="83605" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Vary: Accept-Encoding
+Content-Type: text/javascript; charset=UTF-8
+Access-Control-Allow-Origin: *
+Cross-Origin-Resource-Policy: cross-origin
+Timing-Allow-Origin: *
+Content-Length: 83095
+Date: Fri, 29 Jan 2021 11:05:34 GMT
+Expires: Sat, 29 Jan 2022 11:05:34 GMT
+Last-Modified: Tue, 03 Mar 2020 19:15:00 GMT
+X-Content-Type-Options: nosniff
+Server: sffe
+X-XSS-Protection: 0
+Cache-Control: public, max-age=31536000, stale-while-revalidate=2592000
+Age: 415499
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: ajax.googleapis.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js</java.net.URL>
+  </httpSample>
+  <httpSample t="219" lt="151" ts="1612333833725" s="true" lb="https://blazedemo.com-2" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="" by="28981" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+last-modified: Wed, 13 May 2020 14:02:51 GMT
+etag: &quot;6ff7-5a588092358c0&quot;
+accept-ranges: bytes
+vary: Accept-Encoding
+content-type: application/javascript
+X-Cloud-Trace-Context: 0469dfbb5303f3961231b3122f9d4e57
+Date: Wed, 03 Feb 2021 06:30:33 GMT
+Server: Google Frontend
+Content-Length: 28663
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/assets/bootstrap.min.js</java.net.URL>
+  </httpSample>
+  <httpSample t="378" lt="271" ts="1612333833725" s="true" lb="https://blazedemo.com-3" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="" by="39488" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+last-modified: Wed, 13 May 2020 14:02:51 GMT
+etag: &quot;9902-5a588092358c0&quot;
+accept-ranges: bytes
+vary: Accept-Encoding
+content-type: application/javascript
+X-Cloud-Trace-Context: a8c5c666ebf33392da105ca7b67f8267
+Date: Wed, 03 Feb 2021 06:30:33 GMT
+Server: Google Frontend
+Content-Length: 39170
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/assets/bootstrap-table.js</java.net.URL>
+  </httpSample>
+  <httpSample t="543" lt="281" ts="1612333833725" s="true" lb="https://blazedemo.com-4" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="" by="126767" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+last-modified: Wed, 13 May 2020 14:02:51 GMT
+etag: &quot;1edfd-5a588092358c0&quot;
+accept-ranges: bytes
+vary: Accept-Encoding
+content-type: text/css
+X-Cloud-Trace-Context: 5431f1857437be2d5b23692ec76cde80
+Date: Wed, 03 Feb 2021 06:30:33 GMT
+Server: Google Frontend
+Content-Length: 126461
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/assets/bootstrap.min.css</java.net.URL>
+  </httpSample>
+  <httpSample t="275" lt="274" ts="1612333833879" s="true" lb="https://blazedemo.com-5" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="" by="4067" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+last-modified: Wed, 13 May 2020 14:02:51 GMT
+etag: &quot;eb5-5a588092358c0&quot;
+accept-ranges: bytes
+vary: Accept-Encoding
+content-type: text/css
+X-Cloud-Trace-Context: df7628e09cde82cc0170e253aa9346c6
+Date: Wed, 03 Feb 2021 06:30:34 GMT
+Server: Google Frontend
+Content-Length: 3765
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/assets/bootstrap-table.css</java.net.URL>
+  </httpSample>
+  <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+x-powered-by: PHP/7.3.17
+cache-control: no-cache, private
+vary: Accept-Encoding
+content-type: text/html; charset=UTF-8
+X-Cloud-Trace-Context: fb5f966a544cac7e44f5363e0df16b66
+Date: Wed, 03 Feb 2021 06:30:33 GMT
+Server: Google Frontend
+Content-Length: 2945
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;title&gt; BlazeDemo&lt;/title&gt;
+    &lt;meta name=&quot;description&quot; content=&quot;BlazeMeter demo app&quot;&gt;
+    &lt;meta name=&quot;sage&quot; content=&quot;flights app&quot;&gt;
+
+    &lt;script src=&quot;http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;/assets/bootstrap.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;/assets/bootstrap-table.js&quot;&gt;&lt;/script&gt;
+    &lt;link href=&quot;/assets/bootstrap.min.css&quot; rel=&quot;stylesheet&quot; media=&quot;screen&quot;&gt;
+    &lt;link href=&quot;/assets/bootstrap-table.css&quot; rel=&quot;stylesheet&quot; media=&quot;screen&quot;&gt;
+    &lt;style type=&quot;text/css&quot;&gt;
+        body {
+            background: #f5f5f5);
+        }
+
+        .hero-unit {
+            background-color: #fff;
+        }
+
+        .center {
+            display: block;
+            margin: 0 auto;
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+        &lt;div class=&quot;navbar navbar-inverse&quot;&gt;
+        &lt;div class=&quot;navbar-inner&quot;&gt;
+            &lt;div class=&quot;container&quot;&gt;
+                &lt;a class=&quot;btn btn-navbar&quot; data-toggle=&quot;collapse&quot; data-target=&quot;.nav-collapse&quot;&gt;
+                    &lt;span class=&quot;icon-bar&quot;&gt;&lt;/span&gt;
+                    &lt;span class=&quot;icon-bar&quot;&gt;&lt;/span&gt;
+                    &lt;span class=&quot;icon-bar&quot;&gt;&lt;/span&gt;
+                &lt;/a&gt;
+                &lt;a class=&quot;brand&quot; href=&quot;index.php&quot;&gt;Travel The World&lt;/a&gt;
+                &lt;a class=&quot;brand&quot; href=&quot;home&quot;&gt;home&lt;/a&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+
+    &lt;div class=&quot;jumbotron&quot;&gt;
+        &lt;div class=&quot;container&quot;&gt;
+            &lt;h1&gt;Welcome to the Simple Travel Agency!&lt;/h1&gt;
+            &lt;p&gt;The is a sample site you can test with BlazeMeter! &lt;/p&gt;
+            &lt;p&gt;Check out our &lt;a href=&quot;vacation.html&quot;&gt;destination of the week! The Beach!&lt;/a&gt;&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;div class=&quot;container&quot;&gt;
+        &lt;h2&gt;Choose your departure city:&lt;/h2&gt;
+    &lt;form action=&quot;reserve.php&quot; method=&quot;post&quot;&gt;
+        &lt;select name=&quot;fromPort&quot; class=&quot;form-inline&quot;&gt;
+            &lt;option value=&quot;Paris&quot;&gt;Paris&lt;/option&gt;
+            &lt;option value=&quot;Philadelphia&quot;&gt;Philadelphia&lt;/option&gt;
+            &lt;option value=&quot;Boston&quot;&gt;Boston&lt;/option&gt;
+            &lt;option value=&quot;Portland&quot;&gt;Portland&lt;/option&gt;
+            &lt;option value=&quot;San Diego&quot;&gt;San Diego&lt;/option&gt;
+            &lt;option value=&quot;Mexico City&quot;&gt;Mexico City&lt;/option&gt;
+            &lt;option value=&quot;São Paolo&quot;&gt;São Paolo&lt;/option&gt;
+        &lt;/select&gt;
+        &lt;p&gt;
+        &lt;h2&gt;Choose your destination city:&lt;/h2&gt;
+        &lt;select name=&quot;toPort&quot; class=&quot;form-inline&quot;&gt;
+            &lt;option value=&quot;Buenos Aires&quot;&gt;Buenos Aires&lt;/option&gt;
+            &lt;option value=&quot;Rome&quot;&gt;Rome&lt;/option&gt;
+            &lt;option value=&quot;London&quot;&gt;London&lt;/option&gt;
+            &lt;option value=&quot;Berlin&quot;&gt;Berlin&lt;/option&gt;
+            &lt;option value=&quot;New York&quot;&gt;New York&lt;/option&gt;
+            &lt;option value=&quot;Dublin&quot;&gt;Dublin&lt;/option&gt;
+            &lt;option value=&quot;Cairo&quot;&gt;Cairo&lt;/option&gt;
+        &lt;/select&gt;
+        &lt;p&gt;&lt;/p&gt;
+        &lt;div class=&quot;container&quot;&gt;
+            &lt;input type=&quot;submit&quot; class=&quot;btn btn-primary&quot; value=&quot;Find Flights&quot;/&gt;
+        &lt;/div&gt;
+    &lt;/form&gt;
+&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>https://blazedemo.com/</java.net.URL>
+</httpSample>
+<httpSample t="914" lt="445" ts="1612333836382" s="false" lb="https://blazedemo.com" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="UTF-8" by="286140" ng="1" na="1">
+  <assertionResult>
+    <name>Assert has [&quot;blaze&quot;]</name>
+    <failure>true</failure>
+    <error>false</error>
+    <failureMessage>Test failed: text expected to contain /blaze/</failureMessage>
+  </assertionResult>
+  <assertionResult>
+    <name>Timeout Check</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <httpSample t="445" lt="445" ts="1612333836382" s="true" lb="https://blazedemo.com-0" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="UTF-8" by="3228" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+x-powered-by: PHP/7.3.17
+cache-control: no-cache, private
+vary: Accept-Encoding
+content-type: text/html; charset=UTF-8
+X-Cloud-Trace-Context: 535ae341a424105f5ce3645a2e169e92
+Date: Wed, 03 Feb 2021 06:30:36 GMT
+Server: Google Frontend
+Content-Length: 2945
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/</java.net.URL>
+  </httpSample>
+  <httpSample t="144" lt="64" ts="1612333836832" s="true" lb="https://blazedemo.com-1" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="UTF-8" by="83605" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Vary: Accept-Encoding
+Content-Type: text/javascript; charset=UTF-8
+Access-Control-Allow-Origin: *
+Cross-Origin-Resource-Policy: cross-origin
+Timing-Allow-Origin: *
+Content-Length: 83095
+Date: Fri, 29 Jan 2021 11:05:34 GMT
+Expires: Sat, 29 Jan 2022 11:05:34 GMT
+Last-Modified: Tue, 03 Mar 2020 19:15:00 GMT
+X-Content-Type-Options: nosniff
+Server: sffe
+X-XSS-Protection: 0
+Cache-Control: public, max-age=31536000, stale-while-revalidate=2592000
+Age: 415502
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: ajax.googleapis.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js</java.net.URL>
+  </httpSample>
+  <httpSample t="245" lt="148" ts="1612333836832" s="true" lb="https://blazedemo.com-2" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="" by="28981" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+last-modified: Wed, 13 May 2020 14:02:51 GMT
+etag: &quot;6ff7-5a588092358c0&quot;
+accept-ranges: bytes
+vary: Accept-Encoding
+content-type: application/javascript
+X-Cloud-Trace-Context: 62753aca683523699b81b8bd7d6753a0
+Date: Wed, 03 Feb 2021 06:30:36 GMT
+Server: Google Frontend
+Content-Length: 28663
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/assets/bootstrap.min.js</java.net.URL>
+  </httpSample>
+  <httpSample t="464" lt="310" ts="1612333836832" s="true" lb="https://blazedemo.com-3" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="" by="39488" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+last-modified: Wed, 13 May 2020 14:02:51 GMT
+etag: &quot;9902-5a588092358c0&quot;
+accept-ranges: bytes
+vary: Accept-Encoding
+content-type: application/javascript
+X-Cloud-Trace-Context: 44eb2e6087e450b87771be7cdedbb830
+Date: Wed, 03 Feb 2021 06:30:37 GMT
+Server: Google Frontend
+Content-Length: 39170
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/assets/bootstrap-table.js</java.net.URL>
+  </httpSample>
+  <httpSample t="449" lt="234" ts="1612333836832" s="true" lb="https://blazedemo.com-4" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="" by="126771" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+last-modified: Wed, 13 May 2020 14:02:51 GMT
+etag: &quot;1edfd-5a588092358c0&quot;
+accept-ranges: bytes
+vary: Accept-Encoding
+content-type: text/css
+X-Cloud-Trace-Context: 647ced0794dd7b05d406b84441e82b25;o=1
+Date: Wed, 03 Feb 2021 06:30:36 GMT
+Server: Google Frontend
+Content-Length: 126461
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/assets/bootstrap.min.css</java.net.URL>
+  </httpSample>
+  <httpSample t="260" lt="256" ts="1612333836977" s="true" lb="https://blazedemo.com-5" rc="200" rm="OK" tn="sc1 1-1" dt="text" de="" by="4067" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+last-modified: Wed, 13 May 2020 14:02:51 GMT
+etag: &quot;eb5-5a588092358c0&quot;
+accept-ranges: bytes
+vary: Accept-Encoding
+content-type: text/css
+X-Cloud-Trace-Context: c7392a6ccf0b99eb38ebd632dce64139
+Date: Wed, 03 Feb 2021 06:30:37 GMT
+Server: Google Frontend
+Content-Length: 3765
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/assets/bootstrap-table.css</java.net.URL>
+  </httpSample>
+  <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+x-powered-by: PHP/7.3.17
+cache-control: no-cache, private
+vary: Accept-Encoding
+content-type: text/html; charset=UTF-8
+X-Cloud-Trace-Context: 535ae341a424105f5ce3645a2e169e92
+Date: Wed, 03 Feb 2021 06:30:36 GMT
+Server: Google Frontend
+Content-Length: 2945
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.10 (Java/11.0.9.1)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;title&gt; BlazeDemo&lt;/title&gt;
+    &lt;meta name=&quot;description&quot; content=&quot;BlazeMeter demo app&quot;&gt;
+    &lt;meta name=&quot;sage&quot; content=&quot;flights app&quot;&gt;
+
+    &lt;script src=&quot;http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;/assets/bootstrap.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;/assets/bootstrap-table.js&quot;&gt;&lt;/script&gt;
+    &lt;link href=&quot;/assets/bootstrap.min.css&quot; rel=&quot;stylesheet&quot; media=&quot;screen&quot;&gt;
+    &lt;link href=&quot;/assets/bootstrap-table.css&quot; rel=&quot;stylesheet&quot; media=&quot;screen&quot;&gt;
+    &lt;style type=&quot;text/css&quot;&gt;
+        body {
+            background: #f5f5f5);
+        }
+
+        .hero-unit {
+            background-color: #fff;
+        }
+
+        .center {
+            display: block;
+            margin: 0 auto;
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+        &lt;div class=&quot;navbar navbar-inverse&quot;&gt;
+        &lt;div class=&quot;navbar-inner&quot;&gt;
+            &lt;div class=&quot;container&quot;&gt;
+                &lt;a class=&quot;btn btn-navbar&quot; data-toggle=&quot;collapse&quot; data-target=&quot;.nav-collapse&quot;&gt;
+                    &lt;span class=&quot;icon-bar&quot;&gt;&lt;/span&gt;
+                    &lt;span class=&quot;icon-bar&quot;&gt;&lt;/span&gt;
+                    &lt;span class=&quot;icon-bar&quot;&gt;&lt;/span&gt;
+                &lt;/a&gt;
+                &lt;a class=&quot;brand&quot; href=&quot;index.php&quot;&gt;Travel The World&lt;/a&gt;
+                &lt;a class=&quot;brand&quot; href=&quot;home&quot;&gt;home&lt;/a&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+
+    &lt;div class=&quot;jumbotron&quot;&gt;
+        &lt;div class=&quot;container&quot;&gt;
+            &lt;h1&gt;Welcome to the Simple Travel Agency!&lt;/h1&gt;
+            &lt;p&gt;The is a sample site you can test with BlazeMeter! &lt;/p&gt;
+            &lt;p&gt;Check out our &lt;a href=&quot;vacation.html&quot;&gt;destination of the week! The Beach!&lt;/a&gt;&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;div class=&quot;container&quot;&gt;
+        &lt;h2&gt;Choose your departure city:&lt;/h2&gt;
+    &lt;form action=&quot;reserve.php&quot; method=&quot;post&quot;&gt;
+        &lt;select name=&quot;fromPort&quot; class=&quot;form-inline&quot;&gt;
+            &lt;option value=&quot;Paris&quot;&gt;Paris&lt;/option&gt;
+            &lt;option value=&quot;Philadelphia&quot;&gt;Philadelphia&lt;/option&gt;
+            &lt;option value=&quot;Boston&quot;&gt;Boston&lt;/option&gt;
+            &lt;option value=&quot;Portland&quot;&gt;Portland&lt;/option&gt;
+            &lt;option value=&quot;San Diego&quot;&gt;San Diego&lt;/option&gt;
+            &lt;option value=&quot;Mexico City&quot;&gt;Mexico City&lt;/option&gt;
+            &lt;option value=&quot;São Paolo&quot;&gt;São Paolo&lt;/option&gt;
+        &lt;/select&gt;
+        &lt;p&gt;
+        &lt;h2&gt;Choose your destination city:&lt;/h2&gt;
+        &lt;select name=&quot;toPort&quot; class=&quot;form-inline&quot;&gt;
+            &lt;option value=&quot;Buenos Aires&quot;&gt;Buenos Aires&lt;/option&gt;
+            &lt;option value=&quot;Rome&quot;&gt;Rome&lt;/option&gt;
+            &lt;option value=&quot;London&quot;&gt;London&lt;/option&gt;
+            &lt;option value=&quot;Berlin&quot;&gt;Berlin&lt;/option&gt;
+            &lt;option value=&quot;New York&quot;&gt;New York&lt;/option&gt;
+            &lt;option value=&quot;Dublin&quot;&gt;Dublin&lt;/option&gt;
+            &lt;option value=&quot;Cairo&quot;&gt;Cairo&lt;/option&gt;
+        &lt;/select&gt;
+        &lt;p&gt;&lt;/p&gt;
+        &lt;div class=&quot;container&quot;&gt;
+            &lt;input type=&quot;submit&quot; class=&quot;btn btn-primary&quot; value=&quot;Find Flights&quot;/&gt;
+        &lt;/div&gt;
+    &lt;/form&gt;
+&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>https://blazedemo.com/</java.net.URL>
+</httpSample>
+
+</testResults>

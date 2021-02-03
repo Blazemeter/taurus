@@ -136,6 +136,12 @@ class TestJTLErrorsReader(BZTestCase):
         close_reader_file(self.obj)
         super(TestJTLErrorsReader, self).tearDown()
 
+    def test_smart_aggregation_assert(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/smart-aggregation/errors.jtl")
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+        # todo: process rule according to assertion
+
     def test_embedded_resources_no_fail(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/resource-errors-no-fail.jtl")
         self.obj.read_file()
@@ -271,6 +277,11 @@ class TestJTLReader(BZTestCase):
             close_reader_file(self.obj.csvreader)
             close_reader_file(self.obj.errors_reader)
         super(TestJTLReader, self).tearDown()
+
+    def test_smart_aggr(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/smart-aggregation/kpi.jtl")
+        values = [x for x in self.obj.datapoints(final_pass=True)]
+        # todo: process rule according to assertion
 
     def test_tranctl_jtl(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/tranctl.jtl")
