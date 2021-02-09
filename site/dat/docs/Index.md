@@ -15,6 +15,7 @@
     1. [Grinder Executor](Grinder.md)
     1. [JMeter Executor](JMeter.md)
     1. [JUnit Executor](JUnit.md)
+    1. [K6 Executor](K6.md)
     1. [Locust Executor](Locust.md)
     1. [Mocha Executor](Mocha.md)
     1. [Molotov Executor](Molotov.md)
