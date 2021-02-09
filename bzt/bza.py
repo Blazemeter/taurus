@@ -217,7 +217,7 @@ class User(BZAObject):
 
     def _upload_collection_resources(self, resource_files, draft_id):
         self.log.debug('Uploading resource files: %s', resource_files)
-        url = self.address + "/api/v4/web/elfinder/%s" % draft_id
+        url = self.address + f"/api/v4/collections/{draft_id}/files/data"
         body = MultiPartForm()
         body.add_field("cmd", "upload")
         body.add_field("target", "s1_Lw")
@@ -470,10 +470,8 @@ class Test(BZAObject):
         return session, Master(self, result['master']), result['publicTokenUrl']
 
     def get_files(self):
-        path = self.address + "/api/v4/web/elfinder/%s" % self['id']
-        query = urlencode(OrderedDict({'cmd': 'open', 'target': 's1_Lw'}))
-        url = path + '?' + query
-        response = self._request(url)
+        path = self.address + f"/api/v4/tests/{self['id']}/files"
+        response = self._request(path, method="PUT")
         return response["files"]
 
     def delete_files(self):
@@ -481,10 +479,10 @@ class Test(BZAObject):
         self.log.debug("Test files: %s", [filedict['name'] for filedict in files])
         if not files:
             return
-        path = "/api/v4/web/elfinder/%s" % self['id']
+        path = f"/api/v4/tests/{self['id']}"
         query = "cmd=rm&" + "&".join("targets[]=%s" % fname['hash'] for fname in files)
         url = self.address + path + '?' + query
-        response = self._request(url)
+        response = self._request(url, method="DELETE")
         if len(response['removed']) == len(files):
             self.log.debug("Successfully deleted %d test files", len(response['removed']))
         return response['removed']
