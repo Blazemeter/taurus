@@ -219,15 +219,12 @@ class User(BZAObject):
         self.log.debug('Uploading resource files: %s', resource_files)
         url = self.address + f"/api/v4/collections/{draft_id}/files/data"
         body = MultiPartForm()
-        body.add_field("cmd", "upload")
-        body.add_field("target", "s1_Lw")
-        body.add_field('folder', 'drafts')
 
         for rfile in resource_files:
             body.add_file('upload[]', rfile)
 
         hdr = {"Content-Type": str(body.get_content_type())}
-        self._request(url, body.form_as_bytes(), headers=hdr)
+        self._request(url, body.form_as_bytes(), headers=hdr, method="POST")
 
     def test_by_ids(self, account_id=None, workspace_id=None, project_id=None, test_id=None, test_type=None):
         account = self.accounts(ident=account_id).first()
@@ -471,18 +468,18 @@ class Test(BZAObject):
 
     def get_files(self):
         path = self.address + f"/api/v4/tests/{self['id']}/files"
-        response = self._request(path, method="PUT")
-        return response["files"]
+        response = self._request(path, method="GET")
+        return response["result"]
 
     def delete_files(self):
         files = self.get_files()
         self.log.debug("Test files: %s", [filedict['name'] for filedict in files])
         if not files:
             return
-        path = f"/api/v4/tests/{self['id']}"
-        query = "cmd=rm&" + "&".join("targets[]=%s" % fname['hash'] for fname in files)
-        url = self.address + path + '?' + query
-        response = self._request(url, method="DELETE")
+        path = f"/api/v4/tests/{self['id']}/delete-file"
+        query = [dict({'fileName': fname['name']}) for fname in files]
+        url = self.address + path + '?' + to_json(query)
+        response = self._request(url, method="POST")
         if len(response['removed']) == len(files):
             self.log.debug("Successfully deleted %d test files", len(response['removed']))
         return response['removed']
