@@ -477,11 +477,15 @@ class Test(BZAObject):
         if not files:
             return
         path = f"/api/v4/tests/{self['id']}/delete-file"
-        query = "&".join("fileName=%s" % fname['name'] for fname in files)
+        query = "&".join(f"fileName={fname['name']}" for fname in files)
         url = self.address + path + "?" + query
         response = self._request(url, method="POST")
+        removed = query.count('fileName')
         if response['result']:
-            self.log.debug("Successfully deleted test files")
+            self.log.debug(f"Successfully deleted {removed} test files.")
+        else:
+            self.log.debug("Error while test files deletion.")
+        return removed
 
     def start(self, as_functional=False):
         url = self.address + "/api/v4/tests/%s/start" % self['id']
