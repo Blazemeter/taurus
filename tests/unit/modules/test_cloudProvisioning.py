@@ -280,25 +280,16 @@ class TestCloudProvisioning(BZTestCase):
         self.configure(
             engine_cfg={EXEC: {"executor": "mock"}},
             get={
-                'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": [
+                'https://a.blazemeter.com/api/v4/tests/1/files': {"result": [
                     {
-                        "hash": "hash1",
                         "name": "file1"
                     }, {
-                        "hash": "hash1",
                         "name": "file2"}]
-                },
-                'https://a.blazemeter.com/api/v4/web/elfinder/1?target=s1_Lw&cmd=open': {"files": [
-                    {
-                        "hash": "hash1",
-                        "name": "file1"
-                    }, {
-                        "hash": "hash1",
-                        "name": "file2"}]
-                },
-                # deleting files with GET - ...!
-                'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=rm&targets[]=hash1&targets[]=hash1': {
-                    "removed": ["hash1", "hash2"]
+                }
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/tests/1/delete-file?fileName=file1&fileName=file2': {
+                    "result": True
                 }
             }
         )
@@ -306,7 +297,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings.merge({'delete-test-files': True})
         self.obj.prepare()
         self.obj.log.info("Made requests: %s", self.mock.requests)
-        self.assertEquals('https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=rm&targets[]=hash1&targets[]=hash1',
+        self.assertEquals('https://a.blazemeter.com/api/v4/tests/1/delete-file?fileName=file1&fileName=file2',
                           self.mock.requests[13]['url'])
 
     def test_cloud_config_cleanup_simple(self):
@@ -532,7 +523,7 @@ class TestCloudProvisioning(BZTestCase):
                     "configuration": {"type": "taurus"}}]}
             },
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
@@ -559,7 +550,7 @@ class TestCloudProvisioning(BZTestCase):
                     "configuration": {"type": "taurus"}}]}
             },
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
@@ -595,7 +586,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
             },
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
@@ -656,7 +647,7 @@ class TestCloudProvisioning(BZTestCase):
                     "configuration": {"type": "taurus"}}]}
             },
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
@@ -683,7 +674,7 @@ class TestCloudProvisioning(BZTestCase):
                 }
             },
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
@@ -705,7 +696,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={EXEC: {"executor": "mock"}},
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
@@ -732,7 +723,7 @@ class TestCloudProvisioning(BZTestCase):
                     "us-west": 2},
                 "locations-weighted": True},
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
@@ -789,7 +780,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={EXEC: {"executor": "mock", }},
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
@@ -817,7 +808,7 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {"us-east-1": 1}}],
                 "locations": {"aws": 1}},
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
@@ -849,7 +840,7 @@ class TestCloudProvisioning(BZTestCase):
                 }],
                 "locations": {"aws": 1}},
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
@@ -910,7 +901,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": []}},
             },
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},
@@ -973,7 +964,7 @@ class TestCloudProvisioning(BZTestCase):
                 ]}}
             },
             post={
-                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
                     "name": "Taurus Collection", "items": []
                 }},

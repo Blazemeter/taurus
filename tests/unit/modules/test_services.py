@@ -47,7 +47,6 @@ class TestZipFolder(BZTestCase):
         obj.settings["token"] = "FakeToken"
         mock = BZMock(obj.user)
         mock.mock_get.update({
-            'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": []},
             'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {
                 "result": [{"id": 1, 'name': 'Taurus Cloud Test', "configuration": {"type": "taurus"}}]
