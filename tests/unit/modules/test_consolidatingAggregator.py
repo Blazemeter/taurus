@@ -115,12 +115,11 @@ class TestTools(BZTestCase):
 
 class SmartMockReader(MockReader):
     # reader example with 'r_code' rule support
-    def add_rule(self, rule):
+    def handle_rule(self, rule):
         if rule.lower() == 'r_code':
             get_label = self._get_label_generator(lambda kpis: 'succ' if kpis[4] == 200 else 'fail')  # r_code
             self.get_label = get_label
-        else:
-            super(SmartMockReader, self).add_rule(rule)     # just raise exception
+            return True
 
 
 class TestConsolidatingAggregator(BZTestCase):

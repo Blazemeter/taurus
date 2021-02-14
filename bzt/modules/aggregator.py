@@ -572,7 +572,11 @@ class ResultsProvider(object):
             cumul.recalculate()
 
     def add_rule(self, rule):
-        raise TaurusConfigError(f'unsupported rule: {rule}')
+        if not self.handle_rule(rule):
+            raise TaurusConfigError(f'unsupported rule: {rule}')
+
+    def handle_rule(self, rule):
+        pass
 
     def datapoints(self, final_pass=False):
         """
