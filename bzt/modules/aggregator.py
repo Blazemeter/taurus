@@ -628,11 +628,14 @@ class ResultsReader(ResultsProvider):
 
     def handle_rule(self, rule):
         if rule == 'error':
-            get_label = self._get_label_generator(lambda kpis: int(kpis[5] != 'OK'))  # error isn't empty
-            self.get_label = get_label
-            return True
+            get_label = self._get_label_generator(lambda kpis: int(kpis[5] is not None))  # error is empty
+        elif rule == 'jmeter-error':    # something from errors.jtl - assert, timeout, etc.
+            get_label = self._get_label_generator(lambda kpis: int(kpis[5] == 'OK'))
         else:
             return super(ResultsReader, self).handle_rule(rule)
+
+        self.get_label = get_label
+        return True
 
     def __process_readers(self, final_pass=False):
         """
