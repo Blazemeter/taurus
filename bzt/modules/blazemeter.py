@@ -678,7 +678,7 @@ class DatapointSerializer(object):
         # - elements of 'intervals' are described in __get_interval()
         #   every interval contains info about response codes have gotten on it.
         report_items = BetterDict()
-        if data_buffer:
+        if data_buffer and report_items:
             self.owner.first_ts = min(self.owner.first_ts, data_buffer[0][DataPoint.TIMESTAMP])
             self.owner.last_ts = max(self.owner.last_ts, data_buffer[-1][DataPoint.TIMESTAMP])
 
@@ -694,9 +694,8 @@ class DatapointSerializer(object):
                 time_stamp = dpoint[DataPoint.TIMESTAMP]
                 for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
                     exc = TaurusInternalException('Cumulative KPISet is non-consistent')
-                    if report_items:
-                        report_item = report_items.get(label, exc)
-                        report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
+                    report_item = report_items.get(label, exc)
+                    report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
 
         report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
         data = {"labels": report_items, "sourceID": id(self.owner)}
