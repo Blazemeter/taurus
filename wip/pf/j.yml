@@ -12,7 +12,7 @@ scenarios:
 
 modules:
   consolidator:
-    rule: r_code
+    rule: error
 
 ~reporting:
 #- module: junit-xml

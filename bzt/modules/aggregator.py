@@ -626,6 +626,14 @@ class ResultsReader(ResultsProvider):
         if perc_levels is not None:
             self.track_percentiles = perc_levels
 
+    def handle_rule(self, rule):
+        if rule == 'error':
+            get_label = self._get_label_generator(lambda kpis: int(kpis[5] != 'OK'))  # error isn't empty
+            self.get_label = get_label
+            return True
+        else:
+            return super(ResultsReader, self).handle_rule(rule)
+
     def __process_readers(self, final_pass=False):
         """
 
@@ -727,7 +735,7 @@ class ResultsReader(ResultsProvider):
         if not self.buffer:
             return
 
-        if self.cumulative and self.track_percentiles and self.buffer_scale_idx is not None:
+        if self.cumulative and self.track_percentiles and self.buffer_scale_idx is not None and not self.get_label:
             old_len = self.buffer_len
             chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
             self.buffer_len = round(chosen_timing * self.buffer_multiplier)
@@ -843,6 +851,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         # send rules to underlings
         rule = self.settings.get('rule')
         if rule:
+            rule = str(rule).lower()
             for underling in self.underlings:
                 underling.add_rule(rule)
 
