@@ -534,4 +534,3 @@ class TestMonitoringBuffer(BZTestCase):
             mon_buffer.record_data(mon)
         unpacked = sum(item['interval'] for item in viewvalues(mon_buffer.data['local']))
         self.assertEqual(unpacked, ITERATIONS)
-
