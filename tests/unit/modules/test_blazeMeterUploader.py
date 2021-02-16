@@ -8,7 +8,7 @@ from tempfile import mkstemp
 from io import BytesIO
 from urllib.error import HTTPError
 
-from bzt import TaurusException, TaurusInternalException
+from bzt import TaurusException
 from bzt.bza import Master, Session
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader
