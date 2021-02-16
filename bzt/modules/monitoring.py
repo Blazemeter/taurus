@@ -317,7 +317,7 @@ class LocalMonitor(object):
         counters = None
         try:
             counters = psutil.disk_io_counters()
-        except RuntimeError as exc:
+        except (RuntimeError, PermissionError) as exc:
             self.log.debug("Failed to get disk io counters: %s", exc)
         if counters is None:
             counters = psutil._common.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
@@ -328,7 +328,7 @@ class LocalMonitor(object):
         counters = None
         try:
             counters = psutil.net_io_counters()
-        except RuntimeError as exc:
+        except (RuntimeError, PermissionError) as exc:
             self.log.debug("Failed to get net io counters: %s", exc)
         if counters is None:
             counters = psutil._common.snetio(0, 0, 0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
@@ -339,7 +339,7 @@ class LocalMonitor(object):
         disk = None
         try:
             disk = psutil.disk_usage(path)
-        except RuntimeError as exc:
+        except (RuntimeError, PermissionError) as exc:
             self.log.debug("Failed to get disk usage metrics: %s", exc)
         if disk is None:
             disk = psutil._common.sdiskusage(0, 0, 0, 0)  # pylint: disable=protected-access
@@ -350,7 +350,7 @@ class LocalMonitor(object):
         cpu = None
         try:
             cpu = psutil.cpu_percent()
-        except RuntimeError as exc:
+        except (RuntimeError, PermissionError) as exc:
             self.log.debug("Failed to get cpu percent metrics: %s", exc)
         if cpu is None:
             cpu = 0
