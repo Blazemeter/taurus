@@ -689,14 +689,23 @@ class ResultsReader(ResultsProvider):
 
             self.__add_sample(current, base_label, sample[1:])
 
-        overall = {}
-        for label in current:
-            suffix = self._get_suffix(label)
-            if suffix not in overall:
-                overall[suffix] = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
-            overall[suffix].merge_kpis(current[label], datapoint[DataPoint.SOURCE_ID])
+        # multi overall
+        # overall = {}
+        # for label in current:
+        #     suffix = self._get_suffix(label)
+        #     if suffix not in overall:
+        #         overall[suffix] = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
+        #     overall[suffix].merge_kpis(current[label], datapoint[DataPoint.SOURCE_ID])
+        #
+        # current.update(overall)
 
-        current.update(overall)
+        # single overall
+        overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
+
+        for label in current.values():
+            overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
+        current[''] = overall
+
         return current
 
     def _get_suffix(self, label):
@@ -738,7 +747,7 @@ class ResultsReader(ResultsProvider):
         if not self.buffer:
             return
 
-        if self.cumulative and self.track_percentiles and self.buffer_scale_idx is not None and not self.get_label:
+        if self.cumulative and self.track_percentiles and self.buffer_scale_idx is not None:
             old_len = self.buffer_len
             chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
             self.buffer_len = round(chosen_timing * self.buffer_multiplier)
