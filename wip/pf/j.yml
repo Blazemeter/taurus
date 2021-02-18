@@ -1,0 +1,26 @@
+execution:
+  - executor: jmeter
+    hold-for: 20s
+    scenario: sc1
+
+scenarios:
+  sc1:
+    timeout: 10s
+    requests:
+    - https://blazemeter.com
+    - http://blazedemo.com
+
+modules:
+  consolidator:
+    rule: error
+
+~reporting:
+#- module: junit-xml
+#  filename: out.xml
+- module: final-stats
+  summary: true  # overall samples count and percent of failures
+  percentiles: true  # display average times and percentiles
+  summary-labels: true # provides list of sample labels, status, percentage of completed, avg time and errors
+  failed-labels: true  # provides list of sample labels with failures
+  test-duration: true  # provides test duration
+  dump-csv: my.csv
