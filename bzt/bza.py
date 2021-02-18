@@ -189,7 +189,7 @@ class User(BZAObject):
         return self
 
     def available_locations(self, include_harbors=False):
-        self.log.warn("Deprecated method used: available_locations")
+        self.log.warning("Deprecated method used: available_locations")
         if 'locations' not in self:
             self.fetch()
 
@@ -200,10 +200,10 @@ class User(BZAObject):
                 locations[loc_id] = loc
         return locations
 
-    def collection_draft(self, name, taurus_config, resource_files):
+    def collection_draft(self, name, test_id, taurus_config, resource_files):
         if resource_files:
             draft_id = "taurus_%s" % id(self.token)
-            self._upload_collection_resources(resource_files, draft_id)
+            self._upload_collection_resources(resource_files, test_id)
             taurus_config.merge({"dataFiles": {"draftId": draft_id}})
 
         collection_draft = self._import_config(taurus_config)
@@ -215,9 +215,9 @@ class User(BZAObject):
         resp = self._request(url, data=config, method="POST")
         return resp['result']
 
-    def _upload_collection_resources(self, resource_files, draft_id):
+    def _upload_collection_resources(self, resource_files, test_id):
         self.log.debug('Uploading resource files: %s', resource_files)
-        url = self.address + f"/api/v4/collections/{draft_id}/files/data"
+        url = self.address + f"/api/v4/collections/{test_id}/files/data"
         body = MultiPartForm()
 
         for rfile in resource_files:

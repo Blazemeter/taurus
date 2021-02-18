@@ -171,7 +171,10 @@ def parse_blazemeter_test_link(link):
     regex = r'https://a.blazemeter.com/app/#/accounts/(\d+)/workspaces/(\d+)/projects/(\d+)/tests/(\d+)(?:/\w+)?'
     match = re.match(regex, link)
     if match is None:
-        return None
+        regex = r'https://a.blazemeter.com/app/#/accounts/(\d+)/workspaces/(\d+)/projects/(\d+)/multi-tests/(\d+)(?:/\w+)?'
+        match = re.match(regex, link)
+        if match is None:
+            return None
 
     TestParams = namedtuple('TestParams', 'account_id,workspace_id,project_id,test_id')
     return TestParams(*[int(x) for x in match.groups()])
@@ -1272,7 +1275,7 @@ class CloudCollectionTest(BaseCloudTest):
         if not self._project:
             raise TaurusInternalException()  # TODO: build unit test to catch this situation
 
-        collection_draft = self._user.collection_draft(self._test_name, taurus_config, rfiles)
+        collection_draft = self._user.collection_draft(self._test_name, self._test['id'], taurus_config, rfiles)
         if self._test is None:
             self.log.debug("Creating cloud collection test")
             self._test = self._project.create_multi_test(collection_draft)
