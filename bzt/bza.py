@@ -218,13 +218,13 @@ class User(BZAObject):
     def _upload_collection_resources(self, resource_files, test_id):
         self.log.debug('Uploading resource files: %s', resource_files)
         url = self.address + f"/api/v4/collections/{test_id}/files/data"
-        body = MultiPartForm()
 
+        body = MultiPartForm()
         for rfile in resource_files:
-            body.add_file('upload[]', rfile)
+            body.add_file('script', rfile)
 
         hdr = {"Content-Type": str(body.get_content_type())}
-        self._request(url, body.form_as_bytes(), headers=hdr, method="POST")
+        self._request(url, body.form_as_bytes(), headers=hdr)
 
     def test_by_ids(self, account_id=None, workspace_id=None, project_id=None, test_id=None, test_type=None):
         account = self.accounts(ident=account_id).first()
