@@ -408,6 +408,38 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEquals('https://a.blazemeter.com/api/v4/tests', mock.requests[6]['url'])
         self.assertEquals('POST', mock.requests[6]['method'])
 
+    def test_excluded_cumulative(self):
+        mock = BZMock()
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test': {"result": []},
+        })
+        mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/projects': {"result": {'id': 1}},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {'id': 1}},
+            'https://a.blazemeter.com/api/v4/tests/1/start-external': {"result": {
+                "session": {'id': 1, "testId": 1, "userId": 1},
+                "master": {'id': 1},
+                "signature": "sign"
+            }},
+            'https://data.blazemeter.com/api/v4/image/1/files?signature=sign': {"result": True},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1' +
+            '&pq=0&target=labels_bulk&update=1': {},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=engine_health&update=1': {
+                'result': {'session': {}}}
+        })
+
+        obj = BlazeMeterUploader()
+        mock.apply(obj._user)
+        obj.parameters['project'] = 'Proj name'
+        obj.settings['token'] = '123'
+        obj.settings['browser-open'] = 'none'
+        obj.engine = EngineEmul()
+        obj.prepare()
+        obj.startup()
+        obj.aggregated_second(random_datapoint(10))
+        obj.kpi_buffer[-1][DataPoint.CUMULATIVE] = {}  # remove cumulative when ramp-up data is excluded
+        obj.post_process()  # no 'Cumulative KPISet is non-consistent' exception here
+
 
 class TestBlazeMeterClientUnicode(BZTestCase):
     def test_unicode_request(self):

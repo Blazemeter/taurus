@@ -871,7 +871,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         ramp_ups = [0]
         for execution in self.engine.config['execution']:
             if 'ramp-up' in execution:
-                ramp_ups.append(execution['ramp-up'])
+                ramp_ups.append(dehumanize_time(execution['ramp-up']))
         return max(ramp_ups)
 
     def _ramp_up_exclude(self):

@@ -690,12 +690,13 @@ class DatapointSerializer(object):
 
             # fill 'Timeline Report' tab with intervals data
             # intervals are received in the additive way
-            for dpoint in data_buffer:
-                time_stamp = dpoint[DataPoint.TIMESTAMP]
-                for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
-                    exc = TaurusInternalException('Cumulative KPISet is non-consistent')
-                    report_item = report_items.get(label, exc)
-                    report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
+            if report_items:
+                for dpoint in data_buffer:
+                    time_stamp = dpoint[DataPoint.TIMESTAMP]
+                    for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
+                        exc = TaurusInternalException('Cumulative KPISet is non-consistent')
+                        report_item = report_items.get(label, exc)
+                        report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
 
         report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
         data = {"labels": report_items, "sourceID": id(self.owner)}
