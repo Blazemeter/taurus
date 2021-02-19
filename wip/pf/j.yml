@@ -1,11 +1,12 @@
 execution:
   - executor: jmeter
-    hold-for: 20s
+    concurrency: 10
+    iterations: 30
     scenario: sc1
 
 scenarios:
   sc1:
-    timeout: 10s
+    timeout: 1s
     requests:
     - https://blazemeter.com
     - http://blazedemo.com
