@@ -113,15 +113,6 @@ class TestTools(BZTestCase):
         self.assertEquals(0.15, dst[DataPoint.CUMULATIVE][''][KPISet.AVG_RESP_TIME])
 
 
-class SmartMockReader(MockReader):
-    # reader example with 'r_code' rule support
-    def handle_rule(self, rule):
-        if rule.lower() == 'r_code':
-            get_label = self._get_label_generator(lambda kpis: 'succ' if kpis[4] == 200 else 'fail')  # r_code
-            self.get_label = get_label
-            return True
-
-
 class TestConsolidatingAggregator(BZTestCase):
     def setUp(self):
         super(TestConsolidatingAggregator, self).setUp()
@@ -150,9 +141,9 @@ class TestConsolidatingAggregator(BZTestCase):
 
     def test_new_aggregator(self):
         # aggregator's config
-        self.obj.settings['rule'] = 'r_code'
+        self.obj.settings['extend-aggregation'] = True
 
-        reader = SmartMockReader()
+        reader = MockReader()
         watcher = MockReader()
 
         # executor/reporter prepare level
@@ -165,7 +156,7 @@ class TestConsolidatingAggregator(BZTestCase):
         reader.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
         reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
-        reader.data.append((2, "b", 1, 2, 2, 2, 200, None, '', 0))
+        reader.data.append((2, "b", 1, 2, 2, 2, 200, 'OK', '', 0))
         reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
         reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
         reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
@@ -177,7 +168,7 @@ class TestConsolidatingAggregator(BZTestCase):
 
         data_points = watcher.results[-1][DataPoint.CUMULATIVE]
         self.assertEquals(7, len(data_points))
-        sample_labels = {'a-succ', 'b-succ', 'b-fail', 'c-succ', 'd-succ', '-succ', '-fail'}
+        sample_labels = {'a-0', 'b-0', 'b-1', 'b-2', 'c-0', 'd-0', ''}
         self.assertEquals(sample_labels, set(data_points.keys()))
 
     def test_errors_cumulative(self):

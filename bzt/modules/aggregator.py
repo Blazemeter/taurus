@@ -571,13 +571,6 @@ class ResultsProvider(object):
             cumul.merge_kpis(data)
             cumul.recalculate()
 
-    def add_rule(self, rule):
-        if not self.handle_rule(rule):
-            raise TaurusConfigError(f'unsupported rule: {rule}')
-
-    def handle_rule(self, rule):
-        pass
-
     def datapoints(self, final_pass=False):
         """
         Generator object that returns datapoints from the reader
@@ -618,24 +611,24 @@ class ResultsReader(ResultsProvider):
 
     def __init__(self, perc_levels=None):
         super(ResultsReader, self).__init__()
+        self.extend_aggregation = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
         self.min_timestamp = 0
-        self.get_label = None
         if perc_levels is not None:
             self.track_percentiles = perc_levels
 
-    def handle_rule(self, rule):
-        if rule == 'error':
-            get_label = self._get_label_generator(lambda kpis: int(kpis[5] is not None))  # error is empty
-        elif rule == 'jmeter-error':    # something from errors.jtl - assert, timeout, etc.
-            get_label = self._get_label_generator(lambda kpis: int(kpis[5] == 'OK'))
+    @staticmethod
+    def get_label(label, kpis):
+        if kpis[5] is None:
+            group = 0   # no errors
+        elif kpis[5] == 'OK':
+            group = 1   # jmeter error - assert, timeout, etc.
         else:
-            return super(ResultsReader, self).handle_rule(rule)
+            group = 2   # other errors, usually RC != 200
 
-        self.get_label = get_label
-        return True
+        return '-'.join((label, str(group)))
 
     def __process_readers(self, final_pass=False):
         """
@@ -711,12 +704,12 @@ class ResultsReader(ResultsProvider):
     def _get_suffix(self, label):
         # to collect kpisets to overall sets according to rules result we need to split base label and suffix
         # the suffixes replace '' label in meaning of 'summary result'
-        if self.get_label:
+        if self.extend_aggregation:
             return label[label.rfind('-'):]
         return ''
 
     def __add_sample(self, current, label, kpis):
-        if self.get_label:
+        if self.extend_aggregation:
             label = self.get_label(label, kpis)
 
         if label not in current:
@@ -789,14 +782,6 @@ class ResultsReader(ResultsProvider):
         """
         yield
 
-    @staticmethod
-    def _get_label_generator(rule):
-        def get_label(label, kpis):
-            suffix = str((rule(kpis)))
-            return '-'.join((label, suffix))
-
-        return get_label
-
 
 class ConsolidatingAggregator(Aggregator, ResultsProvider):
     """
@@ -861,11 +846,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         super(Aggregator, self).startup()
 
         # send rules to underlings
-        rule = self.settings.get('rule')
-        if rule:
-            rule = str(rule).lower()
-            for underling in self.underlings:
-                underling.add_rule(rule)
+        extend_aggregation = self.settings.get('extend-aggregation')
+
+        for underling in self.underlings:
+            underling.extend_aggregation = extend_aggregation
 
     def add_underling(self, underling):
         """
