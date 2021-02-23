@@ -682,17 +682,6 @@ class ResultsReader(ResultsProvider):
 
             self.__add_sample(current, base_label, sample[1:])
 
-        # multi overall
-        # overall = {}
-        # for label in current:
-        #     suffix = self._get_suffix(label)
-        #     if suffix not in overall:
-        #         overall[suffix] = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
-        #     overall[suffix].merge_kpis(current[label], datapoint[DataPoint.SOURCE_ID])
-        #
-        # current.update(overall)
-
-        # single overall
         overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
 
         for label in current.values():
