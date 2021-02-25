@@ -171,10 +171,7 @@ def parse_blazemeter_test_link(link):
     regex = r'https://a.blazemeter.com/app/#/accounts/(\d+)/workspaces/(\d+)/projects/(\d+)/tests/(\d+)(?:/\w+)?'
     match = re.match(regex, link)
     if match is None:
-        regex = r'https://a.blazemeter.com/app/#/accounts/(\d+)/workspaces/(\d+)/projects/(\d+)/multi-tests/(\d+)(?:/\w+)?'
-        match = re.match(regex, link)
-        if match is None:
-            return None
+        return None
 
     TestParams = namedtuple('TestParams', 'account_id,workspace_id,project_id,test_id')
     return TestParams(*[int(x) for x in match.groups()])
