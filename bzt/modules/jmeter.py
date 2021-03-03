@@ -1353,9 +1353,9 @@ class JMeter(RequiredTool):
     JMeter tool
     """
     PLUGINS_MANAGER_VERSION = "1.3"
-    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
-                      '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
-    CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar'
+    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
+    COMMAND_RUNNER_VERSION = "2.2"
+    COMMAND_RUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
     VERSION = "5.2.1"
 
     def __init__(self, config=None, props=None, **kwargs):
@@ -1369,6 +1369,14 @@ class JMeter(RequiredTool):
         download_link = settings.get("download-link", None)
         if download_link is not None:
             download_link = download_link.format(version=version)
+
+        plugins_manager_settings = settings.get("plugins-manager", {})
+        plugins_manager_version = plugins_manager_settings.get("version", JMeter.PLUGINS_MANAGER_VERSION)
+        self.plugins_manager = plugins_manager_settings.get("download-link", JMeter.PLUGINS_MANAGER).format(version=plugins_manager_version)
+
+        command_runner_settings = settings.get("command-runner", {})
+        command_runner_version = command_runner_settings.get("version", JMeter.COMMAND_RUNNER_VERSION)
+        self.command_runner = command_runner_settings.get("download-link", JMeter.COMMAND_RUNNER).format(version=command_runner_version)
 
         self.plugins = settings.get("plugins", [])
 
@@ -1520,13 +1528,13 @@ class JMeter(RequiredTool):
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
         self.log.info("Will install %s into %s", self.tool_name, dest)
-        plugins_manager_name = os.path.basename(self.PLUGINS_MANAGER)
-        cmdrunner_name = os.path.basename(self.CMDRUNNER)
+        plugins_manager_name = os.path.basename(self.plugins_manager)
+        command_runner_name = os.path.basename(self.command_runner)
         plugins_manager_path = os.path.join(dest, 'lib', 'ext', plugins_manager_name)
-        cmdrunner_path = os.path.join(dest, 'lib', cmdrunner_name)
+        command_runner_path = os.path.join(dest, 'lib', command_runner_name)
         direct_install_tools = [  # source link and destination
-            [self.PLUGINS_MANAGER, plugins_manager_path],
-            [self.CMDRUNNER, cmdrunner_path]]
+            [self.plugins_manager, plugins_manager_path],
+            [self.command_runner, command_runner_path]]
         plugins_manager_cmd = self._pmgr_path()
 
         self.__install_jmeter(dest)

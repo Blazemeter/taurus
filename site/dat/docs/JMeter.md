@@ -18,6 +18,12 @@ modules:
     - jpgc-json=2.2
     - jmeter-ftp
     - jpgc-casutg
+    plugins-manager:
+      download-link: https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar
+      version: 1.3   # minimum 0.16
+    command-runner:
+      download-link: https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar
+      version: 2.2
 ```
 `force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for jmx script modifications purpose. This group
 provide `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default)
