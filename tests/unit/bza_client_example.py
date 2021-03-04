@@ -20,7 +20,7 @@ def test_flow():
     user.fetch()
     accounts = user.accounts()
     workspaces = accounts.workspaces()
-    tests = workspaces.multi_tests(ident=10005302)
+    tests = workspaces.tests(ident=10005302)
     tests.delete()
     print(tests)
     # for wsp in workspaces:
@@ -28,7 +28,7 @@ def test_flow():
     # opls = workspaces.private_locations()
     # sel_test = workspaces.tests(name='Selenium')
     # projects = workspaces.projects()
-    # tests = projects.multi_tests()
+    # tests = projects.tests()
     # tests2 = workspaces.tests()
 
 

@@ -40,7 +40,7 @@ from urwid import Pile, Text
 
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
-from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED, ENDED
+from bzt.bza import User, Session, Test, Workspace, BZA_TEST_DATA_RECEIVED, ENDED
 from bzt.engine import Reporter, Provisioning, Configuration, Service
 from bzt.engine import Singletone, SETTINGS, ScenarioExecutor, EXEC
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -957,22 +957,17 @@ class ProjectFinder(object):
         if is_int or is_digit:
             test_id = int(test_name)
             self.log.debug("Treating project name as ID: %s", test_id)
-            test = project.multi_tests(ident=test_id).first()
-            if not test:
-                test = project.tests(ident=test_id, test_type=test_type).first()
+            test = project.tests(ident=test_id, test_type=test_type).first()
             if not test:
                 raise TaurusConfigError("BlazeMeter test not found by ID: %s" % test_id)
         elif test_name is not None:
-            test = project.multi_tests(name=test_name).first()
-            if not test:
-                test = project.tests(name=test_name, test_type=test_type).first()
+            test = project.tests(name=test_name, test_type=test_type).first()
         else:
             test = None
 
         return test
 
     def get_test_router(self):
-        use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
         account_name = self.parameters.get("account", self.settings.get("account", None))
         workspace_name = self.parameters.get("workspace", self.settings.get("workspace", None))
@@ -998,22 +993,13 @@ class ProjectFinder(object):
             project = self.resolve_project(workspace, project_name)
             test = self.resolve_test(project, test_name, test_type=filter_test_type)
 
-        if isinstance(test, MultiTest):
-            self.log.debug("Detected test type: multi")
-            test_class = CloudCollectionTest
-        elif isinstance(test, Test):
-            self.log.debug("Detected test type: standard")
+        if isinstance(test, Test):
             test_class = CloudTaurusTest
         else:   # test not found
             if launch_existing_test:
                 raise TaurusConfigError("Can't find test for launching: %r" % test_name)
 
-            if use_deprecated or self.settings.get("cloud-mode") == 'taurusCloud':
-                self.log.debug("Will create standard test")
-                test_class = CloudTaurusTest
-            else:
-                self.log.debug("Will create a multi test")
-                test_class = CloudCollectionTest
+            test_class = CloudTaurusTest
 
         router = test_class(self.user, test, project, test_name, default_location, launch_existing_test, self.log)
         router._workspaces = self.workspaces
@@ -1221,138 +1207,6 @@ class CloudTaurusTest(BaseCloudTest):
                 txt += " %s:\n" % scenario
                 for location, count in iteritems(locations):
                     txt += "  Agents in %s: %s\n" % (location, count)
-
-        return txt
-
-
-class CloudCollectionTest(BaseCloudTest):
-    def prepare_locations(self, executors, engine_config):
-        available_locations = {}
-        for loc in self._workspaces.locations(include_private=True):
-            available_locations[loc['id']] = loc
-
-        global_locations = engine_config.get(CloudProvisioning.LOC)
-        self._check_locations(global_locations, available_locations)
-
-        for executor in executors:
-            if CloudProvisioning.LOC in executor.execution:
-                exec_locations = executor.execution[CloudProvisioning.LOC]
-                self._check_locations(exec_locations, available_locations)
-            else:
-                if not global_locations:
-                    default_loc = self._get_default_location(available_locations)
-                    executor.execution[CloudProvisioning.LOC] = BetterDict.from_dict({default_loc: 1})
-
-            executor.get_load()  # we need it to resolve load settings into full form
-
-        if global_locations and all(CloudProvisioning.LOC in executor.execution for executor in executors):
-            self.log.warning("Each execution has locations specified, global locations won't have any effect")
-            engine_config.pop(CloudProvisioning.LOC)
-
-    def _get_default_location(self, available_locations):
-        for location_id in sorted(available_locations):
-            location = available_locations[location_id]
-            if location['sandbox']:
-                return location_id
-
-        self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-        raise TaurusConfigError("No sandbox or default location available, please specify locations manually")
-
-    def _check_locations(self, locations, available_locations):
-        for location in locations:
-            if location not in available_locations:
-                self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
-                raise TaurusConfigError("Invalid location requested: %s" % location)
-
-    def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
-        self.log.warning("Using collection-based tests is deprecated in Taurus, will be removed in future versions")
-        if self.launch_existing_test:
-            return
-
-        # TODO: handle delete_old_files ?
-        if not self._project:
-            raise TaurusInternalException()  # TODO: build unit test to catch this situation
-
-        collection_draft = self._user.collection_draft(self._test_name, taurus_config, rfiles)
-        if self._test is None:
-            self.log.debug("Creating cloud collection test")
-            self._test = self._project.create_multi_test(collection_draft)
-        else:
-            self.log.debug("Overriding cloud collection test")
-            collection_draft['projectId'] = self._project['id']
-            self._test.update_collection(collection_draft)
-
-    def launch_test(self):
-        self.log.info("Initiating cloud test with %s ...", self._test.address)
-        self.master = self._test.start()
-        return self.master.address + '/app/#/masters/%s' % self.master['id']
-
-    def start_if_ready(self):
-        if self._started:
-            return
-        if self._last_status is None:
-            return
-        sessions = self._last_status.get("sessions")
-        if sessions and all(session["status"] == "JMETER_CONSOLE_INIT" for session in sessions):
-            self.log.info("All servers are ready, starting cloud test")
-            self.master.force_start()
-            self._started = True
-
-    def await_test_end(self):
-        iterations = 0
-        while True:
-            if iterations > 100:
-                self.log.debug("Await: iteration limit reached")
-                return
-            status = self.master.get_status()
-            if status.get("status") == "ENDED":
-                return
-            iterations += 1
-            time.sleep(1.0)
-
-    def stop_test(self):
-        if self._started and self._test:
-            self.log.info("Shutting down cloud test...")
-            self._test.stop()
-            self.await_test_end()
-        elif self.master:
-            self.log.info("Shutting down cloud test...")
-            self.master.stop()
-
-    def get_test_status_text(self):
-        if not self._sessions:
-            sessions = self.master.sessions()
-            if not sessions:
-                return
-            self._sessions = {session["id"]: session for session in sessions}
-
-        if not self._last_status:
-            return
-
-        mapping = BetterDict()  # dict(scenario -> dict(location -> servers count))
-        for session_status in self._last_status["sessions"]:
-            try:
-                session_id = session_status["id"]
-                session = self._sessions[session_id]
-                location = session_status["locationId"]
-                servers_count = len(session_status["readyStatus"]["servers"])
-                name_split = [part.strip() for part in session['name'].split('/')]
-                if len(name_split) > 1:
-                    scenario = name_split[1]
-                else:
-                    scenario = "N/A"
-                scenario_item = mapping.get(scenario, force_set=True)
-                scenario_item.get(location, 0, force_set=True)
-
-                scenario_item[location] += servers_count
-            except (KeyError, TypeError):
-                self._sessions = None
-
-        txt = "%s #%s\n" % (self._test['name'], self.master['id'])
-        for scenario, locations in iteritems(mapping):
-            txt += " %s:\n" % scenario
-            for location, count in iteritems(locations):
-                txt += "  Agents in %s: %s\n" % (location, count)
 
         return txt
 
