@@ -528,9 +528,9 @@ class TestCloudProvisioning(BZTestCase):
             engine_cfg={EXEC: {"executor": "mock"}},
             get={
                 "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=1000": {
-                    "result": [{"id": 1, "name": "myproject"}]},
+                    "result": [{"id": 1, "name": "myproject", 'workspaceId': 1}]},
                 'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {
-                    "result": [{"id": 1, "name": "Taurus Cloud Test"}]
+                    "result": [{"id": 1, "name": "Taurus Cloud Test", 'configuration': {'type': 'taurus'}}]
                 }
             },
             post={
@@ -615,28 +615,6 @@ class TestCloudProvisioning(BZTestCase):
         self.assertIn(expected_location, exec_locations)
         self.assertEquals(1, exec_locations[expected_location])
 
-    def test_locations_on_both_levels(self):
-        self.obj.user.token = object()
-        self.configure(
-            add_settings=False,
-            engine_cfg={
-                EXEC: [{
-                    "executor": "mock",
-                    "concurrency": 5500,
-                    "locations": {"us-east-1": 1}}],
-                "locations": {"aws": 1}}
-        )
-
-        self.sniff_log(self.obj.log)
-
-        self.obj.prepare()
-
-        cloud_config = yaml.full_load(open(os.path.join(self.obj.engine.artifacts_dir, "cloud.yml")))
-        self.assertNotIn("locations", cloud_config)
-        for execution in cloud_config["execution"]:
-            self.assertIn("locations", execution)
-        log_buff = self.log_recorder.warn_buff.getvalue()
-        self.assertIn("Each execution has locations specified, global locations won't have any effect", log_buff)
 
     def test_locations_global(self):
         self.obj.user.token = object()
@@ -701,15 +679,8 @@ class TestCloudProvisioning(BZTestCase):
                 ]}}
             },
             post={
-                'https://a.blazemeter.com/api/v4/collections/taurus_%s/files/data' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
-                    "name": "Taurus Collection", "items": []
-                }},
-                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
-                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {'id': 1, 'name': 'testname'}},
-                'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/tests': {"result": {'id': 1, 'name': 'testname'}},
                 'https://a.blazemeter.com/api/v4/masters/1/force-start': {"result": {"id": 1}},
-                'https://a.blazemeter.com/api/v4/multi-tests/1/stop': {"result": {"id": 1}}
             }
         )
 
@@ -722,7 +693,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(22, len(self.mock.requests))
+        self.assertEqual(23, len(self.mock.requests))
         self.assertIn("Cloud test has probably failed with message: msg", self.log_recorder.warn_buff.getvalue())
 
     def test_cloud_paths(self):
