@@ -155,6 +155,12 @@ execution:
   scenario:
     script: k6/k6_example.js
 
+- executor: vegeta
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: vegeta/vegeta.in
 ---
 # all of load-style executors
 execution:
