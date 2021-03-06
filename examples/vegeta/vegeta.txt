@@ -1,2 +1,2 @@
-GET http://localhost:8080
+GET https://blazedemo.com
 Content-Type: application/json
