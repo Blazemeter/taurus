@@ -74,8 +74,9 @@ class VegetaExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstall
     def startup(self):
         cmdline = [self.vegeta.tool_name, "attack", "-targets", self.script]
         load = self.get_load()
-        if load.concurrency:
-            cmdline += ['-rate', str(load.concurrency)]
+
+        if load.throughput:
+            cmdline += ['-rate', str(load.throughput)]
 
         if load.hold:
             cmdline += ['-duration', str(int(load.hold)) + "s"]
