@@ -42,12 +42,11 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 379CE192D4
    && $APT_UPDATE \
    && $APT_INSTALL k6
 
-# Install Go and Vegeta
-RUN wget https://golang.org/dl/go1.16.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.16.linux-amd64.tar.gz && \
-    ln -s /root/go/bin/vegeta /usr/local/bin/vegeta
-ENV PATH="${PATH}:/usr/local/go/bin"
-RUN go get -u github.com/tsenart/vegeta
+# Install Vegeta
+ENV VEGETA_VERSION 12.8.4
+RUN wget -q "https://github.com/tsenart/vegeta/releases/download/v${VEGETA_VERSION}/vegeta_${VEGETA_VERSION}_linux_amd64.tar.gz" -O /tmp/vegeta.tar.gz \
+ && tar xzf /tmp/vegeta.tar.gz -C /bin \
+ && rm /tmp/vegeta.tar.gz
 
 # Install Taurus & tools
 RUN $PIP_INSTALL ./bzt*whl \
