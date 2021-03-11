@@ -35,6 +35,9 @@ class RequestCompiler(RequestVisitor):
         super(RequestCompiler, self).__init__()
         self.jmx_builder = jmx_builder
 
+    def visit_mqttrequest(self, request):
+        return self.jmx_builder.compile_request(request)
+
     def visit_hierarchichttprequest(self, request):
         return self.jmx_builder.compile_request(request)
 
@@ -429,8 +432,8 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __gen_requests(self, scenario):
-        is_protocol_rte = scenario.data.get('protocol', None) == "rte"
-        requests = scenario.get_requests(parser=HierarchicRequestParser, require_url=not(is_protocol_rte))
+        http_protocol = scenario.data.get('protocol', 'http') == 'http'
+        requests = scenario.get_requests(parser=HierarchicRequestParser, require_url=http_protocol)
 
         elements = []
         for compiled in self.compile_requests(requests):

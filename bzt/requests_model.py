@@ -101,6 +101,12 @@ class HTTPRequest(Request):
         return body
 
 
+class MQTTRequest(Request):
+    def __init__(self, config):
+        super(MQTTRequest, self).__init__(config)
+        self.method = config.get('cmd')
+
+
 class HierarchicHTTPRequest(HTTPRequest):
     def __init__(self, config, scenario, engine):
         super(HierarchicHTTPRequest, self).__init__(config, scenario, engine, pure_body_file=True)
@@ -326,6 +332,8 @@ class HierarchicRequestParser(RequestParser):
         elif 'set-variables' in req:
             mapping = req.get('set-variables')
             return SetVariables(mapping, req)
+        elif 'mqtt' in req:
+            return MQTTRequest(req)
         else:
             return HierarchicHTTPRequest(req, self.scenario, self.engine)
 
