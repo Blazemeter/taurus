@@ -22,6 +22,8 @@ modules:
     class: bzt.modules.tsung.TsungExecutor
   k6:
     class: bzt.modules.k6.K6Executor
+  vegeta:
+    class: bzt.modules.vegeta.VegetaExecutor
 
   # selenium & functional executors
   selenium:

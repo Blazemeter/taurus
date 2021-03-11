@@ -1,0 +1,2 @@
+GET https://blazedemo.com
+Content-Type: application/json
