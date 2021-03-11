@@ -21,6 +21,14 @@ Keep in mind that some additional software can be required depend on the test ty
 (Java, specific Python tools like locust, etc).
 Below you can see some specific info for different operating systems.
 
+## Unstable features
+We use the following mark
+
+_This is available only in [unstable snapshot](https://gettaurus.org/install/Installation/#Latest-Unstable-Snapshot)._
+
+for the features that will be released soon but at the moment
+can't be installed from PyPi and available in the pointed topic only.
+
 ## Linux
 
 You will need Python 3.7+ and Java installed. To install Taurus on Linux, do the following instructions:
