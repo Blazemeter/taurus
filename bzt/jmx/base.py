@@ -333,9 +333,6 @@ class JMX(object):
 
         return mgr
 
-    @staticmethod
-    def get_mqtt_request():
-        pass
 
     @staticmethod
     def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None, follow_redirects=True,
