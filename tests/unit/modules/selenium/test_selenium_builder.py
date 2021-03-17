@@ -64,7 +64,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"typeByName(\"toPort\")": "B"},
 
                             # exec, rawcode, go, edit
-                            "scriptEval(\"alert('This is Sparta');\")",
+                            "scriptEval(\"{alert('This is ${sparta}');}\")",
                             {"rawCode": "for i in range(10):\n  if i % 2 == 0:\n    print(i)"},
                             "go(http:\\blazemeter.com)",
                             {"editContentById(editor)": "lo-la-lu"},
@@ -111,7 +111,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "get_attribute('value').strip(),\'123 Beautiful st.\'.strip())",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('B')",
-            "self.driver.execute_script(\"alert('This is Sparta');\")",
+            "self.driver.execute_script(\"{{alert(\'Thisis{}\');}}\".format(self.vars[\'sparta\']))",
             "for i in range(10):",
             "if ((i % 2) == 0):",
             print_i,
