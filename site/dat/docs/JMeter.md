@@ -18,6 +18,12 @@ modules:
     - jpgc-json=2.2
     - jmeter-ftp
     - jpgc-casutg
+    plugins-manager:
+      download-link: https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar
+      version: 1.3   # minimum 0.16
+    command-runner:
+      download-link: https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar
+      version: 2.2   # minimum 2.0
 ```
 `force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for jmx script modifications purpose. This group
 provide `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default)
@@ -31,6 +37,9 @@ jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list o
 If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.
 
 [JMeter Plugins Manager](#https://jmeter-plugins.org/wiki/PluginsManager/) allows you to install necessary plugins for your jmx file automatically and this feature doesn't require clean installation. You can turn it off with `detect-plugins` option. If you use your own installation of JMeter (with `path` option) make sure it includes `jmeter-plugins-manager` 0.16 or newer.
+If you want to change the URL from which the PluginsManager is downloaded or use a different version, configure `download-link` and/or `version` inside the `plugins-manager` block of the configuration.
+
+For the PluginsManager to work correctly, you will also need the CommandRunner. It can also be downloaded automatically in the default version from the default location (as shown in the example above) or it can be configured similar to the PluginsManager.
 
 ## Run Existing JMX File
 ```yaml
