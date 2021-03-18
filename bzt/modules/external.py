@@ -10,6 +10,7 @@ from bzt.modules.aggregator import AggregatorListener, ConsolidatingAggregator, 
 from bzt.modules.gatling import DataLogReader as GatlingLogReader
 from bzt.modules.grinder import DataLogReader as GrinderLogReader
 from bzt.modules.jmeter import JTLReader, XMLJTLReader
+from bzt.modules.vegeta import VegetaLogReader
 from bzt.utils import dehumanize_time
 
 
@@ -114,6 +115,9 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
             return JTLReader(self.data_file, self.log, self.errors_file)
         elif "worker process" in header.lower() and header.startswith("worker."):
             return GrinderLogReader(self.data_file, self.log)
+        elif re.match('[0-9]{19},*', header):
+            # Vegeta CSV does not have a header, every line starts with a timestamp in nanoseconds
+            return VegetaLogReader(self.data_file, self.log)
         else:
             self.log.info("Header line was: %s", header)
             raise TaurusInternalException("Unable to detect results format for: %s" % self.data_file)
@@ -133,7 +137,7 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
         no_new_results = time.time() - self._last_update_ts > self._result_timeout
         has_read_some = self._last_datapoint_ts > 0 or bool(self.reader and self.reader.buffer)
         # self.log.info("%s %s %s", self._last_datapoint_ts, self._prev_datapoint_ts, self._last_update_ts)
-        if has_read_some and ts_not_changed and no_new_results:
+        if self._last_datapoint_ts > 0 and has_read_some and ts_not_changed and no_new_results:
             return True
         else:
             self._prev_datapoint_ts = self._last_datapoint_ts
