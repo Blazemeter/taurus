@@ -115,7 +115,7 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
             return JTLReader(self.data_file, self.log, self.errors_file)
         elif "worker process" in header.lower() and header.startswith("worker."):
             return GrinderLogReader(self.data_file, self.log)
-        elif re.match('[0-9]{19},*', header):
+        elif re.match("^[0-9]{19},", header):
             # Vegeta CSV does not have a header, every line starts with a timestamp in nanoseconds
             return VegetaLogReader(self.data_file, self.log)
         else:
