@@ -3,7 +3,7 @@
 [Molotov](https://molotov.readthedocs.io/en/stable/) is a load testing tool developed by Mozilla.
 It's based on Python 3 and asynchronous I/O subsystem.
 
-Important note: molotov requires python >= 3.5 and doesn't work on Windows systems at the moment.
+Important note: molotov requires Python >= 3.5 and doesn't work on Windows systems at the moment.
 
 Usage:
 ```yaml
