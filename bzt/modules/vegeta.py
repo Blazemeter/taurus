@@ -41,7 +41,6 @@ class VegetaExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstall
         self.install_required_tools()
 
         self.script = self.get_script_path()
-        print(self.script)
 
         if not self.script:
             requests = self.scenario.get_requests()

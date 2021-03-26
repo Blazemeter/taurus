@@ -43,7 +43,7 @@ scenarios:
         method: POST
         headers:
           Confirmation-Token: 90215
-          Authorization: Token DEADBEEF
+          Authorization: Token ABCDEF
         body:
           id: 123
           name: Some name
