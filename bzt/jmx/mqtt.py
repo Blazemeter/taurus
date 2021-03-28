@@ -1,7 +1,19 @@
 from bzt.jmx.base import JMX
 from bzt import TaurusConfigError
 from bzt.jmx.tools import ProtocolHandler
+from bzt.utils import dehumanize_time, BetterDict
 from lxml import etree
+
+
+COUNT_CHECK_CONTENT = """
+String received_str = vars.get("received")
+ int received_int = received_str.toInteger();
+ int target_count_min = vars.get("target_count_min").toInteger()
+ if (received_int < target_count_min) {
+	 AssertionResult.setFailure(true);
+	 AssertionResult.setFailureMessage("too low: ".concat(received_str));
+ };
+"""
 
 
 class MQTTProtocolHandler(ProtocolHandler):
@@ -12,6 +24,22 @@ class MQTTProtocolHandler(ProtocolHandler):
             mqtt = self._get_publish_sampler(request)
         elif request.method == 'subscribe':
             mqtt = self._get_subscribe_sampler(request)
+
+            min_count = request.config.get("min-count", 0)
+            if min_count:
+                count_template = "^Received (\\d+) of message.$"
+                request.get("extract-regexp", force_set=True)['received_messages_count'] = count_template
+
+                groovy_script = 'temp.gsh'
+                with open(groovy_script, 'w+') as gsh:
+                    gsh.write(COUNT_CHECK_CONTENT)
+
+                count_check = BetterDict()
+                count_check['language'] = 'groovy'
+                count_check['script-file'] = groovy_script
+                count_check['execute'] = 'after'
+                request.get("jsr223", default=[], force_set=True).append(count_check)
+
         elif request.method == 'disconnect':
             mqtt = self._get_disconnect_sampler(request)
         else:
@@ -66,12 +94,14 @@ class MQTTProtocolHandler(ProtocolHandler):
                              testclass="net.xmeter.samplers.SubSampler",
                              testname=request.label)
         topic_missed = TaurusConfigError(f'Topic is required for request "{request.config}"')
+        time_interval = dehumanize_time(request.config.get("time", 1))
+
         mqtt.append(JMX._string_prop("mqtt.topic_name", request.config.get("topic", topic_missed)))
         mqtt.append(JMX._string_prop("mqtt.qos_level", "0"))
         mqtt.append(JMX._bool_prop("mqtt.add_timestamp", False))
         mqtt.append(JMX._bool_prop("mqtt.debug_response", False))
         mqtt.append(JMX._string_prop("mqtt.sample_condition", "specified elapsed time (ms)"))
-        mqtt.append(JMX._string_prop("mqtt.sample_condition_value", "1000"))
+        mqtt.append(JMX._string_prop("mqtt.sample_condition_value", str(time_interval * 1000)))
 
         return mqtt
 
