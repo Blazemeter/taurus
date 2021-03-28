@@ -108,7 +108,9 @@ class MQTTRequest(Request):
         self.label = self.method
 
     def get_think_time(self, full):
-        self.scenario.get_think_time(full=full)
+        think_time = self.priority_option('think-time')
+        if think_time:
+            return parse_think_time(think_time=think_time, full=full)
 
 
 class HierarchicHTTPRequest(HTTPRequest):
