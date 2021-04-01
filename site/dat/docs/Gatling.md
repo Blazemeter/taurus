@@ -5,6 +5,8 @@ Gatling is load testing tool which most famous as choice for testing of HTTP ser
 In Taurus you have two way for run it: with native gatling script or with usual Taurus features: `requests`,
 `iterations`, etc. In last case scala script will be generated automatically.
 
+We support Gatling version 3+.
+
 ## Run Gatling Tool
 
 ```yaml
