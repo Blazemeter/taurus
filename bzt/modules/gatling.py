@@ -33,10 +33,6 @@ from bzt.utils import simple_body_dict, CALL_PROBLEMS, numeric_types
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
-def is_gatling2(ver):
-    return LooseVersion(ver) < LooseVersion("3")
-
-
 class GatlingScriptBuilder(object):
     def __init__(self, load, scenario, parent_logger, class_name, gatling_version=None):
         super(GatlingScriptBuilder, self).__init__()
@@ -234,11 +230,7 @@ class GatlingScriptBuilder(object):
         return feeders_def, feeding
 
     def gen_test_case(self):
-        if is_gatling2(self.gatling_version):
-            version = 2
-        else:
-            version = 3
-        template_path = os.path.join(RESOURCES_DIR, "gatling", ("v%s_script.tpl" % version))
+        template_path = os.path.join(RESOURCES_DIR, "gatling", "v3_script.tpl")
 
         with open(template_path) as template_file:
             template_line = template_file.read()
@@ -378,19 +370,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         timeout = scenario.get('timeout', None)
         if timeout is not None:
             props['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
-
-        if scenario.get('keepalive', True):
-            # gatling <= 2.2.0
-            props['gatling.http.ahc.allowPoolingConnections'] = 'true'
-            props['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
-            # gatling > 2.2.0
-            props['gatling.http.ahc.keepAlive'] = 'true'
-        else:
-            # gatling <= 2.2.0
-            props['gatling.http.ahc.allowPoolingConnections'] = 'false'
-            props['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
-            # gatling > 2.2.0
-            props['gatling.http.ahc.keepAlive'] = 'false'
         return props
 
     def _set_env(self):
@@ -422,15 +401,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def startup(self):
         self._set_env()
-        self.process = self._execute(self._get_cmdline())
-
-    def _get_cmdline(self):
-        cmdline = [self.tool.tool_path]
-
-        if is_gatling2(self.tool.version):
-            cmdline += ["-m"]  # default for 3.0.0
-
-        return cmdline
+        self.process = self._execute([self.tool.tool_path])
 
     def check(self):
         """
@@ -490,12 +461,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             if not tool.check_if_installed():
                 tool.install()
 
-        # old gatling compiler (zinc) is incompatible with new jre
-        new_java = java.version and int(java.version) > 8
-
-        if is_gatling2(self.tool.version) and new_java:
-            self.log.warning('Gatling v%s is incompatible with Java %s', self.tool.version, java.version)
-
     def get_widget(self):
         if not self.widget:
             simulation = self.get_scenario().get('simulation', None)
@@ -551,81 +516,37 @@ class DataLogReader(ResultsReader):
         self.delimiter = "\t"
         self.dir_prefix = dir_prefix
         self.guessed_gatling_version = None
-        self._group_errors = defaultdict(lambda: defaultdict(set))
+        self._group_errors = defaultdict(set)
 
-    def _extract_log_gatling_21(self, fields):
+    def _extract_log(self, fields):
         """
-        Extract stats from Gatling 2.1 format.
-
-        :param fields:
-        :return:
-        """
-        # $scenario  $userId  ${RequestRecordHeader.value}
-        # ${serializeGroups(groupHierarchy)}  $name
-        # 5requestStartDate  6requestEndDate
-        # 7responseStartDate  8responseEndDate
-        # 9status
-        # ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}$Eol"
-
-        if fields[2].strip() == "USER":
-            if fields[3].strip() == "START":
-                self.concurrency += 1
-            elif fields[3].strip() == "END":
-                self.concurrency -= 1
-
-        if fields[2].strip() != "REQUEST":
-            return None
-
-        label = fields[4]
-        t_stamp = int(fields[8]) / 1000.0
-
-        r_time = (int(fields[8]) - int(fields[5])) / 1000.0
-        latency = (int(fields[7]) - int(fields[6])) / 1000.0
-        con_time = (int(fields[6]) - int(fields[5])) / 1000.0
-
-        if fields[-1] == 'OK':
-            r_code = '200'
-        else:
-            _tmp_rc = fields[-1].split(" ")[-1]
-            r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
-
-        if len(fields) >= 11 and fields[10]:
-            error = fields[10]
-        else:
-            error = None
-        return int(t_stamp), label, r_time, con_time, latency, r_code, error
-
-    def _extract_log_gatling_22(self, fields):
-        """
-        Extract stats from Gatling 2.2 format
+        Extract stats from Gatling format of version 3.1 and after
         :param fields:
         :return:
         """
         # 0 ${RequestRecordHeader.value}
         # 1 $scenario
-        # 2 $userId
-        # 3 ${serializeGroups(groupHierarchy)}
-        # 4 $label
-        # 5 $startTimestamp
-        # 6 $endTimestamp
-        # 7 $status
-        # [8] ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}
+        # -|2 $userId, absent in Gatling 3.4+
+        # 2 ${serializeGroups(groupHierarchy)}
+        # 3 $label
+        # 4 $startTimestamp
+        # 5 $endTimestamp
+        # 6 $status
+        # [7] ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}
 
         if fields[0].strip() == "USER":
-            user_id = fields[2]
-            if fields[3].strip() == "START":
+            if self.guessed_gatling_version < "3.4+":
+                del fields[2]  # ignore obsolete $userId
+            if fields[2].strip() == "START":
                 self.concurrency += 1
-                self._group_errors[user_id].clear()
-            elif fields[3].strip() == "END":
+            elif fields[2].strip() == "END":
                 self.concurrency -= 1
-                self._group_errors.pop(user_id)
 
-        if fields[0].strip() == "GROUP":
+        elif fields[0].strip() == "GROUP":
+            del fields[0]
             return self.__parse_group(fields)
         elif fields[0].strip() == "REQUEST":
             del fields[0]
-            if self.guessed_gatling_version != "3.X":
-                del fields[0]
             return self.__parse_request(fields)
         else:
             return None
@@ -634,56 +555,56 @@ class DataLogReader(ResultsReader):
         latency = 0.0
         con_time = 0.0
 
-        if len(fields) < 4:
+        if len(fields) < 3:
             label = ""
-            t_stamp = int(fields[2]) / 1000.0
+            t_stamp = int(fields[1]) / 1000.0
             r_time = 0
-            error = fields[1]
+            error = fields[0]
             r_code = "N/A"
         else:
-            if self.guessed_gatling_version != "3.X":
-                del fields[1]
-            user_id = fields[1]
-            label = fields[2]
+            if self.guessed_gatling_version < "3.4+":
+                del fields[0]  # ignore obsolete $userId
+            label = fields[0]
             if ',' in label:
                 return None  # skip nested groups for now
-            t_stamp = int(fields[4]) / 1000.0
-            r_time = int(fields[5]) / 1000.0
+            t_stamp = int(fields[2]) / 1000.0
+            r_time = int(fields[3]) / 1000.0
 
-            if label in self._group_errors[user_id]:
-                error = ';'.join(self._group_errors[user_id].pop(label))
+            if label in self._group_errors:
+                error = ';'.join(self._group_errors.pop(label))
             else:
                 error = None
 
-            if fields[6] == 'OK':
+            if fields[4] == 'OK':
                 r_code = '200'
             else:
                 r_code = self.__rc_from_msg(fields[-1])
-                assert error, label
 
         return int(t_stamp), label, r_time, con_time, latency, r_code, error
 
     def __parse_request(self, fields):
         # see LogFileDataWriter.ResponseMessageSerializer in gatling-core
 
-        if len(fields) >= 7 and fields[6]:
-            error = fields[6]
+        if self.guessed_gatling_version < "3.4+":
+            del fields[0]  # ignore obsolete $userId
+
+        if len(fields) >= 6 and fields[5]:
+            error = fields[5]
         else:
             error = None
 
-        req_hierarchy = fields[1].split(',')[0]
+        req_hierarchy = fields[0].split(',')[0]
         if req_hierarchy:
-            user_id = fields[0]
             if error:
-                self._group_errors[user_id][req_hierarchy].add(error)
+                self._group_errors[req_hierarchy].add(error)
             return None
 
-        label = fields[2]
-        t_stamp = int(fields[4]) / 1000.0
-        r_time = (int(fields[4]) - int(fields[3])) / 1000.0
+        label = fields[1]
+        t_stamp = int(fields[3]) / 1000.0
+        r_time = (int(fields[3]) - int(fields[2])) / 1000.0
         latency = 0.0
         con_time = 0.0
-        if fields[5] == 'OK':
+        if fields[4] == 'OK':
             r_code = '200'
         else:
             r_code = self.__rc_from_msg(fields[-1])
@@ -705,27 +626,18 @@ class DataLogReader(ResultsReader):
         return _tmp_rc if _tmp_rc.isdigit() else 'N/A'
 
     def _guess_gatling_version(self, fields):
-        if fields and fields[-1].strip().startswith("3"):
-            return "3.X"
-        elif fields[0].strip() in ["USER", "REQUEST", "RUN"]:
-            self.log.debug("Parsing Gatling 2.2+ stats")
-            return "2.2+"
-        elif len(fields) >= 3 and fields[2].strip() in ["USER", "REQUEST", "RUN"]:
-            self.log.debug("Parsing Gatling 2.1 stats")
-            return "2.1"
+        if fields and fields[-1].strip() < "3.4":
+            return "3.3.X"
+        elif fields[-1].strip() >= "3.4":
+            return "3.4+"
         else:
-            return None
+            return ""
 
     def _extract_log_data(self, fields):
         if self.guessed_gatling_version is None:
             self.guessed_gatling_version = self._guess_gatling_version(fields)
 
-        if self.guessed_gatling_version == "2.1":
-            return self._extract_log_gatling_21(fields)
-        elif self.guessed_gatling_version in ["2.2+", "3.X"]:
-            return self._extract_log_gatling_22(fields)
-        else:
-            return None
+        return self._extract_log(fields) if self.guessed_gatling_version else None
 
     def _read(self, last_pass=False):
         """
@@ -787,7 +699,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "3.1.2"
+    VERSION = "3.5.1"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):
@@ -826,68 +738,36 @@ class Gatling(RequiredTool):
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
     def build_launcher(self, new_name):  # legacy, for v2 only
-        def convert_v2():
-            modified_lines = []
-            mod_success = False
+        modified_lines = []
+        mod_success = False
 
-            with open(self.tool_path) as fds:
-                for line in fds.readlines():
-                    if is_windows():
-                        if line.startswith('set COMPILATION_CLASSPATH=""'):
-                            mod_success = True
-                            continue  # don't add it to modified_lines - just remove
-                    else:
-                        if line.startswith('COMPILATION_CLASSPATH='):
-                            mod_success = True
-                            line = line.rstrip() + ':"${COMPILATION_CLASSPATH}"\n'  # add from env
-                        elif line.startswith('"$JAVA"'):
-                            line = 'eval ' + line
+        with open(self.tool_path) as fds:
+            for line in fds.readlines():
+                if is_windows():
+                    if line.startswith('set COMPILER_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'  # add from env
+                    elif line.startswith('set GATLING_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
+                else:
+                    if line.startswith('COMPILER_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
+                    elif line.startswith('GATLING_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
+                    elif line.startswith('"$JAVA"'):
+                        line = 'eval ' + line
+                modified_lines.append(line)
 
-                    modified_lines.append(line)
-
-            if not mod_success:
-                raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
-
-            return modified_lines
-
-        def convert_v3():
-            modified_lines = []
-            mod_success = False
-
-            with open(self.tool_path) as fds:
-                for line in fds.readlines():
-                    if is_windows():
-                        if line.startswith('set COMPILER_CLASSPATH='):
-                            mod_success = True
-                            line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'  # add from env
-                        elif line.startswith('set GATLING_CLASSPATH='):
-                            mod_success = True
-                            line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
-                    else:
-                        if line.startswith('COMPILER_CLASSPATH='):
-                            mod_success = True
-                            line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
-                        elif line.startswith('GATLING_CLASSPATH='):
-                            mod_success = True
-                            line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
-                        elif line.startswith('"$JAVA"'):
-                            line = 'eval ' + line
-                    modified_lines.append(line)
-
-            if not mod_success:
-                raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
-
-            return modified_lines
-
-        if is_gatling2(self.version):
-            converted_lines = convert_v2()
-        else:
-            converted_lines = convert_v3()
+        if not mod_success:
+            raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
 
         self.tool_path = new_name
 
         with open(self.tool_path, 'w') as modified:
-            modified.writelines(converted_lines)
+            modified.writelines(modified_lines)
 
         if not is_windows():
             os.chmod(self.tool_path, 0o755)

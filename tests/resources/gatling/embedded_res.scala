@@ -13,7 +13,7 @@ class TaurusSimulation extends Simulation {
 
   val durationLimit = rampUpTime + holdForTime
 
-  var httpConf = http.baseURL("")
+  var httpConf = http.baseUrl("")
     .inferHtmlResources(BlackList(), WhiteList("""(.*)boo(. *)"""))
 
   var testScenario = scenario("Taurus Scenario")
@@ -29,7 +29,7 @@ class TaurusSimulation extends Simulation {
 
   val virtualUsers =
     if (rampUpTime > 0)
-      rampUsers(concurrency) over (rampUpTime seconds)
+      rampUsers(concurrency) during (rampUpTime seconds)
     else
       atOnceUsers(concurrency)
 

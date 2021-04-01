@@ -10,7 +10,7 @@ class blazedemo extends Simulation {
   val concurrency = Integer.getInteger("concurrency", 10).toInt
   val rampUp = Integer.getInteger("ramp-up", 1).toInt
   val holdFor = Integer.getInteger("hold-for", 30).toInt
-  val httpConf = http.baseURL("http://blazedemo.com/")  // baseUrl for Gatling 3.x
+  val httpConf = http.baseUrl("http://blazedemo.com/")
  
   // 'forever' means each thread will execute scenario until
   // duration limit is reached
@@ -30,7 +30,7 @@ class blazedemo extends Simulation {
   }
  
   val execution = loopScenario
-    .inject(rampUsers(concurrency) over rampUp) // during for gatling 3.x
+    .inject(rampUsers(concurrency) during rampUp)
     .protocols(httpConf)
  
   setUp(execution).maxDuration(rampUp + holdFor)

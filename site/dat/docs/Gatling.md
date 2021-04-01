@@ -16,7 +16,6 @@ scenarios:
   sample:
     script: tests/gatling/BasicSimulation.scala
     simulation: tests.gatling.BasicSimulation
-    keepalive: true
 ```
 
 The `simulation` option is canonical class name for main simulation class. It will be passed as-is to gatling
@@ -42,7 +41,7 @@ class BasicSimulation extends Simulation {
   val t_rampUp = Integer.getInteger("ramp-up", 1).toInt
   val t_holdFor = Integer.getInteger("hold-for", 60).toInt
   val t_throughput = Integer.getInteger("throughput", 100).toInt
-  val httpConf = http.baseURL("http://blazedemo.com/")
+  val httpConf = http.baseUrl("http://blazedemo.com/")
 
   // 'forever' means each thread will execute scenario until
   // duration limit is reached
@@ -57,7 +56,7 @@ class BasicSimulation extends Simulation {
   }
 
   val execution = loopScenario
-    .inject(rampUsers(t_concurrency) over t_rampUp)
+    .inject(rampUsers(t_concurrency) during t_rampUp)
     .protocols(httpConf)
 
   setUp(execution).
