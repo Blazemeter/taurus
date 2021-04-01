@@ -320,11 +320,13 @@ class TestJMX(BZTestCase):
         self.assertEqual("", res.find(".//stringProp[@name='HTTPSampler.port']").text)
 
     def test_regexp_subject(self):
-        res = JMX._get_extractor('test_name', 'baddy', 'regexp', 1, 1, 'error')
-        self.assertEqual("body", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
-        res = JMX._get_extractor('test_name', 'headers', 'regexp', 1, 1, 'error')
+        res = JMX._get_regexp_extractor('test_name', 'baddy', 'regexp', 1, 1, 'error')
+        self.assertEqual("false", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
+        res = JMX._get_regexp_extractor('test_name', 'message', 'regexp', 1, 1, 'error')
+        self.assertEqual("message", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
+        res = JMX._get_regexp_extractor('test_name', 'headers', 'regexp', 1, 1, 'error')
         self.assertEqual("true", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
-        res = JMX._get_extractor('test_name', 'http-code', 'regexp', 1, 1, 'error')
+        res = JMX._get_regexp_extractor('test_name', 'http-code', 'regexp', 1, 1, 'error')
         self.assertEqual("code", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
         self.assertIsNone(res.find(".//stringProp[@name='Sample.scope']"))
 

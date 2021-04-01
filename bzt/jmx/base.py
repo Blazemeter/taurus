@@ -948,7 +948,7 @@ class JMX(object):
         return [element, etree.Element("hashTree")]
 
     @staticmethod
-    def _get_extractor(varname, headers, regexp, template, match_no, default='NOT_FOUND', scope='', from_var=''):
+    def _get_regexp_extractor(varname, headers, regexp, template, match_no, default='NOT_FOUND', scope='', from_var=''):
         """
         :type varname: str
         :type regexp: str
@@ -968,8 +968,10 @@ class JMX(object):
             headers = 'code'
         elif headers.lower() == 'url':
             headers = 'URL'
+        elif headers.lower() == 'message':
+            headers = 'message'
         else:
-            headers = 'body'
+            headers = 'false'   # value for body
 
         element = etree.Element("RegexExtractor", guiclass="RegexExtractorGui",
                                 testclass="RegexExtractor", testname="Get %s" % varname, enabled="true")
