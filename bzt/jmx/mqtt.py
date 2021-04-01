@@ -6,13 +6,16 @@ from lxml import etree
 
 
 COUNT_CHECK_CONTENT = """
-String received_str = vars.get("received_messages_count")
- int received_int = received_str.toInteger();
- int target_count_min = %s
- if (received_int < target_count_min) {
-	 AssertionResult.setFailure(true);
-	 AssertionResult.setFailureMessage("too low: ".concat(received_str));
- };
+String resp_message = prev.getResponseMessage();
+int target_count_min = 100
+def match = (resp_message =~ /Received (\d+) of message./);
+if (match.find()) {
+    int received_messages = match[0][1].toInteger();
+    if (target_count_min > received_messages) {
+        prev.setResponseMessage("Number of received messages is too low: " + received_messages.toString());
+        prev.setSuccessful(false);
+    }
+}
 """
 
 
@@ -27,9 +30,6 @@ class MQTTProtocolHandler(ProtocolHandler):
 
             min_count = request.config.get("min-count", 0)
             if min_count:
-                count_template = "^Received (\\d+) of message.$"
-                request.config.get("extract-regexp", force_set=True)['received_messages_count'] = count_template
-
                 groovy_script = 'temp.gsh'
                 with open(groovy_script, 'w+') as gsh:
                     gsh.write(COUNT_CHECK_CONTENT % (min_count,))

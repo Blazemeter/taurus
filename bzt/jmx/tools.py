@@ -210,9 +210,10 @@ class LoadSettingsProcessor(object):
 
 class ProtocolHandler(object):
 
-    def __init__(self, sys_props):
+    def __init__(self, sys_props, artifacts_dir):
         super(ProtocolHandler, self).__init__()
         self.system_props = sys_props
+        self.artifacts_dir = artifacts_dir
 
     def get_toplevel_elements(self, scenario):
         return []
@@ -252,7 +253,7 @@ class JMeterScenarioBuilder(JMX):
         self.protocol_handlers = {}
         for protocol, cls_name in iteritems(self.executor.settings.get("protocol-handlers")):
             cls_obj = load_class(cls_name)
-            instance = cls_obj(self.system_props)
+            instance = cls_obj(self.system_props, self.engine.artifacts_dir)
             self.protocol_handlers[protocol] = instance
         self.FIELD_KEYSTORE_CONFIG = 'keystore-config'
 
