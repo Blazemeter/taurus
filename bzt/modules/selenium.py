@@ -276,7 +276,7 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 
 class ChromeDriver(RequiredTool):
     DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-    VERSION = "87.0.4280.20"
+    VERSION = "89.0.4389.23"
 
     def __init__(self, config=None, **kwargs):
         settings = config or {}
