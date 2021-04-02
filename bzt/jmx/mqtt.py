@@ -7,7 +7,7 @@ from lxml import etree
 
 COUNT_CHECK_CONTENT = """
 String resp_message = prev.getResponseMessage();
-int target_count_min = 100
+int target_count_min = %s
 def match = (resp_message =~ /Received (\d+) of message./);
 if (match.find()) {
     int received_messages = match[0][1].toInteger();
@@ -30,7 +30,7 @@ class MQTTProtocolHandler(ProtocolHandler):
 
             min_count = request.config.get("min-count", 0)
             if min_count:
-                groovy_script = 'temp.gsh'
+                groovy_script = self.engine.create_artifact("mqtt-subscribe", ".gsh")
                 with open(groovy_script, 'w+') as gsh:
                     gsh.write(COUNT_CHECK_CONTENT % (min_count,))
 
