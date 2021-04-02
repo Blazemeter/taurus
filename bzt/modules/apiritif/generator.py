@@ -1338,26 +1338,13 @@ from selenium.webdriver.common.keys import Keys
         return self.expr_compiler.gen_expr(value)
 
     @staticmethod
-    # escapes the { with {{
-    def _escape_js_blocks(value):
-        result_list = []
-        inside_var = False
-        for i in range(len(value)):
-            if value[i] == '{':
-                if i == 0 or value[i-1] != '$':
-                    result_list.append('{{')
-                else:
-                    inside_var = True
-                    result_list.append(value[i])
-            elif value[i] == '}':
-                if inside_var:
-                    result_list.append(value[i])
-                    inside_var = False
-                else:
-                    result_list.append('}}')
-            else:
-                result_list.append(value[i])
-        return ''.join(result_list)
+    def _escape_js_blocks(value):  # escapes plain { with {{
+        blocks = re.finditer(r"(?<!\$){.*}", value)
+        for block in blocks:
+            start, end = block.start(), block.end()
+            line = "{" + value[start:end] + "}"
+            value = value[:start] + line + value[end:]
+        return value
 
     def _gen_target_setup(self, key, value):
         return ast.Expr(ast_call(
