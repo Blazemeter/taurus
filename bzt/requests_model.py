@@ -105,7 +105,7 @@ class MQTTRequest(Request):
     def __init__(self, config, scenario):
         super(MQTTRequest, self).__init__(config, scenario)
         self.method = config.get('cmd')
-        self.label = self.method
+        self.label = str(self.config.get("label", self.method))
 
     def get_think_time(self, full):
         think_time = self.priority_option('think-time')
