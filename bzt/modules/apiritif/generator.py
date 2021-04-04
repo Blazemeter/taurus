@@ -693,8 +693,9 @@ from selenium.webdriver.common.keys import Keys
                     args=[self._gen_expr(param.strip())]))
 
         elif atype == "script" and tag == "eval":
+            escaped_param = self._escape_js_blocks(param)
             action_elements.append(ast_call(func=ast_attr("self.driver.execute_script"),
-                                            args=[self._gen_expr(param)]))
+                                            args=[self._gen_expr(escaped_param)]))
         elif atype == "rawcode":
             action_elements.append(ast.parse(param))
         elif atype == 'go':
@@ -1335,6 +1336,14 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_expr(self, value):
         return self.expr_compiler.gen_expr(value)
+
+    @staticmethod
+    def _escape_js_blocks(value):  # escapes plain { with {{
+        for block in re.finditer(r"(?<!\$){.*}", value):
+            start, end = block.start(), block.end()
+            line = "{" + value[start:end] + "}"
+            value = value[:start] + line + value[end:]
+        return value
 
     def _gen_target_setup(self, key, value):
         return ast.Expr(ast_call(

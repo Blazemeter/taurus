@@ -13,7 +13,7 @@ class SIMNAME extends Simulation {
 
   val durationLimit = rampUpTime + holdForTime
 
-  var httpConf = http.baseURL("http://blazedemo.com")
+  var httpConf = http.baseUrl("http://blazedemo.com")
     .header("H1", "V1")
 
   var testScenario = scenario("Taurus Scenario")
@@ -51,7 +51,7 @@ class SIMNAME extends Simulation {
 
   val virtualUsers =
     if (rampUpTime > 0)
-      rampUsers(concurrency) over (rampUpTime seconds)
+      rampUsers(concurrency) during (rampUpTime seconds)
     else
       atOnceUsers(concurrency)
 
