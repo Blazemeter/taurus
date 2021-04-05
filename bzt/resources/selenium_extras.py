@@ -450,9 +450,6 @@ def waiter():
     """
     Allows waiting for page to finish loading before performing other actions on non completely loaded page
     """
-    try:
-        WebDriverWait(_get_driver(), _get_timeout())\
-            .until(lambda driver: driver.execute_script('return document.readyState') == 'complete',
-                   message="Timeout occurred while waiting for page to finish loading.")
-    except UnexpectedAlertPresentException:
-        pass
+    WebDriverWait(_get_driver(), _get_timeout())\
+        .until(lambda driver: driver.execute_script('return document.readyState') == 'complete',
+               message="Timeout occurred while waiting for page to finish loading.")
