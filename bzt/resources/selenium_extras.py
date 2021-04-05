@@ -5,7 +5,7 @@ import datetime
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
 from apiritif import get_logging_handlers, set_logging_handlers
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
-    TimeoutException
+    TimeoutException, UnexpectedAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as econd
@@ -450,7 +450,9 @@ def waiter():
     """
     Allows waiting for page to finish loading before performing other actions on non completely loaded page
     """
-    WebDriverWait(_get_driver(), _get_timeout())\
-        .until(lambda driver: driver.execute_script('return document.readyState') == 'complete',
-               message="Timeout occurred while waiting for page to finish loading.")
-
+    try:
+        WebDriverWait(_get_driver(), _get_timeout())\
+            .until(lambda driver: driver.execute_script('return document.readyState') == 'complete',
+                   message="Timeout occurred while waiting for page to finish loading.")
+    except UnexpectedAlertPresentException:
+        pass
