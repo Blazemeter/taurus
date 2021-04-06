@@ -72,7 +72,8 @@ class MQTTProtocolHandler(ProtocolHandler):
 
         return mqtt
 
-    def _get_publish_sampler(self, request):
+    @staticmethod
+    def _get_publish_sampler(request):
         mqtt = etree.Element("net.xmeter.samplers.PubSampler",
                              guiclass="net.xmeter.gui.PubSamplerUI",
                              testclass="net.xmeter.samplers.PubSampler",
@@ -88,7 +89,8 @@ class MQTTProtocolHandler(ProtocolHandler):
 
         return mqtt
 
-    def _get_subscribe_sampler(self, request):
+    @staticmethod
+    def _get_subscribe_sampler(request):
         mqtt = etree.Element("net.xmeter.samplers.SubSampler",
                              guiclass="net.xmeter.gui.SubSamplerUI",
                              testclass="net.xmeter.samplers.SubSampler",
@@ -105,7 +107,8 @@ class MQTTProtocolHandler(ProtocolHandler):
 
         return mqtt
 
-    def _get_disconnect_sampler(self, request):
+    @staticmethod
+    def _get_disconnect_sampler(request):
         mqtt = etree.Element("net.xmeter.samplers.DisConnectSampler",
                              guiclass="net.xmeter.gui.DisConnectSamplerUI",
                              testclass="net.xmeter.samplers.DisConnectSampler",
