@@ -5,7 +5,7 @@ import datetime
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
 from apiritif import get_logging_handlers, set_logging_handlers
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
-    TimeoutException, UnexpectedAlertPresentException
+    TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as econd
