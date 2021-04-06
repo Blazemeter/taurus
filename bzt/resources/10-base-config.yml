@@ -12,6 +12,7 @@ modules:
     class: bzt.modules.jmeter.JMeterExecutor
     protocol-handlers:
       http: bzt.jmx.http.HTTPProtocolHandler
+      mqtt: bzt.jmx.mqtt.MQTTProtocolHandler
   locust:
     class: bzt.modules.locustio.LocustIOExecutor
   molotov:

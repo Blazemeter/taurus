@@ -1,8 +1,12 @@
 # coding=utf-8
 from . import MockJMeterExecutor
 from bzt.engine import Provisioning
+from bzt.utils import BetterDict
 from bzt.jmx import JMX, LoadSettingsProcessor
 from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
+from bzt.jmx.tools import JMeterScenarioBuilder
+from bzt.jmx.mqtt import MQTTProtocolHandler
+from bzt.requests_model import MQTTRequest
 
 
 class TestLoadSettingsProcessor(BZTestCase):
@@ -295,6 +299,75 @@ class TestLoadSettingsProcessor(BZTestCase):
             res_values[group.get_testname()] = group.get_concurrency()
 
         self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1, 'ATG.05': 1})
+
+
+class TestMQTTSamplers(BZTestCase):
+    def test_full_generation(self):
+        # check mqtt protocol handling: getting request, parsing of it, generation of jmx
+        engine = EngineEmul()
+        jmeter = MockJMeterExecutor()
+        jmeter.engine = engine
+        jmeter.configure({'scenario': 'sc1'})
+        scenario = BetterDict.from_dict({
+            'protocol': 'mqtt',
+            'requests': [
+                {'cmd': 'connect', 'addr': 'server.com'},
+                {'cmd': 'disconnect'}
+            ]})
+        jmeter.engine.config.merge({'scenarios': {'sc1': scenario}})
+        jmeter.settings.merge({'protocol-handlers': {'mqtt': 'bzt.jmx.mqtt.MQTTProtocolHandler'}})
+        builder = JMeterScenarioBuilder(jmeter)
+        elements = builder.compile_scenario(jmeter.get_scenario())
+        self.assertEqual(4, len(elements))
+
+        # appropriate classes has been generated
+        self.assertEqual('net.xmeter.samplers.ConnectSampler', elements[0].attrib['testclass'])
+        self.assertEqual('net.xmeter.samplers.DisConnectSampler', elements[2].attrib['testclass'])
+
+    @staticmethod
+    def get_mqtt_sample(config):
+        request = BetterDict.from_dict(config)
+        request = MQTTRequest(request, {})
+        engine = EngineEmul()
+        sample, _ = MQTTProtocolHandler({}, engine).get_sampler_pair(request)
+        return sample, request
+
+    def test_connect_sampler(self):
+        config = {'label': 'connector', 'cmd': 'connect', 'addr': 'server.com'}
+        sample = self.get_mqtt_sample(config)[0]
+        self.assertEqual('net.xmeter.samplers.ConnectSampler', sample.attrib['testclass'])
+        self.assertEqual(config['label'], sample.attrib['testname'])
+        self.assertEqual(config['addr'], sample.find(".//stringProp[@name='mqtt.server']").text)
+
+    def test_disconnect_sampler(self):
+        config = {'label': 'disconnector', 'cmd': 'disconnect'}
+        sample = self.get_mqtt_sample(config)[0]
+        self.assertEqual('net.xmeter.samplers.DisConnectSampler', sample.attrib['testclass'])
+        self.assertEqual(config['label'], sample.attrib['testname'])
+
+    def test_publish_sampler(self):
+        config = {'label': 'publisher', 'cmd': 'publish', 'topic': 't1', 'message': 'm1'}
+        sample = self.get_mqtt_sample(config)[0]
+        self.assertEqual('net.xmeter.samplers.PubSampler', sample.attrib['testclass'])
+        self.assertEqual(config['label'], sample.attrib['testname'])
+        self.assertEqual(config['topic'], sample.find(".//stringProp[@name='mqtt.topic_name']").text)
+        self.assertEqual(config['message'], sample.find(".//stringProp[@name='mqtt.message_to_sent']").text)
+
+    def test_subscribe_sampler(self):
+        config = {'label': 'subscriber', 'cmd': 'subscribe', 'topic': 't1', 'time': 3, 'min-count': 10}
+        sample, request = self.get_mqtt_sample(config)
+        self.assertEqual('net.xmeter.samplers.SubSampler', sample.attrib['testclass'])
+        self.assertEqual(config['label'], sample.attrib['testname'])
+        self.assertEqual(config['topic'], sample.find(".//stringProp[@name='mqtt.topic_name']").text)
+        self.assertEqual("specified elapsed time (ms)",
+                         sample.find(".//stringProp[@name='mqtt.sample_condition']").text)
+        self.assertEqual(str(config['time']*1000),
+                         sample.find(".//stringProp[@name='mqtt.sample_condition_value']").text)
+        self.assertIn('jsr223', request.config)
+        jsr223 = request.config.get('jsr223')[0]
+        self.assertEqual('groovy', jsr223['language'])
+        self.assertIn('script-file', jsr223)
+        self.assertEqual('after', jsr223['execute'])
 
 
 class TestJMX(BZTestCase):

@@ -1102,3 +1102,44 @@ execution:
 - executor: jmeter
   scenario: protocols-demo
 ```
+
+## MQTT Protocol Load Testing
+_This is available only in [unstable snapshot](https://gettaurus.org/install/Installation/#Latest-Unstable-Snapshot)._
+
+JMeter tool can be used for load testing of mqtt infrastructure. This protocol is very popular in IoT world.
+Usually the target of test is mqtt server ('broker'). Taurus can emulate messages of sensors and actuators to check 
+whether this broker is good enough for specific load.
+
+```yaml
+execution:
+- concurrency: 3
+  hold-for: 5s
+  scenario: sc_pub
+- concurrency: 1
+  scenario: sc_sub
+
+scenarios:
+  sc_pub:
+    protocol: mqtt
+    requests:
+    - cmd: connect # first step for every mqtt client
+      addr: 127.0.0.1
+    - cmd: publish  # publishing message into topic
+      topic: t1 # topic name
+      message: my_message # content of message
+    - cmd: disconnect # last step for every mqtt client
+
+  sc_sub:
+    protocol: mqtt
+    requests:
+    - cmd: connect
+      addr: 127.0.0.1
+    - cmd: subscribe  # subscribing on topic
+      topic: t1
+      time: 3s        # check topic for 3 seconds
+      min-count: 20   # at least 20 messages must be received
+    - cmd: disconnect
+```
+Here you see three sensors ('publisher') and one checker ('subscriber'). Messages that created by sensors
+must be handled by broker and redirected to appropriate subscribers.
+All logic blocks, data sources and many other functionality of JMeter Executor are available with mqtt protocol as well.
