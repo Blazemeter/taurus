@@ -176,7 +176,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "options.set_headless()",
             "profile = webdriver.FirefoxProfile()",
             "profile.set_preference('webdriver.log.file', '",
-            "driver = webdriver.Firefox(profile, options=options)"
+            "driver = webdriver.Firefox(profile, options=options)",
+            "options.set_capability('unhandledPromptBehavior', 'ignore')"
         ]
 
         for idx in range(len(target_lines)):
@@ -216,7 +217,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target_lines = [
             "options = webdriver.ChromeOptions()",
             "driver = webdriver.Chrome(service_log_path='",
-            "', options=options)"
+            "', options=options)",
+            "options.set_capability('unhandledPromptBehavior', 'ignore')"
         ]
 
         for idx in range(len(target_lines)):

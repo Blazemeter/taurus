@@ -97,7 +97,7 @@ class ApiritifScriptGenerator(object):
                         'resize', 'maximize', 'alert', 'waitFor'
                         ])
 
-    ACTIONS_WITH_WAITER = ['go', 'doubleclick', 'contextclick', 'drag', 'select', 'type', 'script']
+    ACTIONS_WITH_WAITER = ['go', 'click', 'doubleclick', 'contextclick', 'drag', 'select', 'type', 'script']
 
     EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach'])
 
@@ -1012,7 +1012,11 @@ from selenium.webdriver.common.keys import Keys
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
-                    args=[ast.Str("%s" % "--disable-dev-shm-usage", kind="")]))]
+                    args=[ast.Str("%s" % "--disable-dev-shm-usage", kind="")])),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.set_capability"),
+                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))]
 
         return chrome_options + self._get_headless_setup()
 
@@ -1023,7 +1027,11 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
             ast.Expr(ast_call(
                 func=ast_attr("profile.set_preference"),
-                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")]))]
+                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.set_capability"),
+                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))]
 
     def _get_firefox_webdriver(self):
         return ast.Assign(
