@@ -90,6 +90,9 @@ class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallable
         if not self.k6.check_if_installed():
             self.k6.install()
 
+    def resource_files(self):
+        return [self.get_script_path(required=True)]
+
 
 class K6LogReader(ResultsReader):
     def __init__(self, filename, parent_logger):
