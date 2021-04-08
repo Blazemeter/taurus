@@ -20,6 +20,7 @@ execution:
 - executor: vegeta
   throughput: 100  # number of desired requests rate
   hold-for: 60s    # execution duration
+  concurrency: 100  # maximum number of workers
   scenario:
     script: vegeta.txt  # has to be a valid Vegeta script
 ```
@@ -34,6 +35,7 @@ execution:
 
 scenarios:
   vegeta-test:
+    timeout: 30
     requests:
       - url: http://localhost:8000
         method: HEAD

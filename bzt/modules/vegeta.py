@@ -81,6 +81,12 @@ class VegetaExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstall
         if load.hold:
             cmdline += ['-duration', str(int(load.hold)) + "s"]
 
+        if load.concurrency:
+            cmdline += ['-max-workers', str(int(load.concurrency))]
+
+        if self.scenario and 'timeout' in self.scenario:
+            cmdline += ['-timeout', str(int(self.scenario.get('timeout'))) + "s"]
+
         self.process = self._execute(cmdline, stdout=PIPE, shell=False)
         with open(self.kpi_file, 'wb') as f:
             self._execute(["vegeta", "encode", "-to=csv"], stdin=self.process.stdout, stdout=f, shell=False)
