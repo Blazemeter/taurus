@@ -81,6 +81,12 @@ class VegetaExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstall
         if load.hold:
             cmdline += ['-duration', str(int(load.hold)) + "s"]
 
+        if load.concurrency:
+            cmdline += ['-max-workers', str(int(load.concurrency))]
+
+        if self.scenario and 'timeout' in self.scenario:
+            cmdline += ['-timeout', str(int(self.scenario.get('timeout'))) + "s"]
+
         self.process = self._execute(cmdline, stdout=PIPE, shell=False)
         with open(self.kpi_file, 'wb') as f:
             self._execute(["vegeta", "encode", "-to=csv"], stdin=self.process.stdout, stdout=f, shell=False)
@@ -112,6 +118,9 @@ class VegetaExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstall
         if not self.vegeta.check_if_installed():
             self.vegeta.install()
 
+    def resource_files(self):
+        return [self.get_script_path(required=True)]
+
 
 class VegetaLogReader(ResultsReader):
     def __init__(self, filename, parent_logger):
@@ -127,13 +136,13 @@ class VegetaLogReader(ResultsReader):
 
             _tstamp = int(log_vals[0][:10])
             _url = log_vals[10]
-            _concur = 0
+            _concur = 1
             _etime = float(log_vals[2]) / 1000000000.0
             _con_time = 0
             _latency = 0
             _rstatus = log_vals[1]
             _error = log_vals[5] or None
-            _bytes = int(log_vals[3])
+            _bytes = int(log_vals[4])
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, '', _bytes
 

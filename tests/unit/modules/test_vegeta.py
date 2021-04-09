@@ -98,6 +98,25 @@ class TestVegetaExecutor(ExecutorTestCase):
         })
         self.assertCmd('-duration', '30s')
 
+    def test_concurrency(self):
+        self.simple_run({
+            'execution': {
+                'concurrency': '100',
+                'scenario': {'script': VEGETA_SCRIPT},
+                'executor': 'vegeta'
+            }
+        })
+        self.assertCmd('-max-workers', '100')
+
+    def test_timeout(self):
+        self.simple_run({
+            'execution': {
+                'scenario': {'script': VEGETA_SCRIPT, 'timeout': 30},
+                'executor': 'vegeta'
+            }
+        })
+        self.assertCmd('-timeout', '30s')
+
     def test_script(self):
         self.simple_run({
             'execution': {
