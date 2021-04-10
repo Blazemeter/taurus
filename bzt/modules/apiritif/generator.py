@@ -997,7 +997,7 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(
                     func=ast_attr("webdriver.FirefoxOptions")))]
 
-        return firefox_options + self._get_headless_setup()
+        return firefox_options + self._get_arguments() + self._get_preferences() + self._get_headless_setup()
 
     def _get_chrome_options(self):
         chrome_options = [
@@ -1018,7 +1018,7 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("options.set_capability"),
                     args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))]
 
-        return chrome_options + self._get_headless_setup()
+        return chrome_options + self._get_arguments() + self._get_experimental_options() + self._get_headless_setup()
 
     def _get_firefox_profile(self):
         return [
@@ -1076,6 +1076,49 @@ from selenium.webdriver.common.keys import Keys
                     ast.keyword(
                         arg="options",
                         value=ast.Name(id="options"))]))
+
+    def _get_arguments(self):
+        args = []
+        arguments = "arguments"
+        options = "options"
+        if options in self.executor.settings:
+            if arguments in self.executor.settings[options]:
+                for arg in self.executor.settings[options][arguments]:
+                    args.append(ast.Expr(
+                        ast_call(
+                            func=ast_attr("options.add_argument"),
+                            args=[ast.Str(arg, kind="")])))
+        return args
+
+    def _get_experimental_options(self):
+        options = "options"
+        experimental_options = "experimental_options"
+        if options in self.executor.settings:
+            if experimental_options in self.executor.settings[options]:
+                keys = sorted(self.executor.settings[options][experimental_options])
+                values = [self.executor.settings[options][experimental_options][key] for key in keys]
+                return [ast.Expr(
+                    ast_call(
+                        func=ast_attr("options.add_experimental_option"),
+                        args=[ast.Dict(
+                            keys=[ast.Str(key, kind="") for key in keys],
+                            values=[ast.Str(value, kind="") for value in values])]))]
+        return []
+
+    def _get_preferences(self):
+        options = "options"
+        preferences = "preferences"
+        if options in self.executor.settings:
+            if preferences in self.executor.settings[options]:
+                keys = sorted(self.executor.settings[options][preferences])
+                values = [self.executor.settings[options][preferences][key] for key in keys]
+                return [ast.Expr(
+                    ast_call(
+                        func=ast_attr("options.set_preference"),
+                        args=[ast.Dict(
+                            keys=[ast.Str(key, kind="") for key in keys],
+                            values=[ast.Str(value, kind="") for value in values])]))]
+        return []
 
     @staticmethod
     def _gen_impl_wait(timeout):
