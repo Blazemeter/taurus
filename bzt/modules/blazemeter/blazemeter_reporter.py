@@ -35,6 +35,9 @@ from bzt.engine import Reporter, Singletone
 from bzt.utils import b, humanize_bytes, iteritems, open_browser, BetterDict, to_json, dehumanize_time
 from bzt.modules.aggregator import AggregatorListener, DataPoint, KPISet, ResultsProvider
 from bzt.modules.monitoring import Monitoring, MonitoringListener
+from bzt.modules.blazemeter.project_finder import ProjectFinder
+from bzt.modules.blazemeter.net_utils import send_with_retry
+from bzt.modules.blazemeter.cloud_const import NOTE_SIZE_LIMIT
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singletone):

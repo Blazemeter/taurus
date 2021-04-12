@@ -22,7 +22,7 @@ import yaml
 from bzt import TaurusConfigError
 from bzt.bza import Workspace
 from bzt.utils import iteritems, BetterDict
-from bzt.modules.blazemeter.cloud_provisioning import CloudProvisioning
+from bzt.modules.blazemeter.cloud_const import LOC
 
 TAURUS_TEST_TYPE = "taurus"
 FUNC_API_TEST_TYPE = "functionalApi"
@@ -100,19 +100,19 @@ class CloudTaurusTest(BaseCloudTest):
         for loc in workspace.locations(include_private=is_taurus4):
             available_locations[loc['id']] = loc
 
-        if CloudProvisioning.LOC in engine_config and not is_taurus4:
+        if LOC in engine_config and not is_taurus4:
             self.log.warning("Deprecated test API doesn't support global locations")
 
         for executor in executors:
-            if CloudProvisioning.LOC in executor.execution \
-                    and isinstance(executor.execution[CloudProvisioning.LOC], dict):
-                exec_locations = executor.execution[CloudProvisioning.LOC]
+            if LOC in executor.execution \
+                    and isinstance(executor.execution[LOC], dict):
+                exec_locations = executor.execution[LOC]
                 self._check_locations(exec_locations, available_locations)
-            elif CloudProvisioning.LOC in engine_config and is_taurus4:
-                self._check_locations(engine_config[CloudProvisioning.LOC], available_locations)
+            elif LOC in engine_config and is_taurus4:
+                self._check_locations(engine_config[LOC], available_locations)
             else:
                 default_loc = self._get_default_location(available_locations)
-                executor.execution[CloudProvisioning.LOC] = BetterDict.from_dict({default_loc: 1})
+                executor.execution[LOC] = BetterDict.from_dict({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
