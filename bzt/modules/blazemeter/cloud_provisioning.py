@@ -46,7 +46,8 @@ from bzt.modules.blazemeter.net_utils import get_with_retry
 from bzt.modules.blazemeter.blazemeter_reporter import BlazeMeterUploader
 from bzt.modules.blazemeter.cloud_test import FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE, TAURUS_TEST_TYPE
 from bzt.modules.blazemeter.project_finder import ProjectFinder
-from bzt.modules.blazemeter.cloud_const import DEDICATED_IPS
+from bzt.modules.blazemeter.const import DEDICATED_IPS
+
 
 CLOUD_CONFIG_BLACK_LIST = {
     "settings": {

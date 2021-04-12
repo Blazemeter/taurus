@@ -19,6 +19,7 @@ limitations under the License.
 from bzt import TaurusConfigError
 from bzt.bza import Test
 from bzt.modules.blazemeter.cloud_test import CloudTaurusTest
+from bzt.modules.blazemeter.net_utils import parse_blazemeter_test_link
 
 
 class ProjectFinder(object):

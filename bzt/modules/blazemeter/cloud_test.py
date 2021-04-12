@@ -22,7 +22,7 @@ import yaml
 from bzt import TaurusConfigError
 from bzt.bza import Workspace
 from bzt.utils import iteritems, BetterDict
-from bzt.modules.blazemeter.cloud_const import LOC
+from bzt.modules.blazemeter.const import LOC
 
 TAURUS_TEST_TYPE = "taurus"
 FUNC_API_TEST_TYPE = "functionalApi"

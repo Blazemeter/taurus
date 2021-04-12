@@ -37,7 +37,7 @@ from bzt.modules.aggregator import AggregatorListener, DataPoint, KPISet, Result
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.blazemeter.project_finder import ProjectFinder
 from bzt.modules.blazemeter.net_utils import send_with_retry
-from bzt.modules.blazemeter.cloud_const import NOTE_SIZE_LIMIT
+from bzt.modules.blazemeter.const import NOTE_SIZE_LIMIT
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singletone):

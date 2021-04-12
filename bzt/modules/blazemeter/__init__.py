@@ -17,4 +17,3 @@ limitations under the License.
 """
 from bzt.modules.blazemeter.blazemeter_reporter import BlazeMeterUploader
 from bzt.modules.blazemeter.cloud_provisioning import CloudProvisioning
-
