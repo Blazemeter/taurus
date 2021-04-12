@@ -12,9 +12,10 @@ from bzt.bza import Master, Test
 from bzt.engine import ScenarioExecutor, Service, EXEC
 from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
-from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
-from bzt.modules.blazemeter import CloudTaurusTest, BlazeMeterUploader
-from bzt.modules.blazemeter import FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE
+from bzt.modules.blazemeter import CloudProvisioning
+from bzt.modules.blazemeter.cloud_provisioning import ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
+from bzt.modules.blazemeter import BlazeMeterUploader
+from bzt.modules.blazemeter.cloud_test import CloudTaurusTest, FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE
 from bzt.modules.reporting import FinalStatus
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.modules.apiritif import ApiritifTester
