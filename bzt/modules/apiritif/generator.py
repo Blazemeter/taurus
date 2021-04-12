@@ -1347,9 +1347,10 @@ from selenium.webdriver.common.keys import Keys
 
     @staticmethod
     def _escape_js_blocks(value):  # escapes plain { with {{
-        for block in re.finditer(r"(?<!\$){.*}", value):
+        value = value.replace("{", "{{").replace("}", "}}")
+        for block in re.finditer(r"\${{[\w\d]*}}", value):
             start, end = block.start(), block.end()
-            line = "{" + value[start:end] + "}"
+            line = "$" + value[start+2:end-1]
             value = value[:start] + line + value[end:]
         return value
 
