@@ -208,6 +208,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "modules": {
                 "selenium": {
                     "options": {
+                        "ignore_proxy": True,
                         "arguments": ["one", "two"],
                         "experimental_options": {
                             "key1": "value1"},
@@ -223,6 +224,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.assertNotIn("options.add_experimental_option({'key1': 'value1'})", content)
 
         target_lines = [
+            "options.ignore_local_proxy_environment_variables()",
             "options.add_argument('one')",
             "options.add_argument('two')",
             "options.set_preference({'key1': 'value1', 'key2': 'value2'})",
@@ -299,6 +301,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "modules": {
                 "selenium": {
                     "options": {
+                        "ignore_proxy": False,
                         "arguments": ["one"],
                         "experimental_options": {
                             "key1": "value1"},
@@ -311,6 +314,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         self.assertNotIn("options.set_preference({'key2': 'value2'})", content)
+        self.assertNotIn("options.ignore_local_proxy_environment_variables()", content)
 
         target_lines = [
             "options.add_argument('one')",
