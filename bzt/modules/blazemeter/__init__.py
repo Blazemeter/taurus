@@ -16,4 +16,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from bzt.modules.blazemeter.blazemeter_reporter import BlazeMeterUploader
-from bzt.modules.blazemeter.cloud_provisioning import CloudProvisioning
+from bzt.modules.blazemeter.cloud_provisioning import CloudProvisioning, ServiceStubScreenshoter, ServiceStubCaptureHAR

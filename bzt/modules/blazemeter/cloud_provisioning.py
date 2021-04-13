@@ -63,7 +63,8 @@ CLOUD_CONFIG_BLACK_LIST = {
     "version": True,
     "modules": {
         "jmeter": {
-            "path": True
+            "path": True,
+            "protocol-handlers": True
         },
         "ab": {
             "path": True
