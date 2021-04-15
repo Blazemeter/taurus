@@ -1,7 +1,5 @@
 # Vegeta Executor
 
-_This is available only in [unstable snapshot](https://gettaurus.org/install/Installation/#Latest-Unstable-Snapshot)._
-
 [Vegeta](https://github.com/tsenart/vegeta) is an HTTP load generator tool.
 Written in Go programming language Vegeta consumes CPU and memory resources very efficiently.
 This makes Vegeta a good candidate for performance testing organized in the cloud where cost effectiveness is especially important.
