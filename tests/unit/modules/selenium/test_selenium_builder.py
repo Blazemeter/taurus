@@ -183,56 +183,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-    def test_firefox_options_generator(self):
-        self.configure({
-            "execution": [{
-                "executor": "selenium",
-                "hold-for": "4m",
-                "ramp-up": "3m",
-                "scenario": "loc_sc"}],
-            "scenarios": {
-                "loc_sc": {
-                    "headless": True,
-                    "default-address": "http://blazedemo.com",
-                    "variables": {
-                        "red_pill": "take_it",
-                        "name": "Name"
-                    },
-                    "timeout": "3.5s",
-                    "requests": [{
-                        "url": "bla.com",
-                        "assert": [{
-                            "contains": ['contained_text'],
-                            "not": True}],
-                    }]}},
-            "modules": {
-                "selenium": {
-                    "options": {
-                        "ignore_proxy": True,
-                        "arguments": ["one", "two"],
-                        "experimental_options": {
-                            "key1": "value1"},
-                        "preferences": {
-                            "key1": "value1",
-                            "key2": "value2"}
-                    }}}})
-
-        self.obj.prepare()
-        with open(self.obj.script) as fds:
-            content = fds.read()
-
-        self.assertNotIn("options.add_experimental_option({'key1': 'value1'})", content)
-
-        target_lines = [
-            "options.ignore_local_proxy_environment_variables()",
-            "options.add_argument('one')",
-            "options.add_argument('two')",
-            "options.set_preference({'key1': 'value1', 'key2': 'value2'})",
-        ]
-
-        for idx in range(len(target_lines)):
-            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
-
     def test_chrome_setup_generator(self):
         self.configure({
             "execution": [{
@@ -274,29 +224,51 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-    def test_chrome_options_generator(self):
+    def test_firefox_options_generator(self):
         self.configure({
             "execution": [{
-                "executor": "selenium",
-                "hold-for": "4m",
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
-                    'generate-flow-markers': True,
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore_proxy": True,
+                        "arguments": ["one", "two"],
+                        "experimental_options": {
+                            "key1": "value1"},
+                        "preferences": {
+                            "key1": "value1",
+                            "key2": "value2"}
+                    }}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.add_experimental_option({'key1': 'value1'})", content)
+
+        target_lines = [
+            "options.ignore_local_proxy_environment_variables()",
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+            "options.set_preference({'key1': 'value1', 'key2': 'value2'})",
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_chrome_options_generator(self):
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
                     "browser": "Chrome",
-                    "default-address": "http://blazedemo.com",
-                    "variables": {
-                        "red_pill": "take_it",
-                        "name": "Name"
-                    },
-                    "timeout": "3.5s",
                     "requests": [{
                         "url": "bla.com",
-                        "assert": [{
-                            "contains": ['contained_text'],
-                            "not": True
-                        }],
-
                     }]}},
             "modules": {
                 "selenium": {

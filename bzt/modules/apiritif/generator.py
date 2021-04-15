@@ -123,6 +123,8 @@ from selenium.webdriver.common.keys import Keys
     ACCESS_PLAIN = 'plain'
     SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock)
 
+    OPTIONS = 'options'
+
     def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
                  capabilities=None, wd_addr=None, test_mode="selenium", generate_external_logging=None):
@@ -578,8 +580,8 @@ from selenium.webdriver.common.keys import Keys
         )
 
         raise_kwargs = {
-                "exc": exc_type,
-                "cause": None}
+            "exc": exc_type,
+            "cause": None}
 
         body = ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
                                  args=[
@@ -932,9 +934,6 @@ from selenium.webdriver.common.keys import Keys
         body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
 
         browser = self._check_platform()
-
-        body.append(self._get_selenium_options())
-
         if browser == 'firefox':
             body.extend(self._get_firefox_options() + self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
@@ -955,6 +954,9 @@ from selenium.webdriver.common.keys import Keys
                 targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
+
+        if self.OPTIONS in self.executor.settings:
+            body.append(self._get_selenium_options(browser))
 
         body.append(self._get_timeout())
         body.extend(self._get_extra_mngrs())
@@ -999,10 +1001,6 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(
                     func=ast_attr("webdriver.FirefoxOptions")))]
 
-        options = "options"
-        if options in self.executor.settings:
-            firefox_options.append(self._get_preferences())
-
         return firefox_options + self._get_headless_setup()
 
     def _get_chrome_options(self):
@@ -1023,10 +1021,6 @@ from selenium.webdriver.common.keys import Keys
                 ast_call(
                     func=ast_attr("options.set_capability"),
                     args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))]
-
-        options = "options"
-        if options in self.executor.settings:
-            chrome_options.append(self._get_experimental_options())
 
         return chrome_options + self._get_headless_setup()
 
@@ -1087,63 +1081,72 @@ from selenium.webdriver.common.keys import Keys
                         arg="options",
                         value=ast.Name(id="options"))]))
 
-    def _get_selenium_options(self):
-        options = "options"
-        if options in self.executor.settings:
+    def _get_selenium_options(self, browser):
+        result = []
+        for opt in self.executor.settings.get(self.OPTIONS):
             self.log.debug("Generating selenium options")
-            return [self._get_ignore_proxy() + self._get_arguments()]
-        return []
+
+            if opt == "ignore_proxy":
+                result.append(self._get_ignore_proxy())
+            if opt == "arguments":
+                result.append(self._get_arguments())
+            if opt == "experimental_options":
+                result.append(self._get_experimental_options(browser))
+            if opt == "preferences":
+                result.append(self._get_preferences(browser))
+
+        return result
 
     def _get_ignore_proxy(self):
-        options = "options"
         ignore_proxy = "ignore_proxy"
-        if ignore_proxy in self.executor.settings[options]:
-            if self.executor.settings[options][ignore_proxy] is True:
-                return [ast.If(
-                    test=ast_call(func=ast_attr("int(webdriver.__version__.split('.')[0]) > 3")),
-                    body=ast.Expr(ast_call(func=ast_attr("options.ignore_local_proxy_environment_variables"))),
-                    orelse=[])]
+        if self.executor.settings.get(self.OPTIONS).get(ignore_proxy) is True:
+            return [ast.If(
+                test=ast_attr("int(webdriver.__version__.split('.')[0]) > 3"),
+                body=ast.Expr(ast_call(func=ast_attr("options.ignore_local_proxy_environment_variables"))),
+                orelse=[])]
         return []
 
     def _get_arguments(self):
         args = []
-        options = "options"
         arguments = "arguments"
-        if arguments in self.executor.settings[options]:
-            for arg in self.executor.settings[options][arguments]:
-                args.append(ast.Expr(
-                    ast_call(
-                        func=ast_attr("options.add_argument"),
-                        args=[ast.Str(arg, kind="")])))
+        for arg in self.executor.settings.get(self.OPTIONS).get(arguments):
+            args.append(ast.Expr(
+                ast_call(
+                    func=ast_attr("options.add_argument"),
+                    args=[ast.Str(arg, kind="")])))
         return args
 
-    def _get_experimental_options(self):
-        options = "options"
+    def _get_experimental_options(self, browser):
         experimental_options = "experimental_options"
-        if experimental_options in self.executor.settings[options]:
-            keys = sorted(self.executor.settings[options][experimental_options])
-            values = [self.executor.settings[options][experimental_options][key] for key in keys]
+
+        if browser == "chrome":
+            keys = sorted(self.executor.settings.get(self.OPTIONS).get(experimental_options))
+            values = [self.executor.settings.get(self.OPTIONS).get(experimental_options)[key] for key in keys]
             return [ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_experimental_option"),
                     args=[ast.Dict(
                         keys=[ast.Str(key, kind="") for key in keys],
                         values=[ast.Str(value, kind="") for value in values])]))]
-        return []
+        else:
+            self.log.warning("Option "+experimental_options+" is not supported for "+browser)
+            return []
 
-    def _get_preferences(self):
-        options = "options"
+    def _get_preferences(self, browser):
         preferences = "preferences"
-        if preferences in self.executor.settings[options]:
-            keys = sorted(self.executor.settings[options][preferences])
-            values = [self.executor.settings[options][preferences][key] for key in keys]
+
+        if browser == "firefox":
+            keys = sorted(self.executor.settings.get(self.OPTIONS).get(preferences))
+            values = [self.executor.settings.get(self.OPTIONS).get(preferences)[key] for key in keys]
             return [ast.Expr(
                 ast_call(
                     func=ast_attr("options.set_preference"),
                     args=[ast.Dict(
                         keys=[ast.Str(key, kind="") for key in keys],
                         values=[ast.Str(value, kind="") for value in values])]))]
-        return []
+        else:
+            self.log.warning("Option "+preferences+" is not supported for "+browser)
+            return []
 
     @staticmethod
     def _gen_impl_wait(timeout):
