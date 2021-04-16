@@ -6,7 +6,7 @@ import bzt
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.vegeta import VegetaExecutor, VegetaLogReader
-from bzt.utils import EXE_SUFFIX
+from bzt.utils import EXE_SUFFIX, is_windows
 from tests.unit import BZTestCase, ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER, BUILD_DIR
 
 TOOL_NAME = os.path.join(RESOURCES_DIR, 'vegeta', 'vegeta_mock' + EXE_SUFFIX)
@@ -177,6 +177,7 @@ class TestVegetaExecutor(ExecutorTestCase):
             self.assertEqual(f.read(),
                              '{"str": "something", "number": 1.25, "boolean": true}')
 
+    @unittest.skipIf(is_windows(), "disabled on windows")
     def test_install_vegeta(self):
         path = os.path.abspath(BUILD_DIR + 'vegeta')
         shutil.rmtree(os.path.dirname(path), ignore_errors=True)
