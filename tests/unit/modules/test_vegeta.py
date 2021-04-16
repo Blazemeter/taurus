@@ -1,6 +1,7 @@
 import os
 import shutil
 import io
+import unittest
 import bzt
 
 from bzt.modules.aggregator import DataPoint, KPISet

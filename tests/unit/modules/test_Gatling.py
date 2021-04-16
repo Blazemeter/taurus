@@ -161,6 +161,8 @@ class TestGatlingExecutor(ExecutorTestCase):
             if line.startswith('GATLING_CLASSPATH'):  # linux
                 self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
 
+
+    @unittest.skipIf(is_windows(), "disabled on windows")
     def test_install_Gatling(self):
         path = os.path.abspath(BUILD_DIR + "gatling-taurus/bin/gatling" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
