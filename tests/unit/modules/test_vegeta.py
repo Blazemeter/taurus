@@ -2,6 +2,7 @@ import os
 import shutil
 import io
 import unittest
+import sys
 import bzt
 
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -183,13 +184,13 @@ class TestVegetaExecutor(ExecutorTestCase):
         shutil.rmtree(os.path.dirname(path), ignore_errors=True)
 
         download_link = "file:///" + RESOURCES_DIR + "vegeta/vegeta-dist-{version}.tar.gz"
-        gatling_version = '12.8.4'
+        vegeta_version = '12.8.4'
 
         self.assertFalse(os.path.exists(path))
         self.obj.settings.merge({
             "path": path,
             "download-link": download_link,
-            "version": gatling_version})
+            "version": vegeta_version})
 
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "vegeta/vegeta.in"}})
 
