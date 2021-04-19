@@ -178,8 +178,7 @@ class Vegeta(RequiredTool):
 
     def install(self):
         if is_windows():
-            self.log.info("Unable to install Vegeta on Windows! Manual installation required.")
-            return
+            raise ToolError("Unable to install Vegeta on Windows! Manual installation required.")
 
         dest = get_full_path(self.tool_path, step_up=1)
         if not os.path.exists(dest):

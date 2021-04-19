@@ -2,12 +2,11 @@ import os
 import shutil
 import io
 import unittest
-import sys
 import bzt
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.vegeta import VegetaExecutor, VegetaLogReader
-from bzt.utils import EXE_SUFFIX, is_windows
+from bzt.utils import EXE_SUFFIX, is_windows, ToolError
 from tests.unit import BZTestCase, ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER, BUILD_DIR
 
 TOOL_NAME = os.path.join(RESOURCES_DIR, 'vegeta', 'vegeta_mock' + EXE_SUFFIX)
@@ -196,6 +195,16 @@ class TestVegetaExecutor(ExecutorTestCase):
 
         self.obj.prepare()
         self.assertTrue(os.path.exists(path))
+
+    @unittest.skipIf(not is_windows(), "only for windows")
+    def test_install_vegeta_win(self):
+        self.obj.settings.merge({
+            "path": os.path.abspath(BUILD_DIR + 'vegeta'),
+            "download-link": "",
+            "version": '12.8.4'})
+
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "vegeta/vegeta.in"}})
+        self.assertRaises(ToolError, self.obj.prepare)
 
 
 class TestVegetaReader(BZTestCase):
