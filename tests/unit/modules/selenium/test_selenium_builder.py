@@ -726,7 +726,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
-
     def test_resize_window(self):
         self.configure({
             "execution": [{
@@ -760,6 +759,20 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_open_window_var(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": {
+                    "requests": [{
+                        "actions": [
+                            {"storeString(test_string)": "test"},
+                            "openWindow('${test}')"]}]}}]})
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+        self.assertIn("open_window(self.vars['test'])", content)
 
     def test_alert(self):
         self.configure({
@@ -1774,7 +1787,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                                 "element": "el",
                                                 "param": "value"
                                             },
-                                            {"editContentByElement(el)" : "new text"},
+                                            {"editContentByElement(el)": "new text"},
                                             {
                                                 "type": "editContent",
                                                 "element": "el",
@@ -1819,7 +1832,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                                 "type": "mouseOver",
                                                 "element": "el",
                                             },
-                                            {"dragByElement(el)" : "elementById(id12)"},
+                                            {"dragByElement(el)": "elementById(id12)"},
                                             {"dragById(id34)": "elementByElement(el)"},
                                             {
                                                 "type": "drag",
@@ -1827,7 +1840,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                                     {"element": "el"}
                                                 ],
                                                 "target": [
-                                                        {"id": "id12"}
+                                                    {"id": "id12"}
                                                 ]
                                             },
                                             {
@@ -1940,13 +1953,15 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
                                         "param": "text"
                                     },
-                                    {"assertValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "value"},
+                                    {
+                                        "assertValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "value"},
                                     {
                                         "type": "assertValue",
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
                                         "param": "value"
                                     },
-                                    {"editContentByShadow(c-basic, lightning-accordion-section, .slds-button)" : "new text"},
+                                    {
+                                        "editContentByShadow(c-basic, lightning-accordion-section, .slds-button)": "new text"},
                                     {
                                         "type": "editContent",
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
@@ -1987,8 +2002,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "type": "mouseOver",
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
                                     },
-                                    {"dragByShadow(c-basic, lightning-accordion-section, .slds-button)" : "elementById(id12)"},
-                                    {"dragById(id34)": "elementByShadow(c-basic, lightning-accordion-section, .slds-button)"},
+                                    {
+                                        "dragByShadow(c-basic, lightning-accordion-section, .slds-button)": "elementById(id12)"},
+                                    {
+                                        "dragById(id34)": "elementByShadow(c-basic, lightning-accordion-section, .slds-button)"},
                                     {
                                         "type": "drag",
                                         "source": [
@@ -2019,7 +2036,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
                                         "param": "my_var"
                                     },
-                                    {"storeValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "my_var"},
+                                    {
+                                        "storeValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "my_var"},
                                     {
                                         "type": "storeValue",
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
