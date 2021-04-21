@@ -34,7 +34,7 @@ class AbstractThreadGroup(object):
         return self._get_val("iterations", self.ITER_SEL, raw=raw)
 
     def get_ramp_up(self, raw=False):
-        return self._get_val("ramp-up", self.RAMP_UP_SEL, default=1, raw=raw)
+        return self._get_val("ramp-up", self.RAMP_UP_SEL, default=0, raw=raw)
 
     def get_concurrency(self, raw=False):
         raw_concurrency = self._get_val("concurrency", self.CONCURRENCY_SEL, default=1, raw=True)
