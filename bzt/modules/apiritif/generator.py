@@ -1117,36 +1117,40 @@ from selenium.webdriver.common.keys import Keys
         return args
 
     def _get_experimental_options(self, browser):
+        exp_opts = []
         experimental_options = "experimental_options"
 
         if browser == "chrome":
             keys = sorted(self.executor.settings.get(self.OPTIONS).get(experimental_options))
-            values = [self.executor.settings.get(self.OPTIONS).get(experimental_options)[key] for key in keys]
-            return [ast.Expr(
-                ast_call(
+            for key in keys:
+                value = self.executor.settings.get(self.OPTIONS).get(experimental_options)[key]
+                exp_opts.append(ast.Expr(ast_call(
                     func=ast_attr("options.add_experimental_option"),
-                    args=[ast.Dict(
-                        keys=[ast.Str(key, kind="") for key in keys],
-                        values=[ast.Str(value, kind="") for value in values])]))]
+                    args=[
+                        [ast.Str(key, kind="")],
+                        [ast.Str(value, kind="")]])))
         else:
             self.log.warning("Option "+experimental_options+" is not supported for "+browser)
-            return []
+
+        return exp_opts
 
     def _get_preferences(self, browser):
+        prefers = []
         preferences = "preferences"
 
         if browser == "firefox":
             keys = sorted(self.executor.settings.get(self.OPTIONS).get(preferences))
-            values = [self.executor.settings.get(self.OPTIONS).get(preferences)[key] for key in keys]
-            return [ast.Expr(
-                ast_call(
+            for key in keys:
+                value = self.executor.settings.get(self.OPTIONS).get(preferences)[key]
+                prefers.append(ast.Expr(ast_call(
                     func=ast_attr("options.set_preference"),
-                    args=[ast.Dict(
-                        keys=[ast.Str(key, kind="") for key in keys],
-                        values=[ast.Str(value, kind="") for value in values])]))]
+                    args=[
+                        [ast.Str(key, kind="")],
+                        [ast.Str(value, kind="")]])))
         else:
             self.log.warning("Option "+preferences+" is not supported for "+browser)
-            return []
+
+        return prefers
 
     @staticmethod
     def _gen_impl_wait(timeout):
