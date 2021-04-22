@@ -245,6 +245,26 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.assertIn(target, content)
         # TODO: check if selenium.version = 3
 
+    def test_ignore_proxy_option_false_generator(self):
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore_proxy": False}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = "options.ignore_local_proxy_environment_variables()"
+        self.assertNotIn(target, content)
+
     def test_arguments_option_generator(self):
         self.configure({
             "execution": [{
@@ -264,12 +284,13 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         target_lines = [
             "options.add_argument('one')",
-            "options.add_argument('two')"]
+            "options.add_argument('two')"
+        ]
 
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-    def test_experimental_options_generator(self):
+    def test_options_generator_browser_chrome(self):
         self.configure({
             "execution": [{
                 "scenario": "loc_sc"}],
@@ -281,34 +302,12 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "modules": {
                 "selenium": {
                     "options": {
+                        "ignore_proxy": True,
+                        "arguments": ["one", "two"],
                         # Option experimental_options is only available in Chrome
                         "experimental_options": {
                             "key1": "value1",
-                            "key2": {"key22": "value22"}}}}}})
-
-        self.obj.prepare()
-        with open(self.obj.script) as fds:
-            content = fds.read()
-
-        target_lines = [
-            "options.add_experimental_option('key1', 'value1')",
-            "options.add_experimental_option('key2', {'key22': 'value22'})",
-        ]
-
-        for idx in range(len(target_lines)):
-            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
-
-    def test_preferences_option_generator(self):
-        self.configure({
-            "execution": [{
-                "scenario": "loc_sc"}],
-            "scenarios": {
-                "loc_sc": {
-                    "requests": [{
-                        "url": "bla.com"}]}},
-            "modules": {
-                "selenium": {
-                    "options": {
+                            "key2": {"key22": "value22"}},
                         # Option preferences is only available in Firefox
                         "preferences": {
                             "key1": "value1",
@@ -318,9 +317,88 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
+        self.assertNotIn("options.set_preference", content)
+
         target_lines = [
+            "options.ignore_local_proxy_environment_variables()",
+            "options.add_argument('one')",
+            "options.add_experimental_option('key1', 'value1')",
+            "options.add_experimental_option('key2', {'key22': 'value22'})"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_browser_firefox(self):
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore_proxy": True,
+                        "arguments": ["one", "two"],
+                        # Option experimental_options is only available in Chrome
+                        "experimental_options": {
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        # Option preferences is only available in Firefox
+                        "preferences": {
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.add_experimental_option", content)
+
+        target_lines = [
+            "options.ignore_local_proxy_environment_variables()",
+            "options.add_argument('one')",
             "options.set_preference('key1', 'value1')",
-            "options.set_preference('key2', {'key22': 'value22'})",
+            "options.set_preference('key2', {'key22': 'value22'})"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_browser_ie(self):
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Ie",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore_proxy": True,
+                        "arguments": ["one", "two"],
+                        # Option experimental_options is only available in Chrome
+                        "experimental_options": {
+                            "key1": "value1"},
+                        # Option preferences is only available in Firefox
+                        "preferences": {
+                            "key1": "value1"}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.add_experimental_option", content)
+        self.assertNotIn("options.set_preference", content)
+
+        target_lines = [
+            "options.ignore_local_proxy_environment_variables()",
+            "options.add_argument('one')"
         ]
 
         for idx in range(len(target_lines)):
