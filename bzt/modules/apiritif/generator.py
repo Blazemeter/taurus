@@ -371,8 +371,7 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(method)
             elements.append(ast_call(
                 func=ast_attr(method),
-                args=[ast.Str(param, kind="")]
-            ))
+                args=[self._gen_expr(param.strip())]))
         elif atype == "close":
             method = "close_window"
             self.selenium_extras.add(method)
