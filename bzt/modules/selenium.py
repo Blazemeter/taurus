@@ -276,7 +276,7 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 
 class ChromeDriver(RequiredTool):
     DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-    VERSION = "89.0.4389.23"
+    VERSION = "90.0.4430.24"
 
     def __init__(self, config=None, **kwargs):
         settings = config or {}
@@ -326,7 +326,7 @@ class ChromeDriver(RequiredTool):
 class GeckoDriver(RequiredTool):
     DOWNLOAD_LINK = \
         "https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}"
-    VERSION = "0.23.0"
+    VERSION = "0.29.1"
 
     def __init__(self, config=None, **kwargs):
         settings = config or {}
