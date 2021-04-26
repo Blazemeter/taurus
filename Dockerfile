@@ -37,8 +37,8 @@ RUN $APT_INSTALL ./packages-microsoft-prod.deb \
    && $APT_INSTALL dotnet-sdk-3.1
 
 # Install K6
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 379CE192D401AB61 \
-   && echo "deb https://dl.bintray.com/loadimpact/deb stable main" | tee -a /etc/apt/sources.list \
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 \
+   && echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list \
    && $APT_UPDATE \
    && $APT_INSTALL k6
 
