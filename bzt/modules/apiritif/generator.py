@@ -934,6 +934,9 @@ from selenium.webdriver.common.keys import Keys
         body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
 
         browser = self._check_platform()
+        if self.OPTIONS in self.executor.settings:
+            body.extend(self._get_selenium_options(browser))
+
         if browser == 'firefox':
             body.extend(self._get_firefox_options() + self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
@@ -954,9 +957,6 @@ from selenium.webdriver.common.keys import Keys
                 targets=[ast_attr("self.driver")],
                 value=ast_call(
                     func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
-
-        if self.OPTIONS in self.executor.settings:
-            body.append(self._get_selenium_options(browser))
 
         body.append(self._get_timeout())
         body.extend(self._get_extra_mngrs())
@@ -1087,13 +1087,13 @@ from selenium.webdriver.common.keys import Keys
             self.log.debug("Generating selenium options")
 
             if opt == "ignore_proxy":
-                result.append(self._get_ignore_proxy())
+                result.extend(self._get_ignore_proxy())
             if opt == "arguments":
-                result.append(self._get_arguments())
+                result.extend(self._get_arguments())
             if opt == "experimental_options":
-                result.append(self._get_experimental_options(browser))
+                result.extend(self._get_experimental_options(browser))
             if opt == "preferences":
-                result.append(self._get_preferences(browser))
+                result.extend(self._get_preferences(browser))
 
         return result
 
