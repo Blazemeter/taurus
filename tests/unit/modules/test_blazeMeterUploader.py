@@ -206,20 +206,12 @@ class TestBlazeMeterUploader(BZTestCase):
     def test_extend_datapoints(self):
         mock = BZMock()
         mock.mock_get.update({
-            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {"result": []},
+            '1': {"result": []},
             'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name': {"result": []},
+            '3': {"result": []},
         })
         mock.mock_post.update({
-            'https://a.blazemeter.com/api/v4/projects': {"result": {
-                "id": 1,
-                "name": "boo",
-                "userId": 2,
-                "description": None,
-                "created": time.time(),
-                "updated": time.time(),
-                "organizationId": None
-            }},
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/tests': {"result": {'id': 1}},
             'https://a.blazemeter.com/api/v4/tests/1/start-external': {"result": {
                 'session': {'id': 1, 'userId': 1, 'testId': 1},
@@ -255,7 +247,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.aggregator.settings['extend-aggregation'] = True
         shutil.copy(__file__, os.path.join(obj.engine.artifacts_dir, os.path.basename(__file__)))
         mock.apply(obj._user)
-        obj._user.timeout = 0.1
+        obj._user.timeout = 0.001
         obj.prepare()
         obj.startup()
         new_data = [
