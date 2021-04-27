@@ -274,6 +274,7 @@ class TestBlazeMeterUploader(BZTestCase):
         for dp in new_data:
             obj.aggregated_second(dp)
         obj.check()
+        # todo: check sent [extended] data
         obj.shutdown()
         obj.post_process()
 
