@@ -356,6 +356,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if self.engine.aggregator.settings.get('extend-aggregation'):
             self.__extend_reported_data(data)
         serialized = self._dpoint_serializer.get_kpi_body(data, is_final)
+
+        # todo: send_with_retry only following (don't serialize many times):
         self._session.send_kpi_data(serialized, do_check)
 
     def __extend_reported_data(self, data):

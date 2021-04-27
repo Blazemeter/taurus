@@ -244,8 +244,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.settings['browser-open'] = 'none'
         obj.engine = EngineEmul()
         obj.engine.aggregator = ConsolidatingAggregator()
-        obj.engine.aggregator.settings['extend-aggregation'] = True
-        shutil.copy(__file__, os.path.join(obj.engine.artifacts_dir, os.path.basename(__file__)))
+        obj.engine.aggregator.settings['extend-aggregation'] = True     # todo: write it into aggregator settings
         mock.apply(obj._user)
         obj._user.timeout = 0.001
         obj.prepare()
@@ -262,40 +261,15 @@ class TestBlazeMeterUploader(BZTestCase):
             {'id': '1', 'ts': 2,
                 'cumulative': {
                     'a-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
-                    '': {'throughput': 4, 'concurrency': 1, 'succ': 2, 'fail': 2, 'avg_rt': 2.5, 'stdev_rt': 0, 'avg_lt': 2.5, 'avg_ct': 2.5, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 3, 404: 1}), 'perc': {}},
+                    '': {'throughput': 5, 'concurrency': 1, 'succ': 3, 'fail': 2, 'avg_rt': 2.5, 'stdev_rt': 0, 'avg_lt': 2.5, 'avg_ct': 2.5, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 4, 404: 1}), 'perc': {}},
                     'b-1': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 2.0, 'stdev_rt': 0, 'avg_lt': 2.0, 'avg_ct': 2.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
                     'b-2': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({404: 1}), 'perc': {}},
-                    'c-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}}},
+                    'c-0': {'throughput': 2, 'concurrency': 1, 'succ': 2, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 2}), 'perc': {}}},
                 'current': {
                     'b-1': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 2.0, 'stdev_rt': 0, 'avg_lt': 2.0, 'avg_ct': 2.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}], 'rt': 1, 'rc': Counter({200: 1}), 'perc': {}},
                     'b-2': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({404: 1}), 'perc': {}},
-                    'c-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
-                    '': {'throughput': 3, 'concurrency': 1, 'succ': 1, 'fail': 2, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 2, 404: 1}), 'perc': {}}},
-                'subresults': [{...}]},
-            {'id': '1', 'ts': 3,
-                'cumulative': {
-                    'a-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
-                    '': {'throughput': 5, 'concurrency': 1, 'succ': 3, 'fail': 2, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 4, 404: 1}), 'perc': {}},
-                    'b-1': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 2.0, 'stdev_rt': 0, 'avg_lt': 2.0, 'avg_ct': 2.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
-                    'b-2': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({404: 1}), 'perc': {}},
-                    'c-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 4, 'rc': Counter({200: 1}), 'perc': {}},
-                    'd-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 5.0, 'stdev_rt': 0, 'avg_lt': 5.0, 'avg_ct': 5.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}}},
-                'current': {
-                    'd-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 5.0, 'stdev_rt': 0, 'avg_lt': 5.0, 'avg_ct': 5.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
-                    '': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 5.0, 'stdev_rt': 0, 'avg_lt': 5.0, 'avg_ct': 5.0, 'bytes': 0, 'errors': [], 'rt': 3, 'rc': Counter({200: 1}), 'perc': {}}},
-                'subresults': [{...}]},
-            {'id': '1', 'ts': 4,
-                'cumulative': {
-                    'a-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
-                    '': {'throughput': 6, 'concurrency': 1, 'succ': 4, 'fail': 2, 'avg_rt': 3.5, 'stdev_rt': 0, 'avg_lt': 3.5, 'avg_ct': 3.5, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 3, 'rc': Counter({200: 5, 404: 1}), 'perc': {}},
-                    'b-1': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 2.0, 'stdev_rt': 0, 'avg_lt': 2.0, 'avg_ct': 2.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}], 'rt': 3, 'rc': Counter({200: 1}), 'perc': {}},
-                    'b-2': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 3, 'rc': Counter({404: 1}), 'perc': {}},
-                    'c-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 3, 'rc': Counter({200: 1}), 'perc': {}},
-                    'd-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 5.0, 'stdev_rt': 0, 'avg_lt': 5.0, 'avg_ct': 5.0, 'bytes': 0, 'errors': [], 'rt': 1, 'rc': Counter({200: 1}), 'perc': {}},
-                    'b-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 6.0, 'stdev_rt': 0, 'avg_lt': 6.0, 'avg_ct': 6.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}}},
-                'current': {
-                    'b-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 6.0, 'stdev_rt': 0, 'avg_lt': 6.0, 'avg_ct': 6.0, 'bytes': 0, 'errors': [], 'rt': 3, 'rc': Counter({200: 1}), 'perc': {}},
-                    '': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 6.0, 'stdev_rt': 0, 'avg_lt': 6.0, 'avg_ct': 6.0, 'bytes': 0, 'errors': [], 'rt': 4, 'rc': Counter({200: 1}), 'perc': {}}},
+                    'c-0': {'throughput': 2, 'concurrency': 1, 'succ': 2, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 2}), 'perc': {}},
+                    '': {'throughput': 4, 'concurrency': 1, 'succ': 2, 'fail': 2, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 3, 404: 1}), 'perc': {}}},
                 'subresults': [{...}]}]
         for dp in new_data:
             obj.aggregated_second(dp)
