@@ -7,10 +7,11 @@ import time
 from tempfile import mkstemp
 from io import BytesIO
 from urllib.error import HTTPError
+from collections import Counter
 
 from bzt import TaurusException
 from bzt.bza import Master, Session
-from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.blazemeter import BlazeMeterUploader
 from bzt.modules.blazemeter.blazemeter_reporter import MonitoringBuffer
 from bzt.utils import iteritems, viewvalues
@@ -201,6 +202,114 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.post_process()
         self.assertEqual(20, len(mock.requests))
         obj.engine.log.parent.removeHandler(handler)
+
+    def test_extend_datapoints(self):
+        mock = BZMock()
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {"result": []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name': {"result": []},
+        })
+        mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/projects': {"result": {
+                "id": 1,
+                "name": "boo",
+                "userId": 2,
+                "description": None,
+                "created": time.time(),
+                "updated": time.time(),
+                "organizationId": None
+            }},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {'id': 1}},
+            'https://a.blazemeter.com/api/v4/tests/1/start-external': {"result": {
+                'session': {'id': 1, 'userId': 1, 'testId': 1},
+                'master': {'id': 1, 'userId': 1},
+                'signature': 'sign'}},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': [
+                {},
+                {"result": {'session': {"statusCode": 140, 'status': 'ENDED'}}},
+                {},
+            ],
+            'https://data.blazemeter.com/api/v4/image/1/files?signature=sign': [
+                IOError("monitoring push expected fail"),
+                {"result": True},
+                {"result": True},
+                {"result": True},
+                {"result": True},
+                {"result": True},
+                {"result": True},
+                {"result": True},
+                {"result": True},
+            ],
+            'https://a.blazemeter.com/api/v4/sessions/1/stop': {},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=engine_health&update=1':
+                {"result": {'session': {}}}
+        })
+
+        obj = BlazeMeterUploader()
+        obj.parameters['project'] = 'Proj name'
+        obj.settings['token'] = '123'
+        obj.settings['browser-open'] = 'none'
+        obj.engine = EngineEmul()
+        obj.engine.aggregator = ConsolidatingAggregator()
+        obj.engine.aggregator.settings['extend-aggregation'] = True
+        shutil.copy(__file__, os.path.join(obj.engine.artifacts_dir, os.path.basename(__file__)))
+        mock.apply(obj._user)
+        obj._user.timeout = 0.1
+        obj.prepare()
+        obj.startup()
+        new_data = [
+            {'id': '1', 'ts': 1,
+                'cumulative': {
+                    'a-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 1, 'rc': Counter({200: 1}), 'perc': {}},
+                    '': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}}},
+                'current': {
+                    'a-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 3, 'rc': Counter({200: 1}), 'perc': {}},
+                    '': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}}},
+                'subresults': [{...}]},
+            {'id': '1', 'ts': 2,
+                'cumulative': {
+                    'a-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
+                    '': {'throughput': 4, 'concurrency': 1, 'succ': 2, 'fail': 2, 'avg_rt': 2.5, 'stdev_rt': 0, 'avg_lt': 2.5, 'avg_ct': 2.5, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 3, 404: 1}), 'perc': {}},
+                    'b-1': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 2.0, 'stdev_rt': 0, 'avg_lt': 2.0, 'avg_ct': 2.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
+                    'b-2': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({404: 1}), 'perc': {}},
+                    'c-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}}},
+                'current': {
+                    'b-1': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 2.0, 'stdev_rt': 0, 'avg_lt': 2.0, 'avg_ct': 2.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}], 'rt': 1, 'rc': Counter({200: 1}), 'perc': {}},
+                    'b-2': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({404: 1}), 'perc': {}},
+                    'c-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
+                    '': {'throughput': 3, 'concurrency': 1, 'succ': 1, 'fail': 2, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 2, 404: 1}), 'perc': {}}},
+                'subresults': [{...}]},
+            {'id': '1', 'ts': 3,
+                'cumulative': {
+                    'a-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
+                    '': {'throughput': 5, 'concurrency': 1, 'succ': 3, 'fail': 2, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 4, 404: 1}), 'perc': {}},
+                    'b-1': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 2.0, 'stdev_rt': 0, 'avg_lt': 2.0, 'avg_ct': 2.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
+                    'b-2': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({404: 1}), 'perc': {}},
+                    'c-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 4, 'rc': Counter({200: 1}), 'perc': {}},
+                    'd-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 5.0, 'stdev_rt': 0, 'avg_lt': 5.0, 'avg_ct': 5.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}}},
+                'current': {
+                    'd-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 5.0, 'stdev_rt': 0, 'avg_lt': 5.0, 'avg_ct': 5.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
+                    '': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 5.0, 'stdev_rt': 0, 'avg_lt': 5.0, 'avg_ct': 5.0, 'bytes': 0, 'errors': [], 'rt': 3, 'rc': Counter({200: 1}), 'perc': {}}},
+                'subresults': [{...}]},
+            {'id': '1', 'ts': 4,
+                'cumulative': {
+                    'a-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
+                    '': {'throughput': 6, 'concurrency': 1, 'succ': 4, 'fail': 2, 'avg_rt': 3.5, 'stdev_rt': 0, 'avg_lt': 3.5, 'avg_ct': 3.5, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 3, 'rc': Counter({200: 5, 404: 1}), 'perc': {}},
+                    'b-1': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 2.0, 'stdev_rt': 0, 'avg_lt': 2.0, 'avg_ct': 2.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}], 'rt': 3, 'rc': Counter({200: 1}), 'perc': {}},
+                    'b-2': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 3, 'rc': Counter({404: 1}), 'perc': {}},
+                    'c-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 3, 'rc': Counter({200: 1}), 'perc': {}},
+                    'd-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 5.0, 'stdev_rt': 0, 'avg_lt': 5.0, 'avg_ct': 5.0, 'bytes': 0, 'errors': [], 'rt': 1, 'rc': Counter({200: 1}), 'perc': {}},
+                    'b-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 6.0, 'stdev_rt': 0, 'avg_lt': 6.0, 'avg_ct': 6.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}}},
+                'current': {
+                    'b-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 6.0, 'stdev_rt': 0, 'avg_lt': 6.0, 'avg_ct': 6.0, 'bytes': 0, 'errors': [], 'rt': 3, 'rc': Counter({200: 1}), 'perc': {}},
+                    '': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 6.0, 'stdev_rt': 0, 'avg_lt': 6.0, 'avg_ct': 6.0, 'bytes': 0, 'errors': [], 'rt': 4, 'rc': Counter({200: 1}), 'perc': {}}},
+                'subresults': [{...}]}]
+        for dp in new_data:
+            obj.aggregated_second(dp)
+        obj.check()
+        obj.shutdown()
+        obj.post_process()
 
     def test_monitoring_buffer_limit_option(self):
         obj = BlazeMeterUploader()

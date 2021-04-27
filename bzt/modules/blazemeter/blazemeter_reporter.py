@@ -33,7 +33,7 @@ from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Singletone
 from bzt.utils import b, humanize_bytes, iteritems, open_browser, BetterDict, to_json, dehumanize_time
-from bzt.modules.aggregator import AggregatorListener, DataPoint, KPISet, ResultsProvider
+from bzt.modules.aggregator import AggregatorListener, DataPoint, KPISet, ResultsProvider, ConsolidatingAggregator
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.blazemeter.project_finder import ProjectFinder
 from bzt.modules.blazemeter.net_utils import send_with_retry
@@ -353,8 +353,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if not self._session:
             return
 
+        if self.engine.aggregator.settings.get('extend-aggregation'):
+            self.__extend_reported_data(data)
         serialized = self._dpoint_serializer.get_kpi_body(data, is_final)
         self._session.send_kpi_data(serialized, do_check)
+
+    def __extend_reported_data(self, data):
+        pass
 
     def aggregated_second(self, data):
         """
