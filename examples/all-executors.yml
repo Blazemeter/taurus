@@ -148,6 +148,18 @@ execution:
   scenario:
     script: functional/postman-sample-collection.json
 
+- executor: k6
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: k6/k6_example.js
+
+- executor: vegeta
+  throughput: 1
+  hold-for: 10s
+  scenario:
+    script: vegeta/vegeta.in
 ---
 # all of load-style executors
 execution:

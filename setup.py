@@ -35,7 +35,7 @@ setup(
     license='Apache 2.0',
     install_requires=requires,
     packages=['bzt', 'bzt.engine', 'bzt.jmx', 'bzt.modules', 'bzt.resources', 'bzt.resources.version',
-              'bzt.modules.java', 'bzt.modules.apiritif', 'bzt.modules.python'],
+              'bzt.modules.java', 'bzt.modules.apiritif', 'bzt.modules.python', 'bzt.modules.blazemeter'],
     entry_points={
         'console_scripts': [
             'bzt=bzt.cli:main',
@@ -66,5 +66,5 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
     ],
-    python_requires='>=3.5',    # should be '>=3.7', but let's keep it for obsolete configuration
+    python_requires='>=3.6',    # should be '>=3.7', but let's keep it for obsolete configuration
 )

@@ -16,10 +16,14 @@ WORKDIR /tmp
 RUN bash ./setup_12.x \
    && $APT_INSTALL \
      python3-pip unzip build-essential python3-dev software-properties-common \
-     apt-transport-https openjdk-8-jdk xvfb siege tsung apache2-utils firefox ruby nodejs
+     apt-transport-https openjdk-8-jdk xvfb siege tsung apache2-utils firefox ruby nodejs locales
+
+# set en_US.UTF-8 as default locale
+RUN locale-gen "en_US.UTF-8" \
+   && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 RUN $PIP_INSTALL setuptools wheel \
-   && $PIP_INSTALL locust robotframework robotframework-seleniumlibrary molotov==1.6
+   && $PIP_INSTALL locust robotframework robotframework-seleniumlibrary molotov
 RUN gem install rspec rake selenium-webdriver
 
 # Get Google Chrome
@@ -31,6 +35,18 @@ RUN $APT_INSTALL ./packages-microsoft-prod.deb \
    # Update is required because packages-microsoft-prod.deb installation add repositories for dotnet
    && $APT_UPDATE \
    && $APT_INSTALL dotnet-sdk-3.1
+
+# Install K6
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 \
+   && echo "deb https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list \
+   && $APT_UPDATE \
+   && $APT_INSTALL k6
+
+# Install Vegeta
+ENV VEGETA_VERSION 12.8.4
+RUN wget -q "https://github.com/tsenart/vegeta/releases/download/v${VEGETA_VERSION}/vegeta_${VEGETA_VERSION}_linux_amd64.tar.gz" -O /tmp/vegeta.tar.gz \
+ && tar xzf /tmp/vegeta.tar.gz -C /bin \
+ && rm /tmp/vegeta.tar.gz
 
 # Install Taurus & tools
 RUN $PIP_INSTALL ./bzt*whl \

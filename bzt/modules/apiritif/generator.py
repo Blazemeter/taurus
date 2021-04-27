@@ -371,8 +371,7 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(method)
             elements.append(ast_call(
                 func=ast_attr(method),
-                args=[ast.Str(param, kind="")]
-            ))
+                args=[self._gen_expr(param.strip())]))
         elif atype == "close":
             method = "close_window"
             self.selenium_extras.add(method)
@@ -693,8 +692,9 @@ from selenium.webdriver.common.keys import Keys
                     args=[self._gen_expr(param.strip())]))
 
         elif atype == "script" and tag == "eval":
+            escaped_param = self._escape_js_blocks(param)
             action_elements.append(ast_call(func=ast_attr("self.driver.execute_script"),
-                                            args=[self._gen_expr(param)]))
+                                            args=[self._gen_expr(escaped_param)]))
         elif atype == "rawcode":
             action_elements.append(ast.parse(param))
         elif atype == 'go':
@@ -1011,7 +1011,11 @@ from selenium.webdriver.common.keys import Keys
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
-                    args=[ast.Str("%s" % "--disable-dev-shm-usage", kind="")]))]
+                    args=[ast.Str("%s" % "--disable-dev-shm-usage", kind="")])),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.set_capability"),
+                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))]
 
         return chrome_options + self._get_headless_setup()
 
@@ -1022,7 +1026,11 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
             ast.Expr(ast_call(
                 func=ast_attr("profile.set_preference"),
-                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")]))]
+                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.set_capability"),
+                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))]
 
     def _get_firefox_webdriver(self):
         return ast.Assign(
@@ -1335,6 +1343,15 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_expr(self, value):
         return self.expr_compiler.gen_expr(value)
+
+    @staticmethod
+    def _escape_js_blocks(value):  # escapes plain { with {{
+        value = value.replace("{", "{{").replace("}", "}}")
+        for block in re.finditer(r"\${{[\w\d]*}}", value):
+            start, end = block.start(), block.end()
+            line = "$" + value[start+2:end-1]
+            value = value[:start] + line + value[end:]
+        return value
 
     def _gen_target_setup(self, key, value):
         return ast.Expr(ast_call(

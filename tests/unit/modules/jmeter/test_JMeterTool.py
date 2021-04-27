@@ -2,6 +2,7 @@ import os
 from bzt.utils import EXE_SUFFIX
 
 from . import MockJMeter
+from bzt.modules.jmeter import JTLReader, FuncJTLReader, JMeter
 from tests.unit import BZTestCase, RESOURCES_DIR
 
 
@@ -46,3 +47,25 @@ class TestJMeterTool(BZTestCase):
 
         self.assertIn(jmx_file + " not found", self.log_recorder.warn_buff.getvalue())
 
+    def test_plugins_manager_and_command_runner_default_urls(self):
+        self.obj.__init__()
+        self.assertEqual(self.obj.plugins_manager, JMeter.PLUGINS_MANAGER.format(version=JMeter.PLUGINS_MANAGER_VERSION))
+        self.assertEqual(self.obj.command_runner, JMeter.COMMAND_RUNNER.format(version=JMeter.COMMAND_RUNNER_VERSION))
+
+    def test_plugins_manager_and_command_runner_configured_url(self):
+        plugins_manager_test_url = "http://somewhere.else/plugins-manager/{version}/plugins-manager.jar"
+        plugins_manager_test_version = "1.0"
+        command_runner_test_url = "http://somewhere.else/command-runner/{version}/command-runner.jar"
+        command_runner_test_version = "1.0"
+        self.obj.__init__(config={
+            "plugins-manager": {
+                "download-link": plugins_manager_test_url,
+                "version": plugins_manager_test_version
+            },
+            "command-runner": {
+                "download-link": command_runner_test_url,
+                "version": command_runner_test_version
+            }
+        })
+        self.assertEqual(self.obj.plugins_manager, plugins_manager_test_url.format(version=plugins_manager_test_version))
+        self.assertEqual(self.obj.command_runner, command_runner_test_url.format(version=command_runner_test_version))

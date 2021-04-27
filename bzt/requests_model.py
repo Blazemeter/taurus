@@ -101,6 +101,18 @@ class HTTPRequest(Request):
         return body
 
 
+class MQTTRequest(Request):
+    def __init__(self, config, scenario):
+        super(MQTTRequest, self).__init__(config, scenario)
+        self.method = config.get('cmd')
+        self.label = str(self.config.get("label", self.method))
+
+    def get_think_time(self, full):
+        think_time = self.priority_option('think-time')
+        if think_time:
+            return parse_think_time(think_time=think_time, full=full)
+
+
 class HierarchicHTTPRequest(HTTPRequest):
     def __init__(self, config, scenario, engine):
         super(HierarchicHTTPRequest, self).__init__(config, scenario, engine, pure_body_file=True)
@@ -326,6 +338,8 @@ class HierarchicRequestParser(RequestParser):
         elif 'set-variables' in req:
             mapping = req.get('set-variables')
             return SetVariables(mapping, req)
+        elif self.scenario.get("protocol") == "mqtt":
+            return MQTTRequest(req, self.scenario)
         else:
             return HierarchicHTTPRequest(req, self.scenario, self.engine)
 

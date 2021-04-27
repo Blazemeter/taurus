@@ -334,7 +334,7 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.engine.config['settings']['ramp-up-exclude'] = True
         self.obj.engine.config['execution'] = [
             {'scenario': 'first', 'ramp-up': 50},
-            {'scenario': 'second', 'ramp-up': 1},
+            {'scenario': 'second', 'ramp-up': '1s'},
             {'scenario': 'third'}
         ]
         self.obj.engine.config['scenarios'] = BetterDict.from_dict({

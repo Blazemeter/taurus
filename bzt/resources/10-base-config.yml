@@ -12,6 +12,7 @@ modules:
     class: bzt.modules.jmeter.JMeterExecutor
     protocol-handlers:
       http: bzt.jmx.http.HTTPProtocolHandler
+      mqtt: bzt.jmx.mqtt.MQTTProtocolHandler
   locust:
     class: bzt.modules.locustio.LocustIOExecutor
   molotov:
@@ -20,6 +21,10 @@ modules:
     class: bzt.modules.siege.SiegeExecutor
   tsung:
     class: bzt.modules.tsung.TsungExecutor
+  k6:
+    class: bzt.modules.k6.K6Executor
+  vegeta:
+    class: bzt.modules.vegeta.VegetaExecutor
 
   # selenium & functional executors
   selenium:

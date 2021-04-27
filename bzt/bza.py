@@ -189,7 +189,7 @@ class User(BZAObject):
         return self
 
     def available_locations(self, include_harbors=False):
-        self.log.warn("Deprecated method used: available_locations")
+        self.log.warning("Deprecated method used: available_locations")
         if 'locations' not in self:
             self.fetch()
 
@@ -199,35 +199,6 @@ class User(BZAObject):
             if not loc_id.startswith('harbor-') or include_harbors:
                 locations[loc_id] = loc
         return locations
-
-    def collection_draft(self, name, taurus_config, resource_files):
-        if resource_files:
-            draft_id = "taurus_%s" % id(self.token)
-            self._upload_collection_resources(resource_files, draft_id)
-            taurus_config.merge({"dataFiles": {"draftId": draft_id}})
-
-        collection_draft = self._import_config(taurus_config)
-        collection_draft['name'] = name
-        return collection_draft
-
-    def _import_config(self, config):
-        url = self.address + "/api/v4/multi-tests/taurus-import"
-        resp = self._request(url, data=config, method="POST")
-        return resp['result']
-
-    def _upload_collection_resources(self, resource_files, draft_id):
-        self.log.debug('Uploading resource files: %s', resource_files)
-        url = self.address + "/api/v4/web/elfinder/%s" % draft_id
-        body = MultiPartForm()
-        body.add_field("cmd", "upload")
-        body.add_field("target", "s1_Lw")
-        body.add_field('folder', 'drafts')
-
-        for rfile in resource_files:
-            body.add_file('upload[]', rfile)
-
-        hdr = {"Content-Type": str(body.get_content_type())}
-        self._request(url, body.form_as_bytes(), headers=hdr)
 
     def test_by_ids(self, account_id=None, workspace_id=None, project_id=None, test_id=None, test_type=None):
         account = self.accounts(ident=account_id).first()
@@ -242,11 +213,9 @@ class User(BZAObject):
         else:
             target = workspace
 
-        test = target.multi_tests(ident=test_id).first()
+        test = target.tests(ident=test_id, test_type=test_type).first()
         if not test:
-            test = target.tests(ident=test_id, test_type=test_type).first()
-            if not test:
-                raise ValueError("Test wasn't found")
+            raise ValueError("Test wasn't found")
 
         return account, workspace, project, test
 
@@ -345,28 +314,6 @@ class Workspace(BZAObject):
             tests.append(Test(self, item))
         return tests
 
-    def multi_tests(self, name=None, ident=None):
-        """
-        :rtype: BZAObjectsList[MultiTest]
-        """
-        params = OrderedDict({"workspaceId": self['id']})
-        if name is not None:
-            params["name"] = name
-        if ident is not None:
-            params["id"] = ident
-
-        res = self._request(self.address + '/api/v4/multi-tests?' + urlencode(params))
-        tests = BZAObjectsList()
-        for item in res['result']:
-            if ident is not None and item['id'] != ident:
-                continue
-
-            if name is not None and item['name'] != name:
-                continue
-
-            tests.append(MultiTest(self, item))
-        return tests
-
     def create_project(self, proj_name):
         params = {"name": str(proj_name), "workspaceId": self['id']}
         data = self._request(self.address + '/api/v4/projects', params)
@@ -408,28 +355,6 @@ class Project(BZAObject):
             tests.append(Test(self, item))
         return tests
 
-    def multi_tests(self, name=None, ident=None):
-        """
-        :rtype: BZAObjectsList[MultiTest]
-        """
-        params = OrderedDict({"projectId": self['id']})
-        if name is not None:
-            params["name"] = name
-        if ident is not None:
-            params["id"] = ident
-
-        res = self._request(self.address + '/api/v4/multi-tests?' + urlencode(params))
-        tests = BZAObjectsList()
-        for item in res['result']:
-            if ident is not None and item['id'] != ident:
-                continue
-
-            if name is not None and item['name'] != name:
-                continue
-
-            tests.append(MultiTest(self, item))
-        return tests
-
     def create_test(self, name, configuration):
         """
         :param name:
@@ -441,12 +366,6 @@ class Project(BZAObject):
         data = {"name": name, "projectId": self['id'], "configuration": configuration}
         resp = self._request(url, data)
         return Test(self, resp['result'])
-
-    def create_multi_test(self, collection_draft):
-        collection_draft['projectId'] = self['id']
-        url = self.address + "/api/v4/multi-tests"
-        resp = self._request(url, data=collection_draft)
-        return MultiTest(self, resp['result'])
 
 
 class Test(BZAObject):
@@ -470,24 +389,25 @@ class Test(BZAObject):
         return session, Master(self, result['master']), result['publicTokenUrl']
 
     def get_files(self):
-        path = self.address + "/api/v4/web/elfinder/%s" % self['id']
-        query = urlencode(OrderedDict({'cmd': 'open', 'target': 's1_Lw'}))
-        url = path + '?' + query
-        response = self._request(url)
-        return response["files"]
+        path = self.address + f"/api/v4/tests/{self['id']}/files"
+        response = self._request(path, method="GET")
+        return response["result"]
 
     def delete_files(self):
         files = self.get_files()
         self.log.debug("Test files: %s", [filedict['name'] for filedict in files])
         if not files:
             return
-        path = "/api/v4/web/elfinder/%s" % self['id']
-        query = "cmd=rm&" + "&".join("targets[]=%s" % fname['hash'] for fname in files)
-        url = self.address + path + '?' + query
-        response = self._request(url)
-        if len(response['removed']) == len(files):
-            self.log.debug("Successfully deleted %d test files", len(response['removed']))
-        return response['removed']
+        path = f"/api/v4/tests/{self['id']}/delete-file"
+        query = "&".join(f"fileName={fname['name']}" for fname in files)
+        url = self.address + path + "?" + query
+        response = self._request(url, method="POST")
+        removed = query.count('fileName')
+        if response['result']:
+            self.log.debug(f"Successfully deleted {removed} test files.")
+        else:
+            self.log.debug("Error while test files deletion.")
+        return removed
 
     def start(self, as_functional=False):
         url = self.address + "/api/v4/tests/%s/start" % self['id']
@@ -537,28 +457,6 @@ class Test(BZAObject):
         if not validated:
             self.log.error(f"Passfail error: Unable to validate by {url}.")
         return validated
-
-
-class MultiTest(BZAObject):
-    def start(self):
-        # NOTE: delayedStart=true means that BM will not start test until all instances are ready
-        # if omitted - instances will start once ready (not simultaneously),
-        # which may cause inconsistent data in aggregate report.
-        url = self.address + "/api/v4/multi-tests/%s/start?delayedStart=true" % self['id']
-        resp = self._request(url, method="POST")
-        return Master(self, resp['result'])
-
-    def stop(self):
-        url = self.address + "/api/v4/multi-tests/%s/stop" % self['id']
-        self._request(url, method='POST')
-
-    def update_collection(self, coll):
-        url = self.address + "/api/v4/multi-tests/%s" % self['id']
-        self._request(url, data=coll, method="PATCH")
-
-    def delete(self):
-        url = self.address + "/api/v4/multi-tests/%s" % self['id']
-        self._request(url, method="DELETE")
 
 
 class Master(BZAObject):

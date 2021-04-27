@@ -35,6 +35,9 @@ class RequestCompiler(RequestVisitor):
         super(RequestCompiler, self).__init__()
         self.jmx_builder = jmx_builder
 
+    def visit_mqttrequest(self, request):
+        return self.jmx_builder.compile_request(request)
+
     def visit_hierarchichttprequest(self, request):
         return self.jmx_builder.compile_request(request)
 
@@ -207,9 +210,10 @@ class LoadSettingsProcessor(object):
 
 class ProtocolHandler(object):
 
-    def __init__(self, sys_props):
+    def __init__(self, sys_props, engine):
         super(ProtocolHandler, self).__init__()
         self.system_props = sys_props
+        self.engine = engine
 
     def get_toplevel_elements(self, scenario):
         return []
@@ -249,7 +253,7 @@ class JMeterScenarioBuilder(JMX):
         self.protocol_handlers = {}
         for protocol, cls_name in iteritems(self.executor.settings.get("protocol-handlers")):
             cls_obj = load_class(cls_name)
-            instance = cls_obj(self.system_props)
+            instance = cls_obj(self.system_props, self.engine)
             self.protocol_handlers[protocol] = instance
         self.FIELD_KEYSTORE_CONFIG = 'keystore-config'
 
@@ -429,8 +433,8 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __gen_requests(self, scenario):
-        is_protocol_rte = scenario.data.get('protocol', None) == "rte"
-        requests = scenario.get_requests(parser=HierarchicRequestParser, require_url=not(is_protocol_rte))
+        http_protocol = scenario.data.get('protocol', 'http') == 'http'
+        requests = scenario.get_requests(parser=HierarchicRequestParser, require_url=http_protocol)
 
         elements = []
         for compiled in self.compile_requests(requests):
