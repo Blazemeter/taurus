@@ -1104,7 +1104,6 @@ execution:
 ```
 
 ## MQTT Protocol Load Testing
-_This is available only in [unstable snapshot](https://gettaurus.org/install/Installation/#Latest-Unstable-Snapshot)._
 
 JMeter tool can be used for load testing of mqtt infrastructure. This protocol is very popular in IoT world.
 Usually the target of test is mqtt server ('broker'). Taurus can emulate messages of sensors and actuators to check 

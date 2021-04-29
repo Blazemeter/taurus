@@ -1,14 +1,17 @@
 import os
+import shutil
 import io
+import unittest
 import bzt
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.vegeta import VegetaExecutor, VegetaLogReader
-from bzt.utils import EXE_SUFFIX
-from tests.unit import BZTestCase, ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER
+from bzt.utils import EXE_SUFFIX, is_windows, ToolError
+from tests.unit import BZTestCase, ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER, BUILD_DIR
 
 TOOL_NAME = os.path.join(RESOURCES_DIR, 'vegeta', 'vegeta_mock' + EXE_SUFFIX)
 VEGETA_SCRIPT = os.path.join(RESOURCES_DIR, 'vegeta', 'vegeta.in')
+
 
 class TestVegetaExecutor(ExecutorTestCase):
     EXECUTOR = VegetaExecutor
@@ -136,11 +139,11 @@ class TestVegetaExecutor(ExecutorTestCase):
             },
             'scenarios': {
                 'vegeta-test': {
-                     'requests': [{
-                         'url': 'http://localhost:8000',
-                         'method': 'HEAD',
-                         'headers': {'X-Account-ID': 8675309}
-                     }]
+                    'requests': [{
+                        'url': 'http://localhost:8000',
+                        'method': 'HEAD',
+                        'headers': {'X-Account-ID': 8675309}
+                    }]
                 }
             }
         })
@@ -157,12 +160,12 @@ class TestVegetaExecutor(ExecutorTestCase):
             },
             'scenarios': {
                 'vegeta-test': {
-                     'requests': [{
-                         'url': 'http://localhost:8080',
-                         'method': 'POST',
-                         'headers': {'Content-Type': 'application/json'},
-                         'body': {'str': 'something', 'number': 1.25, 'boolean': True}
-                     }]
+                    'requests': [{
+                        'url': 'http://localhost:8080',
+                        'method': 'POST',
+                        'headers': {'Content-Type': 'application/json'},
+                        'body': {'str': 'something', 'number': 1.25, 'boolean': True}
+                    }]
                 }
             }
         })
@@ -173,6 +176,35 @@ class TestVegetaExecutor(ExecutorTestCase):
         with open(json_file, 'r') as f:
             self.assertEqual(f.read(),
                              '{"str": "something", "number": 1.25, "boolean": true}')
+
+    @unittest.skipIf(is_windows(), "disabled on windows")
+    def test_install_vegeta(self):
+        path = os.path.abspath(BUILD_DIR + 'vegeta')
+        shutil.rmtree(os.path.dirname(path), ignore_errors=True)
+
+        download_link = "file:///" + RESOURCES_DIR + "vegeta/vegeta-dist-{version}.tar.gz"
+        vegeta_version = '12.8.4'
+
+        self.assertFalse(os.path.exists(path))
+        self.obj.settings.merge({
+            "path": path,
+            "download-link": download_link,
+            "version": vegeta_version})
+
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "vegeta/vegeta.in"}})
+
+        self.obj.prepare()
+        self.assertTrue(os.path.exists(path))
+
+    @unittest.skipIf(not is_windows(), "only for windows")
+    def test_install_vegeta_win(self):
+        self.obj.settings.merge({
+            "path": os.path.abspath(BUILD_DIR + 'vegeta'),
+            "download-link": "",
+            "version": '12.8.4'})
+
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "vegeta/vegeta.in"}})
+        self.assertRaises(ToolError, self.obj.prepare)
 
 
 class TestVegetaReader(BZTestCase):
