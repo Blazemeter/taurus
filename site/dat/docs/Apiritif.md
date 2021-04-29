@@ -219,10 +219,11 @@ Below you can find a list of all supported actions:
 [clickByX](#Mouse-actions), [closeWindow](#Window-management), [contextClickByX](#Mouse-actions), 
 [doubleClickByX](#Mouse-actions), [dragByX](#Mouse-actions), [echoString](#Echoing), [editContentByX](#Editing), 
 [foreach](#Foreach), [go](#Go), [if](#If-Blocks), [keysByX](#Typing), [loop](#Loops), [mouseDownByX](#Mouse-actions), 
-[mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), [mouseUpByX](#Mouse-actions), [rawCode](#Execution), 
-[screenshot](#Screenshot), [scriptEval](#Execution), [selectByX](#Select), [storeEval](#Store), [storeString](#Store), 
-[storeTextByX](#Store), [storeTitle](#Store), [storeValueByX](#Store), [submitByX](#Typing), 
-[switchFrame](#Frame-management), [switchWindow](#Window-management), [typeByX](#Typing), [waitForByX](#Pause).
+[mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), [mouseUpByX](#Mouse-actions), 
+[openWindow](#Window-management), [rawCode](#Execution), [screenshot](#Screenshot), [scriptEval](#Execution), 
+[selectByX](#Select), [storeEval](#Store), [storeString](#Store), [storeTextByX](#Store), [storeTitle](#Store), 
+[storeValueByX](#Store), [submitByX](#Typing), [switchFrame](#Frame-management), [switchWindow](#Window-management), 
+[typeByX](#Typing), [waitForByX](#Pause).
 
 #### Alert
 For alert handling, use the following methods:
@@ -825,7 +826,7 @@ Typing actions with [multiple locators support](#Alternative-syntax-supporting-m
 ```
 
 #### Window management
-To manage windows or tabs, the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
+To open new windows or tabs, use `openWindow(value)` keyword, and the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
   - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage. It can be also surrounded with quotes.
@@ -841,6 +842,8 @@ will be performed on the default window, or the last one used with `switchWindow
 
 Or using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 ```yaml
+- type: openWindow
+  param: value
 - type: switchWindow
   param: value
 - type: closeWindow

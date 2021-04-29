@@ -14,14 +14,10 @@
  - Make sure DockerHub image builds for master
  - Send announce if needed
  - ... code freeze ...
- - Set correct version in `bzt/\_\_init\_\_.py`
  - Set `Release <version>` as commit name
- - Publish release to PyPi: `./dockerized-release.sh`
- - Create git tag, make `git push`, including tag
- - Site is updated automatically by Jenkins
- - Make sure DockerHub image for release tag is built
+ - Create git tag with version, make `git push`, including tag
+ - Deployment of wheel, site and docker image will be made by Jenkins after testing
  - Notify all interested parties (Twitter, mailing lists)
- - Build and deploy brew formula
  
 # Developing Taurus Extensions
 
