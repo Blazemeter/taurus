@@ -7,7 +7,6 @@ import time
 from tempfile import mkstemp
 from io import BytesIO
 from urllib.error import HTTPError
-from collections import Counter
 
 from bzt import TaurusException
 from bzt.bza import Master, Session
@@ -16,6 +15,7 @@ from bzt.modules.blazemeter import BlazeMeterUploader
 from bzt.modules.blazemeter.blazemeter_reporter import MonitoringBuffer
 from bzt.utils import iteritems, viewvalues
 from tests.unit import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER, EngineEmul, BZMock
+from tests.unit.mocks import MockReader
 
 
 class TestBlazeMeterUploader(BZTestCase):
@@ -243,40 +243,44 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
         obj.engine = EngineEmul()
-        obj.engine.aggregator = ConsolidatingAggregator()
-        obj.engine.aggregator.settings['extend-aggregation'] = True     # todo: write it into aggregator settings
+        aggregator = ConsolidatingAggregator()
+        aggregator.engine = obj.engine
+        aggregator.settings['extend-aggregation'] = True     # todo: write it into aggregator settings
+        reader = MockReader()
+        watcher = MockReader()
+
+        reader.buffer_scale_idx = '100.0'
+        # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
+        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
+        reader.data.append((2, "b", 1, 2, 2, 2, 200, 'OK', '', 0))
+        reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
+        reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
+        reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
+        reader.data.append((5, "b", 1, 6, 6, 6, 200, None, '', 0))
+
+        aggregator.add_underling(reader)
+        aggregator.add_listener(watcher)
+        obj.engine.aggregator = aggregator
+
         mock.apply(obj._user)
         obj._user.timeout = 0.001
+
+        obj.engine.aggregator.prepare()
         obj.prepare()
+
+        obj.engine.aggregator.startup()
         obj.startup()
-        new_data = [
-            {'id': '1', 'ts': 1,
-                'cumulative': {
-                    'a-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 1, 'rc': Counter({200: 1}), 'perc': {}},
-                    '': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}}},
-                'current': {
-                    'a-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 3, 'rc': Counter({200: 1}), 'perc': {}},
-                    '': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}}},
-                'subresults': [{...}]},
-            {'id': '1', 'ts': 2,
-                'cumulative': {
-                    'a-0': {'throughput': 1, 'concurrency': 1, 'succ': 1, 'fail': 0, 'avg_rt': 1.0, 'stdev_rt': 0, 'avg_lt': 1.0, 'avg_ct': 1.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
-                    '': {'throughput': 5, 'concurrency': 1, 'succ': 3, 'fail': 2, 'avg_rt': 2.5, 'stdev_rt': 0, 'avg_lt': 2.5, 'avg_ct': 2.5, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 4, 404: 1}), 'perc': {}},
-                    'b-1': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 2.0, 'stdev_rt': 0, 'avg_lt': 2.0, 'avg_ct': 2.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 1}), 'perc': {}},
-                    'b-2': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({404: 1}), 'perc': {}},
-                    'c-0': {'throughput': 2, 'concurrency': 1, 'succ': 2, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 2}), 'perc': {}}},
-                'current': {
-                    'b-1': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 2.0, 'stdev_rt': 0, 'avg_lt': 2.0, 'avg_ct': 2.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}], 'rt': 1, 'rc': Counter({200: 1}), 'perc': {}},
-                    'b-2': {'throughput': 1, 'concurrency': 1, 'succ': 0, 'fail': 1, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({404: 1}), 'perc': {}},
-                    'c-0': {'throughput': 2, 'concurrency': 1, 'succ': 2, 'fail': 0, 'avg_rt': 4.0, 'stdev_rt': 0, 'avg_lt': 4.0, 'avg_ct': 4.0, 'bytes': 0, 'errors': [], 'rt': 2, 'rc': Counter({200: 2}), 'perc': {}},
-                    '': {'throughput': 4, 'concurrency': 1, 'succ': 2, 'fail': 2, 'avg_rt': 3.0, 'stdev_rt': 0, 'avg_lt': 3.0, 'avg_ct': 3.0, 'bytes': 0, 'errors': [{'cnt': 1, 'msg': 'OK', 'tag': None, 'rc': 200, 'type': 0, 'urls': Counter()}, {'cnt': 1, 'msg': 'Not Found', 'tag': None, 'rc': 404, 'type': 0, 'urls': Counter()}], 'rt': 2, 'rc': Counter({200: 3, 404: 1}), 'perc': {}}},
-                'subresults': [{...}]}]
-        for dp in new_data:
-            obj.aggregated_second(dp)
+
+        obj.engine.aggregator.check()
         obj.check()
-        # todo: check sent [extended] data
+
+        obj.engine.aggregator.shutdown()
         obj.shutdown()
+
+        obj.engine.aggregator.post_process()
         obj.post_process()
+
+        data_points = watcher.results[-1][DataPoint.CUMULATIVE]
 
     def test_monitoring_buffer_limit_option(self):
         obj = BlazeMeterUploader()
