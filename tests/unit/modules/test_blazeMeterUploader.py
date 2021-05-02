@@ -204,6 +204,10 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.log.parent.removeHandler(handler)
 
     def test_extend_datapoints(self):
+        def mock_get_kpi_body(data, isfinal):
+            sent_data_points.append(data)
+            return ''
+
         mock = BZMock()
         mock.mock_get.update({
             '1': {"result": []},
@@ -239,6 +243,8 @@ class TestBlazeMeterUploader(BZTestCase):
         })
 
         obj = BlazeMeterUploader()
+        sent_data_points = []
+        #obj._dpoint_serializer.get_kpi_body = mock_get_kpi_body
         obj.parameters['project'] = 'Proj name'
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
@@ -251,12 +257,13 @@ class TestBlazeMeterUploader(BZTestCase):
 
         reader.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
-        reader.data.append((2, "b", 1, 2, 2, 2, 200, 'OK', '', 0))
-        reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
-        reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
-        reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
-        reader.data.append((5, "b", 1, 6, 6, 6, 200, None, '', 0))
+        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 1))
+        reader.data.append((2, "b", 1, 2, 2, 2, 200, 'OK', '', 2))
+        reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 3))
+        reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 4))
+        reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 5))
+        reader.data.append((5, "b", 1, 6, 6, 6, 200, None, '', 6))
+        reader.data.append((5, "c", 1, 7, 7, 7, 200, None, '', 7))
 
         aggregator.add_underling(reader)
         aggregator.add_listener(watcher)
@@ -280,7 +287,12 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.aggregator.post_process()
         obj.post_process()
 
-        data_points = watcher.results[-1][DataPoint.CUMULATIVE]
+        generated_data_points = watcher.results[-1][DataPoint.CUMULATIVE]
+        a = 1+1
+        # todo
+        # questions:
+        # 1. meaning of throughput, concurrency, rt, etc.
+        # 2. which part of data do we send? (get_kpi_body)
 
     def test_monitoring_buffer_limit_option(self):
         obj = BlazeMeterUploader()

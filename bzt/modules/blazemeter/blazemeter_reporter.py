@@ -546,7 +546,7 @@ class DatapointSerializer(object):
         # - elements of 'data' are described in __get_label()
         #
         # - elements of 'intervals' are described in __get_interval()
-        #   every interval contains info about response codes have gotten on it.
+        #   every interval contains info about response codes that were received on it.
         report_items = BetterDict()
         if data_buffer:
             self.owner.first_ts = min(self.owner.first_ts, data_buffer[0][DataPoint.TIMESTAMP])
