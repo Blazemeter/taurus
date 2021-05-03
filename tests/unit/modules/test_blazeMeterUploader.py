@@ -244,7 +244,7 @@ class TestBlazeMeterUploader(BZTestCase):
 
         obj = BlazeMeterUploader()
         sent_data_points = []
-        #obj._dpoint_serializer.get_kpi_body = mock_get_kpi_body
+        obj._dpoint_serializer.get_kpi_body = mock_get_kpi_body
         obj.parameters['project'] = 'Proj name'
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
@@ -290,9 +290,9 @@ class TestBlazeMeterUploader(BZTestCase):
         generated_data_points = watcher.results[-1][DataPoint.CUMULATIVE]
         a = 1+1
         # todo
-        # questions:
         # 1. meaning of throughput, concurrency, rt, etc.
         # 2. which part of data do we send? (get_kpi_body)
+        # 3. rename __get_label
 
     def test_monitoring_buffer_limit_option(self):
         obj = BlazeMeterUploader()
