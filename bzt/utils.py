@@ -42,6 +42,7 @@ import time
 import traceback
 import webbrowser
 import zipfile
+import selenium
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
@@ -281,6 +282,10 @@ def get_bytes_count(str_bytes):
         msg = "String contains unsupported unit %s: %s"
         raise TaurusConfigError(msg % (unit, str_bytes))
     return result
+
+
+def is_selenium_4():
+    return LooseVersion(selenium.__version__) >= LooseVersion('4')
 
 
 class BetterDict(defaultdict):

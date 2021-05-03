@@ -22,12 +22,13 @@ from collections import OrderedDict
 from urllib import parse
 
 import astunparse
+import selenium
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
-from bzt.utils import iteritems, dehumanize_time, ensure_is_dict
+from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, is_selenium_4
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript
 from .jmeter_functions import JMeterExprCompiler
 
@@ -987,23 +988,21 @@ from selenium.webdriver.common.keys import Keys
             return []
 
     def _get_options(self, browser):
+        if browser == 'remote':
+            if 'firefox' == self.capabilities.get('browserName'):
+                browser = 'firefox'
+            elif 'chrome' == self.capabilities.get('browserName'):
+                browser = 'chrome'
         if browser == 'firefox':
             options = self._get_firefox_options()
         elif browser == 'chrome':
             options = self._get_chrome_options()
-        elif browser == 'remote':
-            if 'firefox' == self.capabilities.get('browserName'):
-                browser = 'firefox'
-                options = self._get_firefox_options()
-            elif 'chrome' == self.capabilities.get('browserName'):
-                browser = 'chrome'
-                options = self._get_chrome_options()
-            else:
-                options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
         else:
             options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
 
         if self.OPTIONS in self.executor.settings:
+            self.log.debug(f'Generating selenium option {self.executor.settings.get(self.OPTIONS)}. '
+                           f'Browser {browser}. Selenium version {selenium.__version__}')
             options.extend(self._get_selenium_options(browser))
 
         return options
@@ -1096,12 +1095,9 @@ from selenium.webdriver.common.keys import Keys
                         value=ast.Name(id="options"))]))
 
     def _get_selenium_options(self, browser):
-        import selenium
-        from distutils.version import LooseVersion
-        selenium_version = LooseVersion(selenium.__version__)
-
         options = []
-        if selenium_version < LooseVersion('4'):
+
+        if not is_selenium_4():
             old_version = True
             if browser != 'firefox' and browser != 'chrome':
                 self.log.warning(f'Selenium options are not supported. '
@@ -1118,13 +1114,11 @@ from selenium.webdriver.common.keys import Keys
                         func=ast_attr("webdriver.ArgOptions")))])
 
         for opt in self.executor.settings.get(self.OPTIONS):
-            self.log.debug(f'Option {opt}. Browser {browser}. Selenium version {selenium.__version__}')
-
-            if opt == "ignore_proxy":
+            if opt == "ignore-proxy":
                 options.extend(self._get_ignore_proxy(old_version))
             elif opt == "arguments":
                 options.extend(self._get_arguments())
-            elif opt == "experimental_options":
+            elif opt == "experimental-options":
                 options.extend(self._get_experimental_options(browser))
             elif opt == "preferences":
                 options.extend(self._get_preferences(browser))
@@ -1134,16 +1128,15 @@ from selenium.webdriver.common.keys import Keys
         return options
 
     def _get_ignore_proxy(self, old_version):
-        ignore_proxy = "ignore_proxy"
+        ignore_proxy = "ignore-proxy"
 
         if old_version:
             self.log.warning(f'Option {ignore_proxy} is not supported for this selenium version')
             return []
-        if self.executor.settings.get(self.OPTIONS).get(ignore_proxy) is not True:
+        if not self.executor.settings.get(self.OPTIONS).get(ignore_proxy):
             return []
 
-        return [ast.Expr(
-            ast_call(func=ast_attr("options.ignore_local_proxy_environment_variables")))]
+        return [ast.Expr(ast_call(func=ast_attr("options.ignore_local_proxy_environment_variables")))]
 
     def _get_arguments(self):
         args = []
@@ -1158,7 +1151,7 @@ from selenium.webdriver.common.keys import Keys
         return args
 
     def _get_experimental_options(self, browser):
-        experimental_options = "experimental_options"
+        experimental_options = "experimental-options"
 
         if browser != "chrome":
             self.log.warning(f'Option {experimental_options} is not supported for {browser}')
