@@ -360,8 +360,23 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         # todo: send_with_retry only following (don't serialize many times):
         self._session.send_kpi_data(serialized, do_check)
 
-    def __extend_reported_data(self, data):
-        pass
+    @staticmethod
+    def __extend_reported_data(dp_list):
+        for dp in dp_list:
+            for data in dp['cumulative'], dp['current']:
+                del data['']
+                for key in list(data.keys()):   # list() is important due to changing dictionary size in the cycle
+                    sep = key.rindex('-')
+                    original_label, state_idx = key[:sep], int(key[sep+1:])
+                    kpi_set = data.pop(key)
+                    if original_label not in data:
+                        data[original_label] = {}
+                    data[original_label][state_idx] = kpi_set
+                    if '' not in data:
+                        data[''] = dict()
+                    if state_idx not in data['']:
+                        data[''][state_idx] = KPISet()
+                    data[''][state_idx].merge_kpis(kpi_set)
 
     def aggregated_second(self, data):
         """
@@ -554,8 +569,14 @@ class DatapointSerializer(object):
 
             # following data is received in the cumulative way
             for label, kpi_set in iteritems(data_buffer[-1][DataPoint.CUMULATIVE]):
-                report_item = self.__get_label(label, kpi_set)
-                self.__add_errors(report_item, kpi_set)  # 'Errors' tab
+                if self.owner.engine.aggregator.settings.get('extend-aggregation'):
+                    report_item = {}
+                    for state in kpi_set:
+                        report_item[state] = self.__get_label(label, kpi_set[state])
+                        self.__add_errors(report_item[state], kpi_set[state])
+                else:
+                    report_item = self.__get_label(label, kpi_set)
+                    self.__add_errors(report_item, kpi_set)  # 'Errors' tab
                 report_items[label] = report_item
 
             # fill 'Timeline Report' tab with intervals data
@@ -566,7 +587,13 @@ class DatapointSerializer(object):
                     for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
                         exc = TaurusInternalException('Cumulative KPISet is non-consistent')
                         report_item = report_items.get(label, exc)
-                        report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
+
+                        if self.owner.engine.aggregator.settings.get('extend-aggregation'):
+                            for state in report_item:
+                                if state in kpi_set:
+                                    report_item[state]['intervals'].append(self.__get_interval(kpi_set[state], time_stamp))
+                        else:
+                            report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
 
         report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
         data = {"labels": report_items, "sourceID": id(self.owner)}
