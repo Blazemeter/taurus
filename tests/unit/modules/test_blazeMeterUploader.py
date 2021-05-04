@@ -204,9 +204,14 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.log.parent.removeHandler(handler)
 
     def test_extend_datapoints(self):
-        def mock_get_kpi_body(data, isfinal):
-            sent_data_points.append(data)
-            return ''
+        # check reported data format conversion for test state filtering on BM side
+
+        def get_mock(origin_func, store):
+            # generate replacement for BlazemeterUploader._dpoint_serializer.get_kpi_body
+            def mock_get_kpi_body(data, isfinal):
+                store.append(data)                  # save received data for verifying
+                return origin_func(data, isfinal)   # call original get_kpi_body as well
+            return mock_get_kpi_body
 
         mock = BZMock()
         mock.mock_get.update({
@@ -244,7 +249,7 @@ class TestBlazeMeterUploader(BZTestCase):
 
         obj = BlazeMeterUploader()
         sent_data_points = []
-        obj._dpoint_serializer.get_kpi_body = mock_get_kpi_body
+        obj._dpoint_serializer.get_kpi_body = get_mock(obj._dpoint_serializer.get_kpi_body, sent_data_points)
         obj.parameters['project'] = 'Proj name'
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
