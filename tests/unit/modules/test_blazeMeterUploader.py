@@ -256,7 +256,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine = EngineEmul()
         aggregator = ConsolidatingAggregator()
         aggregator.engine = obj.engine
-        aggregator.settings['extend-aggregation'] = True     # todo: write it into aggregator settings
+        aggregator.settings['extend-aggregation'] = True
         reader = MockReader()
         watcher = MockReader()
 
@@ -269,7 +269,7 @@ class TestBlazeMeterUploader(BZTestCase):
         reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 5))
         reader.data.append((5, "b", 1, 6, 6, 6, 200, None, '', 6))
         reader.data.append((5, "c", 1, 7, 7, 7, 200, None, '', 7))
-        original_labels = ['a', 'b', 'c', 'd', '']
+        original_labels = list(d[1] for d in reader.data)
 
         aggregator.add_underling(reader)
         aggregator.add_listener(watcher)
@@ -300,7 +300,7 @@ class TestBlazeMeterUploader(BZTestCase):
         for dp in sent_data_points:
             for data in dp['cumulative'], dp['current']:
                 for label in data:
-                    self.assertIn(label, original_labels)
+                    self.assertIn(label, original_labels + [''])
                     self.assertIsInstance(data[label], dict)
                     for key in data[label]:
                         self.assertIn(key, state_labels)

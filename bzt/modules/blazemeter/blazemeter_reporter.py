@@ -69,6 +69,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.first_ts = sys.maxsize
         self.last_ts = 0
         self.report_name = None
+        self.extend_report = False
         self._dpoint_serializer = DatapointSerializer(self)
 
     def prepare(self):
@@ -76,6 +77,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         Read options for uploading, check that they're sane
         """
         super(BlazeMeterUploader, self).prepare()
+
+        # turn on splitting reported data according to sample status
+        self.extend_report = \
+            isinstance(self.engine.aggregator, ConsolidatingAggregator) and self.engine.aggregator.extend_aggregation
+
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
@@ -353,7 +359,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if not self._session:
             return
 
-        if self.engine.aggregator.settings.get('extend-aggregation'):
+        if self.extend_report:
             self.__extend_reported_data(data)
         serialized = self._dpoint_serializer.get_kpi_body(data, is_final)
 
@@ -569,7 +575,7 @@ class DatapointSerializer(object):
 
             # following data is received in the cumulative way
             for label, kpi_set in iteritems(data_buffer[-1][DataPoint.CUMULATIVE]):
-                if self.owner.engine.aggregator.settings.get('extend-aggregation'):
+                if self.owner.extend_report:
                     report_item = {}
                     for state in kpi_set:
                         report_item[state] = self.__get_label(label, kpi_set[state])
@@ -588,7 +594,7 @@ class DatapointSerializer(object):
                         exc = TaurusInternalException('Cumulative KPISet is non-consistent')
                         report_item = report_items.get(label, exc)
 
-                        if self.owner.engine.aggregator.settings.get('extend-aggregation'):
+                        if self.owner.extend_report:
                             for state in report_item:
                                 if state in kpi_set:
                                     report_item[state]['intervals'].append(self.__get_interval(kpi_set[state], time_stamp))

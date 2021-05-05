@@ -789,6 +789,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.histogram_max = 5.0
         self._sticky_concurrencies = {}
         self.min_timestamp = None
+        self.extend_aggregation = False
 
     def prepare(self):
         """
@@ -801,6 +802,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.track_percentiles = list(set(self.track_percentiles))
         self.track_percentiles.sort()
         self.settings["percentiles"] = self.track_percentiles
+        
+        self.extend_aggregation = self.settings.get('extend-aggregation')
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
@@ -835,10 +838,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         super(Aggregator, self).startup()
 
         # send rules to underlings
-        extend_aggregation = self.settings.get('extend-aggregation')
-
         for underling in self.underlings:
-            underling.extend_aggregation = extend_aggregation
+            underling.extend_aggregation = self.extend_aggregation
 
     def add_underling(self, underling):
         """
