@@ -57,6 +57,10 @@ class CSharpExecutor(SubprocessedExecutor, HavingInstallableTools):
                     "--target", self.script,
                     "--report-file", self.report_file]
 
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            cmdline += user_cmd.split(" ")
+
         load = self.get_load()
         if load.iterations:
             cmdline += ['--iterations', str(load.iterations)]

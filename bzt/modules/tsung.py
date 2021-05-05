@@ -103,6 +103,11 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
             '-w', '0',
             'start',
         ]
+
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            args += user_cmd.split(" ")
+
         self.process = self._execute(args)
 
     def check(self):
