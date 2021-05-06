@@ -50,3 +50,12 @@ scenarios:
           id: 123
           name: Some name
 ```
+
+## Command-line Settings
+
+You can specify special cli options for Vegeta, for example:
+```yaml
+modules:
+  vegeta:
+    cmdline: -cert cert.pem
+```

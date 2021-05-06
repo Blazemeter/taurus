@@ -101,12 +101,13 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
             '-l', self.tsung_artifacts_basedir,
             '-i', self.tsung_controller_id,
             '-w', '0',
-            'start',
         ]
 
         user_cmd = self.settings.get("cmdline")
         if user_cmd:
             args += user_cmd.split(" ")
+
+        args.append('start')
 
         self.process = self._execute(args)
 

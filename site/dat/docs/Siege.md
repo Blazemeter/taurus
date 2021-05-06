@@ -76,10 +76,12 @@ scenarios:
 
 ## Module Settings
 
-If you have Siege in non-standard location, please use `path` option to point Taurus to `siege` binary:
+If you have Siege in non-standard location, please use `path` option to point Taurus to `siege` binary. Also, you can 
+pass specific Siege via `cmdline`:
 
 ```yaml
 modules:
   siege:
     path: /home/user/sources/siege/bin/siege
+    cmdline: --file=file.txt
 ```

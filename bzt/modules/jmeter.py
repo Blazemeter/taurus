@@ -333,6 +333,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 tool_dir = get_full_path(self.tool.tool_path, step_up=2)
             self.env.set({"JMETER_HOME": tool_dir})
 
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            cmdline += user_cmd.split(" ")
+
         self.process = self._execute(cmdline)
 
     def check(self):

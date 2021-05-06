@@ -68,10 +68,12 @@ scenarios:
 
 ## Module Settings
 
-If you have Apache Benchmark in non-standard location, use `path` option to point Taurus to the `ab`:
+If you have Apache Benchmark in non-standard location, use `path` option to point Taurus to the `ab`. Also, you can pass
+specific Apache Benchmark options via `cmdline`:
 
 ```yaml
 modules:
   ab:
     path: /home/john/build/apache2/bin/ab
+    cmdline: -e csv-file
 ```

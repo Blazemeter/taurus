@@ -101,7 +101,7 @@ def run_robot(targets, report_file, iteration_limit, duration_limit, variablefil
             if include is not None:
                 kwargs['include'] = include
             if cmdline:
-                parts = cmdline.split(" ")
+                parts = cmdline[1:-1].split(" ")
                 part = iter(parts)
                 kwargs.update(dict(zip(part, part)))
 
