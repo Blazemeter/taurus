@@ -22,12 +22,13 @@ from collections import OrderedDict
 from urllib import parse
 
 import astunparse
+import selenium
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
-from bzt.utils import iteritems, dehumanize_time, ensure_is_dict
+from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, is_selenium_4
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript
 from .jmeter_functions import JMeterExprCompiler
 
@@ -122,6 +123,8 @@ from selenium.webdriver.common.keys import Keys
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
     SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock)
+
+    OPTIONS = 'options'
 
     def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
@@ -577,8 +580,8 @@ from selenium.webdriver.common.keys import Keys
         )
 
         raise_kwargs = {
-                "exc": exc_type,
-                "cause": None}
+            "exc": exc_type,
+            "cause": None}
 
         body = ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
                                  args=[
@@ -931,20 +934,15 @@ from selenium.webdriver.common.keys import Keys
         body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
 
         browser = self._check_platform()
+        body.extend(self._get_options(browser))
 
         if browser == 'firefox':
-            body.extend(self._get_firefox_options() + self._get_firefox_profile() + [self._get_firefox_webdriver()])
+            body.extend(self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
         elif browser == 'chrome':
-            body.extend(self._get_chrome_options() + [self._get_chrome_webdriver()])
+            body.extend([self._get_chrome_webdriver()])
 
         elif browser == 'remote':
-            if 'firefox' == self.capabilities.get('browserName'):
-                body.append(self._get_firefox_options())
-            else:
-                empty_options = ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))
-                body.append(empty_options)
-
             body.append(self._get_remote_webdriver())
 
         else:
@@ -988,6 +986,26 @@ from selenium.webdriver.common.keys import Keys
                 ast_call(func=ast_attr("options.set_headless")))]
         else:
             return []
+
+    def _get_options(self, browser):
+        if browser == 'remote':
+            if 'firefox' == self.capabilities.get('browserName'):
+                browser = 'firefox'
+            elif 'chrome' == self.capabilities.get('browserName'):
+                browser = 'chrome'
+        if browser == 'firefox':
+            options = self._get_firefox_options()
+        elif browser == 'chrome':
+            options = self._get_chrome_options()
+        else:
+            options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
+
+        if self.OPTIONS in self.executor.settings:
+            self.log.debug(f'Generating selenium option {self.executor.settings.get(self.OPTIONS)}. '
+                           f'Browser {browser}. Selenium version {selenium.__version__}')
+            options.extend(self._get_selenium_options(browser))
+
+        return options
 
     def _get_firefox_options(self):
         firefox_options = [
@@ -1075,6 +1093,95 @@ from selenium.webdriver.common.keys import Keys
                     ast.keyword(
                         arg="options",
                         value=ast.Name(id="options"))]))
+
+    def _get_selenium_options(self, browser):
+        options = []
+
+        if not is_selenium_4():
+            old_version = True
+            if browser != 'firefox' and browser != 'chrome':
+                self.log.warning(f'Selenium options are not supported. '
+                                 f'Browser {browser}. Selenium version {selenium.__version__}')
+                return []
+        else:
+            old_version = False
+            if browser != 'firefox' and browser != 'chrome':
+                self.log.debug(
+                    f'Generating selenium options. Browser {browser}. Selenium version {selenium.__version__}')
+                options.extend([ast.Assign(
+                    targets=[ast.Name(id="options")],
+                    value=ast_call(
+                        func=ast_attr("webdriver.ArgOptions")))])
+
+        for opt in self.executor.settings.get(self.OPTIONS):
+            if opt == "ignore-proxy":
+                options.extend(self._get_ignore_proxy(old_version))
+            elif opt == "arguments":
+                options.extend(self._get_arguments())
+            elif opt == "experimental-options":
+                options.extend(self._get_experimental_options(browser))
+            elif opt == "preferences":
+                options.extend(self._get_preferences(browser))
+            else:
+                self.log.warning(f'Unknown option {opt}')
+
+        return options
+
+    def _get_ignore_proxy(self, old_version):
+        ignore_proxy = "ignore-proxy"
+
+        if old_version:
+            self.log.warning(f'Option {ignore_proxy} is not supported for this selenium version')
+            return []
+        if not self.executor.settings.get(self.OPTIONS).get(ignore_proxy):
+            return []
+
+        return [ast.Expr(ast_call(func=ast_attr("options.ignore_local_proxy_environment_variables")))]
+
+    def _get_arguments(self):
+        args = []
+        arguments = "arguments"
+
+        for arg in self.executor.settings.get(self.OPTIONS).get(arguments):
+            args.extend([ast.Expr(
+                ast_call(
+                    func=ast_attr("options.add_argument"),
+                    args=[ast.Str(arg, kind="")]))])
+
+        return args
+
+    def _get_experimental_options(self, browser):
+        experimental_options = "experimental-options"
+
+        if browser != "chrome":
+            self.log.warning(f'Option {experimental_options} is not supported for {browser}')
+            return []
+
+        exp_opts = []
+        for key, value in self.executor.settings.get(self.OPTIONS).get(experimental_options).items():
+            exp_opts.append(ast.Expr(ast_call(
+                func=ast_attr("options.add_experimental_option"),
+                args=[
+                    [ast.Str(key, kind="")],
+                    [ast.Str(value, kind="")]])))
+        return exp_opts
+
+    def _get_preferences(self, browser):
+        preferences = "preferences"
+
+        if browser != "firefox":
+            self.log.warning(f'Option {preferences} is not supported for {browser}')
+            return []
+
+        prefers = []
+        for key, value in self.executor.settings.get(self.OPTIONS).get(preferences).items():
+            prefers.append(ast.Expr(ast_call(
+                func=ast_attr("options.set_preference"),
+                args=[
+                    [ast.Str(key, kind="")],
+                    [ast.Str(value, kind="")]])))
+
+        return prefers
 
     @staticmethod
     def _gen_impl_wait(timeout):

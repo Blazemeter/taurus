@@ -4,7 +4,9 @@ import ast
 import astunparse
 import os
 
+import bzt.utils
 from bzt import TaurusConfigError
+from bzt.modules.apiritif.generator import is_selenium_4
 from tests.unit import RESOURCES_DIR
 from tests.unit.modules.selenium import SeleniumTestCase
 
@@ -219,6 +221,249 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "driver = webdriver.Chrome(service_log_path='",
             "', options=options)",
             "options.set_capability('unhandledPromptBehavior', 'ignore')"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_ignore_proxy_option_generator_selenium_3(self):
+        # Option ignore-proxy is only available starting from Selenium version 4
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = "options.ignore_local_proxy_environment_variables"
+        self.assertNotIn(target, content)
+
+    def test_arguments_option_generator_ff(self):
+        # Option arguments is only available for Firefox and Chrome
+        # Option arguments is available for other browsers starting from Selenium version 4
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "arguments": ["one", "two"]}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_browser_chrome(self):
+        # Selenium version 3. Browser Chrome.
+        # Supported options: arguments, experimental-options
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Chrome",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.set_preference", content)
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+            "options.add_experimental_option('key1', 'value1')",
+            "options.add_experimental_option('key2', {'key22': 'value22'})"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_browser_firefox(self):
+        # Selenium version 3. Browser Firefox.
+        # Supported options: arguments, preferences
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.add_experimental_option", content)
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+            "options.set_preference('key1', 'value1')",
+            "options.set_preference('key2', {'key22': 'value22'})"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_browser_ie(self):
+        # Selenium version 3. Browser Ie.
+        # Supported options: None
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Ie",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],  # Option arguments is only available starting from Selenium 4
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1"},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1"}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+        self.assertNotIn("options.add_argument('one')", content)
+        self.assertNotIn("options.add_experimental_option", content)
+        self.assertNotIn("options.set_preference", content)
+
+    def test_options_generator_remote_firefox(self):
+        # Selenium version 3. Remote webdriver. Browser Firefox.
+        # Supported options: arguments, preferences
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "browserName": "firefox"},
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.add_experimental_option", content)
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+            "options.set_preference('key1', 'value1')",
+            "options.set_preference('key2', {'key22': 'value22'})"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_remote_chrome(self):
+        # Selenium version 3. Remote webdriver. Browser Chrome.
+        # Supported options: arguments, experimental-options
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "browserName": "Chrome"},
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.set_preference", content)
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+            "options.add_experimental_option('key1', 'value1')",
+            "options.add_experimental_option('key2', {'key22': 'value22'})"
         ]
 
         for idx in range(len(target_lines)):
@@ -2072,3 +2317,90 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_shadow.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+
+class TestIsSelenium4(SeleniumTestCase):
+    def setUp(self):
+        super(TestIsSelenium4, self).setUp()
+        self.store = bzt.modules.apiritif.generator.is_selenium_4
+        bzt.modules.apiritif.generator.is_selenium_4 = lambda: True
+
+    def test_ignore_proxy_option_generator_selenium_4(self):
+        # Option ignore_proxy is only available starting from Selenium version 4
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = "options.ignore_local_proxy_environment_variables()"
+        self.assertIn(target, content)
+
+    def test_arguments_option_generator_ie_selenium_4(self):
+        # Option arguments is only available for Firefox and Chrome
+        # Option arguments is available for other browsers starting from Selenium version 4
+
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Ie",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "arguments": ["one", "two"]}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_arguments_option_generator_ff_selenium_4(self):
+        # Option arguments is only available for Firefox and Chrome
+        # Option arguments is available for other browsers starting from Selenium version 4
+
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "arguments": ["one", "two"]}}}})
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')"
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def tearDown(self):
+        bzt.modules.apiritif.generator.is_selenium_4 = self.store
+        super(TestIsSelenium4, self).tearDown()
