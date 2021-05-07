@@ -112,12 +112,13 @@ scenarios:
 ## Module Settings
 
 If you have installed Tsung in non-standard location (i.e. `tsung` is not in your `$PATH`), you can use `path` option
-to point Taurus to the `tsung` executable.
+to point Taurus to the `tsung` executable. Also, you can pass specific Tsung options via `cmdline`:
 
 ```yaml
 modules:
   tsung:
     path: /usr/local/bin/tsung
+    cmdline: -n  # This feature is only available in the unstable snapshot.
 ```
 
 ## Tsung Concurrency Stats

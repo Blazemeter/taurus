@@ -121,6 +121,10 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         if request.priority_option('keepalive', default=True):
             args += ['-k']
 
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            args += user_cmd.split(" ")
+
         args += [request.url]
 
         self.reader.setup(load_concurrency, request.label)

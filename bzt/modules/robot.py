@@ -101,6 +101,11 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
         cmdline += ['--outputfile', self.output_file]
         cmdline += ['--logfile', self.log_file]
 
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            cmdline.append("--cmdline")
+            cmdline.append(f'"{user_cmd.replace("=", " ").replace("-", "")}"')
+
         cmdline += [self.script]
         self.process = self._execute(cmdline)
 

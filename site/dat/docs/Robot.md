@@ -57,13 +57,13 @@ execution:
 
 ## Configuration Options
 
-The `interpreter` option allows providing custom interpreter for your tests
-(for example when you're running Taurus with Python 2 but want to run pytest with Python 3).
+The `interpreter` option allows providing custom interpreter for your tests. Also, you can pass specific Robot options via `cmdline`:
 
 ```yaml
 modules:
   robot:
     interpreter: /usr/bin/python3
+    cmdline: --argumentfile file.txt  # This feature is only available in the unstable snapshot.
 ```
 
 ## Examples
