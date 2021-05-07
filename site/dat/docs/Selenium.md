@@ -154,6 +154,8 @@ See more info [here](Services.md#Virtual-Display-Service).
 
 ## Browser Options
 
+_This is available only in [unstable snapshot](https://gettaurus.org/install/Installation/#Latest-Unstable-Snapshot)._
+
 You can configure the following browser options:  
 `ignore-proxy`: boolean  
 HTTP_PROXY and HTTPS_PROXY will be ignored from being picked up and used. Option is only available starting from Selenium version 4.  
