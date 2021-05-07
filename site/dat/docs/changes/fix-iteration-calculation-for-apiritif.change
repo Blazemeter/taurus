@@ -1,0 +1,1 @@
+Fix/refactoring iteration calculation for apiritif execution (move logic to 'get_load' method)
