@@ -60,5 +60,5 @@ Also, you can pass specific `molotov` options via `cmdline`:
 modules:
   molotov:
     path: /home/john/venv/bin/molotov
-    cmdline: --verbose
+    cmdline: --verbose  # This feature is only available in the unstable snapshot.
 ```

@@ -83,5 +83,5 @@ pass specific Siege via `cmdline`:
 modules:
   siege:
     path: /home/user/sources/siege/bin/siege
-    cmdline: --file=file.txt
+    cmdline: --file=file.txt  # This feature is only available in the unstable snapshot.
 ```

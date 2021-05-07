@@ -118,7 +118,7 @@ to point Taurus to the `tsung` executable. Also, you can pass specific Tsung opt
 modules:
   tsung:
     path: /usr/local/bin/tsung
-    cmdline: -n
+    cmdline: -n  # This feature is only available in the unstable snapshot.
 ```
 
 ## Tsung Concurrency Stats

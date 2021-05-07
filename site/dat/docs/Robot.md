@@ -63,7 +63,7 @@ The `interpreter` option allows providing custom interpreter for your tests. Als
 modules:
   robot:
     interpreter: /usr/bin/python3
-    cmdline: --argumentfile file.txt
+    cmdline: --argumentfile file.txt  # This feature is only available in the unstable snapshot.
 ```
 
 ## Examples
