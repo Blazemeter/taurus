@@ -112,9 +112,15 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def get_load(self):
         load = super().get_load()
-        if self.get_raw_load().iterations is not None:
-            return load
+        # should use raw iterations
+        iterations = self.get_raw_load().iterations
+        if self.get_raw_load().iterations is None:
+            iterations = self.__calculate_iterations(load)
 
+        return self.LOAD_FMT(concurrency=load.concurrency, ramp_up=load.ramp_up, throughput=load.throughput, hold=load.hold,
+                             iterations=iterations, duration=load.duration, steps=load.steps)
+
+    def __calculate_iterations(self, load):
         msg = "No iterations limit in config, choosing anything... set "
         if load.duration or self.engine.is_functional_mode() and list(self.get_scenario().get_data_sources()):
             iterations = 0                  # infinite for func mode and ds
@@ -132,8 +138,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
         self.log.debug(msg)
 
-        return self.LOAD_FMT(concurrency=load.concurrency, ramp_up=load.ramp_up, throughput=load.throughput, hold=load.hold,
-                             iterations=iterations, duration=load.duration, steps=load.steps)
+        return iterations
 
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
