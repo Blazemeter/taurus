@@ -110,6 +110,31 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             self.engine.aggregator.ignored_labels.extend(builder.service_methods)
         return filename
 
+    def get_load(self):
+        load = super().get_load()
+        if self.get_raw_load().iterations is not None:
+            return load
+
+        msg = "No iterations limit in config, choosing anything... set "
+        if load.duration or self.engine.is_functional_mode() and list(self.get_scenario().get_data_sources()):
+            iterations = 0                  # infinite for func mode and ds
+            msg += "0 (infinite) as "
+            if load.duration:
+                msg += "duration found (hold-for + ramp-up)"
+            elif self.engine.is_functional_mode():
+                msg += "taurus works in functional mode"
+            else:
+                msg += "data-sources found"
+
+        else:
+            iterations = 1                  # run once otherwise
+            msg += "1"
+
+        self.log.debug(msg)
+
+        return self.LOAD_FMT(concurrency=load.concurrency, ramp_up=load.ramp_up, throughput=load.throughput, hold=load.hold,
+                             iterations=iterations, duration=load.duration, steps=load.steps)
+
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
@@ -121,27 +146,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         if load.concurrency:
             cmdline += ['--concurrency', str(load.concurrency)]
 
-        iterations = self.get_raw_load().iterations
-        if iterations is None:  # defaults:
-            msg = "No iterations limit in config, choosing anything... set "
-            if load.duration or self.engine.is_functional_mode() and list(self.get_scenario().get_data_sources()):
-                iterations = 0                  # infinite for func mode and ds
-                msg += "0 (infinite) as "
-                if load.duration:
-                    msg += "duration found (hold-for + ramp-up)"
-                elif self.engine.is_functional_mode():
-                    msg += "taurus works in functional mode"
-                else:
-                    msg += "data-sources found"
-
-            else:
-                iterations = 1                  # run once otherwise
-                msg += "1"
-
-            self.log.debug(msg)
-
-        if iterations:
-            cmdline += ['--iterations', str(iterations)]
+        if load.iterations:
+            cmdline += ['--iterations', str(load.iterations)]
 
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
