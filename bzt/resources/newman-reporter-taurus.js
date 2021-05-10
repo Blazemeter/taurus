@@ -154,8 +154,8 @@ class TaurusReporter {
                 responseBodySize: 0,
                 requestCookiesSize: 0
             };
-            sample.assertions = assertions;
         }
+        sample.assertions = assertions;
 
         // Calculate status from assertions
         const assertionFailed = sample.assertions.some((ast) => ast.isFailed);
