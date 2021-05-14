@@ -17,6 +17,8 @@ limitations under the License.
 import re
 import sys
 
+from ast import literal_eval
+
 from bzt import TaurusConfigError
 from bzt.engine import SETTINGS
 from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSamplesReader
@@ -26,6 +28,7 @@ from bzt.utils import FileReader, get_full_path, BZT_DIR, get_assembled_value
 from .generator import ApiritifScriptGenerator
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
+STOPPING_REASON_TAG = '<StoppingReason>'
 
 
 class ApiritifNoseExecutor(SubprocessedExecutor):
@@ -226,12 +229,23 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         self._check_stdout()
         self.__log_lines()
         self._tailer.close()
+        self.__find_stopping_reasons()
         super(ApiritifNoseExecutor, self).post_process()
 
     def __is_verbose(self):
         engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
         executor_verbose = self.settings.get("verbose", engine_verbose)
         return executor_verbose
+
+    def __find_stopping_reasons(self):
+        stopping_reasons = []
+        with open(self.stdout.name) as stdout:
+            for line in stdout:
+                if STOPPING_REASON_TAG in line:
+                    reason_start_position = line.find(STOPPING_REASON_TAG) + len(STOPPING_REASON_TAG)
+                    stopping_reasons.append(literal_eval(line[reason_start_position:]))
+
+        self.engine.extracted_stopping_reasons = stopping_reasons
 
 
 class ApiritifTester(ApiritifNoseExecutor):
