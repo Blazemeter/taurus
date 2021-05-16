@@ -621,6 +621,8 @@ class ResultsReader(ResultsProvider):
 
     @staticmethod
     def get_label(label, kpis):
+        # it is used for generation of extended label.
+        # each label data is splitted according to sample state (success/error/assert)
         if kpis[5] is None:
             group = 0   # no errors
         elif kpis[5] == 'OK':
