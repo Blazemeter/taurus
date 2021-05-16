@@ -1,0 +1,17 @@
+execution:
+  - executor: jmeter
+    iterations: 6
+    concurrency: 2
+    scenario: sc1
+
+scenarios:
+  sc1:
+    #timeout: 1s
+    requests:
+    - https://blazemete1r.com
+    - url: http://blazedemo.com
+      timeout: 10s
+
+modules:
+  consolidator:
+    extend-aggregation: true
