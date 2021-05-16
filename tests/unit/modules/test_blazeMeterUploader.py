@@ -293,7 +293,6 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.aggregator.post_process()
         obj.post_process()
 
-        #generated_data_points = watcher.results[-1][DataPoint.CUMULATIVE]
         sent_data_points = sent_data_points[0] + sent_data_points[1]
 
         state_labels = [0, 1, 2]
@@ -304,14 +303,6 @@ class TestBlazeMeterUploader(BZTestCase):
                     self.assertIsInstance(data[label], dict)
                     for key in data[label]:
                         self.assertIn(key, state_labels)
-
-        # todo:
-        # assert for data joining
-
-        # todo:
-        # 1. meaning of throughput, concurrency, rt, etc.
-        # 2. which part of data do we send? (get_kpi_body)
-        # 3. rename __get_label
 
     def test_monitoring_buffer_limit_option(self):
         obj = BlazeMeterUploader()
