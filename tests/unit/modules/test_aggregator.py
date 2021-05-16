@@ -48,13 +48,7 @@ class TestResultsReader(BZTestCase):
             self.assertTrue(len(overall[KPISet.PERCENTILES]) > 0)
 
     def test_new_reader(self):
-
         mock = MockReader()
-
-        # move to appropriate results reader (according to the rule - jtlreader?)
-        get_label = mock._get_label_generator(lambda kpis: kpis[4] == 200)  # r_code
-        mock.get_label = get_label
-
         mock.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
         mock.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
