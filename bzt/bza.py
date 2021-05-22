@@ -16,8 +16,7 @@ from urllib.parse import urlencode
 import requests
 from requests.exceptions import ReadTimeout
 
-from bzt import ManualShutdown, TaurusException
-from bzt import TaurusNetworkError
+from bzt import ManualShutdown, TaurusException, TaurusNetworkError
 from bzt.resources.version import VERSION
 from bzt.utils import to_json, MultiPartForm
 
