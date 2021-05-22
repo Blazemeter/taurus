@@ -36,7 +36,6 @@ from bzt.utils import b, humanize_bytes, iteritems, open_browser, BetterDict, to
 from bzt.modules.aggregator import AggregatorListener, DataPoint, KPISet, ResultsProvider, ConsolidatingAggregator
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.blazemeter.project_finder import ProjectFinder
-from bzt.modules.blazemeter.net_utils import send_with_retry
 from bzt.modules.blazemeter.const import NOTE_SIZE_LIMIT
 
 
@@ -351,7 +350,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                 self.__send_monitoring()
         return super(BlazeMeterUploader, self).check()
 
-    @send_with_retry
     def __send_data(self, data, do_check=True, is_final=False):
         """
         :type data: list[bzt.modules.aggregator.DataPoint]
@@ -363,7 +361,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             self.__extend_reported_data(data)
         serialized = self._dpoint_serializer.get_kpi_body(data, is_final)
 
-        # todo: send_with_retry only following (don't serialize many times):
         self._session.send_kpi_data(serialized, do_check)
 
     @staticmethod
@@ -396,7 +393,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if self.send_monitoring:
             self.monitoring_buffer.record_data(data)
 
-    @send_with_retry
     def __send_monitoring(self):
         engine_id = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '')
         if not engine_id:
