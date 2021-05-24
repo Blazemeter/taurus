@@ -24,6 +24,7 @@ NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError
 
 BZA_TEST_DATA_RECEIVED = 100
 ENDED = 140
+PERMANENT_ERROR_CODES = [500]
 
 
 def send_with_retry(method):
@@ -32,7 +33,13 @@ def send_with_retry(method):
         try:
             method(self, *args, **kwargs)
         except (IOError, TaurusNetworkError):
-            self.log.debug("Error sending data: %s", traceback.format_exc())
+            error_msg = f"Error sending data: {traceback.format_exc()}"
+
+            if any(f"API call error {code}" in error_msg for code in PERMANENT_ERROR_CODES):
+                self.log.error(error_msg)
+                return
+
+            self.log.debug(error_msg)
             self.log.warning("Failed to send data, will retry in %s sec...", self.timeout)
             try:
                 time.sleep(self.timeout)
