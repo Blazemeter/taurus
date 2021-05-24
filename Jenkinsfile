@@ -70,6 +70,7 @@ pipeline {
         steps {
             script {
                 sh 'docker images'
+                BlackduckProjectName = ESD-BlazeMeter-Taurus
                 runBlackduckImageScan(BlackduckProjectName,imageName,extraImageTag)
             }
         }
