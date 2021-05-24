@@ -4,7 +4,7 @@ pipeline {
     agent {
         dockerfile {
             filename 'tests/ci/Dockerfile'
-            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+            args '-u root -v /var/run/docker.sock:/var/run/docker.sock -v /root/blackduck:/root/blackduck --network host'
         }
     }
     options {
@@ -65,6 +65,15 @@ pipeline {
                 }
             }
         }
+        stage('Perform Blackduck scan') {
+        when { expression { return params.PERFORM_BLACKDUCK_SCAN } }
+        steps {
+            script {
+                sh 'docker images'
+                runBlackduckImageScan(BlackduckProjectName,imageName,extraImageTag)
+            }
+        }
+    }
         stage("Deploy site") {
             steps {
                 script {
