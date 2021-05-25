@@ -126,6 +126,9 @@ from selenium.webdriver.common.keys import Keys
 
     OPTIONS = 'options'
 
+    STOPPING_REASON_TAG = '<StoppingReason>'
+    WEB_DRIVER_EXCEPTION_TO_CATCH = 'Exception'
+
     def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
                  capabilities=None, wd_addr=None, test_mode="selenium", generate_external_logging=None):
@@ -936,25 +939,61 @@ from selenium.webdriver.common.keys import Keys
         browser = self._check_platform()
         body.extend(self._get_options(browser))
 
+        browser_body = []
+
         if browser == 'firefox':
-            body.extend(self._get_firefox_profile() + [self._get_firefox_webdriver()])
+            browser_body = self._get_firefox_profile() + [self._get_firefox_webdriver()]
 
         elif browser == 'chrome':
-            body.extend([self._get_chrome_webdriver()])
+            browser_body = [self._get_chrome_webdriver()]
 
         elif browser == 'remote':
-            body.append(self._get_remote_webdriver())
+            browser_body = [self._get_remote_webdriver()]
 
         else:
-            body.append(ast.Assign(
+            browser_body = [ast.Assign(
                 targets=[ast_attr("self.driver")],
                 value=ast_call(
-                    func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
+                    func=ast_attr("webdriver.%s" % browser)))]  # todo bring 'browser' to correct case
+
+        body.append(self._gen_try_catch_wrapping(browser_body))
 
         body.append(self._get_timeout())
         body.extend(self._get_extra_mngrs())
 
         return body
+
+    def _gen_try_catch_wrapping(self, body_to_wrap):
+        exception_variables = [ast.Name(id='ex_type'), ast.Name(id='ex'), ast.Name(id='tb')]
+
+        handlers = [
+            ast.ExceptHandler(
+                type=ast.Name(id=self.WEB_DRIVER_EXCEPTION_TO_CATCH, ctx=ast.Load()),
+                name=None,
+                body=[
+                    ast.Assign(
+                        targets=[ast.Tuple(elts=exception_variables)],
+                        value=ast_call(func=ast_attr('sys.exc_info'), args=[])),
+
+                    ast.Expr(value=ast_call(
+                        func=ast_attr('apiritif.log.info'),
+                        args=[
+                            ast.BinOp(
+                                left=ast.Str(s=self.STOPPING_REASON_TAG),
+                                op=ast.Add(),
+                                right=ast_call(
+                                    func=ast.Name(id='str'),
+                                    args=[ast_call(
+                                        func=ast_attr('traceback.format_exception'),
+                                        args=exception_variables
+                                    )]))
+                        ])),
+
+                    ast.Raise(exc=None, cause=None)]
+            )
+        ]
+
+        return ast.Try(body=body_to_wrap, handlers=handlers, orelse=[], finalbody=[])
 
     def _get_timeout(self):
         return ast.Expr(
@@ -1209,6 +1248,7 @@ from selenium.webdriver.common.keys import Keys
             ast.Import(names=[ast.alias(name='random', asname=None)]),
             ast.Import(names=[ast.alias(name='string', asname=None)]),
             ast.Import(names=[ast.alias(name='sys', asname=None)]),
+            ast.Import(names=[ast.alias(name='traceback', asname=None)]),
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             ast.ImportFrom(
                 module="time",

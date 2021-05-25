@@ -28,7 +28,6 @@ from bzt.utils import FileReader, get_full_path, BZT_DIR, get_assembled_value
 from .generator import ApiritifScriptGenerator
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
-STOPPING_REASON_TAG = '<StoppingReason>'
 
 
 class ApiritifNoseExecutor(SubprocessedExecutor):
@@ -241,8 +240,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         stopping_reasons = []
         with open(self.stdout.name) as stdout:
             for line in stdout:
-                if STOPPING_REASON_TAG in line:
-                    reason_start_position = line.find(STOPPING_REASON_TAG) + len(STOPPING_REASON_TAG)
+                if ApiritifScriptGenerator.STOPPING_REASON_TAG in line:
+                    reason_start_position = line.find(ApiritifScriptGenerator.STOPPING_REASON_TAG)\
+                                            + len(ApiritifScriptGenerator.STOPPING_REASON_TAG)
                     stopping_reasons.append(literal_eval(line[reason_start_position:]))
 
         self.engine.extracted_stopping_reasons = stopping_reasons
