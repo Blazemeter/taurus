@@ -53,10 +53,12 @@ scenarios:
 
 ## Module Settings
 
-If you have installed Molotov in a non-standard location, you can use `path` option to point Taurus to the `molotov` executor:
+If you have installed Molotov in a non-standard location, you can use `path` option to point Taurus to the `molotov` executor.
+Also, you can pass specific `molotov` options via `cmdline`:
 
 ```yaml
 modules:
   molotov:
     path: /home/john/venv/bin/molotov
+    cmdline: --verbose  # This feature is only available in the unstable snapshot.
 ```

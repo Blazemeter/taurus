@@ -86,6 +86,10 @@ class VegetaExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstall
         if self.scenario and 'timeout' in self.scenario:
             cmdline += ['-timeout', str(int(self.scenario.get('timeout'))) + "s"]
 
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            cmdline += user_cmd.split(" ")
+
         self.process = self._execute(cmdline, stdout=PIPE, shell=False)
         with open(self.kpi_file, 'wb') as f:
             self._execute([self.vegeta.tool_path, "encode", "-to=csv"], stdin=self.process.stdout, stdout=f, shell=False)

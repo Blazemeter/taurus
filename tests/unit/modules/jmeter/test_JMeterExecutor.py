@@ -3056,16 +3056,16 @@ class TestJMeterExecutor(ExecutorTestCase):
                         "rte-action": "CONNECT",
                         "label": "Connection to server"
                     },
-                    {
-                        "rte-action": "SEND_INPUT",
-                        "label": "RTE Action",
-                        "attention-key": "ENTER",
-                        "fields": [
-                            {"tabs": "0",
-                             "text": "MyHost"}
+                        {
+                            "rte-action": "SEND_INPUT",
+                            "label": "RTE Action",
+                            "attention-key": "ENTER",
+                            "fields": [
+                                {"tabs": "0",
+                                 "text": "MyHost"}
 
-                        ]
-                    }
+                            ]
+                        }
                     ]}}})
         self.obj.prepare()
         xml_tree = open(self.obj.modified_jmx, "rb").read().decode("utf-8")

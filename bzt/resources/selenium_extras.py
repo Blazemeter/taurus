@@ -10,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as econd
 
+from bzt import TaurusException
 from bzt.resources.shadow_element import ShadowElement
 
 BYS = {
@@ -59,6 +60,8 @@ def _find_by_css_selector(root, css_selector, raise_exception):
         element = root.find_element_by_css_selector(css_selector)
     except NoSuchElementException as nse:
         if raise_exception:
+            if root.tag_name == "slot":
+                raise TaurusException("Shadow DOM Slots are currently not supported in Taurus execution.")
             raise nse
         pass
     return element

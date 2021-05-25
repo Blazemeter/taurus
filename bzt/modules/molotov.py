@@ -82,6 +82,10 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         if think_time:
             cmdline += ['--delay', str(dehumanize_time(think_time))]
 
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            cmdline += user_cmd.split(" ")
+
         cmdline += ['--use-extension=bzt.resources.molotov_ext']
 
         cmdline += [self.get_script_path(required=True)]

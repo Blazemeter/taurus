@@ -134,6 +134,15 @@ modules:
 
 For the command-line, use alias `-gui` or option `-o modules.jmeter.gui=true`, without the need to edit configuration file.
 
+## Command-line Settings
+
+You can specify special cli options for JMeter, for example:
+```yaml
+modules:
+  jmeter:
+    cmdline: --loglevel DEBUG  # This feature is only available in the unstable snapshot.
+```
+
 ## Run JMeter in Distributed Mode
 Distributed mode for JMeter is enabled with simple option `distributed` under execution settings, listing JMeter servers under it:
 

@@ -42,7 +42,6 @@ from bzt.modules.services import Unpacker
 from bzt.requests_model import has_variable_pattern
 from bzt.utils import iteritems, open_browser, BetterDict, ExceptionalDownloader, ProgressBarContext
 from bzt.utils import to_json, dehumanize_time, get_full_path, get_files_recursive, replace_in_config
-from bzt.modules.blazemeter.net_utils import get_with_retry
 from bzt.modules.blazemeter.blazemeter_reporter import BlazeMeterUploader
 from bzt.modules.blazemeter.cloud_test import FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE, TAURUS_TEST_TYPE
 from bzt.modules.blazemeter.project_finder import ProjectFinder
@@ -472,7 +471,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.widget.update()
         return super(CloudProvisioning, self).check()
 
-    @get_with_retry
     def _check_master_status(self):
         return self.router.get_master_status()
 

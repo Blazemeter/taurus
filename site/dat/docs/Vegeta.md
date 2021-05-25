@@ -50,3 +50,12 @@ scenarios:
           id: 123
           name: Some name
 ```
+
+## Command-line Settings
+_This feature is only available in the [unstable snapshot](https://gettaurus.org/install/Installation/#Unstable-features)._
+You can specify special cli options for Vegeta, for example:
+```yaml
+modules:
+  vegeta:
+    cmdline: -cert cert.pem
+```

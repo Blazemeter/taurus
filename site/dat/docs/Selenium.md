@@ -152,6 +152,43 @@ services:
 ```
 See more info [here](Services.md#Virtual-Display-Service).
 
+## Browser Options
+
+_This is available only in [unstable snapshot](https://gettaurus.org/install/Installation/#Latest-Unstable-Snapshot)._
+
+You can configure the following browser options:  
+`ignore-proxy`: boolean  
+HTTP_PROXY and HTTPS_PROXY will be ignored from being picked up and used. Option is only available starting from Selenium version 4.  
+`arguments`: list  
+Add a command-line argument to use when starting browser. Option is only available starting from Selenium version 4.  
+`experimental-options`: dict  
+Add a dictionary of experimental options. Option is only available in Chrome.  
+`preferences`: dict  
+Add a dictionary of preferences. Option is only available in Firefox.
+
+```yaml
+execution:
+- executor: selenium
+  scenario: simple
+  
+scenarios:
+  simple:
+    browser: chrome
+    requests:
+    - http://blazedemo.com/
+
+modules:
+  selenium:
+    options:
+      ignore-proxy: true
+      arguments:
+        - incognito
+        - new-window
+      experimental-options:
+        prefs:
+         credentials_enable_service: false
+```
+
 ## Appium
 
 [Appium](http://appium.io) is a tool for testing naitive mobile applications.

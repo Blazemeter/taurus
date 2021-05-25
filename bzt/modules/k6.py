@@ -60,6 +60,10 @@ class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallable
         if load.iterations:
             cmdline += ['--iterations', str(load.iterations)]
 
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            cmdline += user_cmd.split(" ")
+
         cmdline += [self.script]
         self.process = self._execute(cmdline)
 

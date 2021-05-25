@@ -333,6 +333,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 tool_dir = get_full_path(self.tool.tool_path, step_up=2)
             self.env.set({"JMETER_HOME": tool_dir})
 
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            cmdline += user_cmd.split(" ")
+
         self.process = self._execute(cmdline)
 
     def check(self):
@@ -877,7 +881,7 @@ class JTLReader(ResultsReader):
 
     def _calculate_datapoints(self, final_pass=False):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):
-            if self.errors_reader:
+            if self.errors_reader and not self.extend_aggregation:
                 self.errors_reader.read_file()
                 err_details = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])  # get only for labels we have
                 for label in err_details:

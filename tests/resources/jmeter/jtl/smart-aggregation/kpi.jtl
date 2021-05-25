@@ -1,0 +1,5 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,success,bytes,grpThreads,allThreads,Latency,Hostname,Connect
+1612333832827,300,https://blazedemo.com,200,OK,sc1 1-1,false,286136,1,1,300,nactus,100
+1612333834544,800,https://tut.by,200,OK,sc1 1-1,true,5422832,1,1,45,nactus,41
+1612333836382,1360,https://blazedemo.com/bla,Non HTTP response code: java.net.SocketTimeoutException,Non HTTP response message: Read timed out,sc1 1-1,false,3087,1,1,0,nactus,353
+1612333837299,900,https://tut.by,200,OK,sc1 1-1,true,5205884,1,1,27,nactus,23
