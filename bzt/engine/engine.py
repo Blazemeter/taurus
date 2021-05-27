@@ -79,6 +79,7 @@ class Engine(object):
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
+        self.extracted_stopping_reasons = []
         self.engine_loop_utilization = 0
         self.prepared = []
         self.started = []
