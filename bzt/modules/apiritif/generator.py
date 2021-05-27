@@ -979,7 +979,7 @@ from selenium.webdriver.common.keys import Keys
                         func=ast_attr('apiritif.log.info'),
                         args=[
                             ast.BinOp(
-                                left=ast.Str(s=self.STOPPING_REASON_TAG),
+                                left=ast.Str(s=self.STOPPING_REASON_TAG, kind=""),
                                 op=ast.Add(),
                                 right=ast_call(
                                     func=ast.Name(id='str'),
