@@ -4,6 +4,7 @@ import logging
 import random
 import string
 import sys
+import traceback
 import unittest
 from time import time, sleep
 
@@ -32,10 +33,15 @@ class TestLocScAppium(unittest.TestCase):
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.set_capability('unhandledPromptBehavior', 'ignore')
-        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub',
-                                       desired_capabilities={'browserName': 'chrome', 'deviceName': '',
-                                                             'platformName': 'android'},
-                                       options=options)
+        try:
+            self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub',
+                                           desired_capabilities={'browserName': 'chrome', 'deviceName': '',
+                                                                 'platformName': 'android'},
+                                           options=options)
+        except Exception:
+            (ex_type, ex, tb) = sys.exc_info()
+            apiritif.log.info(('<StoppingReason>' + str(traceback.format_exception(ex_type, ex, tb))))
+            raise
         self.driver.implicitly_wait(timeout)
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc_appium')
