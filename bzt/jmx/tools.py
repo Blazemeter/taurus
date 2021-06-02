@@ -100,7 +100,7 @@ class LoadSettingsProcessor(object):
 
         if not self.load.duration:
             self.log.debug(msg, 'duration not found')
-        elif not (self.raw_load.hold or self.raw_load.iterations):
+        elif self.raw_load.iterations is None and self.raw_load.hold is None:
             self.log.debug(msg, 'iterations and duration not found')
         elif self.load.iterations:
             self.log.debug(msg, 'iterations are found')
@@ -142,7 +142,7 @@ class LoadSettingsProcessor(object):
 
         for group, concurrency in target_list:
             iterations = None
-            if not (self.raw_load.iterations or self.raw_load.hold):
+            if self.raw_load.iterations is None and self.raw_load.hold is None:
                 iterations = group.get_iterations()
             self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load,
                                     concurrency=concurrency, iterations=iterations)
