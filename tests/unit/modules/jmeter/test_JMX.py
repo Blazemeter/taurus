@@ -81,19 +81,19 @@ class TestLoadSettingsProcessor(BZTestCase):
         for group in self.get_groupset():
             self.assertEqual('ThreadGroup', group.gtype)
             self.assertEqual("false", group.element.find(".//*[@name='LoopController.continue_forever']").text)
-            self.assertEqual("1", group.element.find(".//*[@name='LoopController.loops']").text)  # no loop limit
 
             res_values[group.get_testname()] = {
                 'conc': group.get_concurrency(),
                 'on_error': group.get_on_error(),
-                'delay': group.get_scheduler_delay()}
+                'delay': group.get_scheduler_delay(),
+                'iterations': group.get_iterations()}
 
         self.assertEqual(res_values,
-                         {'TG.01': {'conc': 14, 'on_error': 'startnextloop', 'delay': '33'},
-                          'CTG.02': {'conc': 21, 'on_error': 'stopthread', 'delay': None},
-                          'STG.03': {'conc': 28, 'on_error': 'stoptest', 'delay': None},
-                          'UTG.04': {'conc': 7, 'on_error': 'stoptestnow', 'delay': None},
-                          'ATG.05': {'conc': 7, 'on_error': 'continue', 'delay': None}})
+                         {'TG.01': {'conc': 14, 'on_error': 'startnextloop', 'delay': '33', 'iterations': 100},
+                          'CTG.02': {'conc': 21, 'on_error': 'stopthread', 'delay': None, 'iterations': 10},
+                          'STG.03': {'conc': 28, 'on_error': 'stoptest', 'delay': None, 'iterations': 1},
+                          'UTG.04': {'conc': 7, 'on_error': 'stoptestnow', 'delay': None, 'iterations': 1},
+                          'ATG.05': {'conc': 7, 'on_error': 'continue', 'delay': None, 'iterations': 33}})
 
     def test_CTG_crs(self):
         """ ConcurrencyThreadGroup: concurrency, ramp-up, steps """
