@@ -179,6 +179,24 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
         self.assertNotIn('--iterations', self.CMD_LINE)
 
+    def test_stopping_reason_extracted(self):
+        self.configure({
+            "execution": {
+                "executor": "apiritif",
+                "scenario": {
+                    "script": RESOURCES_DIR + "apiritif/test_stopping_reason.py"
+                }
+            }})
+        self.sniff_log(self.obj.log)
+        self.obj.prepare()
+        self.obj.runner.stdout.close()
+        self.obj.runner.stdout = open(RESOURCES_DIR + "apiritif/apiritif_extract_stopping_reason.out", "at")
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.assertEqual(len(self.obj.engine.extracted_stopping_reasons), 10)
+
 
 class TestSeleniumStuff(SeleniumTestCase):
     def start_subprocess(self, args, **kwargs):
@@ -225,7 +243,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             }, {  # annotations used and no "test" in class name
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
-        }]})
+            }]})
         self.obj_prepare()
 
     def test_from_extension(self):
