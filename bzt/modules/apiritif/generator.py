@@ -118,7 +118,7 @@ from selenium.webdriver.common.keys import Keys
 
     BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
     COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
-    EXTENDED_LOG_TAG = ("logStart", "logEnd", "log")
+    EXTERNAL_HANDLER_TAG = "external_handler"
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
@@ -128,7 +128,7 @@ from selenium.webdriver.common.keys import Keys
 
     def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="selenium", generate_external_logging=None):
+                 capabilities=None, wd_addr=None, test_mode="selenium", generate_external_handler=None):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -148,7 +148,7 @@ from selenium.webdriver.common.keys import Keys
         self.appium = False
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
-        self.generate_external_logging = generate_external_logging
+        self.generate_external_handler = generate_external_handler
         self.test_mode = test_mode
 
     def _parse_action_params(self, expr, name):
@@ -179,7 +179,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
-        all_actions = self.ACTIONS + "|" + "|".join(self.EXTENDED_LOG_TAG) + "|" + self.EXECUTION_BLOCKS
+        all_actions = self.ACTIONS + f"|{self.EXTERNAL_HANDLER_TAG}" + f"|{self.EXECUTION_BLOCKS}"
         expr = re.compile(r"^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
@@ -243,7 +243,8 @@ from selenium.webdriver.common.keys import Keys
         param = action_config["param"]
         value = action_config["value"]
         tags = "|".join(self.COMMON_TAGS) + "|ByName"  # ByName is needed in switchFrameByName
-        expr = re.compile("^(%s)(%s)?$" % (self.ACTIONS, tags), re.IGNORECASE)
+        all_actions = self.ACTIONS + f"|{self.EXTERNAL_HANDLER_TAG}"
+        expr = re.compile("^(%s)(%s)?$" % (all_actions, tags), re.IGNORECASE)
         action_params = self._parse_action_params(expr, name)
 
         return action_params[0], action_params[1], param, value, selectors
@@ -667,9 +668,9 @@ from selenium.webdriver.common.keys import Keys
 
         action_elements = []
 
-        if atype == "log":
+        if atype == "external_handler":
             action_elements.append(
-                ast_call(func=ast_attr("apiritif.external_log"), args=[self._gen_expr(param.strip())]))
+                ast_call(func=ast_attr("apiritif.external_handler"), args=[self._gen_expr(param), self._gen_expr(value)]))
         elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
         elif atype == "switchframe":
@@ -1328,11 +1329,6 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
 
-        if self.generate_external_logging:
-            self.selenium_extras.add("add_logging_handlers")
-
-            handlers.append(ast.Expr(ast_call(func="add_logging_handlers")))
-
         stored_vars = {
             "timeout": "timeout",
             "func_mode": str(self.executor.engine.is_functional_mode())}
@@ -1645,7 +1641,7 @@ from selenium.webdriver.common.keys import Keys
         if self.test_mode == "selenium":
             for action in req.config.get("actions"):
                 action_lines = self._gen_action(action)
-                if self.generate_external_logging:
+                if self.generate_external_handler:
                     action_lines = self._gen_log_start(action) + action_lines + self._gen_log_end(action)
 
                 lines.extend(action_lines)
@@ -1673,10 +1669,18 @@ from selenium.webdriver.common.keys import Keys
         return lines
 
     def _gen_log_start(self, action):
-        return self._gen_action("log('start: %s')" % action)
+        return self._gen_action({
+            'type': 'external_handler',
+            'param': 'yaml_action_start',
+            'value': action,
+        })
 
     def _gen_log_end(self, action):
-        return self._gen_action("log('end: %s')" % action)
+        return self._gen_action({
+            'type': 'external_handler',
+            'param': 'yaml_action_end',
+            'value': action,
+        })
 
     def _gen_sel_assertion(self, assertion_config):
         self.log.debug("Generating assertion, config: %s", assertion_config)

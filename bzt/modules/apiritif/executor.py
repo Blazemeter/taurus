@@ -68,6 +68,11 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         # path to taurus dir. It's necessary for bzt usage inside tools/helpers
         self.env.add_path({"PYTHONPATH": get_full_path(BZT_DIR, step_up=1)})
 
+        if self.__has_plugins():
+            # add path to plugins directory to Apiritif env vars
+            self.log.debug(f'Found Apiritif plugins path: {self.settings.get("plugins-path")}')
+            self.env.add_path({"PLUGINS_PATH": self.settings.get('plugins-path')})
+
         self.reporting_setup()  # no prefix/suffix because we don't fully control report file names
 
     def __tests_from_requests(self):
@@ -102,7 +107,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 generate_markers=generate_markers,
                 capabilities=capabilities,
                 wd_addr=remote, test_mode=test_mode,
-                generate_external_logging=scenario.get("external-logging", False))
+                generate_external_handler=self.__has_plugins())
 
         builder.build_source_code()
         builder.save(filename)
@@ -208,6 +213,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 label = self._normalize_label(values['name'])
                 duration = float(values['duration'])
                 self.transacion_ended(label, duration)
+
+    def __has_plugins(self):
+        return True if self.settings.get('plugins-path', None) else False
 
     def check(self):
         self._check_stdout()
