@@ -90,10 +90,10 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.assertEqual(res_values,
                          {'TG.01': {'conc': 14, 'on_error': 'startnextloop', 'delay': '33', 'iterations': 100},
-                          'CTG.02': {'conc': 21, 'on_error': 'stopthread', 'delay': None, 'iterations': 10},
+                          'CTG.02': {'conc': 21, 'on_error': 'stopthread', 'delay': None, 'iterations': 1},
                           'STG.03': {'conc': 28, 'on_error': 'stoptest', 'delay': None, 'iterations': 1},
                           'UTG.04': {'conc': 7, 'on_error': 'stoptestnow', 'delay': None, 'iterations': 1},
-                          'ATG.05': {'conc': 7, 'on_error': 'continue', 'delay': None, 'iterations': 33}})
+                          'ATG.05': {'conc': 7, 'on_error': 'continue', 'delay': None, 'iterations': 1}})
 
     def test_CTG_crs(self):
         """ ConcurrencyThreadGroup: concurrency, ramp-up, steps """
@@ -300,8 +300,8 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1, 'ATG.05': 1})
 
-    def test_UTG_cr(self):
-        """UltimateThreadGroup:  concurrency, ramp-up"""
+    def test_TG_cr(self):
+        """ThreadGroup:  concurrency, ramp-up"""
         self.configure(load={'concurrency': 76, 'ramp-up': 4},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/UTG_dummy.jmx')
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no hold and iteration
@@ -310,24 +310,22 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ThreadGroup")
-            self.assertEqual("4", group.element.find(".//*[@name='ThreadGroup.ramp_time']").text)
             self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)
 
     def test_TG_iterations_from_load(self):
         """ThreadGroup:  concurrency, ramp-up, iterations"""
-        self.configure(load={'concurrency': 76, 'ramp-up': 4, 'iterations': 0},
+        self.configure(load={'concurrency': 76, 'ramp-up': 4, 'iterations': 5},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx')
-        self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)  # because no hold and iteration
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no hold and iteration
         self.assertEqual(None, self.obj.raw_load.hold)
         self.obj.modify(self.jmx)
         for group in self.get_groupset():
-            self.assertEqual(group.gtype, "ConcurrencyThreadGroup")
-            self.assertEqual("4", group.element.find(".//*[@name='RampUp']").text)
-            self.assertEqual("", group.element.find(".//*[@name='Iterations']").text)
+            self.assertEqual(group.gtype, "ThreadGroup")
+            self.assertEqual("5", group.element.find(".//*[@name='LoopController.loops']").text)
 
     def test_TG_iterations_from_jmx(self):
-        """UltimateThreadGroup:  concurrency, ramp-up, iterations"""
-        self.configure(load={'concurrency': 76, 'steps': 5, 'ramp-up': 4},
+        """ThreadGroup:  concurrency, ramp-up, iterations"""
+        self.configure(load={'concurrency': 76, 'steps': 5, 'ramp-up': 4, 'throughput': 20},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx')
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no hold and iteration
         self.assertEqual(None, self.obj.raw_load.iterations)
@@ -335,7 +333,6 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ThreadGroup")
-            self.assertEqual("4", group.element.find(".//*[@name='ThreadGroup.ramp_time']").text)
             self.assertEqual("10", group.element.find(".//*[@name='LoopController.loops']").text)
 
 
