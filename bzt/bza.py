@@ -5,17 +5,65 @@ it may become separate library in the future. Things like imports and logging sh
 import base64
 import json
 import logging
+import time
+import traceback
 from collections import OrderedDict
+from functools import wraps
+from ssl import SSLError
+from urllib.error import URLError
 from urllib.parse import urlencode
 
 import requests
+from requests.exceptions import ReadTimeout
 
-from bzt import TaurusNetworkError, ManualShutdown, TaurusException
-from bzt.utils import to_json, MultiPartForm
+from bzt import ManualShutdown, TaurusException, TaurusNetworkError
 from bzt.resources.version import VERSION
+from bzt.utils import to_json, MultiPartForm
+
+NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError)
 
 BZA_TEST_DATA_RECEIVED = 100
 ENDED = 140
+PERMANENT_ERROR_CODES = [500]
+
+
+def send_with_retry(method):
+    @wraps(method)
+    def _impl(self, *args, **kwargs):
+        try:
+            method(self, *args, **kwargs)
+        except (IOError, TaurusNetworkError):
+            error_msg = f"Error sending data: {traceback.format_exc()}"
+
+            if any(f"API call error {code}" in error_msg for code in PERMANENT_ERROR_CODES):
+                self.log.error(error_msg)
+                return
+
+            self.log.debug(error_msg)
+            self.log.warning("Failed to send data, will retry in %s sec...", self.timeout)
+            try:
+                time.sleep(self.timeout)
+                method(self, *args, **kwargs)
+                self.log.info("Succeeded with retry")
+            except NETWORK_PROBLEMS:
+                self.log.error("Fatal error sending data: %s", traceback.format_exc())
+                self.log.warning("Will skip failed data and continue running")
+
+    return _impl
+
+
+def get_with_retry(method):
+    @wraps(method)
+    def _impl(self, *args, **kwargs):
+        while True:
+            try:
+                return method(self, *args, **kwargs)
+            except NETWORK_PROBLEMS:
+                self.log.debug("Error making request: %s", traceback.format_exc())
+                self.log.warning("Failed to make request, will retry in %s sec...", self.user.timeout)
+                time.sleep(self.user.timeout)
+
+    return _impl
 
 
 class BZAObject(dict):
@@ -482,6 +530,7 @@ class Master(BZAObject):
         res = self._request(url, data, method='PATCH')
         self.update(res['result'])
 
+    @get_with_retry
     def get_status(self):
         sess = self._request(self.address + '/api/v4/masters/%s/status' % self['id'])
         return sess['result']
@@ -591,6 +640,7 @@ class Session(BZAObject):
         data = {"signature": self.data_signature, "testId": self['testId'], "sessionId": self['id']}
         self._request(url, data)
 
+    @send_with_retry
     def send_kpi_data(self, data, is_check_response=True, submit_target=None):
         """
         Sends online data
@@ -625,6 +675,7 @@ class Session(BZAObject):
             self.notify_monitoring_file(file_name)
             self.monitoring_upload_notified = True
 
+    @send_with_retry
     def upload_file(self, filename, contents=None):
         """
         Upload single artifact
