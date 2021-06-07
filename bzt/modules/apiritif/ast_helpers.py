@@ -27,7 +27,27 @@ def ast_call(func, args=None, keywords=None):
 
 
 def gen_empty_line_stmt():
-    return ast.Expr(value=ast.Name(id="")) # hacky, but works
+    return ast.Expr(value=ast.Name(id=""))  # hacky, but works
+
+
+def try_except(try_body, exception_body):
+    return ast.Try(
+        body=try_body,
+        handlers=[
+            ast.ExceptHandler(
+                type=ast.Name(id='BaseException', ctx=ast.Load()),
+                name='e',
+                body=exception_body,
+            )
+        ],
+        type_ignores=[],
+        orelse=None,
+        finalbody=[],
+    )
+
+
+def gen_raise():
+    return ast.Raise(exc=ast.Name(id='e', ctx=ast.Load()), cause=None)
 
 
 def gen_subscript(var_name, index):

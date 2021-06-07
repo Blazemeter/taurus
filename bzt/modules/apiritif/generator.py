@@ -29,7 +29,7 @@ from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
 from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, is_selenium_4
-from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript
+from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
 
 
@@ -668,10 +668,10 @@ from selenium.webdriver.common.keys import Keys
 
         action_elements = []
 
-        if atype == "external_handler":
+        if atype == self.EXTERNAL_HANDLER_TAG:
             action_elements.append(ast_call(
                 func=ast_attr("apiritif.external_handler"),
-                args=[self._gen_expr(ast_attr("self.driver.session_id")), self._gen_expr(param), self._gen_expr(value)]
+                args=[self._gen_expr(ast_attr("self.driver.session_id if self.driver else None")), self._gen_expr(param), self._gen_expr(value)]
             ))
         elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
@@ -934,8 +934,7 @@ from selenium.webdriver.common.keys import Keys
     def _gen_webdriver(self):
         self.log.debug("Generating setUp test method")
 
-        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
-
+        body = []
         browser = self._check_platform()
         body.extend(self._get_options(browser))
 
@@ -956,6 +955,24 @@ from selenium.webdriver.common.keys import Keys
 
         body.append(self._get_timeout())
         body.extend(self._get_extra_mngrs())
+
+        return self._wrap_with_try_except(body)
+
+    def _wrap_with_try_except(self, web_driver_cmds):
+        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
+        if self.generate_external_handler:
+            body.append(self._gen_new_session_start())
+
+        exception_handler = []
+        if self.generate_external_handler:
+            exception_handler.extend(self._gen_new_session_end(True))
+
+        exception_handler.append(gen_raise())
+
+        body.append(try_except(web_driver_cmds, exception_handler))
+
+        if self.generate_external_handler:
+            body.append(self._gen_new_session_end())
 
         return body
 
@@ -1644,7 +1661,7 @@ from selenium.webdriver.common.keys import Keys
             for action in req.config.get("actions"):
                 action_lines = self._gen_action(action)
                 if self.generate_external_handler:
-                    action_lines = self._gen_log_start(action) + action_lines + self._gen_log_end(action)
+                    action_lines = self._gen_action_start(action) + action_lines + self._gen_action_end(action)
 
                 lines.extend(action_lines)
 
@@ -1670,10 +1687,35 @@ from selenium.webdriver.common.keys import Keys
 
         return lines
 
-    def _gen_log_start(self, action):
+    def _gen_new_session_start(self):
+        return self._gen_action({
+            'type': self.EXTERNAL_HANDLER_TAG,
+            'param': 'yaml_action_start',
+            'value': {
+                'type': 'new_session',
+                'param': self.capabilities,
+            }
+        })
+
+    def _gen_new_session_end(self, msg=False):
+        val = {
+            'type': 'new_session',
+            'param': self.capabilities,
+        }
+
+        if msg:
+            val['message'] = self._gen_expr(ast_attr("str(e)"))
+
+        return self._gen_action({
+            'type': self.EXTERNAL_HANDLER_TAG,
+            'param': 'yaml_action_end',
+            'value': val,
+        })
+
+    def _gen_action_start(self, action):
         atype, tag, param, value, selectors = self._parse_action(action)
         return self._gen_action({
-            'type': 'external_handler',
+            'type': self.EXTERNAL_HANDLER_TAG,
             'param': 'yaml_action_start',
             'value': {
                 'type': atype,
@@ -1684,10 +1726,10 @@ from selenium.webdriver.common.keys import Keys
             },
         })
 
-    def _gen_log_end(self, action):
+    def _gen_action_end(self, action):
         atype, tag, param, value, selectors = self._parse_action(action)
         return self._gen_action({
-            'type': 'external_handler',
+            'type': self.EXTERNAL_HANDLER_TAG,
             'param': 'yaml_action_end',
             'value': {
                 'type': atype,
