@@ -669,8 +669,10 @@ from selenium.webdriver.common.keys import Keys
         action_elements = []
 
         if atype == "external_handler":
-            action_elements.append(
-                ast_call(func=ast_attr("apiritif.external_handler"), args=[self._gen_expr(param), self._gen_expr(value)]))
+            action_elements.append(ast_call(
+                func=ast_attr("apiritif.external_handler"),
+                args=[self._gen_expr(ast_attr("self.driver.session_id")), self._gen_expr(param), self._gen_expr(value)]
+            ))
         elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
         elif atype == "switchframe":
@@ -1669,17 +1671,31 @@ from selenium.webdriver.common.keys import Keys
         return lines
 
     def _gen_log_start(self, action):
+        atype, tag, param, value, selectors = self._parse_action(action)
         return self._gen_action({
             'type': 'external_handler',
             'param': 'yaml_action_start',
-            'value': action,
+            'value': {
+                'type': atype,
+                'tag': tag,
+                'param': param,
+                'value': value,
+                'selectors': selectors,
+            },
         })
 
     def _gen_log_end(self, action):
+        atype, tag, param, value, selectors = self._parse_action(action)
         return self._gen_action({
             'type': 'external_handler',
             'param': 'yaml_action_end',
-            'value': action,
+            'value': {
+                'type': atype,
+                'tag': tag,
+                'param': param,
+                'value': value,
+                'selectors': selectors,
+            },
         })
 
     def _gen_sel_assertion(self, assertion_config):

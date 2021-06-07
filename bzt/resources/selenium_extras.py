@@ -162,8 +162,8 @@ def _send_marker(stage, params):
 def _send_start_flow_marker(*args, **kwargs):  # for apiritif. remove when compatibiltiy code in
     stage = "start"  # apiritif removed (http.py) and apiritif released ( > 0.9.2)
 
-    test_case, test_suite, scenario_name, data_sources, action_handlers = get_from_thread_store(
-        ['test_case', 'test_suite', 'scenario_name', 'data_sources', 'action_handlers']
+    test_case, test_suite, scenario_name, data_sources, action_handlers, driver = get_from_thread_store(
+        ['test_case', 'test_suite', 'scenario_name', 'data_sources', 'action_handlers', 'driver']
     )
     params = {
         "testCaseName": test_case,
@@ -173,7 +173,7 @@ def _send_start_flow_marker(*args, **kwargs):  # for apiritif. remove when compa
         params["testDataIterationId"] = get_iteration()
 
     for handler in action_handlers:
-        handler.handle(BaseActionHandler.TEST_CASE_START, params)
+        handler.handle(driver.session_id, BaseActionHandler.TEST_CASE_START, params)
 
     _send_marker(stage, params)
 
@@ -181,12 +181,12 @@ def _send_start_flow_marker(*args, **kwargs):  # for apiritif. remove when compa
 def _send_exit_flow_marker(*args, **kwargs):  # for apiritif. remove when compatibiltiy code in
     stage = "stop"  # apiritif removed (http.py) and apiritif released ( > 0.9.2)
     labels = "status", "message"
-    action_handlers = get_from_thread_store('action_handlers')
+    action_handlers, driver = get_from_thread_store(['action_handlers', 'driver'])
     values = get_from_thread_store(labels)
     params = dict(zip(labels, values))
 
     for handler in action_handlers:
-        handler.handle(BaseActionHandler.TEST_CASE_STOP, params)
+        handler.handle(driver.session_id, BaseActionHandler.TEST_CASE_STOP, params)
     _send_marker(stage, params)
 
 
