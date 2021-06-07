@@ -229,6 +229,13 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         self.__log_lines()
         self._tailer.close()
         self.__find_stopping_reasons()
+        if self.engine.extracted_stopping_reasons:
+            if self.execution['concurrency']['local'] > 1:
+                self.log.error(f"Executor stopping reason: {self.engine.extracted_stopping_reasons[0]}")
+            else:
+                for reason in self.engine.extracted_stopping_reasons:
+                    self.log.error(f"Executor stopping reason: {reason}")
+
         super(ApiritifNoseExecutor, self).post_process()
 
     def __is_verbose(self):

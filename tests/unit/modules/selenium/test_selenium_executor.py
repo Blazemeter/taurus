@@ -181,12 +181,11 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
     def test_stopping_reason_extracted(self):
         self.configure({
-            "execution": {
+            EXEC: {
                 "executor": "apiritif",
                 "scenario": {
-                    "script": RESOURCES_DIR + "apiritif/test_stopping_reason.py"
-                }
-            }})
+                    "requests": [
+                        "http://blazedemo.com"]}}})
         self.sniff_log(self.obj.log)
         self.obj.prepare()
         self.obj.runner.stdout.close()
