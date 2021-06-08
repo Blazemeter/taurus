@@ -100,8 +100,6 @@ class LoadSettingsProcessor(object):
 
         if not self.load.duration:
             self.log.debug(msg, 'duration not found')
-        elif not(self.raw_load.iterations or self.raw_load.hold):
-            self.log.debug(msg, 'iterations and duration not found')
         elif self.load.iterations:
             self.log.debug(msg, 'iterations are found')
         elif not executor.tool:
