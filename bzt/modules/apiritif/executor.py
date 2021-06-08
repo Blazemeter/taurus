@@ -230,7 +230,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         self._tailer.close()
         self.__find_stopping_reasons()
         if self.engine.extracted_stopping_reasons:
-            if self.execution['concurrency']['local'] > 1:
+            concurrency = self.execution['concurrency'].get('local')
+            if concurrency and concurrency > 1:
                 self.log.error(f"Executor stopping reason: {self.engine.extracted_stopping_reasons[0]}")
             else:
                 for reason in self.engine.extracted_stopping_reasons:
