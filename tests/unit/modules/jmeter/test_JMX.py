@@ -303,7 +303,8 @@ class TestLoadSettingsProcessor(BZTestCase):
     def test_TG_cr(self):
         """ThreadGroup:  concurrency, ramp-up"""
         self.configure(load={'concurrency': 76, 'ramp-up': 4},
-                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/UTG_dummy.jmx')
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/UTG_dummy.jmx',
+                       settings={'force-ctg': False})
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no hold and iteration
         self.assertEqual(None, self.obj.raw_load.iterations)
         self.assertEqual(None, self.obj.raw_load.hold)
@@ -315,7 +316,8 @@ class TestLoadSettingsProcessor(BZTestCase):
     def test_TG_iterations_from_load(self):
         """ThreadGroup:  concurrency, ramp-up, iterations"""
         self.configure(load={'concurrency': 76, 'ramp-up': 4, 'iterations': 5},
-                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx')
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx',
+                       settings={'force-ctg': False})
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no hold and iteration
         self.assertEqual(None, self.obj.raw_load.hold)
         self.obj.modify(self.jmx)
@@ -326,7 +328,8 @@ class TestLoadSettingsProcessor(BZTestCase):
     def test_TG_iterations_from_jmx(self):
         """ThreadGroup:  concurrency, ramp-up, iterations"""
         self.configure(load={'concurrency': 76, 'steps': 5, 'ramp-up': 4, 'throughput': 20},
-                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx')
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx',
+                       settings={'force-ctg': False})
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no hold and iteration
         self.assertEqual(None, self.obj.raw_load.iterations)
         self.assertEqual(None, self.obj.raw_load.hold)
