@@ -793,6 +793,29 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.min_timestamp = None
         self.extend_aggregation = False
 
+    def converter(self, data):
+        if data and self.extend_aggregation:
+            self.__extend_reported_data(data)
+
+        return data
+
+    @staticmethod
+    def __extend_reported_data(kpi_sets):
+        data = kpi_sets['current']
+        del data['']
+        for key in list(data.keys()):
+            sep = key.rindex('-')
+            original_label, state_idx = key[:sep], int(key[sep + 1:])
+            kpi_set = data.pop(key)
+            if original_label not in data:
+                data[original_label] = {}
+            data[original_label][state_idx] = kpi_set
+            if '' not in data:
+                data[''] = dict()
+            if state_idx not in data['']:
+                data[''][state_idx] = KPISet()
+            data[''][state_idx].merge_kpis(kpi_set)
+
     def prepare(self):
         """
         Read aggregation options
