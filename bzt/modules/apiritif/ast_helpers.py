@@ -35,7 +35,7 @@ def try_except(try_body, exception_body):
         body=try_body,
         handlers=[
             ast.ExceptHandler(
-                type=ast.Name(id='BaseException', ctx=ast.Load()),
+                type=ast.Name(id='Exception', ctx=ast.Load()),
                 name='e',
                 body=exception_body,
             )

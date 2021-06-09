@@ -68,7 +68,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         # path to taurus dir. It's necessary for bzt usage inside tools/helpers
         self.env.add_path({"PYTHONPATH": get_full_path(BZT_DIR, step_up=1)})
 
-        if self.__has_plugins():
+        if self.settings.get("plugins-path"):
             # add path to plugins directory to Apiritif env vars
             self.log.debug(f'Found Apiritif plugins path: {self.settings.get("plugins-path")}')
             self.env.add_path({"PLUGINS_PATH": self.settings.get('plugins-path')})
@@ -96,6 +96,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 self.log.warning("Obsolete format of capabilities found (list), should be dict")
                 scenario["capabilities"] = {item.keys()[0]: item.values()[0] for item in scenario_caps}
 
+            if scenario.get("external-logging", False):
+                self.log.warning(f'Option \'external-logging\' deprecated and unsupported now. Use a new one: \'plugins-path\'.')
+
             configs = (self.settings, scenario, self.execution)
 
             capabilities = get_assembled_value(configs, "capabilities")
@@ -107,7 +110,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 generate_markers=generate_markers,
                 capabilities=capabilities,
                 wd_addr=remote, test_mode=test_mode,
-                generate_external_handler=self.__has_plugins())
+                generate_external_handler=self.settings.get('plugins-path'))
 
         builder.build_source_code()
         builder.save(filename)
@@ -213,9 +216,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 label = self._normalize_label(values['name'])
                 duration = float(values['duration'])
                 self.transacion_ended(label, duration)
-
-    def __has_plugins(self):
-        return True if self.settings.get('plugins-path', None) else False
 
     def check(self):
         self._check_stdout()

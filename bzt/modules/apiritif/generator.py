@@ -231,7 +231,7 @@ from selenium.webdriver.common.keys import Keys
         if action_config.get("element"):
             selectors.extend(self._gen_selector_byelement(action_config))
         if action_config.get("shadow"):
-            selectors = [{"shadow" : action_config.get("shadow")}]
+            selectors = [{"shadow": action_config.get("shadow")}]
         if action_config.get("source") and action_config.get("target"):
             source = action_config.get("source")
             target = action_config.get("target")
@@ -400,9 +400,9 @@ from selenium.webdriver.common.keys import Keys
                 args=[ast.Str(selector, kind="")]))
         else:
             if not tag:
-                tag = "name"    # if tag is not present default it to name
+                tag = "name"  # if tag is not present default it to name
             elif tag.startswith('by'):
-                tag = tag[2:]   # remove the 'by' prefix
+                tag = tag[2:]  # remove the 'by' prefix
             elements.append(ast_call(
                 func=ast_attr(method),
                 args=[self._gen_locator(tag, selector)]))
@@ -924,7 +924,7 @@ from selenium.webdriver.common.keys import Keys
             browser = "remote"  # Force to use remote web driver
         elif not browser:
             browser = "firefox"
-        elif browser not in local_browsers:   # browser isn't supported
+        elif browser not in local_browsers:  # browser isn't supported
             raise TaurusConfigError("Unsupported browser name: %s" % browser)
         return browser
 
@@ -963,10 +963,20 @@ from selenium.webdriver.common.keys import Keys
         if self.generate_external_handler:
             body.append(self._gen_new_session_start())
 
-        exception_handler = []
+        exception_variables = [ast.Name(id='ex_type'), ast.Name(id='ex'), ast.Name(id='tb')]
+        exception_handler = [
+            ast.Assign(targets=[ast.Tuple(elts=exception_variables)],
+                       value=ast_call(func=ast_attr('sys.exc_info'), args=[]))]
+
         if self.generate_external_handler:
             exception_handler.extend(self._gen_new_session_end(True))
 
+        exception_handler.append(
+            ast.Expr(value=ast_call(
+                func=ast_attr('apiritif.log.error'),
+                args=[
+                    self._gen_expr(ast_attr("str(traceback.format_exception(ex_type, ex, tb))"))
+                ])))
         exception_handler.append(gen_raise())
 
         body.append(try_except(web_driver_cmds, exception_handler))
@@ -1229,6 +1239,7 @@ from selenium.webdriver.common.keys import Keys
             ast.Import(names=[ast.alias(name='random', asname=None)]),
             ast.Import(names=[ast.alias(name='string', asname=None)]),
             ast.Import(names=[ast.alias(name='sys', asname=None)]),
+            ast.Import(names=[ast.alias(name='traceback', asname=None)]),
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             ast.ImportFrom(
                 module="time",
@@ -1471,7 +1482,7 @@ from selenium.webdriver.common.keys import Keys
         value = value.replace("{", "{{").replace("}", "}}")
         for block in re.finditer(r"\${{[\w\d]*}}", value):
             start, end = block.start(), block.end()
-            line = "$" + value[start+2:end-1]
+            line = "$" + value[start + 2:end - 1]
             value = value[:start] + line + value[end:]
         return value
 
@@ -1704,7 +1715,7 @@ from selenium.webdriver.common.keys import Keys
         }
 
         if msg:
-            val['message'] = self._gen_expr(ast_attr("str(e)"))
+            val['message'] = self._gen_expr(ast_attr("str(traceback.format_exception(ex_type, ex, tb))"))
 
         return self._gen_action({
             'type': self.EXTERNAL_HANDLER_TAG,
