@@ -951,7 +951,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         self.configure({
             "modules": {
                 "apiritif": {
-                    "plugins-path": "/Users/artem/local/root/apiritif/plugins/"
+                    "plugins-path": "/tmp"
                 }
             },
             "execution": [{
