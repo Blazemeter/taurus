@@ -20,7 +20,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import get_locator, wait_for, dialogs_replace, waiter, add_flow_markers
+from bzt.resources.selenium_extras import wait_for, waiter, dialogs_replace, get_locator, add_flow_markers
 
 class TestLocSc(unittest.TestCase):
 
@@ -33,6 +33,7 @@ class TestLocSc(unittest.TestCase):
             options = webdriver.ChromeOptions()
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
+            options.set_capability('unhandledPromptBehavior', 'ignore')
             self.driver = webdriver.Chrome(
                 service_log_path='/somewhere/webdriver.log',
                 options=options)
@@ -40,7 +41,7 @@ class TestLocSc(unittest.TestCase):
         except Exception as e:
             (ex_type, ex, tb) = sys.exc_info()
             apiritif.log.error(str(traceback.format_exception(ex_type, ex, tb)))
-            raise
+            raise e
         add_flow_markers()
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc')

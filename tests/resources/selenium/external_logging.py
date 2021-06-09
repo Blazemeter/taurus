@@ -20,7 +20,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_replace, waiter, get_locator
+from bzt.resources.selenium_extras import waiter, dialogs_replace, get_locator
 
 class TestSample(unittest.TestCase):
 
@@ -39,7 +39,7 @@ class TestSample(unittest.TestCase):
         except Exception as e:
             (ex_type, ex, tb) = sys.exc_info()
             apiritif.external_handler(self.driver.session_id if self.driver else None, 'yaml_action_end', {'message': str(traceback.format_exception(ex_type, ex, tb)), 'param': {}, 'type': 'new_session'})
-            apiritif.log.info(str(traceback.format_exception(ex_type, ex, tb)))
+            apiritif.log.error(str(traceback.format_exception(ex_type, ex, tb)))
             raise e
         apiritif.external_handler(self.driver.session_id if self.driver else None, 'yaml_action_end', {'param': {}, 'type': 'new_session'})
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
