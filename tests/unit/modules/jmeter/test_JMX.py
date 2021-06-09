@@ -327,7 +327,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
     def test_TG_iterations_from_jmx(self):
         """ThreadGroup:  concurrency, ramp-up, iterations"""
-        self.configure(load={'concurrency': 76, 'steps': 5, 'ramp-up': 4, 'throughput': 20},
+        self.configure(load={'concurrency': 76, 'steps': 5, 'throughput': 20},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx',
                        settings={'force-ctg': False})
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no hold and iteration
