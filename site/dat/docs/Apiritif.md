@@ -218,12 +218,12 @@ Below you can find a list of all supported actions:
 [assertTextByX](#Assertion), [assertTitle](#Assertion), [assertValueByX](#Assertion), [clearCookies](#Cookies), 
 [clickByX](#Mouse-actions), [closeWindow](#Window-management), [contextClickByX](#Mouse-actions), 
 [doubleClickByX](#Mouse-actions), [dragByX](#Mouse-actions), [echoString](#Echoing), [editContentByX](#Editing), 
-[foreach](#Foreach), [go](#Go), [if](#If-Blocks), [keysByX](#Typing), [loop](#Loops), [mouseDownByX](#Mouse-actions), 
-[mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), [mouseUpByX](#Mouse-actions), 
-[openWindow](#Window-management), [rawCode](#Execution), [screenshot](#Screenshot), [scriptEval](#Execution), 
-[selectByX](#Select), [storeEval](#Store), [storeString](#Store), [storeTextByX](#Store), [storeTitle](#Store), 
-[storeValueByX](#Store), [submitByX](#Typing), [switchFrame](#Frame-management), [switchWindow](#Window-management), 
-[typeByX](#Typing), [waitForByX](#Pause).
+[foreach](#Foreach), [go](#Go), [if](#If-Blocks), [keysByX](#Typing), [log](#External-logging), [loop](#Loops), 
+[mouseDownByX](#Mouse-actions), [mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), 
+[mouseUpByX](#Mouse-actions), [openWindow](#Window-management), [rawCode](#Execution), [screenshot](#Screenshot), 
+[scriptEval](#Execution), [selectByX](#Select), [storeEval](#Store), [storeString](#Store), [storeTextByX](#Store), 
+[storeTitle](#Store), [storeValueByX](#Store), [submitByX](#Typing), [switchFrame](#Frame-management), 
+[switchWindow](#Window-management), [typeByX](#Typing), [waitForByX](#Pause).
 
 #### Alert
 For alert handling, use the following methods:
