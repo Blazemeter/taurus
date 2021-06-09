@@ -4,6 +4,7 @@ import logging
 import random
 import string
 import sys
+import traceback
 import unittest
 from time import time, sleep
 
@@ -19,7 +20,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_replace, add_logging_handlers, waiter, get_locator
+from bzt.resources.selenium_extras import dialogs_replace, waiter, get_locator
 
 class TestSample(unittest.TestCase):
 
@@ -28,27 +29,31 @@ class TestSample(unittest.TestCase):
 
         timeout = 30.0
         self.driver = None
-        options = webdriver.ChromeOptions()
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', options=options)
-        self.driver.implicitly_wait(timeout)
-        add_logging_handlers()
+        apiritif.external_handler(self.driver.session_id if self.driver else None, 'yaml_action_start', {'param': {}, 'type': 'new_session'})
+        try:
+            options = webdriver.ChromeOptions()
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', options=options)
+            self.driver.implicitly_wait(timeout)
+        except Exception as e:
+            (ex_type, ex, tb) = sys.exc_info()
+            apiritif.external_handler(self.driver.session_id if self.driver else None, 'yaml_action_end', {'message': str(traceback.format_exception(ex_type, ex, tb)), 'param': {}, 'type': 'new_session'})
+            apiritif.log.info(str(traceback.format_exception(ex_type, ex, tb)))
+            raise e
+        apiritif.external_handler(self.driver.session_id if self.driver else None, 'yaml_action_end', {'param': {}, 'type': 'new_session'})
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='sample')
 
 
     def _1_Test(self):
         with apiritif.smart_transaction('Test'):
-            apiritif.external_log('start: go(http://blazedemo.com/)')
+            apiritif.external_handler(self.driver.session_id if self.driver else None, 'yaml_action_start', {'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
             self.driver.get('http://blazedemo.com/')
 
             dialogs_replace()
             waiter()
-            apiritif.external_log('end: go(http://blazedemo.com/)')
-            apiritif.external_log('start: log(leaving blazedemo)')
-            apiritif.external_log('leaving blazedemo')
-            apiritif.external_log('end: log(leaving blazedemo)')
+            apiritif.external_handler(self.driver.session_id if self.driver else None, 'yaml_action_end', {'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
 
     def test_sample(self):
         self._1_Test()

@@ -949,18 +949,21 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
     def test_add_external_logging(self):
         self.configure({
+            "modules": {
+                "apiritif": {
+                    "plugins-path": "/Users/artem/local/root/apiritif/plugins/"
+                }
+            },
             "execution": [{
                 "executor": "selenium",
                 "scenario": "sample"}],
             "scenarios": {
                 "sample": {
-                    "external-logging": True,
                     "browser": "Chrome",
                     "requests": [{
                         "label": "Test",
                         "actions": [
                             "go(http://blazedemo.com/)",
-                            "log(leaving blazedemo)",
                         ],
                     }]
                 }

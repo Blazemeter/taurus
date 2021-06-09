@@ -4,6 +4,7 @@ import logging
 import random
 import string
 import sys
+import traceback
 import unittest
 from time import time, sleep
 
@@ -28,14 +29,19 @@ class TestLocScRemote(unittest.TestCase):
 
         timeout = 3.5
         self.driver = None
-        options = webdriver.FirefoxOptions()
-        self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub',
-                                       desired_capabilities={'app': '', 'browserName': 'firefox', 'deviceName': '',
-                                                             'javascriptEnabled': 'True', 'platformName': 'linux',
-                                                             'platformVersion': '', 'seleniumVersion': '',
-                                                             'version': '54.0'},
-                                       options=options)
-        self.driver.implicitly_wait(timeout)
+        try:
+            options = webdriver.FirefoxOptions()
+            self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub',
+                                           desired_capabilities={'app': '', 'browserName': 'firefox', 'deviceName': '',
+                                                                 'javascriptEnabled': 'True', 'platformName': 'linux',
+                                                                 'platformVersion': '', 'seleniumVersion': '',
+                                                                 'version': '54.0'},
+                                           options=options)
+            self.driver.implicitly_wait(timeout)
+        except Exception as e:
+            (ex_type, ex, tb) = sys.exc_info()
+            apiritif.log.error(str(traceback.format_exception(ex_type, ex, tb)))
+            raise e
         add_flow_markers()
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc_remote')
