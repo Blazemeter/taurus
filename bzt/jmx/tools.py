@@ -140,7 +140,7 @@ class LoadSettingsProcessor(object):
 
         for group, concurrency in target_list:
             iterations = None
-            if not(self.raw_load.iterations or self.raw_load.hold) and \
+            if not(self.raw_load.iterations or self.raw_load.hold or self.raw_load.ramp_up) and \
                     group.gtype == self.TG and self.tg == self.TG:
                 iterations = group.get_iterations()
             self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load,
