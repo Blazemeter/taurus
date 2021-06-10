@@ -52,7 +52,7 @@ class Scenario(UserDict, object):
         self.engine = engine
         self.data = scenario
 
-    def get(self, key, default=defaultdict):
+    def get(self, key, default=defaultdict()):
         """
 
         :param key:
