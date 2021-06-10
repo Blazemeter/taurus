@@ -964,6 +964,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         "label": "Test",
                         "actions": [
                             "go(http://blazedemo.com/)",
+                            "log(leaving blazedemo)",
                         ],
                     }]
                 }
