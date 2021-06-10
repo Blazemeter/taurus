@@ -119,6 +119,7 @@ from selenium.webdriver.common.keys import Keys
     BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
     COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
     EXTERNAL_HANDLER_TAG = "external_handler"
+    DEPRECATED_LOG_TAG = 'log'
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
@@ -179,7 +180,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
-        all_actions = self.ACTIONS + f"|{self.EXTERNAL_HANDLER_TAG}" + f"|{self.EXECUTION_BLOCKS}"
+        all_actions = self.ACTIONS + f"|{self.EXTERNAL_HANDLER_TAG}" + f"|{self.DEPRECATED_LOG_TAG}" + f"|{self.EXECUTION_BLOCKS}"
         expr = re.compile(r"^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
@@ -243,7 +244,7 @@ from selenium.webdriver.common.keys import Keys
         param = action_config["param"]
         value = action_config["value"]
         tags = "|".join(self.COMMON_TAGS) + "|ByName"  # ByName is needed in switchFrameByName
-        all_actions = self.ACTIONS + f"|{self.EXTERNAL_HANDLER_TAG}"
+        all_actions = self.ACTIONS + f"|{self.EXTERNAL_HANDLER_TAG}" + f"|{self.DEPRECATED_LOG_TAG}"
         expr = re.compile("^(%s)(%s)?$" % (all_actions, tags), re.IGNORECASE)
         action_params = self._parse_action_params(expr, name)
 
@@ -673,6 +674,9 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("apiritif.external_handler"),
                 args=[self._gen_expr(ast_attr("self.driver.session_id if self.driver else None")), self._gen_expr(param), self._gen_expr(value)]
             ))
+        elif atype == self.DEPRECATED_LOG_TAG:
+            self.log.warning('\'log\' action was deprecated')
+            return []
         elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
         elif atype == "switchframe":

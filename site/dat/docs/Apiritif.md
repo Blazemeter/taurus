@@ -1138,7 +1138,7 @@ modules:
     generate-flow-markers: true  # global setting
 ```
 
-### External logging
+### External logging (DEPRECATED)
 
 This feature can be used to track progress or debug your test. It requires handler which will be executed
 between actions. Please see for handler example `log_into_file` function in `selenium_extras` module
@@ -1160,4 +1160,17 @@ scenarios:
     - log('leaving blazedemo')      # explicit logging way
     - go(https://gettaurus.org/docs/Index/)
     - log('finished part 1 of my test') 
+```
+
+
+### External Apiritif plugins
+
+This feature can be used to track actions of your test. It requires handler which will be executed
+between actions. Please see handler [example](https://github.com/Blazemeter/apiritif/blob/master/tests/resources/action_plugin_template.txt)
+
+To enable Apiritif plugins you should specify path to plugins package using `plugins-path` in apiritif module settings.
+```
+modules:
+  apiritif:
+    plugins-path: /path/to/apiritif/plugins/package
 ```
