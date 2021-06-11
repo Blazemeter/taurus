@@ -30,13 +30,13 @@ def gen_empty_line_stmt():
     return ast.Expr(value=ast.Name(id=""))  # hacky, but works
 
 
-def try_except(try_body, exception_body):
+def gen_try_except(try_body, exception_body):
     return ast.Try(
         body=try_body,
         handlers=[
             ast.ExceptHandler(
                 type=ast.Name(id='Exception', ctx=ast.Load()),
-                name='e',
+                name=None,
                 body=exception_body,
             )
         ],
@@ -47,7 +47,7 @@ def try_except(try_body, exception_body):
 
 
 def gen_raise():
-    return ast.Raise(exc=ast.Name(id='e', ctx=ast.Load()), cause=None)
+    return ast.Raise(exc=None, cause=None)
 
 
 def gen_subscript(var_name, index):
