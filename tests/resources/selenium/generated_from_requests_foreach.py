@@ -4,7 +4,6 @@ import logging
 import random
 import string
 import sys
-import traceback
 import unittest
 from time import time, sleep
 
@@ -29,18 +28,13 @@ class TestLocSc(unittest.TestCase):
 
         timeout = 3.5
         self.driver = None
-        try:
-            options = webdriver.ChromeOptions()
-            options.add_argument('--no-sandbox')
-            options.add_argument('--disable-dev-shm-usage')
-            self.driver = webdriver.Chrome(
-                service_log_path='/somewhere/webdriver.log',
-                options=options)
-            self.driver.implicitly_wait(timeout)
-        except Exception as e:
-            (ex_type, ex, tb) = sys.exc_info()
-            apiritif.log.error(str(traceback.format_exception(ex_type, ex, tb)))
-            raise e
+        options = webdriver.ChromeOptions()
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        self.driver = webdriver.Chrome(
+            service_log_path='/somewhere/webdriver.log',
+            options=options)
+        self.driver.implicitly_wait(timeout)
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc')
 

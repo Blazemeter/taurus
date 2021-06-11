@@ -4,7 +4,6 @@ import logging
 import random
 import string
 import sys
-import traceback
 import unittest
 from time import time, sleep
 
@@ -29,16 +28,11 @@ class TestLocSc(unittest.TestCase):
 
         timeout = 30.0
         self.driver = None
-        try:
-            options = webdriver.FirefoxOptions()
-            profile = webdriver.FirefoxProfile()
-            profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
-            self.driver = webdriver.Firefox(profile, options=options)
-            self.driver.implicitly_wait(timeout)
-        except Exception as e:
-            (ex_type, ex, tb) = sys.exc_info()
-            apiritif.log.error(str(traceback.format_exception(ex_type, ex, tb)))
-            raise e
+        options = webdriver.FirefoxOptions()
+        profile = webdriver.FirefoxProfile()
+        profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
+        self.driver = webdriver.Firefox(profile, options=options)
+        self.driver.implicitly_wait(timeout)
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc')
 
