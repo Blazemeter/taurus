@@ -4,11 +4,11 @@ import logging
 import random
 import string
 import sys
-import traceback
 import unittest
 from time import time, sleep
 
 import apiritif
+import traceback
 
 import os
 import re
@@ -20,17 +20,16 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import waiter, dialogs_replace, get_locator, action_start, action_end
+from bzt.resources.selenium_extras import waiter, action_end, dialogs_replace, action_start, get_locator
 
 class TestSample(unittest.TestCase):
 
     def setUp(self):
-        self.vars = {}
-
-        timeout = 30.0
         self.driver = None
         action_start({'param': {}, 'type': 'new_session'})
         try:
+            self.vars = {}
+            timeout = 30.0
             options = webdriver.ChromeOptions()
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
@@ -38,11 +37,11 @@ class TestSample(unittest.TestCase):
             self.driver.implicitly_wait(timeout)
             apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                            scenario_name='sample')
-        except Exception as e:
+        except Exception:
             (ex_type, ex, tb) = sys.exc_info()
             action_end({'message': str(traceback.format_exception(ex_type, ex, tb)), 'param': {}, 'type': 'new_session'})
             apiritif.log.error(str(traceback.format_exception(ex_type, ex, tb)))
-            raise e
+            raise
         action_end({'param': {}, 'type': 'new_session'})
 
 
@@ -55,6 +54,8 @@ class TestSample(unittest.TestCase):
             dialogs_replace()
             waiter()
             action_end({'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
+            action_start({'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
+            action_end({'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
 
     def test_sample(self):
         self._1_Test()
