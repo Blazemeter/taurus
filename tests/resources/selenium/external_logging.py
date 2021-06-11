@@ -20,19 +20,20 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import waiter, action_end, dialogs_replace, action_start, get_locator
+from bzt.resources.selenium_extras import action_start, dialogs_replace, waiter, get_locator, action_end
 
 class TestSample(unittest.TestCase):
 
     def setUp(self):
         self.driver = None
-        action_start({'param': {}, 'type': 'new_session'})
+        action_start({'param': {}, 'type': 'new_session', 'value': None})
         try:
             self.vars = {}
             timeout = 30.0
             options = webdriver.ChromeOptions()
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
+            options.set_capability('unhandledPromptBehavior', 'ignore')
             self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', options=options)
             self.driver.implicitly_wait(timeout)
             apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
