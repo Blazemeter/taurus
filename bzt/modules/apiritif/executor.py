@@ -110,7 +110,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 generate_markers=generate_markers,
                 capabilities=capabilities,
                 wd_addr=remote, test_mode=test_mode,
-                generate_external_handler=self.settings.get('plugins-path'))
+                generate_external_handler=True if self.settings.get('plugins-path', False) else False)
 
         builder.build_source_code()
         builder.save(filename)

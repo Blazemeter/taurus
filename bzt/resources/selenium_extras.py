@@ -2,7 +2,7 @@
 import time
 import datetime
 
-from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
+from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, external_handler
 
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
     TimeoutException, UnexpectedAlertPresentException
@@ -454,3 +454,13 @@ def waiter():
                    message="Timeout occurred while waiting for page to finish loading.")
     except UnexpectedAlertPresentException:
         pass
+
+
+def action_start(action):
+    driver = _get_driver()
+    external_handler(driver.session_id if driver else None, BaseActionHandler.YAML_ACTION_START, action)
+
+
+def action_end(action):
+    driver = _get_driver()
+    external_handler(driver.session_id if driver else None, BaseActionHandler.YAML_ACTION_END, action)

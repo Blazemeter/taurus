@@ -29,7 +29,7 @@ from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
 from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, is_selenium_4
-from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, try_except, gen_raise
+from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, gen_try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
 
 
@@ -118,7 +118,9 @@ from selenium.webdriver.common.keys import Keys
 
     BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
     COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
-    EXTERNAL_HANDLER_TAG = "external_handler"
+    EXTERNAL_HANDLER_START = 'action_start'
+    EXTERNAL_HANDLER_END = 'action_end'
+    EXTERNAL_HANDLER_TAGS = (EXTERNAL_HANDLER_START, EXTERNAL_HANDLER_END)
     DEPRECATED_LOG_TAG = 'log'
 
     ACCESS_TARGET = 'target'
@@ -129,7 +131,7 @@ from selenium.webdriver.common.keys import Keys
 
     def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="selenium", generate_external_handler=None):
+                 capabilities=None, wd_addr=None, test_mode="selenium", generate_external_handler=False):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -180,7 +182,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
-        all_actions = self.ACTIONS + f"|{self.EXTERNAL_HANDLER_TAG}" + f"|{self.DEPRECATED_LOG_TAG}" + f"|{self.EXECUTION_BLOCKS}"
+        all_actions = self.ACTIONS + "|" + "|".join((self.DEPRECATED_LOG_TAG, self.EXECUTION_BLOCKS))
         expr = re.compile(r"^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
@@ -244,7 +246,7 @@ from selenium.webdriver.common.keys import Keys
         param = action_config["param"]
         value = action_config["value"]
         tags = "|".join(self.COMMON_TAGS) + "|ByName"  # ByName is needed in switchFrameByName
-        all_actions = self.ACTIONS + f"|{self.EXTERNAL_HANDLER_TAG}" + f"|{self.DEPRECATED_LOG_TAG}"
+        all_actions = self.ACTIONS + "|" + "|".join(self.EXTERNAL_HANDLER_TAGS)
         expr = re.compile("^(%s)(%s)?$" % (all_actions, tags), re.IGNORECASE)
         action_params = self._parse_action_params(expr, name)
 
@@ -669,10 +671,10 @@ from selenium.webdriver.common.keys import Keys
 
         action_elements = []
 
-        if atype == self.EXTERNAL_HANDLER_TAG:
+        if atype in self.EXTERNAL_HANDLER_TAGS:
             action_elements.append(ast_call(
-                func=ast_attr("apiritif.external_handler"),
-                args=[self._gen_expr(ast_attr("self.driver.session_id if self.driver else None")), self._gen_expr(param), self._gen_expr(value)]
+                func=ast_attr(atype),
+                args=[self._gen_expr(self._gen_expr(param))]
             ))
         elif atype == self.DEPRECATED_LOG_TAG:
             self.log.warning('\'log\' action was deprecated')
@@ -938,9 +940,8 @@ from selenium.webdriver.common.keys import Keys
     def _gen_webdriver(self):
         self.log.debug("Generating setUp test method")
 
-        body = []
         browser = self._check_platform()
-        body.extend(self._get_options(browser))
+        body = [self._get_options(browser)]
 
         if browser == 'firefox':
             body.extend(self._get_firefox_profile() + [self._get_firefox_webdriver()])
@@ -960,20 +961,18 @@ from selenium.webdriver.common.keys import Keys
         body.append(self._get_timeout())
         body.extend(self._get_extra_mngrs())
 
-        return self._wrap_with_try_except(body)
+        return body
 
     def _wrap_with_try_except(self, web_driver_cmds):
-        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
-        if self.generate_external_handler:
-            body.append(self._gen_new_session_start())
+        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None")),
+            self._gen_new_session_start()]
 
         exception_variables = [ast.Name(id='ex_type'), ast.Name(id='ex'), ast.Name(id='tb')]
         exception_handler = [
             ast.Assign(targets=[ast.Tuple(elts=exception_variables)],
                        value=ast_call(func=ast_attr('sys.exc_info'), args=[]))]
 
-        if self.generate_external_handler:
-            exception_handler.extend(self._gen_new_session_end(True))
+        exception_handler.extend(self._gen_new_session_end(True))
 
         exception_handler.append(
             ast.Expr(value=ast_call(
@@ -983,10 +982,8 @@ from selenium.webdriver.common.keys import Keys
                 ])))
         exception_handler.append(gen_raise())
 
-        body.append(try_except(web_driver_cmds, exception_handler))
-
-        if self.generate_external_handler:
-            body.append(self._gen_new_session_end())
+        body.append(gen_try_except(web_driver_cmds, exception_handler))
+        body.append(self._gen_new_session_end())
 
         return body
 
@@ -1243,7 +1240,6 @@ from selenium.webdriver.common.keys import Keys
             ast.Import(names=[ast.alias(name='random', asname=None)]),
             ast.Import(names=[ast.alias(name='string', asname=None)]),
             ast.Import(names=[ast.alias(name='sys', asname=None)]),
-            ast.Import(names=[ast.alias(name='traceback', asname=None)]),
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             ast.ImportFrom(
                 module="time",
@@ -1254,6 +1250,10 @@ from selenium.webdriver.common.keys import Keys
             gen_empty_line_stmt(),
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
             gen_empty_line_stmt()]
+
+        if self.generate_external_handler:
+            imports.append(ast.Import(names=[ast.alias(name='traceback', asname=None)]))
+            self.selenium_extras.update(self.EXTERNAL_HANDLER_TAGS)
 
         if self.test_mode == "selenium":
             if self.appium:
@@ -1387,11 +1387,13 @@ from selenium.webdriver.common.keys import Keys
         timeout_setup = [ast.Expr(ast.Assign(
             targets=[ast_attr("timeout")],
             value=ast.Num(self._get_scenario_timeout(), kind="")))]
-
+        body = data_sources + timeout_setup + target_init + handlers + store_block
+        if self.generate_external_handler:
+            body = self._wrap_with_try_except(body)
         setup = ast.FunctionDef(
             name="setUp",
             args=[ast_attr("self")],
-            body=data_sources + timeout_setup + target_init + handlers + store_block,
+            body=body,
             decorator_list=[])
         return [setup, gen_empty_line_stmt()]
 
@@ -1704,10 +1706,11 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_new_session_start(self):
         return self._gen_action({
-            'type': self.EXTERNAL_HANDLER_TAG,
-            'param': 'yaml_action_start',
-            'value': {
+            'type': self.EXTERNAL_HANDLER_START,
+            'value': None,
+            'param': {
                 'type': 'new_session',
+                'value': None,
                 'param': self.capabilities,
             }
         })
@@ -1722,17 +1725,17 @@ from selenium.webdriver.common.keys import Keys
             val['message'] = self._gen_expr(ast_attr("str(traceback.format_exception(ex_type, ex, tb))"))
 
         return self._gen_action({
-            'type': self.EXTERNAL_HANDLER_TAG,
-            'param': 'yaml_action_end',
-            'value': val,
+            'type': self.EXTERNAL_HANDLER_END,
+            'value': None,
+            'param': val,
         })
 
     def _gen_action_start(self, action):
         atype, tag, param, value, selectors = self._parse_action(action)
         return self._gen_action({
-            'type': self.EXTERNAL_HANDLER_TAG,
-            'param': 'yaml_action_start',
-            'value': {
+            'type': self.EXTERNAL_HANDLER_START,
+            'value': None,
+            'param': {
                 'type': atype,
                 'tag': tag,
                 'param': param,
@@ -1744,9 +1747,9 @@ from selenium.webdriver.common.keys import Keys
     def _gen_action_end(self, action):
         atype, tag, param, value, selectors = self._parse_action(action)
         return self._gen_action({
-            'type': self.EXTERNAL_HANDLER_TAG,
-            'param': 'yaml_action_end',
-            'value': {
+            'type': self.EXTERNAL_HANDLER_END,
+            'value': None,
+            'param': {
                 'type': atype,
                 'tag': tag,
                 'param': param,
