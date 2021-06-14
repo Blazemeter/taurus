@@ -97,7 +97,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 scenario["capabilities"] = {item.keys()[0]: item.values()[0] for item in scenario_caps}
 
             if scenario.get("external-logging", False):
-                self.log.warning(f'Option \'external-logging\' deprecated and unsupported now. Use a new one: \'plugins-path\'.')
+                self.log.warning("'external-logging' is deprecated and unsupported now. Use 'plugins-path' instead.")
 
             configs = (self.settings, scenario, self.execution)
 

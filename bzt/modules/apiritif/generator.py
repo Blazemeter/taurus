@@ -677,7 +677,7 @@ from selenium.webdriver.common.keys import Keys
                 args=[self._gen_expr(self._gen_expr(param))]
             ))
         elif atype == self.DEPRECATED_LOG_TAG:
-            self.log.warning('\'log\' action was deprecated')
+            self.log.warning("'log' is deprecated. It will be removed in the next release.")
             return []
         elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
