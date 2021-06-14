@@ -624,11 +624,11 @@ class ResultsReader(ResultsProvider):
         # it is used for generation of extended label.
         # each label data is splitted according to sample state (success/error/assert)
         if kpis[5] is None:
-            group = 'succeeded'   # no errors
+            group = 'success'   # no errors
         elif kpis[5] == 'OK':
-            group = 'failed_assertion'   # jmeter error - assert, timeout, etc.
+            group = 'jmeter_errors'   # jmeter error - assert, timeout, etc.
         else:
-            group = 'failed_rc'   # other errors, usually RC != 200
+            group = 'http_errors'   # other errors, usually RC != 200
 
         return '-'.join((label, str(group)))
 
