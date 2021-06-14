@@ -624,11 +624,11 @@ class ResultsReader(ResultsProvider):
         # it is used for generation of extended label.
         # each label data is splitted according to sample state (success/error/assert)
         if kpis[5] is None:
-            group = 0   # no errors
+            group = 'succeeded'   # no errors
         elif kpis[5] == 'OK':
-            group = 1   # jmeter error - assert, timeout, etc.
+            group = 'failed_assertion'   # jmeter error - assert, timeout, etc.
         else:
-            group = 2   # other errors, usually RC != 200
+            group = 'failed_rc'   # other errors, usually RC != 200
 
         return '-'.join((label, str(group)))
 
@@ -792,6 +792,29 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self._sticky_concurrencies = {}
         self.min_timestamp = None
         self.extend_aggregation = False
+
+    def converter(self, data):
+        if data and self.extend_aggregation:
+            self.__extend_reported_data(data)
+
+        return data
+
+    @staticmethod
+    def __extend_reported_data(kpi_sets):
+        data = kpi_sets['current']
+        del data['']
+        for key in list(data.keys()):
+            sep = key.rindex('-')
+            original_label, state = key[:sep], key[sep + 1:]
+            kpi_set = data.pop(key)
+            if original_label not in data:
+                data[original_label] = {}
+            data[original_label][state] = kpi_set
+            if '' not in data:
+                data[''] = dict()
+            if state not in data['']:
+                data[''][state] = KPISet()
+            data[''][state].merge_kpis(kpi_set)
 
     def prepare(self):
         """
