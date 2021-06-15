@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import get_locator, get_loop_range, waiter
+from bzt.resources.selenium_extras import waiter, get_locator, get_loop_range
 
 class TestLocSc(unittest.TestCase):
 
@@ -27,10 +27,10 @@ class TestLocSc(unittest.TestCase):
         self.vars = {'end': 20, 'start': 10, 'step': 1}
 
         timeout = 30.0
-        self.driver = None
         options = webdriver.FirefoxOptions()
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
+        options.set_capability('unhandledPromptBehavior', 'ignore')
         self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},

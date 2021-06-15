@@ -168,7 +168,7 @@ class TestConsolidatingAggregator(BZTestCase):
 
         data_points = watcher.results[-1][DataPoint.CUMULATIVE]
         self.assertEquals(7, len(data_points))
-        sample_labels = {'a-0', 'b-0', 'b-1', 'b-2', 'c-0', 'd-0', ''}
+        sample_labels = {'a-success', 'b-success', 'b-jmeter_errors', 'b-http_errors', 'c-success', 'd-success', ''}
         self.assertEquals(sample_labels, set(data_points.keys()))
 
     def test_errors_cumulative(self):

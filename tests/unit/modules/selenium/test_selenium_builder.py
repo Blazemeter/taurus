@@ -949,12 +949,16 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
     def test_add_external_logging(self):
         self.configure({
+            "modules": {
+                "apiritif": {
+                    "plugins-path": "/tmp"
+                }
+            },
             "execution": [{
                 "executor": "selenium",
                 "scenario": "sample"}],
             "scenarios": {
                 "sample": {
-                    "external-logging": True,
                     "browser": "Chrome",
                     "requests": [{
                         "label": "Test",
