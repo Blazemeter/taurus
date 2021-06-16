@@ -1938,10 +1938,17 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     {"id": "input_id"}
                                 ],
                                 "value": "2h30m20s"
+                            },{
+                                "type": "waitFor",
+                                "param": "visible",
+                                "locators": [
+                                    {"css": "invalid_css"},
+                                    {"id": "input_id"}
+                                ],
                             },
-                            {"waitForById(myId, present)": "10s"},
-                            {"waitForById(myId, clickable)": "10s"},
-                            {"waitForById(myId, notvisible)": "10s"},
+                            {"waitForById(myId, present)": "5s"},
+                            {"waitForById(myId, clickable)": "5s"},
+                            {"waitForById(myId, notvisible)": "5s"},
                             "waitForById(myId, notpresent)",
                             "waitForById(myId, notclickable)"
                         ]}]}}})
@@ -1951,12 +1958,13 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "wait_for('visible',[{'css':'invalid_css'},{'id':'input_id'}],9020.0)",
-            "wait_for('present',[{'id':'myId'}],10.0)",
-            "wait_for('clickable',[{'id':'myId'}],10.0)",
-            "wait_for('notvisible',[{'id':'myId'}],10.0)",
-            "wait_for('notpresent',[{'id':'myId'}],10.0)",
-            "wait_for('notclickable',[{'id':'myId'}],10.0)"
+            "wait_for('visible', [{'css':'invalid_css'}, {'id':'input_id'}], 9020.0)",
+            "wait_for('visible', [{'css':'invalid_css'}, {'id':'input_id'}], 10.0)",
+            "wait_for('present', [{'id':'myId'}], 5.0)",
+            "wait_for('clickable', [{'id':'myId'}], 5.0)",
+            "wait_for('notvisible', [{'id':'myId'}], 5.0)",
+            "wait_for('notpresent', [{'id':'myId'}], 10.0)",
+            "wait_for('notclickable', [{'id':'myId'}], 10.0)"
         ]
         for idx in range(len(target_lines)):
             target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))

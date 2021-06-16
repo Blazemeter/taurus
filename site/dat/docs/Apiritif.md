@@ -691,7 +691,8 @@ For pause, you can use the following actions:
 
 - `waitForByX(X\_name, condition): timeout`
 
-This action allows for checking that the given object meets the `condition` within the `timeout` period.
+This action allows for checking that the given object meets the `condition` within the `timeout` period. 
+`timeout` value is optional, its default value is 10s.
 
 `condition` is one of the following:
 
@@ -714,7 +715,7 @@ You can also define waitFor using the [alternative syntax](#Alternative-syntax-s
     - css: element_class
     - id: element_id
   param: clickable    # the condition
-  value: 2m30s        # the timeout    
+  value: 2m30s        # the timeout, optional parameter    
 ```
 
 Supported conditions are: `present`, `visible`, `clickable`, `notpresent`, `notvisible`, `notclickable`.
@@ -850,7 +851,7 @@ scenarios:
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitForByCSS(body, present): 3s
+      - waitForByCSS(body, present)
       - clickByID(mySubmitButton)
       - openWindow(http://blazedemo.com/vacation.html) # new window is created (#1)
       - resizeWindow(750, 750) # change window size to x, y
@@ -909,7 +910,6 @@ scenarios:
       actions:  # holds list of actions to perform
       - type: waitFor
         param: present
-        value: 2m30s
         locators:
           - css: body
           - xpath: /body/  
@@ -1012,7 +1012,7 @@ scenarios:
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitForByCSS(body, present): 3s
+      - waitForByCSS(body, present)
     # ...
 ```
 It is possible to use only the `remote` option, and in this way declare the intention to use the `browser: Remote`, allowing a more compact YAML.
@@ -1028,7 +1028,7 @@ scenarios:
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitForByCSS(body, present): 3s
+      - waitForByCSS(body, present)
     # ...
 ```
 
@@ -1055,12 +1055,12 @@ scenarios:
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitForCSS(body, present): 10s
+      - waitForCSS(body, present)
       - clickByID(mySubmitButton)
       - pauseFor(5s)
       - clearCookies()
       - keysByName(myInputName): keys_to_type
-      - waitForByID(myObjectToAppear, visible): 10s
+      - waitForByID(myObjectToAppear, visible)
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
@@ -1118,7 +1118,7 @@ scenarios:
     requests:
     - url: http://blazedemo.com/
       actions:
-      - waitForByCSS(body, present): 3s
+      - waitForByCSS(body, present)
       - clickByID(mySubmitButton)
       - pauseFor(5s)
 
