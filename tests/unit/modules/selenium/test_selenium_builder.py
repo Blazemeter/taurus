@@ -1942,8 +1942,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"waitForById(myId, present)": "10s"},
                             {"waitForById(myId, clickable)": "10s"},
                             {"waitForById(myId, notvisible)": "10s"},
-                            {"waitForById(myId, notpresent)": "10s"},
-                            {"waitForById(myId, notclickable)": "10s"}
+                            "waitForById(myId, notpresent)",
+                            "waitForById(myId, notclickable)"
                         ]}]}}})
 
         self.obj.prepare()
