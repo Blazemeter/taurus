@@ -96,8 +96,8 @@ Here is the list of supported actions, sorted by action type.
 
 ### Locators
 Below you will see some actions, which look like this: `actionX`, i.e. `dragByX`, `clickBy`, etc. Here `X` means a certain
-action object. It can be one of the following: `ID`, `Name`, `LinkText`, `CSS`, `XPath`. For example, `clickByID`,
-`waitByName`, `keysByCSS`.
+action object. It can be one of the following: `CSS`, `Element`, `ID`, `LinkText`, `Name`, `XPath`. For example, `clickByID`,
+`waitForByName`, `keysByCSS`.
 
 #### How to find them
 __1. By ID__
@@ -107,7 +107,7 @@ __1. By ID__
     <h1 id="my_locator_ID">Locator ID</h1>
 </td>
 ```
-Header tag has an ID attribute (`id="Locator\_ID"`). For example, wait until the element is displayed `waitByID(Locator\_ID)`.
+Header tag has an ID attribute (`id="Locator\_ID"`). For example, wait until the element is displayed `waitForByID(Locator\_ID)`.
 
 __2. By the attribute Name__
 
@@ -132,7 +132,7 @@ Here is an example. This is how to find div with input.
     <input id="inputName" placeholder="First Last" name="inputName" type="text">
 </div>
 ```
-This CSS selector .controls will select all elements with class `controls`. For example, wait until the element is displayed `waitByCSS(.controls)`.
+This CSS selector .controls will select all elements with class `controls`. For example, wait until the element is displayed `waitForByCSS(.controls)`.
 Using attributes and their value
 ```html
  <input id="inputName" placeholder="First Last" name="inputName" type="text">
@@ -437,8 +437,8 @@ scenarios:
 You can also nest multiple `foreach` blocks, just make sure to 
 use unique names for the variables in each of the blocks.  
 
-Please note that it is not possible to use `wait` and `waitFor` actions in the `foreach` using `ByElement`. 
-However you can still use it inside the loop the common way - e.g. `waitById(my_id)`.
+Please note that it is not possible to use `waitFor` action in the `foreach` using `ByElement`. 
+However, you can still use it inside the loop the common way - e.g. `waitForById(my_id)`.
 
 ##### Perform actions in foreach using the parent context
 
@@ -718,17 +718,15 @@ You can also define waitFor using the [alternative syntax](#Alternative-syntax-s
 ```
 
 
-- `waitByX(X\_name)` to wait for presence or `waitByX(X\_name): visible` to wait for visibility
+- `waitForByX(X\_name)` to wait for presence or `waitForByX(X\_name): visible` to wait for visibility
 
-**_DEPRECATION WARNING_** `waitByX` is deprecated and will be removed soon, please use the `waitForByX` version above.
-
-You can also define wait using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators) to provide multiple locators:
+You can also define `waitFor` using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators) to provide multiple locators:
 ```yaml
-- type: wait
+- type: waitFor
   locators: 
     - css: element_class
     - id: element_id
-- type: wait
+- type: waitFor
   param: visible
   locators:
     - css: element_class    
@@ -864,7 +862,7 @@ scenarios:
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitByCSS(body)
+      - waitForByCSS(body)
       - clickByID(mySubmitButton)
       - openWindow(http://blazedemo.com/vacation.html) # new window is created (#1)
       - resizeWindow(750, 750) # change window size to x, y
@@ -874,7 +872,7 @@ scenarios:
       - clearCookies()
       - keysByName(myInputName): keys_to_type
       - submitByName(myInputName)
-      - waitByID(myObjectToAppear): visible
+      - waitForByID(myObjectToAppear): visible
       - scriptEval("alert('This is Sparta');")
       - rawCode: print('It\'s Python')  # insert as-is into script file
       - rawCode: |
@@ -921,7 +919,7 @@ scenarios:
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - type: wait
+      - type: waitFor
         locators:
           - css: body
           - xpath: /body/
@@ -939,7 +937,7 @@ scenarios:
       - type: submit
         locators:
           - name: myInputName
-      - type: wait
+      - type: waitFor
         param: visible
         locators:
           - id: myObjectToAppear
@@ -1023,7 +1021,7 @@ scenarios:
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitByCSS(body)
+      - waitForByCSS(body)
     # ...
 ```
 It is possible to use only the `remote` option, and in this way declare the intention to use the `browser: Remote`, allowing a more compact YAML.
@@ -1039,7 +1037,7 @@ scenarios:
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitByCSS(body)
+      - waitForByCSS(body)
     # ...
 ```
 
@@ -1066,12 +1064,12 @@ scenarios:
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitByCSS(body)
+      - waitForCSS(body)
       - clickByID(mySubmitButton)
       - pauseFor(5s)
       - clearCookies()
       - keysByName(myInputName): keys_to_type
-      - waitByID(myObjectToAppear): visible
+      - waitForByID(myObjectToAppear): visible
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
@@ -1129,7 +1127,7 @@ scenarios:
     requests:
     - url: http://blazedemo.com/
       actions:
-      - waitByCSS(body)
+      - waitForByCSS(body)
       - clickByID(mySubmitButton)
       - pauseFor(5s)
 

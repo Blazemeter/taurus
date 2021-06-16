@@ -716,7 +716,7 @@ from selenium.webdriver.common.keys import Keys
                 action_elements.append(self._gen_replace_dialogs())
         elif atype == "editcontent":
             action_elements.extend(self._gen_edit_mngr(param, selectors))
-        elif atype.startswith('wait'):
+        elif atype.startswith('waitfor'):
             action_elements.extend(self._gen_wait_for(atype, param, value, selectors))
         elif atype == 'pausefor':
             action_elements.extend(self._gen_sleep_mngr(param))
@@ -772,16 +772,9 @@ from selenium.webdriver.common.keys import Keys
         self.selenium_extras.add("wait_for")
         supported_conds = ["present", "visible", "clickable", "notpresent", "notvisible", "notclickable"]
 
-        if not atype.endswith("for"):
-            self.log.warning("Wait command is deprecated and will be removed soon. Use waitFor instead.")
-            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
-            timeout = dehumanize_time(self.scenario.get("timeout", exc))
-            if not param:
-                param = "present"
-        else:
-            if not value:
-                value = 10  # if timeout value is not present set it by default to 10s
-            timeout = dehumanize_time(value)
+        if not value:
+            value = 10  # if timeout value is not present set it by default to 10s
+        timeout = dehumanize_time(value)
 
         if param.lower() not in supported_conds:
             raise TaurusConfigError("Invalid condition in %s: '%s'. Supported conditions are: %s." %
