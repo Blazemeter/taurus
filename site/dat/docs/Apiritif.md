@@ -115,7 +115,7 @@ __2. By the attribute Name__
 <input name="inputName">
 ```
 
-This is an input element and it has attribute `name="inputName"`.
+This is an input element, and it has an attribute `name="inputName"`.
 
 For example, insert text the following in the input `keysByName(inputName): First\_Name`. Locator determination by the attribute `Name` is often used when working with input fields.
 
@@ -687,7 +687,7 @@ Or by using the [multiple locators](#Alternative-syntax-supporting-multiple-loca
 ```
 
 #### Pause
-For pause you can use the following actions:
+For pause, you can use the following actions:
 
 - `waitForByX(X\_name, condition): timeout`
 
@@ -704,7 +704,7 @@ This action allows for checking that the given object meets the `condition` with
 
 
 `timeout` is optional with default value of 10 (10 seconds). Timeout can be provided as a numeric value 
-and that will mean seconds or it can be provided as a formatted string with the pattern 
+and that will mean seconds, or it can be provided as a formatted string with the pattern 
 1d2h3m4s5ms where you can provide number of days, hours, minutes, seconds and milliseconds it’s required to wait. 
 
 You can also define waitFor using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators) to provide multiple locators:
@@ -713,24 +713,12 @@ You can also define waitFor using the [alternative syntax](#Alternative-syntax-s
   locators: 
     - css: element_class
     - id: element_id
-  param: Clickable    # the condition
+  param: clickable    # the condition
   value: 2m30s        # the timeout    
 ```
 
+Supported conditions are: `present`, `visible`, `clickable`, `notpresent`, `notvisible`, `notclickable`.
 
-- `waitForByX(X\_name)` to wait for presence or `waitForByX(X\_name): visible` to wait for visibility
-
-You can also define `waitFor` using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators) to provide multiple locators:
-```yaml
-- type: waitFor
-  locators: 
-    - css: element_class
-    - id: element_id
-- type: waitFor
-  param: visible
-  locators:
-    - css: element_class    
-```
 - `pauseFor(time)`
 ```yaml
 - type: pauseFor
@@ -862,7 +850,7 @@ scenarios:
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitForByCSS(body)
+      - waitForByCSS(body, present): 3s
       - clickByID(mySubmitButton)
       - openWindow(http://blazedemo.com/vacation.html) # new window is created (#1)
       - resizeWindow(750, 750) # change window size to x, y
@@ -872,7 +860,7 @@ scenarios:
       - clearCookies()
       - keysByName(myInputName): keys_to_type
       - submitByName(myInputName)
-      - waitForByID(myObjectToAppear): visible
+      - waitForByID(myObjectToAppear, visible): 3s
       - scriptEval("alert('This is Sparta');")
       - rawCode: print('It\'s Python')  # insert as-is into script file
       - rawCode: |
@@ -920,9 +908,11 @@ scenarios:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
       - type: waitFor
+        param: present
+        value: 2m30s
         locators:
           - css: body
-          - xpath: /body/
+          - xpath: /body/  
       - type: click
         locators:
           - id: mySubmitButton
@@ -939,6 +929,7 @@ scenarios:
           - name: myInputName
       - type: waitFor
         param: visible
+        value: 2m30s
         locators:
           - id: myObjectToAppear
           - name: myObjectToAppearName
@@ -1021,7 +1012,7 @@ scenarios:
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitForByCSS(body)
+      - waitForByCSS(body, present): 3s
     # ...
 ```
 It is possible to use only the `remote` option, and in this way declare the intention to use the `browser: Remote`, allowing a more compact YAML.
@@ -1037,7 +1028,7 @@ scenarios:
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitForByCSS(body)
+      - waitForByCSS(body, present): 3s
     # ...
 ```
 
@@ -1064,12 +1055,12 @@ scenarios:
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitForCSS(body)
+      - waitForCSS(body, present): 10s
       - clickByID(mySubmitButton)
       - pauseFor(5s)
       - clearCookies()
       - keysByName(myInputName): keys_to_type
-      - waitForByID(myObjectToAppear): visible
+      - waitForByID(myObjectToAppear, visible): 10s
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
@@ -1127,7 +1118,7 @@ scenarios:
     requests:
     - url: http://blazedemo.com/
       actions:
-      - waitForByCSS(body)
+      - waitForByCSS(body, present): 3s
       - clickByID(mySubmitButton)
       - pauseFor(5s)
 
