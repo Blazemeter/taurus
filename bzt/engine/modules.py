@@ -163,6 +163,10 @@ class Aggregator(EngineModule):
         super(Aggregator, self).__init__()
         self.is_functional = is_functional
 
+    @staticmethod
+    def converter(data):
+        return data
+
 
 class ScenarioExecutor(EngineModule):
     """

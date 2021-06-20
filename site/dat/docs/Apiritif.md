@@ -218,12 +218,12 @@ Below you can find a list of all supported actions:
 [assertTextByX](#Assertion), [assertTitle](#Assertion), [assertValueByX](#Assertion), [clearCookies](#Cookies), 
 [clickByX](#Mouse-actions), [closeWindow](#Window-management), [contextClickByX](#Mouse-actions), 
 [doubleClickByX](#Mouse-actions), [dragByX](#Mouse-actions), [echoString](#Echoing), [editContentByX](#Editing), 
-[foreach](#Foreach), [go](#Go), [if](#If-Blocks), [keysByX](#Typing), [loop](#Loops), [mouseDownByX](#Mouse-actions), 
-[mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), [mouseUpByX](#Mouse-actions), 
-[openWindow](#Window-management), [rawCode](#Execution), [screenshot](#Screenshot), [scriptEval](#Execution), 
-[selectByX](#Select), [storeEval](#Store), [storeString](#Store), [storeTextByX](#Store), [storeTitle](#Store), 
-[storeValueByX](#Store), [submitByX](#Typing), [switchFrame](#Frame-management), [switchWindow](#Window-management), 
-[typeByX](#Typing), [waitForByX](#Pause).
+[foreach](#Foreach), [go](#Go), [if](#If-Blocks), [keysByX](#Typing), [log](#External-logging), [loop](#Loops), 
+[mouseDownByX](#Mouse-actions), [mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), 
+[mouseUpByX](#Mouse-actions), [openWindow](#Window-management), [rawCode](#Execution), [screenshot](#Screenshot), 
+[scriptEval](#Execution), [selectByX](#Select), [storeEval](#Store), [storeString](#Store), [storeTextByX](#Store), 
+[storeTitle](#Store), [storeValueByX](#Store), [submitByX](#Typing), [switchFrame](#Frame-management), 
+[switchWindow](#Window-management), [typeByX](#Typing), [waitForByX](#Pause).
 
 #### Alert
 For alert handling, use the following methods:
@@ -1138,7 +1138,7 @@ modules:
     generate-flow-markers: true  # global setting
 ```
 
-### External logging
+### External logging (DEPRECATED)
 
 This feature can be used to track progress or debug your test. It requires handler which will be executed
 between actions. Please see for handler example `log_into_file` function in `selenium_extras` module
@@ -1160,4 +1160,19 @@ scenarios:
     - log('leaving blazedemo')      # explicit logging way
     - go(https://gettaurus.org/docs/Index/)
     - log('finished part 1 of my test') 
+```
+
+
+### External Apiritif plugins
+
+_This is available only in [unstable snapshot](https://gettaurus.org/install/Installation/#Latest-Unstable-Snapshot)._
+
+This feature can be used to track actions of your test. It requires handler which will be executed
+between actions. Please see handler [example](https://github.com/Blazemeter/apiritif/blob/master/tests/resources/action_plugin_template.txt)
+
+To enable Apiritif plugins you should specify path to plugins package using `plugins-path` in apiritif module settings.
+```
+modules:
+  apiritif:
+    plugins-path: /path/to/apiritif/plugins/package
 ```

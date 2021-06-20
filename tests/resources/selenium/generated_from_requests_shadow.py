@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import waiter, find_element_by_shadow, get_locator
+from bzt.resources.selenium_extras import waiter, get_locator, find_element_by_shadow
 
 class TestLocSc(unittest.TestCase):
 
@@ -27,10 +27,10 @@ class TestLocSc(unittest.TestCase):
         self.vars = {'city_select_name': 'fromPort', 'input_name_id': 'inputName'}
 
         timeout = 3.5
-        self.driver = None
         options = webdriver.ChromeOptions()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
+        options.set_capability('unhandledPromptBehavior', 'ignore')
         self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', options=options)
         self.driver.implicitly_wait(timeout)
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},

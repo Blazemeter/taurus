@@ -17,9 +17,7 @@ limitations under the License.
 """
 import copy
 import csv
-import locale
 import os
-import sys
 import time
 from collections import Counter, OrderedDict
 from datetime import datetime
@@ -32,12 +30,7 @@ from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, Result
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.functional import FunctionalAggregatorListener
 from bzt.modules.passfail import PassFailStatus
-from bzt.utils import etree, iteritems, get_full_path, is_windows
-
-if is_windows():
-    from terminaltables import AsciiTable as SingleTable
-else:
-    from terminaltables import SingleTable
+from bzt.utils import etree, iteritems, get_full_path
 
 
 class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
@@ -175,8 +168,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         data = [("Percentile, %", "Resp. Time, s")]
         for key in sorted(summary_kpi_set[KPISet.PERCENTILES].keys(), key=float):
             data.append((float(key), summary_kpi_set[KPISet.PERCENTILES][key]))
-            # self.log.info("Percentile %.1f%%: %.3f", )
-        table = SingleTable(data) if sys.stdout and sys.stdout.isatty() else AsciiTable(data)
+        table = AsciiTable(data)
         table.justify_columns[0] = 'right'
         table.justify_columns[1] = 'right'
         self.log.info("Percentiles:\n%s", table.table)
@@ -220,7 +212,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         for sample_label in sorted_labels:
             if sample_label != "":
                 data.append(self.__get_sample_element(cumulative[sample_label], sample_label))
-        table = SingleTable(data) if sys.stdout and sys.stdout.isatty() else AsciiTable(data)
+        table = AsciiTable(data)
         table.justify_columns = justify
         self.log.info("Request label stats:\n%s", table.table)
 

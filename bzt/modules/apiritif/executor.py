@@ -68,6 +68,11 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         # path to taurus dir. It's necessary for bzt usage inside tools/helpers
         self.env.add_path({"PYTHONPATH": get_full_path(BZT_DIR, step_up=1)})
 
+        if self.settings.get("plugins-path"):
+            # add path to plugins directory to Apiritif env vars
+            self.log.debug(f'Found Apiritif plugins path: {self.settings.get("plugins-path")}')
+            self.env.add_path({"PLUGINS_PATH": self.settings.get('plugins-path')})
+
         self.reporting_setup()  # no prefix/suffix because we don't fully control report file names
 
     def __tests_from_requests(self):
@@ -91,6 +96,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 self.log.warning("Obsolete format of capabilities found (list), should be dict")
                 scenario["capabilities"] = {item.keys()[0]: item.values()[0] for item in scenario_caps}
 
+            if scenario.get("external-logging", False):
+                self.log.warning("'external-logging' is deprecated and unsupported now. Use 'plugins-path' instead.")
+
             configs = (self.settings, scenario, self.execution)
 
             capabilities = get_assembled_value(configs, "capabilities")
@@ -102,7 +110,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 generate_markers=generate_markers,
                 capabilities=capabilities,
                 wd_addr=remote, test_mode=test_mode,
-                generate_external_logging=scenario.get("external-logging", False))
+                generate_external_handler=True if self.settings.get('plugins-path', False) else False)
 
         builder.build_source_code()
         builder.save(filename)

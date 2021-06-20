@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import switch_frame, waiter, dialogs_replace, dialogs_get_next_alert, close_window, wait_for, dialogs_get_next_confirm, dialogs_answer_on_next_alert, dialogs_get_next_prompt, get_locator, open_window, switch_window, dialogs_answer_on_next_confirm, dialogs_answer_on_next_prompt
+from bzt.resources.selenium_extras import dialogs_answer_on_next_prompt, open_window, dialogs_get_next_prompt, switch_frame, dialogs_answer_on_next_alert, dialogs_get_next_alert, dialogs_get_next_confirm, close_window, waiter, wait_for, dialogs_answer_on_next_confirm, dialogs_replace, get_locator, switch_window
 
 class TestLocSc(unittest.TestCase):
 
@@ -27,10 +27,10 @@ class TestLocSc(unittest.TestCase):
         self.vars = {'my_xpath_locator': '/html/body/div[3]', 'name': 'Name', 'red_pill': 'take_it,'}
 
         timeout = 3.5
-        self.driver = None
         options = webdriver.FirefoxOptions()
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
+        options.set_capability('unhandledPromptBehavior', 'ignore')
         self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},

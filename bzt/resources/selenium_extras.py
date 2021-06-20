@@ -2,14 +2,15 @@
 import time
 import datetime
 
-from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
-from apiritif import get_logging_handlers, set_logging_handlers
+from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, external_handler
+
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
     TimeoutException, UnexpectedAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as econd
 
+from apiritif.action_plugins import BaseActionHandler
 from bzt import TaurusException
 from bzt.resources.shadow_element import ShadowElement
 
@@ -157,20 +158,6 @@ def add_flow_markers():
     set_transaction_handlers(handlers)
 
 
-def add_logging_handlers(methods=None):
-    if methods is None:
-        methods = [log_into_file]
-    if methods:
-        handlers = get_logging_handlers()
-        handlers.extend(methods)
-        set_logging_handlers(handlers)
-
-
-def log_into_file(log_line):
-    with open('/tmp/apiritif_external.log', 'at') as log_file:
-        log_file.write(f"{datetime.datetime.now()} {log_line} \n")
-
-
 def _send_marker(stage, params):
     _get_driver().execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
 
@@ -178,8 +165,8 @@ def _send_marker(stage, params):
 def _send_start_flow_marker(*args, **kwargs):  # for apiritif. remove when compatibiltiy code in
     stage = "start"  # apiritif removed (http.py) and apiritif released ( > 0.9.2)
 
-    test_case, test_suite, scenario_name, data_sources = get_from_thread_store(
-        ['test_case', 'test_suite', 'scenario_name', 'data_sources']
+    test_case, test_suite, scenario_name, data_sources, action_handlers, driver = get_from_thread_store(
+        ['test_case', 'test_suite', 'scenario_name', 'data_sources', 'action_handlers', 'driver']
     )
     params = {
         "testCaseName": test_case,
@@ -188,14 +175,21 @@ def _send_start_flow_marker(*args, **kwargs):  # for apiritif. remove when compa
     if data_sources:
         params["testDataIterationId"] = get_iteration()
 
+    for handler in action_handlers:
+        handler.handle(driver.session_id, BaseActionHandler.TEST_CASE_START, params)
+
     _send_marker(stage, params)
 
 
 def _send_exit_flow_marker(*args, **kwargs):  # for apiritif. remove when compatibiltiy code in
     stage = "stop"  # apiritif removed (http.py) and apiritif released ( > 0.9.2)
     labels = "status", "message"
+    action_handlers, driver = get_from_thread_store(['action_handlers', 'driver'])
     values = get_from_thread_store(labels)
     params = dict(zip(labels, values))
+
+    for handler in action_handlers:
+        handler.handle(driver.session_id, BaseActionHandler.TEST_CASE_STOP, params)
     _send_marker(stage, params)
 
 
@@ -460,3 +454,13 @@ def waiter():
                    message="Timeout occurred while waiting for page to finish loading.")
     except UnexpectedAlertPresentException:
         pass
+
+
+def action_start(action):
+    driver = _get_driver()
+    external_handler(driver.session_id if driver else None, BaseActionHandler.YAML_ACTION_START, action)
+
+
+def action_end(action):
+    driver = _get_driver()
+    external_handler(driver.session_id if driver else None, BaseActionHandler.YAML_ACTION_END, action)
