@@ -83,6 +83,7 @@ class LoadSettingsProcessor(object):
         self.load = executor.get_specific_load()
         self.raw_load = executor.get_raw_load()
         self.log.debug("Load: %s", self.load)
+        self.keep_iterations = executor.settings.get('keep-iterations', False)  # for BZA disabled-iterations use
         self.tg = self._detect_thread_group(executor)
         self.tg_handler = ThreadGroupHandler(self.log)
 
@@ -93,7 +94,7 @@ class LoadSettingsProcessor(object):
         :return:
         """
         tg = self.TG
-        if not executor.settings.get('force-ctg', True):
+        if not executor.settings.get('force-ctg', True) or self.keep_iterations:
             return tg
 
         msg = 'Thread group detection: %s, regular ThreadGroup will be used'
@@ -140,8 +141,7 @@ class LoadSettingsProcessor(object):
 
         for group, concurrency in target_list:
             iterations = None
-            if not(self.raw_load.iterations or self.raw_load.hold or self.raw_load.ramp_up) and \
-                    group.gtype == self.TG and self.tg == self.TG:
+            if self.keep_iterations and group.gtype == self.TG:
                 iterations = group.get_iterations()
             self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load,
                                     concurrency=concurrency, iterations=iterations)

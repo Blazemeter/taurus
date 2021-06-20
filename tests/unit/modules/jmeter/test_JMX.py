@@ -81,19 +81,18 @@ class TestLoadSettingsProcessor(BZTestCase):
         for group in self.get_groupset():
             self.assertEqual('ThreadGroup', group.gtype)
             self.assertEqual("false", group.element.find(".//*[@name='LoopController.continue_forever']").text)
-
+            self.assertEqual("1", group.element.find(".//*[@name='LoopController.loops']").text)  # no loop limit
             res_values[group.get_testname()] = {
                 'conc': group.get_concurrency(),
                 'on_error': group.get_on_error(),
-                'delay': group.get_scheduler_delay(),
-                'iterations': group.get_iterations()}
+                'delay': group.get_scheduler_delay()}
 
         self.assertEqual(res_values,
-                         {'TG.01': {'conc': 14, 'on_error': 'startnextloop', 'delay': '33', 'iterations': 100},
-                          'CTG.02': {'conc': 21, 'on_error': 'stopthread', 'delay': None, 'iterations': 1},
-                          'STG.03': {'conc': 28, 'on_error': 'stoptest', 'delay': None, 'iterations': 1},
-                          'UTG.04': {'conc': 7, 'on_error': 'stoptestnow', 'delay': None, 'iterations': 1},
-                          'ATG.05': {'conc': 7, 'on_error': 'continue', 'delay': None, 'iterations': 1}})
+                         {'TG.01': {'conc': 14, 'on_error': 'startnextloop', 'delay': '33'},
+                          'CTG.02': {'conc': 21, 'on_error': 'stopthread', 'delay': None},
+                          'STG.03': {'conc': 28, 'on_error': 'stoptest', 'delay': None},
+                          'UTG.04': {'conc': 7, 'on_error': 'stoptestnow', 'delay': None},
+                          'ATG.05': {'conc': 7, 'on_error': 'continue', 'delay': None}})
 
     def test_CTG_crs(self):
         """ ConcurrencyThreadGroup: concurrency, ramp-up, steps """
@@ -304,10 +303,8 @@ class TestLoadSettingsProcessor(BZTestCase):
         """ThreadGroup:  concurrency, ramp-up"""
         self.configure(load={'concurrency': 76, 'ramp-up': 4},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/UTG_dummy.jmx',
-                       settings={'force-ctg': False})
-        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no hold and iteration
-        self.assertEqual(None, self.obj.raw_load.iterations)
-        self.assertEqual(None, self.obj.raw_load.hold)
+                       settings={'keep-iterations': True})
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because keep-iterations is True
         self.obj.modify(self.jmx)
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ThreadGroup")
@@ -317,9 +314,8 @@ class TestLoadSettingsProcessor(BZTestCase):
         """ThreadGroup:  concurrency, ramp-up, iterations"""
         self.configure(load={'concurrency': 76, 'ramp-up': 4, 'iterations': 5},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx',
-                       settings={'force-ctg': False})
-        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no hold and iteration
-        self.assertEqual(None, self.obj.raw_load.hold)
+                       settings={'keep-iterations': False})
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because iterations is not None
         self.obj.modify(self.jmx)
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ThreadGroup")
@@ -329,10 +325,8 @@ class TestLoadSettingsProcessor(BZTestCase):
         """ThreadGroup:  concurrency, ramp-up, iterations"""
         self.configure(load={'concurrency': 76, 'steps': 5, 'throughput': 20},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx',
-                       settings={'force-ctg': False})
-        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no hold and iteration
-        self.assertEqual(None, self.obj.raw_load.iterations)
-        self.assertEqual(None, self.obj.raw_load.hold)
+                       settings={'keep-iterations': True})
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because keep-iterations is True
         self.obj.modify(self.jmx)
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ThreadGroup")
