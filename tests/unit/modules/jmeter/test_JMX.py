@@ -304,7 +304,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         """ThreadGroup:  concurrency, ramp-up"""
         self.configure(load={'concurrency': 76, 'ramp-up': 4},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/UTG_dummy.jmx',
-                       settings={'keep-iterations': True})
+                       settings={'force-ctg': False})
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because keep-iterations is True
         self.obj.modify(self.jmx)
         for group in self.get_groupset():
@@ -326,7 +326,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         """ThreadGroup:  concurrency, ramp-up, iterations"""
         self.configure(load={'concurrency': 76, 'steps': 5, 'throughput': 20},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx',
-                       settings={'keep-iterations': True})
+                       settings={'force-ctg': False})
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because keep-iterations is True
         self.obj.modify(self.jmx)
         for group in self.get_groupset():
