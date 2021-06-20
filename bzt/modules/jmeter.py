@@ -561,7 +561,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__fill_empty_delimiters(jmx)
 
         self.__apply_modifications(jmx)
-        LoadSettingsProcessor(self).modify(jmx)
+        LoadSettingsProcessor(self).modify(jmx, is_jmx_generated)
 
         return jmx
 

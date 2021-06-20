@@ -113,7 +113,7 @@ class LoadSettingsProcessor(object):
 
         return tg
 
-    def modify(self, jmx):
+    def modify(self, jmx, is_jmx_generated=False):
         if not (self.raw_load.iterations or self.raw_load.concurrency or self.load.duration):
             self.log.debug('No iterations/concurrency/duration found, thread group modification is skipped')
             return
@@ -141,7 +141,8 @@ class LoadSettingsProcessor(object):
 
         for group, concurrency in target_list:
             iterations = None
-            if not self.force_ctg and group.gtype == self.TG:
+            existed_tg = (not is_jmx_generated) and (group.gtype == self.TG)
+            if not self.force_ctg and existed_tg:
                 iterations = group.get_iterations()
             self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load,
                                     concurrency=concurrency, iterations=iterations)
