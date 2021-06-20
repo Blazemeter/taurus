@@ -73,7 +73,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
                             # print, wait, pause, clearcookies, screenshot
                             "echoString(${red_pill})",
-                            {"waitByName('toPort')": "visible"},
+                            {"waitForByName('toPort', visible)": "3.5s"},
                             "pauseFor(4.6s)",
                             "clearCookies()",
                             "screenshot('screen.png')",
@@ -492,7 +492,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])",
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"},
                             {"waitForByXPath(//input[@name='test,name'], present)": "1m20s"},
                             "assertTitle(BlazeDemo)",
                             "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
@@ -504,7 +504,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"keysByCSS(body input.btn.btn-primary)": "KEY_ENTER"},
                             {"assertValueByID(address)": "123 Beautiful st."},
                             {"assertTextByXPath(/html/body/div[2]/form/div[1]/label)": "${name}"},
-                            {"waitByName('toPort')": "visible"},
+                            {"waitForByName('toPort', visible)": "3.5s"},
                             {"keysByName(\"toPort\")": "B"},
                             {"typeByName(\"toPort\")": "B"},
                             {"keysByName(\"toPort\")": u"KEY_ENTER"},
@@ -770,7 +770,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])",
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"},
                             "assertTitle(BlazeDemo)"
                         ],
                     },
@@ -825,7 +825,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])",
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"},
                             "assertTitle(BlazeDemo)"
                         ],
                     },
@@ -854,7 +854,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": [{
                         "url": "http://blazedemo.com",
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])"]},
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
         self.obj.prepare()
@@ -879,7 +879,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": [{
                         "url": "http://blazedemo.com",
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])"]},
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
         self.obj.prepare()
@@ -903,7 +903,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": [{
                         "url": "http://blazedemo.com",
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])"]},
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
         self.obj.prepare()
@@ -933,7 +933,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])",
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"},
                             "assertTitle(BlazeDemo)"
                         ],
                     },
@@ -1392,14 +1392,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     },
                                     {
                                         "type": "screenshot"
-                                    },
-                                    {
-                                        "type": "wait",
-                                        "param": "visible",
-                                        "locators": [
-                                            {"css": "invalid_css"},
-                                            {"name": "inputName"}
-                                        ]
                                     },
                                     {
                                         "type": "waitFor",
@@ -1946,12 +1938,19 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     {"id": "input_id"}
                                 ],
                                 "value": "2h30m20s"
+                            },{
+                                "type": "waitFor",
+                                "param": "visible",
+                                "locators": [
+                                    {"css": "invalid_css"},
+                                    {"id": "input_id"}
+                                ],
                             },
-                            {"waitForById(myId, present)": "10s"},
-                            {"waitForById(myId, clickable)": "10s"},
-                            {"waitForById(myId, notvisible)": "10s"},
-                            {"waitForById(myId, notpresent)": "10s"},
-                            {"waitForById(myId, notclickable)": "10s"}
+                            {"waitForById(myId, present)": "5s"},
+                            {"waitForById(myId, clickable)": "5s"},
+                            {"waitForById(myId, notvisible)": "5s"},
+                            "waitForById(myId, notpresent)",
+                            "waitForById(myId, notclickable)"
                         ]}]}}})
 
         self.obj.prepare()
@@ -1959,12 +1958,13 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "wait_for('visible',[{'css':'invalid_css'},{'id':'input_id'}],9020.0)",
-            "wait_for('present',[{'id':'myId'}],10.0)",
-            "wait_for('clickable',[{'id':'myId'}],10.0)",
-            "wait_for('notvisible',[{'id':'myId'}],10.0)",
-            "wait_for('notpresent',[{'id':'myId'}],10.0)",
-            "wait_for('notclickable',[{'id':'myId'}],10.0)"
+            "wait_for('visible', [{'css':'invalid_css'}, {'id':'input_id'}], 9020.0)",
+            "wait_for('visible', [{'css':'invalid_css'}, {'id':'input_id'}], 10.0)",
+            "wait_for('present', [{'id':'myId'}], 5.0)",
+            "wait_for('clickable', [{'id':'myId'}], 5.0)",
+            "wait_for('notvisible', [{'id':'myId'}], 5.0)",
+            "wait_for('notpresent', [{'id':'myId'}], 10.0)",
+            "wait_for('notclickable', [{'id':'myId'}], 10.0)"
         ]
         for idx in range(len(target_lines)):
             target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
