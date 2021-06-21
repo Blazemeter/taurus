@@ -353,6 +353,27 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.assertFilesEqual(RESOURCES_DIR + "gatling/generated6.scala", scala_file,
                               self.obj.get_scenario().get('simulation'), "SIMNAME")
 
+    def test_requests_7_setvariables(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "default-address": "example.com",
+                "requests": [
+                    {
+                        "set-variables": {"foo": "bar"}
+                    },
+                    '/${foo}',
+                    {
+                        "set-variables": {"foo": "bar1", "foo2": "bar2"}
+                    },
+                    '/${foo}/${foo2}'
+                ],
+            }
+        })
+        self.obj.prepare()
+        scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
+        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated7.scala", scala_file,
+                              self.obj.get_scenario().get('simulation'), "SIMNAME")
+
     def test_fail_on_zero_results(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "gatling/bs/BasicSimulation.scala"}})
         self.obj.prepare()
