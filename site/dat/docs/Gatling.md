@@ -142,6 +142,9 @@ scenarios:
         subject: http-code
         not: true
     - /purchase.php?username=${username}&email=${email}  # usage of variables from the CSV data source
+    - set-variables:  # setting variables in runtime
+        var1: val1
+        var2: val2
 ```
 See more info about data-sources [here](DataSources.md).
 
