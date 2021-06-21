@@ -247,13 +247,16 @@ class RequestParser(object):
         requests = []
         for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
             req = ensure_is_dict(raw_requests, key, "url")
-            if not require_url and "url" not in req:
-                req["url"] = None
-            try:
-                requests.append(self._parse_request(req))
-            except BaseException as exc:
-                logging.debug("%s\n%s" % (exc, traceback.format_exc()))
-                raise TaurusConfigError("Wrong request:\n %s" % req)
+            if 'set-variables' in req:
+                requests.append(SetVariables(req['set-variables'], req))
+            else:
+                if not require_url and "url" not in req:
+                    req["url"] = None
+                try:
+                    requests.append(self._parse_request(req))
+                except BaseException as exc:
+                    logging.debug("%s\n%s" % (exc, traceback.format_exc()))
+                    raise TaurusConfigError("Wrong request:\n %s" % req)
         return requests
 
     def _parse_request(self, req):
