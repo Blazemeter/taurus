@@ -300,6 +300,52 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1, 'ATG.05': 1})
 
+    def test_TG_cr(self):
+        """ThreadGroup:  concurrency, ramp-up"""
+        self.configure(load={'concurrency': 76, 'ramp-up': 4},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/UTG_dummy.jmx',
+                       settings={'force-ctg': False})
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because keep-iterations is True
+        self.obj.modify(self.jmx)
+        for group in self.get_groupset():
+            self.assertEqual(group.gtype, "ThreadGroup")
+            self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)
+
+    def test_TG_iterations_from_load(self):
+        """ThreadGroup:  concurrency, ramp-up, iterations"""
+        self.configure(load={'concurrency': 76, 'ramp-up': 4, 'iterations': 5},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx',
+                       settings={'keep-iterations': False})
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because iterations is not None
+        self.obj.modify(self.jmx)
+        for group in self.get_groupset():
+            self.assertEqual(group.gtype, "ThreadGroup")
+            self.assertEqual("5", group.element.find(".//*[@name='LoopController.loops']").text)
+
+    def test_TG_iterations_from_jmx(self):
+        """ThreadGroup:  concurrency, ramp-up, iterations"""
+        self.configure(load={'concurrency': 76, 'steps': 5, 'throughput': 20},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-TG.jmx',
+                       settings={'force-ctg': False})
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because keep-iterations is True
+        self.obj.modify(self.jmx)
+        for group in self.get_groupset():
+            self.assertEqual(group.gtype, "ThreadGroup")
+            self.assertEqual("10", group.element.find(".//*[@name='LoopController.loops']").text)
+
+    def test_duration_loops_bug(self):
+        self.configure(load={"concurrency": 10, "ramp-up": 15, "hold-for": "2m"},
+                       jmx_file=RESOURCES_DIR + "/jmeter/jmx/http.jmx",
+                       settings={'force-ctg': False})
+        self.obj.modify(self.jmx)
+        for group in self.get_groupset():
+            self.assertEqual(group.gtype, "ThreadGroup")
+            loop_ctrl = group.element.find(".//*[@name='ThreadGroup.main_controller']")
+            tg_loops = loop_ctrl.find(".//stringProp[@name='LoopController.loops']").text
+            tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']").text
+            self.assertEqual(tg_loops, "1")
+            self.assertEqual(tg_forever, "false")
+
 
 class TestMQTTSamplers(BZTestCase):
     def test_full_generation(self):

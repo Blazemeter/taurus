@@ -83,6 +83,7 @@ class LoadSettingsProcessor(object):
         self.load = executor.get_specific_load()
         self.raw_load = executor.get_raw_load()
         self.log.debug("Load: %s", self.load)
+        self.force_ctg = executor.settings.get("force-ctg", True)
         self.tg = self._detect_thread_group(executor)
         self.tg_handler = ThreadGroupHandler(self.log)
 
@@ -93,7 +94,7 @@ class LoadSettingsProcessor(object):
         :return:
         """
         tg = self.TG
-        if not executor.settings.get('force-ctg', True):
+        if not self.force_ctg:
             return tg
 
         msg = 'Thread group detection: %s, regular ThreadGroup will be used'
@@ -112,7 +113,7 @@ class LoadSettingsProcessor(object):
 
         return tg
 
-    def modify(self, jmx):
+    def modify(self, jmx, is_jmx_generated=False):
         if not (self.raw_load.iterations or self.raw_load.concurrency or self.load.duration):
             self.log.debug('No iterations/concurrency/duration found, thread group modification is skipped')
             return
@@ -139,8 +140,12 @@ class LoadSettingsProcessor(object):
             target_list = zip(groups, concurrency_list)
 
         for group, concurrency in target_list:
-            self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load, concurrency=concurrency)
-
+            iterations = None
+            existed_tg = (not is_jmx_generated) and (group.gtype == self.TG)
+            if not self.force_ctg and existed_tg:
+                iterations = group.get_iterations()
+            self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load,
+                                    concurrency=concurrency, iterations=iterations)
         if self.load.throughput:
             self._add_shaper(jmx)
 
