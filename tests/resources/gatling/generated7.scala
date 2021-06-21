@@ -18,9 +18,15 @@ class SIMNAME extends Simulation {
   var testScenario = scenario("Taurus Scenario")
 
   var execution = exec(
+    _.set('foo', 'bar')
+  ).exec(
     http("/${foo}").get("/${foo}")
   ).exec(
+    _.set('foo2', 'bar2')
+  ).exec(
     http("/${foo}/${foo2}").get("/${foo}/${foo2}")
+  ).exec(
+    _.set('hanging', 'loose')
   )
 
   if (iterationLimit == null)
