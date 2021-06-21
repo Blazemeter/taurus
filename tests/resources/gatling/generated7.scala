@@ -22,7 +22,7 @@ class SIMNAME extends Simulation {
   ).exec(
     http("/${foo}").get("/${foo}")
   ).exec(
-    _.set('foo2', 'bar2')
+    _.set('foo', 'bar1').set('foo2', 'bar2')
   ).exec(
     http("/${foo}/${foo2}").get("/${foo}/${foo2}")
   ).exec(
