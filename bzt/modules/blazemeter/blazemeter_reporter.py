@@ -68,7 +68,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.first_ts = sys.maxsize
         self.last_ts = 0
         self.report_name = None
-        self.extend_report = False
         self._dpoint_serializer = DatapointSerializer(self)
 
     def prepare(self):
@@ -76,10 +75,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         Read options for uploading, check that they're sane
         """
         super(BlazeMeterUploader, self).prepare()
-
-        # turn on splitting reported data according to sample status
-        self.extend_report = \
-            isinstance(self.engine.aggregator, ConsolidatingAggregator) and self.engine.aggregator.extend_aggregation
 
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
@@ -357,29 +352,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if not self._session:
             return
 
-        if self.extend_report:
-            self.__extend_reported_data(data)
+        self.engine.aggregator.converter(data)
         serialized = self._dpoint_serializer.get_kpi_body(data, is_final)
 
         self._session.send_kpi_data(serialized, do_check)
-
-    @staticmethod
-    def __extend_reported_data(dp_list):
-        for dp in dp_list:
-            for data in dp['cumulative'], dp['current']:
-                del data['']
-                for key in list(data.keys()):   # list() is important due to changing dictionary size in the cycle
-                    sep = key.rindex('-')
-                    original_label, state_idx = key[:sep], int(key[sep+1:])
-                    kpi_set = data.pop(key)
-                    if original_label not in data:
-                        data[original_label] = {}
-                    data[original_label][state_idx] = kpi_set
-                    if '' not in data:
-                        data[''] = dict()
-                    if state_idx not in data['']:
-                        data[''][state_idx] = KPISet()
-                    data[''][state_idx].merge_kpis(kpi_set)
 
     def aggregated_second(self, data):
         """
@@ -571,14 +547,8 @@ class DatapointSerializer(object):
 
             # following data is received in the cumulative way
             for label, kpi_set in iteritems(data_buffer[-1][DataPoint.CUMULATIVE]):
-                if self.owner.extend_report:
-                    report_item = {}
-                    for state in kpi_set:
-                        report_item[state] = self.__get_label(label, kpi_set[state])
-                        self.__add_errors(report_item[state], kpi_set[state])
-                else:
-                    report_item = self.__get_label(label, kpi_set)
-                    self.__add_errors(report_item, kpi_set)  # 'Errors' tab
+                report_item = self.__get_label(label, kpi_set)
+                self.__add_errors(report_item, kpi_set)  # 'Errors' tab
                 report_items[label] = report_item
 
             # fill 'Timeline Report' tab with intervals data
@@ -589,13 +559,7 @@ class DatapointSerializer(object):
                     for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
                         exc = TaurusInternalException('Cumulative KPISet is non-consistent')
                         report_item = report_items.get(label, exc)
-
-                        if self.owner.extend_report:
-                            for state in report_item:
-                                if state in kpi_set:
-                                    report_item[state]['intervals'].append(self.__get_interval(kpi_set[state], time_stamp))
-                        else:
-                            report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
+                        report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
 
         report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
         data = {"labels": report_items, "sourceID": id(self.owner)}

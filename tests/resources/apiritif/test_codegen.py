@@ -27,7 +27,7 @@ class TestWithExtractors(unittest.TestCase):
         self.target.allow_redirects(True)
         self.target.timeout(5.0)
 
-        apiritif.put_into_thread_store(scenario_name='with-extractors', func_mode=False, timeout=timeout)
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, scenario_name='with-extractors')
 
     def _1_just_get(self):
         with apiritif.smart_transaction('just get'):

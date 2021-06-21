@@ -1003,22 +1003,6 @@ class TestJMeterExecutor(ExecutorTestCase):
         mod_stepping_tgs = modified_xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
         self.assertEqual(0, len(mod_stepping_tgs))  # generation of STG is obsolete
 
-    def test_duration_loops_bug(self):
-        self.configure({
-            "execution": {
-                "concurrency": 10,
-                "ramp-up": 15,
-                "hold-for": "2m",
-                "scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}}})
-        self.obj.prepare()
-        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        tg = modified_xml_tree.find(".//ThreadGroup")
-        loop_ctrl = tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
-        tg_loops = loop_ctrl.find(".//stringProp[@name='LoopController.loops']")
-        tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']")
-        self.assertEqual(tg_loops.text, "-1")
-        self.assertEqual(tg_forever.text, "false")
-
     def test_force_delimiters(self):
         self.obj.execution.merge({
             "iterations": 10,
