@@ -52,15 +52,15 @@ class Scenario(UserDict, object):
         self.engine = engine
         self.data = scenario
 
-    def get(self, key, default=None):
+    def get(self, key, default=defaultdict):
         """
 
         :param key:
         :type default: object
         :return:
         """
-        if default is None:
-          default = defaultdict()
+        if default == defaultdict:
+          default = BetterDict()
          
         return self.data.get(key, default)
 
