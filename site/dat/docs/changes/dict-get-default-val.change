@@ -1,0 +1,1 @@
+- change default value returned by `get()` on dicts
