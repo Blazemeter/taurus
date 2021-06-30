@@ -126,8 +126,8 @@ class GatlingScriptBuilder(object):
                 exec_str += self.indent(stmt, level=3)
             elif isinstance(req.body, dict):
                 for key in sorted(req.body.keys()):
-                    exec_str += self.indent('.formParam("%(key)s", "%(val)s")\n', level=3)
-                    exec_str = exec_str % {'key': key, 'val': req.body[key]}
+                    stmt = '.formParam("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.body[key]}
+                    exec_str += self.indent(stmt, level=3)
             elif req.body is not None:
                 self.log.warning("Unknown body type: %s", req.body)
 
