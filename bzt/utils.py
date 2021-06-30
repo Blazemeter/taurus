@@ -1072,6 +1072,7 @@ def is_int(str_val):
 
 
 def shutdown_process(process_obj, log_obj):
+    graceful_file = open('/tmp/GRACEFUL', 'x')
     count = 60
     while process_obj and process_obj.poll() is None:
         time.sleep(1)
@@ -1091,6 +1092,9 @@ def shutdown_process(process_obj, log_obj):
                 os.killpg(process_obj.pid, kill_signal)
         except OSError as exc:
             log_obj.debug("Failed to terminate process: %s", exc)
+
+    graceful_file.close()
+    os.remove('/tmp/GRACEFUL')
 
 
 class LocalFileAdapter(requests.adapters.BaseAdapter):
