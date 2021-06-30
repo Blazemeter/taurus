@@ -122,8 +122,8 @@ class GatlingScriptBuilder(object):
                     req.body = json.dumps(req.body)
 
             if isinstance(req.body, str):
-                exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
-                exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
+                stmt = '.body(%(method)s("""%(body)s"""))\n' % {'method': 'StringBody', 'body': req.body}
+                exec_str += self.indent(stmt, level=3)
             elif isinstance(req.body, dict):
                 for key in sorted(req.body.keys()):
                     exec_str += self.indent('.formParam("%(key)s", "%(val)s")\n', level=3)
