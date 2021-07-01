@@ -4,10 +4,19 @@ import sys
 
 import yaml
 
+import bzt
 from bzt import TaurusConfigError
 from bzt.engine import Configuration, EXEC
 from bzt.utils import BetterDict, is_windows, get_full_path, get_uniq_name, communicate
 from tests.unit import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase, TEST_DIR, EngineEmul
+
+
+class MockClient(object):
+    def request(self, *args, **kwargs):
+        return self
+
+    def json(self):
+        return {'needsUpgrade': False, 'latest': '1.1.1'}
 
 
 class TestEngine(BZTestCase):
@@ -148,6 +157,23 @@ class TestEngine(BZTestCase):
         self.assertTrue(self.obj.config["level2"])
         self.assertTrue(self.obj.config["level3"])
         self.assertListEqual(['included-level2.yml', 'included-level3.yml'], self.obj.config["included-configs"])
+
+    def test_check_for_updates(self):
+        def mock_http_client():
+            return MockClient()
+
+        self.sniff_log(self.obj.log)
+        try:
+            http_client = self.obj.get_http_client
+            version = bzt.engine.engine.VERSION
+            bzt.engine.engine.VERSION = '1.2.3'
+            self.obj.get_http_client = mock_http_client
+            self.obj._check_updates('bla-bla')
+            warnings = self.log_recorder.warn_buff.getvalue()
+            self.assertNotIn('Failed to check for updates', warnings)
+        finally:
+            self.obj.get_http_client = http_client
+            bzt.engine.engine.VERSION = version
 
     def test_included_configs_cycle(self):
         configs = [

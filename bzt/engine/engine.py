@@ -717,7 +717,7 @@ class Engine(object):
             self.log.debug("Taurus updates info: %s", data)
             mine = LooseVersion(VERSION)
             latest = LooseVersion(data['latest'])
-            if mine != "DEV" and (mine < latest or data['needsUpgrade']):
+            if VERSION != "DEV" and (mine < latest or data['needsUpgrade']):
                 msg = "There is newer version of Taurus %s available, consider upgrading. " \
                       "What's new: http://gettaurus.org/docs/Changelog/"
                 self.log.warning(msg, latest)
