@@ -32,7 +32,7 @@ from distutils.version import LooseVersion
 from urllib import parse
 
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
-from bzt.utils import reraise, load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
+from bzt.utils import reraise, load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux, temp_file
 from bzt.utils import shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient, Environment
 from .dicts import Configuration
 from .modules import Provisioning, Reporter, Service, Aggregator, EngineModule
@@ -91,6 +91,8 @@ class Engine(object):
         self.temp_pythonpath = None
 
         self._http_client = None
+
+        self.graceful_tmp = None
 
     def set_pythonpath(self):
         version = sys.version.split(' ')[0]
@@ -234,7 +236,12 @@ class Engine(object):
         if cwd is None:
             cwd = self.default_cwd
 
-        return shell_exec(args, cwd=cwd, env=env.get(), **kwargs)
+        self.graceful_tmp = temp_file(prefix="GRACEFUL_")
+        if not env.data:
+            env = env.get()
+        env['GRACEFUL'] = self.graceful_tmp
+
+        return shell_exec(args, cwd=cwd, env=env, **kwargs)
 
     def run(self):
         """
@@ -308,6 +315,7 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         self.log.debug("Current stop reason: %s", self.stopping_reason)
+        graceful_file = open(self.graceful_tmp, 'x')
         exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
@@ -322,6 +330,8 @@ class Engine(object):
                     exc_value = exc
                     exc_info = sys.exc_info()
 
+        graceful_file.close()
+        os.remove(self.graceful_tmp)
         self.config.dump()
         if exc_value:
             reraise(exc_info, exc_value)
