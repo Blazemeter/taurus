@@ -9,18 +9,13 @@ import time
 import traceback
 from collections import OrderedDict
 from functools import wraps
-from ssl import SSLError
-from urllib.error import URLError
 from urllib.parse import urlencode
 
 import requests
-from requests.exceptions import ReadTimeout
 
 from bzt import ManualShutdown, TaurusException, TaurusNetworkError
 from bzt.resources.version import VERSION
-from bzt.utils import to_json, MultiPartForm
-
-NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError)
+from bzt.utils import to_json, MultiPartForm, NETWORK_PROBLEMS
 
 BZA_TEST_DATA_RECEIVED = 100
 ENDED = 140

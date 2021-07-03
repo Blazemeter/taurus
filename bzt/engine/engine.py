@@ -34,13 +34,14 @@ from urllib import parse
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
 from bzt.utils import reraise, load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient, Environment
+from bzt.utils import NETWORK_PROBLEMS
 from .dicts import Configuration
 from .modules import Provisioning, Reporter, Service, Aggregator, EngineModule
 from .names import EXEC, TAURUS_ARTIFACTS_DIR, SETTINGS
 from .templates import Singletone
 from ..environment_helpers import expand_variable_with_os, custom_expandvars, expand_envs_with_os
 
-from bzt.resources.version import VERSION
+from bzt.resources.version import VERSION, DEV_VERSION
 
 
 class Engine(object):
@@ -706,27 +707,34 @@ class Engine(object):
         return self._http_client
 
     def _check_updates(self, install_id):
+        params = (VERSION, install_id)
+        addr = "https://gettaurus.org/updates/?version=%s&installID=%s" % params
+        self.log.debug("Requesting updates info: %s", addr)
+        client = self.get_http_client()
         try:
-            params = (VERSION, install_id)
-            addr = "https://gettaurus.org/updates/?version=%s&installID=%s" % params
-            self.log.debug("Requesting updates info: %s", addr)
-            client = self.get_http_client()
             response = client.request('GET', addr, timeout=10)
+        except NETWORK_PROBLEMS:
+            self.log.debug("Failed to check for updates: %s", traceback.format_exc())
+            self.log.warning("Failed to check for updates")
+            return
 
-            data = response.json()
-            self.log.debug("Taurus updates info: %s", data)
-            mine = LooseVersion(VERSION)
-            latest = LooseVersion(data['latest'])
-            if VERSION != "DEV" and (mine < latest or data['needsUpgrade']):
+        data = response.json()
+        latest = data.get('latest')
+        needs_upgrade = data.get('needsUpgrade')
+        if latest is None or needs_upgrade is None:
+            self.log.warning(f'Wrong updates info: "{data}"')
+            return
+        else:
+            self.log.debug(f'Taurus updates info: "{data}"')
+
+        mine = LooseVersion(VERSION)
+        if mine != DEV_VERSION:
+            if (mine < latest) or needs_upgrade:
                 msg = "There is newer version of Taurus %s available, consider upgrading. " \
-                      "What's new: http://gettaurus.org/docs/Changelog/"
+                        "What's new: http://gettaurus.org/docs/Changelog/"
                 self.log.warning(msg, latest)
             else:
                 self.log.debug("Installation is up-to-date")
-
-        except BaseException:
-            self.log.debug("Failed to check for updates: %s", traceback.format_exc())
-            self.log.warning("Failed to check for updates")
 
     def eval_env(self):
         """
