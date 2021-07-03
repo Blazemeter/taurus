@@ -707,6 +707,9 @@ class Engine(object):
         return self._http_client
 
     def _check_updates(self, install_id):
+        if VERSION == DEV_VERSION:
+            return
+
         params = (VERSION, install_id)
         addr = "https://gettaurus.org/updates/?version=%s&installID=%s" % params
         self.log.debug("Requesting updates info: %s", addr)
@@ -723,15 +726,13 @@ class Engine(object):
         needs_upgrade = data.get('needsUpgrade')
         if latest is None or needs_upgrade is None:
             self.log.warning(f'Wrong updates info: "{data}"')
-            return
         else:
             self.log.debug(f'Taurus updates info: "{data}"')
 
-        mine = LooseVersion(VERSION)
-        if mine != DEV_VERSION:
+            mine = LooseVersion(VERSION)
             if (mine < latest) or needs_upgrade:
                 msg = "There is newer version of Taurus %s available, consider upgrading. " \
-                        "What's new: http://gettaurus.org/docs/Changelog/"
+                    "What's new: http://gettaurus.org/docs/Changelog/"
                 self.log.warning(msg, latest)
             else:
                 self.log.debug("Installation is up-to-date")

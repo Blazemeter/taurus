@@ -16,7 +16,7 @@ class MockClient(object):
         return self
 
     def json(self):
-        return {'needsUpgrade': False, 'latest': '1.1.1'}
+        return {'needsUpgrade': True, 'latest': '1.2.3'}
 
 
 class TestEngine(BZTestCase):
@@ -166,11 +166,13 @@ class TestEngine(BZTestCase):
         try:
             http_client = self.obj.get_http_client
             version = bzt.engine.engine.VERSION
-            bzt.engine.engine.VERSION = '1.2.3'
+            bzt.engine.engine.VERSION = '1.1.1'
             self.obj.get_http_client = mock_http_client
             self.obj._check_updates('bla-bla')
             warnings = self.log_recorder.warn_buff.getvalue()
+
             self.assertNotIn('Failed to check for updates', warnings)
+            self.assertIn('There is newer version of Taurus', warnings)
         finally:
             self.obj.get_http_client = http_client
             bzt.engine.engine.VERSION = version
