@@ -237,8 +237,7 @@ class Engine(object):
             cwd = self.default_cwd
 
         self.graceful_tmp = temp_file(prefix="GRACEFUL_")
-        if not env.data:
-            env = env.get()
+        env = env.get()
         env['GRACEFUL'] = self.graceful_tmp
 
         return shell_exec(args, cwd=cwd, env=env, **kwargs)
