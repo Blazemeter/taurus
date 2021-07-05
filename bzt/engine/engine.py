@@ -315,7 +315,8 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         self.log.debug("Current stop reason: %s", self.stopping_reason)
-        open(self.graceful_tmp, 'x').close()
+        if self.graceful_tmp:
+            open(self.graceful_tmp, 'x').close()
         exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
@@ -330,7 +331,7 @@ class Engine(object):
                     exc_value = exc
                     exc_info = sys.exc_info()
 
-        if os.path.exists(self.graceful_tmp):
+        if self.graceful_tmp and os.path.exists(self.graceful_tmp):
             os.remove(self.graceful_tmp)
         self.config.dump()
         if exc_value:
