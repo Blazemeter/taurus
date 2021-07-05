@@ -25,6 +25,7 @@ import itertools
 import json
 import locale
 import logging
+import math
 import mimetypes
 import operator
 import os
@@ -42,30 +43,32 @@ import time
 import traceback
 import webbrowser
 import zipfile
-import selenium
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
 from distutils.version import LooseVersion
+from io import IOBase
+from ssl import SSLError
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
+from urllib import parse
+from urllib.error import URLError
+from urllib.request import url2pathname
 from webbrowser import GenericBrowser
 
-import math
 import psutil
 import requests
 import requests.adapters
-from io import IOBase
+import selenium
 from lxml import etree
 from progressbar import ProgressBar, Percentage, Bar, ETA
-from urllib import parse
-from urllib.request import url2pathname
+from requests.exceptions import ReadTimeout
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
 
-
 LOG = logging.getLogger("")
 CALL_PROBLEMS = (CalledProcessError, OSError)
+NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError)
 numeric_types = (int, float, complex)
 viewvalues = operator.methodcaller("values")
 

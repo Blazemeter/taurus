@@ -3,4 +3,4 @@ included-configs:
 - included-circular1.yml
 
 settings:
-  check-updates: true
+  check-updates: false
