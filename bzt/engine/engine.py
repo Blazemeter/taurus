@@ -237,6 +237,7 @@ class Engine(object):
             cwd = self.default_cwd
 
         self.graceful_tmp = temp_file(prefix="GRACEFUL_")
+        os.remove(self.graceful_tmp)
         env = env.get()
         env['GRACEFUL'] = self.graceful_tmp
 
@@ -314,7 +315,7 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         self.log.debug("Current stop reason: %s", self.stopping_reason)
-        graceful_file = open(self.graceful_tmp, 'x')
+        open(self.graceful_tmp, 'x').close()
         exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
@@ -329,8 +330,8 @@ class Engine(object):
                     exc_value = exc
                     exc_info = sys.exc_info()
 
-        graceful_file.close()
-        os.remove(self.graceful_tmp)
+        if os.path.exists(self.graceful_tmp):
+            os.remove(self.graceful_tmp)
         self.config.dump()
         if exc_value:
             reraise(exc_info, exc_value)

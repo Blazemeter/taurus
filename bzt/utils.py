@@ -63,7 +63,6 @@ from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
 
-
 LOG = logging.getLogger("")
 CALL_PROBLEMS = (CalledProcessError, OSError)
 numeric_types = (int, float, complex)
@@ -109,6 +108,7 @@ def stream_decode(string):
         return string.decode()
     else:
         return string
+
 
 def sync_run(args, env=None):
     output = check_output(args, env=env, stderr=STDOUT)
@@ -429,23 +429,23 @@ class BetterDict(defaultdict):
         keys = set(self.keys())
         for key in keys:
             ikey = "!" + key
-            if (key in rules) or (ikey in rules):   # we have rule for this key
+            if (key in rules) or (ikey in rules):  # we have rule for this key
                 current_black_list = black_list if key in rules else not black_list
                 rkey = key if key in rules else ikey
 
                 if isinstance(rules.get(rkey), dict):
-                    if isinstance(self.get(key), BetterDict):       # need to go deeper
+                    if isinstance(self.get(key), BetterDict):  # need to go deeper
                         self.get(key).filter(rules[rkey], black_list=current_black_list)
                     elif not current_black_list:
                         del self[key]
                 elif current_black_list:
-                    del self[key]   # must be blacklisted
+                    del self[key]  # must be blacklisted
             elif not black_list:
-                del self[key]       # remove unknown key
+                del self[key]  # remove unknown key
 
             current = self.get(key, None)
             if isinstance(current, (dict, list)) and not current:
-                del self[key]       # clean empty
+                del self[key]  # clean empty
 
     def __repr__(self):
         return dict(self).__repr__()
@@ -750,10 +750,10 @@ def ensure_is_dict(container, key, sub_key):
     """
     if isinstance(container, BetterDict):
         container.get(key, force_set=True)
-    elif isinstance(container, dict):   # todo: remove after fixing merge
+    elif isinstance(container, dict):  # todo: remove after fixing merge
         container[key] = BetterDict()
 
-    if not isinstance(container[key], dict):    # todo: replace dict with BetterDict after fixing merge
+    if not isinstance(container[key], dict):  # todo: replace dict with BetterDict after fixing merge
         container[key] = BetterDict.from_dict({sub_key: container[key]})
 
     return container[key]
@@ -2198,7 +2198,7 @@ class SoapUIScriptConverter(object):
         case_properties = {
             "#TestCase#" + key: value
             for key, value in iteritems(case_properties)
-            }
+        }
         case_level_props = BetterDict.from_dict(suite_level_props)
         case_level_props.merge(case_properties)
 
