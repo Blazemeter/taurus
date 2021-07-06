@@ -236,8 +236,7 @@ class Engine(object):
         if cwd is None:
             cwd = self.default_cwd
 
-        self.graceful_tmp = temp_file(prefix="GRACEFUL_")
-        os.remove(self.graceful_tmp)
+        self.graceful_tmp = self.create_artifact(prefix="GRACEFUL", suffix="")
         env = env.get()
         env['GRACEFUL'] = self.graceful_tmp
 
