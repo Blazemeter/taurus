@@ -22,7 +22,7 @@ from bzt.engine import SETTINGS
 from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSamplesReader
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
-from bzt.utils import FileReader, get_full_path, BZT_DIR, get_assembled_value
+from bzt.utils import FileReader, get_full_path, BZT_DIR, get_assembled_value, shutdown_process
 from .generator import ApiritifScriptGenerator
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -229,6 +229,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
         if lines:
             self.log.info("\n".join(lines))
+
+    def shutdown(self):
+        shutdown_process(self.process, self.log, send_sigterm=False)
 
     def post_process(self):
         self._check_stdout()

@@ -1071,12 +1071,15 @@ def is_int(str_val):
         return False
 
 
-def shutdown_process(process_obj, log_obj):
+def shutdown_process(process_obj, log_obj, send_sigterm=True):
     count = 60
     while process_obj and process_obj.poll() is None:
         time.sleep(1)
         count -= 1
         kill_signal = signal.SIGTERM if count > 0 else signal.SIGKILL
+        if kill_signal == signal.SIGTERM and not send_sigterm:
+            continue
+
         log_obj.info("Terminating process PID %s with signal %s (%s tries left)", process_obj.pid, kill_signal, count)
         try:
             if is_windows():
