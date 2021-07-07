@@ -665,11 +665,18 @@ class FileReader(object):
         self.fallback_decoder = codecs.lookup(self.SYS_ENCODING).incrementaldecoder(errors='ignore')
         self.offset = 0
 
-    def _readlines(self, hint=None):
+    def _readlines(self, hint=None, max_line_read=None):
         # get generator instead of list (in regular readlines())
         length = 0
+        read_lines = 0
         for line in self.fds:
+            read_lines += 1
             yield line
+
+            if max_line_read:
+                if read_lines >= max_line_read:
+                    return
+
             if hint and hint > 0:
                 length += len(line)
                 if length >= hint:
@@ -705,12 +712,12 @@ class FileReader(object):
             self.log.warning("Proposed code page: %s", self.cp)
             return self.decoder.decode(line, final=last_pass)
 
-    def get_lines(self, size=-1, last_pass=False):
+    def get_lines(self, size=-1, last_pass=False, max_line_read=None):
         if self.is_ready():
             if last_pass:
                 size = -1
             self.fds.seek(self.offset)
-            for line in self._readlines(hint=size):
+            for line in self._readlines(hint=size, max_line_read=max_line_read):
                 self.offset += len(line)
                 yield self._decode(line, last_pass)
 

@@ -839,6 +839,9 @@ class JTLReader(ResultsReader):
         else:
             self.errors_reader = None
 
+        self.seen_ts_past = None
+        self.seen_ts_now = None
+
     def _read(self, last_pass=False):
         """
         Generator method that returns next portion of data
@@ -848,7 +851,7 @@ class JTLReader(ResultsReader):
         if self.errors_reader:
             self.errors_reader.read_file(last_pass)
 
-        for row in self.csvreader.read(last_pass):
+        for row in self.csvreader.read(last_pass, max_line_read=10):
             label = unicode_decode(row["label"])
             if self.is_distributed:
                 concur = int(row["grpThreads"])
@@ -877,6 +880,24 @@ class JTLReader(ResultsReader):
 
             tstmp = int(int(row["timeStamp"]) / 1000.0)
             self.read_records += 1
+
+            import time
+
+            if self.seen_ts_past == None:
+                self.seen_ts_past = tstmp
+                self.seen_ts_now = time.time()
+            elif self.seen_ts_past != tstmp:
+
+                delta_past = tstmp - self.seen_ts_past
+                if delta_past > 0:
+                    delta_now = time.time() - self.seen_ts_now
+                    actual_delta_to_sleep = delta_past - delta_now
+                    if actual_delta_to_sleep > 0:
+                        # print("Sleeping {}".format(actual_delta_to_sleep))
+                        time.sleep(actual_delta_to_sleep)
+                self.seen_ts_past = tstmp
+                self.seen_ts_now = time.time()
+
             yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count
 
     def _calculate_datapoints(self, final_pass=False):
@@ -1121,13 +1142,13 @@ class IncrementalCSVReader(object):
         self.file = FileReader(filename=filename, parent_logger=self.log)
         self.read_speed = 1024 * 1024
 
-    def read(self, last_pass=False):
+    def read(self, last_pass=False, max_line_read=None):
         """
         read data from jtl
         yield csv row
         :type last_pass: bool
         """
-        lines = self.file.get_lines(size=self.read_speed, last_pass=last_pass)
+        lines = self.file.get_lines(size=self.read_speed if not max_line_read else None, last_pass=last_pass, max_line_read=max_line_read)
 
         lines_read = 0
         bytes_read = 0
@@ -1154,7 +1175,7 @@ class IncrementalCSVReader(object):
 
         if lines_read:
             self.log.debug("Read: %s lines / %s bytes (at speed %s)", lines_read, bytes_read, self.read_speed)
-            self._tune_speed(bytes_read)
+            #self._tune_speed(bytes_read)
 
             self.buffer.seek(0)
             for row in self.csv_reader:
