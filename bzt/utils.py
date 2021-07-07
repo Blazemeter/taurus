@@ -1077,20 +1077,18 @@ def is_int(str_val):
 
 def shutdown_process(process_obj, log_obj, send_sigterm=True):
     time_limit = 60
-    send_sigterm = send_sigterm and not is_windows()    # windows doesn't support SIGTERM
     for count in range(time_limit + 1):
         time.sleep(1)
 
         if process_obj and not (process_obj.poll() is None):    # process already stopped
             break
 
-        if count < time_limit:
-            if send_sigterm:
-                kill_signal = signal.SIGTERM
-            else:
-                continue
+        if count < time_limit and not send_sigterm:
+            continue
+        elif count == time_limit and not is_windows():
+            kill_signal = signal.SIGKILL    # send KILL to program on linux/mac
         else:
-            kill_signal = signal.SIGKILL
+            kill_signal = signal.SIGTERM    # KILL doesn't supported on win, send TERM instead
 
         msg = "Terminating process PID %s with signal %s (%s tries left)"
         log_obj.info(msg, process_obj.pid, kill_signal, time_limit - count)
