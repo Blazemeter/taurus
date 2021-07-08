@@ -1076,15 +1076,25 @@ def is_int(str_val):
 
 
 def shutdown_process(process_obj, log_obj, send_sigterm=True):
-    count = 60
-    while process_obj and process_obj.poll() is None:
+    # unhandled sigterm causes immediate break of the process
+    # so it makes sense to turn send_sigterm off for graceful (or delayed) shutdown
+    time_limit = 60
+    for count in range(time_limit + 1):
         time.sleep(1)
-        count -= 1
-        kill_signal = signal.SIGTERM if count > 0 else signal.SIGKILL
-        if kill_signal == signal.SIGTERM and not send_sigterm:
-            continue
 
-        log_obj.info("Terminating process PID %s with signal %s (%s tries left)", process_obj.pid, kill_signal, count)
+        process_still_works = process_obj and process_obj.poll() is None
+        if not process_still_works:
+            break
+
+        if count < time_limit and not send_sigterm:
+            continue    # time for sigterm, but it isn't supported (unhandled)
+        elif count == time_limit and not is_windows():
+            kill_signal = signal.SIGKILL    # send KILL to program on linux/mac
+        else:
+            kill_signal = signal.SIGTERM    # KILL doesn't supported on win, send TERM instead
+
+        msg = "Terminating process PID %s with signal %s (%s tries left)"
+        log_obj.info(msg, process_obj.pid, kill_signal, time_limit - count)
         try:
             if is_windows():
                 cur_pids = psutil.pids()
