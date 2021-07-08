@@ -1080,7 +1080,7 @@ def shutdown_process(process_obj, log_obj, send_sigterm=True):
     for count in range(time_limit + 1):
         time.sleep(1)
 
-        if not (process_obj and (process_obj.poll() is not None)):    # process already stopped
+        if not (process_obj and (process_obj.poll() is None)):    # process already stopped
             break
 
         if count < time_limit and not send_sigterm:
