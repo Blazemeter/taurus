@@ -1076,7 +1076,7 @@ def is_int(str_val):
 
 
 def shutdown_process(process_obj, log_obj, send_sigterm=True):
-    # unhandled sigterm causes break of the process immediately
+    # unhandled sigterm causes immediate break of the process
     # so it makes sense to turn send_sigterm off for graceful (or delayed) shutdown
     time_limit = 60
     for count in range(time_limit + 1):
