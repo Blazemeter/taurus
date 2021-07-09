@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.15.4<sup> 06 Jul 2021</sup>
+## 1.15.4<sup> 09 Jul 2021</sup>
 - add support of advanced browser options
 - add `apiritif` external action handlers
 - add `apiritif` graceful shutdown feature
