@@ -25,6 +25,7 @@ import itertools
 import json
 import locale
 import logging
+import math
 import mimetypes
 import operator
 import os
@@ -46,25 +47,28 @@ from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
 from distutils.version import LooseVersion
+from io import IOBase
+from ssl import SSLError
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
+from urllib import parse
+from urllib.error import URLError
+from urllib.request import url2pathname
 from webbrowser import GenericBrowser
 
-import math
 import psutil
 import requests
 import requests.adapters
-from io import IOBase
+import selenium
 from lxml import etree
 from progressbar import ProgressBar, Percentage, Bar, ETA
-from urllib import parse
-from urllib.request import url2pathname
+from requests.exceptions import ReadTimeout
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
 
-
 LOG = logging.getLogger("")
 CALL_PROBLEMS = (CalledProcessError, OSError)
+NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError)
 numeric_types = (int, float, complex)
 viewvalues = operator.methodcaller("values")
 
@@ -108,6 +112,7 @@ def stream_decode(string):
         return string.decode()
     else:
         return string
+
 
 def sync_run(args, env=None):
     output = check_output(args, env=env, stderr=STDOUT)
@@ -283,6 +288,10 @@ def get_bytes_count(str_bytes):
     return result
 
 
+def is_selenium_4():
+    return LooseVersion(selenium.__version__) >= LooseVersion('4')
+
+
 class BetterDict(defaultdict):
     """
     Wrapper for defaultdict that able to deep merge other dicts into itself
@@ -424,23 +433,23 @@ class BetterDict(defaultdict):
         keys = set(self.keys())
         for key in keys:
             ikey = "!" + key
-            if (key in rules) or (ikey in rules):   # we have rule for this key
+            if (key in rules) or (ikey in rules):  # we have rule for this key
                 current_black_list = black_list if key in rules else not black_list
                 rkey = key if key in rules else ikey
 
                 if isinstance(rules.get(rkey), dict):
-                    if isinstance(self.get(key), BetterDict):       # need to go deeper
+                    if isinstance(self.get(key), BetterDict):  # need to go deeper
                         self.get(key).filter(rules[rkey], black_list=current_black_list)
                     elif not current_black_list:
                         del self[key]
                 elif current_black_list:
-                    del self[key]   # must be blacklisted
+                    del self[key]  # must be blacklisted
             elif not black_list:
-                del self[key]       # remove unknown key
+                del self[key]  # remove unknown key
 
             current = self.get(key, None)
             if isinstance(current, (dict, list)) and not current:
-                del self[key]       # clean empty
+                del self[key]  # clean empty
 
     def __repr__(self):
         return dict(self).__repr__()
@@ -745,10 +754,10 @@ def ensure_is_dict(container, key, sub_key):
     """
     if isinstance(container, BetterDict):
         container.get(key, force_set=True)
-    elif isinstance(container, dict):   # todo: remove after fixing merge
+    elif isinstance(container, dict):  # todo: remove after fixing merge
         container[key] = BetterDict()
 
-    if not isinstance(container[key], dict):    # todo: replace dict with BetterDict after fixing merge
+    if not isinstance(container[key], dict):  # todo: replace dict with BetterDict after fixing merge
         container[key] = BetterDict.from_dict({sub_key: container[key]})
 
     return container[key]
@@ -1066,13 +1075,26 @@ def is_int(str_val):
         return False
 
 
-def shutdown_process(process_obj, log_obj):
-    count = 60
-    while process_obj and process_obj.poll() is None:
+def shutdown_process(process_obj, log_obj, send_sigterm=True):
+    # unhandled sigterm causes immediate break of the process
+    # so it makes sense to turn send_sigterm off for graceful (or delayed) shutdown
+    time_limit = 60
+    for count in range(time_limit + 1):
         time.sleep(1)
-        count -= 1
-        kill_signal = signal.SIGTERM if count > 0 else signal.SIGKILL
-        log_obj.info("Terminating process PID %s with signal %s (%s tries left)", process_obj.pid, kill_signal, count)
+
+        process_still_works = process_obj and process_obj.poll() is None
+        if not process_still_works:
+            break
+
+        if count < time_limit and not send_sigterm:
+            continue    # time for sigterm, but it isn't supported (unhandled)
+        elif count == time_limit and not is_windows():
+            kill_signal = signal.SIGKILL    # send KILL to program on linux/mac
+        else:
+            kill_signal = signal.SIGTERM    # KILL doesn't supported on win, send TERM instead
+
+        msg = "Terminating process PID %s with signal %s (%s tries left)"
+        log_obj.info(msg, process_obj.pid, kill_signal, time_limit - count)
         try:
             if is_windows():
                 cur_pids = psutil.pids()
@@ -2193,7 +2215,7 @@ class SoapUIScriptConverter(object):
         case_properties = {
             "#TestCase#" + key: value
             for key, value in iteritems(case_properties)
-            }
+        }
         case_level_props = BetterDict.from_dict(suite_level_props)
         case_level_props.merge(case_properties)
 

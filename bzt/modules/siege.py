@@ -124,6 +124,10 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         for key, val in iteritems(self.scenario.get_headers()):
             args += ['--header', "%s: %s" % (key, val)]
 
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            args += user_cmd.split(" ")
+
         self.env.set({"SIEGERC": self.__rc_name})
         self.process = self._execute(args)
 

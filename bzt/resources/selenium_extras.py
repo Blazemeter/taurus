@@ -2,14 +2,16 @@
 import time
 import datetime
 
-from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration
-from apiritif import get_logging_handlers, set_logging_handlers
+from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, external_handler
+
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
-    TimeoutException
+    TimeoutException, UnexpectedAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as econd
 
+from apiritif.action_plugins import BaseActionHandler
+from bzt import TaurusException
 from bzt.resources.shadow_element import ShadowElement
 
 BYS = {
@@ -59,6 +61,8 @@ def _find_by_css_selector(root, css_selector, raise_exception):
         element = root.find_element_by_css_selector(css_selector)
     except NoSuchElementException as nse:
         if raise_exception:
+            if root.tag_name == "slot":
+                raise TaurusException("Shadow DOM Slots are currently not supported in Taurus execution.")
             raise nse
         pass
     return element
@@ -141,7 +145,7 @@ def _get_driver():
 
 def _get_timeout():
     timeout = get_from_thread_store("timeout")
-    if not (timeout or timeout == 0):   # timeout in (None, []), default requires
+    if not (timeout or timeout == 0):  # timeout in (None, []), default requires
         timeout = 30
 
     return timeout
@@ -154,29 +158,15 @@ def add_flow_markers():
     set_transaction_handlers(handlers)
 
 
-def add_logging_handlers(methods=None):
-    if methods is None:
-        methods = [log_into_file]
-    if methods:
-        handlers = get_logging_handlers()
-        handlers.extend(methods)
-        set_logging_handlers(handlers)
-
-
-def log_into_file(log_line):
-    with open('/tmp/apiritif_external.log', 'at') as log_file:
-        log_file.write(f"{datetime.datetime.now()} {log_line} \n")
-
-
 def _send_marker(stage, params):
     _get_driver().execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
 
 
-def _send_start_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
-    stage = "start"                             # apiritif removed (http.py) and apiritif released ( > 0.9.2)
+def _send_start_flow_marker(*args, **kwargs):  # for apiritif. remove when compatibiltiy code in
+    stage = "start"  # apiritif removed (http.py) and apiritif released ( > 0.9.2)
 
-    test_case, test_suite, scenario_name, data_sources = get_from_thread_store(
-        ['test_case', 'test_suite', 'scenario_name', 'data_sources']
+    test_case, test_suite, scenario_name, data_sources, action_handlers, driver = get_from_thread_store(
+        ['test_case', 'test_suite', 'scenario_name', 'data_sources', 'action_handlers', 'driver']
     )
     params = {
         "testCaseName": test_case,
@@ -185,14 +175,21 @@ def _send_start_flow_marker(*args, **kwargs):   # for apiritif. remove when comp
     if data_sources:
         params["testDataIterationId"] = get_iteration()
 
+    for handler in action_handlers:
+        handler.handle(driver.session_id, BaseActionHandler.TEST_CASE_START, params)
+
     _send_marker(stage, params)
 
 
-def _send_exit_flow_marker(*args, **kwargs):   # for apiritif. remove when compatibiltiy code in
-    stage = "stop"                             # apiritif removed (http.py) and apiritif released ( > 0.9.2)
+def _send_exit_flow_marker(*args, **kwargs):  # for apiritif. remove when compatibiltiy code in
+    stage = "stop"  # apiritif removed (http.py) and apiritif released ( > 0.9.2)
     labels = "status", "message"
+    action_handlers, driver = get_from_thread_store(['action_handlers', 'driver'])
     values = get_from_thread_store(labels)
     params = dict(zip(labels, values))
+
+    for handler in action_handlers:
+        handler.handle(driver.session_id, BaseActionHandler.TEST_CASE_STOP, params)
     _send_marker(stage, params)
 
 
@@ -378,7 +375,8 @@ def switch_frame(frame_name=None):
     try:
         if not frame_name or frame_name == "relative=top":
             driver.switch_to_default_content()
-        elif isinstance(frame_name, str) and frame_name.startswith("index="):  # Switch using index frame using relative position
+        elif isinstance(frame_name, str) and frame_name.startswith(
+                "index="):  # Switch using index frame using relative position
             driver.switch_to.frame(int(frame_name.split("=")[1]))
         elif frame_name == "relative=parent":  # Switch to parent frame of the current frame
             driver.switch_to.parent_frame()
@@ -431,7 +429,7 @@ def _switch_by_win_ser(window_name):
             driver.switch_to.window(wnd_handlers[0])
         else:
             raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
-    elif window_name.split("win_ser_")[1].isdigit():    # e.g. win_ser_1
+    elif window_name.split("win_ser_")[1].isdigit():  # e.g. win_ser_1
         _switch_by_idx(int(window_name.split("win_ser_")[1]))
     else:
         windows = get_from_thread_store("windows")
@@ -450,7 +448,19 @@ def waiter():
     """
     Allows waiting for page to finish loading before performing other actions on non completely loaded page
     """
-    WebDriverWait(_get_driver(), _get_timeout())\
-        .until(lambda driver: driver.execute_script('return document.readyState') == 'complete',
-               message="Timeout occurred while waiting for page to finish loading.")
+    try:
+        WebDriverWait(_get_driver(), _get_timeout()) \
+            .until(lambda driver: driver.execute_script('return document.readyState') == 'complete',
+                   message="Timeout occurred while waiting for page to finish loading.")
+    except UnexpectedAlertPresentException:
+        pass
 
+
+def action_start(action):
+    driver = _get_driver()
+    external_handler(driver.session_id if driver else None, BaseActionHandler.YAML_ACTION_START, action)
+
+
+def action_end(action):
+    driver = _get_driver()
+    external_handler(driver.session_id if driver else None, BaseActionHandler.YAML_ACTION_END, action)

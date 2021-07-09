@@ -4,7 +4,9 @@ import ast
 import astunparse
 import os
 
+import bzt.utils
 from bzt import TaurusConfigError
+from bzt.modules.apiritif.generator import is_selenium_4
 from tests.unit import RESOURCES_DIR
 from tests.unit.modules.selenium import SeleniumTestCase
 
@@ -64,14 +66,14 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"typeByName(\"toPort\")": "B"},
 
                             # exec, rawcode, go, edit
-                            "scriptEval(\"alert('This is Sparta');\")",
+                            "scriptEval(\"{alert('This is ${sparta}');}\")",
                             {"rawCode": "for i in range(10):\n  if i % 2 == 0:\n    print(i)"},
                             "go(http:\\blazemeter.com)",
                             {"editContentById(editor)": "lo-la-lu"},
 
                             # print, wait, pause, clearcookies, screenshot
                             "echoString(${red_pill})",
-                            {"waitByName('toPort')": "visible"},
+                            {"waitForByName('toPort', visible)": "3.5s"},
                             "pauseFor(4.6s)",
                             "clearCookies()",
                             "screenshot('screen.png')",
@@ -111,7 +113,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "get_attribute('value').strip(),\'123 Beautiful st.\'.strip())",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('B')",
-            "self.driver.execute_script(\"alert('This is Sparta');\")",
+            "self.driver.execute_script(\"{{alert(\'Thisis{}\');}}\".format(self.vars[\'sparta\']))",
             "for i in range(10):",
             "if ((i % 2) == 0):",
             print_i,
@@ -176,7 +178,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "options.set_headless()",
             "profile = webdriver.FirefoxProfile()",
             "profile.set_preference('webdriver.log.file', '",
-            "driver = webdriver.Firefox(profile, options=options)"
+            "driver = webdriver.Firefox(profile, options=options)",
+            "options.set_capability('unhandledPromptBehavior', 'ignore')"
         ]
 
         for idx in range(len(target_lines)):
@@ -216,7 +219,251 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target_lines = [
             "options = webdriver.ChromeOptions()",
             "driver = webdriver.Chrome(service_log_path='",
-            "', options=options)"
+            "', options=options)",
+            "options.set_capability('unhandledPromptBehavior', 'ignore')"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_ignore_proxy_option_generator_selenium_3(self):
+        # Option ignore-proxy is only available starting from Selenium version 4
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = "options.ignore_local_proxy_environment_variables"
+        self.assertNotIn(target, content)
+
+    def test_arguments_option_generator_ff(self):
+        # Option arguments is only available for Firefox and Chrome
+        # Option arguments is available for other browsers starting from Selenium version 4
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "arguments": ["one", "two"]}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_browser_chrome(self):
+        # Selenium version 3. Browser Chrome.
+        # Supported options: arguments, experimental-options
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Chrome",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.set_preference", content)
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+            "options.add_experimental_option('key1', 'value1')",
+            "options.add_experimental_option('key2', {'key22': 'value22'})"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_browser_firefox(self):
+        # Selenium version 3. Browser Firefox.
+        # Supported options: arguments, preferences
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.add_experimental_option", content)
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+            "options.set_preference('key1', 'value1')",
+            "options.set_preference('key2', {'key22': 'value22'})"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_browser_ie(self):
+        # Selenium version 3. Browser Ie.
+        # Supported options: None
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Ie",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],  # Option arguments is only available starting from Selenium 4
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1"},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1"}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+        self.assertNotIn("options.add_argument('one')", content)
+        self.assertNotIn("options.add_experimental_option", content)
+        self.assertNotIn("options.set_preference", content)
+
+    def test_options_generator_remote_firefox(self):
+        # Selenium version 3. Remote webdriver. Browser Firefox.
+        # Supported options: arguments, preferences
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "browserName": "firefox"},
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.add_experimental_option", content)
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+            "options.set_preference('key1', 'value1')",
+            "options.set_preference('key2', {'key22': 'value22'})"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_remote_chrome(self):
+        # Selenium version 3. Remote webdriver. Browser Chrome.
+        # Supported options: arguments, experimental-options
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "browserName": "Chrome"},
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.set_preference", content)
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+            "options.add_experimental_option('key1', 'value1')",
+            "options.add_experimental_option('key2', {'key22': 'value22'})"
         ]
 
         for idx in range(len(target_lines)):
@@ -245,7 +492,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])",
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"},
                             {"waitForByXPath(//input[@name='test,name'], present)": "1m20s"},
                             "assertTitle(BlazeDemo)",
                             "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
@@ -257,7 +504,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"keysByCSS(body input.btn.btn-primary)": "KEY_ENTER"},
                             {"assertValueByID(address)": "123 Beautiful st."},
                             {"assertTextByXPath(/html/body/div[2]/form/div[1]/label)": "${name}"},
-                            {"waitByName('toPort')": "visible"},
+                            {"waitForByName('toPort', visible)": "3.5s"},
                             {"keysByName(\"toPort\")": "B"},
                             {"typeByName(\"toPort\")": "B"},
                             {"keysByName(\"toPort\")": u"KEY_ENTER"},
@@ -523,7 +770,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])",
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"},
                             "assertTitle(BlazeDemo)"
                         ],
                     },
@@ -578,7 +825,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])",
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"},
                             "assertTitle(BlazeDemo)"
                         ],
                     },
@@ -607,7 +854,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": [{
                         "url": "http://blazedemo.com",
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])"]},
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
         self.obj.prepare()
@@ -632,7 +879,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": [{
                         "url": "http://blazedemo.com",
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])"]},
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
         self.obj.prepare()
@@ -656,7 +903,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": [{
                         "url": "http://blazedemo.com",
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])"]},
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
         self.obj.prepare()
@@ -686,7 +933,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
-                            "waitByXPath(//input[@type='submit'])",
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"},
                             "assertTitle(BlazeDemo)"
                         ],
                     },
@@ -702,12 +949,16 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
     def test_add_external_logging(self):
         self.configure({
+            "modules": {
+                "apiritif": {
+                    "plugins-path": "/tmp"
+                }
+            },
             "execution": [{
                 "executor": "selenium",
                 "scenario": "sample"}],
             "scenarios": {
                 "sample": {
-                    "external-logging": True,
                     "browser": "Chrome",
                     "requests": [{
                         "label": "Test",
@@ -723,7 +974,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         exp_file = RESOURCES_DIR + "selenium/external_logging.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
-
 
     def test_resize_window(self):
         self.configure({
@@ -758,6 +1008,20 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_open_window_var(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": {
+                    "requests": [{
+                        "actions": [
+                            {"storeString(test_string)": "test"},
+                            "openWindow('${test}')"]}]}}]})
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+        self.assertIn("open_window(self.vars['test'])", content)
 
     def test_alert(self):
         self.configure({
@@ -1128,14 +1392,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     },
                                     {
                                         "type": "screenshot"
-                                    },
-                                    {
-                                        "type": "wait",
-                                        "param": "visible",
-                                        "locators": [
-                                            {"css": "invalid_css"},
-                                            {"name": "inputName"}
-                                        ]
                                     },
                                     {
                                         "type": "waitFor",
@@ -1682,12 +1938,19 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     {"id": "input_id"}
                                 ],
                                 "value": "2h30m20s"
+                            },{
+                                "type": "waitFor",
+                                "param": "visible",
+                                "locators": [
+                                    {"css": "invalid_css"},
+                                    {"id": "input_id"}
+                                ],
                             },
-                            {"waitForById(myId, present)": "10s"},
-                            {"waitForById(myId, clickable)": "10s"},
-                            {"waitForById(myId, notvisible)": "10s"},
-                            {"waitForById(myId, notpresent)": "10s"},
-                            {"waitForById(myId, notclickable)": "10s"}
+                            {"waitForById(myId, present)": "5s"},
+                            {"waitForById(myId, clickable)": "5s"},
+                            {"waitForById(myId, notvisible)": "5s"},
+                            "waitForById(myId, notpresent)",
+                            "waitForById(myId, notclickable)"
                         ]}]}}})
 
         self.obj.prepare()
@@ -1695,12 +1958,13 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "wait_for('visible',[{'css':'invalid_css'},{'id':'input_id'}],9020.0)",
-            "wait_for('present',[{'id':'myId'}],10.0)",
-            "wait_for('clickable',[{'id':'myId'}],10.0)",
-            "wait_for('notvisible',[{'id':'myId'}],10.0)",
-            "wait_for('notpresent',[{'id':'myId'}],10.0)",
-            "wait_for('notclickable',[{'id':'myId'}],10.0)"
+            "wait_for('visible', [{'css':'invalid_css'}, {'id':'input_id'}], 9020.0)",
+            "wait_for('visible', [{'css':'invalid_css'}, {'id':'input_id'}], 10.0)",
+            "wait_for('present', [{'id':'myId'}], 5.0)",
+            "wait_for('clickable', [{'id':'myId'}], 5.0)",
+            "wait_for('notvisible', [{'id':'myId'}], 5.0)",
+            "wait_for('notpresent', [{'id':'myId'}], 10.0)",
+            "wait_for('notclickable', [{'id':'myId'}], 10.0)"
         ]
         for idx in range(len(target_lines)):
             target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
@@ -1772,7 +2036,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                                 "element": "el",
                                                 "param": "value"
                                             },
-                                            {"editContentByElement(el)" : "new text"},
+                                            {"editContentByElement(el)": "new text"},
                                             {
                                                 "type": "editContent",
                                                 "element": "el",
@@ -1817,7 +2081,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                                 "type": "mouseOver",
                                                 "element": "el",
                                             },
-                                            {"dragByElement(el)" : "elementById(id12)"},
+                                            {"dragByElement(el)": "elementById(id12)"},
                                             {"dragById(id34)": "elementByElement(el)"},
                                             {
                                                 "type": "drag",
@@ -1825,7 +2089,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                                     {"element": "el"}
                                                 ],
                                                 "target": [
-                                                        {"id": "id12"}
+                                                    {"id": "id12"}
                                                 ]
                                             },
                                             {
@@ -1938,13 +2202,15 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
                                         "param": "text"
                                     },
-                                    {"assertValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "value"},
+                                    {
+                                        "assertValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "value"},
                                     {
                                         "type": "assertValue",
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
                                         "param": "value"
                                     },
-                                    {"editContentByShadow(c-basic, lightning-accordion-section, .slds-button)" : "new text"},
+                                    {
+                                        "editContentByShadow(c-basic, lightning-accordion-section, .slds-button)": "new text"},
                                     {
                                         "type": "editContent",
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
@@ -1985,8 +2251,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "type": "mouseOver",
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
                                     },
-                                    {"dragByShadow(c-basic, lightning-accordion-section, .slds-button)" : "elementById(id12)"},
-                                    {"dragById(id34)": "elementByShadow(c-basic, lightning-accordion-section, .slds-button)"},
+                                    {
+                                        "dragByShadow(c-basic, lightning-accordion-section, .slds-button)": "elementById(id12)"},
+                                    {
+                                        "dragById(id34)": "elementByShadow(c-basic, lightning-accordion-section, .slds-button)"},
                                     {
                                         "type": "drag",
                                         "source": [
@@ -2017,7 +2285,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
                                         "param": "my_var"
                                     },
-                                    {"storeValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "my_var"},
+                                    {
+                                        "storeValueByShadow(c-basic, lightning-accordion-section, .slds-button)": "my_var"},
                                     {
                                         "type": "storeValue",
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
@@ -2052,3 +2321,90 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_shadow.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+
+class TestIsSelenium4(SeleniumTestCase):
+    def setUp(self):
+        super(TestIsSelenium4, self).setUp()
+        self.store = bzt.modules.apiritif.generator.is_selenium_4
+        bzt.modules.apiritif.generator.is_selenium_4 = lambda: True
+
+    def test_ignore_proxy_option_generator_selenium_4(self):
+        # Option ignore_proxy is only available starting from Selenium version 4
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = "options.ignore_local_proxy_environment_variables()"
+        self.assertIn(target, content)
+
+    def test_arguments_option_generator_ie_selenium_4(self):
+        # Option arguments is only available for Firefox and Chrome
+        # Option arguments is available for other browsers starting from Selenium version 4
+
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Ie",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "arguments": ["one", "two"]}}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_arguments_option_generator_ff_selenium_4(self):
+        # Option arguments is only available for Firefox and Chrome
+        # Option arguments is available for other browsers starting from Selenium version 4
+
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "arguments": ["one", "two"]}}}})
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')"
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def tearDown(self):
+        bzt.modules.apiritif.generator.is_selenium_4 = self.store
+        super(TestIsSelenium4, self).tearDown()

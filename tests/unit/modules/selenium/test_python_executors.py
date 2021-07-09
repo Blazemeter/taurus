@@ -47,7 +47,7 @@ class MockWebDriver(object):
         self.executed_script = script
 
 
-class TestLocatorsMagager(BZTestCase):
+class TestLocatorsManager(BZTestCase):
     def test_get_locator_timeout(self):
         content = [{'css': 'existed_css'}]
         timeout = 30
@@ -591,7 +591,7 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.assertTrue('--duration' in self.CMD_LINE)
-        dur_val = self.CMD_LINE[self.CMD_LINE.index('--duration')+1]
+        dur_val = self.CMD_LINE[self.CMD_LINE.index('--duration') + 1]
         self.assertEqual(dur_val, '5.0')
 
     def test_report_file(self):
@@ -604,7 +604,7 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.assertTrue('--report-file' in self.CMD_LINE)
-        report_file = self.CMD_LINE[self.CMD_LINE.index('--report-file')+1]
+        report_file = self.CMD_LINE[self.CMD_LINE.index('--report-file') + 1]
         self.assertTrue(report_file.endswith("RobotExecutor.ldjson"))
 
     def test_iterations(self):
@@ -617,7 +617,7 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.assertTrue('--iterations' in self.CMD_LINE)
-        iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations')+1]
+        iters_val = self.CMD_LINE[self.CMD_LINE.index('--iterations') + 1]
         self.assertEqual(iters_val, '3')
 
     def test_variables(self):
@@ -633,7 +633,7 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.assertTrue('--variablefile' in self.CMD_LINE)
-        var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile')+1]
+        var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile') + 1]
         self.assertTrue(var_file.endswith("robot-vars.yaml"))
         self.assertEqual('janedoe', yaml.full_load(open(var_file).read())['USERNAME'])
 
@@ -648,7 +648,7 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.assertTrue('--variablefile' in self.CMD_LINE)
-        var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile')+1]
+        var_file = self.CMD_LINE[self.CMD_LINE.index('--variablefile') + 1]
         self.assertEqual(var_file, os.path.normpath(RESOURCES_DIR + "selenium/robot/simple/vars.yaml"))
 
     def test_output_file(self):
@@ -661,7 +661,7 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.assertTrue('--outputfile' in self.CMD_LINE)
-        out_file = self.CMD_LINE[self.CMD_LINE.index('--outputfile')+1]
+        out_file = self.CMD_LINE[self.CMD_LINE.index('--outputfile') + 1]
         self.assertTrue(out_file.endswith("output.xml"))
 
     def test_log_file(self):
@@ -674,7 +674,7 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.assertTrue('--logfile' in self.CMD_LINE)
-        log_file = self.CMD_LINE[self.CMD_LINE.index('--logfile')+1]
+        log_file = self.CMD_LINE[self.CMD_LINE.index('--logfile') + 1]
         self.assertTrue(log_file.endswith("log.html"))
 
     def test_single_tag(self):
@@ -688,7 +688,7 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.assertTrue('--include' in self.CMD_LINE)
-        tags = self.CMD_LINE[self.CMD_LINE.index('--include')+1]
+        tags = self.CMD_LINE[self.CMD_LINE.index('--include') + 1]
         self.assertEqual(tags, 'create')
 
     def test_multiple_tags(self):
@@ -702,5 +702,5 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
         self.assertTrue('--include' in self.CMD_LINE)
-        tags = self.CMD_LINE[self.CMD_LINE.index('--include')+1]
+        tags = self.CMD_LINE[self.CMD_LINE.index('--include') + 1]
         self.assertEqual(tags, 'create,database')

@@ -134,6 +134,15 @@ modules:
 
 For the command-line, use alias `-gui` or option `-o modules.jmeter.gui=true`, without the need to edit configuration file.
 
+## Command-line Settings
+
+You can specify special cli options for JMeter, for example:
+```yaml
+modules:
+  jmeter:
+    cmdline: --loglevel DEBUG  # This feature is only available in the unstable snapshot.
+```
+
 ## Run JMeter in Distributed Mode
 Distributed mode for JMeter is enabled with simple option `distributed` under execution settings, listing JMeter servers under it:
 
@@ -1102,3 +1111,43 @@ execution:
 - executor: jmeter
   scenario: protocols-demo
 ```
+
+## MQTT Protocol Load Testing
+
+JMeter tool can be used for load testing of mqtt infrastructure. This protocol is very popular in IoT world.
+Usually the target of test is mqtt server ('broker'). Taurus can emulate messages of sensors and actuators to check 
+whether this broker is good enough for specific load.
+
+```yaml
+execution:
+- concurrency: 3
+  hold-for: 5s
+  scenario: sc_pub
+- concurrency: 1
+  scenario: sc_sub
+
+scenarios:
+  sc_pub:
+    protocol: mqtt
+    requests:
+    - cmd: connect # first step for every mqtt client
+      addr: 127.0.0.1
+    - cmd: publish  # publishing message into topic
+      topic: t1 # topic name
+      message: my_message # content of message
+    - cmd: disconnect # last step for every mqtt client
+
+  sc_sub:
+    protocol: mqtt
+    requests:
+    - cmd: connect
+      addr: 127.0.0.1
+    - cmd: subscribe  # subscribing on topic
+      topic: t1
+      time: 3s        # check topic for 3 seconds
+      min-count: 20   # at least 20 messages must be received
+    - cmd: disconnect
+```
+Here you see three sensors ('publisher') and one checker ('subscriber'). Messages that created by sensors
+must be handled by broker and redirected to appropriate subscribers.
+All logic blocks, data sources and many other functionality of JMeter Executor are available with mqtt protocol as well.

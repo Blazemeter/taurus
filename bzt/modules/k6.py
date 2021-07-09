@@ -60,6 +60,10 @@ class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallable
         if load.iterations:
             cmdline += ['--iterations', str(load.iterations)]
 
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            cmdline += user_cmd.split(" ")
+
         cmdline += [self.script]
         self.process = self._execute(cmdline)
 
@@ -89,6 +93,9 @@ class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallable
         self.k6.tool_name = self.k6.tool_name.lower()
         if not self.k6.check_if_installed():
             self.k6.install()
+
+    def resource_files(self):
+        return [self.get_script_path(required=True)]
 
 
 class K6LogReader(ResultsReader):

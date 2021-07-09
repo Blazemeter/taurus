@@ -3,7 +3,7 @@
 [Molotov](https://molotov.readthedocs.io/en/stable/) is a load testing tool developed by Mozilla.
 It's based on Python 3 and asynchronous I/O subsystem.
 
-Important note: molotov requires python >= 3.5 and doesn't work on Windows systems at the moment.
+Important note: molotov requires Python >= 3.5 and doesn't work on Windows systems at the moment.
 
 Usage:
 ```yaml
@@ -53,10 +53,12 @@ scenarios:
 
 ## Module Settings
 
-If you have installed Molotov in a non-standard location, you can use `path` option to point Taurus to the `molotov` executor:
+If you have installed Molotov in a non-standard location, you can use `path` option to point Taurus to the `molotov` executor.
+Also, you can pass specific `molotov` options via `cmdline`:
 
 ```yaml
 modules:
   molotov:
     path: /home/john/venv/bin/molotov
+    cmdline: --verbose  # This feature is only available in the unstable snapshot.
 ```

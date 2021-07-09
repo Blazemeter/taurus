@@ -34,7 +34,7 @@ class AbstractThreadGroup(object):
         return self._get_val("iterations", self.ITER_SEL, raw=raw)
 
     def get_ramp_up(self, raw=False):
-        return self._get_val("ramp-up", self.RAMP_UP_SEL, default=1, raw=raw)
+        return self._get_val("ramp-up", self.RAMP_UP_SEL, default=0, raw=raw)
 
     def get_concurrency(self, raw=False):
         raw_concurrency = self._get_val("concurrency", self.CONCURRENCY_SEL, default=1, raw=True)
@@ -184,7 +184,7 @@ class ThreadGroupHandler(object):
                 if group.get("enabled") != "false":
                     yield _class(group, self.log)
 
-    def convert(self, source, target_gtype, load, concurrency):
+    def convert(self, source, target_gtype, load, concurrency, iterations):
         """
         Convert a thread group to ThreadGroup/ConcurrencyThreadGroup for applying of load
         """
@@ -203,7 +203,7 @@ class ThreadGroupHandler(object):
                 concurrency=concurrency,
                 rampup=load.ramp_up,
                 hold=load.hold,
-                iterations=load.iterations,
+                iterations=iterations if iterations is not None else load.iterations,
                 testname=source.get_testname(),
                 on_error=on_error,
                 thread_delay=thread_delay,

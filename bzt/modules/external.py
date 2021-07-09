@@ -136,8 +136,7 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
         ts_not_changed = self._last_datapoint_ts == self._prev_datapoint_ts
         no_new_results = time.time() - self._last_update_ts > self._result_timeout
         has_read_some = self._last_datapoint_ts > 0 or bool(self.reader and self.reader.buffer)
-        # self.log.info("%s %s %s", self._last_datapoint_ts, self._prev_datapoint_ts, self._last_update_ts)
-        if self._last_datapoint_ts > 0 and has_read_some and ts_not_changed and no_new_results:
+        if has_read_some and ts_not_changed and no_new_results:
             return True
         else:
             self._prev_datapoint_ts = self._last_datapoint_ts

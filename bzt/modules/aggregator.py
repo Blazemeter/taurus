@@ -611,12 +611,26 @@ class ResultsReader(ResultsProvider):
 
     def __init__(self, perc_levels=None):
         super(ResultsReader, self).__init__()
+        self.extend_aggregation = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
         self.min_timestamp = 0
         if perc_levels is not None:
             self.track_percentiles = perc_levels
+
+    @staticmethod
+    def get_label(label, kpis):
+        # it is used for generation of extended label.
+        # each label data is splitted according to sample state (success/error/assert)
+        if kpis[5] is None:
+            group = 'success'   # no errors
+        elif kpis[5] == 'OK':
+            group = 'jmeter_errors'   # jmeter error - assert, timeout, etc.
+        else:
+            group = 'http_errors'   # other errors, usually RC != 200
+
+        return '-'.join((label, str(group)))
 
     def __process_readers(self, final_pass=False):
         """
@@ -658,24 +672,41 @@ class ResultsReader(ResultsProvider):
         """
         current = datapoint[DataPoint.CURRENT]
         for sample in samples:
-            label, concur, r_time, con_time, latency, r_code, error, trname, byte_count = sample
-            if label == '':
-                label = '[empty]'
-
-            if self.generalize_labels:
-                label = self._generalize_label(label)
-
-            if label not in current:
-                current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))
+            # sample format: label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
+            base_label = sample[0]
 
             # empty means overall
-            current[label].add_sample((concur, r_time, con_time, latency, r_code, error, trname, byte_count))
+            if base_label == '':
+                base_label = '[empty]'
+
+            if self.generalize_labels:
+                base_label = self._generalize_label(base_label)
+
+            self.__add_sample(current, base_label, sample[1:])
 
         overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
+
         for label in current.values():
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
         current[''] = overall
+
         return current
+
+    def _get_suffix(self, label):
+        # to collect kpisets to overall sets according to rules result we need to split base label and suffix
+        # the suffixes replace '' label in meaning of 'summary result'
+        if self.extend_aggregation:
+            return label[label.rfind('-'):]
+        return ''
+
+    def __add_sample(self, current, label, kpis):
+        if self.extend_aggregation:
+            label = self.get_label(label, kpis)
+
+        if label not in current:
+            current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))
+
+        current[label].add_sample(kpis)
 
     def __get_rtimes_max(self, label):
         if label in self.cumulative:
@@ -760,6 +791,30 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.histogram_max = 5.0
         self._sticky_concurrencies = {}
         self.min_timestamp = None
+        self.extend_aggregation = False
+
+    def converter(self, data):
+        if data and self.extend_aggregation:
+            self.__extend_reported_data(data)
+
+        return data
+
+    @staticmethod
+    def __extend_reported_data(kpi_sets):
+        data = kpi_sets['current']
+        del data['']
+        for key in list(data.keys()):
+            sep = key.rindex('-')
+            original_label, state = key[:sep], key[sep + 1:]
+            kpi_set = data.pop(key)
+            if original_label not in data:
+                data[original_label] = {}
+            data[original_label][state] = kpi_set
+            if '' not in data:
+                data[''] = dict()
+            if state not in data['']:
+                data[''][state] = KPISet()
+            data[''][state].merge_kpis(kpi_set)
 
     def prepare(self):
         """
@@ -772,6 +827,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.track_percentiles = list(set(self.track_percentiles))
         self.track_percentiles.sort()
         self.settings["percentiles"] = self.track_percentiles
+        
+        self.extend_aggregation = self.settings.get('extend-aggregation')
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
@@ -801,6 +858,13 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
         self.histogram_max = dehumanize_time(self.settings.get("histogram-initial", self.histogram_max))
         self.max_error_count = self.settings.get("max-error-variety", self.max_error_count)
+
+    def startup(self):
+        super(Aggregator, self).startup()
+
+        # send rules to underlings
+        for underling in self.underlings:
+            underling.extend_aggregation = self.extend_aggregation
 
     def add_underling(self, underling):
         """

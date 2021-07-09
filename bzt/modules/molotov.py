@@ -82,6 +82,10 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         if think_time:
             cmdline += ['--delay', str(dehumanize_time(think_time))]
 
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            cmdline += user_cmd.split(" ")
+
         cmdline += ['--use-extension=bzt.resources.molotov_ext']
 
         cmdline += [self.get_script_path(required=True)]
@@ -95,8 +99,8 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         ret_code = self.process.poll()
         if ret_code is None:
             return False
-        if ret_code != 0:
-            raise ToolError("molotov exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
+        # if ret_code != 0: # uncomment when there's adequate tool release
+        #     raise ToolError("molotov exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
         return True
 
     def shutdown(self):

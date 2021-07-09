@@ -1,5 +1,6 @@
 locust
-molotov<=1.6
+molotov
 robotframework
 http-here
 nose2
+codecov

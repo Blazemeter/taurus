@@ -32,15 +32,16 @@ from distutils.version import LooseVersion
 from urllib import parse
 
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
-from bzt.utils import reraise, load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
+from bzt.utils import reraise, load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux, temp_file
 from bzt.utils import shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient, Environment
+from bzt.utils import NETWORK_PROBLEMS
 from .dicts import Configuration
 from .modules import Provisioning, Reporter, Service, Aggregator, EngineModule
 from .names import EXEC, TAURUS_ARTIFACTS_DIR, SETTINGS
 from .templates import Singletone
 from ..environment_helpers import expand_variable_with_os, custom_expandvars, expand_envs_with_os
 
-from bzt.resources.version import VERSION
+from bzt.resources.version import VERSION, DEV_VERSION
 
 
 class Engine(object):
@@ -91,6 +92,8 @@ class Engine(object):
         self.temp_pythonpath = None
 
         self._http_client = None
+
+        self.graceful_tmp = None
 
     def set_pythonpath(self):
         version = sys.version.split(' ')[0]
@@ -234,7 +237,11 @@ class Engine(object):
         if cwd is None:
             cwd = self.default_cwd
 
-        return shell_exec(args, cwd=cwd, env=env.get(), **kwargs)
+        self.graceful_tmp = self.create_artifact(prefix="GRACEFUL", suffix="")
+        env = env.get()
+        env['GRACEFUL'] = self.graceful_tmp
+
+        return shell_exec(args, cwd=cwd, env=env, **kwargs)
 
     def run(self):
         """
@@ -308,6 +315,8 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         self.log.debug("Current stop reason: %s", self.stopping_reason)
+        if self.graceful_tmp:
+            open(self.graceful_tmp, 'x').close()
         exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
@@ -322,6 +331,8 @@ class Engine(object):
                     exc_value = exc
                     exc_info = sys.exc_info()
 
+        if self.graceful_tmp and os.path.exists(self.graceful_tmp):
+            os.remove(self.graceful_tmp)
         self.config.dump()
         if exc_value:
             reraise(exc_info, exc_value)
@@ -706,27 +717,35 @@ class Engine(object):
         return self._http_client
 
     def _check_updates(self, install_id):
-        try:
-            params = (VERSION, install_id)
-            addr = "https://gettaurus.org/updates/?version=%s&installID=%s" % params
-            self.log.debug("Requesting updates info: %s", addr)
-            client = self.get_http_client()
-            response = client.request('GET', addr, timeout=10)
+        if VERSION == DEV_VERSION:
+            return
 
-            data = response.json()
-            self.log.debug("Taurus updates info: %s", data)
+        params = (VERSION, install_id)
+        addr = "https://gettaurus.org/updates/?version=%s&installID=%s" % params
+        self.log.debug("Requesting updates info: %s", addr)
+        client = self.get_http_client()
+        try:
+            response = client.request('GET', addr, timeout=10)
+        except NETWORK_PROBLEMS:
+            self.log.debug("Failed to check for updates: %s", traceback.format_exc())
+            self.log.warning("Failed to check for updates")
+            return
+
+        data = response.json()
+        latest = data.get('latest')
+        needs_upgrade = data.get('needsUpgrade')
+        if latest is None or needs_upgrade is None:
+            self.log.warning(f'Wrong updates info: "{data}"')
+        else:
+            self.log.debug(f'Taurus updates info: "{data}"')
+
             mine = LooseVersion(VERSION)
-            latest = LooseVersion(data['latest'])
-            if mine < latest or data['needsUpgrade']:
+            if (mine < latest) or needs_upgrade:
                 msg = "There is newer version of Taurus %s available, consider upgrading. " \
-                      "What's new: http://gettaurus.org/docs/Changelog/"
+                    "What's new: http://gettaurus.org/docs/Changelog/"
                 self.log.warning(msg, latest)
             else:
                 self.log.debug("Installation is up-to-date")
-
-        except BaseException:
-            self.log.debug("Failed to check for updates: %s", traceback.format_exc())
-            self.log.warning("Failed to check for updates")
 
     def eval_env(self):
         """

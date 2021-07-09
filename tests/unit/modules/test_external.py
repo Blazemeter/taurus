@@ -85,14 +85,11 @@ class TestExternalResultsLoader(ExecutorTestCase):
         })
         self.obj.prepare()
         self.obj.startup()
-
-        self.obj.check()
-        # cnt = 0
-        # while not self.obj.check():
-        #     self.engine.aggregator.check()
-        #     cnt += 1
-        #     self.assertLess(cnt, 10)
-
+        cnt = 0
+        while not self.obj.check():
+            self.engine.aggregator.check()
+            cnt += 1
+            self.assertLess(cnt, 10)
         self.obj.shutdown()
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()

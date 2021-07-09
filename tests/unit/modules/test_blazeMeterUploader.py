@@ -10,11 +10,12 @@ from urllib.error import HTTPError
 
 from bzt import TaurusException
 from bzt.bza import Master, Session
-from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.blazemeter import BlazeMeterUploader
-from bzt.modules.blazemeter import MonitoringBuffer
+from bzt.modules.blazemeter.blazemeter_reporter import MonitoringBuffer
 from bzt.utils import iteritems, viewvalues
 from tests.unit import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER, EngineEmul, BZMock
+from tests.unit.mocks import MockReader
 
 
 class TestBlazeMeterUploader(BZTestCase):

@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import get_locator, wait_for, dialogs_replace, waiter, add_flow_markers
+from bzt.resources.selenium_extras import wait_for, waiter, dialogs_replace, get_locator, add_flow_markers
 
 class TestLocSc(unittest.TestCase):
 
@@ -31,6 +31,7 @@ class TestLocSc(unittest.TestCase):
         options = webdriver.ChromeOptions()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
+        options.set_capability('unhandledPromptBehavior', 'ignore')
         self.driver = webdriver.Chrome(
             service_log_path='/somewhere/webdriver.log',
             options=options)

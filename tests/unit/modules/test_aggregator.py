@@ -47,6 +47,25 @@ class TestResultsReader(BZTestCase):
             overall = point[DataPoint.CURRENT]['']
             self.assertTrue(len(overall[KPISet.PERCENTILES]) > 0)
 
+    def test_new_reader(self):
+        mock = MockReader()
+        mock.buffer_scale_idx = '100.0'
+        # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
+        mock.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
+        mock.data.append((2, "b", 1, 2, 2, 2, 200, None, '', 0))
+        mock.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
+        mock.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
+        mock.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
+        mock.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
+
+        list(mock.datapoints(True))
+
+        failed = mock.results[1]
+        self.assertEqual(2, failed['ts'])
+
+        for kpis in (failed['current'], failed['cumulative']):
+            self.assertEqual(1, kpis['b']['fail'])
+
     def test_sample_ignores(self):
         mock = MockReader()
         mock.ignored_labels = ["ignore"]

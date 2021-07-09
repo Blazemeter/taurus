@@ -117,7 +117,7 @@ class TestConsolidatingAggregator(BZTestCase):
     def setUp(self):
         super(TestConsolidatingAggregator, self).setUp()
         self.obj = ConsolidatingAggregator()
-        self.obj.engine=EngineEmul()
+        self.obj.engine = EngineEmul()
 
     def test_two_executions(self):
         self.obj.track_percentiles = [0, 50, 100]
@@ -138,6 +138,38 @@ class TestConsolidatingAggregator(BZTestCase):
                 cnt += 1
 
         self.assertEquals(2, cnt)
+
+    def test_new_aggregator(self):
+        # aggregator's config
+        self.obj.extend_aggregation = True
+
+        reader = MockReader()
+        watcher = MockReader()
+
+        # executor/reporter prepare level
+        self.obj.add_underling(reader)
+        self.obj.add_listener(watcher)
+
+        # send rules to underlings
+        self.obj.startup()
+
+        reader.buffer_scale_idx = '100.0'
+        # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
+        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
+        reader.data.append((2, "b", 1, 2, 2, 2, 200, 'OK', '', 0))
+        reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
+        reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
+        reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
+        reader.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
+
+        # let's collect data to seconds and send something aggregated to watcher
+        self.obj.shutdown()
+        self.obj.post_process()
+
+        data_points = watcher.results[-1][DataPoint.CUMULATIVE]
+        self.assertEquals(7, len(data_points))
+        sample_labels = {'a-success', 'b-success', 'b-jmeter_errors', 'b-http_errors', 'c-success', 'd-success', ''}
+        self.assertEquals(sample_labels, set(data_points.keys()))
 
     def test_errors_cumulative(self):
         self.obj.track_percentiles = [50]

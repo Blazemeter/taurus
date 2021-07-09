@@ -22,7 +22,7 @@ from bzt.engine import SETTINGS
 from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSamplesReader
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
-from bzt.utils import FileReader, get_full_path, BZT_DIR, get_assembled_value
+from bzt.utils import FileReader, get_full_path, BZT_DIR, get_assembled_value, shutdown_process
 from .generator import ApiritifScriptGenerator
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -68,6 +68,11 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         # path to taurus dir. It's necessary for bzt usage inside tools/helpers
         self.env.add_path({"PYTHONPATH": get_full_path(BZT_DIR, step_up=1)})
 
+        if self.settings.get("plugins-path"):
+            # add path to plugins directory to Apiritif env vars
+            self.log.debug(f'Found Apiritif plugins path: {self.settings.get("plugins-path")}')
+            self.env.add_path({"PLUGINS_PATH": self.settings.get('plugins-path')})
+
         self.reporting_setup()  # no prefix/suffix because we don't fully control report file names
 
     def __tests_from_requests(self):
@@ -91,6 +96,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 self.log.warning("Obsolete format of capabilities found (list), should be dict")
                 scenario["capabilities"] = {item.keys()[0]: item.values()[0] for item in scenario_caps}
 
+            if scenario.get("external-logging", False):
+                self.log.warning("'external-logging' is deprecated and unsupported now. Use 'plugins-path' instead.")
+
             configs = (self.settings, scenario, self.execution)
 
             capabilities = get_assembled_value(configs, "capabilities")
@@ -102,13 +110,43 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 generate_markers=generate_markers,
                 capabilities=capabilities,
                 wd_addr=remote, test_mode=test_mode,
-                generate_external_logging=scenario.get("external-logging", False))
+                generate_external_handler=True if self.settings.get('plugins-path', False) else False)
 
         builder.build_source_code()
         builder.save(filename)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator) and isinstance(builder, ApiritifScriptGenerator):
             self.engine.aggregator.ignored_labels.extend(builder.service_methods)
         return filename
+
+    def get_load(self):
+        load = super().get_load()
+        # should use raw iterations
+        iterations = self.get_raw_load().iterations
+        if self.get_raw_load().iterations is None:
+            iterations = self.__calculate_iterations(load)
+
+        return self.LOAD_FMT(concurrency=load.concurrency, ramp_up=load.ramp_up, throughput=load.throughput, hold=load.hold,
+                             iterations=iterations, duration=load.duration, steps=load.steps)
+
+    def __calculate_iterations(self, load):
+        msg = "No iterations limit in config, choosing anything... set "
+        if load.duration or self.engine.is_functional_mode() and list(self.get_scenario().get_data_sources()):
+            iterations = 0                  # infinite for func mode and ds
+            msg += "0 (infinite) as "
+            if load.duration:
+                msg += "duration found (hold-for + ramp-up)"
+            elif self.engine.is_functional_mode():
+                msg += "taurus works in functional mode"
+            else:
+                msg += "data-sources found"
+
+        else:
+            iterations = 1                  # run once otherwise
+            msg += "1"
+
+        self.log.debug(msg)
+
+        return iterations
 
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
@@ -121,27 +159,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         if load.concurrency:
             cmdline += ['--concurrency', str(load.concurrency)]
 
-        iterations = self.get_raw_load().iterations
-        if iterations is None:  # defaults:
-            msg = "No iterations limit in config, choosing anything... set "
-            if load.duration or self.engine.is_functional_mode() and list(self.get_scenario().get_data_sources()):
-                iterations = 0                  # infinite for func mode and ds
-                msg += "0 (infinite) as "
-                if load.duration:
-                    msg += "duration found (hold-for + ramp-up)"
-                elif self.engine.is_functional_mode():
-                    msg += "taurus works in functional mode"
-                else:
-                    msg += "data-sources found"
-
-            else:
-                iterations = 1                  # run once otherwise
-                msg += "1"
-
-            self.log.debug(msg)
-
-        if iterations:
-            cmdline += ['--iterations', str(iterations)]
+        if load.iterations:
+            cmdline += ['--iterations', str(load.iterations)]
 
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
@@ -210,6 +229,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
         if lines:
             self.log.info("\n".join(lines))
+
+    def shutdown(self):
+        shutdown_process(self.process, self.log, send_sigterm=False)
 
     def post_process(self):
         self._check_stdout()

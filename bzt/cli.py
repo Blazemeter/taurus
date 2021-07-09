@@ -165,20 +165,22 @@ class CLI(object):
             self.log.debug("Switched writing logs to %s", self.options.log)
 
     def __configure(self, configs):
-        self.log.info("Starting with configs: %s", configs)
-
         if self.options.no_system_configs is None:
             self.options.no_system_configs = False
 
-        bzt_rc = os.path.expanduser(os.path.join('~', ".bzt-rc"))
-        if os.path.exists(bzt_rc):
-            self.log.debug("Using personal config: %s" % bzt_rc)
-        else:
-            self.log.debug("Adding personal config: %s", bzt_rc)
-            self.log.info("No personal config found, creating one at %s", bzt_rc)
-            shutil.copy(os.path.join(RESOURCES_DIR, 'base-bzt-rc.yml'), bzt_rc)
+        if not self.options.no_system_configs:
+            bzt_rc = os.path.expanduser(os.path.join('~', ".bzt-rc"))
+            if os.path.exists(bzt_rc):
+                self.log.debug("Using personal config: %s" % bzt_rc)
+            else:
+                self.log.debug("Adding personal config: %s", bzt_rc)
+                self.log.info("No personal config found, creating one at %s", bzt_rc)
+                shutil.copy(os.path.join(RESOURCES_DIR, 'base-bzt-rc.yml'), bzt_rc)
 
-        merged_config = self.engine.configure([bzt_rc] + configs, not self.options.no_system_configs)
+            configs += [bzt_rc]
+
+        self.log.info("Starting with configs: %s", configs)
+        merged_config = self.engine.configure(configs, not self.options.no_system_configs)
 
         # apply aliases
         for alias in self.options.aliases:

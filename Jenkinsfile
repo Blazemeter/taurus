@@ -3,6 +3,7 @@
 pipeline {
     agent {
         dockerfile {
+            label 'google'
             filename 'tests/ci/Dockerfile'
             args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
         }
@@ -14,6 +15,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
+                    initJenkinsGlobal()
                     tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
                     isRelease = !tagName.isEmpty()
                     IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER

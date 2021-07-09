@@ -96,8 +96,8 @@ Here is the list of supported actions, sorted by action type.
 
 ### Locators
 Below you will see some actions, which look like this: `actionX`, i.e. `dragByX`, `clickBy`, etc. Here `X` means a certain
-action object. It can be one of the following: `ID`, `Name`, `LinkText`, `CSS`, `XPath`. For example, `clickByID`,
-`waitByName`, `keysByCSS`.
+action object. It can be one of the following: `CSS`, `Element`, `ID`, `LinkText`, `Name`, `XPath`. For example, `clickByID`,
+`waitForByName`, `keysByCSS`.
 
 #### How to find them
 __1. By ID__
@@ -107,7 +107,7 @@ __1. By ID__
     <h1 id="my_locator_ID">Locator ID</h1>
 </td>
 ```
-Header tag has an ID attribute (`id="Locator\_ID"`). For example, wait until the element is displayed `waitByID(Locator\_ID)`.
+Header tag has an ID attribute (`id="Locator\_ID"`). For example, wait until the element is displayed `waitForByID(Locator\_ID)`.
 
 __2. By the attribute Name__
 
@@ -115,7 +115,7 @@ __2. By the attribute Name__
 <input name="inputName">
 ```
 
-This is an input element and it has attribute `name="inputName"`.
+This is an input element, and it has an attribute `name="inputName"`.
 
 For example, insert text the following in the input `keysByName(inputName): First\_Name`. Locator determination by the attribute `Name` is often used when working with input fields.
 
@@ -132,7 +132,7 @@ Here is an example. This is how to find div with input.
     <input id="inputName" placeholder="First Last" name="inputName" type="text">
 </div>
 ```
-This CSS selector .controls will select all elements with class `controls`. For example, wait until the element is displayed `waitByCSS(.controls)`.
+This CSS selector .controls will select all elements with class `controls`. For example, wait until the element is displayed `waitForByCSS(.controls)`.
 Using attributes and their value
 ```html
  <input id="inputName" placeholder="First Last" name="inputName" type="text">
@@ -218,11 +218,12 @@ Below you can find a list of all supported actions:
 [assertTextByX](#Assertion), [assertTitle](#Assertion), [assertValueByX](#Assertion), [clearCookies](#Cookies), 
 [clickByX](#Mouse-actions), [closeWindow](#Window-management), [contextClickByX](#Mouse-actions), 
 [doubleClickByX](#Mouse-actions), [dragByX](#Mouse-actions), [echoString](#Echoing), [editContentByX](#Editing), 
-[foreach](#Foreach), [go](#Go), [if](#If-Blocks), [keysByX](#Typing), [loop](#Loops), [mouseDownByX](#Mouse-actions), 
-[mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), [mouseUpByX](#Mouse-actions), [rawCode](#Execution), 
-[screenshot](#Screenshot), [scriptEval](#Execution), [selectByX](#Select), [storeEval](#Store), [storeString](#Store), 
-[storeTextByX](#Store), [storeTitle](#Store), [storeValueByX](#Store), [submitByX](#Typing), 
-[switchFrame](#Frame-management), [switchWindow](#Window-management), [typeByX](#Typing), [waitForByX](#Pause).
+[foreach](#Foreach), [go](#Go), [if](#If-Blocks), [keysByX](#Typing), [log](#External-logging), [loop](#Loops), 
+[mouseDownByX](#Mouse-actions), [mouseOutByX](#Mouse-actions), [mouseOverByX](#Mouse-actions), 
+[mouseUpByX](#Mouse-actions), [openWindow](#Window-management), [rawCode](#Execution), [screenshot](#Screenshot), 
+[scriptEval](#Execution), [selectByX](#Select), [storeEval](#Store), [storeString](#Store), [storeTextByX](#Store), 
+[storeTitle](#Store), [storeValueByX](#Store), [submitByX](#Typing), [switchFrame](#Frame-management), 
+[switchWindow](#Window-management), [typeByX](#Typing), [waitForByX](#Pause).
 
 #### Alert
 For alert handling, use the following methods:
@@ -436,8 +437,8 @@ scenarios:
 You can also nest multiple `foreach` blocks, just make sure to 
 use unique names for the variables in each of the blocks.  
 
-Please note that it is not possible to use `wait` and `waitFor` actions in the `foreach` using `ByElement`. 
-However you can still use it inside the loop the common way - e.g. `waitById(my_id)`.
+Please note that it is not possible to use `waitFor` action in the `foreach` using `ByElement`. 
+However, you can still use it inside the loop the common way - e.g. `waitForById(my_id)`.
 
 ##### Perform actions in foreach using the parent context
 
@@ -686,11 +687,12 @@ Or by using the [multiple locators](#Alternative-syntax-supporting-multiple-loca
 ```
 
 #### Pause
-For pause you can use the following actions:
+For pause, you can use the following actions:
 
 - `waitForByX(X\_name, condition): timeout`
 
-This action allows for checking that the given object meets the `condition` within the `timeout` period.
+This action allows for checking that the given object meets the `condition` within the `timeout` period. 
+`timeout` value is optional, its default value is 10s.
 
 `condition` is one of the following:
 
@@ -703,7 +705,7 @@ This action allows for checking that the given object meets the `condition` with
 
 
 `timeout` is optional with default value of 10 (10 seconds). Timeout can be provided as a numeric value 
-and that will mean seconds or it can be provided as a formatted string with the pattern 
+and that will mean seconds, or it can be provided as a formatted string with the pattern 
 1d2h3m4s5ms where you can provide number of days, hours, minutes, seconds and milliseconds it’s required to wait. 
 
 You can also define waitFor using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators) to provide multiple locators:
@@ -712,26 +714,12 @@ You can also define waitFor using the [alternative syntax](#Alternative-syntax-s
   locators: 
     - css: element_class
     - id: element_id
-  param: Clickable    # the condition
-  value: 2m30s        # the timeout    
+  param: clickable    # the condition
+  value: 2m30s        # the timeout, optional parameter    
 ```
 
+Supported conditions are: `present`, `visible`, `clickable`, `notpresent`, `notvisible`, `notclickable`.
 
-- `waitByX(X\_name)` to wait for presence or `waitByX(X\_name): visible` to wait for visibility
-
-**_DEPRECATION WARNING_** `waitByX` is deprecated and will be removed soon, please use the `waitForByX` version above.
-
-You can also define wait using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators) to provide multiple locators:
-```yaml
-- type: wait
-  locators: 
-    - css: element_class
-    - id: element_id
-- type: wait
-  param: visible
-  locators:
-    - css: element_class    
-```
 - `pauseFor(time)`
 ```yaml
 - type: pauseFor
@@ -825,7 +813,7 @@ Typing actions with [multiple locators support](#Alternative-syntax-supporting-m
 ```
 
 #### Window management
-To manage windows or tabs, the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
+To open new windows or tabs, use `openWindow(value)` keyword, and the `switchWindow(value)` and `closeWindow(value)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
   - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage. It can be also surrounded with quotes.
@@ -841,6 +829,8 @@ will be performed on the default window, or the last one used with `switchWindow
 
 Or using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators):
 ```yaml
+- type: openWindow
+  param: value
 - type: switchWindow
   param: value
 - type: closeWindow
@@ -861,7 +851,7 @@ scenarios:
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitByCSS(body)
+      - waitForByCSS(body, present)
       - clickByID(mySubmitButton)
       - openWindow(http://blazedemo.com/vacation.html) # new window is created (#1)
       - resizeWindow(750, 750) # change window size to x, y
@@ -871,7 +861,7 @@ scenarios:
       - clearCookies()
       - keysByName(myInputName): keys_to_type
       - submitByName(myInputName)
-      - waitByID(myObjectToAppear): visible
+      - waitForByID(myObjectToAppear, visible): 3s
       - scriptEval("alert('This is Sparta');")
       - rawCode: print('It\'s Python')  # insert as-is into script file
       - rawCode: |
@@ -918,10 +908,11 @@ scenarios:
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - type: wait
+      - type: waitFor
+        param: present
         locators:
           - css: body
-          - xpath: /body/
+          - xpath: /body/  
       - type: click
         locators:
           - id: mySubmitButton
@@ -936,8 +927,9 @@ scenarios:
       - type: submit
         locators:
           - name: myInputName
-      - type: wait
+      - type: waitFor
         param: visible
+        value: 2m30s
         locators:
           - id: myObjectToAppear
           - name: myObjectToAppearName
@@ -1020,7 +1012,7 @@ scenarios:
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitByCSS(body)
+      - waitForByCSS(body, present)
     # ...
 ```
 It is possible to use only the `remote` option, and in this way declare the intention to use the `browser: Remote`, allowing a more compact YAML.
@@ -1036,7 +1028,7 @@ scenarios:
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitByCSS(body)
+      - waitForByCSS(body, present)
     # ...
 ```
 
@@ -1063,12 +1055,12 @@ scenarios:
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
-      - waitByCSS(body)
+      - waitForCSS(body, present)
       - clickByID(mySubmitButton)
       - pauseFor(5s)
       - clearCookies()
       - keysByName(myInputName): keys_to_type
-      - waitByID(myObjectToAppear): visible
+      - waitForByID(myObjectToAppear, visible)
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
@@ -1126,7 +1118,7 @@ scenarios:
     requests:
     - url: http://blazedemo.com/
       actions:
-      - waitByCSS(body)
+      - waitForByCSS(body, present)
       - clickByID(mySubmitButton)
       - pauseFor(5s)
 
@@ -1135,26 +1127,14 @@ modules:
     generate-flow-markers: true  # global setting
 ```
 
-### External logging
+### External Apiritif plugins
 
-This feature can be used to track progress or debug your test. It requires handler which will be executed
-between actions. Please see for handler example `log_into_file` function in `selenium_extras` module
-which logs action timestamps in user file.
+This feature can be used to track actions of your test. It requires handler which will be executed
+between actions. Please see handler [example](https://github.com/Blazemeter/apiritif/blob/master/tests/resources/action_plugin_template.txt)
 
-To enable external logging you can use flag `external-logging: true` in  scenario settings (handler
-will be executed on start and finish of each action) or use action `log('some string')` to explicitly call handler.
-
-```yaml
-execution:
-- executor: selenium
-  scenario: sample
-
-scenarios:
-  sample:
-    external-logging: true          # call handler before and after all actions
-    actions:
-    - go(http://blazedemo.com/) 
-    - log('leaving blazedemo')      # explicit logging way
-    - go(https://gettaurus.org/docs/Index/)
-    - log('finished part 1 of my test') 
+To enable Apiritif plugins you should specify path to plugins package using `plugins-path` in apiritif module settings.
+```
+modules:
+  apiritif:
+    plugins-path: /path/to/apiritif/plugins/package
 ```

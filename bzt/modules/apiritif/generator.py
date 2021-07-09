@@ -22,13 +22,14 @@ from collections import OrderedDict
 from urllib import parse
 
 import astunparse
+import selenium
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
-from bzt.utils import iteritems, dehumanize_time, ensure_is_dict
-from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript
+from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, is_selenium_4
+from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, gen_try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
 
 
@@ -117,15 +118,20 @@ from selenium.webdriver.common.keys import Keys
 
     BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
     COMMON_TAGS = ("Cookies", "Title", "Window", "Eval", "ByIdx", "String")
-    EXTENDED_LOG_TAG = ("logStart", "logEnd", "log")
+    EXTERNAL_HANDLER_START = 'action_start'
+    EXTERNAL_HANDLER_END = 'action_end'
+    EXTERNAL_HANDLER_TAGS = (EXTERNAL_HANDLER_START, EXTERNAL_HANDLER_END)
+    DEPRECATED_LOG_TAG = 'log'
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
     SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock)
 
+    OPTIONS = 'options'
+
     def __init__(self, scenario, label, wdlog=None, executor=None,
                  ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="selenium", generate_external_logging=None):
+                 capabilities=None, wd_addr=None, test_mode="selenium", generate_external_handler=False):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -145,7 +151,7 @@ from selenium.webdriver.common.keys import Keys
         self.appium = False
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
-        self.generate_external_logging = generate_external_logging
+        self.generate_external_handler = generate_external_handler
         self.test_mode = test_mode
 
     def _parse_action_params(self, expr, name):
@@ -176,7 +182,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _parse_string_action(self, name, param):
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
-        all_actions = self.ACTIONS + "|" + "|".join(self.EXTENDED_LOG_TAG) + "|" + self.EXECUTION_BLOCKS
+        all_actions = self.ACTIONS + "|" + "|".join((self.DEPRECATED_LOG_TAG, self.EXECUTION_BLOCKS))
         expr = re.compile(r"^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
         atype, tag, selector = self._parse_action_params(expr, name)
         value = None
@@ -228,7 +234,7 @@ from selenium.webdriver.common.keys import Keys
         if action_config.get("element"):
             selectors.extend(self._gen_selector_byelement(action_config))
         if action_config.get("shadow"):
-            selectors = [{"shadow" : action_config.get("shadow")}]
+            selectors = [{"shadow": action_config.get("shadow")}]
         if action_config.get("source") and action_config.get("target"):
             source = action_config.get("source")
             target = action_config.get("target")
@@ -240,7 +246,8 @@ from selenium.webdriver.common.keys import Keys
         param = action_config["param"]
         value = action_config["value"]
         tags = "|".join(self.COMMON_TAGS) + "|ByName"  # ByName is needed in switchFrameByName
-        expr = re.compile("^(%s)(%s)?$" % (self.ACTIONS, tags), re.IGNORECASE)
+        all_actions = self.ACTIONS + "|" + "|".join(self.EXTERNAL_HANDLER_TAGS)
+        expr = re.compile("^(%s)(%s)?$" % (all_actions, tags), re.IGNORECASE)
         action_params = self._parse_action_params(expr, name)
 
         return action_params[0], action_params[1], param, value, selectors
@@ -371,8 +378,7 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(method)
             elements.append(ast_call(
                 func=ast_attr(method),
-                args=[ast.Str(param, kind="")]
-            ))
+                args=[self._gen_expr(param.strip())]))
         elif atype == "close":
             method = "close_window"
             self.selenium_extras.add(method)
@@ -397,9 +403,9 @@ from selenium.webdriver.common.keys import Keys
                 args=[ast.Str(selector, kind="")]))
         else:
             if not tag:
-                tag = "name"    # if tag is not present default it to name
+                tag = "name"  # if tag is not present default it to name
             elif tag.startswith('by'):
-                tag = tag[2:]   # remove the 'by' prefix
+                tag = tag[2:]  # remove the 'by' prefix
             elements.append(ast_call(
                 func=ast_attr(method),
                 args=[self._gen_locator(tag, selector)]))
@@ -578,8 +584,8 @@ from selenium.webdriver.common.keys import Keys
         )
 
         raise_kwargs = {
-                "exc": exc_type,
-                "cause": None}
+            "exc": exc_type,
+            "cause": None}
 
         body = ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
                                  args=[
@@ -665,9 +671,14 @@ from selenium.webdriver.common.keys import Keys
 
         action_elements = []
 
-        if atype == "log":
-            action_elements.append(
-                ast_call(func=ast_attr("apiritif.external_log"), args=[self._gen_expr(param.strip())]))
+        if atype in self.EXTERNAL_HANDLER_TAGS:
+            action_elements.append(ast_call(
+                func=ast_attr(atype),
+                args=[self._gen_expr(self._gen_expr(param))]
+            ))
+        elif atype == self.DEPRECATED_LOG_TAG:
+            self.log.warning("'log' is deprecated. It will be removed in the next release.")
+            return []
         elif tag == "window":
             action_elements.extend(self._gen_window_mngr(atype, param))
         elif atype == "switchframe":
@@ -693,8 +704,9 @@ from selenium.webdriver.common.keys import Keys
                     args=[self._gen_expr(param.strip())]))
 
         elif atype == "script" and tag == "eval":
+            escaped_param = self._escape_js_blocks(param)
             action_elements.append(ast_call(func=ast_attr("self.driver.execute_script"),
-                                            args=[self._gen_expr(param)]))
+                                            args=[self._gen_expr(escaped_param)]))
         elif atype == "rawcode":
             action_elements.append(ast.parse(param))
         elif atype == 'go':
@@ -704,7 +716,7 @@ from selenium.webdriver.common.keys import Keys
                 action_elements.append(self._gen_replace_dialogs())
         elif atype == "editcontent":
             action_elements.extend(self._gen_edit_mngr(param, selectors))
-        elif atype.startswith('wait'):
+        elif atype.startswith('waitfor'):
             action_elements.extend(self._gen_wait_for(atype, param, value, selectors))
         elif atype == 'pausefor':
             action_elements.extend(self._gen_sleep_mngr(param))
@@ -760,16 +772,9 @@ from selenium.webdriver.common.keys import Keys
         self.selenium_extras.add("wait_for")
         supported_conds = ["present", "visible", "clickable", "notpresent", "notvisible", "notclickable"]
 
-        if not atype.endswith("for"):
-            self.log.warning("Wait command is deprecated and will be removed soon. Use waitFor instead.")
-            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
-            timeout = dehumanize_time(self.scenario.get("timeout", exc))
-            if not param:
-                param = "present"
-        else:
-            if not value:
-                value = 10  # if timeout value is not present set it by default to 10s
-            timeout = dehumanize_time(value)
+        if not value:
+            value = 10  # if timeout value is not present set it by default to 10s
+        timeout = dehumanize_time(value)
 
         if param.lower() not in supported_conds:
             raise TaurusConfigError("Invalid condition in %s: '%s'. Supported conditions are: %s." %
@@ -918,7 +923,7 @@ from selenium.webdriver.common.keys import Keys
             browser = "remote"  # Force to use remote web driver
         elif not browser:
             browser = "firefox"
-        elif browser not in local_browsers:   # browser isn't supported
+        elif browser not in local_browsers:  # browser isn't supported
             raise TaurusConfigError("Unsupported browser name: %s" % browser)
         return browser
 
@@ -928,23 +933,16 @@ from selenium.webdriver.common.keys import Keys
     def _gen_webdriver(self):
         self.log.debug("Generating setUp test method")
 
-        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None"))]
-
         browser = self._check_platform()
+        body = [self._get_options(browser)]
 
         if browser == 'firefox':
-            body.extend(self._get_firefox_options() + self._get_firefox_profile() + [self._get_firefox_webdriver()])
+            body.extend(self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
         elif browser == 'chrome':
-            body.extend(self._get_chrome_options() + [self._get_chrome_webdriver()])
+            body.extend([self._get_chrome_webdriver()])
 
         elif browser == 'remote':
-            if 'firefox' == self.capabilities.get('browserName'):
-                body.append(self._get_firefox_options())
-            else:
-                empty_options = ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))
-                body.append(empty_options)
-
             body.append(self._get_remote_webdriver())
 
         else:
@@ -955,6 +953,30 @@ from selenium.webdriver.common.keys import Keys
 
         body.append(self._get_timeout())
         body.extend(self._get_extra_mngrs())
+
+        return body
+
+    def _wrap_with_try_except(self, web_driver_cmds):
+        body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None")),
+            self._gen_new_session_start()]
+
+        exception_variables = [ast.Name(id='ex_type'), ast.Name(id='ex'), ast.Name(id='tb')]
+        exception_handler = [
+            ast.Assign(targets=[ast.Tuple(elts=exception_variables)],
+                       value=ast_call(func=ast_attr('sys.exc_info'), args=[]))]
+
+        exception_handler.extend(self._gen_new_session_end(True))
+
+        exception_handler.append(
+            ast.Expr(value=ast_call(
+                func=ast_attr('apiritif.log.error'),
+                args=[
+                    self._gen_expr(ast_attr("str(traceback.format_exception(ex_type, ex, tb))"))
+                ])))
+        exception_handler.append(gen_raise())
+
+        body.append(gen_try_except(web_driver_cmds, exception_handler))
+        body.append(self._gen_new_session_end())
 
         return body
 
@@ -989,6 +1011,26 @@ from selenium.webdriver.common.keys import Keys
         else:
             return []
 
+    def _get_options(self, browser):
+        if browser == 'remote':
+            if 'firefox' == self.capabilities.get('browserName'):
+                browser = 'firefox'
+            elif 'chrome' == self.capabilities.get('browserName'):
+                browser = 'chrome'
+        if browser == 'firefox':
+            options = self._get_firefox_options()
+        elif browser == 'chrome':
+            options = self._get_chrome_options()
+        else:
+            options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
+
+        if self.OPTIONS in self.executor.settings:
+            self.log.debug(f'Generating selenium option {self.executor.settings.get(self.OPTIONS)}. '
+                           f'Browser {browser}. Selenium version {selenium.__version__}')
+            options.extend(self._get_selenium_options(browser))
+
+        return options
+
     def _get_firefox_options(self):
         firefox_options = [
             ast.Assign(
@@ -1011,7 +1053,11 @@ from selenium.webdriver.common.keys import Keys
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
-                    args=[ast.Str("%s" % "--disable-dev-shm-usage", kind="")]))]
+                    args=[ast.Str("%s" % "--disable-dev-shm-usage", kind="")])),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.set_capability"),
+                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))]
 
         return chrome_options + self._get_headless_setup()
 
@@ -1022,7 +1068,11 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
             ast.Expr(ast_call(
                 func=ast_attr("profile.set_preference"),
-                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")]))]
+                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.set_capability"),
+                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))]
 
     def _get_firefox_webdriver(self):
         return ast.Assign(
@@ -1068,6 +1118,95 @@ from selenium.webdriver.common.keys import Keys
                         arg="options",
                         value=ast.Name(id="options"))]))
 
+    def _get_selenium_options(self, browser):
+        options = []
+
+        if not is_selenium_4():
+            old_version = True
+            if browser != 'firefox' and browser != 'chrome':
+                self.log.warning(f'Selenium options are not supported. '
+                                 f'Browser {browser}. Selenium version {selenium.__version__}')
+                return []
+        else:
+            old_version = False
+            if browser != 'firefox' and browser != 'chrome':
+                self.log.debug(
+                    f'Generating selenium options. Browser {browser}. Selenium version {selenium.__version__}')
+                options.extend([ast.Assign(
+                    targets=[ast.Name(id="options")],
+                    value=ast_call(
+                        func=ast_attr("webdriver.ArgOptions")))])
+
+        for opt in self.executor.settings.get(self.OPTIONS):
+            if opt == "ignore-proxy":
+                options.extend(self._get_ignore_proxy(old_version))
+            elif opt == "arguments":
+                options.extend(self._get_arguments())
+            elif opt == "experimental-options":
+                options.extend(self._get_experimental_options(browser))
+            elif opt == "preferences":
+                options.extend(self._get_preferences(browser))
+            else:
+                self.log.warning(f'Unknown option {opt}')
+
+        return options
+
+    def _get_ignore_proxy(self, old_version):
+        ignore_proxy = "ignore-proxy"
+
+        if old_version:
+            self.log.warning(f'Option {ignore_proxy} is not supported for this selenium version')
+            return []
+        if not self.executor.settings.get(self.OPTIONS).get(ignore_proxy):
+            return []
+
+        return [ast.Expr(ast_call(func=ast_attr("options.ignore_local_proxy_environment_variables")))]
+
+    def _get_arguments(self):
+        args = []
+        arguments = "arguments"
+
+        for arg in self.executor.settings.get(self.OPTIONS).get(arguments):
+            args.extend([ast.Expr(
+                ast_call(
+                    func=ast_attr("options.add_argument"),
+                    args=[ast.Str(arg, kind="")]))])
+
+        return args
+
+    def _get_experimental_options(self, browser):
+        experimental_options = "experimental-options"
+
+        if browser != "chrome":
+            self.log.warning(f'Option {experimental_options} is not supported for {browser}')
+            return []
+
+        exp_opts = []
+        for key, value in self.executor.settings.get(self.OPTIONS).get(experimental_options).items():
+            exp_opts.append(ast.Expr(ast_call(
+                func=ast_attr("options.add_experimental_option"),
+                args=[
+                    [ast.Str(key, kind="")],
+                    [ast.Str(value, kind="")]])))
+        return exp_opts
+
+    def _get_preferences(self, browser):
+        preferences = "preferences"
+
+        if browser != "firefox":
+            self.log.warning(f'Option {preferences} is not supported for {browser}')
+            return []
+
+        prefers = []
+        for key, value in self.executor.settings.get(self.OPTIONS).get(preferences).items():
+            prefers.append(ast.Expr(ast_call(
+                func=ast_attr("options.set_preference"),
+                args=[
+                    [ast.Str(key, kind="")],
+                    [ast.Str(value, kind="")]])))
+
+        return prefers
+
     @staticmethod
     def _gen_impl_wait(timeout):
         return ast.Expr(
@@ -1104,6 +1243,10 @@ from selenium.webdriver.common.keys import Keys
             gen_empty_line_stmt(),
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
             gen_empty_line_stmt()]
+
+        if self.generate_external_handler:
+            imports.append(ast.Import(names=[ast.alias(name='traceback', asname=None)]))
+            self.selenium_extras.update(self.EXTERNAL_HANDLER_TAGS)
 
         if self.test_mode == "selenium":
             if self.appium:
@@ -1213,11 +1356,6 @@ from selenium.webdriver.common.keys import Keys
             self.selenium_extras.add(func_name)
             handlers.append(ast.Expr(ast_call(func=func_name)))
 
-        if self.generate_external_logging:
-            self.selenium_extras.add("add_logging_handlers")
-
-            handlers.append(ast.Expr(ast_call(func="add_logging_handlers")))
-
         stored_vars = {
             "timeout": "timeout",
             "func_mode": str(self.executor.engine.is_functional_mode())}
@@ -1242,11 +1380,13 @@ from selenium.webdriver.common.keys import Keys
         timeout_setup = [ast.Expr(ast.Assign(
             targets=[ast_attr("timeout")],
             value=ast.Num(self._get_scenario_timeout(), kind="")))]
-
+        body = data_sources + timeout_setup + target_init + handlers + store_block
+        if self.generate_external_handler:
+            body = self._wrap_with_try_except(body)
         setup = ast.FunctionDef(
             name="setUp",
             args=[ast_attr("self")],
-            body=data_sources + timeout_setup + target_init + handlers + store_block,
+            body=body,
             decorator_list=[])
         return [setup, gen_empty_line_stmt()]
 
@@ -1335,6 +1475,15 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_expr(self, value):
         return self.expr_compiler.gen_expr(value)
+
+    @staticmethod
+    def _escape_js_blocks(value):  # escapes plain { with {{
+        value = value.replace("{", "{{").replace("}", "}}")
+        for block in re.finditer(r"\${{[\w\d]*}}", value):
+            start, end = block.start(), block.end()
+            line = "$" + value[start + 2:end - 1]
+            value = value[:start] + line + value[end:]
+        return value
 
     def _gen_target_setup(self, key, value):
         return ast.Expr(ast_call(
@@ -1521,8 +1670,8 @@ from selenium.webdriver.common.keys import Keys
         if self.test_mode == "selenium":
             for action in req.config.get("actions"):
                 action_lines = self._gen_action(action)
-                if self.generate_external_logging:
-                    action_lines = self._gen_log_start(action) + action_lines + self._gen_log_end(action)
+                if self.generate_external_handler:
+                    action_lines = self._gen_action_start(action) + action_lines + self._gen_action_end(action)
 
                 lines.extend(action_lines)
 
@@ -1548,11 +1697,59 @@ from selenium.webdriver.common.keys import Keys
 
         return lines
 
-    def _gen_log_start(self, action):
-        return self._gen_action("log('start: %s')" % action)
+    def _gen_new_session_start(self):
+        return self._gen_action({
+            'type': self.EXTERNAL_HANDLER_START,
+            'value': None,
+            'param': {
+                'type': 'new_session',
+                'value': None,
+                'param': self.capabilities,
+            }
+        })
 
-    def _gen_log_end(self, action):
-        return self._gen_action("log('end: %s')" % action)
+    def _gen_new_session_end(self, msg=False):
+        val = {
+            'type': 'new_session',
+            'param': self.capabilities,
+        }
+
+        if msg:
+            val['message'] = self._gen_expr(ast_attr("str(traceback.format_exception(ex_type, ex, tb))"))
+
+        return self._gen_action({
+            'type': self.EXTERNAL_HANDLER_END,
+            'value': None,
+            'param': val,
+        })
+
+    def _gen_action_start(self, action):
+        atype, tag, param, value, selectors = self._parse_action(action)
+        return self._gen_action({
+            'type': self.EXTERNAL_HANDLER_START,
+            'value': None,
+            'param': {
+                'type': atype,
+                'tag': tag,
+                'param': param,
+                'value': value,
+                'selectors': selectors,
+            },
+        })
+
+    def _gen_action_end(self, action):
+        atype, tag, param, value, selectors = self._parse_action(action)
+        return self._gen_action({
+            'type': self.EXTERNAL_HANDLER_END,
+            'value': None,
+            'param': {
+                'type': atype,
+                'tag': tag,
+                'param': param,
+                'value': value,
+                'selectors': selectors,
+            },
+        })
 
     def _gen_sel_assertion(self, assertion_config):
         self.log.debug("Generating assertion, config: %s", assertion_config)

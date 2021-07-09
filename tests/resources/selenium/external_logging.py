@@ -8,6 +8,7 @@ import unittest
 from time import time, sleep
 
 import apiritif
+import traceback
 
 import os
 import re
@@ -19,36 +20,43 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_replace, add_logging_handlers, waiter, get_locator
+from bzt.resources.selenium_extras import action_start, dialogs_replace, waiter, get_locator, action_end
 
 class TestSample(unittest.TestCase):
 
     def setUp(self):
-        self.vars = {}
-
-        timeout = 30.0
         self.driver = None
-        options = webdriver.ChromeOptions()
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', options=options)
-        self.driver.implicitly_wait(timeout)
-        add_logging_handlers()
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
-                                       scenario_name='sample')
+        action_start({'param': {}, 'type': 'new_session', 'value': None})
+        try:
+            self.vars = {}
+            timeout = 30.0
+            options = webdriver.ChromeOptions()
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            options.set_capability('unhandledPromptBehavior', 'ignore')
+            self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', options=options)
+            self.driver.implicitly_wait(timeout)
+            apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
+                                           scenario_name='sample')
+        except Exception:
+            (ex_type, ex, tb) = sys.exc_info()
+            action_end({'message': str(traceback.format_exception(ex_type, ex, tb)), 'param': {}, 'type': 'new_session'})
+            apiritif.log.error(str(traceback.format_exception(ex_type, ex, tb)))
+            raise
+        action_end({'param': {}, 'type': 'new_session'})
+
 
 
     def _1_Test(self):
         with apiritif.smart_transaction('Test'):
-            apiritif.external_log('start: go(http://blazedemo.com/)')
+            action_start({'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
             self.driver.get('http://blazedemo.com/')
 
             dialogs_replace()
             waiter()
-            apiritif.external_log('end: go(http://blazedemo.com/)')
-            apiritif.external_log('start: log(leaving blazedemo)')
-            apiritif.external_log('leaving blazedemo')
-            apiritif.external_log('end: log(leaving blazedemo)')
+            action_end({'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
+            action_start({'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
+            action_end({'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
 
     def test_sample(self):
         self._1_Test()

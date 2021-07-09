@@ -14,7 +14,7 @@ CREATE FUNCTION public.agg_data() RETURNS trigger
         cloud_users_env TEXT[] := '{"jenkins", "travis", "bamboo", "teamcity", "docker", "amazon", "google_cloud", "azure"}';
         desktop_users_env TEXT[] := '{"linux", "windows", "macos"}';
     BEGIN
-        LOCK TABLE aggregate_data IN ROW EXCLUSIVE MODE;
+        LOCK TABLE aggregate_data IN SHARE ROW EXCLUSIVE MODE;
         -- Checking the existence of this day
         IF NOT EXISTS (SELECT date FROM aggregate_data WHERE date = CAST(NEW.date AS TEXT)) THEN
             INSERT INTO aggregate_data VALUES
