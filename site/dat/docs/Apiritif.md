@@ -1154,8 +1154,6 @@ scenarios:
 
 ### External Apiritif plugins
 
-_This is available only in [unstable snapshot](https://gettaurus.org/install/Installation/#Latest-Unstable-Snapshot)._
-
 This feature can be used to track actions of your test. It requires handler which will be executed
 between actions. Please see handler [example](https://github.com/Blazemeter/apiritif/blob/master/tests/resources/action_plugin_template.txt)
 
