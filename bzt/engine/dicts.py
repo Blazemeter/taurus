@@ -59,6 +59,9 @@ class Scenario(UserDict, object):
         :type default: object
         :return:
         """
+        if default == defaultdict:
+          default = BetterDict()
+         
         return self.data.get(key, default)
 
     def __getitem__(self, item):
