@@ -10,6 +10,7 @@
 - implement `vegeta` auto installation
 - update `k6` installation process in docker
 - added error message that Shadow DOM slots are not supported yet
+- fix tools stopping logic
 - fix final stats table in bzt.log
 - add code coverage check to travis
 
