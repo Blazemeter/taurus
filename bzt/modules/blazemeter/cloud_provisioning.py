@@ -218,9 +218,24 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         bm_settings.update(module.settings)
         module.settings = bm_settings
 
-    def prepare(self):
+    def _validate_passfail(self):
         reporting = self.engine.config.get(Reporter.REP)
+        validate_passfail = any(reporter.get('module') == 'passfail' for reporter in reporting)
+        if validate_passfail:
+            if self.router._test.started_passfail_validation():
+                timeout = 100
+                for i in range(timeout):
+                    if self.router._test.get_passfail_validation():
+                        return
+                    self.log.warning(f"Unsuccessful Passfail validation attempt [{i + 1}]. Retrying...")
+                    if not i % 10:
+                        self.log.warning("Please keep in mind that validation can take time.")
+                    sleep(1)
+                self.log.error("Unable get Passfail validation!")
+            else:
+                self.log.error("Unable to validate Passfail configuration!")
 
+    def prepare(self):
         CloudProvisioning.merge_with_blazemeter_config(self)
         CloudProvisioning.configure_client(self)
         self._workspaces = self.user.accounts().workspaces()
@@ -236,9 +251,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.public_report = self.settings.get("public-report", self.public_report)
         is_execution_empty = not self.engine.config.get("execution")
         self.launch_existing_test = self.settings.get("launch-existing-test", is_execution_empty, force_set=True)
-
-        if not self.launch_existing_test:
-            self._filter_reporting()
 
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
@@ -267,19 +279,21 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
             res_files = self.get_rfiles()
             files_for_cloud = self._fix_filenames(res_files)
-
+            self._filter_reporting("blazemeter")    # must not be sent to cloud
             config_for_cloud = self.prepare_cloud_config()
             config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
             del_files = self.settings.get("delete-test-files", True)
             self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
 
         self.router.sanitize_test()
+        self._validate_passfail()
 
         self.report_name = self.settings.get("report-name", self.report_name)
         if self.report_name == 'ask' and sys.stdin.isatty():
             self.report_name = input("Please enter report-name: ")
 
         self.widget = self.get_widget()
+        self._filter_reporting("passfail")  # must be sent to claud for conversion
 
         if self.engine.is_functional_mode():
             self.results_reader = FunctionalBZAReader(self.log)
@@ -288,22 +302,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.results_reader = ResultsFromBZA()
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
-
-        validate_passfail = any(reporter.get('module') == 'passfail' for reporter in reporting)
-
-        if validate_passfail:
-            if self.router._test.started_passfail_validation():
-                timeout = 100
-                for i in range(timeout):
-                    if self.router._test.get_passfail_validation():
-                        return
-                    self.log.warning(f"Unsuccessful Passfail validation attempt [{i+1}]. Retrying...")
-                    if not i % 10:
-                        self.log.warning("Please keep in mind that validation can take time.")
-                    sleep(1)
-                self.log.error("Unable get Passfail validation!")
-            else:
-                self.log.error("Unable to validate Passfail configuration!")
 
     @staticmethod
     def _get_other_modules(config):
@@ -388,14 +386,14 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.log.warning("Dumping available locations instead of running the test:\n%s", table.table)
             raise NormalShutdown("Done listing locations")
 
-    def _filter_reporting(self):
+    def _filter_reporting(self, mod_name):
         reporting = self.engine.config.get(Reporter.REP, [])
         new_reporting = []
         for index, reporter in enumerate(reporting):
             exc = TaurusConfigError("'module' attribute not found in %s" % reporter)
             cls = reporter.get('module', exc)
-            if cls == "blazemeter":
-                self.log.warning("Explicit blazemeter reporting is skipped for cloud")
+            if cls == mod_name:
+                self.log.debug(f"Remove {mod_name} for Cloud provisioning: {reporter}")
             else:
                 new_reporting.append(reporter)
 
