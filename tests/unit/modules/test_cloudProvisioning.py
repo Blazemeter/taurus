@@ -1586,7 +1586,7 @@ class TestCloudProvisioning(BZTestCase):
 
         passfail_exists = any(rep.get('module') == 'passfail' for rep in self.obj.engine.config['reporting'])
         self.assertTrue(passfail_exists)
-        self.assertNot(self.obj.engine.config['reporting'][0]['criteria'], criteria)
+        self.assertEqual(self.obj.engine.config['reporting'][0]['criteria'], criteria)
 
         self.obj.prepare()
 
