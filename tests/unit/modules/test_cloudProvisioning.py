@@ -1584,8 +1584,14 @@ class TestCloudProvisioning(BZTestCase):
         )
         self.sniff_log(self.obj.log)
 
+        passfail_exists = any(rep.get('module') == 'passfail' for rep in self.obj.engine.config['reporting'])
+        self.assertTrue(passfail_exists)
+        self.assertNot(self.obj.engine.config['reporting'][0]['criteria'], criteria)
+
         self.obj.prepare()
-        self.assertEqual(self.obj.engine.config['reporting'][0]['criteria'], criteria)
+
+        passfail_exists = any(rep.get('module') == 'passfail' for rep in self.obj.engine.config['reporting'])
+        self.assertFalse(passfail_exists)
 
         self.obj.startup()
         self.obj.check()
