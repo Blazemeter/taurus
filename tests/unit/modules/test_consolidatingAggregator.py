@@ -1,3 +1,5 @@
+import os
+import json
 from random import random, choice
 
 from apiritif import random_string
@@ -118,6 +120,34 @@ class TestConsolidatingAggregator(BZTestCase):
         super(TestConsolidatingAggregator, self).setUp()
         self.obj = ConsolidatingAggregator()
         self.obj.engine = EngineEmul()
+
+    def test_extend_data(self):
+        self.obj.settings['extend-aggregation'] = True
+        reader = MockReader()
+        watcher = MockReader()
+
+        reader.buffer_scale_idx = '100.0'
+        # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
+        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 1))
+        reader.data.append((2, "b", 1, 2, 2, 2, 200, 'OK', '', 2))
+        reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 3))
+        reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 4))
+        reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 5))
+        reader.data.append((5, "b", 1, 6, 6, 6, 200, None, '', 6))
+        reader.data.append((5, "c", 1, 7, 7, 7, 200, None, '', 7))
+        original_labels = list(d[1] for d in reader.data) + ['']
+
+        self.obj.add_underling(reader)
+        self.obj.add_listener(watcher)
+
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
+
+        converted_data = [self.obj.converter(dp) for dp in watcher.results]
+        self.assertNotEqual(0, converted_data[3]["current"][""]["success"]["avg_rt"])
 
     def test_two_executions(self):
         self.obj.track_percentiles = [0, 50, 100]
