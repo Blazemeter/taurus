@@ -9,7 +9,7 @@ from io import BytesIO
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import EXEC
-from bzt.modules.apiritif import ApiritifNoseExecutor
+from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules.selenium import SeleniumExecutor

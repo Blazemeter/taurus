@@ -35,7 +35,7 @@ setup(
     license='Apache 2.0',
     install_requires=requires,
     packages=['bzt', 'bzt.engine', 'bzt.jmx', 'bzt.modules', 'bzt.resources', 'bzt.resources.version',
-              'bzt.modules.java', 'bzt.modules.apiritif', 'bzt.modules.blazemeter'],
+              'bzt.modules.java', 'bzt.modules._apiritif', 'bzt.modules.blazemeter'],
     entry_points={
         'console_scripts': [
             'bzt=bzt.cli:main',

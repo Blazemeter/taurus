@@ -6,7 +6,7 @@ import os
 
 import bzt.utils
 from bzt import TaurusConfigError
-from bzt.modules.apiritif.generator import is_selenium_4
+from bzt.modules._apiritif.generator import is_selenium_4
 from tests.unit import RESOURCES_DIR
 from tests.unit.modules._selenium import SeleniumTestCase
 
@@ -2326,8 +2326,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 class TestIsSelenium4(SeleniumTestCase):
     def setUp(self):
         super(TestIsSelenium4, self).setUp()
-        self.store = bzt.modules.apiritif.generator.is_selenium_4
-        bzt.modules.apiritif.generator.is_selenium_4 = lambda: True
+        self.store = bzt.modules._apiritif.generator.is_selenium_4
+        bzt.modules._apiritif.generator.is_selenium_4 = lambda: True
 
     def test_ignore_proxy_option_generator_selenium_4(self):
         # Option ignore_proxy is only available starting from Selenium version 4
@@ -2406,5 +2406,5 @@ class TestIsSelenium4(SeleniumTestCase):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
     def tearDown(self):
-        bzt.modules.apiritif.generator.is_selenium_4 = self.store
+        bzt.modules._apiritif.generator.is_selenium_4 = self.store
         super(TestIsSelenium4, self).tearDown()

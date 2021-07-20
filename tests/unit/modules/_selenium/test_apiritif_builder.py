@@ -3,8 +3,8 @@ import tempfile
 from bzt import TaurusConfigError
 from bzt.modules import ConsolidatingAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.apiritif import ApiritifNoseExecutor
-from bzt.modules.apiritif.executor import ApiritifLoadReader, ApiritifFuncReader
+from bzt.modules._apiritif import ApiritifNoseExecutor
+from bzt.modules._apiritif.executor import ApiritifLoadReader, ApiritifFuncReader
 from tests.unit import RESOURCES_DIR, ExecutorTestCase, EngineEmul
 
 
