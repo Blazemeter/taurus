@@ -24,7 +24,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from bzt.bza import BZAProxy
 from bzt.engine import Service, Singletone
 from bzt.modules import SubprocessedExecutor
-from bzt.modules.selenium import AbstractSeleniumExecutor
+from bzt.modules._selenium import AbstractSeleniumExecutor
 from bzt.utils import is_windows, is_linux, RESOURCES_DIR
 
 

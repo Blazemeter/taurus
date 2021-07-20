@@ -12,7 +12,7 @@ from selenium.common.exceptions import NoSuchElementException
 import bzt
 from bzt.engine import EXEC
 from bzt.modules import ConsolidatingAggregator
-from bzt.modules.selenium import GeckoDriver
+from bzt.modules._selenium import GeckoDriver
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
 from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules.pytest import PyTestExecutor

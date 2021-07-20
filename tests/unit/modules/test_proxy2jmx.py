@@ -5,7 +5,7 @@ from os.path import join
 
 from bzt import TaurusConfigError
 from bzt.modules.proxy2jmx import Proxy2JMX, BZAProxy
-from bzt.modules.selenium import SeleniumExecutor
+from bzt.modules._selenium import SeleniumExecutor
 from bzt.utils import is_windows, is_linux, get_full_path, RESOURCES_DIR
 from tests.unit import BZTestCase, EngineEmul
 
