@@ -5,7 +5,7 @@ from os.path import join
 
 from bzt import ToolError
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.molotov import MolotovExecutor, MolotovReportReader
+from bzt.modules._molotov import MolotovExecutor, MolotovReportReader
 from bzt.utils import EXE_SUFFIX, is_windows
 from tests.unit import BZTestCase, ExecutorTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 
