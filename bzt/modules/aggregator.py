@@ -808,13 +808,18 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             original_label, state = key[:sep], key[sep + 1:]
             kpi_set = data.pop(key)
             if original_label not in data:
-                data[original_label] = {}
+                data[original_label] = dict()
             data[original_label][state] = kpi_set
             if '' not in data:
                 data[''] = dict()
-            if state not in data['']:
-                data[''][state] = KPISet()
-            data[''][state].merge_kpis(kpi_set)
+            overall = data['']
+
+            if state not in overall:
+                overall[state] = KPISet()
+            overall[state].merge_kpis(kpi_set)
+
+        for overall in data[''].values():
+            overall.recalculate()
 
     def prepare(self):
         """

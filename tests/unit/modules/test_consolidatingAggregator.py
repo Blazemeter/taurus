@@ -135,7 +135,6 @@ class TestConsolidatingAggregator(BZTestCase):
         reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 5))
         reader.data.append((5, "b", 1, 6, 6, 6, 200, None, '', 6))
         reader.data.append((5, "c", 1, 7, 7, 7, 200, None, '', 7))
-        original_labels = list(d[1] for d in reader.data) + ['']
 
         self.obj.add_underling(reader)
         self.obj.add_listener(watcher)
@@ -147,7 +146,11 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.post_process()
 
         converted_data = [self.obj.converter(dp) for dp in watcher.results]
-        self.assertNotEqual(0, converted_data[3]["current"][""]["success"]["avg_rt"])
+        a, overall = (converted_data[0]["current"][key]["success"]["avg_rt"] for key in ("a", ""))
+        self.assertEqual(a, overall)
+
+        b, c, overall = (converted_data[-1]["current"][key]["success"]["avg_rt"] for key in ("b", "c", ""))
+        self.assertEqual(overall, (b + c) / 2.0)
 
     def test_two_executions(self):
         self.obj.track_percentiles = [0, 50, 100]
