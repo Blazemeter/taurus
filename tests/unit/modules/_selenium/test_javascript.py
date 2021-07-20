@@ -11,7 +11,7 @@ from bzt.modules.javascript import NPMPackage, WebdriverIOExecutor, JavaScriptEx
 from bzt.utils import get_full_path, EXE_SUFFIX
 
 from tests.unit import RESOURCES_DIR, BZTestCase, EngineEmul
-from tests.unit.modules.selenium import SeleniumTestCase
+from tests.unit.modules._selenium import SeleniumTestCase
 
 
 class TestSeleniumMochaRunner(SeleniumTestCase):

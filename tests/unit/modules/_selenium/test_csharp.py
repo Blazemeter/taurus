@@ -4,7 +4,7 @@ import time
 from bzt.modules.csharp import NUnitExecutor, XUnitExecutor, Dotnet
 from bzt.utils import is_windows
 from tests.unit import RESOURCES_DIR
-from tests.unit.modules.selenium import SeleniumTestCase
+from tests.unit.modules._selenium import SeleniumTestCase
 
 
 def check_if_installed_mock(obj):

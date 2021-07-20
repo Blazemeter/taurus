@@ -18,7 +18,7 @@ from bzt.modules.apiritif import ApiritifNoseExecutor
 from bzt.modules.pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
 from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase
-from tests.unit.modules.selenium import SeleniumTestCase
+from tests.unit.modules._selenium import SeleniumTestCase
 from bzt.utils import EXE_SUFFIX, is_windows
 from bzt.resources.selenium_extras import get_locator, BYS, find_element_by_shadow
 

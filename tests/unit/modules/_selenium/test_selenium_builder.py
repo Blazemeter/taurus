@@ -8,7 +8,7 @@ import bzt.utils
 from bzt import TaurusConfigError
 from bzt.modules.apiritif.generator import is_selenium_4
 from tests.unit import RESOURCES_DIR
-from tests.unit.modules.selenium import SeleniumTestCase
+from tests.unit.modules._selenium import SeleniumTestCase
 
 
 class TestSeleniumScriptGeneration(SeleniumTestCase):
