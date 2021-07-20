@@ -8,7 +8,7 @@ from bzt import ToolError
 from bzt.utils import dehumanize_time, EXE_SUFFIX
 from bzt.modules.jmeter import JTLReader
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
-from bzt.modules.locustio import LocustIOExecutor, WorkersReader
+from bzt.modules._locustio import LocustIOExecutor, WorkersReader
 from bzt.modules.provisioning import Local
 
 from tests.unit import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
@@ -87,7 +87,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         }})
 
         self.obj.prepare()
-        with mock.patch('bzt.modules.locustio.LocustIOExecutor._execute') as m:
+        with mock.patch('bzt.modules._locustio.LocustIOExecutor._execute') as m:
             self.obj.startup()
             # Extract the hatch-rate cmdline arg that bzt passed to locust.
             hatch = [
