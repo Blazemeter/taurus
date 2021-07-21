@@ -14,7 +14,7 @@ modules:
       http: bzt.jmx.http.HTTPProtocolHandler
       mqtt: bzt.jmx.mqtt.MQTTProtocolHandler
   locust:
-    class: bzt.modules.locustio.LocustIOExecutor
+    class: bzt.modules._locustio.LocustIOExecutor
   molotov:
     class: bzt.modules.molotov.MolotovExecutor
   siege:
@@ -28,7 +28,7 @@ modules:
 
   # selenium & functional executors
   selenium:
-    class: bzt.modules.selenium.SeleniumExecutor
+    class: bzt.modules._selenium.SeleniumExecutor
   junit:
     class: bzt.modules.java.JUnitTester
   testng:
@@ -42,7 +42,7 @@ modules:
   xunit:
     class: bzt.modules.csharp.XUnitExecutor
   pytest:
-    class: bzt.modules.pytest.PyTestExecutor
+    class: bzt.modules._pytest.PyTestExecutor
   wdio:
     class: bzt.modules.javascript.WebdriverIOExecutor
   robot:
@@ -50,7 +50,7 @@ modules:
   newman:
     class: bzt.modules.javascript.NewmanExecutor
   apiritif:
-    class: bzt.modules.apiritif.ApiritifNoseExecutor
+    class: bzt.modules._apiritif.ApiritifNoseExecutor
 
   # service & infra modules
   local:

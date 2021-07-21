@@ -15,7 +15,7 @@ from bzt.modules import ConsolidatingAggregator
 from bzt.modules._selenium import GeckoDriver
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
 from bzt.modules._apiritif import ApiritifNoseExecutor
-from bzt.modules.pytest import PyTestExecutor
+from bzt.modules._pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
 from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase
 from tests.unit.modules._selenium import SeleniumTestCase
