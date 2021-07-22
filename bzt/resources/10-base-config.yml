@@ -16,7 +16,7 @@ modules:
   locust:
     class: bzt.modules._locustio.LocustIOExecutor
   molotov:
-    class: bzt.modules.molotov.MolotovExecutor
+    class: bzt.modules._molotov.MolotovExecutor
   siege:
     class: bzt.modules.siege.SiegeExecutor
   tsung:
