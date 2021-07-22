@@ -36,7 +36,7 @@ class TestZipFolder(BZTestCase):
                 "scenario": {
                     "script": RESOURCES_DIR + "selenium/junit/java_package"}},
             "modules": {
-                "selenium": "bzt.modules.selenium.SeleniumExecutor",
+                "selenium": "bzt.modules._selenium.SeleniumExecutor",
                 "cloud": "bzt.modules.blazemeter.CloudProvisioning",
                 "junit": "bzt.modules.java.JUnitTester"},
             "provisioning": "cloud"
@@ -82,7 +82,7 @@ class TestZipFolder(BZTestCase):
                 "scenario": {
                     "script": "java_package.zip"}},
             "modules": {
-                "selenium": "bzt.modules.selenium.SeleniumExecutor",
+                "selenium": "bzt.modules._selenium.SeleniumExecutor",
                 "cloud": "bzt.modules.blazemeter.CloudProvisioning"},
             "provisioning": "local"
         })

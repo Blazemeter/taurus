@@ -17,8 +17,8 @@ from bzt.modules.blazemeter.cloud_provisioning import ResultsFromBZA, ServiceStu
 from bzt.modules.blazemeter import BlazeMeterUploader
 from bzt.modules.blazemeter.cloud_test import CloudTaurusTest, FUNC_API_TEST_TYPE, FUNC_GUI_TEST_TYPE
 from bzt.modules.reporting import FinalStatus
-from bzt.modules.selenium import SeleniumExecutor
-from bzt.modules.apiritif import ApiritifTester
+from bzt.modules._selenium import SeleniumExecutor
+from bzt.modules._apiritif import ApiritifTester
 from bzt.utils import get_full_path, BetterDict
 from tests.unit import BZTestCase, BZT_DIR, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER, EngineEmul
 from tests.unit.mocks import ModuleMock, BZMock

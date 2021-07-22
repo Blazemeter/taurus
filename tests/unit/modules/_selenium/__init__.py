@@ -1,5 +1,5 @@
 from tests.unit import local_paths_config, ExecutorTestCase
-from bzt.modules.selenium import SeleniumExecutor
+from bzt.modules._selenium import SeleniumExecutor
 from bzt.modules.services import VirtualDisplay
 
 

@@ -11,10 +11,10 @@ from bzt.modules.java import JUnitTester, TestNGTester
 from bzt.modules.java.executors import JavaTestRunner
 from bzt.modules.java.tools import JavaC, JarTool, Hamcrest, SeleniumServer
 from bzt.modules.jmeter import JTLReader
-from bzt.modules.selenium import SeleniumExecutor
+from bzt.modules._selenium import SeleniumExecutor
 from bzt.utils import ToolError
 from tests.unit import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ExecutorTestCase, EngineEmul
-from tests.unit.modules.selenium import SeleniumTestCase
+from tests.unit.modules._selenium import SeleniumTestCase
 
 
 class TestTestNGTester(ExecutorTestCase):
@@ -255,7 +255,7 @@ class TestJUnitTester(BZTestCase):
 
 class TestSeleniumJUnitTester(SeleniumTestCase):
     """
-    :type obj: bzt.modules.selenium.SeleniumExecutor
+    :type obj: bzt.modules._selenium.SeleniumExecutor
     """
 
     def __init__(self, methodName='runTest'):

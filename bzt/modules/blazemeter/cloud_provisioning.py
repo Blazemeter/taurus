@@ -37,7 +37,7 @@ from bzt.modules.aggregator import DataPoint, KPISet, ResultsProvider
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.modules.monitoring import LocalClient
-from bzt.modules.selenium import SeleniumExecutor
+from bzt.modules._selenium import SeleniumExecutor
 from bzt.modules.services import Unpacker
 from bzt.requests_model import has_variable_pattern
 from bzt.utils import iteritems, open_browser, BetterDict, ExceptionalDownloader, ProgressBarContext

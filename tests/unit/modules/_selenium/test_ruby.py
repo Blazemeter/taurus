@@ -4,7 +4,7 @@ import os
 import bzt
 from bzt.utils import EXE_SUFFIX
 from tests.unit import RESOURCES_DIR
-from tests.unit.modules.selenium import SeleniumTestCase
+from tests.unit.modules._selenium import SeleniumTestCase
 
 
 class TestSeleniumRSpecRunner(SeleniumTestCase):

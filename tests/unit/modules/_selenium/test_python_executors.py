@@ -12,13 +12,13 @@ from selenium.common.exceptions import NoSuchElementException
 import bzt
 from bzt.engine import EXEC
 from bzt.modules import ConsolidatingAggregator
-from bzt.modules.selenium import GeckoDriver
+from bzt.modules._selenium import GeckoDriver
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
-from bzt.modules.apiritif import ApiritifNoseExecutor
-from bzt.modules.pytest import PyTestExecutor
+from bzt.modules._apiritif import ApiritifNoseExecutor
+from bzt.modules._pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
 from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase
-from tests.unit.modules.selenium import SeleniumTestCase
+from tests.unit.modules._selenium import SeleniumTestCase
 from bzt.utils import EXE_SUFFIX, is_windows
 from bzt.resources.selenium_extras import get_locator, BYS, find_element_by_shadow
 
