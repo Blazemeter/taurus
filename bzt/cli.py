@@ -168,7 +168,8 @@ class CLI(object):
         if self.options.no_system_configs is None:
             self.options.no_system_configs = False
 
-        if not self.options.no_system_configs:
+        load_hidden_configs = not self.options.no_system_configs
+        if load_hidden_configs:
             bzt_rc = os.path.expanduser(os.path.join('~', ".bzt-rc"))
             if os.path.exists(bzt_rc):
                 self.log.debug("Using personal config: %s" % bzt_rc)
@@ -177,7 +178,7 @@ class CLI(object):
                 self.log.info("No personal config found, creating one at %s", bzt_rc)
                 shutil.copy(os.path.join(RESOURCES_DIR, 'base-bzt-rc.yml'), bzt_rc)
 
-            configs += [bzt_rc]
+            configs.insert(0, bzt_rc)
 
         self.log.info("Starting with configs: %s", configs)
         merged_config = self.engine.configure(configs, not self.options.no_system_configs)
