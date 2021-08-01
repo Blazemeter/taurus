@@ -1,7 +1,6 @@
 import logging
 import difflib
 import ast
-import astunparse
 import sys
 from io import StringIO
 from logging import Handler
@@ -9,7 +8,7 @@ from unittest.case import TestCase
 
 from bzt.engine import ScenarioExecutor, EXEC
 from bzt.engine import SelfDiagnosable
-from bzt.utils import get_full_path
+from bzt.utils import get_full_path, unparse_ast
 from tests.unit import ROOT_LOGGER, EngineEmul
 from tests.unit.mocks import DummyOut
 
@@ -105,8 +104,8 @@ class BZTestCase(TestCase):
             exp_lines = [x.replace(key, subs[key]).rstrip() for x in exp_lines]
 
         if python_files:
-            act_lines = astunparse.unparse(ast.parse('\n'.join(act_lines))).split('\n')
-            exp_lines = astunparse.unparse(ast.parse('\n'.join(exp_lines))).split('\n')
+            act_lines = unparse_ast(ast.parse('\n'.join(act_lines))).split('\n')
+            exp_lines = unparse_ast(ast.parse('\n'.join(exp_lines))).split('\n')
 
         diff = list(difflib.unified_diff(exp_lines, act_lines))
 

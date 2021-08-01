@@ -16,6 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import ast
 import codecs
 import copy
 import csv
@@ -1705,6 +1706,13 @@ class PythonGenerator(object):
 
     def gen_new_line(self, indent=0):
         return self.gen_statement("", indent=indent)
+
+
+if sys.version_info >= (3, 9):
+    unparse_ast = ast.unparse
+else:
+    import astunparse
+    unparse_ast = astunparse.unparse
 
 
 def str_representer(dumper, data):

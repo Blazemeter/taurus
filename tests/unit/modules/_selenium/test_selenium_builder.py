@@ -1,11 +1,11 @@
 # coding=utf-8
 
 import ast
-import astunparse
 import os
 
 import bzt.utils
 from bzt import TaurusConfigError
+from bzt.utils import unparse_ast
 from bzt.modules._apiritif.generator import is_selenium_4
 from tests.unit import RESOURCES_DIR
 from tests.unit.modules._selenium import SeleniumTestCase
@@ -1114,7 +1114,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         ]
 
         for idx in range(len(target_lines)):
-            target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
+            target_lines[idx] = unparse_ast(ast.parse(target_lines[idx]))
             self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
                           TestSeleniumScriptGeneration.clear_spaces(content),
                           msg="\n\n%s. %s" % (idx, target_lines[idx]))
@@ -1152,7 +1152,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "self.driver.find_element(target[0],target[1])).perform()"
         ]
         for idx in range(len(target_lines)):
-            target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
+            target_lines[idx] = unparse_ast(ast.parse(target_lines[idx]))
             self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
                           TestSeleniumScriptGeneration.clear_spaces(content),
                           msg="\n\n%s. %s" % (idx, target_lines[idx]))
@@ -1967,7 +1967,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "wait_for('notclickable', [{'id':'myId'}], 10.0)"
         ]
         for idx in range(len(target_lines)):
-            target_lines[idx] = astunparse.unparse(ast.parse(target_lines[idx]))
+            target_lines[idx] = unparse_ast(ast.parse(target_lines[idx]))
             self.assertIn(TestSeleniumScriptGeneration.clear_spaces(target_lines[idx]),
                           TestSeleniumScriptGeneration.clear_spaces(content),
                           msg="\n\n%s. %s" % (idx, target_lines[idx]))

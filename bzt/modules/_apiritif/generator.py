@@ -21,14 +21,13 @@ import string
 from collections import OrderedDict
 from urllib import parse
 
-import astunparse
 import selenium
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
     SetVariables, IncludeScenarioBlock
-from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, is_selenium_4
+from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, is_selenium_4, unparse_ast
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, gen_try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
 
@@ -1942,7 +1941,7 @@ from selenium.webdriver.common.keys import Keys
     def save(self, filename):
         with open(filename, 'wt', encoding='utf8') as fds:
             fds.write("# coding=utf-8\n")
-            fds.write(astunparse.unparse(self.tree))
+            fds.write(unparse_ast(self.tree))
 
     def _gen_logging(self):
         set_log = ast.Assign(

@@ -1,5 +1,5 @@
 apiritif>=0.9.8
-astunparse>=1.6.0
+astunparse>=1.6.0; python_version < '3.9'
 colorama; sys_platform == 'win32'
 colorlog
 cssselect
