@@ -18,6 +18,7 @@ import ast
 import math
 import re
 import string
+import sys
 from collections import OrderedDict
 from urllib import parse
 
@@ -1223,8 +1224,11 @@ from selenium.webdriver.common.keys import Keys
         stmts.append(self._gen_classdef())
 
         stmts = self._gen_imports() + stmts  # todo: order is important (with classdef) because of self.appium setup
-
-        return ast.Module(body=stmts)
+        if sys.version_info >= (3, 8):
+            # 3.8 AST has new type_ignores field
+            return ast.Module(body=stmts, type_ignores=[])
+        else:
+            return ast.Module(body=stmts, **kwargs)
 
     def _gen_imports(self):
         imports = [
@@ -1941,6 +1945,7 @@ from selenium.webdriver.common.keys import Keys
     def save(self, filename):
         with open(filename, 'wt', encoding='utf8') as fds:
             fds.write("# coding=utf-8\n")
+            ast.fix_missing_locations(self.tree)
             fds.write(unparse_ast(self.tree))
 
     def _gen_logging(self):
