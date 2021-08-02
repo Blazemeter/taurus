@@ -86,7 +86,7 @@ class GatlingScriptBuilder(object):
                 exec_str += "exec(\n"
                 exec_str += self.indent("_", level=2)
                 for k, v in sorted(req.mapping.items()):
-                    exec_str += ".set(%r, %r)" % (k, v)
+                    exec_str += '.set("%s", "%s")' % (k.replace("\"", "\\\""), v.replace("\"", "\\\""))
 
                 exec_str += "\n" + self.indent(")", level=1)
                 continue

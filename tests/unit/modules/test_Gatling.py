@@ -367,7 +367,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                     },
                     '/${foo}/${foo2}',
                     {
-                        "set-variables": {"hanging": "loose"}
+                        "set-variables": {"hanging": "loose\"'"}
                     },
                 ],
             }
