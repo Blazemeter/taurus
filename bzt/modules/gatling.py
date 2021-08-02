@@ -26,7 +26,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.requests_model import HTTPRequest, SetVariables
+from bzt.requests_model import HTTPRequest, SetVariables, HierarchicRequestParser
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
 from bzt.utils import simple_body_dict, CALL_PROBLEMS, numeric_types
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
@@ -78,7 +78,7 @@ class GatlingScriptBuilder(object):
 
     def _get_exec(self):
         exec_str = ''
-        for req in self.scenario.get_requests():
+        for req in self.scenario.get_requests(parser=HierarchicRequestParser):
             if isinstance(req, SetVariables):
                 if len(exec_str) > 0:
                     exec_str += '.'
