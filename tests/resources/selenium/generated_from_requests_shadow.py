@@ -24,7 +24,7 @@ from bzt.resources.selenium_extras import waiter, get_locator, find_element_by_s
 class TestLocSc(unittest.TestCase):
 
     def setUp(self):
-        self.vars = {'city_select_name': 'fromPort', 'input_name_id': 'inputName'}
+        self.vars = {'button_name': 'test_btn', 'city_select_name': 'fromPort', 'input_name_id': 'inputName'}
 
         timeout = 3.5
         options = webdriver.ChromeOptions()
@@ -42,7 +42,7 @@ class TestLocSc(unittest.TestCase):
 
             self.assertEqual(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('innerText').strip(), 'text'.strip())
 
-            self.assertEqual(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('innerText').strip(), 'text'.strip())
+            self.assertEqual(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button[name={}]'.format(self.vars['button_name'])).get_attribute('innerText').strip(), 'text'.strip())
 
             self.assertEqual(find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').get_attribute('value').strip(), 'value'.strip())
 

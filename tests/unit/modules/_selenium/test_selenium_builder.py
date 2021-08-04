@@ -2189,7 +2189,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         "browser": "Chrome",
                         "variables": {
                             "city_select_name": "fromPort",
-                            "input_name_id": "inputName"
+                            "input_name_id": "inputName",
+                            "button_name": "test_btn"
                         },
                         "timeout": "3.5s",
                         "requests": [
@@ -2199,7 +2200,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     {"assertTextByShadow(c-basic, lightning-accordion-section, .slds-button)": "text"},
                                     {
                                         "type": "assertText",
-                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button[name=${button_name}]",
                                         "param": "text"
                                     },
                                     {
