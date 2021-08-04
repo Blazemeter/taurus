@@ -21,13 +21,12 @@ import os
 import re
 import time
 from collections import defaultdict
-from distutils.version import LooseVersion
 
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.requests_model import HTTPRequest
+from bzt.requests_model import HTTPRequest, SetVariables, HierarchicRequestParser
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
 from bzt.utils import simple_body_dict, CALL_PROBLEMS, numeric_types
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
@@ -79,7 +78,19 @@ class GatlingScriptBuilder(object):
 
     def _get_exec(self):
         exec_str = ''
-        for req in self.scenario.get_requests():
+        for req in self.scenario.get_requests(parser=HierarchicRequestParser):
+            if isinstance(req, SetVariables):
+                if len(exec_str) > 0:
+                    exec_str += '.'
+
+                exec_str += "exec(\n"
+                exec_str += self.indent("_", level=2)
+                for k, v in sorted(req.mapping.items()):
+                    exec_str += '.set("%s", "%s")' % (k.replace("\"", "\\\""), v.replace("\"", "\\\""))
+
+                exec_str += "\n" + self.indent(")", level=1)
+                continue
+
             if not isinstance(req, HTTPRequest):
                 msg = "Gatling simulation generator doesn't support '%s' blocks, skipping"
                 self.log.warning(msg, req.NAME)
@@ -111,12 +122,12 @@ class GatlingScriptBuilder(object):
                     req.body = json.dumps(req.body)
 
             if isinstance(req.body, str):
-                exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
-                exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
+                stmt = '.body(%(method)s("""%(body)s"""))\n' % {'method': 'StringBody', 'body': req.body}
+                exec_str += self.indent(stmt, level=3)
             elif isinstance(req.body, dict):
                 for key in sorted(req.body.keys()):
-                    exec_str += self.indent('.formParam("%(key)s", "%(val)s")\n', level=3)
-                    exec_str = exec_str % {'key': key, 'val': req.body[key]}
+                    stmt = '.formParam("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.body[key]}
+                    exec_str += self.indent(stmt, level=3)
             elif req.body is not None:
                 self.log.warning("Unknown body type: %s", req.body)
 

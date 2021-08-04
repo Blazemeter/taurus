@@ -93,6 +93,9 @@ class DummyOut:
     def isatty(self):
         return False
 
+    def getvalue(self):
+        return ""
+
 
 class EngineEmul(Engine):
     def __init__(self, custom_configs=None):
