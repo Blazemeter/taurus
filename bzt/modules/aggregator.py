@@ -282,7 +282,9 @@ class KPISet(dict):
             # TODO: throughput if interval is not 1s
 
     def add_concurrency(self, cnc, sid):
-        self._concurrencies[sid] = cnc
+        # sid: source id, e.g. node id for jmeter distributed mode
+        if self._concurrencies.get(sid, 0) < cnc:   # take max value of concurrency during the second.
+            self._concurrencies[sid] = cnc
 
     @staticmethod
     def inc_list(values, selector, value):
