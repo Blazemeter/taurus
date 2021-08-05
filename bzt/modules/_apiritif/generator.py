@@ -153,6 +153,7 @@ from selenium.webdriver.common.keys import Keys
         self.generate_markers = generate_markers
         self.generate_external_handler = generate_external_handler
         self.test_mode = test_mode
+        self.replace_dialogs = True
 
     def _parse_action_params(self, expr, name):
         res = expr.match(name)
@@ -818,6 +819,9 @@ from selenium.webdriver.common.keys import Keys
         """
         Generates the call to DialogsManager to replace dialogs
         """
+        if not self.replace_dialogs:
+            return []
+
         method = "dialogs_replace"
         self.selenium_extras.add(method)
         return [
@@ -1641,7 +1645,9 @@ from selenium.webdriver.common.keys import Keys
                     ast_call(
                         func=ast_attr("self.driver.get"),
                         args=[self._gen_expr(url)])))
-                lines.append(self._gen_replace_dialogs())
+                if "actions" in req.config:
+                    self.replace_dialogs = self._is_dialog_replacement_needed(req.config.get("actions"))
+                    lines.append(self._gen_replace_dialogs())
 
             else:
                 method = req.method.lower()
@@ -1668,7 +1674,10 @@ from selenium.webdriver.common.keys import Keys
             return [ast.Pass()]
 
         if self.test_mode == "selenium":
-            for action in req.config.get("actions"):
+            actions = req.config.get("actions")
+            self.replace_dialogs = self._is_dialog_replacement_needed(actions)
+
+            for action in actions:
                 action_lines = self._gen_action(action)
                 if self.generate_external_handler:
                     action_lines = self._gen_action_start(action) + action_lines + self._gen_action_end(action)
@@ -1696,6 +1705,14 @@ from selenium.webdriver.common.keys import Keys
                     args=[self._gen_expr(think_time)])))
 
         return lines
+
+    def _is_dialog_replacement_needed(self, actions):
+        for action in actions:
+            action_config = self._parse_action(action)
+            if action_config:
+                if action_config[0] in ['assertdialog', 'answerdialog']:
+                    return True
+        return False
 
     def _gen_new_session_start(self):
         return self._gen_action({

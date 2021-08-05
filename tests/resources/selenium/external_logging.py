@@ -9,7 +9,6 @@ from time import time, sleep
 
 import apiritif
 import traceback
-
 import os
 import re
 from selenium import webdriver
@@ -20,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import action_start, dialogs_replace, waiter, get_locator, action_end
+from bzt.resources.selenium_extras import waiter, action_end, get_locator, action_start
 
 class TestSample(unittest.TestCase):
 
@@ -46,13 +45,11 @@ class TestSample(unittest.TestCase):
         action_end({'param': {}, 'type': 'new_session'})
 
 
-
     def _1_Test(self):
         with apiritif.smart_transaction('Test'):
             action_start({'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
             self.driver.get('http://blazedemo.com/')
 
-            dialogs_replace()
             waiter()
             action_end({'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
             action_start({'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})

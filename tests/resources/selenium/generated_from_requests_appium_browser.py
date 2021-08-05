@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_replace, get_locator, wait_for, waiter
+from bzt.resources.selenium_extras import waiter, get_locator, wait_for
 
 class TestLocScAppium(unittest.TestCase):
 
@@ -44,7 +44,6 @@ class TestLocScAppium(unittest.TestCase):
     def _1_(self):
         with apiritif.smart_transaction('/'):
             self.driver.get('http://blazedemo.com/')
-            dialogs_replace()
             wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
             self.assertEqual(self.driver.title, 'BlazeDemo')
             body = self.driver.page_source

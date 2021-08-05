@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import waiter, get_locator, dialogs_replace
+from bzt.resources.selenium_extras import waiter, get_locator
 
 class TestLocSc(unittest.TestCase):
 
@@ -43,7 +43,6 @@ class TestLocSc(unittest.TestCase):
         with apiritif.smart_transaction('Conditions test'):
             self.driver.get('http://blazedemo.com')
 
-            dialogs_replace()
             waiter()
 
             test = self.driver.execute_script('return document.getElementsByName("fromPort")[0].length > 0;')
