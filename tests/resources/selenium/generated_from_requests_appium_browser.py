@@ -31,6 +31,7 @@ class TestLocScAppium(unittest.TestCase):
         options = webdriver.ChromeOptions()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
         options.set_capability('unhandledPromptBehavior', 'ignore')
         self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub',
                                        desired_capabilities={'browserName': 'chrome', 'deviceName': '',
