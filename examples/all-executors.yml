@@ -242,9 +242,3 @@ execution:
     requests:
       - url: http://localhost:8000/
         label: apiritif
-
-modules:
-  selenium:
-    options:
-      arguments:
-        - disable-gpu

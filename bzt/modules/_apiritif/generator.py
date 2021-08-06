@@ -1053,15 +1053,21 @@ from selenium.webdriver.common.keys import Keys
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
-                    args=[ast.Str("%s" % "--no-sandbox", kind="")])),
+                    args=[ast.Str("--no-sandbox", kind="")])),
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
-                    args=[ast.Str("%s" % "--disable-dev-shm-usage", kind="")])),
+                    args=[ast.Str("--disable-dev-shm-usage", kind="")])),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.add_argument"),
+                    args=[ast.Str("--disable-gpu", kind="")])),
+
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.set_capability"),
-                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))]
+                    args=[ast.Str("unhandledPromptBehavior", kind=""),
+                          ast.Str("ignore", kind="")]))]
 
         return chrome_options + self._get_headless_setup()
 
