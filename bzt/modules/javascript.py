@@ -343,16 +343,16 @@ class JSSeleniumWebdriver(NPMPackage):
     PACKAGE_NAME = "selenium-webdriver@3.6.0"
 
 class WDIO(NPMPackage):
-    PACKAGE_NAME = "@wdio/cli@6.1.9"
+    PACKAGE_NAME = "@wdio/cli@7.9.0"
 
 class WDIORunner(NPMPackage):
-    PACKAGE_NAME = "@wdio/local-runner@6.1.9"
+    PACKAGE_NAME = "@wdio/local-runner@7.9.0"
 
 class WDIOReporter(NPMPackage):
-    PACKAGE_NAME = "@wdio/reporter@6.1.9"
+    PACKAGE_NAME = "@wdio/reporter@7.9.0"
 
 class WDIOMochaPlugin(NPMPackage):
-    PACKAGE_NAME = "@wdio/mocha-framework@6.1.8"
+    PACKAGE_NAME = "@wdio/mocha-framework@7.9.0"
 
 
 class Newman(NPMPackage):
