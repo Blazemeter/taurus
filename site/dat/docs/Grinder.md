@@ -1,4 +1,5 @@
 # Grinder Executor
+_Warning! Grinder Executor is outdated and will be removed soon._
 
 ## Running Grinder
 
