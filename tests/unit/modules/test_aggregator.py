@@ -72,10 +72,17 @@ class TestResultsReader(BZTestCase):
         mock.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
         mock.data.append((1, "b", 3, 2, 2, 2, 200, None, '', 0))
         mock.data.append((1, "c", 2, 4, 4, 4, 200, None, '', 0))
+        mock.data.append((2, "a", 2, 4, 4, 4, 200, None, '', 0))
 
-        data_point = list(mock.datapoints(True))[0]
-        self.assertEqual(3, data_point[DataPoint.CURRENT][''][KPISet.CONCURRENCY])
-        self.assertEqual(3, data_point[DataPoint.CUMULATIVE][''][KPISet.CONCURRENCY])
+        data_points = list(mock.datapoints(True))
+
+        results = {0: [3, 3],   # current & cumulative for second #1
+                   1: [2, 3]}   # current & cumulative for second #2
+
+        for num in results:
+            targets = (DataPoint.CURRENT, DataPoint.CUMULATIVE)
+            concurrencies = [data_points[num][kpi_set][''][KPISet.CONCURRENCY] for kpi_set in targets]
+            self.assertEqual(concurrencies, results[num])
 
     def test_sample_ignores(self):
         mock = MockReader()
