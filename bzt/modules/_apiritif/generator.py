@@ -902,6 +902,8 @@ from selenium.webdriver.common.keys import Keys
         browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
         browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
+        if browser == "microsoftedge":    # for remote webdriver only
+            browser = "MicrosoftEdge"
         local_browsers = ["firefox", "chrome", "ie", "opera"] + mobile_browsers
 
         browser_platform = None
