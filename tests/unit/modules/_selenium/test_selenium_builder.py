@@ -913,6 +913,30 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target = "'browserName': 'firefox'"
         self.assertIn(target, content)
 
+    def test_build_script_remote_Edge_browser(self):
+        """ check usage of 'browser' scenario options as browserName (from capabilities) """
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "remote": "http://addr-of-remote-server.com",
+                "scenario": "remote_sc"}],
+            "scenarios": {
+                "remote_sc": {
+                    "browser": "MicrosoftEdge",  # must be faced in desired_capabilities (in camel case)
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "http://blazedemo.com",
+                        "actions": [
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
+                        {"label": "empty"}]}}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target = "'browserName': 'MicrosoftEdge'"
+        self.assertIn(target, content)
+
     def test_build_script_flow_markers(self):
         self.configure({
             "execution": [{
