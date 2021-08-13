@@ -1,2 +1,4 @@
 @echo off
-echo "Package                 Version\n----------------------- -----------\npip                     21.2.3"
+echo "Package                 Version"
+echo "----------------------- -----------"
+echo "pip                     21.2.3"
