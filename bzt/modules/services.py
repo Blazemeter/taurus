@@ -47,7 +47,7 @@ class PipInstaller(Service):
         self.temp = True
         self.target_dir = None
         self.interpreter = sys.executable
-        self.pip_cmd = [self.interpreter, "-m", "pip"]  # todo: change for win to bzt-pip
+        self.pip_cmd = [self.interpreter, "-m", "pip"] if not is_windows() else ["bzt-pip"]
 
     def _install(self, packages):
         if not packages:
@@ -59,6 +59,8 @@ class PipInstaller(Service):
         out, err = exec_and_communicate(cmdline)
         if err:
             self.log.error("pip-installer stderr:\n%s" % err)
+        else:
+            self.log.info("Installed Python packages: %s" % ', '.join(packages))
         self.log.debug("pip-installer stdout: \n%s" % out)
 
     def _missed(self, packages):

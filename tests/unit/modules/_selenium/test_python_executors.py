@@ -1,4 +1,3 @@
-import json
 import os
 
 import time
@@ -17,7 +16,7 @@ from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, Functio
 from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules._pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
-from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase
+from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase, BUILD_DIR
 from tests.unit.modules._selenium import SeleniumTestCase
 from bzt.utils import EXE_SUFFIX, is_windows
 from bzt.resources.selenium_extras import get_locator, BYS, find_element_by_shadow
@@ -367,6 +366,11 @@ class TestPyTestExecutor(ExecutorTestCase):
     EXECUTOR = PyTestExecutor
     CMD_LINE = None
 
+    def setUp(self):
+        super(TestPyTestExecutor, self).setUp()
+        self.obj.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
+        self.obj.engine.user_pythonpath = BUILD_DIR + 'pyinstaller/'
+
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
 
@@ -376,63 +380,62 @@ class TestPyTestExecutor(ExecutorTestCase):
     def full_run(self, config):
         self.obj.execution.merge(config)
 
-        tmp_aec = bzt.utils.exec_and_communicate
+        tmp_eac = bzt.utils.exec_and_communicate
         try:
             bzt.utils.exec_and_communicate = self.exec_and_communicate
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_aec
+            bzt.utils.exec_and_communicate = tmp_eac
 
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
-    def test_full_single_script(self):
-        self.obj.execution.merge({
-            "iterations": 1,
-            "scenario": {
-                "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
-            }
-        })
-        self.obj.prepare()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        self.assertFalse(self.obj.has_results())
-        self.assertNotEquals(self.obj.process, None)
+    # def test_full_single_script(self):
+    #     self.obj.execution.merge({
+    #         "iterations": 1,
+    #         "scenario": {
+    #             "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
+    #         }
+    #     })
+    #     self.obj.prepare()
+    #     try:
+    #         self.obj.startup()
+    #         while not self.obj.check():
+    #             time.sleep(self.obj.engine.check_interval)
+    #     finally:
+    #         self.obj.shutdown()
+    #     self.obj.post_process()
+    #     self.assertFalse(self.obj.has_results())
+    #     self.assertNotEquals(self.obj.process, None)
 
-    def test_statuses(self):
-        self.obj.execution.merge({
-            "scenario": {
-                "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
-            }
-        })
-        self.obj.prepare()
-        try:
-            self.obj.startup()
-            while not self.obj.check():
-                time.sleep(self.obj.engine.check_interval)
-        finally:
-            self.obj.shutdown()
-        self.obj.post_process()
-        with open(self.obj.report_file) as fds:
-            report = [json.loads(line) for line in fds.readlines() if line]
-        self.assertEqual(4, len(report))
-        self.assertEqual(["PASSED", "FAILED", "FAILED", "SKIPPED"], [item["status"] for item in report])
-
-        failed_item = report[1]
-        assertions = failed_item["assertions"]
-        self.assertEqual(1, len(assertions))
-        assertion = assertions[0]
-        self.assertEqual('assert (2 + (2 * 2)) == 8', assertion['error_msg'])
-        self.assertTrue(assertion['failed'])
-        self.assertEqual('AssertionError: assert (2 + (2 * 2)) == 8', assertion['name'])
-        self.assertIsNotNone(assertion.get('error_trace'))
+    # def test_statuses(self):
+    #     self.obj.execution.merge({
+    #         "scenario": {
+    #             "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
+    #         }
+    #     })
+    #     self.obj.prepare()
+    #     try:
+    #         self.obj.startup()
+    #         while not self.obj.check():
+    #             time.sleep(self.obj.engine.check_interval)
+    #     finally:
+    #         self.obj.shutdown()
+    #     self.obj.post_process()
+    #     with open(self.obj.report_file) as fds:
+    #         report = [json.loads(line) for line in fds.readlines() if line]
+    #     self.assertEqual(4, len(report))
+    #     self.assertEqual(["PASSED", "FAILED", "FAILED", "SKIPPED"], [item["status"] for item in report])
+    #
+    #     failed_item = report[1]
+    #     assertions = failed_item["assertions"]
+    #     self.assertEqual(1, len(assertions))
+    #     assertion = assertions[0]
+    #     self.assertEqual('assert (2 + (2 * 2)) == 8', assertion['error_msg'])
+    #     self.assertTrue(assertion['failed'])
+    #     self.assertEqual('AssertionError: assert (2 + (2 * 2)) == 8', assertion['name'])
+    #     self.assertIsNotNone(assertion.get('error_trace'))
 
     def test_report_file(self):
         self.full_run({
@@ -478,12 +481,12 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
 
-        tmp_aec = bzt.utils.exec_and_communicate
+        tmp_eac = bzt.utils.exec_and_communicate
         try:
             bzt.utils.exec_and_communicate = self.exec_and_communicate
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_aec
+            bzt.utils.exec_and_communicate = tmp_eac
 
         driver = self.obj._get_tool(GeckoDriver, config=self.obj.settings.get('geckodriver'))
         if not driver.check_if_installed():
@@ -492,7 +495,6 @@ class TestPyTestExecutor(ExecutorTestCase):
 
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_package(self):
@@ -503,12 +505,12 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
 
-        tmp_aec = bzt.utils.exec_and_communicate
+        tmp_eac = bzt.utils.exec_and_communicate
         try:
             bzt.utils.exec_and_communicate = self.exec_and_communicate
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_aec
+            bzt.utils.exec_and_communicate = tmp_eac
 
         driver = self.obj._get_tool(GeckoDriver, config=self.obj.settings.get('geckodriver'))
         if not driver.check_if_installed():
@@ -517,7 +519,6 @@ class TestPyTestExecutor(ExecutorTestCase):
 
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_additional_args(self):
@@ -551,14 +552,14 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
 
-        tmp_aec = bzt.utils.exec_and_communicate
+        tmp_eac = bzt.utils.exec_and_communicate
         try:
             bzt.utils.exec_and_communicate = self.exec_and_communicate
             self.obj.prepare()
             self.obj.settings["interpreter"] = RESOURCES_DIR + "selenium/robot/robot-mock" + EXE_SUFFIX
             self.obj.startup()
         finally:
-            bzt.utils.exec_and_communicate = tmp_aec
+            bzt.utils.exec_and_communicate = tmp_eac
             self.obj.shutdown()
             self.obj.post_process()
 
@@ -569,12 +570,12 @@ class TestRobotExecutor(ExecutorTestCase):
 
     def full_run(self, config):
         self.configure(config)
-        tmp_aec = bzt.utils.exec_and_communicate
+        tmp_eac = bzt.utils.exec_and_communicate
         try:
             bzt.utils.exec_and_communicate = self.exec_and_communicate
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_aec
+            bzt.utils.exec_and_communicate = tmp_eac
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.shutdown()

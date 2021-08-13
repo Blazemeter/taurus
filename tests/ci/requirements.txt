@@ -4,3 +4,4 @@ robotframework
 http-here
 nose2
 codecov
+pytest>=3
