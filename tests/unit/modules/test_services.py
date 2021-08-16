@@ -8,7 +8,7 @@ from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller
-from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node
+from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node, is_windows
 from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul, BUILD_DIR
 from tests.unit.mocks import ModuleMock, BZMock
 
@@ -28,13 +28,15 @@ class TestPipInstaller(BZTestCase):
         self.sniff_log(self.obj.log)
         self.obj.parameters['packages'] = ['test-package']
         self.obj.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
-
         self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
+
         self.obj.prepare()
         self.assertTrue(os.path.exists(self.obj.engine.temp_pythonpath))
-        self.obj.post_process()
 
-        self.assertFalse(os.path.exists(self.obj.engine.temp_pythonpath))
+        self.obj.post_process()  # remove directory afterwards
+        if not is_windows():
+            self.assertFalse(os.path.exists(self.obj.engine.temp_pythonpath))
+
         self.assertIn("Installed Python packages: test-package", self.log_recorder.info_buff.getvalue())
 
 

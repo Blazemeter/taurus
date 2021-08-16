@@ -369,7 +369,6 @@ class TestPyTestExecutor(ExecutorTestCase):
     def setUp(self):
         super(TestPyTestExecutor, self).setUp()
         self.obj.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
-        self.obj.engine.user_pythonpath = BUILD_DIR + 'pyinstaller/'
 
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
@@ -390,52 +389,6 @@ class TestPyTestExecutor(ExecutorTestCase):
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.post_process()
-
-    # def test_full_single_script(self):
-    #     self.obj.execution.merge({
-    #         "iterations": 1,
-    #         "scenario": {
-    #             "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
-    #         }
-    #     })
-    #     self.obj.prepare()
-    #     try:
-    #         self.obj.startup()
-    #         while not self.obj.check():
-    #             time.sleep(self.obj.engine.check_interval)
-    #     finally:
-    #         self.obj.shutdown()
-    #     self.obj.post_process()
-    #     self.assertFalse(self.obj.has_results())
-    #     self.assertNotEquals(self.obj.process, None)
-
-    # def test_statuses(self):
-    #     self.obj.execution.merge({
-    #         "scenario": {
-    #             "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
-    #         }
-    #     })
-    #     self.obj.prepare()
-    #     try:
-    #         self.obj.startup()
-    #         while not self.obj.check():
-    #             time.sleep(self.obj.engine.check_interval)
-    #     finally:
-    #         self.obj.shutdown()
-    #     self.obj.post_process()
-    #     with open(self.obj.report_file) as fds:
-    #         report = [json.loads(line) for line in fds.readlines() if line]
-    #     self.assertEqual(4, len(report))
-    #     self.assertEqual(["PASSED", "FAILED", "FAILED", "SKIPPED"], [item["status"] for item in report])
-    #
-    #     failed_item = report[1]
-    #     assertions = failed_item["assertions"]
-    #     self.assertEqual(1, len(assertions))
-    #     assertion = assertions[0]
-    #     self.assertEqual('assert (2 + (2 * 2)) == 8', assertion['error_msg'])
-    #     self.assertTrue(assertion['failed'])
-    #     self.assertEqual('AssertionError: assert (2 + (2 * 2)) == 8', assertion['name'])
-    #     self.assertIsNotNone(assertion.get('error_trace'))
 
     def test_report_file(self):
         self.full_run({

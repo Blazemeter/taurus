@@ -23,7 +23,7 @@ from bzt import TaurusConfigError
 from bzt.engine import HavingInstallableTools, SETTINGS
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.services import PipInstaller
-from bzt.utils import FileReader, RESOURCES_DIR, CALL_PROBLEMS, get_full_path
+from bzt.utils import FileReader, RESOURCES_DIR, CALL_PROBLEMS
 from bzt.utils import RequiredTool
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -61,10 +61,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         we need installed nose plugin
         """
         self.pytest = self._get_tool(PyTest, engine=self.engine)
-        self.pytest.tool_name = self.pytest.tool_name.lower()
-        if not self.pytest.check_if_installed():
-            self.pytest.install()
-        self._check_tools([self._get_tool(TaurusPytestRunner, tool_path=self.runner_path)])
+        self._check_tools([self.pytest, self._get_tool(TaurusPytestRunner, tool_path=self.runner_path)])
 
     def startup(self):
         """
@@ -95,6 +92,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
 
     def post_process(self):
         super(PyTestExecutor, self).post_process()
+        self.pytest.post_process()
         self.__log_lines()
 
     def __log_lines(self):
@@ -115,25 +113,27 @@ class PyTest(RequiredTool):
         super(PyTest, self).__init__(tool_path=self.tool_path, **kwargs)
 
     def check_if_installed(self):
-        self.log.debug('Checking PyTest: %s' % self.tool_path)
+        self.log.debug(f"Checking {self.tool_name}: {self.tool_path}")
         try:
-            out, err = self.call([sys.executable, "-m", self.tool_name, "--version"])
+            out, err = self.call([sys.executable, "-m", self.tool_name.lower(), "--version"])
         except CALL_PROBLEMS as exc:
-            self.log.warning("%s check failed: %s", self.tool_name, exc)
+            self.log.debug(f"{self.tool_name} check failed: {exc}")
             return False
 
         if err:
             out += err
-            if f'No module named {self.tool_name}' in err:
-                self.log.warning("%s check failed.", self.tool_name)
+            if f"No module named" in err:
+                self.log.warning(f"{self.tool_name} check failed.")
                 return False
-        self.log.debug("PyTest output: %s", out)
+        self.log.debug(f"{self.tool_name} output: {out}")
         return True
 
     def install(self):
         self.installer.parameters['packages'] = ['pytest']
-        self.installer.temp = False
-        self.installer.prepare()
+        self.installer.install()
+
+    def post_process(self):
+        self.installer.post_process()
 
 
 class TaurusPytestRunner(RequiredTool):

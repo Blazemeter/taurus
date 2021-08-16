@@ -47,9 +47,9 @@ class PipInstaller(Service):
         self.temp = True
         self.target_dir = None
         self.interpreter = sys.executable
-        self.pip_cmd = [self.interpreter, "-m", "pip"] if not is_windows() else ["bzt-pip"]
+        self.pip_cmd = [self.interpreter, "-m", "pip"]
 
-    def _install(self, packages):
+    def _install_packages(self, packages):
         if not packages:
             self.log.debug("Nothing to install")
             return
@@ -81,7 +81,7 @@ class PipInstaller(Service):
     def _reload(self, packages):
         pass     # todo:
 
-    def prepare(self):
+    def install(self):
         """
         pip-installer expect follow definition:
         - service pip-install
@@ -109,7 +109,7 @@ class PipInstaller(Service):
         if not self.packages:
             return
 
-        self._install(self.packages)
+        self._install_packages(self.packages)
 
     def post_process(self):
         if self.packages and self.temp and not is_windows():    # might be forbidden on win as tool still work
