@@ -4,6 +4,7 @@ import shutil
 import zipfile
 from os.path import join
 
+import bzt
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning
@@ -27,6 +28,7 @@ class TestPipInstaller(BZTestCase):
     def test_install(self):
         self.sniff_log(self.obj.log)
         self.obj.parameters['packages'] = ['test-package']
+        self.obj.versions['test-package'] = "0.0.0"
         self.obj.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
         self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
@@ -37,7 +39,7 @@ class TestPipInstaller(BZTestCase):
         if not is_windows():
             self.assertFalse(os.path.exists(self.obj.engine.temp_pythonpath))
 
-        self.assertIn("Installed Python packages: test-package", self.log_recorder.info_buff.getvalue())
+        self.assertIn("Successfully installed test-package-0.0.0", self.log_recorder.info_buff.getvalue())
 
 
 class TestZipFolder(BZTestCase):
