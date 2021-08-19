@@ -32,7 +32,7 @@ class TestPipInstaller(BZTestCase):
         self.obj.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
         self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
-        self.obj.install()
+        self.obj.prepare()
         self.assertTrue(os.path.exists(self.obj.engine.temp_pythonpath))
 
         self.obj.post_process()  # remove directory afterwards

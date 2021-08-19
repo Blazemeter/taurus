@@ -132,7 +132,7 @@ class PyTest(RequiredTool):
         return True
 
     def install(self):
-        self.installer.install()
+        self.installer.prepare()
 
     def post_process(self):
         self.installer.post_process()

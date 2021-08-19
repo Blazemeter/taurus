@@ -50,7 +50,7 @@ class PipInstaller(Service):
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
 
-    def _install_packages(self, packages):
+    def _install(self, packages):
         if not packages:
             self.log.debug("Nothing to install")
             return
@@ -95,7 +95,7 @@ class PipInstaller(Service):
     def _reload(self, packages):
         pass     # todo:
 
-    def install(self):
+    def prepare(self):
         """
         pip-installer expect follow definition:
         - service pip-install
@@ -123,10 +123,10 @@ class PipInstaller(Service):
         if not self.packages:
             return
 
-        self._install_packages(self.packages)
+        self._install(self.packages)
 
     def post_process(self):
-        if self.packages and self.temp and not is_windows():    # might be forbidden on win as tool still work
+        if self.packages and self.temp and not is_windows() and os.path.exists(self.target_dir):    # might be forbidden on win as tool still work
             self.log.debug("remove packages: %s" % self.packages)
 
             shutil.rmtree(self.target_dir)  # it removes all content of directory in reality, not only self.packages
