@@ -155,36 +155,43 @@ See more info [here](Services.md#Virtual-Display-Service).
 ## Browser Options
 
 You can configure the following browser options:  
-`ignore-proxy`: boolean  
+- `ignore-proxy`: boolean  
 HTTP_PROXY and HTTPS_PROXY will be ignored from being picked up and used. Option is only available starting from Selenium version 4.  
-`arguments`: list  
-Add a command-line argument to use when starting browser. Option is only available starting from Selenium version 4.  
-`experimental-options`: dict  
+- `arguments`: list  
+Add [command-line arguments](https://peter.sh/experiments/chromium-command-line-switches/) to use when starting browser.  
+- `experimental-options`: dict  
 Add a dictionary of experimental options. Option is only available in Chrome.  
-`preferences`: dict  
-Add a dictionary of preferences. Option is only available in Firefox.
+- `preferences`: dict  
+Add a [dictionary of preferences](http://kb.mozillazine.org/index.php?title=Category:Preferences&until=Browser.urlbar.restrict.typed). Option is only available in Firefox.
 
 ```yaml
 execution:
 - executor: selenium
   scenario: simple
+  capabilities:
+    browserName: chrome
   
 scenarios:
   simple:
-    browser: chrome
     requests:
-    - http://blazedemo.com/
+      - label: label_1
+        actions:
+          - go(http://blazedemo.com/)
 
 modules:
   selenium:
     options:
       ignore-proxy: true
-      arguments:
-        - incognito
-        - new-window
-      experimental-options:
-        prefs:
-         credentials_enable_service: false
+      arguments:  # for Chrome and Firefox, but each browser has its own set of available arguments
+        - window-size=1920x1080  # to start with a specific window size in Chrome
+        - --use-fake-device-for-media-stream  # to emulate video from camera in Chrome
+        - --use-fake-ui-for-media-stream  # to emulate video from camera in Chrome
+        - user-agent=<ser_agent_value>  # to change user agent in Chrome
+      experimental-options:  # only for Chrome
+        mobileEmulation:
+          deviceName: "iPhone X"  # to Emulate iPhone X in Chrome
+      preferences:  # only for Firefox
+        general.useragent.override: <ser_agent_value>  # to change user agent in Firefox
 ```
 
 ## Appium
