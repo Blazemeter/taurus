@@ -29,7 +29,7 @@ from urllib.error import URLError
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import Service, HavingInstallableTools, Singletone
-from bzt.utils import get_stacktrace, communicate
+from bzt.utils import get_stacktrace, communicate, BetterDict, TaurusCalledProcessError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node, CALL_PROBLEMS, exec_and_communicate
 
@@ -44,20 +44,36 @@ class PipInstaller(Service):
     def __init__(self):
         super(PipInstaller, self).__init__()
         self.packages = []
+        self.versions = BetterDict()
         self.temp = True
         self.target_dir = None
         self.interpreter = sys.executable
-        self.pip_cmd = [self.interpreter, "-m", "pip"]  # todo: change for win to bzt-pip
+        self.pip_cmd = [self.interpreter, "-m", "pip"]
 
     def _install(self, packages):
         if not packages:
             self.log.debug("Nothing to install")
             return
         cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
-        cmdline += self.packages
+        for package in packages:
+            version = self.versions.get(package, None)
+            cmdline += [f"{package}=={version}"] if version else [package]
         self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
-        out, err = exec_and_communicate(cmdline)
-        if err:
+        try:
+            out, err = exec_and_communicate(cmdline)
+        except TaurusCalledProcessError as exc:
+            self.log.debug(exc)
+            for line in exc.output.split('\n'):
+                if line.startswith("ERROR"):
+                    self.log.error(" ".join(line.split(" ")[1:]))
+            return
+        if "Successfully installed" in out:
+            self.log.info(out.split("\n")[-2])
+            if "WARNING" in err:
+                for warning in err.split("\n"):
+                    if warning.startswith('WARNING'):
+                        self.log.warning(" ".join(warning.split(" ")[1:]))
+        else:
             self.log.error("pip-installer stderr:\n%s" % err)
         self.log.debug("pip-installer stdout: \n%s" % out)
 
@@ -88,7 +104,7 @@ class PipInstaller(Service):
           - first_pkg
           - second_pkg
         """
-        self.packages = self.parameters.get("packages", self.packages)  # todo: add versions (dict format?)
+        self.packages = self.parameters.get("packages", self.packages)
         if not self.packages:
             return
 
@@ -110,7 +126,7 @@ class PipInstaller(Service):
         self._install(self.packages)
 
     def post_process(self):
-        if self.packages and self.temp and not is_windows():    # might be forbidden on win as tool still work
+        if self.packages and self.temp and not is_windows() and os.path.exists(self.target_dir):    # might be forbidden on win as tool still work
             self.log.debug("remove packages: %s" % self.packages)
 
             shutil.rmtree(self.target_dir)  # it removes all content of directory in reality, not only self.packages

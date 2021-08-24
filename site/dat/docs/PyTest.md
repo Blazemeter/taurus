@@ -37,11 +37,12 @@ scenarios:
 
 ## Configuration Options
 
-The `interpreter` option allows providing custom interpreter for your tests
-(for example when you're running Taurus with Python 2 but want to run pytest with Python 3).
+The `interpreter` option allows providing custom interpreter for your tests. 
+Also, you can specify PyTest version via `verion` keyword:
 
 ```yaml
 modules:
   pytest:
     interpreter: /usr/local/bin/python  # path to custom Python interpreter
+    version: 6.2.1
 ```
