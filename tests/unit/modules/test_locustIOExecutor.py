@@ -11,7 +11,7 @@ from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules._locustio import LocustIOExecutor, WorkersReader
 from bzt.modules.provisioning import Local
 
-from tests.unit import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
+from tests.unit import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul, BUILD_DIR
 
 
 class TestLocustIOExecutor(ExecutorTestCase):
@@ -154,9 +154,19 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.assertEqual(1, len(resource_files))
 
     def test_worker_aggregation(self):
+        def exec_and_communicate(*args, **kwargs):
+            return "", ""
         self.configure({"execution": {
             "scenario": {"script": RESOURCES_DIR + "locust/simple.py"}}})
-        self.obj.prepare()
+        self.obj.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
+
+        tmp_aec = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = exec_and_communicate
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_aec
+
         self.obj.reader = WorkersReader(RESOURCES_DIR + "locust/locust-workers.ldjson", 2, ROOT_LOGGER)
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.engine.aggregator.engine = EngineEmul()
