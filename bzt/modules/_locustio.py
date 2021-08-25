@@ -26,7 +26,7 @@ from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
-from bzt.modules.services import PipInstaller, PythonTool
+from bzt.modules.services import PythonTool
 from bzt.requests_model import HTTPRequest
 from bzt.utils import iteritems, get_full_path, ensure_is_dict, PythonGenerator, FileReader, CALL_PROBLEMS
 from bzt.utils import shutdown_process, dehumanize_time, RESOURCES_DIR

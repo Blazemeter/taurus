@@ -4,7 +4,6 @@ import shutil
 import zipfile
 from os.path import join
 
-import bzt
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning

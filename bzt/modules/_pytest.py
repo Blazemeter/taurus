@@ -22,8 +22,8 @@ import sys
 from bzt import TaurusConfigError
 from bzt.engine import HavingInstallableTools, SETTINGS
 from bzt.modules import SubprocessedExecutor
-from bzt.modules.services import PipInstaller, PythonTool
-from bzt.utils import FileReader, RESOURCES_DIR, CALL_PROBLEMS
+from bzt.modules.services import PythonTool
+from bzt.utils import FileReader, RESOURCES_DIR
 from bzt.utils import RequiredTool
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
