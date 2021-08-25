@@ -132,6 +132,39 @@ class PipInstaller(Service):
             shutil.rmtree(self.target_dir)  # it removes all content of directory in reality, not only self.packages
 
 
+class PythonTool(RequiredTool):
+    def __init__(self, package, version, engine, **kwargs):
+        self.installer = PipInstaller()
+        self.installer.engine = engine
+        self.installer.parameters['packages'] = [package]
+        if version:
+            self.installer.versions[package] = version
+        self.tool_path = self.installer.engine.temp_pythonpath
+        super(PythonTool, self).__init__(tool_path=self.tool_path, **kwargs)
+
+    def check_if_installed(self):
+        self.log.debug(f"Checking {self.tool_name}: {self.tool_path}")
+        try:
+            out, err = self.call([sys.executable, "-m", self.tool_name.lower(), "--version"])
+        except CALL_PROBLEMS as exc:
+            self.log.debug(f"{self.tool_name} check failed: {exc}")
+            return False
+
+        if err:
+            out += err
+            if f"No module named" in err:
+                self.log.warning(f"{self.tool_name} check failed.")
+                return False
+        self.log.debug(f"{self.tool_name} output: {out}")
+        return True
+
+    def install(self):
+        self.installer.prepare()
+
+    def post_process(self):
+        self.installer.post_process()
+
+
 class Unpacker(Service):
     UNPACK = 'unpacker'
     FILES = 'files'

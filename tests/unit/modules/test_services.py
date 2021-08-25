@@ -8,7 +8,7 @@ import bzt
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning
-from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller
+from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller, PythonTool
 from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node, is_windows
 from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul, BUILD_DIR
 from tests.unit.mocks import ModuleMock, BZMock
@@ -40,6 +40,28 @@ class TestPipInstaller(BZTestCase):
             self.assertFalse(os.path.exists(self.obj.engine.temp_pythonpath))
 
         self.assertIn("Successfully installed test-package-0.0.0", self.log_recorder.info_buff.getvalue())
+
+
+class TestPythonTool(BZTestCase):
+    def setUp(self):
+        self.engine = EngineEmul()
+        self.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
+        self.obj = PythonTool(engine=self.engine, package='test-name', version=None)
+        super(TestPythonTool, self).setUp()
+
+    def tearDown(self):
+        super(TestPythonTool, self).tearDown()
+
+    def test_check(self):
+        self.sniff_log(self.obj.log)
+
+        self.obj.call = lambda x: ["out ", "err"]
+        self.obj.check_if_installed()
+        self.assertIn("out err", self.log_recorder.debug_buff.getvalue())
+
+        self.obj.call = lambda x: ["", "No module named"]
+        self.obj.check_if_installed()
+        self.assertIn("PythonTool check failed.", self.log_recorder.warn_buff.getvalue())
 
 
 class TestZipFolder(BZTestCase):

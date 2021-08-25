@@ -1,4 +1,3 @@
-locust
 molotov
 robotframework
 http-here
