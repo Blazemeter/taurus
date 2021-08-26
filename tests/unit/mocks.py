@@ -16,7 +16,7 @@ from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregatorListener
 from bzt.utils import b, load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows, temp_file
 
-from tests.unit.base import TEST_DIR, ROOT_LOGGER
+from tests.unit.base import TEST_DIR, ROOT_LOGGER, BUILD_DIR
 
 try:
     from exceptions import KeyboardInterrupt
@@ -125,6 +125,7 @@ class EngineEmul(Engine):
         self.create_artifacts_dir()
         self.prepare_exc = None
         self.was_finalize = False
+        self.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
 
     def dump_config(self):
         """ test """

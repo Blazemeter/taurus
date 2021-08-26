@@ -10,7 +10,7 @@ from unittest.case import TestCase
 from bzt.engine import ScenarioExecutor, EXEC
 from bzt.engine import SelfDiagnosable
 from bzt.utils import get_full_path
-from tests.unit import ROOT_LOGGER, EngineEmul, BUILD_DIR
+from tests.unit import ROOT_LOGGER, EngineEmul
 from tests.unit.mocks import DummyOut
 
 TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
@@ -137,7 +137,6 @@ class ExecutorTestCase(BZTestCase):
         self.engine = EngineEmul()
         self.obj = self.EXECUTOR()
         self.obj.engine = self.engine
-        self.obj.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
 
     def configure(self, config):
         self.obj.engine.config.merge({"settings": {"default-executor": "mock"}})
