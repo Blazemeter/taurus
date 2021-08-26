@@ -28,7 +28,6 @@ before_test:
   - ruby -v
   - gem -v
   - rspec --version
-  - locust --version
   - ps: Start-Process $env:PYTHON\\python.exe tests/resources/httpserver/start.py
 
 test_script:

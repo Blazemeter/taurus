@@ -22,8 +22,8 @@ import sys
 from bzt import TaurusConfigError
 from bzt.engine import HavingInstallableTools, SETTINGS
 from bzt.modules import SubprocessedExecutor
-from bzt.modules.services import PipInstaller
-from bzt.utils import FileReader, RESOURCES_DIR, CALL_PROBLEMS
+from bzt.modules.services import PythonTool
+from bzt.utils import FileReader, RESOURCES_DIR
 from bzt.utils import RequiredTool
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -105,37 +105,9 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
             self.log.info("\n".join(lines))
 
 
-class PyTest(RequiredTool):
+class PyTest(PythonTool):
     def __init__(self, engine, version, **kwargs):
-        self.installer = PipInstaller()
-        self.installer.engine = engine
-        self.installer.parameters['packages'] = ['pytest']
-        if version:
-            self.installer.versions['pytest'] = version
-        self.tool_path = self.installer.engine.temp_pythonpath
-        super(PyTest, self).__init__(tool_path=self.tool_path, **kwargs)
-
-    def check_if_installed(self):
-        self.log.debug(f"Checking {self.tool_name}: {self.tool_path}")
-        try:
-            out, err = self.call([sys.executable, "-m", self.tool_name.lower(), "--version"])
-        except CALL_PROBLEMS as exc:
-            self.log.debug(f"{self.tool_name} check failed: {exc}")
-            return False
-
-        if err:
-            out += err
-            if f"No module named" in err:
-                self.log.warning(f"{self.tool_name} check failed.")
-                return False
-        self.log.debug(f"{self.tool_name} output: {out}")
-        return True
-
-    def install(self):
-        self.installer.prepare()
-
-    def post_process(self):
-        self.installer.post_process()
+        super(PyTest, self).__init__(package="pytest", version=version, engine=engine, **kwargs)
 
 
 class TaurusPytestRunner(RequiredTool):

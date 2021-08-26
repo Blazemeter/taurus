@@ -26,9 +26,10 @@ from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
+from bzt.modules.services import PythonTool
 from bzt.requests_model import HTTPRequest
 from bzt.utils import iteritems, get_full_path, ensure_is_dict, PythonGenerator, FileReader, CALL_PROBLEMS
-from bzt.utils import shutdown_process, RequiredTool, dehumanize_time, RESOURCES_DIR
+from bzt.utils import shutdown_process, dehumanize_time, RESOURCES_DIR
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -40,6 +41,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.scenario = None
         self.script = None
         self.log_file = None
+        self.locust = None
 
     def prepare(self):
         super(LocustIOExecutor, self).prepare()
@@ -71,9 +73,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
             self.engine.aggregator.add_underling(self.reader)
 
     def install_required_tools(self):
-        tool = self._get_tool(LocustIO)
-        if not tool.check_if_installed():
-            tool.install()
+        self.locust = self._get_tool(LocustIO, engine=self.engine, version=self.settings.get("version", None))
+        if not self.locust.check_if_installed():
+            self.locust.install()
 
     def startup(self):
         load = self.get_load()
@@ -165,6 +167,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
     def shutdown(self):
         shutdown_process(self.process, self.log)
 
+    def post_process(self):
+        self.locust.post_process()
+
     def has_results(self):
         master_results = self.is_master and self.reader.cumulative
         local_results = not self.is_master and self.reader and self.reader.buffer
@@ -193,22 +198,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         return diagnostics
 
 
-class LocustIO(RequiredTool):
-    def __init__(self, **kwargs):
-        super(LocustIO, self).__init__(tool_path="locust", installable=False, **kwargs)
-
-    def check_if_installed(self):
-        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
-        try:
-            out, err = self.call([sys.executable, "-m", self.tool_path, "--version"])
-        except CALL_PROBLEMS as exc:
-            self.log.warning("%s check failed: %s", self.tool_name, exc)
-            return False
-
-        if err:
-            out += err
-        self.log.debug("%s output: %s", self.tool_name, out)
-        return True
+class LocustIO(PythonTool):
+    def __init__(self, engine, version, **kwargs):
+        super(LocustIO, self).__init__(package="locust", version=version, engine=engine, **kwargs)
 
 
 class WorkersReader(ResultsProvider):
