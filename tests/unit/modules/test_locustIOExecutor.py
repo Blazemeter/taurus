@@ -25,7 +25,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
     def setUp(self):
         super(TestLocustIOExecutor, self).setUp()
         self.obj.engine.config['provisioning'] = 'local'
-        self.obj.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
 
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
@@ -56,7 +55,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
         finally:
             sys.executable = tmp
 
-        self.obj.shutdown()
         self.obj.post_process()
         self.assertFalse(self.obj.has_results())
 
@@ -71,7 +69,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
 
-
         tmp_eac = bzt.utils.exec_and_communicate
         try:
             bzt.utils.exec_and_communicate = self.exec_and_communicate
@@ -83,7 +80,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.obj.get_widget()
         self.assertEqual(self.obj.widget.duration, 30)
         self.assertTrue(self.obj.widget.widgets[0].text.endswith("simple.py"))
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_locust_fractional_hatch_rate(self):
@@ -115,7 +111,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 if x.startswith("--hatch-rate")
             ]
             self.assertEqual(hatch[0], "%f" % expected_hatch_rate)
-            self.obj.shutdown()
         self.obj.post_process()
 
     def test_locust_master(self):
@@ -140,7 +135,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
         self.obj.get_widget()
-        self.obj.shutdown()
         self.obj.post_process()
         self.assertFalse(self.obj.has_results())
 
@@ -249,7 +243,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
             self.obj.prepare()
         finally:
             bzt.utils.exec_and_communicate = tmp_eac
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_build_script(self):
@@ -378,7 +371,6 @@ class TestLocustIOExecutor(ExecutorTestCase):
 
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
         self.obj.post_process()
 
         kpi_path = RESOURCES_DIR + "locust/locust-kpi.jtl"
