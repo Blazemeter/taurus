@@ -11,7 +11,7 @@ from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules._locustio import LocustIOExecutor, WorkersReader
 from bzt.modules.provisioning import Local
 
-from tests.unit import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul, BUILD_DIR
+from tests.unit import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
 
 
 class TestLocustIOExecutor(ExecutorTestCase):
