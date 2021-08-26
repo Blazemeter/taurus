@@ -1,3 +1,4 @@
+apiritif>=0.9.8
 molotov
 robotframework
 http-here
