@@ -13,25 +13,21 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = ' '.join(args)
 
-    def exec_and_communicate(self, *args, **kwargs):
-        return "", ""
-
     def full_run(self, config):
 
         self.configure(config)
         dummy = RESOURCES_DIR + 'selenium/ruby/ruby' + EXE_SUFFIX
 
-        tmp_aec = bzt.utils.exec_and_communicate
+        tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_aec
+            bzt.utils.exec_and_communicate = tmp_eac
 
         self.obj.runner.settings.merge({"interpreter": dummy})
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_rspec_full(self):

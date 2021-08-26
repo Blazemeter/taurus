@@ -74,17 +74,14 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertNotIn(self.install_mocha_cmd(runner), args)
 
     def prepare(self, config):
-        def exec_and_communicate(*args, **kwargs):
-            return "", ""
-
         self.obj.engine.config.merge(config)
         self.obj.execution = self.obj.engine.config['execution']
-        tmp_aec = bzt.utils.exec_and_communicate
+        tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = exec_and_communicate
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_aec
+            bzt.utils.exec_and_communicate = tmp_eac
 
     def full_run(self, config):
         self.prepare(config)
@@ -99,7 +96,6 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.prepare(config)
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_mocha_full(self):
@@ -141,37 +137,31 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.CMD_LINE = ' '.join(args)
 
     def test_prepare(self):
-        def exec_and_communicate(*args, **kwargs):
-            return "", ""
-
         self.obj.execution.merge({
             "runner": "wdio",
             "scenario": {
                 "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js"
             }
         })
-        tmp_aec = bzt.utils.exec_and_communicate
+        tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = exec_and_communicate
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_aec
+            bzt.utils.exec_and_communicate = tmp_eac
         self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
 
     def prepare(self, config):
-        def exec_and_communicate(*args, **kwargs):
-            return "", ""
-
         self.configure(config)
 
-        tmp_aec = bzt.utils.exec_and_communicate
+        tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = exec_and_communicate
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
             self.obj.prepare()
         except ToolError as exc:
             self.fail("ToolError:" % exc)
         finally:
-            bzt.utils.exec_and_communicate = tmp_aec
+            bzt.utils.exec_and_communicate = tmp_eac
         self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
 
     def full_run(self, config):
@@ -187,7 +177,6 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.prepare(config)
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_full(self):
@@ -248,21 +237,18 @@ class TestNewmanExecutor(BZTestCase):
     RUNNER_STUB = RESOURCES_DIR + "newman/newman" + EXE_SUFFIX
 
     def full_run(self, config):
-        def exec_and_communicate(*args, **kwargs):
-            return "", ""
-
         self.obj = NewmanExecutor()
         self.obj.engine = EngineEmul()
         self.obj.engine.config.merge(config)
         execution = config["execution"][0] if isinstance(config["execution"], list) else config["execution"]
         self.obj.execution.merge(execution)
 
-        tmp_aec = bzt.utils.exec_and_communicate
+        tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = exec_and_communicate
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_aec
+            bzt.utils.exec_and_communicate = tmp_eac
 
         self.obj.node.tool_path = self.RUNNER_STUB
 

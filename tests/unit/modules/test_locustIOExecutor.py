@@ -29,8 +29,13 @@ class TestLocustIOExecutor(ExecutorTestCase):
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
 
-    def exec_and_communicate(*args, **kwargs):
-        return "", ""
+    def obj_prepare(self):
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
 
     def test_simple(self):
         self.configure({"execution": {
@@ -41,13 +46,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "locust/simple.py"
             }
         }})
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
-
+        self.obj_prepare()
         tmp = sys.executable
         try:
             sys.executable = RESOURCES_DIR + "locust/locust-mock" + EXE_SUFFIX
@@ -68,13 +67,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "locust/simple.py"
             }
         }})
-
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+        self.obj_prepare()
         self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
         self.obj.get_widget()
@@ -96,13 +89,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "locust/simple.py"
             }
         }})
-
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+        self.obj_prepare()
         with mock.patch('bzt.modules._locustio.LocustIOExecutor._execute') as m:
             self.obj.startup()
             # Extract the hatch-rate cmdline arg that bzt passed to locust.
@@ -125,13 +112,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "locust/simple.py"
             }
         }})
-
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+        self.obj_prepare()
         self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
         self.obj.get_widget()
@@ -175,13 +156,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
     def test_worker_aggregation(self):
         self.configure({"execution": {
             "scenario": {"script": RESOURCES_DIR + "locust/simple.py"}}})
-
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+        self.obj_prepare()
 
         self.obj.reader = WorkersReader(RESOURCES_DIR + "locust/locust-workers.ldjson", 2, ROOT_LOGGER)
         self.obj.engine.aggregator = ConsolidatingAggregator()
@@ -215,12 +190,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "locust/simple.py"
             }
         }})
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+        self.obj_prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]
         prov = Local()
@@ -236,13 +206,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
             "executor": "locust",
             "scenario": {
                 "requests": ["http://blazedemo.com/"]}}})
-
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+        self.obj_prepare()
         self.obj.post_process()
 
     def test_build_script(self):
@@ -284,12 +248,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                         "assert": [{
                             'subject': 'body',
                             'contains': '\w+l1e'}]}]}}})
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+        self.obj_prepare()
         self.assertFilesEqual(RESOURCES_DIR + "locust/generated_from_requests.py", self.obj.script)
         self.obj.post_process()
 
@@ -305,13 +264,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 "loc_sc": {
                     "requests": [{
                         "url": "http://blazedemo.com"}]}}})
-
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+        self.obj_prepare()
         debug_buff = self.log_recorder.debug_buff.getvalue()
         self.assertNotIn("'--host='", debug_buff)
         self.obj.post_process()
@@ -328,12 +281,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 ]
             }
         }})
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+        self.obj_prepare()
         self.obj.post_process()
 
         kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
@@ -359,14 +307,12 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 ]
             }
         }})
-        tmp_aec, tmp_ex = bzt.utils.exec_and_communicate, sys.executable
+        self.obj_prepare()
+        tmp_ex = sys.executable
         try:
-            bzt.utils.exec_and_communicate = exec_and_communicate
-            self.obj.prepare()
             sys.executable = RESOURCES_DIR + "locust/locust-mock" + EXE_SUFFIX
             self.obj.startup()
         finally:
-            bzt.utils.exec_and_communicate = tmp_aec
             sys.executable = tmp_ex
 
         while not self.obj.check():
@@ -389,12 +335,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                 ]
             }
         }})
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+        self.obj_prepare()
         self.obj.post_process()
         diagnostics = self.obj.get_error_diagnostics()
         self.assertIsNotNone(diagnostics)

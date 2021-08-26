@@ -31,15 +31,12 @@ class TestVegetaExecutor(ExecutorTestCase):
                                      'poll': lambda: True}))
         return self.obj.process
 
-    def exec_and_communicate(self, *args, **kwargs):
-        return 'v0.30.0', ''
-
     def simple_run(self, config):
         self.configure(config)
 
         tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
             self.obj.prepare()
         finally:
             bzt.utils.exec_and_communicate = tmp_eac
@@ -47,7 +44,6 @@ class TestVegetaExecutor(ExecutorTestCase):
         self.obj.engine.start_subprocess = self.start_subprocess
 
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_full(self):
@@ -58,7 +54,7 @@ class TestVegetaExecutor(ExecutorTestCase):
         })
         tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
             self.obj.prepare()
         finally:
             bzt.utils.exec_and_communicate = tmp_eac
@@ -69,7 +65,6 @@ class TestVegetaExecutor(ExecutorTestCase):
         self.obj.vegeta.tool_name = TOOL_NAME
         self.obj.startup()
         self.obj.check()
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_no_bin_file(self):
