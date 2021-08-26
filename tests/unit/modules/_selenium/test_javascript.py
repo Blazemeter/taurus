@@ -1,8 +1,7 @@
 import json
 import os
 import time
-import shutil
-from os.path import join, exists, dirname
+from os.path import exists
 
 import bzt
 
