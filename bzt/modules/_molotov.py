@@ -40,13 +40,13 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
     def prepare(self):
         super(MolotovExecutor, self).prepare()
+        self.install_required_tools()
         self.user_tool_path = self.settings.get('path', None)
         if self.user_tool_path:
             self.launch_cmdline = self.user_tool_path
+            self.molotov.user_tool_path = self.user_tool_path
         else:
             self.launch_cmdline = os.path.join(self.engine.temp_pythonpath, "bin", self.molotov.tool_name.lower())
-        self.install_required_tools()
-
         self.stdout = open(self.engine.create_artifact("molotov", ".out"), 'w')
         self.stderr = open(self.engine.create_artifact("molotov", ".err"), 'w')
 
@@ -56,8 +56,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
             self.engine.aggregator.add_underling(self.reader)
 
     def install_required_tools(self):
-        self.molotov = self._get_tool(Molotov, engine=self.engine, version=self.settings.get("version", None),
-                                      path=self.user_tool_path)
+        self.molotov = self._get_tool(Molotov, engine=self.engine, version=self.settings.get("version", None))
         if not self.molotov.check_if_installed():
             self.molotov.install()
 
@@ -140,9 +139,9 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
 
 class Molotov(PythonTool):
-    def __init__(self, engine, version, path=None, **kwargs):
+    def __init__(self, engine, version, **kwargs):
         super(Molotov, self).__init__(package="molotov", version=version, engine=engine, **kwargs)
-        self.user_tool_path = path
+        self.user_tool_path = None
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")
