@@ -16,7 +16,7 @@ from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, Functio
 from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules._pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
-from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase, BUILD_DIR
+from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase
 from tests.unit.modules._selenium import SeleniumTestCase
 from bzt.utils import EXE_SUFFIX, is_windows
 from bzt.resources.selenium_extras import get_locator, BYS, find_element_by_shadow
@@ -83,6 +83,14 @@ class TestLocatorsManager(BZTestCase):
 
 
 class TestSeleniumApiritifRunner(SeleniumTestCase):
+    def obj_prepare(self):
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
+
     def test_selenium_prepare_python_single(self):
         """
         Check if script exists in working dir
@@ -91,7 +99,7 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {
             "script": RESOURCES_DIR + "selenium/python/test_blazemeter_fail.py"
         }})
-        self.obj.prepare()
+        self.obj_prepare()
 
     def test_selenium_prepare_python_folder(self):
         """
@@ -99,7 +107,7 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
         :return:
         """
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "selenium/python/"}})
-        self.obj.prepare()
+        self.obj_prepare()
 
     def test_selenium_startup_shutdown_python_single(self):
         """
@@ -117,11 +125,10 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {
             "script": RESOURCES_DIR + "selenium/python/test_blazemeter_fail.py"
         }})
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.startup()
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")))
 
     @skipIf(python_version() >= '3.8' and is_windows(), "Temporary disabled")
@@ -138,11 +145,10 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.startup()
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
         api_log = os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv")
         nose_log = os.path.join(self.obj.engine.artifacts_dir, "apiritif.out")
         self.assertTrue(os.path.exists(api_log))
@@ -163,11 +169,10 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/dummy.py"}
             }
         })
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.startup()
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
 
         diagnostics = "\n".join(self.obj.get_error_diagnostics())
         self.assertIn("Nothing to test.", diagnostics)
@@ -185,7 +190,7 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
             "script": RESOURCES_DIR + "selenium/python/test_setup_exception.py"
         }})
         self.obj.engine.aggregator = FunctionalAggregator()
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.startup()
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
@@ -203,7 +208,7 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
                 ],
             }
         })
-        self.obj.prepare()
+        self.obj_prepare()
         try:
             self.obj.startup()
             for _ in range(3):
@@ -216,6 +221,14 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
 
 class TestApiritifRunner(ExecutorTestCase):
     EXECUTOR = ApiritifNoseExecutor
+
+    def obj_prepare(self):
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
 
     def test_new_flow(self):
         self.configure({
@@ -240,7 +253,7 @@ class TestApiritifRunner(ExecutorTestCase):
                                 }
                             ]}]}}]})
 
-        self.obj.prepare()
+        self.obj_prepare()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "test_requests.py")))
         try:
             self.obj.startup()
@@ -262,7 +275,7 @@ class TestApiritifRunner(ExecutorTestCase):
                         "/",
                         "/reserve.php"]}}]})
 
-        self.obj.prepare()
+        self.obj_prepare()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "test_requests.py")))
         try:
             self.obj.startup()
@@ -283,7 +296,7 @@ class TestApiritifRunner(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         try:
             self.obj.startup()
             while not self.obj.check():
@@ -322,7 +335,7 @@ class TestApiritifRunner(ExecutorTestCase):
             }]
         })
         self.obj.engine.aggregator = FunctionalAggregator()
-        self.obj.prepare()
+        self.obj_prepare()
         try:
             self.obj.startup()
             while not self.obj.check():
@@ -347,7 +360,7 @@ class TestApiritifRunner(ExecutorTestCase):
             }]
         })
         self.obj.engine.aggregator = FunctionalAggregator()
-        self.obj.prepare()
+        self.obj_prepare()
         try:
             self.obj.startup()
             while not self.obj.check():
@@ -366,23 +379,24 @@ class TestPyTestExecutor(ExecutorTestCase):
     EXECUTOR = PyTestExecutor
     CMD_LINE = None
 
-    def setUp(self):
-        super(TestPyTestExecutor, self).setUp()
-        self.obj.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
-
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
 
-    def exec_and_communicate(self, *args, **kwargs):
-        return "", ""
+    def obj_prepare(self):
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
 
     def full_run(self, config):
         self.obj.execution.merge(config)
 
         tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj_prepare()
         finally:
             bzt.utils.exec_and_communicate = tmp_eac
 
@@ -433,14 +447,7 @@ class TestPyTestExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "selenium/pytest/test_blazedemo.py"
             }
         })
-
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
-
+        self.obj_prepare()
         driver = self.obj._get_tool(GeckoDriver, config=self.obj.settings.get('geckodriver'))
         if not driver.check_if_installed():
             driver.install()
@@ -457,14 +464,7 @@ class TestPyTestExecutor(ExecutorTestCase):
                 "script": RESOURCES_DIR + "selenium/pytest/"
             }
         })
-
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
-
+        self.obj_prepare()
         driver = self.obj._get_tool(GeckoDriver, config=self.obj.settings.get('geckodriver'))
         if not driver.check_if_installed():
             driver.install()
@@ -493,9 +493,6 @@ class TestRobotExecutor(ExecutorTestCase):
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
 
-    def exec_and_communicate(self, *args, **kwargs):
-        return "", ""
-
     def test_full_single_script(self):
         self.configure({
             "execution": [{
@@ -507,7 +504,7 @@ class TestRobotExecutor(ExecutorTestCase):
 
         tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
             self.obj.prepare()
             self.obj.settings["interpreter"] = RESOURCES_DIR + "selenium/robot/robot-mock" + EXE_SUFFIX
             self.obj.startup()
@@ -525,13 +522,12 @@ class TestRobotExecutor(ExecutorTestCase):
         self.configure(config)
         tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
             self.obj.prepare()
         finally:
             bzt.utils.exec_and_communicate = tmp_eac
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_hold(self):

@@ -1,5 +1,6 @@
 import tempfile
 
+import bzt.utils
 from bzt import TaurusConfigError
 from bzt.modules import ConsolidatingAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -10,6 +11,14 @@ from tests.unit import RESOURCES_DIR, ExecutorTestCase, EngineEmul
 
 class TestApiritifScriptGeneration(ExecutorTestCase):
     EXECUTOR = ApiritifNoseExecutor
+
+    def obj_prepare(self):
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
 
     def test_transactions(self):
         self.configure({
@@ -25,7 +34,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                             {"url": "url_2.0", "think-time": 2},
                             {"transaction": "t_22", "do": [
                                 {"url": "url_22.0", "think-time": 3}]}]}]}}]})
-        self.obj.prepare()
+        self.obj_prepare()
 
         exp_file = RESOURCES_DIR + "apiritif/test_transactions.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
@@ -38,7 +47,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     "keepalive": True,
                     "requests": [
                         "http://blazedemo.com/"]}}]})
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("target = apiritif.http.target('')", test_script)
@@ -56,7 +65,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("target.keep_alive(False)", test_script)
@@ -73,7 +82,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertNotIn("timeout=30.0", test_script)
@@ -95,7 +104,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("target.timeout(10.0)", test_script)
@@ -114,7 +123,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("get('http://blazedemo.com/', timeout=10.0", test_script)
@@ -134,7 +143,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("sleep(1.5)", test_script)
@@ -162,7 +171,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("get('/?tag=get'", test_script)
@@ -185,7 +194,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("target('https://a.blazemeter.com')", test_script)
@@ -205,7 +214,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("'X-Foo': 'foo'", test_script)
@@ -223,7 +232,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("target.allow_redirects(True)", test_script)
@@ -242,7 +251,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("allow_redirects=False", test_script)
@@ -262,7 +271,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("params={'foo': 'bar'}", test_script)
@@ -285,7 +294,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("json={'foo': 'bar'}", test_script)
@@ -303,7 +312,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("data='MY PERFECT BODY'", test_script)
@@ -321,7 +330,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj_prepare)
 
     def test_plain_assertions(self):
         self.configure({
@@ -338,7 +347,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("response.assert_regex_in_body('Welcome')", test_script)
@@ -369,7 +378,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("assert_in_body('1')", test_script)
@@ -398,7 +407,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("assert_jsonpath('$.foo.bar', expected_value=None)", test_script)
@@ -420,7 +429,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("assert_jsonpath('$.1', expected_value=None)", test_script)
@@ -442,7 +451,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("assert_xpath('//head/title', parser_type='html', validate=False)", test_script)
@@ -465,7 +474,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("assert_xpath('//1', parser_type='html', validate=False)", test_script)
@@ -478,7 +487,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.engine.config.load([RESOURCES_DIR + 'apiritif/test_codegen.yml'])
         self.configure(self.obj.engine.config['execution'][0])
         self.obj.settings['verbose'] = True
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + 'apiritif/test_codegen.py'
         # import shutil; shutil.copy2(self.obj.script, exp_file)  # keep this comment to ease updates
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
@@ -496,7 +505,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
@@ -515,7 +524,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
@@ -534,7 +543,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
@@ -556,7 +565,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
@@ -577,7 +586,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
@@ -595,7 +604,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
@@ -613,7 +622,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
@@ -686,7 +695,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                             "quoted": False,
                             "variable-names": "bn, bbn"}]}}]})
 
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "/apiritif/test_data_sources.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
@@ -706,7 +715,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }}]})
 
         self.obj.engine.aggregator = ConsolidatingAggregator()
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "/apiritif/test_vars.py"
         self.assertIn("set_variables", self.obj.engine.aggregator.ignored_labels)
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
@@ -723,7 +732,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "/apiritif/test_codegen_requests.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
@@ -735,7 +744,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     "requests": [{
                         "url": "http://localhost:8000/",
                         "label": 123}]}}]})
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as script:
             content = script.read()
 
@@ -760,7 +769,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()  # Unparser shouldn't crash with AttributeError because of malformed AST
+        self.obj_prepare()  # Unparser shouldn't crash with AttributeError because of malformed AST
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
@@ -777,7 +786,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }]
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
@@ -803,7 +812,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertNotIn("definitelyUnknownAction(unknownSelector)", test_script)
@@ -830,7 +839,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("'var1': 'val1'", test_script)
@@ -857,7 +866,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("http://blazedemo.com/vacation.html", test_script)
@@ -888,7 +897,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 }
             }
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("http://blazedemo.com/", test_script)
@@ -908,7 +917,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                         "delimiter": "tab",
                         "loop": True}]}}]})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, delimiter='\\t')", test_script)
@@ -923,7 +932,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                         "path": "file.csv",
                         "encoding": "UTF-16"}]}}]})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("reader_1 = apiritif.CSVReaderPerThread('file.csv', loop=True, encoding='UTF-16')", test_script)
@@ -936,7 +945,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     "requests": ["http://blazedemo.com/"],
                     "certificate": "certificate_file.pem",
                     "passphrase": "certificate-passphrase"}}]})
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("cert=('certificate_file.pem', 'certificate-passphrase'))", test_script)
@@ -948,7 +957,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                 "scenario": {
                     "requests": ["http://blazedemo.com/"],
                     "certificate": "certificate_file.pem"}}]})
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("cert=('certificate_file.pem', None)", test_script)
@@ -961,6 +970,6 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
                     "requests": ["http://blazedemo.com/"],
                     "passphrase": "certificate-passphrase"}}]})
         self.sniff_log(self.obj.log)
-        self.obj.prepare()
+        self.obj_prepare()
         warnings = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Passphrase was found, but certificate is missing!", warnings)

@@ -18,9 +18,6 @@ class TestK6Executor(ExecutorTestCase):
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = " ".join(args)
 
-    def exec_and_communicate(self, *args, **kwargs):
-        return "v0.30.0", ""
-
     def test_full(self):
         self.configure({"execution": {
             "concurrency": 5,
@@ -30,7 +27,7 @@ class TestK6Executor(ExecutorTestCase):
 
         tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
             self.obj.prepare()
         finally:
             bzt.utils.exec_and_communicate = tmp_eac
@@ -47,14 +44,13 @@ class TestK6Executor(ExecutorTestCase):
 
         tmp_eac = bzt.utils.exec_and_communicate
         try:
-            bzt.utils.exec_and_communicate = self.exec_and_communicate
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
             self.obj.prepare()
         finally:
             bzt.utils.exec_and_communicate = tmp_eac
 
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_kpi_file(self):

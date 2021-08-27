@@ -12,6 +12,13 @@ from tests.unit.modules._selenium import SeleniumTestCase
 
 
 class TestSeleniumScriptGeneration(SeleniumTestCase):
+    def obj_prepare(self):
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
 
     def test_modern_actions_generator(self):
         self.configure({
@@ -80,7 +87,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "screenshot()"
                         ]}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -169,7 +176,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
                     }]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -210,7 +217,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
                     }]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -240,7 +247,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "options": {
                         "ignore-proxy": True}}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -263,7 +270,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "options": {
                         "arguments": ["one", "two"]}}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -298,7 +305,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "key1": "value1",
                             "key2": {"key22": "value22"}}}}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -338,7 +345,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "key1": "value1",
                             "key2": {"key22": "value22"}}}}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -376,7 +383,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         "preferences": {  # Option preferences is only available in Firefox
                             "key1": "value1"}}}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -410,7 +417,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "key1": "value1",
                             "key2": {"key22": "value22"}}}}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -452,7 +459,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "key1": "value1",
                             "key2": {"key22": "value22"}}}}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -590,7 +597,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         # it changes default of data-source loop parameter to 'false' (see second.csv params)
         self.obj.engine.aggregator.is_functional = True
 
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -608,7 +615,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": ["http://blazedemo.com/"]
                 }}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.read()
 
@@ -626,7 +633,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": ["http://blazedemo.com/"]
                 }}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.read()
 
@@ -644,7 +651,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": ["http://blazedemo.com/"]
                 }}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.read()
 
@@ -662,7 +669,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": ["http://blazedemo.com/"]
                 }}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.read()
 
@@ -682,7 +689,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "requests": [{
                         "url": "https://blazedemo.com"}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -726,7 +733,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         "name2": "settings",
                         "name3": "settings"}}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -780,7 +787,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             }
         })
 
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_remote.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
@@ -796,7 +803,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                     "capabilities": {"browserName": browser_name},
                     "requests": [{"url": "/"}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as script:
             content = script.read()
 
@@ -835,7 +842,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             }
         })
 
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
@@ -857,7 +864,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -882,7 +889,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -906,7 +913,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -930,7 +937,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -966,7 +973,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 }
             }
         })
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_flow_markers.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -994,7 +1001,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 }
             }
         })
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/external_logging.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -1021,7 +1028,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             }
         })
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1042,7 +1049,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         "actions": [
                             {"storeString(test_string)": "test"},
                             "openWindow('${test}')"]}]}}]})
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
         self.assertIn("open_window(self.vars['test'])", content)
@@ -1068,7 +1075,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             }
         })
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1094,7 +1101,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             }
         })
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script, encoding='utf8') as fds:
             content = fds.read()
 
@@ -1125,7 +1132,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             {"typeById(Id_123)": "London"}
                         ]}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1165,7 +1172,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             }
                         ]}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1206,7 +1213,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue('Can not generate action for \'drag\'. Source is empty.' in str(context.exception))
 
@@ -1229,7 +1236,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue('Missing param' in str(context.exception))
 
@@ -1252,7 +1259,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue('Missing param' in str(context.exception))
 
@@ -1505,7 +1512,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             }
         )
 
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_v2.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -1604,7 +1611,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             }
         )
 
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_if_then_else.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -1625,7 +1632,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue('Missing then' in str(context.exception))
 
@@ -1649,7 +1656,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue('Loop must contain' in str(context.exception))
 
@@ -1673,7 +1680,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue('Loop must contain' in str(context.exception))
 
@@ -1696,7 +1703,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue('Loop must contain' in str(context.exception))
 
@@ -1719,7 +1726,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             }
                         ]}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1754,7 +1761,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             }
                         ]}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1785,7 +1792,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             }
                         ]}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1821,7 +1828,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             }
                         ]}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_loop_variables.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -1849,7 +1856,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             }
                         ]}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1876,7 +1883,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
                         in str(context.exception))
@@ -1897,7 +1904,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue("answerDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
                         in str(context.exception))
@@ -1918,7 +1925,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue("answerDialog of type confirm must have value either '#Ok' or '#Cancel'"
                         in str(context.exception))
@@ -1939,7 +1946,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue("answerDialog of type alert must have value '#Ok'"
                         in str(context.exception))
@@ -1977,7 +1984,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "waitForById(myId, notclickable)"
                         ]}]}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -2010,7 +2017,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue('Invalid condition' in str(context.exception),
                         "Given string was not found in '%s'" % str(context.exception))
@@ -2170,7 +2177,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             }
         )
 
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_foreach.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -2194,7 +2201,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj.prepare()
+            self.obj_prepare()
 
         self.assertTrue("Foreach loop must contain locators and do" in str(context.exception))
 
@@ -2342,7 +2349,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             }
         )
 
-        self.obj.prepare()
+        self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_shadow.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -2353,6 +2360,14 @@ class TestIsSelenium4(SeleniumTestCase):
         super(TestIsSelenium4, self).setUp()
         self.store = bzt.modules._apiritif.generator.is_selenium_4
         bzt.modules._apiritif.generator.is_selenium_4 = lambda: True
+
+    def obj_prepare(self):
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
 
     def test_ignore_proxy_option_generator_selenium_4(self):
         # Option ignore_proxy is only available starting from Selenium version 4
@@ -2368,7 +2383,7 @@ class TestIsSelenium4(SeleniumTestCase):
                     "options": {
                         "ignore-proxy": True}}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -2392,7 +2407,7 @@ class TestIsSelenium4(SeleniumTestCase):
                     "options": {
                         "arguments": ["one", "two"]}}}})
 
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -2420,7 +2435,7 @@ class TestIsSelenium4(SeleniumTestCase):
                 "selenium": {
                     "options": {
                         "arguments": ["one", "two"]}}}})
-        self.obj.prepare()
+        self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
         target_lines = [

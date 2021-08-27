@@ -1,19 +1,18 @@
 import os
 import re
 import shutil
-import time
-import unittest
 
 import yaml
 from io import BytesIO
 
+import bzt
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import EXEC
 from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules._selenium import SeleniumExecutor
-from bzt.utils import LDJSONReader, FileReader, is_windows
+from bzt.utils import LDJSONReader, FileReader
 from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
 from tests.unit.mocks import DummyListener
 from tests.unit.modules._selenium import SeleniumTestCase
@@ -37,6 +36,14 @@ class TestSeleniumExecutor(SeleniumTestCase):
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = " ".join(args)
 
+    def obj_prepare(self):
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
+
     def test_data_source_in_action(self):
         self.configure({
             EXEC: {
@@ -48,10 +55,9 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "label": "exec_it",
                         "assert": ["Simple Travel Agency"],
                         "actions": ["go(${host}/${page})"]}]}}})
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_user_iter(self):
@@ -64,10 +70,9 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = True
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
         self.assertIn("--iterations 100", self.CMD_LINE)
@@ -82,9 +87,8 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
         self.obj.engine.aggregator.is_functional = False
         self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
         self.assertIn("--iterations 1", self.CMD_LINE)
@@ -99,10 +103,9 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = False
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
         self.assertNotIn("--iterations", self.CMD_LINE)
@@ -116,10 +119,9 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = True
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
         self.assertIn("--iterations 1", self.CMD_LINE)
@@ -134,10 +136,9 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = True
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
         self.assertNotIn('--iterations', self.CMD_LINE)
@@ -153,10 +154,9 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = True
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
         self.assertNotIn('--iterations', self.CMD_LINE)
@@ -171,10 +171,9 @@ class TestSeleniumExecutor(SeleniumTestCase):
                         "http://blazedemo.com"]}}})
 
         self.obj.engine.aggregator.is_functional = True
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
         self.assertNotIn('--iterations', self.CMD_LINE)
@@ -185,6 +184,14 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.CMD_LINE = args
 
     def obj_prepare(self):
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
+
+    def obj_prepare_runner(self):
         super(SeleniumExecutor, self.obj).prepare()
         self.obj.install_required_tools()
         for driver in self.obj.webdrivers:
@@ -192,7 +199,12 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.create_runner()
         self.obj.runner._check_tools = lambda *args: None
         self.obj.runner._compile_scripts = lambda: None
-        self.obj.runner.prepare()
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.runner.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
         self.obj.script = self.obj.runner.script
 
     def test_empty_scenario(self):
@@ -225,12 +237,12 @@ class TestSeleniumStuff(SeleniumTestCase):
             }, {  # annotations used and no "test" in class name
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
-        }]})
-        self.obj_prepare()
+            }]})
+        self.obj_prepare_runner()
 
     def test_from_extension(self):
         self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.get_widget()
         self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
@@ -238,7 +250,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
     def test_requests(self):
         self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.get_widget()
         self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
@@ -246,7 +258,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
     def test_fail_on_zero_results(self):
         self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]
         prov = Local()
@@ -274,7 +286,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             }
         })
         files = self.obj.resource_files()
-        self.obj_prepare()
+        self.obj_prepare_runner()
         self.assertIn(script_path, files)
         artifacts_script = os.path.join(self.obj.engine.artifacts_dir, filename)
         self.assertFalse(os.path.exists(artifacts_script))
@@ -293,7 +305,7 @@ class TestSeleniumStuff(SeleniumTestCase):
                 "script": script_name,
             }
         })
-        self.obj_prepare()
+        self.obj_prepare_runner()
 
     def test_do_not_modify_scenario_script(self):
         self.obj.execution.merge({
@@ -301,7 +313,7 @@ class TestSeleniumStuff(SeleniumTestCase):
                 "requests": ["address"],
             }
         })
-        self.obj.prepare()
+        self.obj_prepare()
         self.assertNotIn("script", self.obj.get_scenario())
 
     def test_default_address_gen(self):
@@ -311,7 +323,7 @@ class TestSeleniumStuff(SeleniumTestCase):
                 "requests": ["/", "http://absolute.address.com/somepage", "/reserve.php"],
             }
         })
-        self.obj.prepare()
+        self.obj_prepare()
         with open(os.path.join(self.obj.engine.artifacts_dir, os.path.basename(self.obj.script))) as fds:
             script = fds.read()
         urls = re.findall(r"\.get\('(.+)'\)", script)
@@ -324,7 +336,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             'scenario': {'script': RESOURCES_DIR + 'selenium/junit/jar/'},
             'runner': 'apiritif',
         })
-        self.obj.prepare()
+        self.obj_prepare()
         self.assertIsInstance(self.obj.runner, ApiritifNoseExecutor)
 
     def test_additional_classpath_resource_files(self):
@@ -362,7 +374,7 @@ class TestSeleniumStuff(SeleniumTestCase):
                 'executor': 'selenium'
             },
         })
-        self.obj_prepare()
+        self.obj_prepare_runner()
         self.obj.subscribe_to_transactions(dummy)
         try:
             self.obj.engine.start_subprocess = self.start_subprocess

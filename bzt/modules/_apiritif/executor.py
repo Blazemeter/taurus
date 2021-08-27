@@ -24,6 +24,7 @@ from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import FileReader, get_full_path, BZT_DIR, get_assembled_value, shutdown_process
 from .generator import ApiritifScriptGenerator
+from ..services import PythonTool
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
@@ -36,6 +37,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def __init__(self):
         super(ApiritifNoseExecutor, self).__init__()
         self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
+        self.apiritif = None
 
     def resource_files(self):
         files = super(ApiritifNoseExecutor, self).resource_files()
@@ -56,6 +58,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def prepare(self):
         super(ApiritifNoseExecutor, self).prepare()
+        self.install_required_tools()
         self.script = self.get_script_path()
         if not self.script:
             if "requests" in self.get_scenario():
@@ -125,13 +128,13 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         if self.get_raw_load().iterations is None:
             iterations = self.__calculate_iterations(load)
 
-        return self.LOAD_FMT(concurrency=load.concurrency, ramp_up=load.ramp_up, throughput=load.throughput, hold=load.hold,
-                             iterations=iterations, duration=load.duration, steps=load.steps)
+        return self.LOAD_FMT(concurrency=load.concurrency, ramp_up=load.ramp_up, throughput=load.throughput,
+                             hold=load.hold, iterations=iterations, duration=load.duration, steps=load.steps)
 
     def __calculate_iterations(self, load):
         msg = "No iterations limit in config, choosing anything... set "
         if load.duration or self.engine.is_functional_mode() and list(self.get_scenario().get_data_sources()):
-            iterations = 0                  # infinite for func mode and ds
+            iterations = 0  # infinite for func mode and ds
             msg += "0 (infinite) as "
             if load.duration:
                 msg += "duration found (hold-for + ramp-up)"
@@ -141,12 +144,17 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 msg += "data-sources found"
 
         else:
-            iterations = 1                  # run once otherwise
+            iterations = 1  # run once otherwise
             msg += "1"
 
         self.log.debug(msg)
 
         return iterations
+
+    def install_required_tools(self):
+        self.apiritif = self._get_tool(Apiritif, engine=self.engine, version=self.settings.get("version", None))
+        if not self.apiritif.check_if_installed():
+            self.apiritif.install()
 
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
@@ -237,6 +245,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         self._check_stdout()
         self.__log_lines()
         self._tailer.close()
+        self.apiritif.post_process()
         super(ApiritifNoseExecutor, self).post_process()
 
     def __is_verbose(self):
@@ -247,6 +256,15 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
 class ApiritifTester(ApiritifNoseExecutor):
     pass
+
+
+class Apiritif(PythonTool):
+    VERSION = "0.9.8"
+
+    def __init__(self, engine, version, **kwargs):
+        if not version:
+            version = self.VERSION
+        super(Apiritif, self).__init__(package="apiritif", version=version, engine=engine, **kwargs)
 
 
 class ApiritifLoadReader(ConsolidatingAggregator):

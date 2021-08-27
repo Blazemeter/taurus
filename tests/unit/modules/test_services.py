@@ -9,7 +9,7 @@ from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller, PythonTool
 from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node, is_windows
-from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul, BUILD_DIR
+from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
 from tests.unit.mocks import ModuleMock, BZMock
 
 
@@ -28,7 +28,6 @@ class TestPipInstaller(BZTestCase):
         self.sniff_log(self.obj.log)
         self.obj.parameters['packages'] = ['test-package']
         self.obj.versions['test-package'] = "0.0.0"
-        self.obj.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
         self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
         self.obj.prepare()
@@ -44,7 +43,6 @@ class TestPipInstaller(BZTestCase):
 class TestPythonTool(BZTestCase):
     def setUp(self):
         self.engine = EngineEmul()
-        self.engine.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
         self.obj = PythonTool(engine=self.engine, package='test-name', version=None)
         super(TestPythonTool, self).setUp()
 
