@@ -34,8 +34,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     :type _tailer: FileReader
     """
 
-    VERSION = "0.9.8"
-
     def __init__(self):
         super(ApiritifNoseExecutor, self).__init__()
         self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
@@ -154,7 +152,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         return iterations
 
     def install_required_tools(self):
-        self.apiritif = self._get_tool(Apiritif, engine=self.engine, version=self.settings.get("version", self.VERSION))
+        self.apiritif = self._get_tool(Apiritif, engine=self.engine, version=self.settings.get("version", None))
         if not self.apiritif.check_if_installed():
             self.apiritif.install()
 
@@ -261,7 +259,11 @@ class ApiritifTester(ApiritifNoseExecutor):
 
 
 class Apiritif(PythonTool):
+    VERSION = "0.9.8"
+
     def __init__(self, engine, version, **kwargs):
+        if not version:
+            version = self.VERSION
         super(Apiritif, self).__init__(package="apiritif", version=version, engine=engine, **kwargs)
 
 
