@@ -1,9 +1,8 @@
-import sys
 import time
 import unittest
 from os.path import join
 
-from bzt import ToolError
+import bzt
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules._molotov import MolotovExecutor, MolotovReportReader
 from bzt.utils import EXE_SUFFIX, is_windows
@@ -22,6 +21,14 @@ class TestMolotov(ExecutorTestCase):
             close_reader_file(self.obj.reader.ldjson_reader)
         super(TestMolotov, self).tearDown()
 
+    def obj_prepare(self):
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
+
     def test_mocked(self):
         self.obj.settings.merge({
             "path": TOOL_PATH})
@@ -30,7 +37,7 @@ class TestMolotov(ExecutorTestCase):
             "hold-for": "20s",
             "scenario": {
                 "script": LOADTEST_PY}})
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.get_widget()
         try:
             self.obj.startup()
@@ -41,14 +48,6 @@ class TestMolotov(ExecutorTestCase):
         self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
 
-    def test_no_tool(self):
-        self.obj.settings.merge({
-            "path": '*'})
-        self.obj.execution.merge({
-            "scenario": {
-                "script": LOADTEST_PY}})
-        self.assertRaises(ToolError, self.obj.prepare)
-
     def test_diagnostics(self):
         self.obj.settings.merge({
             "path": TOOL_PATH})
@@ -56,10 +55,9 @@ class TestMolotov(ExecutorTestCase):
             "iterations": 1,
             "scenario": {
                 "script": LOADTEST_PY}})
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
         self.assertIsNotNone(self.obj.get_error_diagnostics())
 
@@ -79,11 +77,10 @@ class TestMolotov(ExecutorTestCase):
             "iterations": 10,
             "scenario": {
                 "script": LOADTEST_PY}}})
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.engine.start_subprocess = lambda **kwargs: None
         self.obj.get_widget()
         self.obj.startup()
-        self.obj.shutdown()
         self.obj.post_process()
 
     def test_think_time(self):
@@ -103,7 +100,7 @@ class TestMolotov(ExecutorTestCase):
                     "script": LOADTEST_PY
                 }
             }})
-        self.obj.prepare()
+        self.obj_prepare()
         self.obj.engine.start_subprocess = start_subprocess
         self.obj.startup()
         self.obj.post_process()

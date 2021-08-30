@@ -15,16 +15,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from distutils.version import LooseVersion
-
+import os
 from math import ceil
 
-from bzt import ToolError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.utils import unicode_decode
-from bzt.utils import shutdown_process, RequiredTool, dehumanize_time, get_full_path, LDJSONReader, CALL_PROBLEMS
+from bzt.modules.services import PythonTool
+from bzt.utils import unicode_decode, CALL_PROBLEMS
+from bzt.utils import shutdown_process, dehumanize_time, get_full_path, LDJSONReader
 
 
 class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallableTools, SelfDiagnosable):
@@ -36,11 +35,18 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         self.stderr = None
         self.molotov = None
         self.scenario = None
+        self.launch_cmdline = None
+        self.user_tool_path = None
 
     def prepare(self):
         super(MolotovExecutor, self).prepare()
         self.install_required_tools()
-
+        self.user_tool_path = self.settings.get('path', None)
+        if self.user_tool_path:
+            self.launch_cmdline = self.user_tool_path
+            self.molotov.user_tool_path = self.user_tool_path
+        else:
+            self.launch_cmdline = os.path.join(self.engine.temp_pythonpath, "bin", self.molotov.tool_name.lower())
         self.stdout = open(self.engine.create_artifact("molotov", ".out"), 'w')
         self.stderr = open(self.engine.create_artifact("molotov", ".err"), 'w')
 
@@ -48,6 +54,11 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         self.reader = MolotovReportReader(self.report_file_name, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
+
+    def install_required_tools(self):
+        self.molotov = self._get_tool(Molotov, engine=self.engine, version=self.settings.get("version", None))
+        if not self.molotov.check_if_installed():
+            self.molotov.install()
 
     def get_widget(self):
         if not self.widget:
@@ -58,7 +69,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
     def startup(self):
         load = self.get_load()
 
-        cmdline = [self.molotov.tool_path]
+        cmdline = [self.launch_cmdline]
 
         if load.concurrency is not None:
             cmdline += ['--workers', str(load.concurrency)]
@@ -106,10 +117,8 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
     def shutdown(self):
         shutdown_process(self.process, self.log)
 
-    def install_required_tools(self):
-        self.molotov = self._get_tool(Molotov, config=self.settings)
-        if not self.molotov.check_if_installed():
-            self.molotov.install()
+    def post_process(self):
+        self.molotov.post_process()
 
     def get_error_diagnostics(self):
         diagnostics = []
@@ -129,27 +138,26 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         return [self.get_script_path(required=True)]
 
 
-class Molotov(RequiredTool):
-    def __init__(self, config=None, **kwargs):
-        settings = config or {}
-        tool_path = settings.get('path', 'molotov')
-        super(Molotov, self).__init__(tool_path=tool_path, installable=False, **kwargs)
+class Molotov(PythonTool):
+    def __init__(self, engine, version, **kwargs):
+        super(Molotov, self).__init__(package="molotov", version=version, engine=engine, **kwargs)
+        self.user_tool_path = None
 
     def check_if_installed(self):
-        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
+        self.log.debug(f"Checking {self.tool_name}.")
+        launch_cmdline = self.user_tool_path if self.user_tool_path else self.tool_name.lower()
         try:
-            out, err = self.call([self.tool_path, "--version"])
+            out, err = self.call([launch_cmdline, "--version"])
         except CALL_PROBLEMS as exc:
-            self.log.warning("%s check failed: %s", self.tool_name, exc)
+            self.log.debug(f"{self.tool_name} check failed: {exc}")
             return False
 
-        version = out.strip()
-        if LooseVersion(version) < LooseVersion("1.4"):
-            raise ToolError("You must install molotov>=1.4 to use this executor (version %s detected)" % version)
         if err:
             out += err
-        self.log.debug("%s output: %s", self.tool_name, out)
-
+            if f"No module named" in err:
+                self.log.warning(f"{self.tool_name} check failed.")
+                return False
+        self.log.debug(f"{self.tool_name} output: {out}")
         return True
 
 
