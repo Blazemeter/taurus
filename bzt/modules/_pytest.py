@@ -107,9 +107,9 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
 
 class PyTest(PythonTool):
     def __init__(self, engine, version, **kwargs):
-        super(PyTest, self).__init__(package="pytest", version=version, engine=engine, **kwargs)
+        super(PyTest, self).__init__(packages=["pytest", "pytest-xdist"], version=version, engine=engine, **kwargs)
 
 
 class TaurusPytestRunner(RequiredTool):
     def __init__(self, tool_path, **kwargs):
-        super(TaurusPytestRunner, self).__init__(tool_path=tool_path, installable=False, **kwargs)
+        super(TaurusPytestRunner, self).__init__(tool_path=tool_path, **kwargs)

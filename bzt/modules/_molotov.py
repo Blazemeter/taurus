@@ -140,7 +140,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
 class Molotov(PythonTool):
     def __init__(self, engine, version, **kwargs):
-        super(Molotov, self).__init__(package="molotov", version=version, engine=engine, **kwargs)
+        super(Molotov, self).__init__(packages=["molotov"], version=version, engine=engine, **kwargs)
         self.user_tool_path = None
 
     def check_if_installed(self):
