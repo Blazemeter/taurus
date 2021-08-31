@@ -22,7 +22,8 @@ import yaml
 from bzt import TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
-from bzt.utils import RequiredTool, CALL_PROBLEMS
+from bzt.modules.services import PythonTool
+from bzt.utils import RequiredTool
 from bzt.utils import get_full_path, RESOURCES_DIR
 
 
@@ -34,6 +35,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.output_file = None
         self.log_file = None
         self.tags = None
+        self.robot = None
 
     def resource_files(self):
         files = super(RobotExecutor, self).resource_files()
@@ -76,9 +78,8 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
                 raise TaurusConfigError("`tags` is not a string or text")
 
     def install_required_tools(self):
-        tools = [self._get_tool(TaurusRobotRunner, tool_path=self.runner_path),
-                 self._get_tool(Robot, python=self.settings.get("interpreter", sys.executable))]
-        self._check_tools(tools)
+        self.robot = self._get_tool(Robot, engine=self.engine, version=self.settings.get("version", None))
+        self._check_tools([self.robot, self._get_tool(TaurusRobotRunner, tool_path=self.runner_path)])
 
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
@@ -109,26 +110,15 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
         cmdline += [self.script]
         self.process = self._execute(cmdline)
 
+    def post_process(self):
+        self.robot.post_process()
+
+
+class Robot(PythonTool):
+    def __init__(self, engine, version, **kwargs):
+        super(Robot, self).__init__(packages=["robotframework", "apiritif"], version=version, engine=engine, **kwargs)
+
 
 class TaurusRobotRunner(RequiredTool):
     def __init__(self, tool_path, **kwargs):
         super(TaurusRobotRunner, self).__init__(tool_path=tool_path, installable=False, **kwargs)
-
-
-class Robot(RequiredTool):
-    def __init__(self, python, **kwargs):
-        super(Robot, self).__init__(installable=False, **kwargs)
-        self.python = python
-
-    def check_if_installed(self):
-        self.log.debug('Checking Robot Framework: %s' % self.tool_path)
-        try:
-            out, err = self.call([self.python, '-c', 'import robot; print(robot.__version__)'])
-        except CALL_PROBLEMS as exc:
-            self.log.warning("%s check failed: %s", self.tool_name, exc)
-            return False
-
-        if err:
-            out += err
-        self.log.debug("Robot output: %s", out)
-        return True
