@@ -113,4 +113,4 @@ class PyTest(PythonTool):
 
 class TaurusPytestRunner(RequiredTool):
     def __init__(self, tool_path, **kwargs):
-        super(TaurusPytestRunner, self).__init__(tool_path=tool_path, **kwargs)
+        super(TaurusPytestRunner, self).__init__(tool_path=tool_path, installable=False, **kwargs)
