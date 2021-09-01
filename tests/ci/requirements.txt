@@ -1,5 +1,4 @@
 apiritif>=0.9.8
-robotframework
 http-here
 nose2
 codecov
