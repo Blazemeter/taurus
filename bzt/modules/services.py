@@ -133,17 +133,17 @@ class PipInstaller(Service):
 
 
 class PythonTool(RequiredTool):
-    def __init__(self, package, version, engine, **kwargs):
+    def __init__(self, packages, version, engine, **kwargs):
         self.installer = PipInstaller()
         self.installer.engine = engine
-        self.installer.parameters['packages'] = [package]
+        self.installer.parameters['packages'] = packages
         if version:
-            self.installer.versions[package] = version
+            self.installer.versions[packages[0]] = version
         self.tool_path = self.installer.engine.temp_pythonpath
         super(PythonTool, self).__init__(tool_path=self.tool_path, **kwargs)
 
     def check_if_installed(self):
-        self.log.debug(f"Checking {self.tool_name}: {self.tool_path}")
+        self.log.debug(f"Checking {self.tool_name}.")
         try:
             out, err = self.call([sys.executable, "-m", self.tool_name.lower(), "--version"])
         except CALL_PROBLEMS as exc:

@@ -135,7 +135,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
 class Molotov(PythonTool):
     def __init__(self, engine, version, path, **kwargs):
-        super(Molotov, self).__init__(package="molotov", version=version, engine=engine, **kwargs)
+        super(Molotov, self).__init__(packages=["molotov"], version=version, engine=engine, **kwargs)
         self.tool_path = os.path.join(self.tool_path, "bin", self.tool_name.lower())
         self.user_tool_path = path
 

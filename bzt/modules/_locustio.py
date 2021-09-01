@@ -200,7 +200,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
 class LocustIO(PythonTool):
     def __init__(self, engine, version, **kwargs):
-        super(LocustIO, self).__init__(package="locust", version=version, engine=engine, **kwargs)
+        super(LocustIO, self).__init__(packages=["locust"], version=version, engine=engine, **kwargs)
 
 
 class WorkersReader(ResultsProvider):

@@ -264,7 +264,7 @@ class Apiritif(PythonTool):
     def __init__(self, engine, version, **kwargs):
         if not version:
             version = self.VERSION
-        super(Apiritif, self).__init__(package="apiritif", version=version, engine=engine, **kwargs)
+        super(Apiritif, self).__init__(packages=["apiritif"], version=version, engine=engine, **kwargs)
 
 
 class ApiritifLoadReader(ConsolidatingAggregator):
