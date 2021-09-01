@@ -143,7 +143,7 @@ class PythonTool(RequiredTool):
         super(PythonTool, self).__init__(tool_path=self.tool_path, **kwargs)
 
     def check_if_installed(self):
-        self.log.debug(f"Checking {self.tool_name}: {self.tool_path}")
+        self.log.debug(f"Checking {self.tool_name}.")
         try:
             out, err = self.call([sys.executable, "-m", self.tool_name.lower(), "--version"])
         except CALL_PROBLEMS as exc:

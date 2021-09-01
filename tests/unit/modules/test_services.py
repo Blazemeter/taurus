@@ -43,7 +43,7 @@ class TestPipInstaller(BZTestCase):
 class TestPythonTool(BZTestCase):
     def setUp(self):
         self.engine = EngineEmul()
-        self.obj = PythonTool(engine=self.engine, package='test-name', version=None)
+        self.obj = PythonTool(engine=self.engine, packages=['test-name'], version=None)
         super(TestPythonTool, self).setUp()
 
     def tearDown(self):
