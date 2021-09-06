@@ -103,7 +103,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         args = [sys.executable, wrapper, '-f', self.script]
         args += ['--logfile=%s' % self.log_file]
         args += ["--headless", "--only-summary", ]
-        args += ["--users=%d" % concurrency, "--hatch-rate=%f" % hatch]
+        args += ["--users=%d" % concurrency, "--spawn-rate=%f" % hatch]
         args += ["--run-time=%d" % run_time, "--stop-timeout=10"]
 
         if load.iterations:
@@ -424,10 +424,11 @@ from locust import HttpUser, TaskSet, task, constant
         if assertion.get("regexp", True):
             expression = 'findall(compile(str(val)), %(content)s)' % {'content': content}
         else:
-            expression = 'str(val) in %s' % content
+            expression = 'val in %s' % content
 
         statement = 'if%(not)s %(func)s(%(expression)s for val in %(values)s):'
-        statement = statement % {'not': attr_not, 'func': func_name, 'expression': expression, 'values': values}
+        bin_values = [bytes(val, 'UTF-8') for val in values]
+        statement = statement % {'not': attr_not, 'func': func_name, 'expression': expression, 'values': bin_values}
         if not is_first:
             statement = 'el' + statement
         task.append(self.gen_statement(statement, indent=12))

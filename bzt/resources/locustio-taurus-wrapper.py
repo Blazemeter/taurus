@@ -6,7 +6,7 @@ import sys
 import time
 from collections import OrderedDict
 
-from locust import main, events, runners
+from locust import main, events
 from locust.exception import StopUser
 from requests.exceptions import HTTPError
 
@@ -72,13 +72,15 @@ class LocustStarter(object):
         if 'runner' in args:
             self.runner = args['runner']
 
-    def __on_request_success(self, request_type, name, response_time, response_length):
+    def __on_request_success(self, request_type, name, response_time, response_length, context=None, response=None,
+                             exception=None):
         self.num_requests -= 1
         self.writer.writerow(self.__getrec(request_type, name, response_time, response_length))
         self.fhd.flush()
         self.__check_limits()
 
-    def __on_request_failure(self, request_type, name, response_time, exception, response_length=0):
+    def __on_request_failure(self, request_type, name, response_time, exception, response_length=0, context=None,
+                             response=None):
         self.num_requests -= 1
         self.writer.writerow(self.__getrec(request_type, name, response_time, response_length, exception))
         self.fhd.flush()
@@ -122,8 +124,8 @@ class LocustStarter(object):
                 self.writer = None  # FIXME: bad code design, have zero object for it
 
             events.init.add_listener(self.__on_init)
-            events.request_success.add_listener(self.__on_request_success)
-            events.request_failure.add_listener(self.__on_request_failure)
+            events.request.add_listener(self.__on_request_success)
+            events.request.add_listener(self.__on_request_failure)
             events.user_error.add_listener(self.__on_exception)
             events.worker_report.add_listener(self.__on_worker_report)
             events.quitting.add_listener(self.__on_quit)
