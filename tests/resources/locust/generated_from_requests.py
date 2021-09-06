@@ -8,18 +8,18 @@ class UserBehaviour(TaskSet):
     @task(1)
     def generated_task(self):
         with self.client.get(headers={"Connection": "close", "Keep-Alive": "timeout=15, max=100", "var2": "val2"}, timeout=30.0, url="/", catch_response=True) as response:
-            if not all(str(val) in response.content for val in ['text1', 'text2']):
+            if not all(val in response.content for val in [b'text1', b'text2']):
                 response.failure("['text1', 'text2'] not found in body")
-            elif not all(findall(compile(str(val)), response.content) for val in ['enigma for body']):
+            elif not all(findall(compile(str(val)), response.content) for val in [b'enigma for body']):
                 response.failure("['enigma for body'] not found in body")
-            elif any(findall(compile(str(val)), str(response.status_code)) for val in ['200']):
+            elif any(findall(compile(str(val)), str(response.status_code)) for val in [b'200']):
                 response.failure("['200'] found in http-code")
             else:
                 response.success()
         sleep(5.0)
 
         with self.client.post(data={"var1": "val1"}, headers={"Connection": "close", "Keep-Alive": "timeout=15, max=100"}, timeout=1.5, url="/page", catch_response=True) as response:
-            if not all(findall(compile(str(val)), response.content) for val in ['\\w+l1e']):
+            if not all(findall(compile(str(val)), response.content) for val in [b'\\w+l1e']):
                 response.failure("['\\w+l1e'] not found in body")
             else:
                 response.success()
