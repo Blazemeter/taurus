@@ -73,7 +73,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
             self.engine.aggregator.add_underling(self.reader)
 
     def install_required_tools(self):
-        self.locust = self._get_tool(LocustIO, engine=self.engine, version=self.settings.get("version", None))
+        self.locust = self._get_tool(Locust, engine=self.engine, version=self.settings.get("version", None))
         if not self.locust.check_if_installed():
             self.locust.install()
 
@@ -198,9 +198,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         return diagnostics
 
 
-class LocustIO(PythonTool):
+class Locust(PythonTool):
     def __init__(self, engine, version, **kwargs):
-        super(LocustIO, self).__init__(packages=["locust"], version=version, engine=engine, **kwargs)
+        super(Locust, self).__init__(packages=["locust"], version=version, engine=engine, **kwargs)
 
 
 class WorkersReader(ResultsProvider):
