@@ -1,7 +1,7 @@
 # Locust.io Executor
 [Locust.io](http://locust.io/) is python-based load generating tool where you have full freedom of programming test scenario in Python language. It uses resource-efficient coroutine approach.
 
-Locust package is not installed automatically by Taurus, please install it manually: `pip install locustio`
+Locust package is not installed automatically by Taurus, please install it manually: `pip install locust`
 
 Make note that for Locust `iterations` option means quantity of requests, not cycles of scenario (as the last can contains more than one request). Following load profile settings has no effect for this executor: `throughput` and `steps` 
 
@@ -67,14 +67,14 @@ scenarios:
     keepalive: true  # flag to use HTTP keep-alive for connections, default is true
     requests:
     - url: /  
-      method: post
+      method: get
       headers:
         var1: val1
       body: 'body content'
       assert:
       - contains:
-        - blazemeter  # list of search patterns
-        - Trusted
+        - body  # list of search patterns
+        - content
         subject: body # subject for check
         regexp: false  # treat string as regular expression, true by default
         not: false  # inverse assertion condition
