@@ -70,6 +70,15 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             test_script = fds.read()
         self.assertIn("target.keep_alive(False)", test_script)
 
+    def test_NFC(self):
+        # nose flow control: setup/teardown + graceful
+        self.obj.engine.config.load([RESOURCES_DIR + 'apiritif/test_nfc.yml'])
+        self.configure(self.obj.engine.config['execution'][0])
+        self.obj.settings['verbose'] = True
+        self.obj_prepare()
+        exp_file = RESOURCES_DIR + 'apiritif/test_nfc.py'
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+
     def test_timeout_default(self):
         self.configure({
             "execution": [{
