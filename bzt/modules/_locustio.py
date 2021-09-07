@@ -427,8 +427,11 @@ from locust import HttpUser, TaskSet, task, constant
             expression = 'val in %s' % content
 
         statement = 'if%(not)s %(func)s(%(expression)s for val in %(values)s):'
-        bin_values = [bytes(val, 'UTF-8') for val in values]
-        statement = statement % {'not': attr_not, 'func': func_name, 'expression': expression, 'values': bin_values}
+        if subject == 'body':
+            bin_values = [bytes(val, 'UTF-8') for val in values]
+            statement = statement % {'not': attr_not, 'func': func_name, 'expression': expression, 'values': bin_values}
+        else:
+            statement = statement % {'not': attr_not, 'func': func_name, 'expression': expression, 'values': values}
         if not is_first:
             statement = 'el' + statement
         task.append(self.gen_statement(statement, indent=12))
