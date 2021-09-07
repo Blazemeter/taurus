@@ -72,25 +72,23 @@ class LocustStarter(object):
         if 'runner' in args:
             self.runner = args['runner']
 
-    def __on_request_success(self, request_type, name, response_time, response_length, context=None, response=None,
-                             exception=None):
+    def __on_request_success(self, request_type, name, response_time, response_length, **args):
         self.num_requests -= 1
         self.writer.writerow(self.__getrec(request_type, name, response_time, response_length))
         self.fhd.flush()
         self.__check_limits()
 
-    def __on_request_failure(self, request_type, name, response_time, exception, response_length=0, context=None,
-                             response=None):
+    def __on_request_failure(self, request_type, name, response_time, exception, response_length=0, **args):
         self.num_requests -= 1
         self.writer.writerow(self.__getrec(request_type, name, response_time, response_length, exception))
         self.fhd.flush()
         self.__check_limits()
 
-    def __on_exception(self, locust_instance, exception, tb):
+    def __on_exception(self, locust_instance, exception, tb, **args):
         del locust_instance, tb
         self.__on_request_failure('', '', 0, exception)
 
-    def __on_worker_report(self, client_id, data):
+    def __on_worker_report(self, client_id, data, **args):
         if data['stats'] or data['errors']:
             for item in data['stats']:
                 self.num_requests -= item['num_requests']
