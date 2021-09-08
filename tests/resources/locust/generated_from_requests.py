@@ -12,7 +12,7 @@ class UserBehaviour(TaskSet):
                 response.failure("['text1', 'text2'] not found in body")
             elif not all(findall(compile(str(val)), response.content) for val in [b'enigma for body']):
                 response.failure("['enigma for body'] not found in body")
-            elif any(findall(compile(str(val)), str(response.status_code)) for val in [b'200']):
+            elif any(findall(compile(str(val)), str(response.status_code)) for val in ['200']):
                 response.failure("['200'] found in http-code")
             else:
                 response.success()
