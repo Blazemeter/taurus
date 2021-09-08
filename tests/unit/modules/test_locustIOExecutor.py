@@ -95,7 +95,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
             # Extract the hatch-rate cmdline arg that bzt passed to locust.
             hatch = [
                 x.split('=')[1] for x in m.call_args[0][0]
-                if x.startswith("--hatch-rate")
+                if x.startswith("--spawn-rate")
             ]
             self.assertEqual(hatch[0], "%f" % expected_hatch_rate)
         self.obj.post_process()
