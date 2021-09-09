@@ -73,7 +73,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
             self.engine.aggregator.add_underling(self.reader)
 
     def install_required_tools(self):
-        self.locust = self._get_tool(LocustIO, engine=self.engine, version=self.settings.get("version", None))
+        self.locust = self._get_tool(Locust, engine=self.engine, version=self.settings.get("version", None))
         if not self.locust.check_if_installed():
             self.locust.install()
 
@@ -103,7 +103,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         args = [sys.executable, wrapper, '-f', self.script]
         args += ['--logfile=%s' % self.log_file]
         args += ["--headless", "--only-summary", ]
-        args += ["--users=%d" % concurrency, "--hatch-rate=%f" % hatch]
+        args += ["--users=%d" % concurrency, "--spawn-rate=%f" % hatch]
         args += ["--run-time=%d" % run_time, "--stop-timeout=10"]
 
         if load.iterations:
@@ -198,9 +198,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         return diagnostics
 
 
-class LocustIO(PythonTool):
+class Locust(PythonTool):
     def __init__(self, engine, version, **kwargs):
-        super(LocustIO, self).__init__(packages=["locust"], version=version, engine=engine, **kwargs)
+        super(Locust, self).__init__(packages=["locust"], version=version, engine=engine, **kwargs)
 
 
 class WorkersReader(ResultsProvider):
@@ -424,10 +424,14 @@ from locust import HttpUser, TaskSet, task, constant
         if assertion.get("regexp", True):
             expression = 'findall(compile(str(val)), %(content)s)' % {'content': content}
         else:
-            expression = 'str(val) in %s' % content
+            expression = 'val in %s' % content
 
         statement = 'if%(not)s %(func)s(%(expression)s for val in %(values)s):'
-        statement = statement % {'not': attr_not, 'func': func_name, 'expression': expression, 'values': values}
+        if subject == 'body':
+            bin_values = [bytes(val, 'UTF-8') for val in values]
+            statement = statement % {'not': attr_not, 'func': func_name, 'expression': expression, 'values': bin_values}
+        else:
+            statement = statement % {'not': attr_not, 'func': func_name, 'expression': expression, 'values': values}
         if not is_first:
             statement = 'el' + statement
         task.append(self.gen_statement(statement, indent=12))
