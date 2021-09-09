@@ -70,7 +70,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             test_script = fds.read()
         self.assertIn("target.keep_alive(False)", test_script)
 
-    def test_NFC(self):
+    def test_nfc(self):
         # nose flow control: setup/teardown + graceful
         self.obj.engine.config.load([RESOURCES_DIR + 'apiritif/test_nfc.yml'])
         self.configure(self.obj.engine.config['execution'][0])
