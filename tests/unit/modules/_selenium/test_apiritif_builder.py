@@ -77,6 +77,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.settings['verbose'] = True
         self.obj_prepare()
         exp_file = RESOURCES_DIR + 'apiritif/test_nfc.py'
+        content = open(self.obj.script).read()
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
     def test_timeout_default(self):

@@ -26,8 +26,8 @@ import selenium
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
-from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
-    SetVariables, IncludeScenarioBlock
+from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
+from bzt.requests_model import IncludeScenarioBlock, SetUpBlock, TearDownBlock
 from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, is_selenium_4
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, gen_try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
@@ -125,7 +125,7 @@ from selenium.webdriver.common.keys import Keys
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
-    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock)
+    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock, SetUpBlock, TearDownBlock)
 
     OPTIONS = 'options'
 
@@ -1438,6 +1438,10 @@ from selenium.webdriver.common.keys import Keys
             elif isinstance(request, IncludeScenarioBlock):
                 body = [self._gen_transaction(request)]
                 label = create_method_name(request.scenario_name)
+            elif isinstance(request, SetUpBlock):
+                pass
+            elif isinstance(request, TearDownBlock):
+                pass
             elif isinstance(request, SetVariables):
                 body = self._gen_set_vars(request)
                 label = request.config.get("label", "set_variables")
