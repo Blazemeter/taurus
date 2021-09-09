@@ -29,17 +29,17 @@ class TestSc1(unittest.TestCase):
 
     def _1_httpsblazedemocomsetup1(self):
         with apiritif.smart_transaction('https://blazedemo.com/setup1'):
-            response = apiritif.http.get('https://blazedemo.com/setup2', timeout=2.0)
+            response = apiritif.http.get('https://blazedemo.com/setup1', timeout=2.0)
 
-    def _1_httpsblazedemocomsetup2(self):
+    def _2_httpsblazedemocomsetup2(self):
         with apiritif.smart_transaction('https://blazedemo.com/setup2'):
             response = apiritif.http.get('https://blazedemo.com/setup2', timeout=2.0)
 
-    def _2_httpsblazedemocommain1(self):
+    def _3_httpsblazedemocommain1(self):
         with apiritif.smart_transaction('https://blazedemo.com/main1'):
             response = apiritif.http.get('https://blazedemo.com/main1', timeout=2.0)
 
-    def _2_httpsblazedemocommain2(self):
+    def _4_httpsblazedemocommain2(self):
         with apiritif.smart_transaction('https://bad_url.com/main2'):
             #raise BaseException('111')
 
@@ -52,29 +52,26 @@ class TestSc1(unittest.TestCase):
 
             response = apiritif.http.get('https://blazedemo.com/main2', timeout=2.0)
 
-    def _2_httpsblazedemocommain3(self):
+    def _5_httpsblazedemocommain3(self):
         with apiritif.smart_transaction('https://blazedemo.com/main3'):
             response = apiritif.http.get('https://blazedemo.com/main3', timeout=2.0)
 
-    def _3_httpsblazedemocomteardown1(self):
+    def _6_httpsblazedemocomteardown1(self):
         with apiritif.smart_transaction('https://blazedemo.com/teardown1'):
             response = apiritif.http.get('https://blazedemo.com/teardown1', timeout=2.0)
 
-    def _3_httpsblazedemocomteardown2(self):
+    def _7_httpsblazedemocomteardown2(self):
         with apiritif.smart_transaction('https://blazedemo.com/teardown2'):
             response = apiritif.http.get('https://blazedemo.com/teardown2', timeout=2.0)
 
     def test_sc1(self):
         try:
-            apiritif.set_stage("setup")     # can't be interrupted
             self._1_httpsblazedemocomsetup1()
-            self._1_httpsblazedemocomsetup2()
-
-            apiritif.set_stage("main")      # interruptable by error or graceful flag
-            self._2_httpsblazedemocommain1()
-            self._2_httpsblazedemocommain2()
-            self._2_httpsblazedemocommain3()
+            self._2_httpsblazedemocomsetup2()
+            self._3_httpsblazedemocommain1()
+            self._4_httpsblazedemocommain2()
+            self._5_httpsblazedemocommain3()
         finally:
             apiritif.set_stage("teardown")      # can't be interrupted
-            self._3_httpsblazedemocomteardown1()
-            self._3_httpsblazedemocomteardown2()
+            self._6_httpsblazedemocomteardown1()
+            self._7_httpsblazedemocomteardown2()
