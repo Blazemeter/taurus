@@ -498,7 +498,7 @@ class Test(BZAObject):
                     self.log.warning(f"Passfail Warning: {warning_msg}")
                 validated = True
         if not validated:
-            self.log.error(f"Passfail error: Unable to validate by {url}.")
+            self.log.debug(f"Passfail error: Unable to validate by {url}.")
         return validated
 
 
