@@ -204,7 +204,6 @@ class InstallChecker(Service, Singletone):
         problems = []
         include_set = self._parse_module_filter(self.settings.get("include", []))
         exclude_set = self._parse_module_filter(self.settings.get("exclude", []))
-
         for mod_name in modules:
             if include_set and mod_name not in include_set:
                 continue
