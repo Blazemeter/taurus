@@ -1597,8 +1597,10 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()
 
         warnings = self.log_recorder.warn_buff.getvalue()
+        info = self.log_recorder.info_buff.getvalue()
         self.assertIn("Passfail Warning: passfail warning", warnings)
         self.assertIn("Passfail Warning: passfail file warning", warnings)
+        self.assertIn("Please keep in mind that validation can take time.", info)
 
     def test_nonstandard_env(self):
         self.obj.user.address = "https://some-bzm-link.com"
