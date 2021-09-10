@@ -153,6 +153,10 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def install_required_tools(self):
         self.apiritif = self._get_tool(Apiritif, engine=self.engine, version=self.settings.get("version", None))
+
+        if not self.parameters.get("temp", True):
+            self.apiritif.installer.settings['temp'] = False
+
         if not self.apiritif.check_if_installed():
             self.apiritif.install()
 

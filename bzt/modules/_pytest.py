@@ -61,6 +61,8 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         we need installed nose plugin
         """
         self.pytest = self._get_tool(PyTest, engine=self.engine, version=self.settings.get("version", None))
+        if not self.parameters.get("temp", True):
+            self.pytest.installer.settings['temp'] = False
         self._check_tools([self.pytest, self._get_tool(TaurusPytestRunner, tool_path=self.runner_path)])
 
     def startup(self):

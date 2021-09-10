@@ -79,6 +79,8 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
 
     def install_required_tools(self):
         self.robot = self._get_tool(Robot, engine=self.engine, version=self.settings.get("version", None))
+        if not self.parameters.get("temp", True):
+            self.robot.installer.settings['temp'] = False
         self._check_tools([self.robot, self._get_tool(TaurusRobotRunner, tool_path=self.runner_path)])
 
     def startup(self):

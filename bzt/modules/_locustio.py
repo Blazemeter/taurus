@@ -74,6 +74,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
     def install_required_tools(self):
         self.locust = self._get_tool(Locust, engine=self.engine, version=self.settings.get("version", None))
+
+        if not self.parameters.get("temp", True):
+            self.locust.installer.settings['temp'] = False
+
         if not self.locust.check_if_installed():
             self.locust.install()
 

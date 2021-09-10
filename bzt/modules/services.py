@@ -204,6 +204,9 @@ class InstallChecker(Service, Singletone):
         problems = []
         include_set = self._parse_module_filter(self.settings.get("include", []))
         exclude_set = self._parse_module_filter(self.settings.get("exclude", []))
+
+        modules = ["locust", "pytest", "molotov", "robot", "apiritif"]
+
         for mod_name in modules:
             if include_set and mod_name not in include_set:
                 continue
@@ -232,6 +235,7 @@ class InstallChecker(Service, Singletone):
             return
 
         self.log.info("Checking installation needs for: %s", mod_name)
+        mod.parameters["temp"] = False
         mod.install_required_tools()
         self.log.info("Module is fine: %s", mod_name)
 

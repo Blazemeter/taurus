@@ -52,6 +52,10 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
     def install_required_tools(self):
         self.molotov = self._get_tool(Molotov, engine=self.engine, version=self.settings.get("version", None),
                                       path=self.settings.get('path', None))
+
+        if not self.parameters.get("temp", True):
+            self.molotov.installer.settings['temp'] = False
+
         if not self.molotov.check_if_installed():
             self.molotov.install()
 
