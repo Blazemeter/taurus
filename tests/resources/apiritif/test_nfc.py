@@ -6,26 +6,27 @@ import string
 import sys
 import unittest
 from time import time, sleep
-import os
 import apiritif
-
+log = logging.getLogger('apiritif.http')
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.setLevel(logging.DEBUG)
 
 class TestSc1(unittest.TestCase):
 
     def setUp(self):
         self.vars = {}
         timeout = 2.0
-        graceful_flag = os.environ.get('GRACEFUL')
+        # graceful_flag = os.environ.get('GRACEFUL')
+        #
+        # if graceful_flag and os.path.exists(graceful_flag):
+        #     os.remove(graceful_flag)
 
-        if graceful_flag and os.path.exists(graceful_flag):
-            os.remove(graceful_flag)
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False, scenario_name='sc1')
 
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=True, scenario_name='sc1')
-
-    def tearDown(self):
-        graceful_flag = os.environ.get('GRACEFUL')
-        if graceful_flag and os.path.exists(graceful_flag):
-            os.remove(graceful_flag)
+    # def tearDown(self):
+    #     graceful_flag = os.environ.get('GRACEFUL')
+    #     if graceful_flag and os.path.exists(graceful_flag):
+    #         os.remove(graceful_flag)
 
     def _1_httpsblazedemocomsetup1(self):
         with apiritif.smart_transaction('https://blazedemo.com/setup1'):
@@ -40,15 +41,15 @@ class TestSc1(unittest.TestCase):
             response = apiritif.http.get('https://blazedemo.com/main1', timeout=2.0)
 
     def _4_httpsblazedemocommain2(self):
-        with apiritif.smart_transaction('https://bad_url.com/main2'):
+        with apiritif.smart_transaction('https://blazedemo.com/main2'):
             #raise BaseException('111')
 
-            graceful_flag = os.environ.get('GRACEFUL')
-
-            with open(graceful_flag, 'a+') as _f:
-                _f.write('')
-
-            #raise RuntimeError('it''s me)')
+            # graceful_flag = os.environ.get('GRACEFUL')
+            #
+            # with open(graceful_flag, 'a+') as _f:
+            #     _f.write('')
+            #
+            # raise RuntimeError('it''s me)')
 
             response = apiritif.http.get('https://blazedemo.com/main2', timeout=2.0)
 
