@@ -41,7 +41,7 @@ A pretty good way is to use the “Execute shell” section in the project confi
 But is this really the best way? If the test fails on of the  steps, you will have to debug and maintain your test in two places: the load generation part in your local computer and the pre/post test in Jenkins. What will happen when you want to run your test locally without Jenkins?
 Let me show you an easier way to handle your pre/post test actions from a single configuration file.
  
-Taurus is an open source tool that lets you run many open-source testing tools (such as JMeter, Gatling, The Grinder, Apache Benchmark, Locust.io and more) using YAML/JSON format. Taurus has a module called [“Shell Executor Service Module”](/docs/ShellExec/) that enables you to divide your test script into different logical steps we talked about and properly set your desired pre/post test actions in a single configuration file:
+Taurus is an open source tool that lets you run many open-source testing tools (such as JMeter, Gatling, Apache Benchmark, Locust.io and more) using YAML/JSON format. Taurus has a module called [“Shell Executor Service Module”](/docs/ShellExec/) that enables you to divide your test script into different logical steps we talked about and properly set your desired pre/post test actions in a single configuration file:
  
 ```yaml
 services:

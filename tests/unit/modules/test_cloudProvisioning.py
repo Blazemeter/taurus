@@ -791,7 +791,6 @@ class TestCloudProvisioning(BZTestCase):
                 'BasicSimulation.scala',  # 4 (script)
                 'file-in-home-04.scala',  # 5 (script)
                 'helloworld.py',  # 6 (script)
-                'grinder.base.properties',  # 6 (properties-file)
                 'file-in-home-06.py',  # 7 (script)
                 'file-in-home-07.properties',  # 7 (properties-file)
                 'simple.py',  # 8 (script)

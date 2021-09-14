@@ -71,9 +71,6 @@ CLOUD_CONFIG_BLACK_LIST = {
         "gatling": {
             "path": True
         },
-        "grinder": {
-            "path": True
-        },
         "junit": {
             "path": True
         },

@@ -18,7 +18,7 @@ If there is no JMeter installed at the configured path, Taurus will attempt to i
 
 ## How to Run an Existing JMeter Script
 
-Taurus provides different executors for many open-source testing tools like JMeter, Selenium, Gatling, Grinder, and more. The default executor is JMeter so if you’ve already created a JMX file with JMeter, it's very easy to run it with Taurus! Just use the bzt command followed by the JMX path. For example:
+Taurus provides different executors for many open-source testing tools like JMeter, Selenium, Gatling, and more. The default executor is JMeter so if you’ve already created a JMX file with JMeter, it's very easy to run it with Taurus! Just use the bzt command followed by the JMX path. For example:
 
 ```bash
 bzt example.jmx

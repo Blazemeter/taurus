@@ -53,9 +53,6 @@ def local_paths_config():
             "jmeter": {
                 "path": RESOURCES_DIR + "jmeter/jmeter-loader" + EXE_SUFFIX,
             },
-            "grinder": {
-                "path": RESOURCES_DIR + "grinder/fake_grinder.jar",
-            },
             "gatling": {
                 "path": RESOURCES_DIR + "gatling/gatling3" + EXE_SUFFIX,
             },

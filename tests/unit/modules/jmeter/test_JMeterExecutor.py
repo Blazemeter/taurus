@@ -600,7 +600,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 1)
         self.assertIn('files', self.obj.execution)
-        self.assertEqual(4, len(self.obj.execution['files']))
+        self.assertEqual(3, len(self.obj.execution['files']))
 
     def test_resource_files_paths(self):
         """

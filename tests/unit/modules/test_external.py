@@ -3,7 +3,6 @@ from bzt.modules.external import ExternalResultsLoader
 from bzt.modules.jmeter import FuncJTLReader, JTLReader
 from bzt.modules.ab import TSVDataReader
 from bzt.modules.gatling import DataLogReader as GatlingLogReader
-from bzt.modules.grinder import DataLogReader as GrinderLogReader
 from bzt.modules.vegeta import VegetaLogReader
 
 from tests.unit import RESOURCES_DIR, close_reader_file, ExecutorTestCase
@@ -172,25 +171,6 @@ class TestExternalResultsLoader(ExecutorTestCase):
         last_dp = results[-1]
         cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
         self.assertEqual(243, cumulative_kpis[KPISet.SUCCESSES])
-
-    def test_grinder(self):
-        self.configure({
-            "execution": [{
-                "data-file": RESOURCES_DIR + "/grinder/grinder-bzt-1-kpi.log",
-            }]
-        })
-        self.obj.prepare()
-        self.assertIsInstance(self.obj.reader, GrinderLogReader)
-        self.obj.startup()
-        self.obj.check()
-        self.obj.shutdown()
-        self.obj.post_process()
-        self.obj.engine.aggregator.post_process()
-        results = self.results_listener.results
-        self.assertGreater(len(results), 0)
-        last_dp = results[-1]
-        cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
-        self.assertEqual(50, cumulative_kpis[KPISet.SUCCESSES])
 
     def test_vegeta(self):
         self.configure({

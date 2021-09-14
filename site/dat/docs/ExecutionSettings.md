@@ -1,7 +1,7 @@
 # Execution Settings
 
 Execution objects represent actual underlying tool executions. You can launch unlimited number of JMeter's, 
-Gatling Tool's, Grinder Tools, etc. Executions are configured under top-level config key `execution`. 
+Gatling Tool's, etc. Executions are configured under top-level config key `execution`. 
 Specifying single execution config is equivalent to specifying array of executions with single element, for example:
 
 ```yaml
@@ -30,7 +30,6 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [JMeter](JMeter.md), executor type `jmeter`
   - [Selenium](Selenium.md), executor type `selenium`
   - [Gatling](Gatling.md), executor type `gatling`
-  - [Grinder](Grinder.md), executor type `grinder`
   - [Locust](Locust.md), executor type `locust`
   - [Siege](Siege.md), executor type `siege`
   - [ApacheBenchmark](ApacheBenchmark.md), executor type `ab`
@@ -93,7 +92,8 @@ scenarios:
     requests:
       - http://localhost/1
       - http://localhost/2  
-  only-script: grinder_script.py    # short form: just script
+  only-script: 
+    script: gatling_script.scala    # short form: just script
 
 execution:
 - concurrency: 10

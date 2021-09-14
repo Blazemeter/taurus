@@ -8,7 +8,6 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.ab import TSVDataReader
 from bzt.modules.aggregator import AggregatorListener, ConsolidatingAggregator, DataPoint
 from bzt.modules.gatling import DataLogReader as GatlingLogReader
-from bzt.modules.grinder import DataLogReader as GrinderLogReader
 from bzt.modules.jmeter import JTLReader, XMLJTLReader
 from bzt.modules.vegeta import VegetaLogReader
 from bzt.utils import dehumanize_time
@@ -113,8 +112,6 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
             return GatlingLogReader(self.data_file, self.log, None)
         elif "timestamp" in header.lower() and "elapsed" in header.lower():
             return JTLReader(self.data_file, self.log, self.errors_file)
-        elif "worker process" in header.lower() and header.startswith("worker."):
-            return GrinderLogReader(self.data_file, self.log)
         elif re.match("^[0-9]{19},", header):
             # Vegeta CSV does not have a header, every line starts with a timestamp in nanoseconds
             return VegetaLogReader(self.data_file, self.log)
