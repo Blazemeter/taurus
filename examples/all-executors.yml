@@ -183,15 +183,6 @@ execution:
       - url: http://localhost:8000/
         label: gatling
 
-- executor: grinder
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://localhost:8000/
-        label: grinder
-
 - executor: siege
   concurrency: 1
   hold-for: 10s

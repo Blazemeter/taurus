@@ -22,7 +22,6 @@ class BasicSimulation extends Simulation {
         .body(RawFileBodyPart("tests/resources/json/get-post.json"))
         .body(RawFileBodyPart("file_name", "tests/resources/json/passfail.json"))
         .body(ELFileBodyPart("tests/resources/json/mock_start_err.json"))
-        .body(ELFileBodyPart("file_name", "tests/resources/json/grinder.json"))
 
         csv("tests/resources/json/gatling_" + "production" + ".json")
         csv("tests/resources/json/gatling.json")

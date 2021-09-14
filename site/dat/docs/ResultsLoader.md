@@ -22,7 +22,6 @@ reporting:
 List of supported file formats:
 - `kpi.jtl`/`error.jtl` (JMeter CSV & XML files)
 - `simulation.log` (Gatling)
-- `grinder-bzt-kpi.log` (Grinder)
 - TSV files (Apache Benchmark)
 - Headerless CSV files (Vegeta)
 
