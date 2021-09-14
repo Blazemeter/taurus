@@ -64,7 +64,7 @@ execution:
   scenario:
     script: ~/file-in-home-10.xml
 
-# 15
+# 13
 - executor: jmeter
   scenario:
     script: ~/file-in-home-00.jmx
@@ -80,7 +80,7 @@ execution:
       - param: name
         path: ${somepath}/somefile1.txt
 
-# 16, 17
+# 14, 15
 - executor: junit
   scenario:
     additional-classpath:
@@ -90,7 +90,7 @@ execution:
   scenario:
     script: ~/file-in-home-14.java
 
-# 18, 19
+# 16, 17
 - executor: testng
   scenario:
     script: resources/selenium/testng/TestNGSuite.java
@@ -99,7 +99,7 @@ execution:
   scenario:
     script: ~/file-in-home-16.java
 
-# 20, 21
+# 18, 19
 - executor: mocha
   scenario:
     script: resources/selenium/js-mocha/bd_scenarios.js
@@ -107,7 +107,7 @@ execution:
   scenario:
     script: ~/file-in-home-17.js
 
-# 22, 23
+# 20, 21
 - executor: rspec
   scenario:
     script: resources/selenium/ruby/example_spec.rb
