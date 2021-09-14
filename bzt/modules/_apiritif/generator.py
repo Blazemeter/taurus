@@ -466,11 +466,11 @@ from selenium.webdriver.common.keys import Keys
                     args=[ast_attr("self.driver.title"), self._gen_expr(name)]))
             else:
                 elements.append(gen_store(
-                    name=name.strip(),
+                    name=self._gen_expr(name.strip()),
                     value=self._gen_expr(ast_attr("self.driver.title"))))
         elif atype == 'store' and tag == 'string':
             elements.append(gen_store(
-                name=name.strip(),
+                name=self._gen_expr(name.strip()),
                 value=self._gen_expr(value.strip())))
         elif atype == 'assert' and tag == 'eval':
             elements.append(ast_call(
@@ -479,7 +479,7 @@ from selenium.webdriver.common.keys import Keys
         elif atype == 'store' and tag == 'eval':
             elements.append(
                 gen_store(
-                    name=name.strip(),
+                    self._gen_expr(name.strip()),
                     value=self._gen_eval_js_expression(value))
             )
         else:
@@ -515,7 +515,7 @@ from selenium.webdriver.common.keys import Keys
                                         "strip")))]))
                 elif atype.startswith('store'):
                     elements.append(gen_store(
-                        name=name.strip(),
+                        self._gen_expr(name.strip()),
                         value=self._gen_expr(locator_attr)))
 
         return elements
