@@ -41,11 +41,12 @@ if not is_windows():
 
 
 class PipInstaller(Service):
-    def __init__(self):
+    def __init__(self, engine, packages=None, temp_flag=True):
         super(PipInstaller, self).__init__()
-        self.packages = []
+        self.packages = packages or []
         self.versions = BetterDict()
-        self.temp = True
+        self.engine = engine
+        self.temp = temp_flag
         self.target_dir = None
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
@@ -133,14 +134,13 @@ class PipInstaller(Service):
 
 
 class PythonTool(RequiredTool):
-    def __init__(self, packages, version, engine, **kwargs):
-        self.installer = PipInstaller()
-        self.installer.engine = engine
-        self.installer.parameters['packages'] = packages
+    def __init__(self, packages, temp_flag, version, engine, **kwargs):
+        tool_path = engine.temp_pythonpath
+        super(PythonTool, self).__init__(tool_path=tool_path, **kwargs)
+
+        self.installer = PipInstaller(engine, packages=packages, temp_flag=temp_flag)
         if version:
             self.installer.versions[packages[0]] = version
-        self.tool_path = self.installer.engine.temp_pythonpath
-        super(PythonTool, self).__init__(tool_path=self.tool_path, **kwargs)
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")
@@ -232,7 +232,7 @@ class InstallChecker(Service, Singletone):
             return
 
         self.log.info("Checking installation needs for: %s", mod_name)
-        mod.parameters["temp"] = False
+        mod.settings.get("temp", default=False, force_set=True)
         mod.install_required_tools()
         self.log.info("Module is fine: %s", mod_name)
 

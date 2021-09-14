@@ -3,9 +3,11 @@ import os
 import shutil
 import zipfile
 from os.path import join
+import bzt.utils
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
+from bzt.modules._locustio import LocustIOExecutor
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller, PythonTool
 from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node, is_windows
@@ -193,6 +195,26 @@ class TestToolInstaller(BZTestCase):
         obj.engine.config.get("modules")["err"] = "hello there"
         obj.settings["include"] = "base,dummy"
         self.assertRaises(NormalShutdown, obj.prepare)
+
+    def test_python_module(self):
+        def mock_exec(*args, **kwargs):
+            return "locust here", ""
+
+        obj = InstallChecker()
+        obj.engine = EngineEmul()
+        obj.engine.config.get("modules")["locust"] = LocustIOExecutor.__module__ + "." + LocustIOExecutor.__name__
+        obj.settings["include"] = "locust"
+
+        old_exec = bzt.utils.exec_and_communicate
+        bzt.utils.exec_and_communicate = mock_exec
+        try:
+            obj.prepare()
+        except NormalShutdown:
+            pass
+        finally:
+            bzt.utils.exec_and_communicate = old_exec
+
+        self.assertFalse(obj.engine.config.get("modules").get('locust').get('temp'))
 
 
 class TestAndroidEmulatorLoader(BZTestCase):
