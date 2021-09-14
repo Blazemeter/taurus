@@ -44,6 +44,7 @@ class PipInstaller(Service):
     def __init__(self, engine, packages=None, temp_flag=True):
         super(PipInstaller, self).__init__()
         self.packages = packages or []
+        self.has_installed_packages = False
         self.versions = BetterDict()
         self.engine = engine
         self.temp = temp_flag
@@ -52,7 +53,11 @@ class PipInstaller(Service):
         self.pip_cmd = [self.interpreter, "-m", "pip"]
 
     def _install(self, packages):
-        if not packages:
+        if packages:
+
+            # workaround for PythonTool, remove after expanding check logic from prepare() to PythonTool
+            self.has_installed_packages = True
+
             self.log.debug("Nothing to install")
             return
         cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
@@ -127,7 +132,8 @@ class PipInstaller(Service):
         self._install(self.packages)
 
     def post_process(self):
-        if self.packages and self.temp and not is_windows() and os.path.exists(self.target_dir):    # might be forbidden on win as tool still work
+        # might be forbidden on win as tool still work
+        if self.has_installed_packages and self.temp and not is_windows():
             self.log.debug("remove packages: %s" % self.packages)
 
             shutil.rmtree(self.target_dir)  # it removes all content of directory in reality, not only self.packages
