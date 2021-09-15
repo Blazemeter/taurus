@@ -19,8 +19,7 @@ class TestPipInstaller(BZTestCase):
     def setUp(self):
         engine = EngineEmul()
         engine.config.merge({'services': {'pip-installer': []}})
-        self.obj = PipInstaller()
-        self.obj.engine = engine
+        self.obj = PipInstaller(engine)
         super(TestPipInstaller, self).setUp()
 
     def tearDown(self):
@@ -45,7 +44,7 @@ class TestPipInstaller(BZTestCase):
 class TestPythonTool(BZTestCase):
     def setUp(self):
         self.engine = EngineEmul()
-        self.obj = PythonTool(engine=self.engine, packages=['test-name'], version=None)
+        self.obj = PythonTool(engine=self.engine, packages=['test-name'], settings={})
         super(TestPythonTool, self).setUp()
 
     def tearDown(self):
