@@ -53,13 +53,11 @@ class PipInstaller(Service):
         self.pip_cmd = [self.interpreter, "-m", "pip"]
 
     def _install(self, packages):
-        if packages:
-
-            # workaround for PythonTool, remove after expanding check logic from prepare() to PythonTool
-            self.has_installed_packages = True
-
+        if not packages:
             self.log.debug("Nothing to install")
             return
+        # workaround for PythonTool, remove after expanding check logic from prepare() to PythonTool
+        self.has_installed_packages = True
         cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
         for package in packages:
             version = self.versions.get(package, None)
@@ -96,10 +94,10 @@ class PipInstaller(Service):
         return missed
 
     def _uninstall(self, packages):
-        pass     # todo:
+        pass  # todo:
 
     def _reload(self, packages):
-        pass     # todo:
+        pass  # todo:
 
     def prepare(self):
         """
@@ -123,7 +121,7 @@ class PipInstaller(Service):
         if not os.path.exists(self.target_dir):
             os.makedirs(get_full_path(self.target_dir), exist_ok=True)
 
-        if self._missed(["pip"]):   # extend to windows (bzt-pip)
+        if self._missed(["pip"]):  # extend to windows (bzt-pip)
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
         self.packages = self._missed(self.packages)
         if not self.packages:
@@ -455,7 +453,7 @@ class VirtualDisplay(Service, Singletone):
             self.log.info(msg, (width, height), self.virtual_display.new_display_var)
             VirtualDisplay.SHARED_VIRTUAL_DISPLAY = self.virtual_display
 
-            self.engine.shared_env.set({'DISPLAY': os.environ['DISPLAY']})   # backward compatibility
+            self.engine.shared_env.set({'DISPLAY': os.environ['DISPLAY']})  # backward compatibility
 
     def free_virtual_display(self):
         if self.virtual_display and self.virtual_display.is_alive():

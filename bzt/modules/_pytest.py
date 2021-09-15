@@ -60,9 +60,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         """
         we need installed nose plugin
         """
-        self.pytest = self._get_tool(PyTest, engine=self.engine, version=self.settings.get("version", None))
-        if not self.parameters.get("temp", True):
-            self.pytest.installer.settings['temp'] = False
+        self.pytest = self._get_tool(PyTest, engine=self.engine, settings=self.settings)
         self._check_tools([self.pytest, self._get_tool(TaurusPytestRunner, tool_path=self.runner_path)])
 
     def startup(self):
@@ -93,8 +91,8 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         return super(PyTestExecutor, self).check()
 
     def post_process(self):
-        super(PyTestExecutor, self).post_process()
         self.pytest.post_process()
+        super(PyTestExecutor, self).post_process()
         self.__log_lines()
 
     def __log_lines(self):
@@ -108,9 +106,9 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
 
 
 class PyTest(PythonTool):
-    def __init__(self, engine, version, **kwargs):
+    def __init__(self, engine, settings, **kwargs):
         super(PyTest, self).__init__(packages=["pytest", "pytest-xdist", "apiritif"],
-                                     version=version, engine=engine, **kwargs)
+                                     engine=engine, settings=settings, **kwargs)
 
 
 class TaurusPytestRunner(RequiredTool):

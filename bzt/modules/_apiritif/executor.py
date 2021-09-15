@@ -18,7 +18,7 @@ import re
 import sys
 
 from bzt import TaurusConfigError
-from bzt.engine import SETTINGS
+from bzt.engine import SETTINGS, HavingInstallableTools
 from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSamplesReader
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
@@ -29,7 +29,7 @@ from ..services import PythonTool
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 
-class ApiritifNoseExecutor(SubprocessedExecutor):
+class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
     """
     :type _tailer: FileReader
     """
@@ -152,11 +152,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         return iterations
 
     def install_required_tools(self):
-        self.apiritif = self._get_tool(Apiritif, engine=self.engine, version=self.settings.get("version", None))
-
-        if not self.parameters.get("temp", True):
-            self.apiritif.installer.settings['temp'] = False
-
+        self.apiritif = self._get_tool(Apiritif, engine=self.engine, settings=self.settings)
         if not self.apiritif.check_if_installed():
             self.apiritif.install()
 
@@ -265,10 +261,10 @@ class ApiritifTester(ApiritifNoseExecutor):
 class Apiritif(PythonTool):
     VERSION = "0.9.8"
 
-    def __init__(self, engine, version, **kwargs):
-        if not version:
-            version = self.VERSION
-        super(Apiritif, self).__init__(packages=["apiritif"], version=version, engine=engine, **kwargs)
+    def __init__(self, engine, settings, **kwargs):
+        if not settings.get("version", None):
+            settings["version"] = self.VERSION
+        super(Apiritif, self).__init__(packages=["apiritif"], engine=engine, settings=settings, **kwargs)
 
 
 class ApiritifLoadReader(ConsolidatingAggregator):
