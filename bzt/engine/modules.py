@@ -174,7 +174,7 @@ class ScenarioExecutor(EngineModule):
     :type execution: BetterDict
     """
 
-    EXEC = EXEC     # backward compatibility
+    EXEC = EXEC  # backward compatibility
     RAMP_UP = "ramp-up"
     HOLD_FOR = "hold-for"
     CONCURR = "concurrency"
@@ -423,6 +423,17 @@ class ScenarioExecutor(EngineModule):
         super(ScenarioExecutor, self).prepare()
         self.env.set(self.execution.get("env"))
 
+    def install_required_tools(self):
+        pass
+
+    def get_widget(self):
+        """
+        Returns widget instance to be added to sidebar
+
+        :rtype: urwid.Widget
+        """
+        pass
+
     def _execute(self, args, **kwargs):
         self.preprocess_args(args)
 
@@ -447,4 +458,3 @@ class ScenarioExecutor(EngineModule):
         if self.stderr:
             self.stderr.close()
         super(ScenarioExecutor, self).post_process()
-

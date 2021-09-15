@@ -17,13 +17,12 @@ import os
 from abc import abstractmethod
 
 from bzt import TaurusConfigError
-from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR
 from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time, iteritems
 
 
-class JavaScriptExecutor(SubprocessedExecutor, HavingInstallableTools):
+class JavaScriptExecutor(SubprocessedExecutor):
     def __init__(self):
         super(JavaScriptExecutor, self).__init__()
         self.tools_dir = None

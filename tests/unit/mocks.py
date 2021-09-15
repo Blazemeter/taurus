@@ -8,7 +8,7 @@ from random import random
 
 import requests
 
-from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools, Singletone, Service, SelfDiagnosable
+from bzt.engine import Engine, Configuration, FileLister, Singletone, Service, SelfDiagnosable
 from bzt.engine import Provisioning, Reporter, ScenarioExecutor
 from bzt.modules import TransactionListener
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -140,8 +140,7 @@ class EngineEmul(Engine):
         return super(EngineEmul, self).prepare()
 
 
-class ModuleMock(ScenarioExecutor, Provisioning, Reporter, Service, FileLister, HavingInstallableTools,
-                 SelfDiagnosable):
+class ModuleMock(ScenarioExecutor, Provisioning, Reporter, Service, FileLister, SelfDiagnosable):
     """ mock """
 
     def __init__(self):

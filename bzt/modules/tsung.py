@@ -24,14 +24,14 @@ from urllib import parse
 from shutil import which
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import FileLister, ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
+from bzt.engine import FileLister, ScenarioExecutor, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.console import ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.utils import CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, FileReader, etree, iteritems
 
 
-class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
+class TsungExecutor(ScenarioExecutor, FileLister, SelfDiagnosable):
     """
     Tsung executor module
     """

@@ -33,12 +33,6 @@ class FileLister(object):
         pass
 
 
-class HavingInstallableTools(object):
-    @abstractmethod
-    def install_required_tools(self):
-        pass
-
-
 class Singletone(object):
     pass
 

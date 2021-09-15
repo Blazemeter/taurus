@@ -17,11 +17,10 @@ import os
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.modules import SubprocessedExecutor
-from bzt.engine import HavingInstallableTools
 from bzt.utils import get_full_path, is_windows, RequiredTool, RESOURCES_DIR, CALL_PROBLEMS
 
 
-class CSharpExecutor(SubprocessedExecutor, HavingInstallableTools):
+class CSharpExecutor(SubprocessedExecutor):
     def __init__(self):
         super(CSharpExecutor, self).__init__()
         self.runner_dir = os.path.join(RESOURCES_DIR, "dotnet", "DotnetTestRunner")

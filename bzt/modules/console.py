@@ -20,7 +20,6 @@ import re
 import sys
 import time
 import traceback
-from abc import abstractmethod
 from collections import deque
 from datetime import datetime
 from itertools import groupby, islice, chain
@@ -131,11 +130,10 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
         if isinstance(self.engine.provisioning, Local):
             modules += self.engine.provisioning.executors
         for module in modules:
-            if isinstance(module, WidgetProvider):
-                widget = module.get_widget()
-                widgets.append(widget)
-                if isinstance(widget, ExecutorWidget):
-                    self.executor_widgets.append(widget)
+            widget = module.get_widget()
+            widgets.append(widget)
+            if isinstance(widget, ExecutorWidget):
+                self.executor_widgets.append(widget)
 
         self.console = TaurusConsole(widgets)
         self.screen.register_palette(self.console.palette)
@@ -1114,21 +1112,6 @@ class TaurusLogo(Pile):
         if self.idx >= len(self.seq):
             self.idx = 0
         self._invalidate()
-
-
-class WidgetProvider(object):
-    """
-    Mixin for classes that provide executor widgets
-    """
-
-    @abstractmethod
-    def get_widget(self):
-        """
-        Returns widget instance to be added to sidebar
-
-        :rtype: urwid.Widget
-        """
-        pass
 
 
 class PrioritizedWidget(object):

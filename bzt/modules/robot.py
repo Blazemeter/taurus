@@ -20,14 +20,13 @@ import sys
 import yaml
 
 from bzt import TaurusConfigError
-from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.services import PythonTool
 from bzt.utils import RequiredTool, CALL_PROBLEMS
 from bzt.utils import get_full_path, RESOURCES_DIR
 
 
-class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
+class RobotExecutor(SubprocessedExecutor):
     def __init__(self):
         super(RobotExecutor, self).__init__()
         self.runner_path = os.path.join(RESOURCES_DIR, "robot_runner.py")

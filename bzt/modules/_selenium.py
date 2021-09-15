@@ -21,9 +21,9 @@ from abc import abstractmethod
 from urwid import Text, Pile
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import FileLister, HavingInstallableTools, SelfDiagnosable
+from bzt.engine import FileLister, SelfDiagnosable
 from bzt.modules import ReportableExecutor
-from bzt.modules.console import WidgetProvider, PrioritizedWidget
+from bzt.modules.console import PrioritizedWidget
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
 from bzt.utils import is_windows, is_mac, platform_bitness
 
@@ -54,7 +54,7 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         pass
 
 
-class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
+class SeleniumExecutor(AbstractSeleniumExecutor, FileLister, SelfDiagnosable):
     """
     Selenium executor
     :type runner: bzt.modules.SubprocessedExecutor
