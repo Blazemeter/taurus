@@ -23,7 +23,7 @@ import time
 from abc import abstractmethod
 from collections import Counter
 
-import fuzzyset
+import fuzzyset2 as fuzzyset
 from hdrpy import HdrHistogram, RecordedIterator
 from yaml import SafeDumper
 from yaml.representer import SafeRepresenter
