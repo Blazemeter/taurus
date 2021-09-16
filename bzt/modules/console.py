@@ -36,7 +36,7 @@ from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
-from bzt.engine import Reporter, Singletone
+from bzt.engine import Reporter, Singletone, ScenarioExecutor
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
 from bzt.utils import humanize_time, is_windows, DummyScreen
@@ -130,10 +130,11 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
         if isinstance(self.engine.provisioning, Local):
             modules += self.engine.provisioning.executors
         for module in modules:
-            widget = module.get_widget()
-            widgets.append(widget)
-            if isinstance(widget, ExecutorWidget):
-                self.executor_widgets.append(widget)
+            if isinstance(module, ScenarioExecutor):
+                widget = module.get_widget()
+                widgets.append(widget)
+                if isinstance(widget, ExecutorWidget):
+                    self.executor_widgets.append(widget)
 
         self.console = TaurusConsole(widgets)
         self.screen.register_palette(self.console.palette)
