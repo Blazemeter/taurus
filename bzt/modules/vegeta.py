@@ -17,14 +17,14 @@ import json
 import os
 from subprocess import PIPE
 from bzt import TaurusConfigError, ToolError
-from bzt.modules import ScenarioExecutor, FileLister, SelfDiagnosable
+from bzt.modules import ScenarioExecutor
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
 from bzt.utils import RequiredTool, CALL_PROBLEMS, FileReader, shutdown_process, get_full_path, is_windows, is_mac, \
     untar
 
 
-class VegetaExecutor(ScenarioExecutor, FileLister, SelfDiagnosable):
+class VegetaExecutor(ScenarioExecutor):
     def __init__(self):
         super(VegetaExecutor, self).__init__()
         self.output_file = None

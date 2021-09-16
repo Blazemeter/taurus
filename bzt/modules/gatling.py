@@ -23,7 +23,7 @@ import time
 from collections import defaultdict
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, SelfDiagnosable
+from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import ExecutorWidget
 from bzt.requests_model import HTTPRequest, SetVariables, HierarchicRequestParser
@@ -258,7 +258,7 @@ class GatlingScriptBuilder(object):
         return template_line % params
 
 
-class GatlingExecutor(ScenarioExecutor, FileLister, SelfDiagnosable):
+class GatlingExecutor(ScenarioExecutor):
     """
     Gatling executor module
     """

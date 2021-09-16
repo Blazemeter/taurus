@@ -28,7 +28,6 @@ from bzt import ToolError
 from bzt.utils import numeric_types, Environment, RequiredTool, PIPE, SoapUIScriptConverter
 from bzt.utils import to_json, BetterDict, ensure_is_dict, dehumanize_time
 
-from .templates import FileLister
 from .dicts import Scenario
 from .names import EXEC, SCENARIO
 
@@ -409,10 +408,17 @@ class ScenarioExecutor(EngineModule):
         return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
                              iterations=iterations, duration=duration, steps=steps)
 
+    def resource_files(self):
+        """
+        Get list of resource files
+
+        :rtype: list
+        """
+        pass
+
     def get_resource_files(self):
         files_list = []
-        if isinstance(self, FileLister):
-            files_list.extend(self.resource_files())
+        files_list.extend(self.resource_files())
         files_list.extend(self.execution.get("files", []))
         return files_list
 
@@ -451,6 +457,12 @@ class ScenarioExecutor(EngineModule):
         except OSError as exc:
             raise ToolError("Failed to start %s: %s (%s)" % (self.__class__.__name__, exc, args))
         return process
+
+    def get_error_diagnostics(self):
+        """
+        :rtype: list[str]
+        """
+        return None
 
     def post_process(self):
         if self.stdout:

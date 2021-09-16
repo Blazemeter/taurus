@@ -22,7 +22,7 @@ import sys
 from collections import OrderedDict, Counter
 
 from bzt import TaurusConfigError
-from bzt.engine import ScenarioExecutor, FileLister, Scenario, SelfDiagnosable
+from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.jmeter import JTLReader
@@ -32,7 +32,7 @@ from bzt.utils import iteritems, get_full_path, ensure_is_dict, PythonGenerator,
 from bzt.utils import shutdown_process, dehumanize_time, RESOURCES_DIR
 
 
-class LocustIOExecutor(ScenarioExecutor, FileLister, SelfDiagnosable):
+class LocustIOExecutor(ScenarioExecutor):
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
         self.process = None

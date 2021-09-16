@@ -18,7 +18,7 @@ limitations under the License.
 import os
 from math import ceil
 
-from bzt.engine import ScenarioExecutor, SelfDiagnosable, FileLister
+from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.services import PythonTool
@@ -26,7 +26,7 @@ from bzt.utils import unicode_decode, CALL_PROBLEMS
 from bzt.utils import shutdown_process, dehumanize_time, get_full_path, LDJSONReader
 
 
-class MolotovExecutor(ScenarioExecutor, FileLister, SelfDiagnosable):
+class MolotovExecutor(ScenarioExecutor):
     def __init__(self):
         super(MolotovExecutor, self).__init__()
         self.process = None

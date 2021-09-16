@@ -34,8 +34,8 @@ from cssselect import GenericTranslator
 from lxml import etree
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import Scenario, FileLister, ScenarioExecutor
-from bzt.engine import SelfDiagnosable, SETTINGS
+from bzt.engine import Scenario, ScenarioExecutor
+from bzt.engine import SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
 from bzt.modules.console import ExecutorWidget
@@ -80,7 +80,7 @@ def parse_assertion(element, default=""):
     return failure_message, name
 
 
-class JMeterExecutor(ScenarioExecutor, FileLister, SelfDiagnosable):
+class JMeterExecutor(ScenarioExecutor):
     """
     JMeter executor module
 

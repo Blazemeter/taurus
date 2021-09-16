@@ -22,14 +22,14 @@ from math import ceil
 from distutils.version import LooseVersion
 
 from bzt import TaurusConfigError
-from bzt.engine import ScenarioExecutor, SelfDiagnosable
+from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.utils import iteritems, CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, FileReader
 
 
-class ApacheBenchmarkExecutor(ScenarioExecutor, SelfDiagnosable):
+class ApacheBenchmarkExecutor(ScenarioExecutor):
     """
     Apache Benchmark executor module
     """

@@ -8,7 +8,6 @@ from logging import Handler
 from unittest.case import TestCase
 
 from bzt.engine import ScenarioExecutor, EXEC
-from bzt.engine import SelfDiagnosable
 from bzt.utils import get_full_path
 from tests.unit import ROOT_LOGGER, EngineEmul
 from tests.unit.mocks import DummyOut
@@ -51,7 +50,7 @@ class BZTestCase(TestCase):
         exc, _, _ = sys.exc_info()
         if exc:
             try:
-                if hasattr(self, 'obj') and isinstance(self.obj, SelfDiagnosable):
+                if hasattr(self, 'obj'):
                     diags = self.obj.get_error_diagnostics()
                     if diags:
                         for line in diags:
