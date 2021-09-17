@@ -41,11 +41,13 @@ if not is_windows():
 
 
 class PipInstaller(Service):
-    def __init__(self):
+    def __init__(self, engine, packages=None, temp_flag=True):
         super(PipInstaller, self).__init__()
-        self.packages = []
+        self.packages = packages or []
+        self.has_installed_packages = False
         self.versions = BetterDict()
-        self.temp = True
+        self.engine = engine
+        self.temp = temp_flag
         self.target_dir = None
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
@@ -54,6 +56,8 @@ class PipInstaller(Service):
         if not packages:
             self.log.debug("Nothing to install")
             return
+        # workaround for PythonTool, remove after expanding check logic from prepare() to PythonTool
+        self.has_installed_packages = True
         cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
         for package in packages:
             version = self.versions.get(package, None)
@@ -90,10 +94,10 @@ class PipInstaller(Service):
         return missed
 
     def _uninstall(self, packages):
-        pass     # todo:
+        pass  # todo:
 
     def _reload(self, packages):
-        pass     # todo:
+        pass  # todo:
 
     def prepare(self):
         """
@@ -117,7 +121,7 @@ class PipInstaller(Service):
         if not os.path.exists(self.target_dir):
             os.makedirs(get_full_path(self.target_dir), exist_ok=True)
 
-        if self._missed(["pip"]):   # extend to windows (bzt-pip)
+        if self._missed(["pip"]):  # extend to windows (bzt-pip)
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
         self.packages = self._missed(self.packages)
         if not self.packages:
@@ -126,21 +130,23 @@ class PipInstaller(Service):
         self._install(self.packages)
 
     def post_process(self):
-        if self.packages and self.temp and not is_windows() and os.path.exists(self.target_dir):    # might be forbidden on win as tool still work
+        # might be forbidden on win as tool still work
+        if self.has_installed_packages and self.temp and not is_windows():
             self.log.debug("remove packages: %s" % self.packages)
 
             shutil.rmtree(self.target_dir)  # it removes all content of directory in reality, not only self.packages
 
 
 class PythonTool(RequiredTool):
-    def __init__(self, packages, version, engine, **kwargs):
-        self.installer = PipInstaller()
-        self.installer.engine = engine
-        self.installer.parameters['packages'] = packages
+    def __init__(self, packages, engine, settings, **kwargs):
+        tool_path = engine.temp_pythonpath
+        super(PythonTool, self).__init__(tool_path=tool_path, **kwargs)
+
+        temp_flag = settings.get("temp", True)
+        version = settings.get("version", None)
+        self.installer = PipInstaller(engine, packages=packages, temp_flag=temp_flag)
         if version:
             self.installer.versions[packages[0]] = version
-        self.tool_path = self.installer.engine.temp_pythonpath
-        super(PythonTool, self).__init__(tool_path=self.tool_path, **kwargs)
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")
@@ -232,6 +238,7 @@ class InstallChecker(Service, Singletone):
             return
 
         self.log.info("Checking installation needs for: %s", mod_name)
+        mod.settings.get("temp", default=False, force_set=True)
         mod.install_required_tools()
         self.log.info("Module is fine: %s", mod_name)
 
@@ -446,7 +453,7 @@ class VirtualDisplay(Service, Singletone):
             self.log.info(msg, (width, height), self.virtual_display.new_display_var)
             VirtualDisplay.SHARED_VIRTUAL_DISPLAY = self.virtual_display
 
-            self.engine.shared_env.set({'DISPLAY': os.environ['DISPLAY']})   # backward compatibility
+            self.engine.shared_env.set({'DISPLAY': os.environ['DISPLAY']})  # backward compatibility
 
     def free_virtual_display(self):
         if self.virtual_display and self.virtual_display.is_alive():

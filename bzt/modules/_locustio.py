@@ -73,7 +73,7 @@ class LocustIOExecutor(ScenarioExecutor):
             self.engine.aggregator.add_underling(self.reader)
 
     def install_required_tools(self):
-        self.locust = self._get_tool(Locust, engine=self.engine, version=self.settings.get("version", None))
+        self.locust = self._get_tool(Locust, engine=self.engine, settings=self.settings)
         if not self.locust.check_if_installed():
             self.locust.install()
 
@@ -169,6 +169,7 @@ class LocustIOExecutor(ScenarioExecutor):
 
     def post_process(self):
         self.locust.post_process()
+        super(LocustIOExecutor, self).post_process()
 
     def has_results(self):
         master_results = self.is_master and self.reader.cumulative
@@ -199,8 +200,8 @@ class LocustIOExecutor(ScenarioExecutor):
 
 
 class Locust(PythonTool):
-    def __init__(self, engine, version, **kwargs):
-        super(Locust, self).__init__(packages=["locust"], version=version, engine=engine, **kwargs)
+    def __init__(self, engine, settings, **kwargs):
+        super(Locust, self).__init__(packages=["locust"], engine=engine, settings=settings, **kwargs)
 
 
 class WorkersReader(ResultsProvider):
