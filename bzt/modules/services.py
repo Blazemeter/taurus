@@ -131,7 +131,7 @@ class PipInstaller(Service):
 
     def post_process(self):
         # might be forbidden on win as tool still work
-        if self.has_installed_packages and self.temp and not is_windows():
+        if self.has_installed_packages and self.temp and not is_windows() and os.path.exists(self.target_dir):
             self.log.debug("remove packages: %s" % self.packages)
 
             shutil.rmtree(self.target_dir)  # it removes all content of directory in reality, not only self.packages
