@@ -78,7 +78,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
                 raise TaurusConfigError("`tags` is not a string or text")
 
     def install_required_tools(self):
-        self.robot = self._get_tool(Robot, engine=self.engine, version=self.settings.get("version", None))
+        self.robot = self._get_tool(Robot, engine=self.engine, settings=self.settings)
         self._check_tools([self.robot, self._get_tool(TaurusRobotRunner, tool_path=self.runner_path)])
 
     def startup(self):
@@ -112,11 +112,12 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
 
     def post_process(self):
         self.robot.post_process()
+        super(RobotExecutor, self).post_process()
 
 
 class Robot(PythonTool):
-    def __init__(self, engine, version, **kwargs):
-        super(Robot, self).__init__(packages=["robotframework", "apiritif"], version=version, engine=engine, **kwargs)
+    def __init__(self, engine, settings, **kwargs):
+        super(Robot, self).__init__(packages=["robotframework", "apiritif"], engine=engine, settings=settings, **kwargs)
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")
