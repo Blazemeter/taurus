@@ -28,7 +28,7 @@ from urllib.request import urlopen
 from urllib.error import URLError
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
-from bzt.engine import Service, Singletone
+from bzt.engine import Service, Singletone, ScenarioExecutor
 from bzt.utils import get_stacktrace, communicate, BetterDict, TaurusCalledProcessError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node, CALL_PROBLEMS, exec_and_communicate
@@ -226,6 +226,10 @@ class InstallChecker(Service, Singletone):
 
     def _check_module(self, mod_name):
         mod = self.engine.instantiate_module(mod_name)
+
+        if not isinstance(mod, ScenarioExecutor):
+            self.log.debug("Module %s has no install needs", mod_name)
+            return
 
         self.log.info("Checking installation needs for: %s", mod_name)
         mod.install_required_tools()
