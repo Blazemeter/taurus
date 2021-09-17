@@ -16,7 +16,6 @@ limitations under the License.
 import copy
 import os
 import time
-from abc import abstractmethod
 
 from urwid import Text, Pile
 
@@ -27,33 +26,7 @@ from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, u
 from bzt.utils import is_windows, is_mac, platform_bitness
 
 
-class AbstractSeleniumExecutor(ReportableExecutor):
-    @abstractmethod
-    def get_virtual_display(self):
-        """
-        Return virtual display instance, if any.
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def add_env(self, env):  # compatibility with taurus-server
-        """
-        Add environment variables into selenium process env
-        :type env: dict[str,str]
-        """
-        pass
-
-    @abstractmethod
-    def subscribe_to_transactions(self, listener):
-        """
-        Subscribe to iteration events
-        :type listener: bzt.modules.TransactionListener
-        """
-        pass
-
-
-class SeleniumExecutor(AbstractSeleniumExecutor):
+class SeleniumExecutor(ReportableExecutor):
     """
     Selenium executor
     :type runner: bzt.modules.SubprocessedExecutor

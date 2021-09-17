@@ -18,6 +18,7 @@ limitations under the License.
 import os
 from math import ceil
 
+from bzt import ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import ExecutorWidget

@@ -50,7 +50,7 @@ class BZTestCase(TestCase):
         exc, _, _ = sys.exc_info()
         if exc:
             try:
-                if hasattr(self, 'obj'):
+                if hasattr(self, 'obj') and isinstance(self.obj, ScenarioExecutor):
                     diags = self.obj.get_error_diagnostics()
                     if diags:
                         for line in diags:

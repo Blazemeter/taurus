@@ -414,7 +414,7 @@ class ScenarioExecutor(EngineModule):
 
         :rtype: list
         """
-        pass
+        return []
 
     def get_resource_files(self):
         files_list = []
