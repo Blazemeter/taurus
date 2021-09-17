@@ -132,9 +132,10 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
         for module in modules:
             if isinstance(module, ScenarioExecutor):
                 widget = module.get_widget()
-                widgets.append(widget)
-                if isinstance(widget, ExecutorWidget):
-                    self.executor_widgets.append(widget)
+                if widget:
+                    widgets.append(widget)
+                    if isinstance(widget, ExecutorWidget):
+                        self.executor_widgets.append(widget)
 
         self.console = TaurusConsole(widgets)
         self.screen.register_palette(self.console.palette)
