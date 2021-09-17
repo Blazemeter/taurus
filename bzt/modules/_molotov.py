@@ -105,8 +105,8 @@ class MolotovExecutor(ScenarioExecutor):
         ret_code = self.process.poll()
         if ret_code is None:
             return False
-        # if ret_code != 0: # uncomment when there's adequate tool release
-        #     raise ToolError("molotov exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
+        if ret_code != 0:
+            raise ToolError("Molotov exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
         return True
 
     def shutdown(self):

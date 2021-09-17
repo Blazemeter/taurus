@@ -128,6 +128,7 @@ class Robot(PythonTool):
 
             self.log.debug(f"{self.tool_name} check failed: {exc}")
             return False
+        return True
 
 
 class TaurusRobotRunner(RequiredTool):
