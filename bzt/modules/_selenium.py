@@ -16,6 +16,7 @@ limitations under the License.
 import copy
 import os
 import time
+from abc import abstractmethod
 
 from urwid import Text, Pile
 
@@ -24,6 +25,12 @@ from bzt.modules import ReportableExecutor
 from bzt.modules.console import PrioritizedWidget
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
 from bzt.utils import is_windows, is_mac, platform_bitness
+
+
+class AbstractSeleniumExecutor(ReportableExecutor):
+    @abstractmethod
+    def subscribe_to_transactions(self, listener):
+        pass
 
 
 class SeleniumExecutor(ReportableExecutor):

@@ -17,5 +17,10 @@ limitations under the License.
 """
 
 
+class HavingInstallableTools(object):
+    def install_required_tools(self):
+        pass
+
+
 class Singletone(object):
     pass
