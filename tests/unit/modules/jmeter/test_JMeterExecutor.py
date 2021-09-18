@@ -2895,7 +2895,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertIsNotNone(ip_source)
         self.assertIsNotNone(ip_source.text)
 
-    def test_timeouts_hell(self):
+    def test_timeouts(self):
         self.configure({
             "execution": {
                 "scenario": {
@@ -2904,12 +2904,7 @@ class TestJMeterExecutor(ExecutorTestCase):
                         "http://request1.com",
                         {
                             "url": "http://request2.com",
-                            "timeout": "2ms"
-                        }
-                    ]
-                }
-            }
-        })
+                            "timeout": "2ms"}]}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
         default_element = "ConfigTestElement[@testname='Defaults']"
@@ -2923,6 +2918,37 @@ class TestJMeterExecutor(ExecutorTestCase):
         request2_timeouts = [xml_tree.find(f".//{http_samplers[1]}/{element}").text for element in (ct_id, rt_id)]
 
         duration_assertion_timeouts = [xml_tree.findall(f".//stringProp[@name='DurationAssertion.duration']")]
+
+        self.assertEqual(["1", "1"], default_timeouts)
+        self.assertEqual(["", ""], request1_timeouts)
+        self.assertEqual(["2", "2"], request2_timeouts)
+        self.assertEqual(0, len(duration_assertion_timeouts))
+
+    def test_timeouts_default(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    # default scenario timeout is 30s
+                    "requests": [
+                        "http://request1.com",
+                        {
+                            "url": "http://request2.com",
+                            "timeout": "2ms"}]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        default_element = "ConfigTestElement[@testname='Defaults']"
+
+        ct_id = "stringProp[@name='HTTPSampler.connect_timeout']"
+        rt_id = "stringProp[@name='HTTPSampler.response_timeout']"
+        default_timeouts = [xml_tree.find(f".//{default_element}/{element}").text for element in (ct_id, rt_id)]
+
+        http_samplers = [f"HTTPSamplerProxy[@testname='http://request{num}.com']" for num in [1, 2]]
+        request1_timeouts = [xml_tree.find(f".//{http_samplers[0]}/{element}").text for element in (ct_id, rt_id)]
+        request2_timeouts = [xml_tree.find(f".//{http_samplers[1]}/{element}").text for element in (ct_id, rt_id)]
+
+        self.assertEqual(["30000", "30000"], default_timeouts)
+        self.assertEqual(["", ""], request1_timeouts)
+        self.assertEqual(["2", "2"], request2_timeouts)
 
     def test_diagnostics(self):
         self.configure({
