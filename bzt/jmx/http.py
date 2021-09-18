@@ -63,8 +63,6 @@ class HTTPProtocolHandler(ProtocolHandler):
             files = [{"path": body_file}]
 
         timeout = self.safe_time(request.config.get("timeout"))
-        if not timeout:
-            timeout = ""  # timeless request forbidden (timeout = 0)
 
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, request.body,
                                      request.priority_option('keepalive', default=True),

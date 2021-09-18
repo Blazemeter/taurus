@@ -372,7 +372,7 @@ class JMX(object):
         proxy.append(JMX._bool_prop("HTTPSampler.follow_redirects", follow_redirects))
         proxy.append(JMX._bool_prop("HTTPSampler.auto_redirects", False))
 
-        if timeout is not None:
+        if timeout:
             proxy.append(JMX._string_prop("HTTPSampler.connect_timeout", timeout))
             proxy.append(JMX._string_prop("HTTPSampler.response_timeout", timeout))
 
