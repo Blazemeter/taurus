@@ -35,7 +35,7 @@ class HTTPProtocolHandler(ProtocolHandler):
 
         content_encoding = scenario.get("content-encoding", None)
 
-        timeout = scenario.get("timeout", None)
+        timeout = scenario.get("timeout", "30s")
         timeout = self.safe_time(timeout)
         elements = [JMX._get_http_defaults(default_address, timeout, retrieve_resources,
                                            concurrent_pool_size, content_encoding, resources_regex),
@@ -43,8 +43,6 @@ class HTTPProtocolHandler(ProtocolHandler):
         return elements
 
     def get_sampler_pair(self, request):
-        timeout = self.safe_time(request.priority_option('timeout'))
-
         # convert body to string
         if isinstance(request.body, (dict, list, numeric_types)):
             if request.get_header('content-type') == 'application/json' or isinstance(request.body, numeric_types):
@@ -63,6 +61,10 @@ class HTTPProtocolHandler(ProtocolHandler):
         # method can be put, post, or even variable
         if has_file_for_body and request.method != "GET":
             files = [{"path": body_file}]
+
+        timeout = self.safe_time(request.config.get("timeout"))
+        if not timeout:
+            timeout = ""  # timeless request forbidden (timeout = 0)
 
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, request.body,
                                      request.priority_option('keepalive', default=True),
