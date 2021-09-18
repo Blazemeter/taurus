@@ -2917,10 +2917,10 @@ class TestJMeterExecutor(ExecutorTestCase):
         request1_timeouts = [xml_tree.find(f".//{http_samplers[0]}/{element}").text for element in (ct_id, rt_id)]
         request2_timeouts = [xml_tree.find(f".//{http_samplers[1]}/{element}").text for element in (ct_id, rt_id)]
 
-        duration_assertion_timeouts = [xml_tree.findall(f".//stringProp[@name='DurationAssertion.duration']")]
+        duration_assertion_timeouts = xml_tree.findall(f".//stringProp[@name='DurationAssertion.duration']")
 
         self.assertEqual(["1", "1"], default_timeouts)
-        self.assertEqual(["", ""], request1_timeouts)
+        self.assertEqual([None, None], request1_timeouts)
         self.assertEqual(["2", "2"], request2_timeouts)
         self.assertEqual(0, len(duration_assertion_timeouts))
 
@@ -2947,7 +2947,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         request2_timeouts = [xml_tree.find(f".//{http_samplers[1]}/{element}").text for element in (ct_id, rt_id)]
 
         self.assertEqual(["30000", "30000"], default_timeouts)
-        self.assertEqual(["", ""], request1_timeouts)
+        self.assertEqual([None, None], request1_timeouts)
         self.assertEqual(["2", "2"], request2_timeouts)
 
     def test_diagnostics(self):
