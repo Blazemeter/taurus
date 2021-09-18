@@ -215,7 +215,7 @@ scenarios:
     headers: # global headers
       header-name: header-value
     think-time: 1s500ms  # global delay between each request
-    timeout: 500ms  #  timeout for connecting, receiving results
+    timeout: 500ms  #  timeout for connecting, receiving results, default value is 30s
     default-address: "https://www.blazedemo.com:8080"  # http request defaults scheme, domain, port
     keepalive: true  # true by default, applied on all requests in scenario
     retrieve-resources: true  # true by default, retrieves all embedded resources from HTML pages
@@ -241,8 +241,6 @@ scenarios:
       random-order: false
 ```
 See more info about data-sources [here](DataSources.md).
-
-Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
 
 If you want to use JMeter properties in `default-address`, you'll have to specify mandatory scheme and separate address/port. Like this: `default-address: https://${\__P(hostname)}:${\__P(port)}`.
 
