@@ -906,18 +906,6 @@ class JMX(object):
         return cfg
 
     @staticmethod
-    def _get_dur_assertion(timeout):
-        """
-
-        :type timeout: int
-        :return:
-        """
-        element = etree.Element("DurationAssertion", guiclass="DurationAssertionGui",
-                                testclass="DurationAssertion", testname="Timeout Check")
-        element.append(JMX._string_prop("DurationAssertion.duration", timeout))
-        return element
-
-    @staticmethod
     def get_constant_timer(delay):
         timer_type = "ConstantTimer"
         element = etree.Element(timer_type, guiclass="%sGui" % timer_type, testclass=timer_type, testname="Think-Time")
