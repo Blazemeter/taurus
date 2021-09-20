@@ -17,20 +17,15 @@ from tests.unit.mocks import ModuleMock, BZMock
 
 class TestPipInstaller(BZTestCase):
     def setUp(self):
-        self.obj = PipInstaller()
         super(TestPipInstaller, self).setUp()
-
-    def tearDown(self):
-        super(TestPipInstaller, self).tearDown()
+        self.obj = PipInstaller()
+        self.obj.engine = EngineEmul()
 
     def test_install(self):
         self.sniff_log(self.obj.log)
         self.obj.parameters['packages'] = ['test-package']
         self.obj.versions['test-package'] = "0.0.0"
         self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
-        engine = EngineEmul()
-        engine.config.merge({'services': {'pip-installer': []}})
-        self.obj.engine = engine
 
         self.obj.prepare()
         self.assertTrue(os.path.exists(self.obj.engine.temp_pythonpath))
