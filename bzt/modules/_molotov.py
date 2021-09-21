@@ -18,6 +18,7 @@ limitations under the License.
 import os
 from math import ceil
 
+from bzt import ToolError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -50,7 +51,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
             self.engine.aggregator.add_underling(self.reader)
 
     def install_required_tools(self):
-        self.molotov = self._get_tool(Molotov, engine=self.engine, version=self.settings.get("version", None),
+        self.molotov = self._get_tool(Molotov, engine=self.engine, settings=self.settings,
                                       path=self.settings.get('path', None))
         if not self.molotov.check_if_installed():
             self.molotov.install()
@@ -105,8 +106,8 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         ret_code = self.process.poll()
         if ret_code is None:
             return False
-        # if ret_code != 0: # uncomment when there's adequate tool release
-        #     raise ToolError("molotov exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
+        if ret_code != 0:
+            raise ToolError("Molotov exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
         return True
 
     def shutdown(self):
@@ -114,6 +115,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
     def post_process(self):
         self.molotov.post_process()
+        super(MolotovExecutor, self).post_process()
 
     def get_error_diagnostics(self):
         diagnostics = []
@@ -134,8 +136,8 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
 
 class Molotov(PythonTool):
-    def __init__(self, engine, version, path, **kwargs):
-        super(Molotov, self).__init__(packages=["molotov"], version=version, engine=engine, **kwargs)
+    def __init__(self, engine, settings, path, **kwargs):
+        super(Molotov, self).__init__(packages=["molotov"], engine=engine, settings=settings, **kwargs)
         self.tool_path = os.path.join(self.tool_path, "bin", self.tool_name.lower())
         self.user_tool_path = path
 

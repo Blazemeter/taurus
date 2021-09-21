@@ -10,7 +10,7 @@ _By: Yuri Bushnev, May 2017_
 
 Taurus is an open source automation framework that provides the ability to create test performance scripts from scratch or use existing scripts, and to configure run options. These options include many features that help execute and analyze script results.
 
-The main idea behind the Taurus framework is that the script creation/configuration language is more user-friendly than options provided by other testing tools. Taurus, with its YAML-based syntax or JSON languages, helps to generate scripts in [Apache JMeter™](http://jmeter.apache.org/), [The Grinder](http://grinder.sourceforge.net/), [Gatling](http://gatling.io/) and additional tools.
+The main idea behind the Taurus framework is that the script creation/configuration language is more user-friendly than options provided by other testing tools. Taurus, with its YAML-based syntax or JSON languages, helps to generate scripts in [Apache JMeter™](http://jmeter.apache.org/), [Gatling](http://gatling.io/) and additional tools.
 
 There are also many additional advantages: 
 - Very clear human readable scenarios 

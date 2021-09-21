@@ -71,9 +71,6 @@ CLOUD_CONFIG_BLACK_LIST = {
         "gatling": {
             "path": True
         },
-        "grinder": {
-            "path": True
-        },
         "junit": {
             "path": True
         },
@@ -223,13 +220,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         validate_passfail = any(reporter.get('module') == 'passfail' for reporter in reporting)
         if validate_passfail:
             if self.router._test.started_passfail_validation():
+                self.log.info("Please keep in mind that validation can take time.")
                 timeout = 100
                 for i in range(timeout):
                     if self.router._test.get_passfail_validation():
                         return
-                    self.log.warning(f"Unsuccessful Passfail validation attempt [{i + 1}]. Retrying...")
-                    if not i % 10:
-                        self.log.warning("Please keep in mind that validation can take time.")
+                    self.log.debug(f"Unsuccessful Passfail validation attempt [{i + 1}]. Retrying...")
                     sleep(1)
                 self.log.error("Unable get Passfail validation!")
             else:

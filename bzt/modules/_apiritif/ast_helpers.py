@@ -65,5 +65,5 @@ def gen_store(name, value):
     return ast.Assign(
         targets=[ast.Subscript(
             value=ast_attr("self.vars"),
-            slice=ast.Str(name, kind=""))],
+            slice=name)],
         value=value)

@@ -12,7 +12,6 @@
     1. [Apiritif Executor](Apiritif.md)
     1. [Existing Results Loader](ResultsLoader.md)
     1. [Gatling Executor](Gatling.md)
-    1. [Grinder Executor](Grinder.md)
     1. [JMeter Executor](JMeter.md)
     1. [JUnit Executor](JUnit.md)
     1. [K6 Executor](K6.md)

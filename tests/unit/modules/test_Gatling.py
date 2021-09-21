@@ -78,7 +78,7 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.execution.merge({
             "scenario": {
                 "script": "tests/resources/gatling/bs",
-                "additional-classpath": ["tests/resources/grinder/fake_grinder.jar"]}})
+                "additional-classpath": ["tests/resources/gatling/fake.jar"]}})
         self.assertRaises(ToolError, self.obj.prepare)
 
     def test_additional_classpath(self):
@@ -97,7 +97,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                 self.assertIn(jar, self.obj.env.get(var))
 
     def test_external_jar_built_launcher_v2(self):
-        jars = ['tests/resources/grinder/fake_grinder.jar', 'tests/resources/selenium/junit/another_dummy.jar']
+        jars = ['tests/resources/gatling/fake.jar', 'tests/resources/selenium/junit/another_dummy.jar']
         self.obj.execution.merge({
             'files': [
                 jars[0]],
@@ -125,7 +125,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                 self.assertTrue(line.endswith(':"${COMPILATION_CLASSPATH}"\n'))
 
     def test_external_jar_built_launcher_v3(self):
-        jars = ['tests/resources/grinder/fake_grinder.jar', 'tests/resources/selenium/junit/another_dummy.jar']
+        jars = ['tests/resources/gatling/fake.jar', 'tests/resources/selenium/junit/another_dummy.jar']
         self.obj.execution.merge({
             'files': [
                 jars[0]],

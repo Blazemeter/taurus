@@ -188,7 +188,7 @@ Scenario that has `requests` element makes Taurus to generate the script for und
 
 The `requests` element must contain a list of requests, each with its settings and child elements (assertions, extractors). Also there are additional configuration elements for requests-based scenario, described below.
 
-Scenario is the sequence of steps and some settings that will be used by underlying tools (JMeter, Grinder, Gatling) on execution stage.
+Scenario is the sequence of steps and some settings that will be used by underlying tools (JMeter, Gatling) on execution stage.
 
 Scenarios are listed in top-level `scenarios` element and referred from executions by their alias:
 
