@@ -75,7 +75,6 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.obj.engine.config.load([RESOURCES_DIR + 'apiritif/test_nfc.yml'])
         self.configure(self.obj.engine.config['execution'][0])
         self.obj.settings['verbose'] = True
-        # todo: check func mode
         self.obj_prepare()
         exp_file = RESOURCES_DIR + 'apiritif/test_nfc.py'
         content = open(self.obj.script).read()
