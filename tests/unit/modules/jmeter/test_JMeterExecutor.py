@@ -588,7 +588,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         sampler_element = xml_tree.findall(".//HTTPSamplerProxy[@testname='With body params']")
         arguments_element_prop = sampler_element[0][0]
-        self.assertEqual(11, len(sampler_element[0].getchildren()))
+        self.assertEqual(9, len(sampler_element[0].getchildren()))
         self.assertEqual(1, len(arguments_element_prop.getchildren()))
         self.assertEqual(2, len(arguments_element_prop[0].getchildren()))
         self.assertEqual(1, len(arguments_element_prop[0].findall(".//elementProp[@name='param1']")))
@@ -2894,6 +2894,61 @@ class TestJMeterExecutor(ExecutorTestCase):
         ip_source = xml_tree.find(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.ipSource']")
         self.assertIsNotNone(ip_source)
         self.assertIsNotNone(ip_source.text)
+
+    def test_timeouts(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "timeout": "1ms",
+                    "requests": [
+                        "http://request1.com",
+                        {
+                            "url": "http://request2.com",
+                            "timeout": "2ms"}]}}})
+        self.obj.prepare()
+
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+
+        default_element = "ConfigTestElement[@testname='Defaults']"
+        props = [f"stringProp[@name='HTTPSampler.{t}_timeout']" for t in ["connect", "response"]]
+        default_timeouts = [xml_tree.find(f".//{default_element}/{element}") for element in props]
+
+        http_samplers = [f"HTTPSamplerProxy[@testname='http://request{num}.com']" for num in [1, 2]]
+        request1_timeouts = [xml_tree.find(f".//{http_samplers[0]}/{element}") for element in props]
+        request2_timeouts = [xml_tree.find(f".//{http_samplers[1]}/{element}") for element in props]
+
+        duration_assertion_timeouts = xml_tree.findall(f".//stringProp[@name='DurationAssertion.duration']")
+
+        self.assertEqual(["1", "1"], [t.text for t in default_timeouts])    # general value
+        self.assertEqual([None, None], request1_timeouts)                   # don't repeat general value (from scenario)
+        self.assertEqual(["2", "2"], [t.text for t in request2_timeouts])   # specific value
+        self.assertEqual(0, len(duration_assertion_timeouts))               # let's avoid unnecessary assertion
+
+    def test_timeouts_default(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    # default scenario timeout is 30s
+                    "requests": [
+                        "http://request1.com",
+                        {
+                            "url": "http://request2.com",
+                            "timeout": "2ms"}]}}})
+        self.obj.prepare()
+
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+
+        default_element = "ConfigTestElement[@testname='Defaults']"
+        props = [f"stringProp[@name='HTTPSampler.{t}_timeout']" for t in ["connect", "response"]]
+        default_timeouts = [xml_tree.find(f".//{default_element}/{element}") for element in props]
+
+        http_samplers = [f"HTTPSamplerProxy[@testname='http://request{num}.com']" for num in [1, 2]]
+        request1_timeouts = [xml_tree.find(f".//{http_samplers[0]}/{element}") for element in props]
+        request2_timeouts = [xml_tree.find(f".//{http_samplers[1]}/{element}") for element in props]
+
+        self.assertEqual(["30000", "30000"], [t.text for t in default_timeouts])    # default timeout for whole scenario
+        self.assertEqual([None, None], request1_timeouts)   # don't repeat general value (from scenario)
+        self.assertEqual(["2", "2"], [t.text for t in request2_timeouts])   # specific value (overrides general timeout)
 
     def test_diagnostics(self):
         self.configure({

@@ -476,14 +476,7 @@ class JMeterScenarioBuilder(JMX):
         children.extend(self._get_timer(request))
 
         self.__add_assertions(children, request)
-
-        timeout = ProtocolHandler.safe_time(request.priority_option('timeout'))
-        if timeout is not None:
-            children.append(JMX._get_dur_assertion(timeout))
-            children.append(etree.Element("hashTree"))
-
         self.__add_extractors(children, request)
-
         self.__add_jsr_elements(children, request)
 
         return [sampler, children]
