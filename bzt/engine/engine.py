@@ -240,7 +240,7 @@ class Engine(object):
         self.graceful_tmp = self.create_artifact(prefix="GRACEFUL", suffix="")
         env = env.get()
         env['GRACEFUL'] = self.graceful_tmp
-
+        
         return shell_exec(args, cwd=cwd, env=env, **kwargs)
 
     def run(self):
@@ -315,7 +315,7 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         self.log.debug("Current stop reason: %s", self.stopping_reason)
-        if self.graceful_tmp:
+        if self.graceful_tmp and not os.path.exists(self.graceful_tmp):
             open(self.graceful_tmp, 'x').close()
         exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
