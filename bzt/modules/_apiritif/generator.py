@@ -26,8 +26,8 @@ import selenium
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
-from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, \
-    SetVariables, IncludeScenarioBlock
+from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
+from bzt.requests_model import IncludeScenarioBlock, SetUpBlock, TearDownBlock
 from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, is_selenium_4
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, gen_try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
@@ -125,8 +125,9 @@ from selenium.webdriver.common.keys import Keys
 
     ACCESS_TARGET = 'target'
     ACCESS_PLAIN = 'plain'
-    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock)
+    SUPPORTED_BLOCKS = (HTTPRequest, TransactionBlock, SetVariables, IncludeScenarioBlock, SetUpBlock, TearDownBlock)
 
+    FINALLY_MARKER = 'finally'
     OPTIONS = 'options'
 
     def __init__(self, scenario, label, wdlog=None, executor=None,
@@ -981,7 +982,7 @@ from selenium.webdriver.common.keys import Keys
                 ])))
         exception_handler.append(gen_raise())
 
-        body.append(gen_try_except(web_driver_cmds, exception_handler))
+        body.append(gen_try_except(try_body=web_driver_cmds, exception_body=exception_handler))
         body.append(self._gen_new_session_end())
 
         return body
@@ -1410,14 +1411,41 @@ from selenium.webdriver.common.keys import Keys
 
         return ast.FunctionDef(name="tearDown", args=[ast_attr("self")], body=body, decorator_list=[])
 
+    def _nfc_preprocess(self, requests):
+        setup = []
+        main = []
+        teardown = []
+
+        while requests:
+            request = requests.pop(0)
+            if isinstance(request, SetUpBlock):
+                setup.extend(request.requests)
+            elif isinstance(request, TearDownBlock):
+                teardown.extend(request.requests)
+            else:
+                main.append(request)
+
+        requests.extend(setup+main)
+        if teardown:
+            requests.extend([self.FINALLY_MARKER] + teardown)
+
     def _gen_test_methods(self):
         methods = []
-        slave_methods_names = []
+        try_block_content = []
+        finally_block_content = []
+        finally_marker = False
 
         requests = self.scenario.get_requests(parser=HierarchicRequestParser, require_url=False)
+        self._nfc_preprocess(requests)
 
         number_of_digits = int(math.log10(len(requests))) + 1
-        for index, request in enumerate(requests, start=1):
+        index = 1
+
+        while requests:
+            request = requests.pop(0)
+            if request == self.FINALLY_MARKER:
+                finally_marker = True
+                continue
             if not isinstance(request, self.SUPPORTED_BLOCKS):
                 msg = "Apiritif script generator doesn't support '%s' blocks, skipping"
                 self.log.warning(msg, request.NAME)
@@ -1445,15 +1473,19 @@ from selenium.webdriver.common.keys import Keys
                 return
 
             counter = str(index).zfill(number_of_digits)
+            index += 1
             method_name = '_' + counter + '_' + label
 
             if isinstance(request, SetVariables):
                 self.service_methods.append(label)  # for sample excluding
 
             methods.append(self._gen_test_method(method_name, body))
-            slave_methods_names.append(method_name)
+            if finally_marker:
+                finally_block_content.append(method_name)
+            else:
+                try_block_content.append(method_name)
 
-        methods.append(self._gen_master_test_method(slave_methods_names))
+        methods.append(self._gen_master_test_method(try_block_content, finally_block_content))
         return methods
 
     def _gen_set_vars(self, request):
@@ -1465,13 +1497,22 @@ from selenium.webdriver.common.keys import Keys
 
         return res
 
-    def _gen_master_test_method(self, slave_method_names):
-        if not slave_method_names:
-            raise TaurusConfigError("Supported trasactions not found, test is empty")
+    def _gen_master_test_method(self, try_block, finally_block):
+        if not try_block:
+            raise TaurusConfigError("Supported transactions not found, test is empty")
 
         body = []
-        for slave_name in slave_method_names:
+        for slave_name in try_block:
             body.append(ast.Expr(ast_call(func=ast_attr("self." + slave_name))))
+
+        finally_body = []
+        for slave_name in finally_block:
+            finally_body.append(ast.Expr(ast_call(func=ast_attr("self." + slave_name))))
+
+        if finally_body:
+            teardown_marker = ast.Expr(ast_call(func=ast_attr("apiritif.set_stage"), args=[self._gen_expr("teardown")]))
+            finally_body.insert(0, teardown_marker)
+            body = [gen_try_except(try_body=body, final_body=finally_body)]
 
         name = 'test_' + create_method_name(self.label)
         return self._gen_test_method(name=name, body=body)

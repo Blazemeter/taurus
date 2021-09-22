@@ -44,6 +44,7 @@ services:
       VAR1: val1
       VAR2: val2
 ```
+See [Services page](Services.md#Alternate-Provisionings-and-Services) for explanation of `run-at` option.
 
 Minimum task configuration sample:
 ```yaml

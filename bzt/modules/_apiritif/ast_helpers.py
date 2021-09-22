@@ -30,19 +30,24 @@ def gen_empty_line_stmt():
     return ast.Expr(value=ast.Name(id=""))  # hacky, but works
 
 
-def gen_try_except(try_body, exception_body):
+def gen_try_except(try_body, exception_body=None, final_body=None):
+    if exception_body:
+        handlers = [ast.ExceptHandler(
+            type=ast.Name(id='Exception', ctx=ast.Load()),
+            name=None,
+            body=exception_body)]
+    else:
+        handlers = []
+
+    if not final_body:
+        final_body = []
+
     return ast.Try(
         body=try_body,
-        handlers=[
-            ast.ExceptHandler(
-                type=ast.Name(id='Exception', ctx=ast.Load()),
-                name=None,
-                body=exception_body,
-            )
-        ],
+        handlers=handlers,
         type_ignores=[],
         orelse=None,
-        finalbody=[],
+        finalbody=final_body,
     )
 
 

@@ -22,9 +22,11 @@ execution:
 ```
 
 It allows you to use some logic blocks:
-- `transactions`: collect requests in one block
+- `transaction`: collect requests in one block
 - `set-variables`: set/change value of variable
 - `include-scenario`: include scenario into another one
+- `setup`: list of initial requests
+- `teardown`: list of final requests (will be executed even if previous is failed)
 
 and CSV data sources. Use following format to specify them:
 ```yaml
@@ -33,6 +35,9 @@ scenarios:
     variables:
       var1: val1
     requests:
+    - setup:
+        - http://init.com
+        - http://login.com
     - http://blazedemo.com     # ordinal request
     - transaction: second   # transaction
       do:
@@ -50,6 +55,9 @@ scenarios:
       quoted: false
       loop: true
       variable-names: id,name
+    - teardown:
+        - http://logout1.com
+        - http://logout2.com
 
   inner:
     requests:

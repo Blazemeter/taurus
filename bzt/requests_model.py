@@ -171,6 +171,30 @@ class OnceBlock(Request):
         return "OnceBlock(requests=%s)" % requests
 
 
+class SetUpBlock(Request):
+    NAME = "setup"
+
+    def __init__(self, requests, config):
+        super().__init__(config)
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        return "SetUpBlock(requests=%s)" % requests
+
+
+class TearDownBlock(Request):
+    NAME = "teardown"
+
+    def __init__(self, requests, config):
+        super().__init__(config)
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        return "TearDown(requests=%s)" % requests
+
+
 class LoopBlock(Request):
     NAME = "loop"
 
@@ -338,6 +362,14 @@ class HierarchicRequestParser(RequestParser):
         elif 'set-variables' in req:
             mapping = req.get('set-variables')
             return SetVariables(mapping, req)
+        elif SetUpBlock.NAME in req:
+            do_block = req.get(SetUpBlock.NAME)
+            do_requests = self._parse_requests(do_block)
+            return SetUpBlock(do_requests, req)
+        elif TearDownBlock.NAME in req:
+            do_block = req.get(TearDownBlock.NAME)
+            do_requests = self._parse_requests(do_block)
+            return TearDownBlock(do_requests, req)
         elif self.scenario.get("protocol") == "mqtt":
             return MQTTRequest(req, self.scenario)
         else:
