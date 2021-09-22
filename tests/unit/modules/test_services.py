@@ -29,7 +29,8 @@ class TestPipInstaller(BZTestCase):
 
         self.obj.prepare()
         self.assertTrue(os.path.exists(self.obj.engine.temp_pythonpath))
-
+        self.assertFalse(self.obj.check())
+        self.obj.install()
         self.obj.post_process()  # remove directory afterwards
         if not is_windows():
             self.assertFalse(os.path.exists(self.obj.engine.temp_pythonpath))
@@ -40,7 +41,7 @@ class TestPipInstaller(BZTestCase):
 class TestPythonTool(BZTestCase):
     def setUp(self):
         self.engine = EngineEmul()
-        self.obj = PythonTool(engine=self.engine, packages=['test-name'], settings={})
+        self.obj = PythonTool(engine=self.engine, packages=['test-package'], settings={})
         super(TestPythonTool, self).setUp()
 
     def tearDown(self):
@@ -48,14 +49,15 @@ class TestPythonTool(BZTestCase):
 
     def test_check(self):
         self.sniff_log(self.obj.log)
+        self.obj.installer.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
-        self.obj.call = lambda x: ["out ", "err"]
-        self.obj.check_if_installed()
-        self.assertIn("out err", self.log_recorder.debug_buff.getvalue())
+        self.assertFalse(self.obj.check_if_installed())
+        self.obj.install()
+        self.obj.post_process()
 
-        self.obj.call = lambda x: ["", "No module named"]
-        self.obj.check_if_installed()
+        self.assertIn("Checking PythonTool.", self.log_recorder.debug_buff.getvalue())
         self.assertIn("PythonTool check failed.", self.log_recorder.warn_buff.getvalue())
+        self.assertIn("Installing PythonTool.", self.log_recorder.debug_buff.getvalue())
 
 
 class TestZipFolder(BZTestCase):

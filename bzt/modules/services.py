@@ -123,15 +123,17 @@ class PipInstaller(Service):
 
         if self._missed(["pip"]):  # extend to windows (bzt-pip)
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
-        self.packages = self._missed(self.packages)
-        if not self.packages:
-            return
 
+    def check(self):
+        self.packages = self._missed(self.packages)
+        return False if self.packages else True
+
+    def install(self):
         self._install(self.packages)
 
     def post_process(self):
         # might be forbidden on win as tool still work
-        if self.has_installed_packages and self.temp and not is_windows() and os.path.exists(self.target_dir):
+        if self.packages and self.temp and not is_windows() and os.path.exists(self.target_dir):
             self.log.debug("remove packages: %s" % self.packages)
 
             shutil.rmtree(self.target_dir)  # it removes all content of directory in reality, not only self.packages
@@ -151,22 +153,15 @@ class PythonTool(RequiredTool):
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")
-        try:
-            out, err = self.call([sys.executable, "-m", self.tool_name.lower(), "--version"])
-        except CALL_PROBLEMS as exc:
-            self.log.debug(f"{self.tool_name} check failed: {exc}")
-            return False
-
-        if err:
-            out += err
-            if f"No module named" in err:
-                self.log.warning(f"{self.tool_name} check failed.")
-                return False
-        self.log.debug(f"{self.tool_name} output: {out}")
-        return True
+        self.installer.prepare()
+        result = self.installer.check()
+        if not result:
+            self.log.warning(f"{self.tool_name} check failed.")
+        return result
 
     def install(self):
-        self.installer.prepare()
+        self.log.debug(f"Installing {self.tool_name}.")
+        self.installer.install()
 
     def post_process(self):
         self.installer.post_process()

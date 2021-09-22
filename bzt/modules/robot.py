@@ -119,19 +119,6 @@ class Robot(PythonTool):
     def __init__(self, engine, settings, **kwargs):
         super(Robot, self).__init__(packages=["robotframework", "apiritif"], engine=engine, settings=settings, **kwargs)
 
-    def check_if_installed(self):
-        self.log.debug(f"Checking {self.tool_name}.")
-        try:
-            _, _ = self.call([sys.executable, "-m", self.tool_name.lower(), "--version"])
-        except CALL_PROBLEMS as exc:
-            if exc.returncode == 251:
-                self.log.debug(f"{self.tool_name} output: {exc.stdout}")
-                return True
-
-            self.log.debug(f"{self.tool_name} check failed: {exc}")
-            return False
-        return True
-
 
 class TaurusRobotRunner(RequiredTool):
     def __init__(self, tool_path, **kwargs):
