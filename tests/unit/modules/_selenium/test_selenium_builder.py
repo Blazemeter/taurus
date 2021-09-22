@@ -1543,6 +1543,27 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with open(self.obj.script) as script:
             self.assertIn("bzt.resources.selenium_extras", script.read())
 
+    def test_switch_frame_no_locator(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "label": "la-la",
+                        "actions": [
+                            {
+                                "type": "switchFrame",
+                                "param": ""
+                            },
+                        ]}]}}})
+
+        with self.assertRaises(TaurusConfigError) as context:
+            self.obj_prepare()
+
+        self.assertTrue("Can not generate action for 'switchFrame'. Selector is empty." in str(context.exception))
+
     def test_conditions(self):
         self.configure(
             {
