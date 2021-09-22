@@ -491,7 +491,22 @@ scenarios:
       - assertTextByID(content): "First Frame Body inside Second Frame Body"
       - switchFrame(relative=top) # Go to top frame (main document)
 ```
-Note: For first level frames, it is possible to use `switchFrameByX` and using selector to match the frame to switch.
+Note: For first level frames, it is possible to use `switchFrameByX` and using selector to match the frame to switch or 
+to provide the selector inside the switchFrame action. Both of these syntaxes generate the same output.
+
+```yaml
+  - switchFrameByCss(.cls)
+  - switchFrame(css=.cls)
+
+  - switchFrameByName(frame_name)
+  - switchFrame(name=frame_name)
+
+  - switchFrameById(frame_id)
+  - switchFrame(id=frame_id)
+
+  - switchFrameByXpath(//xpath)
+  - switchFrame(xpath=//xpath)
+```
 
 Disclaimer: Currently there are problems in the support of this functionality by geckodriver and chromedriver, depending on the case to test some of these methods can generate a failure, mainly in cases where you have nested frames or frames mixed between frame and iframes.
 
@@ -501,8 +516,15 @@ It is also possible to use the alternative syntax for Frame management, however 
   param: index=0
 - type: switchFrame
   param: relative=parent
-- type: switchFrameByName
-  param: frame_name
+
+- type: switchFrame
+  param: name=frame_name
+- type: switchFrame
+  param: id=frame_name
+- type: switchFrame
+  param: css=.cls
+- type: switchFrame
+  param: xpath=//xpath
 ```
 
 #### Go

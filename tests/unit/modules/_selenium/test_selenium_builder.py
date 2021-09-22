@@ -54,6 +54,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                             "switchFrameByIdx(1)",
                             "switchFrame(relative=parent)",
                             "switchFrameByName('my_frame')",
+                            "switchFrame('name=my_frame')",
+                            "switchFrame('id=my_frame_id')",
+                            "switchFrame('xpath=//xpath')",
+                            "switchFrame('css=my_frame_cls')",
 
                             # chains
                             "mouseDownByXPath(/html/body/div[3]/form/select[1])",
@@ -102,6 +106,10 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "close_window('win_ser_local')",
             "switch_frame('index=1')",
             "switch_frame('relative=parent')",
+            "switch_frame(self.driver.find_element(By.NAME, 'my_frame'))",
+            "switch_frame(self.driver.find_element(By.CSS_SELECTOR, 'my_frame_cls'))",
+            "switch_frame(self.driver.find_element(By.ID, 'my_frame_id'))",
+            "switch_frame(self.driver.find_element(By.XPATH, '//xpath'))",
             "ActionChains(self.driver).click_and_hold(self.driver.find_element(var_loc_chain[0], "
             "var_loc_chain[1])).perform()",
             "ActionChains(self.driver).move_to_element_with_offset(self.driver.find_element(var_loc_chain[0],"
@@ -1470,6 +1478,22 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     {
                                         "type": "switchFrameByName",
                                         "param": "my_frame"
+                                    },
+                                    {
+                                        "type": "switchFrame",
+                                        "param": "name=my_frame"
+                                    },
+                                    {
+                                        "type": "switchFrame",
+                                        "param": "css=my_frame_cls"
+                                    },
+                                    {
+                                        "type": "switchFrame",
+                                        "param": "id=my_frame_id"
+                                    },
+                                    {
+                                        "type": "switchFrame",
+                                        "param": "xpath='//xpath'"
                                     },
                                     {
                                         "type": "closeWindow"

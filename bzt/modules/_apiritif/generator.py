@@ -395,6 +395,8 @@ from selenium.webdriver.common.keys import Keys
         method = "switch_frame"
         self.selenium_extras.add(method)
         elements = []  # todo: byid/byidx disambiguation?
+        if not selector:
+            raise TaurusConfigError("Can not generate action for 'switchFrame'. Selector is empty.")
         if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
             if tag == "byidx":
                 selector = "index=%s" % selector
@@ -404,7 +406,12 @@ from selenium.webdriver.common.keys import Keys
                 args=[ast.Str(selector, kind="")]))
         else:
             if not tag:
-                tag = "name"  # if tag is not present default it to name
+                if "=" in selector:
+                    parts = selector.partition("=")
+                    tag = parts[0].strip()
+                    selector = self._trim_quotes(parts[2].strip())
+                else:
+                    tag = "name"  # if tag is not present default it to name
             elif tag.startswith('by'):
                 tag = tag[2:]  # remove the 'by' prefix
             elements.append(ast_call(
