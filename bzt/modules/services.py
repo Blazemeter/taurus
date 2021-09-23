@@ -52,35 +52,6 @@ class PipInstaller(Service):
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
 
-    def _install(self, packages):
-        if not packages:
-            self.log.debug("Nothing to install")
-            return
-        # workaround for PythonTool, remove after expanding check logic from prepare() to PythonTool
-        self.has_installed_packages = True
-        cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
-        for package in packages:
-            version = self.versions.get(package, None)
-            cmdline += [f"{package}=={version}"] if version else [package]
-        self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
-        try:
-            out, err = exec_and_communicate(cmdline)
-        except TaurusCalledProcessError as exc:
-            self.log.debug(exc)
-            for line in exc.output.split('\n'):
-                if line.startswith("ERROR"):
-                    self.log.error(" ".join(line.split(" ")[1:]))
-            return
-        if "Successfully installed" in out:
-            self.log.info(out.split("\n")[-2])
-            if "WARNING" in err:
-                for warning in err.split("\n"):
-                    if warning.startswith('WARNING'):
-                        self.log.warning(" ".join(warning.split(" ")[1:]))
-        else:
-            self.log.error("pip-installer stderr:\n%s" % err)
-        self.log.debug("pip-installer stdout: \n%s" % out)
-
     def _missed(self, packages):
         # todo: add version handling
         cmdline = self.pip_cmd + ["list"]
@@ -129,7 +100,33 @@ class PipInstaller(Service):
         return False if self.packages else True
 
     def install(self):
-        self._install(self.packages)
+        if not self.packages:
+            self.log.debug("Nothing to install")
+            return
+        # workaround for PythonTool, remove after expanding check logic from prepare() to PythonTool
+        self.has_installed_packages = True
+        cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
+        for package in self.packages:
+            version = self.versions.get(package, None)
+            cmdline += [f"{package}=={version}"] if version else [package]
+        self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
+        try:
+            out, err = exec_and_communicate(cmdline)
+        except TaurusCalledProcessError as exc:
+            self.log.debug(exc)
+            for line in exc.output.split('\n'):
+                if line.startswith("ERROR"):
+                    self.log.error(" ".join(line.split(" ")[1:]))
+            return
+        if "Successfully installed" in out:
+            self.log.info(out.split("\n")[-2])
+            if "WARNING" in err:
+                for warning in err.split("\n"):
+                    if warning.startswith('WARNING'):
+                        self.log.warning(" ".join(warning.split(" ")[1:]))
+        else:
+            self.log.error("pip-installer stderr:\n%s" % err)
+        self.log.debug("pip-installer stdout: \n%s" % out)
 
     def post_process(self):
         # might be forbidden on win as tool still work
