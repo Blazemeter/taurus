@@ -37,7 +37,7 @@ class TestSc1(unittest.TestCase):
                                        scenario_name='Test-tear-down')
 
 
-def _1_httpsblazedemocomsetup1(self):
+    def _1_httpsblazedemocomsetup1(self):
         with apiritif.smart_transaction('https://blazedemo.com/setup1'):
             self.driver.get('https://blazedemo.com/setup1')
 
