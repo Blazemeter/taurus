@@ -26,15 +26,15 @@ class TestSc1(unittest.TestCase):
     def setUp(self):
         self.vars = {}
 
-        timeout = 30.0
+        timeout = 2.0
         options = webdriver.FirefoxOptions()
         profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', '/tmp/bzt/2021-09-23_11-49-13.475963/webdriver.log')
+        profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
         options.set_capability('unhandledPromptBehavior', 'ignore')
         self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
-        apiritif.put_into_thread_store(timeout=timeout, func_mode=True, driver=self.driver, windows={},
-                                       scenario_name='Test-tear-down')
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False,
+                                       driver=self.driver, windows={}, scenario_name='sc1')
 
 
     def _1_httpsblazedemocomsetup1(self):
@@ -77,3 +77,7 @@ class TestSc1(unittest.TestCase):
             apiritif.set_stage("teardown")      # can't be interrupted
             self._5_httpsblazedemocomteardown1()
             self._6_teardown2()
+
+    def tearDown(self):
+        if self.driver:
+            self.driver.quit()
