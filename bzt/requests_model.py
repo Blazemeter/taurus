@@ -263,15 +263,16 @@ class IncludeScenarioBlock(Request):
 
 
 class RequestParser(object):
-    def __init__(self, scenario, engine):
+    def __init__(self, scenario, engine, require_url):
         self.engine = engine
         self.scenario = scenario
+        self.require_url = require_url
 
-    def _parse_requests(self, raw_requests, require_url=True):
+    def _parse_requests(self, raw_requests):
         requests = []
         for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
             req = ensure_is_dict(raw_requests, key, "url")
-            if not require_url and "url" not in req:
+            if not self.require_url and "url" not in req:
                 req["url"] = None
             try:
                 requests.append(self._parse_request(req))
@@ -293,16 +294,16 @@ class RequestParser(object):
 
         return res
 
-    def extract_requests(self, require_url=True):
+    def extract_requests(self):
         requests = self.scenario.get("requests", [])
         requests = self._expand_transactions(requests)
-        return self._parse_requests(requests, require_url=require_url)
+        return self._parse_requests(requests)
 
 
 class HierarchicRequestParser(RequestParser):
-    def extract_requests(self, require_url=True):
+    def extract_requests(self):
         requests = self.scenario.get("requests", [])
-        return self._parse_requests(requests, require_url=require_url)
+        return self._parse_requests(requests)
 
     def _parse_request(self, req):
         if 'if' in req:
