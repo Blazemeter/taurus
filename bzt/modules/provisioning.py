@@ -22,7 +22,7 @@ import time
 import traceback
 
 from bzt import ToolError
-from bzt.engine import Provisioning, SelfDiagnosable
+from bzt.engine import Provisioning
 from bzt.utils import dehumanize_time, reraise
 
 
@@ -161,9 +161,7 @@ class Local(Provisioning):
                     msg = "Empty results, most likely %s (%s) failed. " \
                           "Actual reason for this can be found in logs under %s"
                     message = msg % (executor.label, executor.__class__.__name__, self.engine.artifacts_dir)
-                    diagnostics = None
-                    if isinstance(executor, SelfDiagnosable):
-                        diagnostics = executor.get_error_diagnostics()
+                    diagnostics = executor.get_error_diagnostics()
                     raise ToolError(message, diagnostics)
             except BaseException as exc:
                 msg = "Exception in post_process of %s: %s %s"

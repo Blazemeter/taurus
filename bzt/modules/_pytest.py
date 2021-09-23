@@ -20,7 +20,7 @@ import shlex
 import sys
 
 from bzt import TaurusConfigError
-from bzt.engine import HavingInstallableTools, SETTINGS
+from bzt.engine import SETTINGS
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.services import PythonTool
 from bzt.utils import FileReader, RESOURCES_DIR
@@ -29,7 +29,7 @@ from bzt.utils import RequiredTool
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 
-class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
+class PyTestExecutor(SubprocessedExecutor):
     def __init__(self):
         super(PyTestExecutor, self).__init__()
         self.runner_path = os.path.join(RESOURCES_DIR, "pytest_runner.py")

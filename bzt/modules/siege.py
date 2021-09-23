@@ -21,14 +21,14 @@ import time
 from math import ceil
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, FileLister, HavingInstallableTools, SelfDiagnosable
+from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.console import ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.utils import iteritems, CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, FileReader
 
 
-class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, FileLister, SelfDiagnosable):
+class SiegeExecutor(ScenarioExecutor):
     def __init__(self):
         super(SiegeExecutor, self).__init__()
         self.log = logging.getLogger('')

@@ -34,7 +34,7 @@ from bzt import AutomatedShutdown, TaurusConfigError, TaurusException, TaurusNet
 from bzt.bza import User, Session, BZA_TEST_DATA_RECEIVED, ENDED
 from bzt.engine import Reporter, Provisioning, Configuration, Service, SETTINGS, ScenarioExecutor, EXEC
 from bzt.modules.aggregator import DataPoint, KPISet, ResultsProvider
-from bzt.modules.console import WidgetProvider, PrioritizedWidget
+from bzt.modules.console import PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.modules.monitoring import LocalClient
 from bzt.modules._selenium import SeleniumExecutor
@@ -179,7 +179,7 @@ class MasterProvisioning(Provisioning):
         return result_list
 
 
-class CloudProvisioning(MasterProvisioning, WidgetProvider):
+class CloudProvisioning(MasterProvisioning):
     """
     :type user: bzt.bza.User
     :type router: BaseCloudTest

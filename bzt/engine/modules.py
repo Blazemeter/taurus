@@ -28,7 +28,6 @@ from bzt import ToolError
 from bzt.utils import numeric_types, Environment, RequiredTool, PIPE, SoapUIScriptConverter
 from bzt.utils import to_json, BetterDict, ensure_is_dict, dehumanize_time
 
-from .templates import FileLister
 from .dicts import Scenario
 from .names import EXEC, SCENARIO
 
@@ -174,7 +173,7 @@ class ScenarioExecutor(EngineModule):
     :type execution: BetterDict
     """
 
-    EXEC = EXEC     # backward compatibility
+    EXEC = EXEC  # backward compatibility
     RAMP_UP = "ramp-up"
     HOLD_FOR = "hold-for"
     CONCURR = "concurrency"
@@ -409,10 +408,17 @@ class ScenarioExecutor(EngineModule):
         return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
                              iterations=iterations, duration=duration, steps=steps)
 
+    def resource_files(self):
+        """
+        Get list of resource files
+
+        :rtype: list
+        """
+        return []
+
     def get_resource_files(self):
         files_list = []
-        if isinstance(self, FileLister):
-            files_list.extend(self.resource_files())
+        files_list.extend(self.resource_files())
         files_list.extend(self.execution.get("files", []))
         return files_list
 
@@ -422,6 +428,17 @@ class ScenarioExecutor(EngineModule):
     def prepare(self):
         super(ScenarioExecutor, self).prepare()
         self.env.set(self.execution.get("env"))
+
+    def install_required_tools(self):
+        pass
+
+    def get_widget(self):
+        """
+        Returns widget instance to be added to sidebar
+
+        :rtype: urwid.Widget
+        """
+        pass
 
     def _execute(self, args, **kwargs):
         self.preprocess_args(args)
@@ -441,10 +458,15 @@ class ScenarioExecutor(EngineModule):
             raise ToolError("Failed to start %s: %s (%s)" % (self.__class__.__name__, exc, args))
         return process
 
+    def get_error_diagnostics(self):
+        """
+        :rtype: list[str]
+        """
+        return None
+
     def post_process(self):
         if self.stdout:
             self.stdout.close()
         if self.stderr:
             self.stderr.close()
         super(ScenarioExecutor, self).post_process()
-

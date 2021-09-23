@@ -19,7 +19,6 @@ from os import listdir
 from os.path import join
 
 from bzt import ToolError
-from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.jmeter import JTLReader
@@ -29,7 +28,7 @@ from .tools import JUnitPlatformCommons, JUnitPlatformLauncher, JUnitPlatformEng
 from .tools import JUnitPlatformSuiteApi, JUnitVintageEngine, ApiGuardian, JUnit, OpenTest4j, TestNG
 
 
-class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
+class JavaTestRunner(SubprocessedExecutor):
     """
     Allows to test java and jar files
     :type script: str

@@ -14,12 +14,12 @@ from urwid import Pile, Text
 
 from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service, Singletone
-from bzt.modules.console import WidgetProvider, PrioritizedWidget
+from bzt.modules.console import PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
 from bzt.utils import iteritems, b, stream_decode, dehumanize_time, BetterDict
 
 
-class Monitoring(Service, WidgetProvider, Singletone):
+class Monitoring(Service, Singletone):
     """
     :type clients: list[ServerAgentClient]
     :type listeners: list[MonitoringListener]

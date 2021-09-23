@@ -19,15 +19,15 @@ import os
 from math import ceil
 
 from bzt import ToolError
-from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable, FileLister
+from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
-from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.console import ExecutorWidget
 from bzt.modules.services import PythonTool
 from bzt.utils import unicode_decode, CALL_PROBLEMS
 from bzt.utils import shutdown_process, dehumanize_time, get_full_path, LDJSONReader
 
 
-class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallableTools, SelfDiagnosable):
+class MolotovExecutor(ScenarioExecutor):
     def __init__(self):
         super(MolotovExecutor, self).__init__()
         self.process = None

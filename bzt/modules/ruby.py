@@ -17,11 +17,10 @@ import os
 
 from bzt import TaurusConfigError
 from bzt.modules import SubprocessedExecutor
-from bzt.engine import HavingInstallableTools
 from bzt.utils import RequiredTool, is_windows, TclLibrary, RESOURCES_DIR, CALL_PROBLEMS
 
 
-class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
+class RSpecTester(SubprocessedExecutor):
     """
     RSpec tests runner
     """

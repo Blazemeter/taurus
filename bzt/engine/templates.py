@@ -15,39 +15,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from abc import abstractmethod
-
-
-class FileLister(object):
-    """
-    A mixin to get required files info from executor
-    """
-
-    @abstractmethod
-    def resource_files(self):
-        """
-        Get list of resource files
-
-        :rtype: list
-        """
-        pass
 
 
 class HavingInstallableTools(object):
-    @abstractmethod
     def install_required_tools(self):
         pass
 
 
 class Singletone(object):
     pass
-
-
-class SelfDiagnosable(object):
-    @abstractmethod
-    def get_error_diagnostics(self):
-        """
-
-        :rtype: list[str]
-        """
-        pass

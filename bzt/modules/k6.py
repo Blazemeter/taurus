@@ -14,14 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import HavingInstallableTools
-from bzt.modules import ScenarioExecutor, FileLister, SelfDiagnosable
-from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules import ScenarioExecutor
+from bzt.modules.console import ExecutorWidget
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
 from bzt.utils import RequiredTool, CALL_PROBLEMS, FileReader, shutdown_process
 
 
-class K6Executor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallableTools, SelfDiagnosable):
+class K6Executor(ScenarioExecutor):
     def __init__(self):
         super(K6Executor, self).__init__()
         self.output_file = None

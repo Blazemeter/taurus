@@ -21,40 +21,19 @@ from abc import abstractmethod
 from urwid import Text, Pile
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules import ReportableExecutor
-from bzt.modules.console import WidgetProvider, PrioritizedWidget
+from bzt.modules.console import PrioritizedWidget
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
 from bzt.utils import is_windows, is_mac, platform_bitness
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
     @abstractmethod
-    def get_virtual_display(self):
-        """
-        Return virtual display instance, if any.
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def add_env(self, env):  # compatibility with taurus-server
-        """
-        Add environment variables into selenium process env
-        :type env: dict[str,str]
-        """
-        pass
-
-    @abstractmethod
     def subscribe_to_transactions(self, listener):
-        """
-        Subscribe to iteration events
-        :type listener: bzt.modules.TransactionListener
-        """
         pass
 
 
-class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
+class SeleniumExecutor(ReportableExecutor):
     """
     Selenium executor
     :type runner: bzt.modules.SubprocessedExecutor
