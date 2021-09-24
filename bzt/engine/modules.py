@@ -30,6 +30,7 @@ from bzt.utils import to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 from .dicts import Scenario
 from .names import EXEC, SCENARIO
+from .templates import HavingInstallableTools
 
 
 class EngineModule(object):
@@ -167,7 +168,7 @@ class Aggregator(EngineModule):
         return data
 
 
-class ScenarioExecutor(EngineModule):
+class ScenarioExecutor(EngineModule, HavingInstallableTools):
     """
     :type provisioning: engine.Provisioning
     :type execution: BetterDict
@@ -428,9 +429,6 @@ class ScenarioExecutor(EngineModule):
     def prepare(self):
         super(ScenarioExecutor, self).prepare()
         self.env.set(self.execution.get("env"))
-
-    def install_required_tools(self):
-        pass
 
     def get_widget(self):
         """
