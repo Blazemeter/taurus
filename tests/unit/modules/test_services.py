@@ -1,9 +1,9 @@
 import json
 import os
 import shutil
+import sys
 import zipfile
 from os.path import join
-import bzt.utils
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
@@ -194,22 +194,20 @@ class TestToolInstaller(BZTestCase):
         self.assertRaises(NormalShutdown, obj.prepare)
 
     def test_python_module(self):
-        def mock_exec(*args, **kwargs):
-            return "locust here", ""
-
         obj = InstallChecker()
         obj.engine = EngineEmul()
         obj.engine.config.get("modules")["locust"] = LocustIOExecutor.__module__ + "." + LocustIOExecutor.__name__
+        obj.engine.user_pythonpath = obj.engine.temp_pythonpath
         obj.settings["include"] = "locust"
 
-        old_exec = bzt.utils.exec_and_communicate
-        bzt.utils.exec_and_communicate = mock_exec
+        tmp_exec = sys.executable
         try:
+            sys.executable = join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)
             obj.prepare()
         except NormalShutdown:
             pass
         finally:
-            bzt.utils.exec_and_communicate = old_exec
+            sys.executable = tmp_exec
 
         self.assertFalse(obj.engine.config.get("modules").get('locust').get('temp'))
 
