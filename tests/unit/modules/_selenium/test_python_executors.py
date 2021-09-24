@@ -1,4 +1,5 @@
 import os
+import sys
 
 import time
 import yaml
@@ -223,12 +224,12 @@ class TestApiritifRunner(ExecutorTestCase):
     EXECUTOR = ApiritifNoseExecutor
 
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_exec = sys.executable
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            sys.executable = os.path.join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            sys.executable = tmp_exec
 
     def test_new_flow(self):
         self.configure({
@@ -261,7 +262,7 @@ class TestApiritifRunner(ExecutorTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
 
     def test_apiritif_generated_requests(self):
@@ -283,7 +284,7 @@ class TestApiritifRunner(ExecutorTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
 
     def test_apiritif_transactions(self):
@@ -303,7 +304,7 @@ class TestApiritifRunner(ExecutorTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
 
     def test_report_reading(self):
@@ -342,7 +343,7 @@ class TestApiritifRunner(ExecutorTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
         reader = LoadSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.ldjson"), self.obj.log)
         samples = list(reader._read(last_pass=True))
@@ -367,7 +368,7 @@ class TestApiritifRunner(ExecutorTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
         reader = FuncSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.ldjson"),
                                    self.obj.engine, self.obj.log)
         samples = list(reader.read(last_pass=True))
@@ -383,12 +384,12 @@ class TestPyTestExecutor(ExecutorTestCase):
         self.CMD_LINE = args
 
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_exec = sys.executable
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            sys.executable = os.path.join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            sys.executable = tmp_exec
 
     def full_run(self, config):
         self.obj.execution.merge(config)
@@ -502,14 +503,14 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
 
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_exec = sys.executable
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            sys.executable = os.path.join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)
             self.obj.prepare()
             self.obj.settings["interpreter"] = RESOURCES_DIR + "selenium/robot/robot-mock" + EXE_SUFFIX
             self.obj.startup()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            sys.executable = tmp_exec
             self.obj.shutdown()
             self.obj.post_process()
 
@@ -520,12 +521,12 @@ class TestRobotExecutor(ExecutorTestCase):
 
     def full_run(self, config):
         self.configure(config)
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_exec = sys.executable
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            sys.executable = os.path.join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            sys.executable = tmp_exec
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.post_process()

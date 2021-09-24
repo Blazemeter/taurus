@@ -30,12 +30,12 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.CMD_LINE = args
 
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_exec = sys.executable
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            sys.executable = os.path.join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            sys.executable = tmp_exec
 
     def test_simple(self):
         self.configure({"execution": {
@@ -47,12 +47,12 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
         self.obj_prepare()
-        tmp = sys.executable
+        tmp_exec = sys.executable
         try:
             sys.executable = RESOURCES_DIR + "locust/locust-mock" + EXE_SUFFIX
             self.obj.startup()
         finally:
-            sys.executable = tmp
+            sys.executable = tmp_exec
 
         self.obj.post_process()
         self.assertFalse(self.obj.has_results())
@@ -308,12 +308,12 @@ class TestLocustIOExecutor(ExecutorTestCase):
             }
         }})
         self.obj_prepare()
-        tmp_ex = sys.executable
+        tmp_exec = sys.executable
         try:
             sys.executable = RESOURCES_DIR + "locust/locust-mock" + EXE_SUFFIX
             self.obj.startup()
         finally:
-            sys.executable = tmp_ex
+            sys.executable = tmp_exec
 
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
