@@ -1654,8 +1654,7 @@ from selenium.webdriver.common.keys import Keys
         body = []
         if isinstance(trans_conf, IncludeScenarioBlock):
             included = self.executor.get_scenario(trans_conf.scenario_name)
-            included_requests = included.get_requests(parser=HierarchicRequestParser,
-                                                      require_url=False)
+            included_requests = included.get_requests(parser=HierarchicRequestParser, require_url=False)
             trans_conf = TransactionBlock(
                 name=trans_conf.scenario_name,
                 requests=included_requests,

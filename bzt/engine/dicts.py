@@ -123,8 +123,8 @@ class Scenario(UserDict, object):
         :type parser: class
         :rtype: list[bzt.requests_model.Request]
         """
-        requests_parser = parser(self, self.engine)
-        return requests_parser.extract_requests(require_url=require_url, )
+        requests_parser = parser(self, self.engine, require_url=require_url)
+        return requests_parser.extract_requests()
 
 
 class Configuration(BetterDict):

@@ -20,6 +20,17 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         finally:
             bzt.utils.exec_and_communicate = tmp_eac
 
+    def test_nfc(self):
+        # nose flow control: setup/teardown + graceful
+        self.obj.engine.config.load([RESOURCES_DIR + 'selenium/test_nfc.yml'])
+        self.configure(self.obj.engine.config['execution'][0])
+        self.obj.settings['verbose'] = True
+        self.obj_prepare()
+        exp_file = RESOURCES_DIR + "selenium/test_nfc.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+
     def test_modern_actions_generator(self):
         self.configure({
             "execution": [{
