@@ -124,7 +124,7 @@ The `consolidator` has several settings:
 ```yaml
 modules:
   consolidator:
-    generalize-labels: 500    # support up to this number of labels
+    generalize-labels: 900    # support up to this number of labels
     ignore-labels: # sample labels starting with prefixes from this list 
       - ignore     # will be ignored by results reader (eg ignore_myrequest)
       
@@ -151,7 +151,7 @@ modules:
 
 To handle a lot of test data correctly and efficiently, Taurus performs a few tricks when calculates statistics.
 
-For example, the number of requests/labels Taurus can handle is capped by `generalize-labels` option (100 by default).
+For example, the number of requests/labels Taurus can handle is capped by `generalize-labels` option (300 by default).
 Similar labels can be folded into a single one. For example, if the number of labels is high,
 `http://blazedemo.com/?foo=bar` and `http://blazedemo.com/?foo=baz` will be folded together and treated as two requests with the same label. This label merging only happens when you have more than 1/4 of `generalize-labels` utilized.
 

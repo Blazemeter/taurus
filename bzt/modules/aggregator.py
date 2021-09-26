@@ -786,7 +786,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
     def __init__(self):
         Aggregator.__init__(self, is_functional=False)
         ResultsProvider.__init__(self)
-        self.generalize_labels = 500
+        self.generalize_labels = 900
         self.ignored_labels = ["ignore"]
         self.underlings = []
         self.buffer = {}
