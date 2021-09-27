@@ -5,6 +5,7 @@ import sys
 import zipfile
 from os.path import join
 
+import bzt
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules._locustio import LocustIOExecutor
@@ -28,9 +29,8 @@ class TestPipInstaller(BZTestCase):
         self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
         self.obj.prepare()
+        self.assertEqual(self.obj.packages, ['test-package'])
         self.assertTrue(os.path.exists(self.obj.engine.temp_pythonpath))
-        self.assertFalse(self.obj.check())
-        self.obj.install()
         self.obj.post_process()  # remove directory afterwards
         if not is_windows():
             self.assertFalse(os.path.exists(self.obj.engine.temp_pythonpath))
@@ -47,11 +47,11 @@ class TestPythonTool(BZTestCase):
     def tearDown(self):
         super(TestPythonTool, self).tearDown()
 
-    def test_check(self):
+    def test_check_and_install(self):
         self.sniff_log(self.obj.log)
         self.obj.installer.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
-        self.assertFalse(self.obj.check_if_installed())
+        self.obj.check_if_installed()
         self.obj.install()
         self.obj.post_process()
 

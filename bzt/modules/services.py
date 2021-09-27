@@ -70,7 +70,7 @@ class PipInstaller(Service):
     def _reload(self, packages):
         pass  # todo:
 
-    def prepare(self):
+    def _prepare(self):
         """
         pip-installer expect follow definition:
         - service pip-install
@@ -95,7 +95,12 @@ class PipInstaller(Service):
         if self._missed(["pip"]):  # extend to windows (bzt-pip)
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
 
-    def check(self):
+    def prepare(self):
+        self._prepare()
+        if not self.check_packages():
+            self.install()
+
+    def check_packages(self):
         self.packages = self._missed(self.packages)
         return False if self.packages else True
 
@@ -150,8 +155,8 @@ class PythonTool(RequiredTool):
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")
-        self.installer.prepare()
-        result = self.installer.check()
+        self.installer._prepare()
+        result = self.installer.check_packages()
         if not result:
             self.log.warning(f"{self.tool_name} check failed.")
         return result
