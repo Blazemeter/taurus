@@ -21,7 +21,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
             sys.executable = os.path.join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_exec
+            sys.executable = tmp_exec
 
     def test_transactions(self):
         self.configure({
