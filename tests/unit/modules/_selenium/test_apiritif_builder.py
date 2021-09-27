@@ -1,3 +1,5 @@
+import os
+import sys
 import tempfile
 
 import bzt.utils
@@ -6,6 +8,7 @@ from bzt.modules import ConsolidatingAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules._apiritif.executor import ApiritifLoadReader, ApiritifFuncReader
+from bzt.utils import EXE_SUFFIX
 from tests.unit import RESOURCES_DIR, ExecutorTestCase, EngineEmul
 
 
@@ -13,12 +16,12 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
     EXECUTOR = ApiritifNoseExecutor
 
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_exec = sys.executable
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            sys.executable = os.path.join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            bzt.utils.exec_and_communicate = tmp_exec
 
     def test_transactions(self):
         self.configure({
