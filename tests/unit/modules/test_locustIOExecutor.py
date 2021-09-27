@@ -3,7 +3,6 @@ import sys
 import time
 from unittest import mock
 
-import bzt
 from bzt import ToolError
 from bzt.utils import dehumanize_time, EXE_SUFFIX
 from bzt.modules.jmeter import JTLReader
