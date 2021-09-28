@@ -44,42 +44,12 @@ class PipInstaller(Service):
     def __init__(self, packages=None, temp_flag=True):
         super(PipInstaller, self).__init__()
         self.packages = packages or []
-        self.has_installed_packages = False
         self.versions = BetterDict()
         self.engine = None
         self.temp = temp_flag
         self.target_dir = None
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
-
-    def _install(self, packages):
-        if not packages:
-            self.log.debug("Nothing to install")
-            return
-        # workaround for PythonTool, remove after expanding check logic from prepare() to PythonTool
-        self.has_installed_packages = True
-        cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
-        for package in packages:
-            version = self.versions.get(package, None)
-            cmdline += [f"{package}=={version}"] if version else [package]
-        self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
-        try:
-            out, err = exec_and_communicate(cmdline)
-        except TaurusCalledProcessError as exc:
-            self.log.debug(exc)
-            for line in exc.output.split('\n'):
-                if line.startswith("ERROR"):
-                    self.log.error(" ".join(line.split(" ")[1:]))
-            return
-        if "Successfully installed" in out:
-            self.log.info(out.split("\n")[-2])
-            if "WARNING" in err:
-                for warning in err.split("\n"):
-                    if warning.startswith('WARNING'):
-                        self.log.warning(" ".join(warning.split(" ")[1:]))
-        else:
-            self.log.error("pip-installer stderr:\n%s" % err)
-        self.log.debug("pip-installer stdout: \n%s" % out)
 
     def _missed(self, packages):
         # todo: add version handling
@@ -99,7 +69,7 @@ class PipInstaller(Service):
     def _reload(self, packages):
         pass  # todo:
 
-    def prepare(self):
+    def prepare_pip(self):
         """
         pip-installer expect follow definition:
         - service pip-install
@@ -123,15 +93,46 @@ class PipInstaller(Service):
 
         if self._missed(["pip"]):  # extend to windows (bzt-pip)
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
-        self.packages = self._missed(self.packages)
-        if not self.packages:
-            return
 
-        self._install(self.packages)
+    def prepare(self):
+        self.prepare_pip()
+        if not self.all_packages_installed():
+            self.install()
+
+    def all_packages_installed(self):
+        self.packages = self._missed(self.packages)
+        return False if self.packages else True
+
+    def install(self):
+        if not self.packages:
+            self.log.debug("Nothing to install")
+            return
+        cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
+        for package in self.packages:
+            version = self.versions.get(package, None)
+            cmdline += [f"{package}=={version}"] if version else [package]
+        self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
+        try:
+            out, err = exec_and_communicate(cmdline)
+        except TaurusCalledProcessError as exc:
+            self.log.debug(exc)
+            for line in exc.output.split('\n'):
+                if line.startswith("ERROR"):
+                    self.log.error(" ".join(line.split(" ")[1:]))
+            return
+        if "Successfully installed" in out:
+            self.log.info(out.split("\n")[-2])
+            if "WARNING" in err:
+                for warning in err.split("\n"):
+                    if warning.startswith('WARNING'):
+                        self.log.warning(" ".join(warning.split(" ")[1:]))
+        else:
+            self.log.error("pip-installer stderr:\n%s" % err)
+        self.log.debug("pip-installer stdout: \n%s" % out)
 
     def post_process(self):
         # might be forbidden on win as tool still work
-        if self.has_installed_packages and self.temp and not is_windows() and os.path.exists(self.target_dir):
+        if self.packages and self.temp and not is_windows() and os.path.exists(self.target_dir):
             self.log.debug("remove packages: %s" % self.packages)
 
             shutil.rmtree(self.target_dir)  # it removes all content of directory in reality, not only self.packages
@@ -151,22 +152,15 @@ class PythonTool(RequiredTool):
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")
-        try:
-            out, err = self.call([sys.executable, "-m", self.tool_name.lower(), "--version"])
-        except CALL_PROBLEMS as exc:
-            self.log.debug(f"{self.tool_name} check failed: {exc}")
-            return False
-
-        if err:
-            out += err
-            if f"No module named" in err:
-                self.log.warning(f"{self.tool_name} check failed.")
-                return False
-        self.log.debug(f"{self.tool_name} output: {out}")
-        return True
+        self.installer.prepare_pip()
+        result = self.installer.all_packages_installed()
+        if not result:
+            self.log.warning(f"{self.tool_name} check failed.")
+        return result
 
     def install(self):
-        self.installer.prepare()
+        self.log.debug(f"Installing {self.tool_name}.")
+        self.installer.install()
 
     def post_process(self):
         self.installer.post_process()

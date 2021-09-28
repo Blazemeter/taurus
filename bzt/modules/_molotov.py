@@ -141,24 +141,6 @@ class Molotov(PythonTool):
         self.tool_path = os.path.join(self.tool_path, "bin", self.tool_name.lower())
         self.user_tool_path = path
 
-    def check_if_installed(self):
-        self.log.debug(f"Checking {self.tool_name}.")
-        check_cmdline = self.user_tool_path if self.user_tool_path else self.tool_name.lower()
-        try:
-            out, err = self.call([check_cmdline, "--version"])
-        except CALL_PROBLEMS as exc:
-            self.log.debug(f"{self.tool_name} check failed: {exc}")
-            return False
-
-        if err:
-            out += err
-            if f"No module named" in err:
-                self.log.warning(f"{self.tool_name} check failed.")
-                return False
-        self.tool_path = check_cmdline
-        self.log.debug(f"{self.tool_name} output: {out}")
-        return True
-
 
 class MolotovReportReader(ResultsReader):
     def __init__(self, filename, parent_logger):
