@@ -18,6 +18,7 @@ import os
 import time
 from abc import abstractmethod
 
+from webdriver_manager.chrome import ChromeDriverManager
 from urwid import Text, Pile
 
 from bzt import TaurusConfigError, ToolError
@@ -83,7 +84,7 @@ class SeleniumExecutor(ReportableExecutor):
         pass  # for compatibility with taurus server
 
     def install_required_tools(self):
-        self.webdrivers = [self._get_tool(ChromeDriver, config=self.settings.get('chromedriver')),
+        self.webdrivers = [self._get_tool(ChromeDriver),
                            self._get_tool(GeckoDriver, config=self.settings.get('geckodriver'))]
 
         for tool in self.webdrivers:
@@ -254,27 +255,15 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 
 
 class ChromeDriver(RequiredTool):
-    DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-    VERSION = "93.0.4577.63"
 
-    def __init__(self, config=None, **kwargs):
-        settings = config or {}
-        version = str(settings.get('version', self.VERSION))
+    def __init__(self, **kwargs):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
-        tool_path = os.path.join(base_dir, 'chromedriver', version, filename)
-
-        link = settings.get('download-link', self.DOWNLOAD_LINK)
-
-        if is_windows():
-            arch = 'win32'  # no 64-bit windows builds, :(
-        elif is_mac():
-            arch = 'mac64'
-        else:
-            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
-        link = link.format(version=version, arch=arch)
-
-        super(ChromeDriver, self).__init__(tool_path=tool_path, version=version, download_link=link, **kwargs)
+        webdriver_manager = ChromeDriverManager(path=base_dir)
+        self.tool_dir = os.path.join(base_dir,
+                                     'drivers/chromedriver',
+                                     webdriver_manager.driver.get_os_type(),
+                                     webdriver_manager.driver.browser_version)
+        super().__init__(webdriver_manager=webdriver_manager, **kwargs)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)
@@ -283,20 +272,9 @@ class ChromeDriver(RequiredTool):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        dest = self.get_driver_dir()
-        if not os.path.exists(dest):
-            os.makedirs(dest)
+        self.log.info("Will install %s into %s", self.tool_name, self.tool_dir)
 
-        self.log.info("Will install %s into %s", self.tool_name, dest)
-        dist = self._download(use_link=True)
-        try:
-            self.log.info("Unzipping %s to %s", dist, dest)
-            unzip(dist, dest)
-        finally:
-            os.remove(dist)
-
-        if not is_windows():
-            os.chmod(self.tool_path, 0o755)
+        self.tool_path = self.webdriver_manager.install()
 
         if not self.check_if_installed():
             raise ToolError("Unable to find %s after installation!" % self.tool_name)
