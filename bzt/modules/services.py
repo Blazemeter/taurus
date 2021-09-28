@@ -122,10 +122,11 @@ class PipInstaller(Service):
             return
         if "Successfully installed" in out:
             self.log.info(out.split("\n")[-2])
-            if "WARNING" in err:
-                for warning in err.split("\n"):
-                    if warning.startswith('WARNING'):
-                        self.log.warning(" ".join(warning.split(" ")[1:]))
+            for err_line in err.split("\n"):
+                if err_line.startswith('WARNING'):
+                    self.log.warning(" ".join(err_line.split(" ")[1:]))
+                if err_line.startswith('ERROR'):
+                    self.log.error(" ".join(err_line.split(" ")[1:]))
         else:
             self.log.error("pip-installer stderr:\n%s" % err)
         self.log.debug("pip-installer stdout: \n%s" % out)
