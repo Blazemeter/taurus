@@ -44,7 +44,6 @@ class PipInstaller(Service):
     def __init__(self, packages=None, temp_flag=True):
         super(PipInstaller, self).__init__()
         self.packages = packages or []
-        self.has_installed_packages = False
         self.versions = BetterDict()
         self.engine = None
         self.temp = temp_flag
@@ -70,7 +69,7 @@ class PipInstaller(Service):
     def _reload(self, packages):
         pass  # todo:
 
-    def _prepare(self):
+    def prepare_pip(self):
         """
         pip-installer expect follow definition:
         - service pip-install
@@ -96,11 +95,11 @@ class PipInstaller(Service):
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
 
     def prepare(self):
-        self._prepare()
-        if not self.check_packages():
+        self.prepare_pip()
+        if not self.all_packages_installed():
             self.install()
 
-    def check_packages(self):
+    def all_packages_installed(self):
         self.packages = self._missed(self.packages)
         return False if self.packages else True
 
@@ -108,8 +107,6 @@ class PipInstaller(Service):
         if not self.packages:
             self.log.debug("Nothing to install")
             return
-        # workaround for PythonTool, remove after expanding check logic from prepare() to PythonTool
-        self.has_installed_packages = True
         cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
         for package in self.packages:
             version = self.versions.get(package, None)
@@ -155,8 +152,8 @@ class PythonTool(RequiredTool):
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")
-        self.installer._prepare()
-        result = self.installer.check_packages()
+        self.installer.prepare_pip()
+        result = self.installer.all_packages_installed()
         if not result:
             self.log.warning(f"{self.tool_name} check failed.")
         return result
