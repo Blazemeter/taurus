@@ -1280,13 +1280,12 @@ class RequiredTool(object):
     """
 
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
-                 env=None, version=None, installable=True, mandatory=True, webdriver_manager=None):
+                 env=None, version=None, installable=True, mandatory=True):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
         self.mirror_manager = None
         self.mandatory = mandatory
-        self.webdriver_manager = webdriver_manager
 
         self.version = None
         if version is not None:

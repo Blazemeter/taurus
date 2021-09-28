@@ -17,15 +17,16 @@ import copy
 import os
 import time
 from abc import abstractmethod
+from glob import glob
 
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
 from urwid import Text, Pile
 
 from bzt import TaurusConfigError, ToolError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import PrioritizedWidget
-from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
-from bzt.utils import is_windows, is_mac, platform_bitness
+from bzt.utils import get_files_recursive, get_full_path, RequiredTool
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -85,7 +86,7 @@ class SeleniumExecutor(ReportableExecutor):
 
     def install_required_tools(self):
         self.webdrivers = [self._get_tool(ChromeDriver),
-                           self._get_tool(GeckoDriver, config=self.settings.get('geckodriver'))]
+                           self._get_tool(GeckoDriver)]
 
         for tool in self.webdrivers:
             if not tool.check_if_installed():
@@ -258,21 +259,21 @@ class ChromeDriver(RequiredTool):
 
     def __init__(self, **kwargs):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        webdriver_manager = ChromeDriverManager(path=base_dir)
-        self.tool_dir = os.path.join(base_dir,
-                                     'drivers/chromedriver',
-                                     webdriver_manager.driver.get_os_type(),
-                                     webdriver_manager.driver.browser_version)
-        super().__init__(webdriver_manager=webdriver_manager, **kwargs)
+        self.webdriver_manager = ChromeDriverManager(path=base_dir)
+        self.tool_path = os.path.join(base_dir,
+                                      'drivers/chromedriver',
+                                      self.webdriver_manager.driver.get_os_type(),
+                                      f'{self.webdriver_manager.driver.browser_version}*')
+        super().__init__(tool_path=self.tool_path, **kwargs)
 
     def check_if_installed(self):
-        return os.path.exists(self.tool_path)
+        return True if len(glob(self.tool_path)) > 0 else False
 
     def get_driver_dir(self):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        self.log.info("Will install %s into %s", self.tool_name, self.tool_dir)
+        self.log.info("Will install %s into %s", self.tool_name, self.tool_path)
 
         self.tool_path = self.webdriver_manager.install()
 
@@ -281,57 +282,26 @@ class ChromeDriver(RequiredTool):
 
 
 class GeckoDriver(RequiredTool):
-    DOWNLOAD_LINK = \
-        "https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}"
-    VERSION = "0.29.1"
 
-    def __init__(self, config=None, **kwargs):
-        settings = config or {}
-        version = str(settings.get('version', self.VERSION))
+    def __init__(self, **kwargs):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
-        tool_path = os.path.join(base_dir, 'geckodriver', version, filename)
-
-        link = settings.get('download-link', self.DOWNLOAD_LINK)
-
-        if is_windows():
-            arch = 'win64'  # no 32-bit windows builds, :(
-            ext = 'zip'
-        elif is_mac():
-            arch = 'macos'
-            ext = 'tar.gz'
-        else:
-            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
-            ext = 'tar.gz'
-        link = link.format(version=version, arch=arch, ext=ext)
-
-        super(GeckoDriver, self).__init__(tool_path=tool_path, version=version, download_link=link, **kwargs)
+        self.webdriver_manager = GeckoDriverManager(path=base_dir)
+        self.tool_path = os.path.join(base_dir,
+                                      'drivers/geckodriver',
+                                      self.webdriver_manager.driver.get_os_type(),
+                                      f'{self.webdriver_manager.driver.get_version()}*')
+        super().__init__(tool_path=self.tool_path, **kwargs)
 
     def check_if_installed(self):
-        return os.path.exists(self.tool_path)
+        return True if len(glob(self.tool_path)) > 0 else False
 
     def get_driver_dir(self):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        dest = self.get_driver_dir()
-        if not os.path.exists(dest):
-            os.makedirs(dest)
+        self.log.info("Will install %s into %s", self.tool_name, self.tool_path)
 
-        self.log.info("Will install %s into %s", self.tool_name, dest)
-        dist = self._download(use_link=True)
-        try:
-            if self.download_link.endswith('.zip'):
-                self.log.info("Unzipping %s to %s", dist, dest)
-                unzip(dist, dest)
-            else:
-                self.log.info("Untaring %s to %s", dist, dest)
-                untar(dist, dest)
-        finally:
-            os.remove(dist)
-
-        if not is_windows():
-            os.chmod(self.tool_path, 0o755)
+        self.tool_path = self.webdriver_manager.install()
 
         if not self.check_if_installed():
             raise ToolError("Unable to find %s after installation!" % self.tool_name)
