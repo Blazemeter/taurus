@@ -1,0 +1,1 @@
+Add the ability to define custom controllers by overwriting two classes, similar to the way protocols are extended.
