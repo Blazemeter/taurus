@@ -39,6 +39,7 @@ class CSharpExecutor(SubprocessedExecutor):
 
     def prepare(self):
         super(CSharpExecutor, self).prepare()
+        self.env.set({"CopyRetryCount": 100})
         self.script = get_full_path(self.get_script_path())
         if not self.script:
             raise TaurusConfigError("Script not passed to runner %s" % self)
