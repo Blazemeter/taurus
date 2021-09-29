@@ -30,7 +30,7 @@ from bzt.utils import iteritems, numeric_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, load_class, guess_delimiter
 
 
-class RequestCompiler(RequestVisitor):
+class RequestCompiler(RequestVisitor):  # TODO Apply logic similar to protocol handler
     def __init__(self, jmx_builder):
         super(RequestCompiler, self).__init__()
         self.jmx_builder = jmx_builder
@@ -258,9 +258,19 @@ class JMeterScenarioBuilder(JMX):
         self.protocol_handlers = {}
         for protocol, cls_name in iteritems(self.executor.settings.get("protocol-handlers")):
             cls_obj = load_class(cls_name)
-            instance = cls_obj(self.system_props, self.engine)
-            self.protocol_handlers[protocol] = instance
+            request_compiler_instance = cls_obj(self.system_props, self.engine)
+            self.protocol_handlers[protocol] = request_compiler_instance
         self.FIELD_KEYSTORE_CONFIG = 'keystore-config'
+
+        # TODO look into eliminating structure replication. Maybe particular method to initialize extendable modules?
+        self.default_block_handler = self.executor.settings.get('default_block_handler', 'http')
+        self.blocks_handler = {}
+        for block_name, block_classes in iteritems(self.executor.settings.get("block_handler", None)):
+            self.blocks_handler[block_name] = {}
+            cls_obj = load_class(block_classes['request-compiler'])
+            request_compiler_instance = cls_obj(self)
+            self.blocks_handler[block_name]['request-compiler'] = request_compiler_instance
+            self.blocks_handler[block_name]['hierarchic-request-parser'] = load_class(block_classes['hierarchic-request-parser'])
 
     @staticmethod
     def _get_timer(req):
@@ -438,13 +448,18 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __gen_requests(self, scenario):
-        http_protocol = scenario.data.get('protocol', 'http') == 'http'
-        requests = scenario.get_requests(parser=HierarchicRequestParser, require_url=http_protocol)
+        http_protocol = scenario.data.get('protocol', 'http') == 'http' and not 'block_handler' in scenario.data
+        requests = scenario.get_requests(parser=self._get_hierarchic_request_parser(), require_url=http_protocol)
 
         elements = []
         for compiled in self.compile_requests(requests):
             elements.extend(compiled)
         return elements
+
+    def _get_hierarchic_request_parser(self):
+        if not self._has_user_defined_block_handler():
+            return HierarchicRequestParser
+        return self.blocks_handler[self.scenario.get('block_handler')]['hierarchic-request-parser']
 
     def compile_scenario(self, scenario):
         elements = []
@@ -605,9 +620,17 @@ class JMeterScenarioBuilder(JMX):
         hashtree = etree.Element("hashTree")
         return [set_var_action, hashtree]
 
+    def _get_request_compiler(self):
+        if not self._has_user_defined_block_handler():
+            return RequestCompiler(self)
+        return self.blocks_handler[self.scenario['block_handler']]['request-compiler']
+
+    def _has_user_defined_block_handler(self):
+        return len(self.blocks_handler) > 0 and 'block_handler' in self.scenario
+
     def compile_requests(self, requests):
         if self.request_compiler is None:
-            self.request_compiler = RequestCompiler(self)
+            self.request_compiler = self._get_request_compiler()
         compiled = []
         for request in requests:
             compiled.append(self.request_compiler.visit(request))
@@ -623,7 +646,7 @@ class JMeterScenarioBuilder(JMX):
         thread_group_ht = etree.Element("hashTree", type="tg")
 
         # NOTE: set realistic dns-cache and JVM prop by default?
-        self.request_compiler = RequestCompiler(self)
+        self.request_compiler = self._get_request_compiler()
         for element in self.compile_scenario(self.scenario):
             thread_group_ht.append(element)
 
@@ -696,7 +719,7 @@ class JMeterScenarioBuilder(JMX):
                                                     source.get("variable-names", ""))
             else:
                 config = JMX._get_csv_config(source_path, delimiter, source.get("loop", True),
-                                             source.get("variable-names", ""),  source.get("quoted", False))
+                                             source.get("variable-names", ""), source.get("quoted", False))
             elements.append(config)
             elements.append(etree.Element("hashTree"))
         return elements
