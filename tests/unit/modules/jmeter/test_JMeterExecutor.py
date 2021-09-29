@@ -3162,3 +3162,31 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertTrue("RTEConnectionConfig.protocol" in xml_tree)
         self.assertTrue("RTEConnectionConfig.terminalType" in xml_tree)
         self.assertTrue("RTEConnectionConfig.connectTimeout" in xml_tree)
+
+    def test_full_extended_block_handlers(self):
+        self.obj.settings.merge({
+            'block_handler': {
+                'parallel': {
+                    "request-compiler": "bzt.jmx.parallel.ParallelRequestCompiler",
+                    "hierarchic-request-parser": "bzt.jmx.parallel.ProtocolRequestParser"
+                }}})
+
+        self.configure({"execution": {
+            "scenario": {
+                "block_handler": "parallel",
+                "requests": [{
+                    "parallel": "",
+                    "do": [{"url": "http://localhost",
+                           "extract-regexp": {
+                               "varname": {
+                                   "regexp": "???",
+                                   "scope": "variable",
+                                   "from-variable": "RESULT"}
+                           }}]
+                }]}
+            }
+        })
+        self.obj.prepare()
+        xml_tree = open(self.obj.modified_jmx, "rb").read().decode("utf-8")
+        self.assertTrue(".server" in xml_tree)
+        self.assertTrue("com.blazemeter.jmeter.controller.ParallelSampler" in xml_tree)
