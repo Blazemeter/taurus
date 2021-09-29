@@ -8,17 +8,17 @@ import bzt.utils
 from bzt import TaurusConfigError
 from bzt.modules._apiritif.generator import is_selenium_4
 from tests.unit import RESOURCES_DIR
-from tests.unit.modules._selenium import SeleniumTestCase
+from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool
 
 
 class TestSeleniumScriptGeneration(SeleniumTestCase):
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
 
     def test_nfc(self):
         # nose flow control: setup/teardown + graceful
@@ -2418,12 +2418,12 @@ class TestIsSelenium4(SeleniumTestCase):
         bzt.modules._apiritif.generator.is_selenium_4 = lambda: True
 
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
 
     def test_ignore_proxy_option_generator_selenium_4(self):
         # Option ignore_proxy is only available starting from Selenium version 4

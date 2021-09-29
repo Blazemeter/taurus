@@ -1,10 +1,11 @@
 import json
 import os
 import shutil
+import sys
 import zipfile
 from os.path import join
-import bzt.utils
 
+import bzt
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules._locustio import LocustIOExecutor
@@ -28,8 +29,8 @@ class TestPipInstaller(BZTestCase):
         self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
         self.obj.prepare()
+        self.assertEqual(self.obj.packages, ['test-package'])
         self.assertTrue(os.path.exists(self.obj.engine.temp_pythonpath))
-
         self.obj.post_process()  # remove directory afterwards
         if not is_windows():
             self.assertFalse(os.path.exists(self.obj.engine.temp_pythonpath))
@@ -40,22 +41,23 @@ class TestPipInstaller(BZTestCase):
 class TestPythonTool(BZTestCase):
     def setUp(self):
         self.engine = EngineEmul()
-        self.obj = PythonTool(engine=self.engine, packages=['test-name'], settings={})
+        self.obj = PythonTool(engine=self.engine, packages=['test-package'], settings={})
         super(TestPythonTool, self).setUp()
 
     def tearDown(self):
         super(TestPythonTool, self).tearDown()
 
-    def test_check(self):
+    def test_check_and_install(self):
         self.sniff_log(self.obj.log)
+        self.obj.installer.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
-        self.obj.call = lambda x: ["out ", "err"]
         self.obj.check_if_installed()
-        self.assertIn("out err", self.log_recorder.debug_buff.getvalue())
+        self.obj.install()
+        self.obj.post_process()
 
-        self.obj.call = lambda x: ["", "No module named"]
-        self.obj.check_if_installed()
+        self.assertIn("Checking PythonTool.", self.log_recorder.debug_buff.getvalue())
         self.assertIn("PythonTool check failed.", self.log_recorder.warn_buff.getvalue())
+        self.assertIn("Installing PythonTool.", self.log_recorder.debug_buff.getvalue())
 
 
 class TestZipFolder(BZTestCase):
@@ -192,22 +194,20 @@ class TestToolInstaller(BZTestCase):
         self.assertRaises(NormalShutdown, obj.prepare)
 
     def test_python_module(self):
-        def mock_exec(*args, **kwargs):
-            return "locust here", ""
-
         obj = InstallChecker()
         obj.engine = EngineEmul()
         obj.engine.config.get("modules")["locust"] = LocustIOExecutor.__module__ + "." + LocustIOExecutor.__name__
+        obj.engine.user_pythonpath = obj.engine.temp_pythonpath
         obj.settings["include"] = "locust"
 
-        old_exec = bzt.utils.exec_and_communicate
-        bzt.utils.exec_and_communicate = mock_exec
+        tmp_exec = sys.executable
         try:
+            sys.executable = join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)
             obj.prepare()
         except NormalShutdown:
             pass
         finally:
-            bzt.utils.exec_and_communicate = old_exec
+            sys.executable = tmp_exec
 
         self.assertFalse(obj.engine.config.get("modules").get('locust').get('temp'))
 
