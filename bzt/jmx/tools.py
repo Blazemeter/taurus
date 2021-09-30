@@ -264,7 +264,7 @@ class JMeterScenarioBuilder(JMX):
 
         self.default_block_handler = self.executor.settings.get('default_block_handler', 'http')
         self.blocks_handler = {}
-        for block_name, block_classes in iteritems(self.executor.settings.get("block_handler", None)):
+        for block_name, block_classes in iteritems(self.executor.settings.get("block_handler", {})):
             self.blocks_handler[block_name] = {}
             cls_obj = load_class(block_classes['request-compiler'])
             request_compiler_instance = cls_obj(self)
