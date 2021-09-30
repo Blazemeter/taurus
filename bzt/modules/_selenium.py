@@ -259,7 +259,7 @@ class ChromeDriver(RequiredTool):
 
     def __init__(self, **kwargs):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False)
+        self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
         self.tool_path = os.path.join(base_dir,
                                       'drivers/chromedriver',
                                       self.webdriver_manager.driver.get_os_type(),
@@ -285,7 +285,7 @@ class GeckoDriver(RequiredTool):
 
     def __init__(self, **kwargs):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False)
+        self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
         self.tool_path = os.path.join(base_dir,
                                       'drivers/geckodriver',
                                       self.webdriver_manager.driver.get_os_type(),
