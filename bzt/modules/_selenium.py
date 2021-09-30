@@ -261,12 +261,12 @@ class ChromeDriver(RequiredTool):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
         self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
-        self.tool_path = os.path.join(base_dir,
-                                      'drivers/chromedriver',
-                                      self.webdriver_manager.driver.get_os_type(),
-                                      f'{self.webdriver_manager.driver.get_version()}',
-                                      filename)
-        super().__init__(tool_path=self.tool_path, **kwargs)
+        tool_path = os.path.join(base_dir,
+                                 'drivers/chromedriver',
+                                 self.webdriver_manager.driver.get_os_type(),
+                                 f'{self.webdriver_manager.driver.get_version()}',
+                                 filename)
+        super().__init__(tool_path=tool_path, **kwargs)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)
@@ -275,7 +275,8 @@ class ChromeDriver(RequiredTool):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        self.log.info(f"Will install {self.tool_name} into {self.tool_path[:-1]}")
+        dest = self.get_driver_dir()
+        self.log.info(f"Will install {self.tool_name} into {dest}")
 
         self.webdriver_manager.install()
 
@@ -289,12 +290,12 @@ class GeckoDriver(RequiredTool):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
         self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
-        self.tool_path = os.path.join(base_dir,
-                                      'drivers/geckodriver',
-                                      self.webdriver_manager.driver.get_os_type(),
-                                      f'{self.webdriver_manager.driver.get_version()}',
-                                      filename)
-        super().__init__(tool_path=self.tool_path, **kwargs)
+        tool_path = os.path.join(base_dir,
+                                 'drivers/geckodriver',
+                                 self.webdriver_manager.driver.get_os_type(),
+                                 f'{self.webdriver_manager.driver.get_version()}',
+                                 filename)
+        super().__init__(tool_path=tool_path, **kwargs)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)
@@ -303,7 +304,8 @@ class GeckoDriver(RequiredTool):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        self.log.info(f"Will install {self.tool_name} into {self.tool_path[:-1]}")
+        dest = self.get_driver_dir()
+        self.log.info(f"Will install {self.tool_name} into {dest}")
 
         self.webdriver_manager.install()
 
