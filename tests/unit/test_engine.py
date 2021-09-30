@@ -351,6 +351,17 @@ class TestScenarioExecutor(ExecutorTestCase):
         self.assertFalse(body_fields[0])
         self.assertIn('body2', body_fields[1])
 
+    def test_env_var(self):
+        self.configure({
+            "execution": [{
+                "env": {
+                    "PATH": "${PATH}-",
+                    "VAR": "VAL"},
+                "scenario": {"requests": [{"url": "http://example.com/"}]}}]})
+        self.obj.prepare()
+        self.assertEqual(os.environ["PATH"]+'-', self.obj.env.get("PATH"))
+        self.assertEqual("VAL", self.obj.env.get("VAR"))
+
     def test_scenario_is_script(self):
         self.configure({
             "execution": [{
