@@ -40,7 +40,7 @@ if not is_windows():
         from pyvirtualdisplay import Display
 
 
-class PipInstaller(Service):
+class PipInstaller(Service, Singletone):
     def __init__(self, packages=None, temp_flag=True):
         super(PipInstaller, self).__init__()
         self.packages = packages or []
@@ -143,12 +143,8 @@ class PythonTool(RequiredTool):
         tool_path = engine.temp_pythonpath
         super(PythonTool, self).__init__(tool_path=tool_path, **kwargs)
 
-        temp_flag = settings.get("temp", True)
         version = settings.get("version", None)
-        self.installer = PipInstaller(packages=packages, temp_flag=temp_flag)
-        self.installer.engine = engine
-        if version:
-            self.installer.versions[packages[0]] = version
+        self.installer = engine.get_pip_installer(packages=packages, version=version)
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")

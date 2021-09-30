@@ -483,6 +483,9 @@ class Engine(object):
 
         return self.modules[alias]
 
+    def get_pip_installer(self, packages, version):
+        pass
+
     def instantiate_module(self, alias):
         """
         Create new instance for module using its alias from module settings
