@@ -139,19 +139,14 @@ class MolotovExecutor(ScenarioExecutor):
 class Molotov(PythonTool):
     def __init__(self, engine, settings, path, **kwargs):
         super(Molotov, self).__init__(packages=["molotov"], engine=engine, settings=settings, **kwargs)
-        self.tool_path = os.path.join(self.tool_path, "sbin", self.tool_name.lower())
+        self.tool_path = os.path.join(self.tool_path, "bin", self.tool_name.lower())
         self.user_tool_path = path
 
     def install(self):
-        super(Molotov, self).install()
-
         # only one run script can be installed into bin directory with -t option of pip
-        # following workaround fixes the incompatibility of molotov with any other python tool
-        new_bin = get_full_path(self.tool_path, step_up=1)
-        old_bin = os.path.join(new_bin, '..', 'bin')
-        installed_tool = os.path.join(old_bin, self.tool_name.lower())
-        if os.path.exists(installed_tool):
-            shutil.copy(installed_tool, self.tool_path)
+        self.installer.packages += ['--upgrade']
+
+        super(Molotov, self).install()
 
 
 class MolotovReportReader(ResultsReader):
