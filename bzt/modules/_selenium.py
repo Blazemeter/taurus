@@ -259,7 +259,7 @@ class ChromeDriver(RequiredTool):
 
     def __init__(self, **kwargs):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        self.webdriver_manager = ChromeDriverManager(path=base_dir)
+        self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False)
         self.tool_path = os.path.join(base_dir,
                                       'drivers/chromedriver',
                                       self.webdriver_manager.driver.get_os_type(),
@@ -273,19 +273,19 @@ class ChromeDriver(RequiredTool):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        self.log.info("Will install %s into %s", self.tool_name, self.tool_path)
+        self.log.info(f"Will install {self.tool_name} into {self.tool_path[:-1]}")
 
         self.tool_path = self.webdriver_manager.install()
 
         if not self.check_if_installed():
-            raise ToolError("Unable to find %s after installation!" % self.tool_name)
+            raise ToolError(f"Unable to find {self.tool_name} after installation!")
 
 
 class GeckoDriver(RequiredTool):
 
     def __init__(self, **kwargs):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        self.webdriver_manager = GeckoDriverManager(path=base_dir)
+        self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False)
         self.tool_path = os.path.join(base_dir,
                                       'drivers/geckodriver',
                                       self.webdriver_manager.driver.get_os_type(),
@@ -299,11 +299,11 @@ class GeckoDriver(RequiredTool):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        self.log.info("Will install %s into %s", self.tool_name, self.tool_path)
+        self.log.info(f"Will install {self.tool_name} into {self.tool_path[:-1]}")
 
         self.tool_path = self.webdriver_manager.install()
 
         if not self.check_if_installed():
-            raise ToolError("Unable to find %s after installation!" % self.tool_name)
+            raise ToolError(f"Unable to find {self.tool_name} after installation!")
 
         # TODO: check for compatible browser versions?
