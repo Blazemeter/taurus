@@ -30,7 +30,7 @@ from bzt.utils import iteritems, numeric_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, load_class, guess_delimiter
 
 
-class RequestCompiler(RequestVisitor):  # TODO Apply logic similar to protocol handler
+class RequestCompiler(RequestVisitor):
     def __init__(self, jmx_builder):
         super(RequestCompiler, self).__init__()
         self.jmx_builder = jmx_builder
@@ -262,7 +262,6 @@ class JMeterScenarioBuilder(JMX):
             self.protocol_handlers[protocol] = request_compiler_instance
         self.FIELD_KEYSTORE_CONFIG = 'keystore-config'
 
-        # TODO look into eliminating structure replication. Maybe particular method to initialize extendable modules?
         self.default_block_handler = self.executor.settings.get('default_block_handler', 'http')
         self.blocks_handler = {}
         for block_name, block_classes in iteritems(self.executor.settings.get("block_handler", None)):
