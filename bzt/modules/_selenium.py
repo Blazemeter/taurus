@@ -17,7 +17,6 @@ import copy
 import os
 import time
 from abc import abstractmethod
-from glob import glob
 
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
@@ -27,6 +26,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import PrioritizedWidget
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool
+from bzt.utils import is_windows
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -259,15 +259,17 @@ class ChromeDriver(RequiredTool):
 
     def __init__(self, **kwargs):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
+        filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
         self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
         self.tool_path = os.path.join(base_dir,
                                       'drivers/chromedriver',
                                       self.webdriver_manager.driver.get_os_type(),
-                                      f'{self.webdriver_manager.driver.browser_version}*')
+                                      f'{self.webdriver_manager.driver.get_version()}',
+                                      filename)
         super().__init__(tool_path=self.tool_path, **kwargs)
 
     def check_if_installed(self):
-        return True if len(glob(self.tool_path)) > 0 else False
+        return os.path.exists(self.tool_path)
 
     def get_driver_dir(self):
         return get_full_path(self.tool_path, step_up=1)
@@ -275,7 +277,7 @@ class ChromeDriver(RequiredTool):
     def install(self):
         self.log.info(f"Will install {self.tool_name} into {self.tool_path[:-1]}")
 
-        self.tool_path = self.webdriver_manager.install()
+        self.webdriver_manager.install()
 
         if not self.check_if_installed():
             raise ToolError(f"Unable to find {self.tool_name} after installation!")
@@ -285,15 +287,17 @@ class GeckoDriver(RequiredTool):
 
     def __init__(self, **kwargs):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
+        filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
         self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
         self.tool_path = os.path.join(base_dir,
                                       'drivers/geckodriver',
                                       self.webdriver_manager.driver.get_os_type(),
-                                      f'{self.webdriver_manager.driver.get_version()}*')
+                                      f'{self.webdriver_manager.driver.get_version()}',
+                                      filename)
         super().__init__(tool_path=self.tool_path, **kwargs)
 
     def check_if_installed(self):
-        return True if len(glob(self.tool_path)) > 0 else False
+        return os.path.exists(self.tool_path)
 
     def get_driver_dir(self):
         return get_full_path(self.tool_path, step_up=1)
@@ -301,9 +305,7 @@ class GeckoDriver(RequiredTool):
     def install(self):
         self.log.info(f"Will install {self.tool_name} into {self.tool_path[:-1]}")
 
-        self.tool_path = self.webdriver_manager.install()
+        self.webdriver_manager.install()
 
         if not self.check_if_installed():
             raise ToolError(f"Unable to find {self.tool_name} after installation!")
-
-        # TODO: check for compatible browser versions?
