@@ -17,7 +17,7 @@ from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules._pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
 from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase
-from tests.unit.modules._selenium import SeleniumTestCase
+from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool
 from bzt.utils import EXE_SUFFIX, is_windows
 from bzt.resources.selenium_extras import get_locator, BYS, find_element_by_shadow
 
@@ -84,12 +84,12 @@ class TestLocatorsManager(BZTestCase):
 
 class TestSeleniumApiritifRunner(SeleniumTestCase):
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
 
     def test_selenium_prepare_python_single(self):
         """
@@ -223,12 +223,12 @@ class TestApiritifRunner(ExecutorTestCase):
     EXECUTOR = ApiritifNoseExecutor
 
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
 
     def test_new_flow(self):
         self.configure({
@@ -261,7 +261,7 @@ class TestApiritifRunner(ExecutorTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
 
     def test_apiritif_generated_requests(self):
@@ -283,7 +283,7 @@ class TestApiritifRunner(ExecutorTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
 
     def test_apiritif_transactions(self):
@@ -303,7 +303,7 @@ class TestApiritifRunner(ExecutorTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
 
     def test_report_reading(self):
@@ -342,7 +342,7 @@ class TestApiritifRunner(ExecutorTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
         reader = LoadSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.ldjson"), self.obj.log)
         samples = list(reader._read(last_pass=True))
@@ -367,7 +367,7 @@ class TestApiritifRunner(ExecutorTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
         reader = FuncSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.ldjson"),
                                    self.obj.engine, self.obj.log)
         samples = list(reader.read(last_pass=True))
@@ -383,23 +383,16 @@ class TestPyTestExecutor(ExecutorTestCase):
         self.CMD_LINE = args
 
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_tool = bzt.modules._pytest.PyTest
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            bzt.modules._pytest.PyTest = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            bzt.modules._pytest.PyTest = tmp_tool
 
     def full_run(self, config):
         self.obj.execution.merge(config)
-
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
-            self.obj_prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
-
+        self.obj_prepare()
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.post_process()
@@ -502,14 +495,14 @@ class TestRobotExecutor(ExecutorTestCase):
             }]
         })
 
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_tool = bzt.modules.robot.Robot
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            bzt.modules.robot.Robot = MockPythonTool
             self.obj.prepare()
             self.obj.settings["interpreter"] = RESOURCES_DIR + "selenium/robot/robot-mock" + EXE_SUFFIX
             self.obj.startup()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            bzt.modules.robot.Robot = tmp_tool
             self.obj.shutdown()
             self.obj.post_process()
 
@@ -520,12 +513,12 @@ class TestRobotExecutor(ExecutorTestCase):
 
     def full_run(self, config):
         self.configure(config)
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_tool = bzt.modules.robot.Robot
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            bzt.modules.robot.Robot = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            bzt.modules.robot.Robot = tmp_tool
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.post_process()
