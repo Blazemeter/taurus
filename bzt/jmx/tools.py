@@ -258,8 +258,8 @@ class JMeterScenarioBuilder(JMX):
         self.protocol_handlers = {}
         for protocol, cls_name in iteritems(self.executor.settings.get("protocol-handlers")):
             cls_obj = load_class(cls_name)
-            request_compiler_instance = cls_obj(self.system_props, self.engine)
-            self.protocol_handlers[protocol] = request_compiler_instance
+            instance = cls_obj(self.system_props, self.engine)
+            self.protocol_handlers[protocol] = instance
         self.FIELD_KEYSTORE_CONFIG = 'keystore-config'
 
         self.default_block_handler = self.executor.settings.get('default_block_handler', 'http')
