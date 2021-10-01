@@ -268,7 +268,6 @@ class ChromeDriver(RequiredTool):
                                      f'{self.webdriver_manager.driver.get_version()}',
                                      filename)
         except ValueError:
-            self.log.warning(f"Chrome not found. Please install it if you want to use it for the test")
             installable = False
         super().__init__(tool_path=tool_path, installable=installable, **kwargs)
 
@@ -302,7 +301,6 @@ class GeckoDriver(RequiredTool):
                                      f'{self.webdriver_manager.driver.get_version()}',
                                      filename)
         except ValueError:
-            self.log.warning(f"Firefox not found. Please install it if you want to use it for the test")
             installable = False
         super().__init__(tool_path=tool_path, installable=installable, **kwargs)
 
