@@ -17,6 +17,7 @@ limitations under the License.
 """
 import os
 from math import ceil
+from shutil import which
 
 from bzt import ToolError
 from bzt.engine import ScenarioExecutor
@@ -136,10 +137,19 @@ class MolotovExecutor(ScenarioExecutor):
 
 
 class Molotov(PythonTool):
-    def __init__(self, engine, settings, path, **kwargs):
+    def __init__(self, engine, settings, **kwargs):
         super(Molotov, self).__init__(packages=["molotov"], engine=engine, settings=settings, **kwargs)
-        self.tool_path = os.path.join(self.tool_path, "bin", self.tool_name.lower())
-        self.user_tool_path = path
+        self.tool_path = os.path.join(self.tool_path, "bin", self.tool_name.lower())    # todo: fix it!
+
+    def check_if_installed(self):
+        # look for the tool in artifacts dir, then in .bzt and in system dirs)
+        up = self.installer.engine.user_pythonpath
+        tp = self.installer.engine.temp_pythonpath
+        bin_dirs = 'bin', 'Scripts'
+        paths = [os.sep.join((tp, bin_dir)) for bin_dir in bin_dirs] + \
+                [os.sep.join((up, bin_dir)) for bin_dir in bin_dirs]
+        path = os.pathsep.join([*paths, os.environ['PATH']])
+        return which(self.tool_name, path=path)
 
     def install(self):
         # only one run script can be installed into bin directory with -t option of pip

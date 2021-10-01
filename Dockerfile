@@ -22,8 +22,7 @@ RUN bash ./setup_12.x \
 RUN locale-gen "en_US.UTF-8" \
    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-RUN $PIP_INSTALL setuptools wheel \
-   && $PIP_INSTALL locust robotframework robotframework-seleniumlibrary molotov
+RUN $PIP_INSTALL setuptools wheel
 RUN gem install rspec rake selenium-webdriver
 
 # Get Google Chrome
