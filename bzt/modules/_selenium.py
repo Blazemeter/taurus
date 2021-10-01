@@ -257,16 +257,20 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 
 class ChromeDriver(RequiredTool):
 
-    def __init__(self, **kwargs):
+    def __init__(self, tool_path="", installable=True, **kwargs):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
-        self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
-        tool_path = os.path.join(base_dir,
-                                 'drivers/chromedriver',
-                                 self.webdriver_manager.driver.get_os_type(),
-                                 f'{self.webdriver_manager.driver.get_version()}',
-                                 filename)
-        super().__init__(tool_path=tool_path, **kwargs)
+        try:
+            self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
+            tool_path = os.path.join(base_dir,
+                                     'drivers/chromedriver',
+                                     self.webdriver_manager.driver.get_os_type(),
+                                     f'{self.webdriver_manager.driver.get_version()}',
+                                     filename)
+        except ValueError:
+            self.log.warning(f"Chrome not found. Please install it if you want to use it for the test")
+            installable = False
+        super().__init__(tool_path=tool_path, installable=installable, **kwargs)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)
@@ -275,19 +279,19 @@ class ChromeDriver(RequiredTool):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        dest = self.get_driver_dir()
-        self.log.info(f"Will install {self.tool_name} into {dest}")
+        if self.installable:
+            dest = self.get_driver_dir()
+            self.log.info(f"Will install {self.tool_name} into {dest}")
 
-        self.webdriver_manager.install()
+            self.webdriver_manager.install()
 
-        if not self.check_if_installed():
-            raise ToolError(f"Unable to find {self.tool_name} after installation!")
+            if not self.check_if_installed():
+                raise ToolError(f"Unable to find {self.tool_name} after installation!")
 
 
 class GeckoDriver(RequiredTool):
 
-    def __init__(self, **kwargs):
-        tool_path = ""
+    def __init__(self, tool_path="", installable=True, **kwargs):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
         try:
@@ -298,8 +302,9 @@ class GeckoDriver(RequiredTool):
                                      f'{self.webdriver_manager.driver.get_version()}',
                                      filename)
         except ValueError:
-            self.installable = False
-        super().__init__(tool_path=tool_path, installable=self.installable, **kwargs)
+            self.log.warning(f"Firefox not found. Please install it if you want to use it for the test")
+            installable = False
+        super().__init__(tool_path=tool_path, installable=installable, **kwargs)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)
@@ -308,14 +313,11 @@ class GeckoDriver(RequiredTool):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        if not self.installable:
-            self.log.warning(f"Firefox not found. Please install it if you want to use it for the test")
-            return
+        if self.installable:
+            dest = self.get_driver_dir()
+            self.log.info(f"Will install {self.tool_name} into {dest}")
 
-        dest = self.get_driver_dir()
-        self.log.info(f"Will install {self.tool_name} into {dest}")
+            self.webdriver_manager.install()
 
-        self.webdriver_manager.install()
-
-        if not self.check_if_installed():
-            raise ToolError(f"Unable to find {self.tool_name} after installation!")
+            if not self.check_if_installed():
+                raise ToolError(f"Unable to find {self.tool_name} after installation!")
