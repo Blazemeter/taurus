@@ -52,8 +52,7 @@ class MolotovExecutor(ScenarioExecutor):
             self.engine.aggregator.add_underling(self.reader)
 
     def install_required_tools(self):
-        self.molotov = self._get_tool(Molotov, engine=self.engine, settings=self.settings,
-                                      path=self.settings.get('path', None))
+        self.molotov = self._get_tool(Molotov, engine=self.engine, settings=self.settings)
         if not self.molotov.check_if_installed():
             self.molotov.install()
 
@@ -139,7 +138,7 @@ class MolotovExecutor(ScenarioExecutor):
 class Molotov(PythonTool):
     def __init__(self, engine, settings, **kwargs):
         super(Molotov, self).__init__(packages=["molotov"], engine=engine, settings=settings, **kwargs)
-        self.tool_path = os.path.join(self.tool_path, "bin", self.tool_name.lower())    # todo: fix it!
+        # self.tool_path = os.path.join(self.tool_path, "bin", self.tool_name.lower()) # todo: return tool_path ability!
 
     def check_if_installed(self):
         # look for the tool in artifacts dir, then in .bzt and in system dirs)
