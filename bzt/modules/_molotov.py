@@ -23,7 +23,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.services import PythonTool
-from bzt.utils import unicode_decode, CALL_PROBLEMS
+from bzt.utils import unicode_decode
 from bzt.utils import shutdown_process, dehumanize_time, get_full_path, LDJSONReader
 
 
@@ -140,6 +140,12 @@ class Molotov(PythonTool):
         super(Molotov, self).__init__(packages=["molotov"], engine=engine, settings=settings, **kwargs)
         self.tool_path = os.path.join(self.tool_path, "bin", self.tool_name.lower())
         self.user_tool_path = path
+
+    def install(self):
+        # only one run script can be installed into bin directory with -t option of pip
+        self.installer.packages += ['--upgrade']
+
+        super(Molotov, self).install()
 
 
 class MolotovReportReader(ResultsReader):
