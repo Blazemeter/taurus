@@ -44,7 +44,8 @@ class PipInstaller(Service):
     def __init__(self, packages=None, version=None, temp_flag=True):
         super(PipInstaller, self).__init__()
         self.packages = packages or []
-        self.versions = BetterDict().from_dict({packages[0]: version})
+        if packages:
+            self.versions = BetterDict().from_dict({packages[0]: version})
         self.engine = None
         self.temp = temp_flag
         self.target_dir = None
