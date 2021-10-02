@@ -146,10 +146,10 @@ class PythonTool(RequiredTool):
         temp_flag = settings.get("temp", True)
         self.installer = PipInstaller(packages=packages, version=version, temp_flag=temp_flag)
         self.installer.engine = engine
+        self.installer.prepare_pip()
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")
-        self.installer.prepare_pip()
         result = self.installer.all_packages_installed()
         if not result:
             self.log.warning(f"{self.tool_name} check failed.")
