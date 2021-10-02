@@ -138,9 +138,10 @@ class MolotovExecutor(ScenarioExecutor):
 class Molotov(PythonTool):
     def __init__(self, engine, settings, **kwargs):
         super(Molotov, self).__init__(packages=["molotov"], engine=engine, settings=settings, **kwargs)
-        # self.tool_path = os.path.join(self.tool_path, "bin", self.tool_name.lower()) # todo: return tool_path ability!
 
     def check_if_installed(self):
+        self.installer.prepare_pip()
+
         # look for the tool in artifacts dir, then in .bzt and in system dirs)
         up = self.installer.engine.user_pythonpath
         tp = self.installer.engine.temp_pythonpath

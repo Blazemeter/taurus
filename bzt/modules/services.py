@@ -41,14 +41,13 @@ if not is_windows():
 
 
 class PipInstaller(Service):
-    def __init__(self, packages=None, version=None, temp_flag=True):
+    def __init__(self, temp_flag=True):
         super(PipInstaller, self).__init__()
-        self.packages = packages or []
-        if packages:
-            self.versions = BetterDict().from_dict({packages[0]: version})
+        self.versions = BetterDict()    # todo: implement version support
         self.engine = None
         self.temp = temp_flag
         self.target_dir = None
+        self.packages = []
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
 
@@ -145,11 +144,12 @@ class PythonTool(RequiredTool):
         super(PythonTool, self).__init__(version=version, **kwargs)
 
         temp_flag = settings.get("temp", True)
-        self.installer = PipInstaller(packages=packages, version=version, temp_flag=temp_flag)
+        self.installer = PipInstaller(temp_flag=temp_flag)
         self.installer.engine = engine
-        self.installer.prepare_pip()
+        self.installer.parameters = {"packages": packages}
 
     def check_if_installed(self):
+        self.installer.prepare_pip()
         self.log.debug(f"Checking {self.tool_name}.")
         result = self.installer.all_packages_installed()
         if not result:
