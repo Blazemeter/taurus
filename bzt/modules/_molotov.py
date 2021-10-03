@@ -113,10 +113,6 @@ class MolotovExecutor(ScenarioExecutor):
     def shutdown(self):
         shutdown_process(self.process, self.log)
 
-    def post_process(self):
-        self.molotov.post_process()
-        super(MolotovExecutor, self).post_process()
-
     def get_error_diagnostics(self):
         diagnostics = []
         if self.stdout is not None:
