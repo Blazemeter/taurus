@@ -21,12 +21,12 @@ from abc import abstractmethod
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
 from urwid import Text, Pile
+from requests.exceptions import ConnectionError
 
 from bzt import TaurusConfigError, ToolError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import PrioritizedWidget
-from bzt.utils import get_files_recursive, get_full_path, RequiredTool
-from bzt.utils import is_windows
+from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, LOG, find_files
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -89,7 +89,7 @@ class SeleniumExecutor(ReportableExecutor):
                            self._get_tool(GeckoDriver)]
 
         for tool in self.webdrivers:
-            if not tool.check_if_installed():
+            if not tool.check_if_installed() and tool.webdriver_manager:
                 self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
 
@@ -257,7 +257,9 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 
 class ChromeDriver(RequiredTool):
 
-    def __init__(self, tool_path="", installable=True, **kwargs):
+    def __init__(self, **kwargs):
+        tool_path = ""
+        self.webdriver_manager = None
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
         try:
@@ -267,9 +269,16 @@ class ChromeDriver(RequiredTool):
                                      self.webdriver_manager.driver.get_os_type(),
                                      f'{self.webdriver_manager.driver.get_version()}',
                                      filename)
-        except ValueError:
-            installable = False
-        super().__init__(tool_path=tool_path, installable=installable, **kwargs)
+        except ValueError as err:
+            LOG.warning(err)
+
+        except ConnectionError:  # For case when user has firewall
+            files = find_files(filename, base_dir)
+            if len(files) > 0:
+                tool_path = max(files, key=os.path.getctime)
+            else:
+                LOG.warning(f"{self.tool_name} not found!")
+        super().__init__(tool_path=tool_path, **kwargs)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)
@@ -278,19 +287,20 @@ class ChromeDriver(RequiredTool):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        if self.installable:
-            dest = self.get_driver_dir()
-            self.log.info(f"Will install {self.tool_name} into {dest}")
+        dest = self.get_driver_dir()
+        self.log.info(f"Will install {self.tool_name} into {dest}")
 
-            self.webdriver_manager.install()
+        self.webdriver_manager.install()
 
-            if not self.check_if_installed():
-                raise ToolError(f"Unable to find {self.tool_name} after installation!")
+        if not self.check_if_installed():
+            raise ToolError(f"Unable to find {self.tool_name} after installation!")
 
 
 class GeckoDriver(RequiredTool):
 
-    def __init__(self, tool_path="", installable=True, **kwargs):
+    def __init__(self, **kwargs):
+        tool_path = ""
+        self.webdriver_manager = None
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
         try:
@@ -300,9 +310,16 @@ class GeckoDriver(RequiredTool):
                                      self.webdriver_manager.driver.get_os_type(),
                                      f'{self.webdriver_manager.driver.get_version()}',
                                      filename)
-        except ValueError:
-            installable = False
-        super().__init__(tool_path=tool_path, installable=installable, **kwargs)
+        except ValueError as err:
+            LOG.warning(err)
+
+        except ConnectionError:  # For case when user has firewall
+            files = find_files(filename, base_dir)
+            if len(files) > 0:
+                tool_path = max(files, key=os.path.getctime)
+            else:
+                LOG.warning(f"{self.tool_name} not found!")
+        super().__init__(tool_path=tool_path, **kwargs)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)
@@ -311,11 +328,10 @@ class GeckoDriver(RequiredTool):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        if self.installable:
-            dest = self.get_driver_dir()
-            self.log.info(f"Will install {self.tool_name} into {dest}")
+        dest = self.get_driver_dir()
+        self.log.info(f"Will install {self.tool_name} into {dest}")
 
-            self.webdriver_manager.install()
+        self.webdriver_manager.install()
 
-            if not self.check_if_installed():
-                raise ToolError(f"Unable to find {self.tool_name} after installation!")
+        if not self.check_if_installed():
+            raise ToolError(f"Unable to find {self.tool_name} after installation!")
