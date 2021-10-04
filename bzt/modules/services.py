@@ -81,6 +81,7 @@ class PipInstaller(Service):
         self.packages = self.parameters.get("packages", self.packages)
         if not self.packages:
             return
+        self.versions = self.parameters.get("versions", self.versions)
 
         # install into artifacts dir if temp, otherwise into .bzt
         self.temp = self.settings.get("temp", self.temp)
@@ -127,9 +128,9 @@ class PipInstaller(Service):
                     self.log.warning(" ".join(err_line.split(" ")[1:]))
                 if err_line.startswith('ERROR'):
                     self.log.error(" ".join(err_line.split(" ")[1:]))
-        else:
-            self.log.error("pip-installer stderr:\n%s" % err)
         self.log.debug("pip-installer stdout: \n%s" % out)
+        if err:
+            self.log.debug("pip-installer stderr:\n%s" % err)
 
     def post_process(self):
         # might be forbidden on win as tool still work
@@ -146,10 +147,11 @@ class PythonTool(RequiredTool):
 
         temp_flag = settings.get("temp", True)
         version = settings.get("version", None)
-        self.installer = PipInstaller(packages=packages, temp_flag=temp_flag)
+        self.installer = PipInstaller(temp_flag=temp_flag)
         self.installer.engine = engine
+        self.installer.parameters = BetterDict.from_dict({'packages': packages})
         if version:
-            self.installer.versions[packages[0]] = version
+            self.installer.parameters["versions"] = {packages[0]: version}
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")

@@ -259,7 +259,7 @@ class ApiritifTester(ApiritifNoseExecutor):
 
 
 class Apiritif(PythonTool):
-    VERSION = "0.9.8"
+    VERSION = "1.0.0"
 
     def __init__(self, engine, settings, **kwargs):
         if not settings.get("version", None):
