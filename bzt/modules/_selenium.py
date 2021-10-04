@@ -280,9 +280,6 @@ class ChromeDriver(RequiredTool):
                 LOG.warning(f"{self.tool_name} not found!")
         super().__init__(tool_path=tool_path, **kwargs)
 
-    def check_if_installed(self):
-        return os.path.exists(self.tool_path)
-
     def get_driver_dir(self):
         return get_full_path(self.tool_path, step_up=1)
 
@@ -320,9 +317,6 @@ class GeckoDriver(RequiredTool):
             else:
                 LOG.warning(f"{self.tool_name} not found!")
         super().__init__(tool_path=tool_path, **kwargs)
-
-    def check_if_installed(self):
-        return os.path.exists(self.tool_path)
 
     def get_driver_dir(self):
         return get_full_path(self.tool_path, step_up=1)
