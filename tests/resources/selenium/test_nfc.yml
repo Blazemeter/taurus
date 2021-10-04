@@ -1,0 +1,25 @@
+execution:
+  - scenario: sc1
+    iterations: 2
+    executor: selenium
+
+scenarios:
+  sc1:
+    timeout: 2s
+    requests:
+      - setup:
+          - https://blazedemo.com/setup1
+          - label: setup2
+            actions:
+            - go(https://blazedemo.com/setup2)
+
+      - https://blazedemo.com/main1
+      - label: main2
+        actions:
+        - go(https://blazedemo.com/main2)
+
+      - teardown:
+        - https://blazedemo.com/teardown1
+        - label: teardown2
+          actions:
+          - go(https://blazedemo.com/teardown2)

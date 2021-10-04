@@ -27,9 +27,10 @@ from bzt import ToolError
 
 from bzt.utils import numeric_types, Environment, RequiredTool, PIPE, SoapUIScriptConverter
 from bzt.utils import to_json, BetterDict, ensure_is_dict, dehumanize_time
-
+from bzt.environment_helpers import expand_envs_with_os
 from .dicts import Scenario
 from .names import EXEC, SCENARIO
+from .templates import HavingInstallableTools
 
 
 class EngineModule(object):
@@ -167,7 +168,7 @@ class Aggregator(EngineModule):
         return data
 
 
-class ScenarioExecutor(EngineModule):
+class ScenarioExecutor(EngineModule, HavingInstallableTools):
     """
     :type provisioning: engine.Provisioning
     :type execution: BetterDict
@@ -427,10 +428,7 @@ class ScenarioExecutor(EngineModule):
 
     def prepare(self):
         super(ScenarioExecutor, self).prepare()
-        self.env.set(self.execution.get("env"))
-
-    def install_required_tools(self):
-        pass
+        self.env.set(expand_envs_with_os(self.execution.get("env")))
 
     def get_widget(self):
         """

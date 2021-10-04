@@ -1,8 +1,8 @@
+import sys
 import time
 import unittest
 from os.path import join
 
-import bzt
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules._molotov import MolotovExecutor, MolotovReportReader
 from bzt.utils import EXE_SUFFIX, is_windows
@@ -22,12 +22,12 @@ class TestMolotov(ExecutorTestCase):
         super(TestMolotov, self).tearDown()
 
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_exec = sys.executable
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            sys.executable = join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            sys.executable = tmp_exec
 
     def test_mocked(self):
         self.obj.settings.merge({
@@ -40,12 +40,13 @@ class TestMolotov(ExecutorTestCase):
         self.obj_prepare()
         self.obj.get_widget()
         try:
+            self.obj.molotov.tool_path = TOOL_PATH
             self.obj.startup()
             while not self.obj.check():
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.obj.post_process()
+            self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
 
     def test_diagnostics(self):

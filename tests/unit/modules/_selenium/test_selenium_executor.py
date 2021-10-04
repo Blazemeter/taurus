@@ -15,7 +15,7 @@ from bzt.modules._selenium import SeleniumExecutor
 from bzt.utils import LDJSONReader, FileReader
 from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
 from tests.unit.mocks import DummyListener
-from tests.unit.modules._selenium import SeleniumTestCase
+from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool
 
 
 class LDJSONReaderEmul(object):
@@ -37,12 +37,12 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.CMD_LINE = " ".join(args)
 
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
 
     def test_data_source_in_action(self):
         self.configure({
@@ -184,12 +184,12 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.CMD_LINE = args
 
     def obj_prepare(self):
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
 
     def obj_prepare_runner(self):
         super(SeleniumExecutor, self.obj).prepare()
@@ -199,12 +199,12 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.create_runner()
         self.obj.runner._check_tools = lambda *args: None
         self.obj.runner._compile_scripts = lambda: None
-        tmp_eac = bzt.utils.exec_and_communicate
+        tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.runner.prepare()
         finally:
-            bzt.utils.exec_and_communicate = tmp_eac
+            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
         self.obj.script = self.obj.runner.script
 
     def test_empty_scenario(self):
