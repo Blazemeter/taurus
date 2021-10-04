@@ -1,5 +1,5 @@
 # RSpec Executor
-Allows to run ruby tests based on RSpec.
+Allows running ruby tests based on RSpec.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded.

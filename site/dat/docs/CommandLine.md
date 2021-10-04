@@ -7,7 +7,7 @@ Command-line tool is named `bzt` and invoked like `bzt <options> \[configs]`. Po
   - `-n, --no-system-configs` - skip `/etc/bzt.d` and `~/.bzt-rc` (see below)
   - `-v, --verbose` - prints all logging messages to console (sometimes _a lot_)
   - `-l LOG, --log=LOG` - change log file location, by default is `bzt.log` in current directory
-  - `-o OPTION, --option=OPTION` override some of config settings from command line, may be used multiple times
+  - `-o OPTION, --option=OPTION` override some config settings from command line, may be used multiple times
 
 ## Configuration Files Processing
 Taurus tool consumes configuration files as input format (start learning its syntax [here](ConfigSyntax.md)), it automatically detects YAML and JSON formats. Internally, all configuration files are merged into single configuration object (see merged.config artifact), and each following config overrides/appends previous. There are some special config locations that allows having per-machine and per-user configs, that will be loaded for every tool run. In general, configs load sequence is:
@@ -22,7 +22,7 @@ Taurus tool consumes configuration files as input format (start learning its syn
   1. [aliases](#aliases) applied
   1. all command-line option overrides (like `bzt -o execution.0.scenario=my-test`) are applied
 
-Note that per-user config will not be copied into artifact directories, so those files are recommended to put API keys and tokens to improve security. Also it is convenient place to set paths to tools and your favorite preferences.
+Note that per-user config will not be copied into artifact directories, so those files are recommended to put API keys and tokens to improve security. Also, it is convenient place to set paths to tools and your favorite preferences.
 
 There is special shorthand for JMeter JMX test plans: if a config filename ends with `.jmx`, an execution for JMeter with existing script will be generated. This allows using Taurus just like `bzt test1.jmx test2.jmx`.
 
@@ -79,7 +79,7 @@ bzt -o modules.jmeter.properties.name='"\"string with quotes\""' script.yaml
 If you need to recursively override a value by giving only child node of the key:
 ```bash
 # this will set all properties of 'default-address' under `scenario` to value `newValue`.
-# (note that the replace works only on dictonaries and list of dictonaries)
+# (note that the replace works only on dictionaries and list of dictionaries)
 bzt -o scenarios.*default-address='newValue' script.yaml
 ```
 
@@ -102,14 +102,14 @@ cli-aliases:
 
 ## URL Shorthands
 
-There is a way to run a quick test on an URL (or a number of URLs) with a default load generator simply by using the
+There is a way to run a quick test on a URL (or a number of URLs) with a default load generator simply by using the
 target URL as a command-line argument.
 
 ```bash
 bzt http://blazedemo.com/
 ```
 
-This command will launch a quick test targetting [http://blazedemo.com/](http://blazedemo.com/). You can combine
+This command will launch a quick test targeting [http://blazedemo.com/](http://blazedemo.com/). You can combine
 it with other CLI options and aliases, such as `-report`, `-cloud` and others.
 
 ## Artifacts
@@ -117,16 +117,16 @@ it with other CLI options and aliases, such as `-report`, `-cloud` and others.
 Each tool start creates [artifacts directory](ArtifactsDir.md) under base dir (see `settings.artifacts-dir` command-line option). This directory is used to collect all files that were used with execution: configs (except personal), logs, generated scripts and everything else. Some of important artifacts are:
  - `bzt.log` - Taurus log, very detailed, great source for troubleshooting the tool
  - `merged.yml` and `merged.json` - configuration how it looks after merging all user's configuration files into one, saved in two formats
- - `effective.yml` and `effective.json` - configuration how it looks after applying defaults, shorthand rules and any othe modifications during execution, saved in two formats. This is how Taurus sees its configuration instructions and how YAML maps to JSON
+ - `effective.yml` and `effective.json` - configuration how it looks after applying defaults, shorthand rules and any other modifications during execution, saved in two formats. This is how Taurus sees its configuration instructions and how YAML maps to JSON
 
 ## Exit codes
 
 Taurus exit code signifies the way Taurus was ended.
 
-* _0_ — No problems occured.
+* _0_ — No problems occurred.
 * _1_ — Taurus finished with a generic error (networking, internal Taurus errors)
-* _2_ — Taurus was manually shut down (Ctrl-C by user, process received SIGKILL, etc)
-* _3_ — Taurus was shut down automatically (e.g. Pass/Fail criteria, cloud tests failed, etc)
+* _2_ — Taurus was manually shut down (Ctrl-C by user, process received SIGKILL, etc.)
+* _3_ — Taurus was shut down automatically (e.g. Pass/Fail criteria, cloud tests failed, etc.)
 
 Notice: Don't interrupt graceful shutdown after hitting `Ctrl+C` once, let the tool finish its cleanup. The tool is made to be obedient, so if you will insist on interrupting by pressing `Ctrl+C` for the second time, it will exit immediately. This will leave background processes unterminated, remote APIs will not be informed of the interrupt and, with high probability, some puppy or kitten might start crying. So let the tool shutdown gracefully, be patient.
 

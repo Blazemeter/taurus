@@ -1,5 +1,5 @@
 # Locust.io Executor
-[Locust.io](http://locust.io/) is python-based load generating tool where you have full freedom of programming test scenario in Python language. It uses resource-efficient coroutine approach.
+[Locust.io](http://locust.io/) is Python-based load generating tool where you have full freedom of programming test scenario in Python language. It uses resource-efficient coroutine approach.
 
 Locust package is not installed automatically by Taurus, please install it manually: `pip install locust`
 

@@ -1,5 +1,5 @@
 # Selenium Executor
-Selenium is virtual executor provided you ability to run functional tests locally with Selenium WebDriver by choosing appropriate executor. Currently supported executors are:
+Selenium is virtual executor provided you ability to run functional tests locally with Selenium WebDriver by choosing appropriate executor. Currently, supported executors are:
 - [JUnit](JUnit.md) (Java)
 - [TestNG](TestNG.md) (Java)
 - [Apiritif](Apiritif.md) (Python)
@@ -12,7 +12,7 @@ Selenium is virtual executor provided you ability to run functional tests locall
 Selenium Grid isn't supported for tests described with Taurus language, but if you have your own test suite that uses
 Selenium Grid to manage browser instances - Taurus will run these tests just fine.
 
-Selenium executor uses multiple test runners (JUnit, TestNG, Mocha, etc), test type is detected automatically.
+Selenium executor uses multiple test runners (JUnit, TestNG, Mocha, etc.), test type is detected automatically.
 If automatic detection fails - you can use `runner` option described below.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
@@ -196,7 +196,7 @@ modules:
 
 ## Appium
 
-[Appium](http://appium.io) is a tool for testing naitive mobile applications.
+[Appium](http://appium.io) is a tool for testing native mobile applications.
 Taurus supports only python scripts for appium in Selenium executor. Additionally, you can use taurus services to run
 [Appium server](Services.md#Appium-Loader) and [Android emulator](Services.md#Android-Emulator-Loader).
 There is typical example of usage:

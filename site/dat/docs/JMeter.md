@@ -4,7 +4,7 @@ This executor type is used by default, it uses [Apache JMeter](http://jmeter.apa
 
 ## JMeter Location & Auto-Installation
 
-If there is no JMeter installed at the configured `path`, Taurus will attempt to install latest JMeter and Plugins into
+If there is no JMeter installed at the configured `path`, Taurus will attempt to install the latest JMeter and Plugins into
 this location, by default `~/.bzt/jmeter-taurus/{version}/bin/jmeter`. You can change this setting to your preferred JMeter location (consider putting it into `~/.bzt-rc` file). All module settings that relates to JMeter path and auto-installing are listed below:
 ```yaml
 modules:
@@ -26,7 +26,7 @@ modules:
       version: 2.2   # minimum 2.0
 ```
 `force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for jmx script modifications purpose. This group
-provide `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default)
+provides `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default)
 
 With `version` parameter you can ask for specific tool version or use autodetect with `auto` value. In that case
  taurus will analyze content of jmx file and try to guess appropriate the JMeter version.
@@ -60,7 +60,7 @@ the ratio of 1:2, which means 10 to the first thread group and 20 to the second.
 
 ## JMeter Properties and Variables
 There are two places to specify JMeter properties: global at module-level and local at scenario-level. Scenario properties are merged into global properties and resulting set comes as input for JMeter, see corresponding `.properties` file in artifacts.
-You may also specify system properties for JMeter in system-properties section. They comes as system.properties file in artifacts.
+You may also specify system properties for JMeter in system-properties section. They come as system.properties file in artifacts.
 
 Global properties are set like this:
 
@@ -107,7 +107,7 @@ scenarios:
       my_hold: 15   # scenario-level property has priority
       sub_dir: contacts
 ```
-Usage of variables are similar but they can be used on scenario level only:
+Usage of variables are similar, but they can be used on scenario level only:
 ```yaml
 scenarios:
   sc_with_vars:
@@ -186,7 +186,7 @@ If selector for set-prop isn't found, taurus tries to create stringProp jmx elem
 
 Scenario that has `requests` element makes Taurus to generate the script for underlying tools automatically. For now, this is available for JMeter and partially available for some other tools.
 
-The `requests` element must contain a list of requests, each with its settings and child elements (assertions, extractors). Also there are additional configuration elements for requests-based scenario, described below.
+The `requests` element must contain a list of requests, each with its settings and child elements (assertions, extractors). Also, there are additional configuration elements for requests-based scenario, described below.
 
 Scenario is the sequence of steps and some settings that will be used by underlying tools (JMeter, Gatling) on execution stage.
 
@@ -418,7 +418,7 @@ If several results are found they will be concatenated with ',' if `concat`.
 
 Assertions are attached to request elements and used to set fail status on the response. Fail status for the response is
 not the same as response code for JMeter.
-Currently three types of response assertions are available.
+Currently, three types of response assertions are available.
 
 First one checks http response fields, its short form looks like this:
 
@@ -431,7 +431,7 @@ scenarios:
       - .+App.+
 ```
 
-The full form has following format:
+The full form has the following format:
 
 ```yaml
 scenarios:
@@ -518,7 +518,7 @@ modules:
 ```
 ##### JSR223 Blocks
 
-Sometimes you may want to use a JSR223 Pre/Post Processor to execute a code block before or
+Sometimes you may want to use a JSR223 Pre-/Post-Processor to execute a code block before or
 after some requests. Taurus allows that with `jsr223` block. You can put this block into 
 scenario level (block will run before/after each request in scenario) or into specific request. 
 
@@ -543,7 +543,7 @@ Each jsr223 element can define the following fields:
 - `compile-cache` - don't recompile scripts every time, turned on by default
 
 If `execute` field is set to `after` - Taurus will generate a JSR223 PostProcessor, if set to `before` - a PreProcessor.
-By default it's set to `after`.
+By default, it's set to `after`.
 
 Long form:
 ```yaml
@@ -645,7 +645,7 @@ scenarios:
     - once:
       - http://blazedemo.com/
 ```
-They're correspond to JMeter's `Once Only Controllers`.
+They correspond to JMeter's `Once Only Controllers`.
 
 ##### Loop Blocks
 
@@ -944,7 +944,7 @@ scenarios:
       value: v1
       domain: blazemeter.com
       path: /pricing  # must exist in the request for sending cookie
-      secure: true    # send only through https, optional, defalut: false
+      secure: true    # send only through https, optional, default: false
 ```
 ## JMeter Test Log
 You can tune JTL file content with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max `full` logging can seriously load your system.

@@ -116,7 +116,7 @@ scenarios:
     - http://blazedemo.com/
 ```
 
-As you can see, the Taurus [YAML](/docs/YAMLTutorial/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) test file is very easy to use. By using just a few human readable lines, we can start our first test.
+As you can see, the Taurus [YAML](/docs/YAMLTutorial/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) test file is very easy to use. By using just a few human-readable lines, we can start our first test.
 
 We just need to [install](/install/Installation/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) Taurus, and after that we can run this test with simple console command:
 
@@ -159,7 +159,7 @@ scenarios:
       script: ../jmeter/VerifyWeekDestinationTest.jmx
 ```
 
-We can do the same to run Selenium scripts on Taurus with the Selenium executor. Note that if the Selenium test script has a dependency on a class outside of the test section, we need to specify the path to the compiled project jar file:
+We can do the same to run Selenium scripts on Taurus with the Selenium executor. Note that if the Selenium test script has a dependency on a class outside the test section, we need to specify the path to the compiled project jar file:
 
 ```yaml
 execution:
@@ -287,7 +287,7 @@ Congratulations! You now know how to create scripts in Taurus from scratch, with
 
 Learn more about using Taurus from this free [webinar](http://info.blazemeter.com/automated-performance-tests-in-jenkins-ci-environments?utm_source=Blog&utm_medium=BM_Blog&utm_campaign=automated-performance-tests-jenkins-ci-environments?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium), and follow us for the upcoming articles, which will cover [analyzing test results](Reporting.md) and [integration with Jenkins](Jenkins.md).
 
-The Taurus team is open for feedbacks and suggestions and you can be sure that you will get help for any issues via the [support forum](https://groups.google.com/forum/#!forum/codename-taurus).
+The Taurus team is open for feedbacks and suggestions, and you can be sure that you will get help for any issues via the [support forum](https://groups.google.com/forum/#!forum/codename-taurus).
 
 
 

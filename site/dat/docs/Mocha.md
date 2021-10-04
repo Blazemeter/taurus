@@ -1,5 +1,5 @@
 # Mocha Executor
-Allows to run javascript tests based on Mocha.
+Allows running javascript tests based on Mocha.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded.
@@ -35,7 +35,7 @@ describe('Blazedemo verification', function() {
 });
 
 ```
-**Note**: When using Selenium Webdriver api, be aware than it uses async behavior with it's commands. For example, command `driver.get` will return a promise, which will be resolved only when webdriver fully loads page.  
+**Note**: When using Selenium Webdriver api, be aware that it uses async behavior with its commands. For example, command `driver.get` will return a promise, which will be resolved only when webdriver fully loads page.  
 
 ## Supported file types:
 

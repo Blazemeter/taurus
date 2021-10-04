@@ -1,5 +1,5 @@
 # Apiritif
-Allows to run load and functional Python tests using [Apiritif test framework](https://github.com/Blazemeter/apiritif),
+Allows running load and functional Python tests using [Apiritif test framework](https://github.com/Blazemeter/apiritif),
 which is based on [Nose library](https://nose.readthedocs.io/en/latest/index.html).
 You can run Nose tests the following way:
 ```yaml
@@ -211,7 +211,7 @@ This is an example how it looks like:
   - type: select  # action name
     param: American Express # parameter for the select action
     locators:     # list of locators for the action, these are attempted one by one from top to bottom
-      - id: select_id           # locator types are case insensitive
+      - id: select_id           # locator types are case-insensitive
       - css: another_class    
       - xpath: absolute_xpath
       - xpath: relative_xpath   # there may be multiple locators of the same type
@@ -257,7 +257,7 @@ For requested page source inspection you can use the following actions:
 Don't forget to replace `X` with the right [locators](#Locators).
 See sample usage in [Frame Management](#Frame-management) section.
 
-For assertion you can also use special assertion block. See example [here](#Sample-scenario).
+For assertion, you can also use special assertion block. See example [here](#Sample-scenario).
 
 Using the [alternative syntax](#Alternative-syntax-supporting-multiple-locators): 
 ```yaml
@@ -285,7 +285,7 @@ The same can be written like this:
 ```
 
 #### Dialogs management
-Besides the basic functionality to handle [Alerts](#Alert) it is also possible to use the
+Besides, the basic functionality to handle [Alerts](#Alert) it is also possible to use the
 following actions to do assertion and answering on Dialogs.
 
 ##### Assertions
@@ -386,7 +386,7 @@ See example [here](#Sample-scenario).
 
 #### Foreach
 
-`foreach` blocks allow to iterate over each element on a page that matches the specified `locators`.
+`foreach` blocks allow iterating over each element on a page that matches the specified `locators`.
 
 For example:
 
@@ -544,7 +544,7 @@ Use `go(url)` to redirect to another website.
 
 #### If Blocks
 
-Apiritif allows to control execution flow using `if` blocks. These blocks enable 
+Apiritif allows controlling execution flow using `if` blocks. These blocks enable 
 conditional execution of actions.
 
 Each `if` block should contain a mandatory `then` field, and an optional `else` field. Both `then` and `else` fields
@@ -589,7 +589,7 @@ scenarios:
               - go(https://bing.com/)
 ```
 
-Note that `<conditions>` are evaluated as JavaScript code so they must contain valid JavaScript expression 
+Note that `<conditions>` are evaluated as JavaScript code, so they must contain valid JavaScript expression 
 that yields boolean value.
 
 #### Loops
@@ -624,7 +624,7 @@ Note that both the `start` and `end` index are included in the loop. So for
 example setting `start` to 1 and `end` to 5 will loop through these values: \[1, 2, 3, 4, 5\].
 
 It is also possible to specify the `step` negative. In that case the loop will go from the higher 
-numbers to the lower ones. However it is also necessary that the `start` index is higher than the 
+numbers to the lower ones. However, it is also necessary that the `start` index is higher than the 
 `end` index. 
 
 For example:
@@ -907,7 +907,7 @@ scenarios:
         regexp: false  # treat string as regular expression
         not: false  # inverse assertion condition
 ```
-All action names are case insensitive. Despite it misprint in action names or usage of unsupported actions break your scenario execution.
+All action names are case-insensitive. Despite it misprint in action names or usage of unsupported actions break your scenario execution.
 To avoid it you can use `ignore-unknown-actions` Apiritif flag and taurus will show warning when unknown action occurs.
 ```yaml
 scenarios:
@@ -1025,7 +1025,7 @@ Note: The capabilities are a way in which the remote service filters and selects
   - browser
   - version
   - platform
-  - device # Id of the device (Mobile browser)
+  - device # ID of the device (Mobile browser)
   - os_version # commonly used only for mobile
 
 Note: Currently it is possible to perform basic tests in mobile browsers using the available actions commands, in the future more commands related to mobile will be incorporated to allow a better interactivity.
@@ -1066,7 +1066,7 @@ Note that `remote` keyword can be used on module settings, execution settings, o
 
 ## Mobile Browsers
 
-It is also possible to perform tests on mobile browsers. Currently the browsers supported are `Chrome-Android` and `Safari-iOS`.
+It is also possible to perform tests on mobile browsers. Currently, the browsers supported are `Chrome-Android` and `Safari-iOS`.
 Mobile test services are provided by Appium, and it is possible to use Appium locally or some remote Appium service through the Remote WebDriver capability.
 
 Note: Taurus provides the ability to provide Appium provisioning support, it is recommended to read the documentation related to [Selenium Executor / Appium](Selenium.md#appium)
