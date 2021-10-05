@@ -115,7 +115,7 @@ Selenium executor supports building test script from the `requests` option of `s
 
 ## Automatic Installation of Web Driver
 
-By default, Taurus will download latest ChromeDriver and GeckoDriver using webdriver-manager and put them in PATH when running tests.
+By default, Taurus will download the appropriate ChromeDriver and GeckoDriver using webdriver-manager and put them in PATH when running tests.
 
 You can also use already downloaded drivers by the following options:
 ```yaml

@@ -262,16 +262,17 @@ class ChromeDriver(RequiredTool):
         self.log = log
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
-        tool_path = tool_path or os.path.join(base_dir, 'drivers/chromedriver', filename)
-        try:
-            self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False)
-            tool_path = os.path.join(base_dir,
-                                     'drivers/chromedriver',
-                                     self.webdriver_manager.driver.get_os_type(),
-                                     f'{self.webdriver_manager.driver.get_version()}',
-                                     filename)
-        except (ValueError, ConnectionError) as err:
-            self.log.warning(err)
+        if not tool_path:
+            try:
+                self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False)
+                tool_path = os.path.join(base_dir,
+                                         'drivers/chromedriver',
+                                         self.webdriver_manager.driver.get_os_type(),
+                                         f'{self.webdriver_manager.driver.get_version()}',
+                                         filename)
+            except (ValueError, ConnectionError) as err:
+                tool_path = os.path.join(base_dir, 'drivers/chromedriver', filename)
+                self.log.warning(err)
         super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
 
     def get_driver_dir(self):
@@ -293,16 +294,17 @@ class GeckoDriver(RequiredTool):
         self.log = log
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
-        tool_path = tool_path or os.path.join(base_dir, 'drivers/geckodriver', filename)
-        try:
-            self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False)
-            tool_path = os.path.join(base_dir,
-                                     'drivers/geckodriver',
-                                     self.webdriver_manager.driver.get_os_type(),
-                                     f'{self.webdriver_manager.driver.get_version()}',
-                                     filename)
-        except (ValueError, ConnectionError) as err:
-            self.log.warning(err)
+        if not tool_path:
+            try:
+                self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False)
+                tool_path = os.path.join(base_dir,
+                                         'drivers/geckodriver',
+                                         self.webdriver_manager.driver.get_os_type(),
+                                         f'{self.webdriver_manager.driver.get_version()}',
+                                         filename)
+            except (ValueError, ConnectionError) as err:
+                tool_path = os.path.join(base_dir, 'drivers/geckodriver', filename)
+                self.log.warning(err)
         super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
 
     def get_driver_dir(self):
