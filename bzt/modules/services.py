@@ -144,10 +144,8 @@ class PythonTool(RequiredTool):
     def __init__(self, packages, engine, settings, **kwargs):
         tool_path = engine.temp_pythonpath
         super(PythonTool, self).__init__(tool_path=tool_path, **kwargs)
-
-        temp_flag = settings.get("temp", True)
         version = settings.get("version", None)
-        self.installer = PipInstaller(temp_flag=temp_flag)
+        self.installer = PipInstaller(temp_flag=False)
         self.installer.engine = engine
         self.installer.parameters = BetterDict.from_dict({'packages': packages})
         if version:
@@ -236,7 +234,6 @@ class InstallChecker(Service, Singletone):
             return
 
         self.log.info("Checking installation needs for: %s", mod_name)
-        mod.settings.get("temp", default=False, force_set=True)
         mod.install_required_tools()
         self.log.info("Module is fine: %s", mod_name)
 
