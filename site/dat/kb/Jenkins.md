@@ -15,7 +15,7 @@ Therefore, as a second step change the Jenkins default user. Here’s how:
 
 Third, install the [Jenkins Plot Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Plot+Plugin). It will be useful for comparing your basic performance metrics for the last builds. To install the plugin go to the ‘Manage Jenkins’ section and open the ‘Manage Plugins’ menu entry. Then, go to the ‘Available’ tab and find ‘Plot Plugin’ in the list below. 
 
-Now let’s move to building a plan creation. To configure Jenkins do the following:
+Now let’s move to building a plan creation. To configure Jenkins, do the following:
 
 
 In the build section run your YAML script:
@@ -41,6 +41,6 @@ At the same time, you can analyze all your metrics on [CA BlazeMeter](/docs/Repo
 
 Congratulations! You now know how to run Taurus tests in the Continuous Integration cycle with Jenkins.
 
-The Taurus team is open for feedbacks and suggestions and you can be sure that you will get help for any issues via the [support forum](https://groups.google.com/forum/#!forum/codename-taurus).
+The Taurus team is open for feedbacks and suggestions, and you can be sure that you will get help for any issues via the [support forum](https://groups.google.com/forum/#!forum/codename-taurus).
  
 

@@ -34,7 +34,7 @@ services:
   prepare: # stage names: [prepare, startup, check]
   - command: echo 1 > /tmp/1.txt && sleep 1 && dmesg | grep pci  # task command
     background: true  # wait for task completion or send it to background, false by default. 
-    ignore-failure: true  # false by default, otherwise will shutdown tests if command return code != 0, 
+    ignore-failure: true  # false by default, otherwise will shut tests down if command return code != 0, 
     out: taskout.txt  # set file name for task stdout, null to print to stdout
     err: taskerr.txt  # set file name for task stderr, null to print to stdout
     run-at: local  # provisioning level to limit command usage, null to run always

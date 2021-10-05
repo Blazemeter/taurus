@@ -254,7 +254,7 @@ scenarios:
 
 ## Specifying Where to Run for Shellexec Service
 
-In shellexec service, the `run-at` parameter allows to set where commands will be executed. Surprisingly, `local` means the cloud worker will execute it, `cloud` means the controlling CLI will execute it.
+In shellexec service, the `run-at` parameter allows setting where commands will be executed. Surprisingly, `local` means the cloud worker will execute it, `cloud` means the controlling CLI will execute it.
 
 ## Using Separate Pass/Fail Criteria for Cloud
 

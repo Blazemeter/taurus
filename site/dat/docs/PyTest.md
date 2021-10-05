@@ -1,6 +1,6 @@
 # Pytest Executor
 
-`pytest` executor allows to run [pytest](https://docs.pytest.org/en/latest/)-based test suites with Taurus.
+`pytest` executor allows running [pytest](https://docs.pytest.org/en/latest/)-based test suites with Taurus.
 
 Taurus will execute tests in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded. The default number of iterations is 1.
