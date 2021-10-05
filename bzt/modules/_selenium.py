@@ -26,7 +26,7 @@ from requests.exceptions import ConnectionError
 from bzt import TaurusConfigError, ToolError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import PrioritizedWidget
-from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, LOG, find_files
+from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -85,11 +85,11 @@ class SeleniumExecutor(ReportableExecutor):
         pass  # for compatibility with taurus server
 
     def install_required_tools(self):
-        self.webdrivers = [self._get_tool(ChromeDriver),
-                           self._get_tool(GeckoDriver)]
+        self.webdrivers = [self._get_tool(ChromeDriver, tool_path=self.settings.get('chromedriver').get('path')),
+                           self._get_tool(GeckoDriver, tool_path=self.settings.get('geckodriver').get('path'))]
 
         for tool in self.webdrivers:
-            if not tool.check_if_installed() and tool.webdriver_manager:
+            if not tool.check_if_installed():
                 self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
 
@@ -257,11 +257,12 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 
 class ChromeDriver(RequiredTool):
 
-    def __init__(self, **kwargs):
-        tool_path = ""
+    def __init__(self, tool_path="", log=None, **kwargs):
         self.webdriver_manager = None
+        self.log = log
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
+        tool_path = tool_path or os.path.join(base_dir, 'drivers/chromedriver', filename)
         try:
             self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
             tool_path = os.path.join(base_dir,
@@ -269,37 +270,30 @@ class ChromeDriver(RequiredTool):
                                      self.webdriver_manager.driver.get_os_type(),
                                      f'{self.webdriver_manager.driver.get_version()}',
                                      filename)
-        except ValueError as err:
-            LOG.warning(err)
-
-        except ConnectionError:  # For case when user has firewall
-            files = find_files(filename, base_dir)
-            if len(files) > 0:
-                tool_path = max(files, key=os.path.getctime)
-            else:
-                LOG.warning(f"{self.tool_name} not found!")
-        super().__init__(tool_path=tool_path, **kwargs)
+        except (ValueError, ConnectionError) as err:
+            self.log.warning(err)
+        super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
 
     def get_driver_dir(self):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        dest = self.get_driver_dir()
-        self.log.info(f"Will install {self.tool_name} into {dest}")
+        if self.webdriver_manager:
+            self.log.info(f"Will install {self.tool_name} into {self.tool_path}")
 
-        self.webdriver_manager.install()
-
-        if not self.check_if_installed():
-            raise ToolError(f"Unable to find {self.tool_name} after installation!")
+            self.webdriver_manager.install()
+        else:
+            super().install()
 
 
 class GeckoDriver(RequiredTool):
 
-    def __init__(self, **kwargs):
-        tool_path = ""
+    def __init__(self, tool_path="", log=None, **kwargs):
         self.webdriver_manager = None
+        self.log = log
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
+        tool_path = tool_path or os.path.join(base_dir, 'drivers/geckodriver', filename)
         try:
             self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
             tool_path = os.path.join(base_dir,
@@ -307,25 +301,17 @@ class GeckoDriver(RequiredTool):
                                      self.webdriver_manager.driver.get_os_type(),
                                      f'{self.webdriver_manager.driver.get_version()}',
                                      filename)
-        except ValueError as err:
-            LOG.warning(err)
-
-        except ConnectionError:  # For case when user has firewall
-            files = find_files(filename, base_dir)
-            if len(files) > 0:
-                tool_path = max(files, key=os.path.getctime)
-            else:
-                LOG.warning(f"{self.tool_name} not found!")
-        super().__init__(tool_path=tool_path, **kwargs)
+        except (ValueError, ConnectionError) as err:
+            self.log.warning(err)
+        super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
 
     def get_driver_dir(self):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        dest = self.get_driver_dir()
-        self.log.info(f"Will install {self.tool_name} into {dest}")
+        if self.webdriver_manager:
+            self.log.info(f"Will install {self.tool_name} into {self.tool_path}")
 
-        self.webdriver_manager.install()
-
-        if not self.check_if_installed():
-            raise ToolError(f"Unable to find {self.tool_name} after installation!")
+            self.webdriver_manager.install()
+        else:
+            super().install()

@@ -166,15 +166,6 @@ def get_files_recursive(dir_name, exclude_mask=''):
                 yield os.path.join(root, _file)
 
 
-def find_files(filename, search_path):
-    result = []
-
-    for root, _, files in os.walk(search_path):
-        if filename in files:
-            result.append(os.path.join(root, filename))
-    return result
-
-
 def parse_java_version(versions):
     if versions:
         version = versions[0]
