@@ -264,7 +264,7 @@ class ChromeDriver(RequiredTool):
         filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
         tool_path = tool_path or os.path.join(base_dir, 'drivers/chromedriver', filename)
         try:
-            self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
+            self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False)
             tool_path = os.path.join(base_dir,
                                      'drivers/chromedriver',
                                      self.webdriver_manager.driver.get_os_type(),
@@ -295,7 +295,7 @@ class GeckoDriver(RequiredTool):
         filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
         tool_path = tool_path or os.path.join(base_dir, 'drivers/geckodriver', filename)
         try:
-            self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False, cache_valid_range=0)
+            self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False)
             tool_path = os.path.join(base_dir,
                                      'drivers/geckodriver',
                                      self.webdriver_manager.driver.get_os_type(),
