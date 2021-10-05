@@ -87,7 +87,7 @@ scenarios:
       User-Agent: taurus-tsung
 
     requests:
-    - /  # shorthard form
+    - /  # shorthand form
 
     - url: /reserve.php  # full form with specified method
       method: GET

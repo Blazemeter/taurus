@@ -4,7 +4,7 @@ When you need to perform some actions before test starts, after test starts, or 
 running test, you should use services subsystem in Taurus. To configure services, use `services`
 top-level section of config with list of service module configs:
 
-Services are configured with `services` toplevel section. `services` section contains a list of
+Services are configured with `services` top level section. `services` section contains a list of
 services to run:
 ```yaml
 services:
@@ -105,7 +105,7 @@ If you use alternate provisionings, like [BlazeMeter Cloud](Cloud.md), you might
 
 ## Required Tools Installer
 
-There is small service which helps to check for all possible tools presence on the machine. It is called `install-checker` service. This service, once present in config, will check for all possible tools to be installed on the computer. After that, it will shutdown Taurus without running anything else. 
+There is small service which helps to check for all possible tools presence on the machine. It is called `install-checker` service. This service, once present in config, will check for all possible tools to be installed on the computer. After that, it will shut Taurus down without running anything else. 
 
 To invoke this service, just run Taurus like this `bzt -install-tools`. 
 
@@ -130,7 +130,7 @@ modules:
 
 ## Android Emulator Loader
 
-It used to start/stop android emulator. For that purpose you have to get Android SDK by yourself and tell Taurus where it placed with path to emulator (usualy it can be found in <sdk_directory>/tools) in config or environment variable ANDROID_HOME, which contains SDK location. Moreover, you should choose one of your android emulators with `avd` option. 
+It used to start/stop android emulator. For that purpose you have to get Android SDK by yourself and tell Taurus where it placed with path to emulator (usually it can be found in <sdk_directory>/tools) in config or environment variable ANDROID_HOME, which contains SDK location. Moreover, you should choose one of your android emulators with `avd` option. 
 
 ```yaml
 services:

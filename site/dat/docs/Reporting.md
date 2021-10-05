@@ -72,7 +72,7 @@ reporting:
 
 ### Dump Summary for Jenkins Plugins
 
-Two options `dump-xml` and `dump-csv` allows to export final cumulative stats into files that can be used
+Two options `dump-xml` and `dump-csv` allows exporting final cumulative stats into files that can be used
 by  [Jenkins Performance Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Performance+Plugin) and [Jenkins Plot Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Plot+Plugin) to plot historical data
 inside Jenkins. CSV to use with Plot Plugin (you can read good [article](https://www.blazemeter.com/blog/how-run-taurus-jenkins-performance-plugin) about it). XML format is for Performance Plugin.
 
@@ -92,7 +92,7 @@ Field names with explanations:
 
 ## JUnit XML Reporter
 
-This reporter provides test results in JUnit XML format parseable by Jenkins [JUnit Plugin](https://wiki.jenkins-ci.org/display/JENKINS/JUnit+Plugin).
+This reporter provides test results in JUnit XML format can be parsed by Jenkins [JUnit Plugin](https://wiki.jenkins-ci.org/display/JENKINS/JUnit+Plugin).
 Reporter has two options:
 - `filename` (full path to report file, optional. By default `xunit.xml` in artifacts dir)
 - `data-source` (which data source to use: `sample-labels` or `pass-fail`)
@@ -126,7 +126,7 @@ modules:
   consolidator:
     generalize-labels: 500    # support up to this number of labels
     ignore-labels: # sample labels starting with prefixes from this list 
-      - ignore     # will be ignored by results reader (eg ignore_myrequest)
+      - ignore     # will be ignored by results reader (e.g. ignore_myrequest)
       
     buffer-scale-choice: 0.5  # choose middle value from following percentiles list (95.0)
     buffer-multiplier: 2  # make buffer two times bigger than need to receive 95% samples

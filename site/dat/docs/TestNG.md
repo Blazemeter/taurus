@@ -1,5 +1,5 @@
 # TestNG Executor
-Allows to run functional tests based on TestNG library.
+Allows running functional tests based on TestNG library.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded.

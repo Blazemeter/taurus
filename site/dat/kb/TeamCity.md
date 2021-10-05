@@ -2,14 +2,14 @@
 
 _By: Yuri Bushnev, June 2017_
 
-Taurus is an open source framework for performance tests automation. It can be used to run scripts from scratch as well as allows to run tests from other open source tools. These include [JMeter](http://jmeter.apache.org/), [Gatling](http://gatling.io/), [Selenium](http://www.seleniumhq.org/) or [Locust](http://locust.io/). 
+Taurus is an open source framework for performance tests automation. It can be used to run scripts from scratch as well as allows running tests from other open source tools. These include [JMeter](http://jmeter.apache.org/), [Gatling](http://gatling.io/), [Selenium](http://www.seleniumhq.org/) or [Locust](http://locust.io/). 
 
 Taurus simplifies use of existing automation tools and provides a user-friendly and convenient "wrapper". One of Taurus's main strengths is that it can be integrated with any [continuous integration](https://www.blazemeter.com/jenkins?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-teamcity) servers in just a few steps. Using CI servers helps us automate test execution and avoid the routine actions if running our scripts again and again. 
 
 In this article we are going to find out how we can easily run our Taurus performance script in the TeamCity continuous integration server. You can also find tutorials for other CI solutions: [Jenkins](Jenkins) and [Bamboo](Bamboo) on the Taurus website.
 
 ## Creating a Taurus Script
-First of all, let’s create our first Taurus performance script:
+First, let’s create our first Taurus performance script:
 
 ```yaml
 execution:
@@ -24,7 +24,7 @@ scenarios:
       - url: http://blazedemo.com/
 ```
 
-Taurus scripts can be written using JSON or YAML formats. As you can see, it is human readable.
+Taurus scripts can be written using JSON or YAML formats. As you can see, it is human-readable.
  
  You don’t need to be a genius to find out that this current script performs:
   - URL requests to [http://blazedemo.com/](http://blazedemo.com/) web page 
@@ -52,13 +52,13 @@ As soon as script has been started, we will get real time performance metrics.
 
 Now we are ready to move the created script into the TeamCity integration server.
 
-TeamCity is one of the most popular [continuous integration](https://www.blazemeter.com/blog/continuous-integration-101-how-run-jmeter-jenkins?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-teamcity) servers. It was developed by JetBrains company and it is a commercial software. However, open source projects can request a free license. 
+TeamCity is one of the most popular [continuous integration](https://www.blazemeter.com/blog/continuous-integration-101-how-run-jmeter-jenkins?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-teamcity) servers. It was developed by JetBrains company, and it is a commercial software. However, open source projects can request a free license. 
 
-The main advantage of this continuous integration server is that it provides great usability out-of-the-box. It also has a user friendly interface which makes it easy to use, even for someone new to continuous integration solutions.
+The main advantage of this continuous integration server is that it provides great usability out-of-the-box. It also has a user-friendly interface which makes it easy to use, even for someone new to continuous integration solutions.
 
 Let’s assume that you already have TeamCity integration server. If no, you can find straight forward installation steps on JetBrains [official website](https://confluence.jetbrains.com/display/TCD10/Installation).
 
-First of all, we should create a new project.
+First, we should create a new project.
 
 ![](teamcity2.png)
 
@@ -68,7 +68,7 @@ During project creation you will see a few integration options:
 
 You can choose one of them depending on your needs. You can integrate your source code from a custom repository, GitHub, Bitbucket or the Visual Studio Team service. We are not going to cover these integrations. For our needs, the "Manually" option is enough. In this case we just need to define a name for our project, a unique project id and a description (which is not mandatory).
 
-After the project has been created you will be redirected to the main project page. Basically, a project is a container for different build configurations, while the build configuration (build plan) is a sequence of execution steps to perform a specific job. Jobs include deploying a specific service, runing tests, and so on. Therefore, if you want to run your tests in CI you need to create a separate build configuration:
+After the project has been created you will be redirected to the main project page. Basically, a project is a container for different build configurations, while the build configuration (build plan) is a sequence of execution steps to perform a specific job. Jobs include deploying a specific service, running tests, and so on. Therefore, if you want to run your tests in CI you need to create a separate build configuration:
 
 ![](teamcity4.png)
 
@@ -76,7 +76,7 @@ The ‘Create Build Configuration’ page looks exactly the same as ‘Create Pr
 
 ![](teamcity5.png)
 
-On the second page you can specify version control settings, if you want to checkout a performance script from its source code repository. We are going to use a performance script from local machine, so, you can just skip this step and click on the “Create” button without specifying any additional settings.
+On the second page you can specify version control settings, if you want to check out a performance script from its source code repository. We are going to use a performance script from local machine, so, you can just skip this step and click on the “Create” button without specifying any additional settings.
 
 ![](teamcity6.png)
 

@@ -53,7 +53,7 @@ modules:
     token: <Put your token here>
 ```
 
-After that, add an additional module under the reporting section with appropriate information. You reporting section will look like this:
+After that, add a module under the reporting section with appropriate information. Your reporting section will look like this:
 
 ```yaml
 reporting:
@@ -98,4 +98,4 @@ Then we can go into the artifacts folder and find junit logs in ‘junit.err’ 
 
 Congratulations! You now know how to create and read Taurus analytics reports. Stay with us for the next article, about [integrating Taurus with Jenkins](Jenkins.md).
 
-The Taurus team is open for feedbacks and suggestions and you can be sure that you will get help for any issues via the [support forum](https://groups.google.com/forum/#!forum/codename-taurus).
+The Taurus team is open for feedbacks and suggestions, and you can be sure that you will get help for any issues via the [support forum](https://groups.google.com/forum/#!forum/codename-taurus).

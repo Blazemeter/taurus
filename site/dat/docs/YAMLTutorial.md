@@ -1,6 +1,6 @@
 # YAML Tutorial
 
-This document is intended to be a short YAML tutorial, sufficient enough to get you started with YAML language.
+This document is intended to be a short YAML tutorial, sufficient to get you started with YAML language.
 
 YAML is an indentation-based markup language which aims to be both easy to read and easy to write. Many projects use
 it because of its readability, simplicity and good support for many programming languages.
@@ -152,12 +152,12 @@ When reading multi-document YAML, Taurus will treat multiple documents as multip
 There's a number of tools you can use to help you to locate and fix syntactical errors in your YAML document.
 
 1. You can use online [services](http://yamltojson.com/) to convert it to JSON to check the structure (can be useful if you don’t have much experience with indentation-based languages)
-2. You can use [yamllint](https://github.com/adrienverge/yamllint) to see if there're any errors or issues with your document
+2. You can use [yamllint](https://github.com/adrienverge/yamllint) to see if there are any errors or issues with your document
 
 
 ## YAML Gotchas
 
-Due to the format aiming to be easy to write and read, there're some ambiguities in YAML.
+Due to the format aiming to be easy to write and read, there are some ambiguities in YAML.
 
 ### Special characters in unquoted strings
 YAML has a number of special characters you cannot use in unquoted strings: ` [] {} : > | `.

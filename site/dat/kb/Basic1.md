@@ -35,7 +35,7 @@ __Real-Time Load Test Results on the Taurus Dashboard__
 
 ## Creating a JMeter Script Using YAML
 
-If you aren’t familiar with JMeter, you can also use Taurus’ simple configuration syntax to create a test scenario as a YAML file. You can do this without even knowing or launching JMeter at all!  
+If you are not familiar with JMeter, you can also use Taurus’ simple configuration syntax to create a test scenario as a YAML file. You can do this without even knowing or launching JMeter at all!  
 
 Take a look at the following example:
 
@@ -133,7 +133,7 @@ execution:
 
 Continuous Delivery is becoming the ‘new normal’, especially for SaaS companies continually creating new features and improving their websites. While the software development world has been progressing very well in terms of process automation, the testing side of things was lagging behind.  This is where Taurus comes in.
 
-Within Jenkins you can use the “Execute shell” section in the project configuration to run your Taurus test and make this a part of your continuous delivery cycle.
+Within Jenkins, you can use the “Execute shell” section in the project configuration to run your Taurus test and make this a part of your continuous delivery cycle.
 
 
 As always if you have any questions or comments just leave a message on the [project forums](/support/). 

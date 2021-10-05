@@ -1,6 +1,6 @@
 # xUnit Executor
 
-This executor allows to run tests written with xUnit framework. It uses .Net Core 3.1.403 with xUnit 2.4.1.
+This executor allows running tests written with xUnit framework. It uses .Net Core 3.1.403 with xUnit 2.4.1.
 
 Follow execution params are possible for NUnit Executor: `concurrency`, `iterations`, `hold-for` and `ramp-up`.
 

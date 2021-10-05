@@ -12,12 +12,12 @@ Overview of steps:
 2. Declare a class inherited from `bzt.engine.ScenarioExecutor`
 3. Implement `prepare()`, `startup()`, `check()`, `shutdown()` and `post\_process()` phase methods
 4. Add a class mapping for the new executor into `modules` section of `bzt/resources/base-config.yml`
-5. Write unittests, put your unittest file in in `tests/modules/` dir
+5. Write unittests, put your unittest file in `tests/modules/` dir
 
 There is good example of minimal custom executor code here: [examples/custom](https://github.com/Blazemeter/taurus/tree/master/examples/custom).
 
 Also, feel free to ask your questions at Taurus [support channel](https://groups.google.com/forum/#!forum/codename-taurus)
-or to open a pull request at Github.
+or to open a pull request at GitHub.
 
 
 ## Step 1 - Creating a Runner

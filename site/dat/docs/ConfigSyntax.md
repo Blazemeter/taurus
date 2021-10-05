@@ -9,7 +9,7 @@ Configuration dictionary has several top-level keys:
  - `[modules](#Modules-Settings)` - list of classes to load and their respective settings
  - `[settings](#Top-Level-Settings)` - some top-level settings for the tool
  - `provisioning` - advanced option, allows using resources other than local to have distributed high-load test, available if you have corresponding provider installed and configured
- - `[included-configs](#Included-Configs)` - this section allows to merge additional config files
+ - `[included-configs](#Included-Configs)` - this section allows merging additional config files
  
 Example for config that touches all sections:
 
@@ -56,9 +56,9 @@ The rules for merging multiple configuration files into single are following:
  4. If dictionary key has `~` prefix, it will overwrite the value instead of merging
  5. If dictionary key has `^` prefix, it will delete the corresponding key/value pair
  6. If dictionary key has `$` prefix and the value under that key is a list, it will perform element-wise merging of corresponding list items.
- 7. If dictionary values has different type, eg. string value vs array, the value will be overwritten and the warning message will be issued
+ 7. If dictionary values has different type, e.g. string value vs array, the value will be overwritten and the warning message will be issued
 
-Most of configuration elements have their default values and also have some shorthand forms to specify trivial cases. We encourage users to learn these rules to speed up configuration files creation and make them short.
+Most configuration elements have their default values and also have some shorthand forms to specify trivial cases. We encourage users to learn these rules to speed up configuration files creation and make them short.
 
 Important to know that merging happens _before_ any default value or shorthand rules are processed, so you should use the same approach to express settings in all files. The most common case is `execution` branch, that can be either dictionary (key/value pairs) or array of dictionaries. Attempting to merge file containing array of executions with single-execution will lead to overwriting instead of appending array. For that case, have a practice to always use either array or dictionary in files that are being merged.
 
@@ -173,7 +173,7 @@ If you have found config instruction that does not follow this rule, report imme
 
 As you know, JSON is a subset of YAML. But in BZT config files there is no
 usage for YAML-JSON incompatibilities, so you can use either JSON or YAML for
-your configs. Also you can have some of configs in JSON and some in YAML, the
+your configs. Also, you can have some configs in JSON and some in YAML, the
 engine will perfectly deal with it. For example, following JSON file:
  
 ```json
@@ -238,7 +238,7 @@ Look for `merged.yml/json` and `effective.yml/json` file pairs in artifacts to s
 
 If you're not familiar with YAML, you can check out our [YAML Tutorial](YAMLTutorial.md).
 
-Hint: YAML config files on Linux/MacOS allows a trick of self-executing config. To have it, add [shebang line](https://en.wikipedia.org/wiki/Shebang_(Unix\)) as first line of your file, like this:
+Hint: YAML config files on Linux/macOS allows a trick of self-executing config. To have it, add [shebang line](https://en.wikipedia.org/wiki/Shebang_(Unix\)) as first line of your file, like this:
 
 ```yaml
 #! /usr/local/bin/bzt

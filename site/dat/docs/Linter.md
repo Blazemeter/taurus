@@ -57,12 +57,12 @@ cli:
 Taurus implements the following checks:
 
 - `possible-typo`: when Taurus detects a possible typo in the name of some field.
-- `single-execution`: when `execution` is a dict instead of the list. This is a supported case by Taurus, but it's use is discouraged.
+- `single-execution`: when `execution` is a dict instead of the list. This is a supported case by Taurus, but its use is discouraged.
 - `execution-non-list`: when `execution` is not a list, which is an error.
 - `no-scenario`: when `execution` item doesn't define the scenario to use for the test.
 - `scenario-non-dict`: when scenario (defined either inside execution, or in `scenarios`) is not a dict.
 - `undefined-scenario`: when execution item specifies scenario that isn't defined by the configuration.
-- `no-script-or-requests`: when scenario doesn't define neither `script` nor `requests`.
+- `no-script-or-requests`: when scenario defines neither `script` nor `requests`.
 - `script-and-requests`: when scenario defines both `script` and `requests`, making `requests` useless.
 
 

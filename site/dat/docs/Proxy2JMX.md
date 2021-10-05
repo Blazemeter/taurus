@@ -1,7 +1,7 @@
 # Proxy2JMX Converter
 
 It's possible to convert existing Selenium scripts into JMeter JMX file. Keep in mind: only requests will be converted, no assertions or other logic. Also note that it will only capture requests going to publicly available servers, so `localhost` or behind the firewall won't be captured.
-For this purpose Taurus uses [BlazeMeter Recorder](https://guide.blazemeter.com/hc/en-us/articles/207420545-BlazeMeter-Recorder-Mobile-Recorder-) so you need valid token. This service starts proxy for logging requests and build jmx file based on the requests when test is finished. You will need [BlazeMeter API key configured](BlazemeterReporter/#Personalized-Usage) for this approach to work. Lets see example config:
+For this purpose Taurus uses [BlazeMeter Recorder](https://guide.blazemeter.com/hc/en-us/articles/207420545-BlazeMeter-Recorder-Mobile-Recorder-) so you need valid token. This service starts proxy for logging requests and build jmx file based on the requests when test is finished. You will need [BlazeMeter API key configured](BlazemeterReporter/#Personalized-Usage) for this approach to work. Let's see example config:
 
 ```yaml
 execution:
@@ -29,7 +29,7 @@ services:
 ```
 
 ## Proxy Server Auto Setup
-Taurus can help you with settings of proxy server for recording purposes. This ability depends on your operation system.
+Taurus can help you with settings of proxy server for recording purposes. This ability depends on your operating system.
 
 ### Linux 
 Full support of Chrome and Firefox.
@@ -50,6 +50,6 @@ for chromedriver (don't place your chromedriver inside Windows directory). We st
 Take note: as proxy2jmx uses own proxy it doesn't support top level [proxy option](ConfigSyntax.md#Top-Level-Settings). 
 
 ### MacOS
-Auto setup in MacOS is currently not implemented.
+Auto setup in macOS is currently not implemented.
 
 <iframe width="700" height="394" src="https://www.youtube.com/embed/zuZkCHW259U" frameborder="0" allowfullscreen></iframe>
