@@ -441,7 +441,7 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
         self.obj_prepare()
-        driver = self.obj._get_tool(GeckoDriver, ool_path=self.obj.settings.get('geckodriver').get('path'))
+        driver = self.obj._get_tool(GeckoDriver, tool_path=self.obj.settings.get('geckodriver').get('path'))
         if not driver.check_if_installed():
             driver.install()
         self.obj.env.add_path({"PATH": driver.get_driver_dir()})
