@@ -1,6 +1,6 @@
 # Installing and Upgrading
 
-Before Taurus installation, check if you have the following modules installed:
+Before Taurus and after Python installation, check if you have the following modules installed:
 ```
 pip install --upgrade wheel setuptools Cython
 ```
@@ -18,7 +18,7 @@ pip install --upgrade bzt
 ```
 
 Keep in mind that some additional software can be required depend on the test type
-(Java, specific Python tools like locust, etc.).
+(Java, specific Python tools like Locust, etc.).
 Below you can see some specific info for different operating systems.
 
 ## Unstable features
