@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.16.0<sup> 06 Oct 2021</sup>
+- add setup/teardown python code generation
+- add autoinstallation for python tools (`apiritif`, `pytest`, `locust`, `robot`)
+- fix installation check of `robot` tool
+- support `set-variables` step for Gatling
+- made `vegeta` CSV recognizable by external results loader
+- extended `apiritif` syntax for finding iframes by locators
+- update `locust` assertions support
+- remove `grinder` tool support
+- update Java version to 11
+- update `chromedriver` version to 93
+- fix docs
+
 ## 1.15.4<sup> 09 Jul 2021</sup>
 - add support of advanced browser options
 - add `apiritif` external action handlers
