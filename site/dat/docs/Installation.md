@@ -35,8 +35,7 @@ You will need Python 3.7+ and Java installed. To install Taurus on Linux, do the
 
 ```
 sudo apt-get update
-sudo apt-get install python3 default-jre-headless python3-tk python3-pip python3-dev \
-  libxml2-dev libxslt-dev zlib1g-dev net-tools
+sudo apt-get install python3 default-jre-headless python3-tk python3-pip python3-dev libxml2-dev libxslt-dev zlib1g-dev net-tools
 sudo python3 -m pip install bzt
 ```
 Upgrading to latest is as simple as this:
@@ -55,7 +54,7 @@ Then, to install Taurus, type:
 pip install bzt
 ```
 
-Upgrade is only:
+Upgrade is simply:
 
 ```
 pip install --upgrade bzt
@@ -87,7 +86,7 @@ Then just install bzt:
 pip3 install bzt
 ```
 
-To upgrade use:
+To upgrade, use:
 
 ```
 pip3 install --upgrade bzt
@@ -95,16 +94,25 @@ pip3 install --upgrade bzt
 
 ## Windows
 
-1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, 
-don't forget to enable "Add python.exe to Path" checkbox.
+Preparation steps:
+
+1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
 2. Get the latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
-3. You should use `pip`, also `setuptools` and `wheel` packages and the latest
-[Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16)
- might be necessary.
+3. Get the latest [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) and install it.
+
+Please check that the 'Desktop Development with C++' box is checked during installation. 
 
 ![Windows Tools Installation](win-tools-install.png)
 
-Please check that the 'Desktop Development with C++' box is checked during installation. 
+Also, do not forget to update `pip`, `setuptools`, and `wheel` with the following command:
+```
+ python -m pip install --upgrade pip setuptools wheel
+```
+
+After all those steps, install Taurus:
+```
+python -m pip install bzt
+```
 
 ## Docker Image
 
