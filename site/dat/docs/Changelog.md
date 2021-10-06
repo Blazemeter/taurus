@@ -11,7 +11,7 @@
 - remove `grinder` tool support
 - update Java version to 11
 - update `chromedriver` version to 93
-- fix docs
+- fix documentation
 
 ## 1.15.4<sup> 09 Jul 2021</sup>
 - add support of advanced browser options
