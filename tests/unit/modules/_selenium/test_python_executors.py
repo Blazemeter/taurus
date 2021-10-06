@@ -17,7 +17,7 @@ from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules._pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
 from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase
-from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool
+from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool, MockDriverManager
 from bzt.utils import EXE_SUFFIX, is_windows
 from bzt.resources.selenium_extras import get_locator, BYS, find_element_by_shadow
 
@@ -378,6 +378,11 @@ class TestApiritifRunner(ExecutorTestCase):
 class TestPyTestExecutor(ExecutorTestCase):
     EXECUTOR = PyTestExecutor
     CMD_LINE = None
+
+    def setUp(self):
+        super().setUp()
+        bzt.modules._selenium.ChromeDriverManager = MockDriverManager
+        bzt.modules._selenium.GeckoDriverManager = MockDriverManager
 
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
