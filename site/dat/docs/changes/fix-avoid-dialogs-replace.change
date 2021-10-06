@@ -1,1 +1,0 @@
-Avoid unnecessary call to dialogs_replace method when there are no actions that rely on it (i.e. assertdialog and answerdialog)
