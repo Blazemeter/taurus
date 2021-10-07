@@ -66,7 +66,7 @@ class PipInstaller(Service):
     def _convert_config_versions(self):
         packages_list = self.parameters.get("packages", None)
         if not packages_list:
-            return self.packages
+            return
 
         for package_data in packages_list:
             package, version = None, None
