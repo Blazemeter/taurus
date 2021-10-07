@@ -189,7 +189,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
+            bzt.modules._apiritif.executor.Apiritif = tmp_tool
 
     def obj_prepare_runner(self):
         super(SeleniumExecutor, self.obj).prepare()
@@ -204,7 +204,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.runner.prepare()
         finally:
-            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
+            bzt.modules._apiritif.executor.Apiritif = tmp_tool
         self.obj.script = self.obj.runner.script
 
     def test_empty_scenario(self):

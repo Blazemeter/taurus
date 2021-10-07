@@ -139,6 +139,30 @@ modules:
       download-link: https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}
 ```
 
+_This is available only in [unstable snapshot](https://gettaurus.org/install/Installation/#Latest-Unstable-Snapshot)._
+
+By default, Taurus will download the appropriate ChromeDriver and GeckoDriver using webdriver-manager and put them in PATH when running tests.
+
+You can also use already downloaded drivers by the following options:
+```yaml
+execution:
+- executor: selenium
+  iterations: 1
+  scenario: simple
+  
+scenarios:
+  simple:
+    requests:
+    - http://blazedemo.com/
+
+modules:
+  selenium:
+    chromedriver:
+      path: /full/path/to/driver
+    geckodriver:
+      path: /full/path/to/driver
+```
+
 ## Using Virtual Display on Linux
 
 If you want to run headless tests on Linux using virtual framebuffer (Xvfb), you can tell Taurus to run virtual
