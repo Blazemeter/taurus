@@ -112,8 +112,8 @@ class K6LogReader(ResultsReader):
         for line in self.lines:
             if line.startswith("http_reqs"):
                 self.data['timestamp'].append(int(line.split(',')[1]))
-                self.data['label'].append(line.split(',')[8])
-                self.data['r_code'].append(line.split(',')[12])
+                self.data['label'].append(line.split(',')[9])
+                self.data['r_code'].append(line.split(',')[13])
                 self.data['error_msg'].append(line.split(',')[4])
             elif line.startswith("http_req_duration"):
                 self.data['http_req_duration'].append(float(line.split(',')[2]))
