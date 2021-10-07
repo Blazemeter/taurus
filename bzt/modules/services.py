@@ -52,16 +52,33 @@ class PipInstaller(Service):
         self.pip_cmd = [self.interpreter, "-m", "pip"]
 
     def _missed(self, packages):
-        # todo: add version handling
         cmdline = self.pip_cmd + ["list"]
         out, _ = exec_and_communicate(cmdline)
-        list_of_installed = [line.split(' ')[0] for line in out.split('\n')[2:-1]]
+        out = out.split('\n')[2:-1]
+        installed = dict(zip([line.split(' ')[0] for line in out], [line.split(' ')[-1] for line in out]))
 
         missed = []
         for package in packages:
-            if package not in list_of_installed:
+            if package not in installed or package in self.versions and installed[package] != self.versions[package]:
                 missed.append(package)
         return missed
+
+    def _convert_config_versions(self):
+        packages_list = self.parameters.get("packages", None)
+        if not packages_list:
+            return self.packages
+
+        for package_data in packages_list:
+            package, version = None, None
+            if isinstance(package_data, dict):
+                package, version = package_data['name'], package_data.get("version", None)
+            elif isinstance(package_data, str):
+                package_params = package_data.split("==")
+                package, version = package_params[0], package_params[1] if len(package_params) > 1 else None
+
+            self.packages.append(package)
+            if version:
+                self.versions[package] = version
 
     def _uninstall(self, packages):
         pass  # todo:
@@ -78,7 +95,7 @@ class PipInstaller(Service):
           - first_pkg
           - second_pkg
         """
-        self.packages = self.parameters.get("packages", self.packages)
+        self._convert_config_versions()
         if not self.packages:
             return
         self.versions = self.parameters.get("versions", self.versions)

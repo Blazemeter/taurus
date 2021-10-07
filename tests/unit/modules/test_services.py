@@ -37,6 +37,14 @@ class TestPipInstaller(BZTestCase):
 
         self.assertIn("Successfully installed test-package-0.0.0", self.log_recorder.info_buff.getvalue())
 
+    def test_versions(self):
+        self.obj.parameters['packages'] = ['one', 'two==2', {'name': 'three'}, {'name': 'four', 'version': '4'}]
+        self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
+        self.obj.prepare()
+
+        self.assertEqual(self.obj.packages, ['one', 'two', 'three', 'four'])
+        self.assertEqual(self.obj.versions, {'two': '2', 'four': '4'})
+
 
 class TestPythonTool(BZTestCase):
     def setUp(self):

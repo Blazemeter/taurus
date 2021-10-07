@@ -144,13 +144,17 @@ modules:
 
 ## Pip-installer
 
-This service allows you to use additional python packages in your scripts. Typical config is
+This service allows you to use additional Python packages in your scripts. 
+Here is an example of how you can install packages, the latest versions of specific ones:
  
 ```yaml
 services:
 - module: pip-install
   packages:
-    - tz  # list of packages
+    - one
+    - two==0.0.0
+    - name: three
+      version: 0.0.0
 
 modules:
   pip-install:
