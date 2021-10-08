@@ -18,7 +18,7 @@ pip install --upgrade bzt
 ```
 
 Keep in mind that some additional software can be required depend on the test type
-(Java, specific Python tools like locust, etc).
+(Java, specific Python tools like locust, etc.).
 Below you can see some specific info for different operating systems.
 
 ## Unstable features
@@ -94,16 +94,16 @@ pip3 install --upgrade bzt
 ```
 
 ## Windows
-Unfortunately Windows installer is unsupported now. Please use standard Python mechanism to get Taurus 
-(see the top of the page).
 
 1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, 
 don't forget to enable "Add python.exe to Path" checkbox.
-1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
-1. you should use `pip`, also `setuptools` and `wheel` packages and the latest
+2. Get the latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
+3. You should use `pip`, also `setuptools` and `wheel` packages and the latest
 [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16)
  might be necessary.
+
 ![Windows Tools Installation](win-tools-install.png)
+
 Please check that the 'Desktop Development with C++' box is checked during installation. 
 
 ## Docker Image

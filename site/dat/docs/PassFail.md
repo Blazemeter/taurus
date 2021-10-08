@@ -49,7 +49,7 @@ Possible subjects are:
 If no timeframe logic is specified, the pass/fail rule is processed at the very end of test, against total aggregate data.
 To apply checks in the middle of the test, please use one of possible timeframe logic options:
 
-- `for` means that each value inside timeframe has to trigger the condition, for example `avg-rt>1s for 5s` means each of consecutive 5 seconds has average response time greater that 1 second.
+- `for` means that each value inside timeframe has to trigger the condition, for example `avg-rt>1s for 5s` means each of consecutive 5 seconds has average response time greater than 1 second.
 - `within` means all values inside timeframe gets aggregated as average or sum (depends on KPI nature), then comparison is made.
 - `over` is very similar to `within`, but the comparison is made only if full timeframe available (`within` will trigger even if partial timeframe matches the criteria).
 
@@ -115,7 +115,7 @@ reporting:
 
 # Monitoring-Based Failure Criteria
 
-You can use special failure criteria based on [monitoring data](Monitoring) from target servers. Most of
+You can use special failure criteria based on [monitoring data](Monitoring) from target servers. Most
 parameters for criteria are same like in other fail criteria. You'll have to use full format
 for metric specification because of the need to specify metric class `bzt.modules.monitoring.MonitoringCriteria`.
 For example, to stop test once local CPU is exhausted, use:

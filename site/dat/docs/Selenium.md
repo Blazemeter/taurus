@@ -1,5 +1,5 @@
 # Selenium Executor
-Selenium is virtual executor provided you ability to run functional tests locally with Selenium WebDriver by choosing appropriate executor. Currently supported executors are:
+Selenium is virtual executor provided you ability to run functional tests locally with Selenium WebDriver by choosing appropriate executor. Currently, supported executors are:
 - [JUnit](JUnit.md) (Java)
 - [TestNG](TestNG.md) (Java)
 - [Apiritif](Apiritif.md) (Python)
@@ -12,7 +12,7 @@ Selenium is virtual executor provided you ability to run functional tests locall
 Selenium Grid isn't supported for tests described with Taurus language, but if you have your own test suite that uses
 Selenium Grid to manage browser instances - Taurus will run these tests just fine.
 
-Selenium executor uses multiple test runners (JUnit, TestNG, Mocha, etc), test type is detected automatically.
+Selenium executor uses multiple test runners (JUnit, TestNG, Mocha, etc.), test type is detected automatically.
 If automatic detection fails - you can use `runner` option described below.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
@@ -139,6 +139,30 @@ modules:
       download-link: https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}
 ```
 
+_This is available only in [unstable snapshot](https://gettaurus.org/install/Installation/#Latest-Unstable-Snapshot)._
+
+By default, Taurus will download the appropriate ChromeDriver and GeckoDriver using webdriver-manager and put them in PATH when running tests.
+
+You can also use already downloaded drivers by the following options:
+```yaml
+execution:
+- executor: selenium
+  iterations: 1
+  scenario: simple
+  
+scenarios:
+  simple:
+    requests:
+    - http://blazedemo.com/
+
+modules:
+  selenium:
+    chromedriver:
+      path: /full/path/to/driver
+    geckodriver:
+      path: /full/path/to/driver
+```
+
 ## Using Virtual Display on Linux
 
 If you want to run headless tests on Linux using virtual framebuffer (Xvfb), you can tell Taurus to run virtual
@@ -196,7 +220,7 @@ modules:
 
 ## Appium
 
-[Appium](http://appium.io) is a tool for testing naitive mobile applications.
+[Appium](http://appium.io) is a tool for testing native mobile applications.
 Taurus supports only python scripts for appium in Selenium executor. Additionally, you can use taurus services to run
 [Appium server](Services.md#Appium-Loader) and [Android emulator](Services.md#Android-Emulator-Loader).
 There is typical example of usage:

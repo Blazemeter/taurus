@@ -66,7 +66,7 @@ The name of the folder is created according to the format `%Y-%m-%d\_%H-%M-%S.%f
 
 Now, let's add actions that can be performed on the webpage we are testing. 
 
-All actions on the page operate with WebElements, which correspond to any visual object on the page as well as to invisible objects on the page. For example, links, images, text fields, etc. Each element is described by an HTML tag, even though sometimes elements do not originate from HTML but from Javascript generated pieces of the DOM tree. To perform any actions on the element, the element first needs to be to be located on the page. One element can be described using different locators types.
+All actions on the page operate with WebElements, which correspond to any visual object on the page as well as to invisible objects on the page. For example, links, images, text fields, etc. Each element is described by an HTML tag, even though sometimes elements do not originate from HTML but from Javascript generated pieces of the DOM tree. To perform any actions on the element, the element first needs to be located on the page. One element can be described using different locators types.
 
 Let's take a look at the locators we are going to use and that support Selenium and Taurus: ID, Name, CSS, XPath.
 

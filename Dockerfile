@@ -16,14 +16,13 @@ WORKDIR /tmp
 RUN bash ./setup_12.x \
    && $APT_INSTALL \
      python3-pip unzip build-essential python3-dev software-properties-common \
-     apt-transport-https openjdk-8-jdk xvfb siege tsung apache2-utils firefox ruby nodejs locales
+     apt-transport-https openjdk-11-jdk xvfb siege tsung apache2-utils firefox ruby nodejs locales
 
 # set en_US.UTF-8 as default locale
 RUN locale-gen "en_US.UTF-8" \
    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-RUN $PIP_INSTALL setuptools wheel \
-   && $PIP_INSTALL locust robotframework robotframework-seleniumlibrary molotov
+RUN $PIP_INSTALL setuptools wheel
 RUN gem install rspec rake selenium-webdriver
 
 # Get Google Chrome

@@ -25,7 +25,7 @@ also have its own settings.
 
 ## Executor Types
 
-Taurus tool may use different underlying tools as executors for scenarios. Currently supported tools are:
+Taurus tool may use different underlying tools as executors for scenarios. Currently, supported tools are:
  
   - [JMeter](JMeter.md), executor type `jmeter`
   - [Selenium](Selenium.md), executor type `selenium`

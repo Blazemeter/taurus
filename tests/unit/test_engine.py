@@ -7,8 +7,10 @@ import yaml
 import bzt
 from bzt import TaurusConfigError
 from bzt.engine import Configuration, EXEC
+from bzt.modules._selenium import SeleniumExecutor
 from bzt.utils import BetterDict, is_windows, get_full_path, get_uniq_name, communicate
 from tests.unit import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase, TEST_DIR, EngineEmul
+from tests.unit.modules._selenium import MockDriverManager
 
 
 class MockClient(object):
@@ -24,6 +26,8 @@ class TestEngine(BZTestCase):
         super(TestEngine, self).setUp()
         self.obj = EngineEmul()
         self.paths = local_paths_config()
+        bzt.modules._selenium.ChromeDriverManager = MockDriverManager
+        bzt.modules._selenium.GeckoDriverManager = MockDriverManager
 
     def test_find_file(self):
         self.sniff_log(self.obj.log)
@@ -350,6 +354,17 @@ class TestScenarioExecutor(ExecutorTestCase):
         self.assertTrue(all(body_files))
         self.assertFalse(body_fields[0])
         self.assertIn('body2', body_fields[1])
+
+    def test_env_var(self):
+        self.configure({
+            "execution": [{
+                "env": {
+                    "PATH": "${PATH}-",
+                    "VAR": "VAL"},
+                "scenario": {"requests": [{"url": "http://example.com/"}]}}]})
+        self.obj.prepare()
+        self.assertEqual(os.environ["PATH"]+'-', self.obj.env.get("PATH"))
+        self.assertEqual("VAL", self.obj.env.get("VAR"))
 
     def test_scenario_is_script(self):
         self.configure({

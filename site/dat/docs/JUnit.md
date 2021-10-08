@@ -1,5 +1,5 @@
 # JUnit Executor
-Allows to run functional tests based on JUnit library.
+Allows running functional tests based on JUnit library.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time will be exceeded.
 Also following `(load settings)[ExecutionSettings.md#Load-Profile]` are available: `concurrency`, `ramp-up`, `steps`.

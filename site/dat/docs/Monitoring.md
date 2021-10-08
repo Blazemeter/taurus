@@ -21,7 +21,7 @@ Following metrics are collected locally:
 
 If you want to use only your metrics, please look into 
 [merging rules](https://gettaurus.org/docs/ConfigSyntax/#Multiple-Files-Merging-Rules). For example, if you want to see
-only specific metrics, use `~` like in the example below. You can also define, whether or not you need logs for local
+only specific metrics, use `~` like in the example below. You can also define, whether you need logs for local
 monitoring via `logging` option.
 
 ```yaml
@@ -52,7 +52,7 @@ screen height :)
 collects server health stats and makes them accessible through network connection. To use it,
 you need to install and launch ServerAgent on each of your target servers and then specify
 [metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item.
-You can also define, whether or not you need logs for ServerAgent via `logging` option.
+You can also define, whether you need logs for ServerAgent via `logging` option.
 For example: 
 ```yaml
 services:
@@ -74,7 +74,7 @@ services:
 Graphite data source uses graphite The Render URL API to receive metrics.
 In this example you can see usage optional server `label`, `timeout` for graphite answers, `interval`
 between requests and interesting graphite data range definition with parameters `from`/`until`. You can also define, 
-whether or not you need logs for Graphite monitoring via `logging` option.
+whether you need logs for Graphite monitoring via `logging` option.
 ```yaml
 services:
 - module: monitoring

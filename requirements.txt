@@ -15,3 +15,5 @@ selenium
 Appium-Python-Client
 urwid
 terminaltables>=3.1.0
+molotov
+webdriver-manager

@@ -196,7 +196,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_not_jmx(self):
-        self.obj.execution = {"scenario": {"script": __file__}}
+        self.obj.execution = BetterDict.from_dict({"scenario": {"script": __file__}})
         self.assertRaises(TaurusInternalException, self.obj.prepare)
 
     def test_broken_xml(self):

@@ -16,14 +16,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+import shutil
 from math import ceil
 
 from bzt import ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import ExecutorWidget
-from bzt.modules.services import PythonTool
-from bzt.utils import unicode_decode, CALL_PROBLEMS
+from bzt.modules.services import RequiredTool
+from bzt.utils import unicode_decode
 from bzt.utils import shutdown_process, dehumanize_time, get_full_path, LDJSONReader
 
 
@@ -51,8 +52,7 @@ class MolotovExecutor(ScenarioExecutor):
             self.engine.aggregator.add_underling(self.reader)
 
     def install_required_tools(self):
-        self.molotov = self._get_tool(Molotov, engine=self.engine, settings=self.settings,
-                                      path=self.settings.get('path', None))
+        self.molotov = self._get_tool(Molotov, path=self.settings.get('path', None))
         if not self.molotov.check_if_installed():
             self.molotov.install()
 
@@ -113,10 +113,6 @@ class MolotovExecutor(ScenarioExecutor):
     def shutdown(self):
         shutdown_process(self.process, self.log)
 
-    def post_process(self):
-        self.molotov.post_process()
-        super(MolotovExecutor, self).post_process()
-
     def get_error_diagnostics(self):
         diagnostics = []
         if self.stdout is not None:
@@ -135,11 +131,10 @@ class MolotovExecutor(ScenarioExecutor):
         return [self.get_script_path(required=True)]
 
 
-class Molotov(PythonTool):
-    def __init__(self, engine, settings, path, **kwargs):
-        super(Molotov, self).__init__(packages=["molotov"], engine=engine, settings=settings, **kwargs)
-        self.tool_path = os.path.join(self.tool_path, "bin", self.tool_name.lower())
-        self.user_tool_path = path
+class Molotov(RequiredTool):
+    def __init__(self, path=None, **kwargs):
+        super(Molotov, self).__init__(installable=False, **kwargs)
+        self.tool_path = path or shutil.which(self.tool_name.lower())
 
 
 class MolotovReportReader(ResultsReader):
