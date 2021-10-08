@@ -80,12 +80,6 @@ class PipInstaller(Service):
             if version:
                 self.versions[package] = version
 
-    def _uninstall(self, packages):
-        pass  # todo:
-
-    def _reload(self, packages):
-        pass  # todo:
-
     def prepare_pip(self):
         """
         pip-installer expect follow definition:
