@@ -105,28 +105,36 @@ class K6LogReader(ResultsReader):
         self.data = {'timestamp': [], 'label': [], 'r_code': [], 'error_msg': [], 'http_req_duration': [],
                      'http_req_connecting': [], 'http_req_tls_handshaking': [], 'http_req_waiting': [], 'vus': [],
                      'data_received': []}
+        self.position = {'timestamp': None, 'metric_value': None, 'error': None, 'name': None, 'status': None}
 
     def _read(self, last_pass=False):
         self.lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
 
         for line in self.lines:
-            if line.startswith("http_reqs"):
-                self.data['timestamp'].append(int(line.split(',')[1]))
-                self.data['label'].append(line.split(',')[9])
-                self.data['r_code'].append(line.split(',')[13])
-                self.data['error_msg'].append(line.split(',')[4])
+            if line.startswith("metric_name"):
+                parts = line[:-1].split(",")
+                self.position['timestamp'] = parts.index('timestamp')
+                self.position['metric_value'] = parts.index('metric_value')
+                self.position['error'] = parts.index('error')
+                self.position['name'] = parts.index('name')
+                self.position['status'] = parts.index('status')
+            elif line.startswith("http_reqs"):
+                self.data['timestamp'].append(int(line.split(',')[self.position['timestamp']]))
+                self.data['label'].append(line.split(',')[self.position['name']])
+                self.data['r_code'].append(line.split(',')[self.position['status']])
+                self.data['error_msg'].append(line.split(',')[self.position['error']])
             elif line.startswith("http_req_duration"):
-                self.data['http_req_duration'].append(float(line.split(',')[2]))
+                self.data['http_req_duration'].append(float(line.split(',')[self.position['metric_value']]))
             elif line.startswith("http_req_connecting"):
-                self.data['http_req_connecting'].append(float(line.split(',')[2]))
+                self.data['http_req_connecting'].append(float(line.split(',')[self.position['metric_value']]))
             elif line.startswith("http_req_tls_handshaking"):
-                self.data['http_req_tls_handshaking'].append(float(line.split(',')[2]))
+                self.data['http_req_tls_handshaking'].append(float(line.split(',')[self.position['metric_value']]))
             elif line.startswith("http_req_waiting"):
-                self.data['http_req_waiting'].append(float(line.split(',')[2]))
+                self.data['http_req_waiting'].append(float(line.split(',')[self.position['metric_value']]))
             elif line.startswith("vus") and not line.startswith("vus_max"):
-                self.data['vus'].append(int(float(line.split(',')[2])))
+                self.data['vus'].append(int(float(line.split(',')[self.position['metric_value']])))
             elif line.startswith("data_received"):
-                self.data['data_received'].append(float(line.split(',')[2]))
+                self.data['data_received'].append(float(line.split(',')[self.position['metric_value']]))
 
             if self.data['vus'] and len(self.data['data_received']) >= self.data['vus'][0] and \
                     len(self.data['http_req_waiting']) >= self.data['vus'][0]:
