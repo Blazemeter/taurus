@@ -617,7 +617,7 @@ class ResultsReader(ResultsProvider):
     """
     def __init__(self, perc_levels=None):
         super(ResultsReader, self).__init__()
-        self.extend_aggregation = False
+        self.redundant_aggregation = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
@@ -701,12 +701,12 @@ class ResultsReader(ResultsProvider):
     def _get_suffix(self, label):
         # to collect kpisets to overall sets according to rules result we need to split base label and suffix
         # the suffixes replace '' label in meaning of 'summary result'
-        if self.extend_aggregation:
+        if self.redundant_aggregation:
             return label[label.rfind('-'):]
         return ''
 
     def __add_sample(self, current, label, kpis):
-        if self.extend_aggregation:
+        if self.redundant_aggregation:
             label = self.get_label(label, kpis)
 
         if label not in current:
@@ -797,10 +797,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.histogram_max = 5.0
         self._sticky_concurrencies = {}
         self.min_timestamp = None
-        self.extend_aggregation = False
+        self.redundant_aggregation = False
 
     def converter(self, data):
-        if data and self.extend_aggregation:
+        if data and self.redundant_aggregation:
             self.__extend_reported_data(data)
 
         return data
@@ -837,7 +837,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.track_percentiles.sort()
         self.settings["percentiles"] = self.track_percentiles
         
-        self.extend_aggregation = self.settings.get('extend-aggregation')
+        self.redundant_aggregation = self.settings.get('aggregation')
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
@@ -873,7 +873,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         # send rules to underlings
         for underling in self.underlings:
-            underling.extend_aggregation = self.extend_aggregation
+            underling.redundant_aggregation = self.redundant_aggregation
 
     def add_underling(self, underling):
         """
