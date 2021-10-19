@@ -33,6 +33,11 @@ from bzt.engine import Aggregator
 from bzt.utils import iteritems, dehumanize_time, JSONConvertible
 
 log = logging.getLogger('aggregator')
+SAMPLE_STATES = 'success', 'jmeter_errors', 'http_errors'
+AGGREGATED_STATES = (
+    '_'.join((SAMPLE_STATES[0], SAMPLE_STATES[1])),     # success_jmeter_errors
+    '_'.join((SAMPLE_STATES[0], SAMPLE_STATES[2])),     # success_http_errors
+    '_'.join((SAMPLE_STATES[2], SAMPLE_STATES[1])))     # http_errors_jmeter_errors
 
 
 class SinglePassIterator(RecordedIterator):
@@ -610,7 +615,6 @@ class ResultsReader(ResultsProvider):
     Aggregator that reads samples one by one,
     supposed to be attached to every executor
     """
-
     def __init__(self, perc_levels=None):
         super(ResultsReader, self).__init__()
         self.extend_aggregation = False
@@ -626,11 +630,11 @@ class ResultsReader(ResultsProvider):
         # it is used for generation of extended label.
         # each label data is splitted according to sample state (success/error/assert)
         if kpis[5] is None:
-            group = 'success'   # no errors
+            group = SAMPLE_STATES[0]   # no errors
         elif kpis[5] == 'OK':
-            group = 'jmeter_errors'   # jmeter error - assert, timeout, etc.
+            group = SAMPLE_STATES[1]   # jmeter error - assert, timeout, etc.
         else:
-            group = 'http_errors'   # other errors, usually RC != 200
+            group = SAMPLE_STATES[2]   # other errors, usually RC != 200
 
         return '-'.join((label, str(group)))
 
@@ -804,24 +808,22 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
     @staticmethod
     def __extend_reported_data(kpi_sets):
         data = kpi_sets['current']
-        del data['']
-        for key in list(data.keys()):
+        for key in set(data.keys()) - {''}:
             sep = key.rindex('-')
             original_label, state = key[:sep], key[sep + 1:]
             kpi_set = data.pop(key)
             if original_label not in data:
                 data[original_label] = dict()
+
             data[original_label][state] = kpi_set
-            if '' not in data:
-                data[''] = dict()
-            overall = data['']
 
-            if state not in overall:
-                overall[state] = KPISet()
-            overall[state].merge_kpis(kpi_set)
-
-        for overall in data[''].values():
-            overall.recalculate()
+            for agg_state in AGGREGATED_STATES:
+                if state in agg_state:
+                    if agg_state not in data[original_label]:
+                        data[original_label][agg_state] = copy.deepcopy(kpi_set)
+                    else:
+                        data[original_label][agg_state].merge_kpis(kpi_set)
+                        data[original_label][agg_state].recalculate()
 
     def prepare(self):
         """
