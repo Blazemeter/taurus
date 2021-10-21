@@ -813,9 +813,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             if _state not in destination:
                 destination[_state] = copy.deepcopy(kpi_set)  # avoid merging kpis for first sample
             else:
-                destination[_state].merge_kpiset(kpi_set)  # deepcopy inside
+                destination[_state].merge_kpis(kpi_set)  # deepcopy inside
 
         data = kpi_sets['current']
+        data[''] = dict()
         for key in set(data.keys()) - {''}:
             sep = key.rindex('-')
             original_label, state = key[:sep], key[sep + 1:]
@@ -823,11 +824,14 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             if original_label not in data:
                 data[original_label] = dict()
 
+            add_kpi_set_to_state(data[''], '')
             add_kpi_set_to_state(data[original_label], '')
+            add_kpi_set_to_state(data[''], state)
             add_kpi_set_to_state(data[original_label], state)
 
             for agg_state in AGGREGATED_STATES:
                 if state in agg_state:
+                    add_kpi_set_to_state(data[''], agg_state)
                     add_kpi_set_to_state(data[original_label], agg_state)
 
     def prepare(self):
