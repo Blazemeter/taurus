@@ -5,7 +5,6 @@ import sys
 import zipfile
 from os.path import join
 
-import bzt
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules._locustio import LocustIOExecutor

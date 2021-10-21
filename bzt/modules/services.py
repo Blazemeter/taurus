@@ -315,7 +315,7 @@ class AndroidEmulatorLoader(Service):
             os.remove(_file)
 
 
-class AppiumLoader(Service):
+class AppiumLoader(Service, HavingInstallableTools):
     def __init__(self):
         super(AppiumLoader, self).__init__()
         self.appium_process = None
@@ -325,6 +325,9 @@ class AppiumLoader(Service):
         self.port = ''
         self.stdout = None
         self.stderr = None
+
+    def install_required_tools(self):
+        pass
 
     def prepare(self):
         self.startup_timeout = self.settings.get('timeout', 30)
