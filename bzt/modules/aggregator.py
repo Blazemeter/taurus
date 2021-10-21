@@ -37,7 +37,8 @@ SAMPLE_STATES = 'success', 'jmeter_errors', 'http_errors'
 AGGREGATED_STATES = (
     '_'.join((SAMPLE_STATES[0], SAMPLE_STATES[1])),     # success_jmeter_errors
     '_'.join((SAMPLE_STATES[0], SAMPLE_STATES[2])),     # success_http_errors
-    '_'.join((SAMPLE_STATES[2], SAMPLE_STATES[1])))     # http_errors_jmeter_errors
+    '_'.join((SAMPLE_STATES[2], SAMPLE_STATES[1])),     # http_errors_jmeter_errors
+)
 
 
 class SinglePassIterator(RecordedIterator):
@@ -807,6 +808,13 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
     @staticmethod
     def __extend_reported_data(kpi_sets):
+        def add_kpi_set_to_state(destination, _state):
+            # add kpi_set to data[<label>][<_state>] value
+            if _state not in destination:
+                destination[_state] = copy.deepcopy(kpi_set)  # avoid merging kpis for first sample
+            else:
+                destination[_state].merge_kpiset(kpi_set)  # deepcopy inside
+
         data = kpi_sets['current']
         for key in set(data.keys()) - {''}:
             sep = key.rindex('-')
@@ -815,15 +823,12 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             if original_label not in data:
                 data[original_label] = dict()
 
-            data[original_label][state] = kpi_set
+            add_kpi_set_to_state(data[original_label], '')
+            add_kpi_set_to_state(data[original_label], state)
 
             for agg_state in AGGREGATED_STATES:
                 if state in agg_state:
-                    if agg_state not in data[original_label]:
-                        data[original_label][agg_state] = copy.deepcopy(kpi_set)
-                    else:
-                        data[original_label][agg_state].merge_kpis(kpi_set)
-                        data[original_label][agg_state].recalculate()
+                    add_kpi_set_to_state(data[original_label], agg_state)
 
     def prepare(self):
         """
@@ -837,7 +842,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.track_percentiles.sort()
         self.settings["percentiles"] = self.track_percentiles
         
-        self.redundant_aggregation = self.settings.get('aggregation')
+        self.redundant_aggregation = self.settings.get('extend-aggregation')
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
