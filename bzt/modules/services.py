@@ -51,6 +51,14 @@ class PipInstaller(Service):
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
 
+    def _check_pip(self):
+        cmdline = self.pip_cmd + ["--version"]
+        try:
+            _, _ = exec_and_communicate(cmdline)
+        except TaurusInternalException as exc:
+            self.log.debug(exc)
+            self.log.error("pip module not found for interpreter %s" % self.interpreter)
+
     def _missed(self, packages):
         cmdline = self.pip_cmd + ["list"]
         out, _ = exec_and_communicate(cmdline)
@@ -64,6 +72,15 @@ class PipInstaller(Service):
         return missed
 
     def _convert_config_versions(self):
+        """
+        extract from yaml:
+          packages:
+            - one
+            - two==0.0.0
+            - name: three
+              version: 0.0.0
+        and add to self.packages and self.versions
+        """
         packages_list = self.parameters.get("packages", None)
         if not packages_list:
             return
@@ -89,6 +106,8 @@ class PipInstaller(Service):
           - first_pkg
           - second_pkg
         """
+        self._check_pip()
+
         self._convert_config_versions()
         if not self.packages:
             return
@@ -102,9 +121,6 @@ class PipInstaller(Service):
 
         if not os.path.exists(self.target_dir):
             os.makedirs(get_full_path(self.target_dir), exist_ok=True)
-
-        if self._missed(["pip"]):  # extend to windows (bzt-pip)
-            raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
 
     def prepare(self):
         self.prepare_pip()
