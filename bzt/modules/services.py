@@ -54,10 +54,10 @@ class PipInstaller(Service):
     def _check_pip(self):
         cmdline = self.pip_cmd + ["--version"]
         try:
-            _, _ = exec_and_communicate(cmdline)
-        except TaurusInternalException as exc:
+            exec_and_communicate(cmdline)
+        except TaurusCalledProcessError as exc:
             self.log.debug(exc)
-            self.log.error("pip module not found for interpreter %s" % self.interpreter)
+            raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
 
     def _missed(self, packages):
         cmdline = self.pip_cmd + ["list"]
@@ -73,7 +73,7 @@ class PipInstaller(Service):
 
     def _convert_config_versions(self):
         """
-        extract from yaml:
+        extract from packages config:
           packages:
             - one
             - two==0.0.0
@@ -139,6 +139,8 @@ class PipInstaller(Service):
         for package in self.packages:
             version = self.versions.get(package, None)
             cmdline += [f"{package}=={version}"] if version else [package]
+        if not self.temp:
+            cmdline += ["--upgrade"]
         self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
         try:
             out, err = exec_and_communicate(cmdline)
@@ -172,7 +174,7 @@ class PythonTool(RequiredTool):
         tool_path = engine.temp_pythonpath
         super(PythonTool, self).__init__(tool_path=tool_path, **kwargs)
         version = settings.get("version", None)
-        self.installer = PipInstaller(temp_flag=False)
+        self.installer = PipInstaller(temp_flag=True if version else False)
         self.installer.engine = engine
         self.installer.parameters = BetterDict.from_dict({'packages': packages})
         if version:
