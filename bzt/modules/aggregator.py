@@ -33,6 +33,12 @@ from bzt.engine import Aggregator
 from bzt.utils import iteritems, dehumanize_time, JSONConvertible
 
 log = logging.getLogger('aggregator')
+SAMPLE_STATES = 'success', 'jmeter_errors', 'http_errors'
+AGGREGATED_STATES = (
+    '_'.join((SAMPLE_STATES[0], SAMPLE_STATES[1])),     # success_jmeter_errors
+    '_'.join((SAMPLE_STATES[0], SAMPLE_STATES[2])),     # success_http_errors
+    '_'.join((SAMPLE_STATES[2], SAMPLE_STATES[1])),     # http_errors_jmeter_errors
+)
 
 
 class SinglePassIterator(RecordedIterator):
@@ -610,10 +616,9 @@ class ResultsReader(ResultsProvider):
     Aggregator that reads samples one by one,
     supposed to be attached to every executor
     """
-
     def __init__(self, perc_levels=None):
         super(ResultsReader, self).__init__()
-        self.extend_aggregation = False
+        self.redundant_aggregation = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
@@ -626,11 +631,11 @@ class ResultsReader(ResultsProvider):
         # it is used for generation of extended label.
         # each label data is splitted according to sample state (success/error/assert)
         if kpis[5] is None:
-            group = 'success'   # no errors
+            group = SAMPLE_STATES[0]   # no errors
         elif kpis[5] == 'OK':
-            group = 'jmeter_errors'   # jmeter error - assert, timeout, etc.
+            group = SAMPLE_STATES[1]   # jmeter error - assert, timeout, etc.
         else:
-            group = 'http_errors'   # other errors, usually RC != 200
+            group = SAMPLE_STATES[2]   # other errors, usually RC != 200
 
         return '-'.join((label, str(group)))
 
@@ -697,12 +702,12 @@ class ResultsReader(ResultsProvider):
     def _get_suffix(self, label):
         # to collect kpisets to overall sets according to rules result we need to split base label and suffix
         # the suffixes replace '' label in meaning of 'summary result'
-        if self.extend_aggregation:
+        if self.redundant_aggregation:
             return label[label.rfind('-'):]
         return ''
 
     def __add_sample(self, current, label, kpis):
-        if self.extend_aggregation:
+        if self.redundant_aggregation:
             label = self.get_label(label, kpis)
 
         if label not in current:
@@ -793,35 +798,42 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.histogram_max = 5.0
         self._sticky_concurrencies = {}
         self.min_timestamp = None
-        self.extend_aggregation = False
+        self.redundant_aggregation = False
 
     def converter(self, data):
-        if data and self.extend_aggregation:
+        if data and self.redundant_aggregation:
             self.__extend_reported_data(data)
 
         return data
 
     @staticmethod
     def __extend_reported_data(kpi_sets):
+        def add_kpi_set_to_state(destination, _state):
+            # add kpi_set to data[<label>][<_state>] value
+            if _state not in destination:
+                destination[_state] = copy.deepcopy(kpi_set)  # avoid merging kpis for first sample
+            else:
+                destination[_state].merge_kpis(kpi_set)  # deepcopy inside
+                destination[_state].recalculate()
+
         data = kpi_sets['current']
-        del data['']
-        for key in list(data.keys()):
+        data[''] = dict()
+        for key in set(data.keys()) - {''}:
             sep = key.rindex('-')
             original_label, state = key[:sep], key[sep + 1:]
             kpi_set = data.pop(key)
             if original_label not in data:
                 data[original_label] = dict()
-            data[original_label][state] = kpi_set
-            if '' not in data:
-                data[''] = dict()
-            overall = data['']
 
-            if state not in overall:
-                overall[state] = KPISet()
-            overall[state].merge_kpis(kpi_set)
+            add_kpi_set_to_state(data[''], '')
+            add_kpi_set_to_state(data[original_label], '')
+            add_kpi_set_to_state(data[''], state)
+            add_kpi_set_to_state(data[original_label], state)
 
-        for overall in data[''].values():
-            overall.recalculate()
+            for agg_state in AGGREGATED_STATES:
+                if state in agg_state:
+                    add_kpi_set_to_state(data[''], agg_state)
+                    add_kpi_set_to_state(data[original_label], agg_state)
 
     def prepare(self):
         """
@@ -835,7 +847,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.track_percentiles.sort()
         self.settings["percentiles"] = self.track_percentiles
         
-        self.extend_aggregation = self.settings.get('extend-aggregation')
+        self.redundant_aggregation = self.settings.get('extend-aggregation')
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
@@ -871,7 +883,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         # send rules to underlings
         for underling in self.underlings:
-            underling.extend_aggregation = self.extend_aggregation
+            underling.redundant_aggregation = self.redundant_aggregation
 
     def add_underling(self, underling):
         """
