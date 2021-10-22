@@ -814,6 +814,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 destination[_state] = copy.deepcopy(kpi_set)  # avoid merging kpis for first sample
             else:
                 destination[_state].merge_kpis(kpi_set)  # deepcopy inside
+                destination[_state].recalculate()
 
         data = kpi_sets['current']
         data[''] = dict()
