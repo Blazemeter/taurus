@@ -129,6 +129,8 @@ class PipInstaller(Service):
 
     def all_packages_installed(self):
         self.packages = self._missed(self.packages)
+        self.versions = {package: self.versions[package]
+                         for package in self.versions.keys() if package in self.packages}
         return False if self.packages else True
 
     def install(self):
