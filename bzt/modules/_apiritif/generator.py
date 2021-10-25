@@ -910,7 +910,7 @@ from selenium.webdriver.common.keys import Keys
         browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
         browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
-        if browser == "microsoftedge":    # for remote webdriver only
+        if browser == "microsoftedge":  # for remote webdriver only
             browser = "MicrosoftEdge"
         local_browsers = ["firefox", "chrome", "ie", "opera"] + mobile_browsers
 
@@ -972,7 +972,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _wrap_with_try_except(self, web_driver_cmds):
         body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None")),
-            self._gen_new_session_start()]
+                self._gen_new_session_start()]
 
         exception_variables = [ast.Name(id='ex_type'), ast.Name(id='ex'), ast.Name(id='tb')]
         exception_handler = [
@@ -1082,6 +1082,17 @@ from selenium.webdriver.common.keys import Keys
         return chrome_options + self._get_headless_setup()
 
     def _get_firefox_profile(self):
+        capabilities = sorted(self.capabilities.keys())
+        cap_expr = []
+        for capability in capabilities:
+            cap_expr.append([
+                ast.Expr(
+                    ast_call(
+                        func=ast_attr("options.set_capability"),
+                        args=[ast.Str(capability, kind=""), ast.Str(self.capabilities[capability], kind="")]))
+
+            ])
+
         return [
             ast.Assign(
                 targets=[ast.Name(id="profile")],
@@ -1092,7 +1103,7 @@ from selenium.webdriver.common.keys import Keys
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.set_capability"),
-                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))]
+                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
 
     def _get_firefox_webdriver(self):
         return ast.Assign(
@@ -1105,6 +1116,9 @@ from selenium.webdriver.common.keys import Keys
                     value=ast.Name(id="options"))]))
 
     def _get_chrome_webdriver(self):
+        keys = sorted(self.capabilities.keys())
+        values = [self.capabilities[key] for key in keys]
+
         return ast.Assign(
             targets=[ast_attr("self.driver")],
             value=ast_call(
@@ -1113,6 +1127,11 @@ from selenium.webdriver.common.keys import Keys
                     ast.keyword(
                         arg="service_log_path",
                         value=ast.Str(self.wdlog, kind="")),
+                    ast.keyword(
+                        arg="desired_capabilities",
+                        value=ast.Dict(
+                            keys=[ast.Str(key, kind="") for key in keys],
+                            values=[ast.Str(value, kind="") for value in values])),
                     ast.keyword(
                         arg="options",
                         value=ast.Name(id="options"))]))
@@ -1432,7 +1451,7 @@ from selenium.webdriver.common.keys import Keys
             else:
                 main.append(request)
 
-        requests.extend(setup+main)
+        requests.extend(setup + main)
         if teardown:
             requests.extend([self.FINALLY_MARKER] + teardown)
 
