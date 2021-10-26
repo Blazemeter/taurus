@@ -75,6 +75,29 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.assertIn('200', cumulative_kpis[KPISet.RESP_CODES])
         self.assertIn('404', cumulative_kpis[KPISet.RESP_CODES])
 
+    def test_errors_jtl_ext(self):
+        self.configure({
+            "execution": [{
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/simple.kpi.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/simple.error.jtl",
+            }]
+        })
+        self.obj.engine.aggregator.redundant_aggregation = True
+        self.obj.prepare()
+        self.obj.reader.redundant_aggregation = True
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        results = self.results_listener.results
+        self.assertGreater(len(results), 0)
+        last_dp = results[-1]
+        cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
+        self.assertIn('200', cumulative_kpis[KPISet.RESP_CODES])
+        self.assertIn('404', cumulative_kpis[KPISet.RESP_CODES])
+        pass
+
     def test_errors_jtl2(self):
         self.configure({
             "execution": [{
