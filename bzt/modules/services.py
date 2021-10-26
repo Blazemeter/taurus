@@ -111,7 +111,6 @@ class PipInstaller(Service):
         self._convert_config_versions()
         if not self.packages:
             return
-        self.versions = self.parameters.get("versions", self.versions)
 
         # install into artifacts dir if temp, otherwise into .bzt
         self.temp = self.settings.get("temp", self.temp)
@@ -141,8 +140,7 @@ class PipInstaller(Service):
         for package in self.packages:
             version = self.versions.get(package, None)
             cmdline += [f"{package}=={version}"] if version else [package]
-        if not self.temp:
-            cmdline += ["--upgrade"]
+        cmdline += ["--upgrade"]
         self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
         try:
             out, err = exec_and_communicate(cmdline)
@@ -178,9 +176,9 @@ class PythonTool(RequiredTool):
         version = settings.get("version", None)
         self.installer = PipInstaller(temp_flag=True if version else False)
         self.installer.engine = engine
-        self.installer.parameters = BetterDict.from_dict({'packages': packages})
         if version:
-            self.installer.parameters["versions"] = {packages[0]: version}
+            packages[0] += "==" + version
+        self.installer.parameters = BetterDict.from_dict({'packages': packages})
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")
