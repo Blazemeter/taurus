@@ -63,7 +63,7 @@ class PipInstaller(Service):
         cmdline = self.pip_cmd + ["list"]
         out, _ = exec_and_communicate(cmdline)
         out = out.split('\n')[2:-1]
-        installed = dict(zip([line.split(' ')[0] for line in out], [line.split(' ')[-1] for line in out]))
+        installed = dict(zip([line.split(' ')[0] for line in out], [line.strip().split(' ')[-1] for line in out]))
 
         missed = []
         for package in packages:
