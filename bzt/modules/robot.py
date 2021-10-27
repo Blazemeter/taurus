@@ -115,9 +115,7 @@ class RobotExecutor(SubprocessedExecutor):
 
 
 class Robot(PythonTool):
-    def __init__(self, engine, settings, **kwargs):
-        robot_packages = ["robotframework", "apiritif", "robotframework-seleniumlibrary"]
-        super(Robot, self).__init__(packages=robot_packages, engine=engine, settings=settings, **kwargs)
+    PACKAGES = ["robotframework", "apiritif", "robotframework-seleniumlibrary"]
 
 
 class TaurusRobotRunner(RequiredTool):

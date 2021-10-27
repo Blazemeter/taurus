@@ -200,8 +200,7 @@ class LocustIOExecutor(ScenarioExecutor):
 
 
 class Locust(PythonTool):
-    def __init__(self, engine, settings, **kwargs):
-        super(Locust, self).__init__(packages=["locust"], engine=engine, settings=settings, **kwargs)
+    PACKAGES = ["locust"]
 
 
 class WorkersReader(ResultsProvider):

@@ -170,14 +170,17 @@ class PipInstaller(Service):
 
 
 class PythonTool(RequiredTool):
-    def __init__(self, packages, engine, settings, **kwargs):
+    PACKAGES = []
+
+    def __init__(self, engine, settings, **kwargs):
         tool_path = engine.temp_pythonpath
         version = settings.get("version", None)
         super(PythonTool, self).__init__(tool_path=tool_path, version=version, **kwargs)
         self.installer = PipInstaller(temp_flag=True if version else False)
         self.installer.engine = engine
-        if version:
-            packages[0] += "==" + version
+        packages = copy.deepcopy(self.PACKAGES)
+        if self.version:
+            packages[0] += "==" + self.version
         self.installer.parameters = BetterDict.from_dict({'packages': packages})
 
     def check_if_installed(self):
