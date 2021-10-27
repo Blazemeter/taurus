@@ -1094,16 +1094,16 @@ from selenium.webdriver.common.keys import Keys
             ])
 
         return [
-            ast.Assign(
-                targets=[ast.Name(id="profile")],
-                value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
-            ast.Expr(ast_call(
-                func=ast_attr("profile.set_preference"),
-                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
-            ast.Expr(
-                ast_call(
-                    func=ast_attr("options.set_capability"),
-                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
+                   ast.Assign(
+                       targets=[ast.Name(id="profile")],
+                       value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
+                   ast.Expr(ast_call(
+                       func=ast_attr("profile.set_preference"),
+                       args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
+                   ast.Expr(
+                       ast_call(
+                           func=ast_attr("options.set_capability"),
+                           args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
 
     def _get_firefox_webdriver(self):
         return ast.Assign(
@@ -1116,25 +1116,27 @@ from selenium.webdriver.common.keys import Keys
                     value=ast.Name(id="options"))]))
 
     def _get_chrome_webdriver(self):
+        keywords = [ast.keyword(
+            arg="service_log_path",
+            value=ast.Str(self.wdlog, kind="")),
+            ast.keyword(
+                arg="options",
+                value=ast.Name(id="options"))]
+
         keys = sorted(self.capabilities.keys())
-        values = [self.capabilities[key] for key in keys]
+        if keys:
+            values = [self.capabilities[key] for key in keys]
+            keywords.append(ast.keyword(
+                arg="desired_capabilities",
+                value=ast.Dict(
+                    keys=[ast.Str(key, kind="") for key in keys],
+                    values=[ast.Str(value, kind="") for value in values])))
 
         return ast.Assign(
             targets=[ast_attr("self.driver")],
             value=ast_call(
                 func=ast_attr("webdriver.Chrome"),
-                keywords=[
-                    ast.keyword(
-                        arg="service_log_path",
-                        value=ast.Str(self.wdlog, kind="")),
-                    ast.keyword(
-                        arg="desired_capabilities",
-                        value=ast.Dict(
-                            keys=[ast.Str(key, kind="") for key in keys],
-                            values=[ast.Str(value, kind="") for value in values])),
-                    ast.keyword(
-                        arg="options",
-                        value=ast.Name(id="options"))]))
+                keywords=keywords))
 
     def _get_remote_webdriver(self):
         keys = sorted(self.capabilities.keys())

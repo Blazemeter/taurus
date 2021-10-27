@@ -18,7 +18,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
+            bzt.modules._apiritif.executor.Apiritif = tmp_tool
 
     def test_nfc(self):
         # nose flow control: setup/teardown + graceful
@@ -29,7 +29,6 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         exp_file = RESOURCES_DIR + "selenium/test_nfc.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
-
 
     def test_modern_actions_generator(self):
         self.configure({
@@ -452,6 +451,47 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_firefox(self):
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc",
+                "capabilities": {
+                    "name2": "val2"}}],
+            "scenarios": {
+                "loc_sc": {
+                    "capabilities": {
+                        "name1": "val1"},
+                    "browser": "Firefox",
+                    "requests": [{
+                        "url": "bla.com"}]}}, })
+
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertIn("options.set_capability('name1', 'val1')", content)
+        self.assertIn("options.set_capability('name2', 'val2')", content)
+
+    def test_options_generator_chrome(self):
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc",
+                "capabilities": {
+                    "name2": "val2"}}],
+            "scenarios": {
+                "loc_sc": {
+                    "capabilities": {
+                        "name1": "val1"},
+                    "browser": "Chrome",
+                    "requests": [{
+                        "url": "bla.com"}]}}, })
+
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertIn("desired_capabilities={'name1': 'val1', 'name2': 'val2'}", content)
 
     def test_options_generator_remote_chrome(self):
         # Selenium version 3. Remote webdriver. Browser Chrome.
@@ -2025,7 +2065,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                                     {"id": "input_id"}
                                 ],
                                 "value": "2h30m20s"
-                            },{
+                            }, {
                                 "type": "waitFor",
                                 "param": "visible",
                                 "locators": [
@@ -2423,7 +2463,7 @@ class TestIsSelenium4(SeleniumTestCase):
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
+            bzt.modules._apiritif.executor.Apiritif = tmp_tool
 
     def test_ignore_proxy_option_generator_selenium_4(self):
         # Option ignore_proxy is only available starting from Selenium version 4
