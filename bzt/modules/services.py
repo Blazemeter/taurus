@@ -172,8 +172,8 @@ class PipInstaller(Service):
 class PythonTool(RequiredTool):
     def __init__(self, packages, engine, settings, **kwargs):
         tool_path = engine.temp_pythonpath
-        super(PythonTool, self).__init__(tool_path=tool_path, **kwargs)
         version = settings.get("version", None)
+        super(PythonTool, self).__init__(tool_path=tool_path, version=version, **kwargs)
         self.installer = PipInstaller(temp_flag=True if version else False)
         self.installer.engine = engine
         if version:
