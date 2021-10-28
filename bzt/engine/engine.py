@@ -32,7 +32,7 @@ from distutils.version import LooseVersion
 from urllib import parse
 
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
-from bzt.utils import reraise, load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux, temp_file
+from bzt.utils import reraise, load_class, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient, Environment
 from bzt.utils import NETWORK_PROBLEMS
 from .dicts import Configuration
@@ -101,7 +101,7 @@ class Engine(object):
         self.user_pythonpath = get_full_path(os.path.join("~", ".bzt", path_suffix))
         self.temp_pythonpath = get_full_path(os.path.join(self.artifacts_dir, path_suffix))
         current_pythonpath = os.environ.get('PYTHONPATH', '')
-        paths = self.user_pythonpath, self.temp_pythonpath, current_pythonpath
+        paths = self.temp_pythonpath, self.user_pythonpath, current_pythonpath
 
         self.log.debug("Set PYTHONPATH to :\n\tUSER: '{}' +\n\tTEMP: '{}' +\n\tCURRENT: '{}'".format(*paths))
         try:
