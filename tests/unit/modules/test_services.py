@@ -55,9 +55,7 @@ class TestPipInstaller(BZTestCase):
 
 class TestPythonTool(BZTestCase):
     class PythonToolExample(PythonTool):
-        def __init__(self, engine, settings, **kwargs):
-            self.PACKAGES = ['test-package']
-            super().__init__(engine, settings, **kwargs)
+        PACKAGES = ['test-package']
 
     def setUp(self):
         self.engine = EngineEmul()
