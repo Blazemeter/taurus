@@ -1123,14 +1123,15 @@ from selenium.webdriver.common.keys import Keys
                 arg="options",
                 value=ast.Name(id="options"))]
 
-        keys = sorted(self.capabilities.keys())
-        if keys:
-            values = [self.capabilities[key] for key in keys]
-            keywords.append(ast.keyword(
-                arg="desired_capabilities",
-                value=ast.Dict(
-                    keys=[ast.Str(key, kind="") for key in keys],
-                    values=[ast.Str(value, kind="") for value in values])))
+        capabilities = sorted(self.capabilities.keys())
+        for capability in capabilities:
+            keywords.append([
+                ast.Expr(
+                    ast_call(
+                        func=ast_attr("options.set_capability"),
+                        args=[ast.Str(capability, kind=""), ast.Str(self.capabilities[capability], kind="")]))
+
+            ])
 
         return ast.Assign(
             targets=[ast_attr("self.driver")],

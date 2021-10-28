@@ -491,7 +491,8 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        self.assertIn("desired_capabilities={'name1': 'val1', 'name2': 'val2'}", content)
+        self.assertIn("options.set_capability('name1', 'val1')", content)
+        self.assertIn("options.set_capability('name2', 'val2')", content)
 
     def test_options_generator_remote_chrome(self):
         # Selenium version 3. Remote webdriver. Browser Chrome.
