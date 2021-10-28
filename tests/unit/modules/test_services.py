@@ -54,6 +54,11 @@ class TestPipInstaller(BZTestCase):
 
 
 class TestPythonTool(BZTestCase):
+    class PythonToolExample(PythonTool):
+        def __init__(self, packages, engine, settings, **kwargs):
+            self.PACKAGES = packages
+            super().__init__(engine, settings, **kwargs)
+
     def setUp(self):
         self.engine = EngineEmul()
         super(TestPythonTool, self).setUp()
@@ -62,7 +67,7 @@ class TestPythonTool(BZTestCase):
         super(TestPythonTool, self).tearDown()
 
     def test_check_and_install(self):
-        self.obj = PythonTool(engine=self.engine, packages=['test-package'], settings={})
+        self.obj = self.PythonToolExample(engine=self.engine, packages=['test-package'], settings={})
         self.sniff_log(self.obj.log)
         self.obj.installer.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
@@ -70,15 +75,15 @@ class TestPythonTool(BZTestCase):
         self.obj.install()
         self.obj.post_process()
 
-        self.assertIn("Checking PythonTool.", self.log_recorder.debug_buff.getvalue())
-        self.assertIn("PythonTool check failed.", self.log_recorder.warn_buff.getvalue())
-        self.assertIn("Installing PythonTool.", self.log_recorder.debug_buff.getvalue())
+        self.assertIn("Checking PythonToolExample.", self.log_recorder.debug_buff.getvalue())
+        self.assertIn("PythonToolExample check failed.", self.log_recorder.warn_buff.getvalue())
+        self.assertIn("Installing PythonToolExample.", self.log_recorder.debug_buff.getvalue())
 
     def test_set_installer_temp_setting(self):
-        self.obj = PythonTool(engine=self.engine, packages=['test-package'], settings={})
+        self.obj = self.PythonToolExample(engine=self.engine, packages=['test-package'], settings={})
         self.assertEqual(self.obj.installer.temp, False)
 
-        self.obj = PythonTool(engine=self.engine, packages=['test-package'], settings={"version": "0.0.0"})
+        self.obj = self.PythonToolExample(engine=self.engine, packages=['test-package'], settings={"version": "0.0.0"})
         self.assertEqual(self.obj.installer.temp, True)
 
 
