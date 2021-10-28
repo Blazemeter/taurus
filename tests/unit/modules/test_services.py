@@ -55,8 +55,8 @@ class TestPipInstaller(BZTestCase):
 
 class TestPythonTool(BZTestCase):
     class PythonToolExample(PythonTool):
-        def __init__(self, packages, engine, settings, **kwargs):
-            self.PACKAGES = packages
+        def __init__(self, engine, settings, **kwargs):
+            self.PACKAGES = ['test-package']
             super().__init__(engine, settings, **kwargs)
 
     def setUp(self):
@@ -67,7 +67,7 @@ class TestPythonTool(BZTestCase):
         super(TestPythonTool, self).tearDown()
 
     def test_check_and_install(self):
-        self.obj = self.PythonToolExample(engine=self.engine, packages=['test-package'], settings={})
+        self.obj = self.PythonToolExample(engine=self.engine, settings={})
         self.sniff_log(self.obj.log)
         self.obj.installer.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
@@ -80,10 +80,10 @@ class TestPythonTool(BZTestCase):
         self.assertIn("Installing PythonToolExample.", self.log_recorder.debug_buff.getvalue())
 
     def test_set_installer_temp_setting(self):
-        self.obj = self.PythonToolExample(engine=self.engine, packages=['test-package'], settings={})
+        self.obj = self.PythonToolExample(engine=self.engine, settings={})
         self.assertEqual(self.obj.installer.temp, False)
 
-        self.obj = self.PythonToolExample(engine=self.engine, packages=['test-package'], settings={"version": "0.0.0"})
+        self.obj = self.PythonToolExample(engine=self.engine, settings={"version": "0.0.0"})
         self.assertEqual(self.obj.installer.temp, True)
 
 
