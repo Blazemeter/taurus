@@ -884,12 +884,19 @@ class JTLReader(ResultsReader):
             if self.errors_reader:
                 err_details = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])  # get only for labels we have
                 for label in err_details:
-                    if label in point[DataPoint.CURRENT]:
-                        point[DataPoint.CURRENT][label][KPISet.ERRORS] = err_details[label]
+                    label1 = label
+                    if self.redundant_aggregation and label != '':
+                        label1 += '-jmeter_errors'
+
+                    if label1 in point[DataPoint.CURRENT]:
+                        point[DataPoint.CURRENT][label1][KPISet.ERRORS] = err_details[label]
                     else:
                         self.log.warning("Had error data but no KPISet %s: %s", label, err_details[label])
 
                 for label, label_data in iteritems(point[DataPoint.CURRENT]):
+                    if self.redundant_aggregation:
+                        continue
+
                     if label in err_details:
                         pass
                     elif label_data[KPISet.ERRORS]:
