@@ -881,7 +881,7 @@ class JTLReader(ResultsReader):
 
     def _calculate_datapoints(self, final_pass=False):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):
-            if self.errors_reader and not self.redundant_aggregation:
+            if self.errors_reader:
                 err_details = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])  # get only for labels we have
                 for label in err_details:
                     if label in point[DataPoint.CURRENT]:
