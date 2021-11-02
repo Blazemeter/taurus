@@ -258,7 +258,6 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 class ChromeDriver(RequiredTool):
 
     def __init__(self, tool_path="", log=None, **kwargs):
-        self.webdriver_manager = None
         self.log = log
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
@@ -271,6 +270,7 @@ class ChromeDriver(RequiredTool):
                                          f'{self.webdriver_manager.driver.get_version()}',
                                          filename)
             except (ValueError, ConnectionError, ProxyError) as err:
+                self.webdriver_manager = None
                 tool_path = os.path.join(base_dir, 'drivers/chromedriver', filename)
                 self.log.warning(err)
         super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
@@ -290,7 +290,6 @@ class ChromeDriver(RequiredTool):
 class GeckoDriver(RequiredTool):
 
     def __init__(self, tool_path="", log=None, **kwargs):
-        self.webdriver_manager = None
         self.log = log
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
@@ -303,6 +302,7 @@ class GeckoDriver(RequiredTool):
                                          f'{self.webdriver_manager.driver.get_version()}',
                                          filename)
             except (ValueError, ConnectionError, ProxyError) as err:
+                self.webdriver_manager = None
                 tool_path = os.path.join(base_dir, 'drivers/geckodriver', filename)
                 self.log.warning(err)
         super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
