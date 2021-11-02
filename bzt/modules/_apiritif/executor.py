@@ -115,6 +115,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
                 wd_addr=remote, test_mode=test_mode,
                 generate_external_handler=True if self.settings.get('plugins-path', False) else False)
 
+        builder.selenium_version = self.main_executor_version
         builder.build_source_code()
         builder.save(filename)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator) and isinstance(builder, ApiritifScriptGenerator):

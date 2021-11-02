@@ -12,9 +12,12 @@ class SeleniumTestCase(ExecutorTestCase):
     def __init__(self, methodName='runTest'):
         super(SeleniumTestCase, self).__init__(methodName)
         self.obj = None
+        self.tmp_selenium = None
 
     def setUp(self):
         super(SeleniumTestCase, self).setUp()
+        self.tmp_selenium = bzt.modules._selenium.Selenium
+        bzt.modules._selenium.Selenium = MockPythonTool
 
         paths = [local_paths_config()]
         self.engine.configure(paths)  # FIXME: avoid using whole engine in particular module test!
@@ -34,11 +37,13 @@ class SeleniumTestCase(ExecutorTestCase):
                 self.obj.runner.stdout.close()
             if self.obj.runner.stderr:
                 self.obj.runner.stderr.close()
+        bzt.modules._selenium.Selenium = self.tmp_selenium
         super(SeleniumTestCase, self).tearDown()
 
 
 class MockPythonTool(RequiredTool):
     tool_name = "MockPythonTool"
+    version = ""
 
     def __init__(self, engine, settings, **kwargs):
         pass
@@ -48,6 +53,9 @@ class MockPythonTool(RequiredTool):
 
     def install(self):
         pass
+
+    def get_version(self):
+        return self.version
 
     def post_process(self):
         pass

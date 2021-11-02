@@ -28,7 +28,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
 from bzt.requests_model import IncludeScenarioBlock, SetUpBlock, TearDownBlock
-from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, is_selenium_4
+from bzt.utils import iteritems, dehumanize_time, ensure_is_dict
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, gen_try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
 
@@ -143,6 +143,7 @@ from selenium.webdriver.common.keys import Keys
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
         self.service_methods = []
+        self.selenium_version = None
 
         self.remote_address = wd_addr
         self.capabilities = capabilities or {}
@@ -1166,7 +1167,7 @@ from selenium.webdriver.common.keys import Keys
     def _get_selenium_options(self, browser):
         options = []
 
-        if not is_selenium_4():
+        if self.selenium_version and not self.selenium_version.startswith("4"):
             old_version = True
             if browser != 'firefox' and browser != 'chrome':
                 self.log.warning(f'Selenium options are not supported. '

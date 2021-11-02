@@ -26,6 +26,7 @@ from requests.exceptions import ConnectionError, ProxyError
 from bzt import TaurusConfigError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import PrioritizedWidget
+from bzt.modules.services import PythonTool
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows
 
 
@@ -52,6 +53,7 @@ class SeleniumExecutor(ReportableExecutor):
         self.runner_working_dir = None
         self.register_reader = True
         self.webdrivers = []
+        self.selenium = None
 
     def add_env(self, env):  # compatibility with taurus-cloud
         self.env.set(env)
@@ -85,6 +87,10 @@ class SeleniumExecutor(ReportableExecutor):
         pass  # for compatibility with taurus server
 
     def install_required_tools(self):
+        self.selenium = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
+        if not self.selenium.check_if_installed():
+            self.selenium.install()
+
         self.webdrivers = [self._get_tool(ChromeDriver, tool_path=self.settings.get('chromedriver').get('path')),
                            self._get_tool(GeckoDriver, tool_path=self.settings.get('geckodriver').get('path'))]
 
@@ -100,6 +106,7 @@ class SeleniumExecutor(ReportableExecutor):
             self.env.add_path({"PATH": driver.get_driver_dir()})
 
         self.create_runner()
+        self.runner.main_executor_version = self.selenium.get_version()
         self.runner.prepare()
         self.script = self.runner.script
 
@@ -202,6 +209,7 @@ class SeleniumExecutor(ReportableExecutor):
         if os.path.exists("geckodriver.log"):
             self.engine.existing_artifact("geckodriver.log", True)
 
+        self.selenium.post_process()
         super(SeleniumExecutor, self).post_process()
 
     def has_results(self):
@@ -222,6 +230,10 @@ class SeleniumExecutor(ReportableExecutor):
                 with open(possible_log) as fds:
                     diagnostics.append("Geckodriver log:\n" + fds.read())
         return diagnostics
+
+
+class Selenium(PythonTool):
+    PACKAGES = ["selenium"]
 
 
 class SeleniumWidget(Pile, PrioritizedWidget):
