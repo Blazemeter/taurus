@@ -153,6 +153,16 @@ class TestConsolidatingAggregator(BZTestCase):
         self.assertEqual(overall, (b + c) / 2.0)
 
     def test_extend_data(self):
+        # test migrated from taurus-cloud (LDJSONExtractor tests)
+        # check aggregated results for the following hierarchy:
+        # {...
+        #   'current': {
+        #     <label>:
+        #       {'success':{..}, 'http_errors':{..}, 'jmeter_errors':{..},
+        #        'success_jmeter_errors':{..}, 'http_errors_jmeter_errors':{..}, 'success_http_errors':{..},
+        #        '':{..}}},
+        #     '': <the same states>} # end of 'current' record
+        # ...}
         self.obj.settings['extend-aggregation'] = True
         reader = MockReader()
         watcher = MockListener()
@@ -173,11 +183,8 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.add_listener(watcher)
 
         self.obj.prepare()
-
         self.obj.startup()
-
         self.obj.check()
-
         self.obj.shutdown()
         self.obj.post_process()
 
