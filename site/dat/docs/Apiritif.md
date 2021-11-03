@@ -94,7 +94,7 @@ In `selenium` mode follow request features are supported:
 
   - `browser` for the following browser types: Chrome, Firefox, Ie, Opera, Android-Chrome, iOS-Safari, Remote
   - `remote` for local webdriver, local remote webdriver or [remote webdriver](#Remote-WebDriver)
-  - `capabilities` of [remote webdriver](#Remote-WebDriver): `browser`, `version`, `javascript`, `platform`, `os\_version`, `selenium`, `device`, `app`
+  - `capabilities` of local and [remote webdriver](#Remote-WebDriver): `browser`, `version`, `javascript`, `platform`, `os\_version`, `selenium`, `device`, `app`
   - `request` only for GET method
       - `action` keyword for Selenium actions
       - `assert` (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)

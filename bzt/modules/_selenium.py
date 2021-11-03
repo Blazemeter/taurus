@@ -275,6 +275,7 @@ class WebDriver(RequiredTool):
                                          f'{self.webdriver_manager.driver.get_version()}',
                                          filename)
             except (ValueError, ConnectionError, ProxyError) as err:
+                self.webdriver_manager = None
                 tool_path = os.path.join(base_dir, f'drivers/{self.DRIVER_NAME}', filename)
                 self.log.warning(err)
         super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
@@ -294,7 +295,6 @@ class WebDriver(RequiredTool):
 class ChromeDriver(WebDriver):
     DRIVER_NAME = 'chromedriver'
     MANAGER = ChromeDriverManager
-
 
 class GeckoDriver(WebDriver):
     DRIVER_NAME = 'geckodriver'

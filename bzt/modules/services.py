@@ -51,23 +51,51 @@ class PipInstaller(Service):
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
 
+    def _check_pip(self):
+        cmdline = self.pip_cmd + ["--version"]
+        try:
+            exec_and_communicate(cmdline)
+        except TaurusCalledProcessError as exc:
+            self.log.debug(exc)
+            raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
+
     def _missed(self, packages):
-        # todo: add version handling
         cmdline = self.pip_cmd + ["list"]
         out, _ = exec_and_communicate(cmdline)
-        list_of_installed = [line.split(' ')[0] for line in out.split('\n')[2:-1]]
+        out = out.split('\n')[2:-1]
+        installed = dict(zip([line.split(' ')[0] for line in out], [line.strip().split(' ')[-1] for line in out]))
 
         missed = []
         for package in packages:
-            if package not in list_of_installed:
+            if package not in installed or package in self.versions and installed[package] != self.versions[package]:
                 missed.append(package)
         return missed
 
-    def _uninstall(self, packages):
-        pass  # todo:
+    def _convert_config_versions(self):
+        """
+        extract from packages config:
+          packages:
+            - one
+            - two==0.0.0
+            - name: three
+              version: 0.0.0
+        and add to self.packages and self.versions
+        """
+        packages_list = self.parameters.get("packages", None)
+        if not packages_list:
+            return
 
-    def _reload(self, packages):
-        pass  # todo:
+        for package_data in packages_list:
+            package, version = None, None
+            if isinstance(package_data, dict):
+                package, version = package_data['name'], package_data.get("version", None)
+            elif isinstance(package_data, str):
+                package_params = package_data.split("==")
+                package, version = package_params[0], package_params[1] if len(package_params) > 1 else None
+
+            self.packages.append(package)
+            if version:
+                self.versions[package] = version
 
     def prepare_pip(self):
         """
@@ -78,10 +106,11 @@ class PipInstaller(Service):
           - first_pkg
           - second_pkg
         """
-        self.packages = self.parameters.get("packages", self.packages)
+        self._check_pip()
+
+        self._convert_config_versions()
         if not self.packages:
             return
-        self.versions = self.parameters.get("versions", self.versions)
 
         # install into artifacts dir if temp, otherwise into .bzt
         self.temp = self.settings.get("temp", self.temp)
@@ -92,9 +121,6 @@ class PipInstaller(Service):
         if not os.path.exists(self.target_dir):
             os.makedirs(get_full_path(self.target_dir), exist_ok=True)
 
-        if self._missed(["pip"]):  # extend to windows (bzt-pip)
-            raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
-
     def prepare(self):
         self.prepare_pip()
         if not self.all_packages_installed():
@@ -102,6 +128,8 @@ class PipInstaller(Service):
 
     def all_packages_installed(self):
         self.packages = self._missed(self.packages)
+        self.versions = {package: self.versions[package]
+                         for package in self.versions.keys() if package in self.packages}
         return False if self.packages else True
 
     def install(self):
@@ -112,6 +140,7 @@ class PipInstaller(Service):
         for package in self.packages:
             version = self.versions.get(package, None)
             cmdline += [f"{package}=={version}"] if version else [package]
+        cmdline += ["--upgrade"]
         self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
         try:
             out, err = exec_and_communicate(cmdline)
@@ -141,15 +170,18 @@ class PipInstaller(Service):
 
 
 class PythonTool(RequiredTool):
-    def __init__(self, packages, engine, settings, **kwargs):
+    PACKAGES = []
+
+    def __init__(self, engine, settings, **kwargs):
         tool_path = engine.temp_pythonpath
-        super(PythonTool, self).__init__(tool_path=tool_path, **kwargs)
         version = settings.get("version", None)
-        self.installer = PipInstaller(temp_flag=False)
+        super(PythonTool, self).__init__(tool_path=tool_path, version=version, **kwargs)
+        self.installer = PipInstaller(temp_flag=True if version else False)
         self.installer.engine = engine
+        packages = copy.deepcopy(self.PACKAGES)
+        if self.version:
+            packages[0] += "==" + self.version
         self.installer.parameters = BetterDict.from_dict({'packages': packages})
-        if version:
-            self.installer.parameters["versions"] = {packages[0]: version}
 
     def check_if_installed(self):
         self.log.debug(f"Checking {self.tool_name}.")

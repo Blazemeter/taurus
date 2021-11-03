@@ -106,9 +106,7 @@ class PyTestExecutor(SubprocessedExecutor):
 
 
 class PyTest(PythonTool):
-    def __init__(self, engine, settings, **kwargs):
-        super(PyTest, self).__init__(packages=["pytest", "pytest-xdist", "apiritif"],
-                                     engine=engine, settings=settings, **kwargs)
+    PACKAGES = ["pytest", "pytest-xdist", "apiritif"]
 
 
 class TaurusPytestRunner(RequiredTool):

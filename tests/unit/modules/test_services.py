@@ -5,7 +5,6 @@ import sys
 import zipfile
 from os.path import join
 
-import bzt
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules._locustio import LocustIOExecutor
@@ -37,17 +36,36 @@ class TestPipInstaller(BZTestCase):
 
         self.assertIn("Successfully installed test-package-0.0.0", self.log_recorder.info_buff.getvalue())
 
+    def test_versions(self):
+        self.obj.parameters['packages'] = ['one', 'two==2', {'name': 'three'}, {'name': 'four', 'version': '4'}]
+        self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
+        self.obj.prepare()
+
+        self.assertEqual(self.obj.packages, ['one', 'two', 'three', 'four'])
+        self.assertEqual(self.obj.versions, {'two': '2', 'four': '4'})
+
+    def test_packages_installation(self):
+        self.obj.parameters['packages'] = ['not-installed', 'new-version==1', 'installed==0']
+        self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
+        self.obj.prepare()
+
+        self.assertEqual(self.obj.packages, ['not-installed', 'new-version'])
+        self.assertEqual(self.obj.versions, {'new-version': '1'})
+
 
 class TestPythonTool(BZTestCase):
+    class PythonToolExample(PythonTool):
+        PACKAGES = ['test-package']
+
     def setUp(self):
         self.engine = EngineEmul()
-        self.obj = PythonTool(engine=self.engine, packages=['test-package'], settings={})
         super(TestPythonTool, self).setUp()
 
     def tearDown(self):
         super(TestPythonTool, self).tearDown()
 
     def test_check_and_install(self):
+        self.obj = self.PythonToolExample(engine=self.engine, settings={})
         self.sniff_log(self.obj.log)
         self.obj.installer.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
@@ -55,9 +73,16 @@ class TestPythonTool(BZTestCase):
         self.obj.install()
         self.obj.post_process()
 
-        self.assertIn("Checking PythonTool.", self.log_recorder.debug_buff.getvalue())
-        self.assertIn("PythonTool check failed.", self.log_recorder.warn_buff.getvalue())
-        self.assertIn("Installing PythonTool.", self.log_recorder.debug_buff.getvalue())
+        self.assertIn("Checking PythonToolExample.", self.log_recorder.debug_buff.getvalue())
+        self.assertIn("PythonToolExample check failed.", self.log_recorder.warn_buff.getvalue())
+        self.assertIn("Installing PythonToolExample.", self.log_recorder.debug_buff.getvalue())
+
+    def test_set_installer_temp_setting(self):
+        self.obj = self.PythonToolExample(engine=self.engine, settings={})
+        self.assertEqual(self.obj.installer.temp, False)
+
+        self.obj = self.PythonToolExample(engine=self.engine, settings={"version": "0.0.0"})
+        self.assertEqual(self.obj.installer.temp, True)
 
 
 class TestZipFolder(BZTestCase):

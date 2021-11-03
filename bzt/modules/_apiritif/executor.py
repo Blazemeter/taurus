@@ -260,11 +260,7 @@ class ApiritifTester(ApiritifNoseExecutor):
 
 class Apiritif(PythonTool):
     VERSION = "1.0.0"
-
-    def __init__(self, engine, settings, **kwargs):
-        if not settings.get("version", None):
-            settings["version"] = self.VERSION
-        super(Apiritif, self).__init__(packages=["apiritif"], engine=engine, settings=settings, **kwargs)
+    PACKAGES = ["apiritif"]
 
 
 class ApiritifLoadReader(ConsolidatingAggregator):
