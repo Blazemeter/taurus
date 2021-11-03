@@ -1,11 +1,11 @@
 from random import random, choice
 
 from apiritif import random_string
-from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener, SAMPLE_STATES, AGGREGATED_STATES
+from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, SAMPLE_STATES, AGGREGATED_STATES
 from bzt.utils import to_json, BetterDict
-from bzt.engine import Reporter
 from tests.unit import BZTestCase, EngineEmul
-from tests.unit.mocks import r, MockReader
+
+from tests.unit.mocks import r, MockReader, MockListener
 
 
 def get_success_reader(offset=0):
@@ -196,44 +196,6 @@ class TestConsolidatingAggregator(BZTestCase):
                 self.assertIn(label, original_labels, f"Wrong original label: {label}")
                 for state in written_kpis[label].keys():
                     self.assertIn(state, allowed_states, f"Wrong state '{state}' for label '{label}'")
-
-    def test_extend_data_and_assertion(self):
-        # check aggregated results for error details in the corresponding state record:
-        #   'current': {
-        #     <label>:
-        #       {'jmeter_errors': {..
-        #           'errors': [{'msg':..., 'tag':..., ...}, ...]..}, # there must be real jmeter errors and nothing more
-        #        'http_errors': {..}, 'success': {..}, ...}}, <other_labels>...}
-        self.obj.settings['extend-aggregation'] = True
-        reader = MockReader()
-        watcher = MockListener()
-        watcher.engine = self.obj.engine
-
-        reader.buffer_scale_idx = '100.0'
-        # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 1))
-        reader.data.append((1, "a", 1, 2, 2, 2, 200, 'OK', '', 2))
-        reader.data.append((1, "a", 1, 3, 3, 3, 404, "Not Found", '', 3))
-        reader.data.append((1, "a", 1, 4, 4, 4, 200, None, '', 4))
-
-        self.obj.add_underling(reader)
-        self.obj.add_listener(watcher)
-
-        self.obj.prepare()
-        self.obj.startup()
-        self.obj.check()
-        self.obj.shutdown()
-        self.obj.post_process()
-
-        for dp in watcher.results:
-            written_kpis = dp['current']
-            for label in written_kpis:
-                success_err = [(e['msg'], e['tag']) for e in written_kpis[label][SAMPLE_STATES[0]][KPISet.ERRORS]]
-                self.assertEqual(set(), set(success_err))
-                jmeter_errors_err = [(e['msg'], e['tag']) for e in written_kpis[label][SAMPLE_STATES[1]][KPISet.ERRORS]]
-                self.assertEqual({('OK', None)}, set(jmeter_errors_err))
-                http_errors_err = [(e['msg'], e['tag']) for e in written_kpis[label][SAMPLE_STATES[2]][KPISet.ERRORS]]
-                self.assertEqual({('Not Found', None)}, set(http_errors_err))
 
     def test_two_executions(self):
         self.obj.track_percentiles = [0, 50, 100]
@@ -464,14 +426,3 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.post_process()
         self.assertEquals(self.obj.cumulative, {})
 
-
-class MockListener(Reporter, AggregatorListener):
-    def __init__(self):
-        super(MockListener, self).__init__()
-        self.results = []
-
-    def aggregated_second(self, data):
-        aggregator = self.engine.aggregator
-        if isinstance(aggregator, ConsolidatingAggregator):
-            data = aggregator.converter(data)
-        self.results.append(data)
