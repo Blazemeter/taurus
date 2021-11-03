@@ -22,7 +22,6 @@ from collections import OrderedDict
 from urllib import parse
 
 import astunparse
-import selenium
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
@@ -1041,7 +1040,7 @@ from selenium.webdriver.common.keys import Keys
 
         if self.OPTIONS in self.executor.settings:
             self.log.debug(f'Generating selenium option {self.executor.settings.get(self.OPTIONS)}. '
-                           f'Browser {browser}. Selenium version {selenium.__version__}')
+                           f'Browser {browser}. Selenium version {self.selenium_version}')
             options.extend(self._get_selenium_options(browser))
 
         return options
@@ -1167,17 +1166,17 @@ from selenium.webdriver.common.keys import Keys
     def _get_selenium_options(self, browser):
         options = []
 
-        if self.selenium_version and not self.selenium_version.startswith("4"):
+        if not self.selenium_version.startswith("4"):
             old_version = True
             if browser != 'firefox' and browser != 'chrome':
                 self.log.warning(f'Selenium options are not supported. '
-                                 f'Browser {browser}. Selenium version {selenium.__version__}')
+                                 f'Browser {browser}. Selenium version {self.selenium_version}')
                 return []
         else:
             old_version = False
             if browser != 'firefox' and browser != 'chrome':
                 self.log.debug(
-                    f'Generating selenium options. Browser {browser}. Selenium version {selenium.__version__}')
+                    f'Generating selenium options. Browser {browser}. Selenium version {self.selenium_version}')
                 options.extend([ast.Assign(
                     targets=[ast.Name(id="options")],
                     value=ast_call(

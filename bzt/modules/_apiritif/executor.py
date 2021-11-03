@@ -24,6 +24,7 @@ from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import FileReader, get_full_path, BZT_DIR, get_assembled_value, shutdown_process
 from .generator import ApiritifScriptGenerator
+from .._selenium import Selenium
 from ..services import PythonTool
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -38,6 +39,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
         super(ApiritifNoseExecutor, self).__init__()
         self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
         self.apiritif = None
+        self.selenium = None
 
     def resource_files(self):
         files = super(ApiritifNoseExecutor, self).resource_files()
@@ -114,6 +116,12 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
                 capabilities=capabilities,
                 wd_addr=remote, test_mode=test_mode,
                 generate_external_handler=True if self.settings.get('plugins-path', False) else False)
+
+        if test_mode == 'selenium':
+            self.selenium = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
+            if not self.selenium.check_if_installed():
+                self.selenium.install()
+            self.main_executor_version = self.selenium.get_version()
 
         builder.selenium_version = self.main_executor_version
         builder.build_source_code()
@@ -247,6 +255,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.__log_lines()
         self._tailer.close()
         self.apiritif.post_process()
+        if self.selenium:
+            self.selenium.post_process()
         super(ApiritifNoseExecutor, self).post_process()
 
     def __is_verbose(self):

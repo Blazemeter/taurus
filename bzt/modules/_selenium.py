@@ -88,13 +88,10 @@ class SeleniumExecutor(ReportableExecutor):
 
     def install_required_tools(self):
         self.selenium = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
-        if not self.selenium.check_if_installed():
-            self.selenium.install()
-
         self.webdrivers = [self._get_tool(ChromeDriver, tool_path=self.settings.get('chromedriver').get('path')),
                            self._get_tool(GeckoDriver, tool_path=self.settings.get('geckodriver').get('path'))]
 
-        for tool in self.webdrivers:
+        for tool in self.webdrivers + [self.selenium]:
             if not tool.check_if_installed():
                 self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
