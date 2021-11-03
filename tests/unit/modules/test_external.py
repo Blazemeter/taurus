@@ -129,15 +129,20 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
 
-        for dp in watcher.results:
-            written_kpis = dp['current']
-            for label in written_kpis:
-                success_err = [(e['msg'], e['tag']) for e in written_kpis[label][SAMPLE_STATES[0]][KPISet.ERRORS]]
-                self.assertEqual(set(), set(success_err))
-                jmeter_errors_err = [(e['msg'], e['tag']) for e in written_kpis[label][SAMPLE_STATES[1]][KPISet.ERRORS]]
-                self.assertEqual({('OK', None)}, set(jmeter_errors_err))
-                http_errors_err = [(e['msg'], e['tag']) for e in written_kpis[label][SAMPLE_STATES[2]][KPISet.ERRORS]]
-                self.assertEqual({('Not Found', None)}, set(http_errors_err))
+        dp = watcher.results[0]['current']
+
+        success_label = 'Response Code 200'
+        self.assertEqual([], dp[success_label][SAMPLE_STATES[0]][KPISet.ERRORS])
+
+        jmeter_error_label = 'Invalid Assert (No results for path)'
+        sample_jmeter_error = ('No results for path: $[\'error\']', 'JSON Path Assertion - No results for path')
+        jmeter_errors_err = [(e['msg'], e['tag']) for e in dp[jmeter_error_label][SAMPLE_STATES[1]][KPISet.ERRORS]]
+        self.assertEqual({sample_jmeter_error}, set(jmeter_errors_err))
+
+        http_error_label = 'Response Code 400'
+        sample_http_error = ('Bad Request', None)
+        http_errors_err = [(e['msg'], e['tag']) for e in dp[http_error_label][SAMPLE_STATES[2]][KPISet.ERRORS]]
+        self.assertEqual({sample_http_error}, set(http_errors_err))
 
     def test_errors_jtl2(self):
         self.configure({
