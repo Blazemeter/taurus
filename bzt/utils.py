@@ -1278,6 +1278,7 @@ class RequiredTool(object):
     """
     Abstract required tool
     """
+    VERSION = None
 
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
                  env=None, version=None, installable=True, mandatory=True):
@@ -1287,7 +1288,7 @@ class RequiredTool(object):
         self.mirror_manager = None
         self.mandatory = mandatory
 
-        self.version = None
+        self.version = self.VERSION
         if version is not None:
             self.version = str(version)
 

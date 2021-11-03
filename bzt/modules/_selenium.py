@@ -21,9 +21,9 @@ from abc import abstractmethod
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
 from urwid import Text, Pile
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, ProxyError
 
-from bzt import TaurusConfigError, ToolError
+from bzt import TaurusConfigError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import PrioritizedWidget
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows
@@ -270,7 +270,8 @@ class ChromeDriver(RequiredTool):
                                          self.webdriver_manager.driver.get_os_type(),
                                          f'{self.webdriver_manager.driver.get_version()}',
                                          filename)
-            except (ValueError, ConnectionError) as err:
+            except (ValueError, ConnectionError, ProxyError) as err:
+                self.webdriver_manager = None
                 tool_path = os.path.join(base_dir, 'drivers/chromedriver', filename)
                 self.log.warning(err)
         super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
@@ -302,7 +303,8 @@ class GeckoDriver(RequiredTool):
                                          self.webdriver_manager.driver.get_os_type(),
                                          f'{self.webdriver_manager.driver.get_version()}',
                                          filename)
-            except (ValueError, ConnectionError) as err:
+            except (ValueError, ConnectionError, ProxyError) as err:
+                self.webdriver_manager = None
                 tool_path = os.path.join(base_dir, 'drivers/geckodriver', filename)
                 self.log.warning(err)
         super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
