@@ -627,12 +627,17 @@ class ResultsReader(ResultsProvider):
             self.track_percentiles = perc_levels
 
     @staticmethod
-    def get_mixed_label(label, kpis):
+    def get_mixed_label(label, value):
         # it is used for generation of extended label.
         # each label data is splitted according to sample state (success/error/assert)
-        if kpis[5] is None:
+        if isinstance(value, dict):
+            msg = value[5]  # value is sample
+        else:
+            msg = value     # otherwise it's error message
+
+        if msg is None:
             group = SAMPLE_STATES[0]   # no errors
-        elif kpis[5] == 'OK':
+        elif msg == 'OK':
             group = SAMPLE_STATES[1]   # jmeter error - assert, timeout, etc.
         else:
             group = SAMPLE_STATES[2]   # other errors, usually RC != 200
@@ -819,7 +824,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         data = kpi_sets['current']
         data[''] = dict()
         for key in set(data.keys()) - {''}:
-            sep = key.rindex('-')
+            try:
+                sep = key.rindex('-')
+            except:
+                pass
             original_label, state = key[:sep], key[sep + 1:]
             kpi_set = data.pop(key)
             if original_label not in data:

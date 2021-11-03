@@ -118,12 +118,14 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.engine.aggregator.prepare()
         self.obj.prepare()
         self.engine.aggregator.add_listener(watcher)
+        self.engine.aggregator.startup()
         self.obj.startup()
 
         while not self.obj.check():
             self.engine.aggregator.check()
 
         self.obj.shutdown()
+        self.engine.aggregator.shutdown()
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
 

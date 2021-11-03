@@ -37,7 +37,7 @@ from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNet
 from bzt.engine import Scenario, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
-from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, get_mixed_label
+from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
@@ -885,12 +885,8 @@ class JTLReader(ResultsReader):
             if self.errors_reader:
                 err_details = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])  # get only for labels we have
                 for label in err_details:
-                    label1 = label
-                    if self.redundant_aggregation and label != '':
-                        label1 += '-jmeter_errors'
-
-                    if label1 in point[DataPoint.CURRENT]:
-                        point[DataPoint.CURRENT][label1][KPISet.ERRORS] = err_details[label]
+                    if label in point[DataPoint.CURRENT]:
+                        point[DataPoint.CURRENT][label][KPISet.ERRORS] = err_details[label]
                     else:
                         self.log.warning("Had error data but no KPISet %s: %s", label, err_details[label])
 
@@ -1283,7 +1279,7 @@ class JTLErrorsReader(object):
         err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
         buf = self.buffer.get(t_stamp, force_set=True)
         if self.label_converter:
-            label = self.label_converter(label)
+            label = self.label_converter(label, f_msg)
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
