@@ -627,7 +627,7 @@ class ResultsReader(ResultsProvider):
             self.track_percentiles = perc_levels
 
     @staticmethod
-    def get_label(label, kpis):
+    def get_mixed_label(label, kpis):
         # it is used for generation of extended label.
         # each label data is splitted according to sample state (success/error/assert)
         if kpis[5] is None:
@@ -708,7 +708,7 @@ class ResultsReader(ResultsProvider):
 
     def __add_sample(self, current, label, kpis):
         if self.redundant_aggregation:
-            label = self.get_label(label, kpis)
+            label = self.get_mixed_label(label, kpis)
 
         if label not in current:
             current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))

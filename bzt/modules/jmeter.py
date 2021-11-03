@@ -37,7 +37,7 @@ from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNet
 from bzt.engine import Scenario, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
-from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
+from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, get_mixed_label
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
@@ -835,7 +835,8 @@ class JTLReader(ResultsReader):
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
         if errors_filename:
-            self.errors_reader = JTLErrorsReader(errors_filename, parent_logger, err_msg_separator)
+            self.errors_reader = JTLErrorsReader(
+                errors_filename, parent_logger, err_msg_separator, self.get_mixed_label)
         else:
             self.errors_reader = None
 
@@ -1185,7 +1186,7 @@ class JTLErrorsReader(object):
     """
     url_xpath = GenericTranslator().css_to_xpath("java\\.net\\.URL")
 
-    def __init__(self, filename, parent_logger, err_msg_separator=None):
+    def __init__(self, filename, parent_logger, err_msg_separator=None, label_converter=None):
         # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -1194,6 +1195,7 @@ class JTLErrorsReader(object):
         self.buffer = BetterDict()
         self.failed_processing = False
         self.err_msg_separator = err_msg_separator
+        self.label_converter = label_converter
 
     def read_file(self, final_pass=False):
         """
@@ -1280,6 +1282,8 @@ class JTLErrorsReader(object):
 
         err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
         buf = self.buffer.get(t_stamp, force_set=True)
+        if self.label_converter:
+            label = self.label_converter(label)
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
