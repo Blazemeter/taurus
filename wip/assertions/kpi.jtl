@@ -1,5 +1,0 @@
-timeStamp,elapsed,label,responseCode,responseMessage,threadName,success,bytes,grpThreads,allThreads,Latency,Hostname,Connect
-1635497572334,1278,l_ok,200,OK,sc1 1-1,true,286744,1,1,202,canhi,46
-1635497573835,3774,l_assert,200,OK,sc1 1-1,false,2164017,1,1,614,canhi,472
-1635497577633,29,l_url,Non HTTP response code: java.net.UnknownHostException,Non HTTP response message: blazemete1r.com: Name or service not known,sc1 1-1,false,2690,1,1,0,canhi,29
-1635497577665,597,l_404,404,Not Found,sc1 1-1,false,53345,1,1,442,canhi,138
