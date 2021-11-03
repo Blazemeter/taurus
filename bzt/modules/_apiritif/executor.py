@@ -117,7 +117,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
                 wd_addr=remote, test_mode=test_mode,
                 generate_external_handler=True if self.settings.get('plugins-path', False) else False)
 
-        if test_mode == 'selenium':
+        if test_mode == 'selenium' and not self.main_executor_version:
             self.selenium = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
             if not self.selenium.check_if_installed():
                 self.selenium.install()
