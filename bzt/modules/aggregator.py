@@ -633,17 +633,17 @@ class ResultsReader(ResultsProvider):
 
         if rc:  # rc of error (from errors.jtl)
             if rc == '200':
-                group = SAMPLE_STATES[1]
+                group = SAMPLE_STATES[1]    # jmeter error (assertion, etc.)
             else:
-                group = SAMPLE_STATES[2]
+                group = SAMPLE_STATES[2]    # http error
         else:
             if kpis[4] == '200':
                 if kpis[5] is None:
-                    group = SAMPLE_STATES[0]    # no errors
+                    group = SAMPLE_STATES[0]    # successed sample
                 else:
-                    group = SAMPLE_STATES[1]  # jmeter error - assert, timeout, etc.
+                    group = SAMPLE_STATES[1]  # jmeter error
             else:
-                group = SAMPLE_STATES[2]  # other errors, usually RC != 200
+                group = SAMPLE_STATES[2]  # http error
 
         return '-'.join((label, str(group)))
 
@@ -827,10 +827,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         data = kpi_sets['current']
         data[''] = dict()
         for key in set(data.keys()) - {''}:
-            try:
-                sep = key.rindex('-')
-            except:
-                pass
+            sep = key.rindex('-')
             original_label, state = key[:sep], key[sep + 1:]
             kpi_set = data.pop(key)
             if original_label not in data:
