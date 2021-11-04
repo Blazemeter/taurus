@@ -128,13 +128,13 @@ class TestConsolidatingAggregator(BZTestCase):
 
         reader.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 1))
-        reader.data.append((2, "b", 1, 2, 2, 2, 200, 'OK', '', 2))
-        reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 3))
-        reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 4))
-        reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 5))
-        reader.data.append((5, "b", 1, 6, 6, 6, 200, None, '', 6))
-        reader.data.append((5, "c", 1, 7, 7, 7, 200, None, '', 7))
+        reader.data.append((1, "a", 1, 1, 1, 1, '200', None, '', 1))
+        reader.data.append((2, "b", 1, 2, 2, 2, '200', 'OK', '', 2))
+        reader.data.append((2, "b", 1, 3, 3, 3, '404', "Not Found", '', 3))
+        reader.data.append((2, "c", 1, 4, 4, 4, '200', None, '', 4))
+        reader.data.append((3, "d", 1, 5, 5, 5, '200', None, '', 5))
+        reader.data.append((5, "b", 1, 6, 6, 6, '200', None, '', 6))
+        reader.data.append((5, "c", 1, 7, 7, 7, '200', None, '', 7))
 
         self.obj.add_underling(reader)
         self.obj.add_listener(watcher)
@@ -170,13 +170,13 @@ class TestConsolidatingAggregator(BZTestCase):
 
         reader.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 1))
-        reader.data.append((2, "b", 1, 2, 2, 2, 200, 'OK', '', 2))
-        reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 3))
-        reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 4))
-        reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 5))
-        reader.data.append((5, "b", 1, 6, 6, 6, 200, None, '', 6))
-        reader.data.append((5, "c", 1, 7, 7, 7, 200, None, '', 7))
+        reader.data.append((1, "a", 1, 1, 1, 1, '200', None, '', 1))
+        reader.data.append((2, "b", 1, 2, 2, 2, '200', 'OK', '', 2))
+        reader.data.append((2, "b", 1, 3, 3, 3, '404', "Not Found", '', 3))
+        reader.data.append((2, "c", 1, 4, 4, 4, '200', None, '', 4))
+        reader.data.append((3, "d", 1, 5, 5, 5, '200', None, '', 5))
+        reader.data.append((5, "b", 1, 6, 6, 6, '200', None, '', 6))
+        reader.data.append((5, "c", 1, 7, 7, 7, '200', None, '', 7))
         original_labels = list(d[1] for d in reader.data) + ['']
 
         self.obj.add_underling(reader)
@@ -233,12 +233,12 @@ class TestConsolidatingAggregator(BZTestCase):
 
         reader.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
-        reader.data.append((2, "b", 1, 2, 2, 2, 200, 'OK', '', 0))
-        reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
-        reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
-        reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
-        reader.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
+        reader.data.append((1, "a", 1, 1, 1, 1, '200', None, '', 0))
+        reader.data.append((2, "b", 1, 2, 2, 2, '200', 'OK', '', 0))
+        reader.data.append((2, "b", 1, 3, 3, 3, '404', "Not Found", '', 0))
+        reader.data.append((2, "c", 1, 4, 4, 4, '200', None, '', 0))
+        reader.data.append((3, "d", 1, 5, 5, 5, '200', None, '', 0))
+        reader.data.append((4, "b", 1, 6, 6, 6, '200', None, '', 0))
 
         # let's collect data to seconds and send something aggregated to watcher
         self.obj.shutdown()
