@@ -12,7 +12,6 @@ pyvirtualdisplay; sys_platform != 'win32'
 pyyaml
 requests>=2.18.1
 selenium
-Appium-Python-Client
 urwid
 terminaltables>=3.1.0
 molotov
