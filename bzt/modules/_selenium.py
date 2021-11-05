@@ -296,6 +296,7 @@ class ChromeDriver(WebDriver):
     DRIVER_NAME = 'chromedriver'
     MANAGER = ChromeDriverManager
 
+
 class GeckoDriver(WebDriver):
     DRIVER_NAME = 'geckodriver'
     MANAGER = GeckoDriverManager
