@@ -77,8 +77,6 @@ class SeleniumExecutor(ReportableExecutor):
         self.runner.execution['files'] = self.execution.get('files', [], force_set=True)
         self.runner.execution['executor'] = runner_type
         self.runner.register_reader = self.register_reader
-        self.runner.selenium_version = self.selenium.get_version()
-
         self.runner.settings = copy.deepcopy(self.settings).merge(self.runner.settings)
 
         if runner_type == "apiritif":
