@@ -23,8 +23,8 @@ class SeleniumTestCase(ExecutorTestCase):
         self.virtual_display.engine = self.engine
         self.virtual_display.startup()
 
-        bzt.modules._selenium.ChromeDriverManager = MockDriverManager
-        bzt.modules._selenium.GeckoDriverManager = MockDriverManager
+        bzt.modules._selenium.ChromeDriver = MockDriverManager
+        bzt.modules._selenium.GeckoDriver = MockDriverManager
         self.obj.settings = self.engine.config.get("modules").get("selenium")
 
     def tearDown(self):
