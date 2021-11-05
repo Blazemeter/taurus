@@ -19,6 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.options import ArgOptions
 from bzt.resources.selenium_extras import dialogs_answer_on_next_prompt, open_window, dialogs_get_next_prompt, switch_frame, dialogs_get_next_alert, dialogs_get_next_confirm, dialogs_answer_on_next_alert, close_window, waiter, wait_for, dialogs_answer_on_next_confirm, dialogs_replace, get_locator, switch_window
 reader_1 = apiritif.CSVReaderPerThread('first.csv', loop=True)
 reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)

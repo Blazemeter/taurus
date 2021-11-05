@@ -251,6 +251,35 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
+    def test_arg_option_generator(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc",
+                "capabilities": {
+                    "browserName": "MicrosoftEdge"}}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True},
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub"}}})
+
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "from selenium.webdriver.common.options import ArgOptions",
+            "options = ArgOptions()"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
     def test_ignore_proxy_option_generator_selenium_3(self):
         # Option ignore-proxy is only available starting from Selenium version 4
         self.configure({
