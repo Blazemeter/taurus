@@ -18,7 +18,7 @@ class SeleniumTestCase(ExecutorTestCase):
 
     def setUp(self):
         super(SeleniumTestCase, self).setUp()
-        self.tmp_selenium = bzt.modules._selenium.Selenium,
+        self.tmp_selenium = bzt.modules._selenium.Selenium
         self.tmp_selenium_apiritif = bzt.modules._apiritif.executor.Selenium
         bzt.modules._selenium.Selenium = MockPythonTool
         bzt.modules._apiritif.executor.Selenium = MockPythonTool
