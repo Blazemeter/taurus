@@ -1,4 +1,5 @@
 import bzt
+import bzt.modules._apiritif
 from bzt.utils import RequiredTool
 from tests.unit import local_paths_config, ExecutorTestCase
 from bzt.modules._selenium import SeleniumExecutor
@@ -13,11 +14,14 @@ class SeleniumTestCase(ExecutorTestCase):
         super(SeleniumTestCase, self).__init__(methodName)
         self.obj = None
         self.tmp_selenium = None
+        self.tmp_selenium_apiritif = None
 
     def setUp(self):
         super(SeleniumTestCase, self).setUp()
-        self.tmp_selenium = bzt.modules._selenium.Selenium
+        self.tmp_selenium = bzt.modules._selenium.Selenium,
+        self.tmp_selenium_apiritif = bzt.modules._apiritif.executor.Selenium
         bzt.modules._selenium.Selenium = MockPythonTool
+        bzt.modules._apiritif.executor.Selenium = MockPythonTool
 
         paths = [local_paths_config()]
         self.engine.configure(paths)  # FIXME: avoid using whole engine in particular module test!
@@ -38,6 +42,7 @@ class SeleniumTestCase(ExecutorTestCase):
             if self.obj.runner.stderr:
                 self.obj.runner.stderr.close()
         bzt.modules._selenium.Selenium = self.tmp_selenium
+        bzt.modules._apiritif.executor.Selenium = self.tmp_selenium_apiritif
         super(SeleniumTestCase, self).tearDown()
 
 
