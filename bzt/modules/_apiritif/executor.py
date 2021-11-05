@@ -109,21 +109,21 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
             capabilities = get_assembled_value(configs, "capabilities")
             remote = get_assembled_value(configs, "remote")
 
+            if not self.selenium_version:
+                selenium_tool = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
+                if not selenium_tool.check_if_installed():
+                    selenium_tool.install()
+                    self.selenium_version = selenium_tool.get_version()
+
             builder = ApiritifScriptGenerator(
                 scenario, self.label, wdlog, executor=self,
                 ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
                 generate_markers=generate_markers,
                 capabilities=capabilities,
                 wd_addr=remote, test_mode=test_mode,
-                generate_external_handler=True if self.settings.get('plugins-path', False) else False)
+                generate_external_handler=True if self.settings.get('plugins-path', False) else False,
+                selenium_version=self.selenium_version)
 
-        if test_mode == 'selenium' and not self.main_executor_version:
-            self.selenium = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
-            if not self.selenium.check_if_installed():
-                self.selenium.install()
-            self.main_executor_version = self.selenium.get_version()
-
-        builder.selenium_version = self.main_executor_version
         builder.build_source_code()
         builder.save(filename)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator) and isinstance(builder, ApiritifScriptGenerator):

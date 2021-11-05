@@ -129,9 +129,9 @@ from selenium.webdriver.common.keys import Keys
     FINALLY_MARKER = 'finally'
     OPTIONS = 'options'
 
-    def __init__(self, scenario, label, wdlog=None, executor=None,
-                 ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="selenium", generate_external_handler=False):
+    def __init__(self, scenario, label, wdlog=None, executor=None, ignore_unknown_actions=False,
+                 generate_markers=None, capabilities=None, wd_addr=None, test_mode="selenium",
+                 generate_external_handler=False, selenium_version=None):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -142,7 +142,7 @@ from selenium.webdriver.common.keys import Keys
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
         self.service_methods = []
-        self.selenium_version = None
+        self.selenium_version = selenium_version
 
         self.remote_address = wd_addr
         self.capabilities = capabilities or {}
