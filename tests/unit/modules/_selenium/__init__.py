@@ -76,4 +76,4 @@ class MockDriverManager:
 
     @staticmethod
     def install():
-        return ""
+        open('~/.bzt/selenium-taurus/tools/drivers/driver', 'a').close()
