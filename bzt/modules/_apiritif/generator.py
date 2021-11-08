@@ -113,7 +113,6 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.options import ArgOptions
 """
 
     BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
@@ -1301,6 +1300,14 @@ from selenium.webdriver.common.options import ArgOptions
                 source = "selenium"
 
             imports.append(ast.parse(self.IMPORTS % source).body)
+            if self.selenium_version.startswith("4"):
+                imports.append(
+                    ast.ImportFrom(
+                        module="selenium.webdriver.common.options",
+                        names=[ast.alias(name="ArgOptions", asname=None)],
+                        level=0
+                    )
+                )
             self.selenium_extras.add("get_locator")
             self.selenium_extras.add("waiter")
             extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
