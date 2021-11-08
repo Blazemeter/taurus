@@ -17,7 +17,7 @@ from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules._pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
 from tests.unit import RESOURCES_DIR, ExecutorTestCase, BZTestCase
-from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool, MockDriverManager
+from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool, MockDriver
 from bzt.utils import EXE_SUFFIX, is_windows
 from bzt.resources.selenium_extras import get_locator, BYS, find_element_by_shadow
 
@@ -381,8 +381,8 @@ class TestPyTestExecutor(ExecutorTestCase):
 
     def setUp(self):
         super().setUp()
-        bzt.modules._selenium.ChromeDriver = MockDriverManager
-        bzt.modules._selenium.GeckoDriver = MockDriverManager
+        bzt.modules._selenium.ChromeDriver = MockDriver
+        bzt.modules._selenium.GeckoDriver = MockDriver
 
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
@@ -446,7 +446,7 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
         self.obj_prepare()
-        driver = self.obj._get_tool(MockDriverManager, tool_path=self.obj.settings.get('geckodriver').get('path'))
+        driver = self.obj._get_tool(MockDriver, tool_path=self.obj.settings.get('geckodriver').get('path'))
         if not driver.check_if_installed():
             driver.install()
         self.obj.env.add_path({"PATH": driver.get_driver_dir()})
@@ -463,7 +463,7 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
         self.obj_prepare()
-        driver = self.obj._get_tool(MockDriverManager, tool_path=self.obj.settings.get('geckodriver').get('path'))
+        driver = self.obj._get_tool(MockDriver, tool_path=self.obj.settings.get('geckodriver').get('path'))
         if not driver.check_if_installed():
             driver.install()
         self.obj.env.add_path({"PATH": driver.get_driver_dir()})
