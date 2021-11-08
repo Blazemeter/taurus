@@ -369,10 +369,7 @@ class AppiumLoader(Service):
         self.port = ''
         self.stdout = None
         self.stderr = None
-        self.node = None
-        self.npm = None
         self.appium = None
-        self.appium_server = None
 
     def prepare(self):
         self.startup_timeout = self.settings.get('timeout', 30)
@@ -384,18 +381,15 @@ class AppiumLoader(Service):
         self.install_required_tools()
 
     def install_required_tools(self):
-        self.node = Node(env=self.env, log=self.log)
-        self.npm = NPM(env=self.env, log=self.log)
+        node = Node(env=self.env, log=self.log)
+        npm = NPM(env=self.env, log=self.log)
         self.appium = Appium(engine=self.engine, settings=self.settings, log=self.log)
-        self.appium_server = AppiumServer(tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
+        appium_server = AppiumServer(tools_dir=self.tools_dir, node_tool=node, npm_tool=npm)
 
-        required_tools = [self.node, self.npm, JavaVM(log=self.log), self.appium, self.appium_server]
+        required_tools = [node, npm, JavaVM(log=self.log), self.appium, appium_server]
         for tool in required_tools:
             if not tool.check_if_installed():
                 tool.install()
-
-    def get_launch_cmdline(self, *args):
-        return [self.node.tool_path] + list(args)
 
     def startup(self):
         self.log.debug('Starting Appium...')
