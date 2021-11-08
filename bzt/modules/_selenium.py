@@ -28,6 +28,7 @@ from requests.exceptions import ConnectionError, ProxyError
 from bzt import TaurusConfigError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import PrioritizedWidget
+from bzt.modules.services import PythonTool
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac, platform_bitness, unzip, \
     untar
 
@@ -55,6 +56,7 @@ class SeleniumExecutor(ReportableExecutor):
         self.runner_working_dir = None
         self.register_reader = True
         self.webdrivers = []
+        self.selenium = None
 
     def add_env(self, env):  # compatibility with taurus-cloud
         self.env.set(env)
@@ -78,7 +80,6 @@ class SeleniumExecutor(ReportableExecutor):
         self.runner.execution['files'] = self.execution.get('files', [], force_set=True)
         self.runner.execution['executor'] = runner_type
         self.runner.register_reader = self.register_reader
-
         self.runner.settings = copy.deepcopy(self.settings).merge(self.runner.settings)
 
         if runner_type == "apiritif":
@@ -88,10 +89,11 @@ class SeleniumExecutor(ReportableExecutor):
         pass  # for compatibility with taurus server
 
     def install_required_tools(self):
+        self.selenium = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
         self.webdrivers = [self._get_tool(ChromeDriver, tool_path=self.settings.get('chromedriver').get('path')),
                            self._get_tool(GeckoDriver, tool_path=self.settings.get('geckodriver').get('path'))]
 
-        for tool in self.webdrivers:
+        for tool in self.webdrivers + [self.selenium]:
             if not tool.check_if_installed():
                 self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
@@ -205,6 +207,7 @@ class SeleniumExecutor(ReportableExecutor):
         if os.path.exists("geckodriver.log"):
             self.engine.existing_artifact("geckodriver.log", True)
 
+        self.selenium.post_process()
         super(SeleniumExecutor, self).post_process()
 
     def has_results(self):
@@ -225,6 +228,10 @@ class SeleniumExecutor(ReportableExecutor):
                 with open(possible_log) as fds:
                     diagnostics.append("Geckodriver log:\n" + fds.read())
         return diagnostics
+
+
+class Selenium(PythonTool):
+    PACKAGES = ["selenium"]
 
 
 class SeleniumWidget(Pile, PrioritizedWidget):
