@@ -111,7 +111,6 @@ class SubprocessedExecutor(ReportableExecutor, TransactionProvider):
         self.script = None
         self.process = None
         self.widget = None
-        self.selenium_version = None
 
     def prepare(self):
         super(SubprocessedExecutor, self).prepare()

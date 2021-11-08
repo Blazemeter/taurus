@@ -89,7 +89,7 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             self.obj.prepare()
         finally:
-            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
+            bzt.modules._apiritif.executor.Apiritif = tmp_tool
 
     def test_selenium_prepare_python_single(self):
         """

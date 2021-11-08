@@ -43,7 +43,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
             bzt.modules._selenium.Selenium.version = "3"
             self.obj.prepare()
         finally:
-            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
+            bzt.modules._apiritif.executor.Apiritif = tmp_tool
 
     def test_data_source_in_action(self):
         self.configure({
