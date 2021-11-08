@@ -30,8 +30,8 @@ class SeleniumTestCase(ExecutorTestCase):
         self.virtual_display.engine = self.engine
         self.virtual_display.startup()
 
-        bzt.modules._selenium.ChromeDriver = MockWebDriver
-        bzt.modules._selenium.GeckoDriver = MockWebDriver
+        bzt.modules._selenium.ChromeDriver = MockDriver
+        bzt.modules._selenium.GeckoDriver = MockDriver
         self.obj.settings = self.engine.config.get("modules").get("selenium")
 
     def tearDown(self):
@@ -66,8 +66,8 @@ class MockPythonTool(RequiredTool):
         pass
 
 
-class MockWebDriver(RequiredTool):
-    tool_name = "MockWebDriver"
+class MockDriver(RequiredTool):
+    tool_name = "MockDriver"
     tool_path = ""
 
     def __init__(self, **kwargs):
