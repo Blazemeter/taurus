@@ -1,4 +1,3 @@
-import os
 import bzt
 from bzt.utils import RequiredTool
 from tests.unit import local_paths_config, ExecutorTestCase
@@ -77,7 +76,4 @@ class MockDriverManager:
 
     @staticmethod
     def install():
-        file_path = f'{os.getcwd()}/mock_driver'
-        if not os.path.exists(file_path):
-            open(file_path, 'a').close()
-        return file_path
+        return bzt.__file__
