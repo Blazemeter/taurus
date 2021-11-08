@@ -60,12 +60,14 @@ class PipInstaller(Service):
             self.log.debug(exc)
             raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
 
-    def _missed(self, packages):
+    def _get_installed(self):
         cmdline = self.pip_cmd + ["list"]
         out, _ = exec_and_communicate(cmdline)
         out = out.split('\n')[2:-1]
-        installed = dict(zip([line.split(' ')[0] for line in out], [line.strip().split(' ')[-1] for line in out]))
+        return dict(zip([line.split(' ')[0] for line in out], [line.strip().split(' ')[-1] for line in out]))
 
+    def _missed(self, packages):
+        installed = self._get_installed()
         missed = []
         for package in packages:
             if package not in installed or package in self.versions and installed[package] != self.versions[package]:
@@ -162,6 +164,10 @@ class PipInstaller(Service):
         if err:
             self.log.debug("pip-installer stderr:\n%s" % err)
 
+    def get_version(self, package):
+        installed = self._get_installed()
+        return installed[package]
+
     def post_process(self):
         # might be forbidden on win as tool still work
         if self.packages and self.temp and not is_windows() and os.path.exists(self.target_dir):
@@ -195,6 +201,9 @@ class PythonTool(RequiredTool):
     def install(self):
         self.log.debug(f"Installing {self.tool_name}.")
         self.installer.install()
+
+    def get_version(self):
+        return self.installer.get_version(self.PACKAGES[0])
 
     def post_process(self):
         self.installer.post_process()

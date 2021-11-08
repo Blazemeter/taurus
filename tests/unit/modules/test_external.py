@@ -1,4 +1,4 @@
-from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
+from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, SAMPLE_STATES
 from bzt.modules.external import ExternalResultsLoader
 from bzt.modules.jmeter import FuncJTLReader, JTLReader
 from bzt.modules.ab import TSVDataReader
@@ -6,7 +6,7 @@ from bzt.modules.gatling import DataLogReader as GatlingLogReader
 from bzt.modules.vegeta import VegetaLogReader
 
 from tests.unit import RESOURCES_DIR, close_reader_file, ExecutorTestCase
-from tests.unit.mocks import MockReader
+from tests.unit.mocks import MockReader, MockListener
 
 
 class TestExternalResultsLoader(ExecutorTestCase):
@@ -74,6 +74,75 @@ class TestExternalResultsLoader(ExecutorTestCase):
         cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
         self.assertIn('200', cumulative_kpis[KPISet.RESP_CODES])
         self.assertIn('404', cumulative_kpis[KPISet.RESP_CODES])
+
+    def test_errors_jtl_ext(self):
+        self.configure({
+            "execution": [{
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/simple.kpi.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/simple.error.jtl",
+            }]
+        })
+        self.obj.engine.aggregator.redundant_aggregation = True
+        self.obj.prepare()
+        self.obj.reader.redundant_aggregation = True
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        results = self.results_listener.results
+        self.assertGreater(len(results), 0)
+        last_dp = results[-1]
+        cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
+        self.assertIn('200', cumulative_kpis[KPISet.RESP_CODES])
+        self.assertIn('404', cumulative_kpis[KPISet.RESP_CODES])
+        pass
+
+    def test_extend_data_and_assertion(self):
+        # check aggregated results for error details in the corresponding state record:
+        #   'current': {
+        #     <label>:
+        #       {'jmeter_errors': {..
+        #           'errors': [{'msg':..., 'tag':..., ...}, ...]..}, # there must be real jmeter errors and nothing more
+        #        'http_errors': {..}, 'success': {..}, ...}}, <other_labels>...}
+        self.configure({
+            "execution": [{
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi-pair1.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/error-pair1.jtl",
+            }]
+        })
+        self.engine.aggregator.settings['extend-aggregation'] = True
+        watcher = MockListener()
+        watcher.engine = self.obj.engine
+
+        self.engine.aggregator.prepare()
+        self.obj.prepare()
+        self.engine.aggregator.add_listener(watcher)
+        self.engine.aggregator.startup()
+        self.obj.startup()
+
+        while not self.obj.check():
+            self.engine.aggregator.check()
+
+        self.obj.shutdown()
+        self.engine.aggregator.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+
+        dp = watcher.results[0]['current']
+
+        success_label = 'Response Code 200'
+        self.assertEqual([], dp[success_label][SAMPLE_STATES[0]][KPISet.ERRORS])
+
+        jmeter_error_label = 'Invalid Assert (No results for path)'
+        sample_jmeter_error = ('No results for path: $[\'error\']', 'JSON Path Assertion - No results for path')
+        jmeter_errors_err = [(e['msg'], e['tag']) for e in dp[jmeter_error_label][SAMPLE_STATES[1]][KPISet.ERRORS]]
+        self.assertEqual({sample_jmeter_error}, set(jmeter_errors_err))
+
+        http_error_label = 'Response Code 400'
+        sample_http_error = ('Bad Request', None)
+        http_errors_err = [(e['msg'], e['tag']) for e in dp[http_error_label][SAMPLE_STATES[2]][KPISet.ERRORS]]
+        self.assertEqual({sample_http_error}, set(http_errors_err))
 
     def test_errors_jtl2(self):
         self.configure({

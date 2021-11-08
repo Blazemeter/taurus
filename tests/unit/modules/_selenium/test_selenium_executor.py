@@ -11,11 +11,11 @@ from bzt.engine import EXEC
 from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
-from bzt.modules._selenium import SeleniumExecutor
+from bzt.modules._selenium import SeleniumExecutor, WebDriver
 from bzt.utils import LDJSONReader, FileReader
 from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
 from tests.unit.mocks import DummyListener
-from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool
+from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool, MockDriverManager
 
 
 class LDJSONReaderEmul(object):
@@ -40,9 +40,10 @@ class TestSeleniumExecutor(SeleniumTestCase):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
+            bzt.modules._selenium.Selenium.version = "3"
             self.obj.prepare()
         finally:
-            bzt.modules._apiritif.executor.Apiritif  = tmp_tool
+            bzt.modules._apiritif.executor.Apiritif = tmp_tool
 
     def test_data_source_in_action(self):
         self.configure({
@@ -187,6 +188,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
+            bzt.modules._selenium.Selenium.version = "3"
             self.obj.prepare()
         finally:
             bzt.modules._apiritif.executor.Apiritif = tmp_tool
@@ -202,6 +204,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
+            bzt.modules._selenium.Selenium.version = "3"
             self.obj.runner.prepare()
         finally:
             bzt.modules._apiritif.executor.Apiritif = tmp_tool
@@ -213,7 +216,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         :return:
         """
         self.configure({EXEC: {"executor": "selenium"}})
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj_prepare)
 
     def test_various_raise(self):
         self.configure({  # RuntimeError when
@@ -224,7 +227,7 @@ class TestSeleniumStuff(SeleniumTestCase):
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/not_found"}
             }]})
-        self.assertRaises(ToolError, self.obj.prepare)
+        self.assertRaises(ToolError, self.obj_prepare)
 
     def test_empty_test_methods(self):
         self.configure({  # Test exact number of tests when
@@ -277,8 +280,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEqual(0, len(resources))
 
     def test_dont_copy_local_script_to_artifacts(self):
-        "ensures that .java file is not copied into artifacts-dir"
-        filename = "BlazeDemo.java"
+        filename = "BlazeDemo.java"  # ensures that .java file is not copied into artifacts-dir
         script_path = RESOURCES_DIR + "" + filename
         self.obj.execution.merge({
             "scenario": {
@@ -428,3 +430,17 @@ class TestReportReader(BZTestCase):
         self.assertEqual(items[2].status, "PASSED")
         self.assertEqual(items[4].test_case, 'SkippedTest')
         self.assertEqual(items[4].status, "SKIPPED")
+
+
+class TestWebdriverManager(BZTestCase):
+    class MockDriver(WebDriver):
+        MANAGER = MockDriverManager
+        DRIVER_NAME = "MockDriver"
+
+    def test_install_webdriver(self):
+        self.obj = self.MockDriver()
+        self.sniff_log(self.obj.log)
+        self.obj.install()
+
+        self.assertIn("Will install MockDriver into", self.log_recorder.info_buff.getvalue())
+        self.assertTrue(self.obj.get_driver_dir().endswith("MockDriver"))

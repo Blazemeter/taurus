@@ -26,6 +26,7 @@ from requests.exceptions import ConnectionError, ProxyError
 from bzt import TaurusConfigError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import PrioritizedWidget
+from bzt.modules.services import PythonTool
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows
 
 
@@ -52,6 +53,7 @@ class SeleniumExecutor(ReportableExecutor):
         self.runner_working_dir = None
         self.register_reader = True
         self.webdrivers = []
+        self.selenium = None
 
     def add_env(self, env):  # compatibility with taurus-cloud
         self.env.set(env)
@@ -75,7 +77,6 @@ class SeleniumExecutor(ReportableExecutor):
         self.runner.execution['files'] = self.execution.get('files', [], force_set=True)
         self.runner.execution['executor'] = runner_type
         self.runner.register_reader = self.register_reader
-
         self.runner.settings = copy.deepcopy(self.settings).merge(self.runner.settings)
 
         if runner_type == "apiritif":
@@ -85,10 +86,11 @@ class SeleniumExecutor(ReportableExecutor):
         pass  # for compatibility with taurus server
 
     def install_required_tools(self):
+        self.selenium = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
         self.webdrivers = [self._get_tool(ChromeDriver, tool_path=self.settings.get('chromedriver').get('path')),
                            self._get_tool(GeckoDriver, tool_path=self.settings.get('geckodriver').get('path'))]
 
-        for tool in self.webdrivers:
+        for tool in self.webdrivers + [self.selenium]:
             if not tool.check_if_installed():
                 self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
@@ -202,6 +204,7 @@ class SeleniumExecutor(ReportableExecutor):
         if os.path.exists("geckodriver.log"):
             self.engine.existing_artifact("geckodriver.log", True)
 
+        self.selenium.post_process()
         super(SeleniumExecutor, self).post_process()
 
     def has_results(self):
@@ -222,6 +225,10 @@ class SeleniumExecutor(ReportableExecutor):
                 with open(possible_log) as fds:
                     diagnostics.append("Geckodriver log:\n" + fds.read())
         return diagnostics
+
+
+class Selenium(PythonTool):
+    PACKAGES = ["selenium"]
 
 
 class SeleniumWidget(Pile, PrioritizedWidget):
@@ -255,23 +262,28 @@ class SeleniumWidget(Pile, PrioritizedWidget):
         self._invalidate()
 
 
-class ChromeDriver(RequiredTool):
+class WebDriver(RequiredTool):
+    DRIVER_NAME = None
+    MANAGER = None
 
     def __init__(self, tool_path="", log=None, **kwargs):
         self.webdriver_manager = None
         self.log = log
+        os.environ['WDM_LOG_LEVEL'] = '0'
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
+        filename = self.DRIVER_NAME
+        filename += '.exe' if is_windows() else ""
         if not tool_path:
             try:
-                self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False)
+                self.webdriver_manager = self.MANAGER(path=base_dir, print_first_line=False, log_level=0)
                 tool_path = os.path.join(base_dir,
-                                         'drivers/chromedriver',
+                                         f'drivers/{self.DRIVER_NAME}',
                                          self.webdriver_manager.driver.get_os_type(),
                                          f'{self.webdriver_manager.driver.get_version()}',
                                          filename)
             except (ValueError, ConnectionError, ProxyError) as err:
-                tool_path = os.path.join(base_dir, 'drivers/chromedriver', filename)
+                self.webdriver_manager = None
+                tool_path = os.path.join(base_dir, f'drivers/{self.DRIVER_NAME}', filename)
                 self.log.warning(err)
         super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
 
@@ -287,33 +299,11 @@ class ChromeDriver(RequiredTool):
             super().install()
 
 
-class GeckoDriver(RequiredTool):
+class ChromeDriver(WebDriver):
+    DRIVER_NAME = 'chromedriver'
+    MANAGER = ChromeDriverManager
 
-    def __init__(self, tool_path="", log=None, **kwargs):
-        self.webdriver_manager = None
-        self.log = log
-        base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
-        if not tool_path:
-            try:
-                self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False)
-                tool_path = os.path.join(base_dir,
-                                         'drivers/geckodriver',
-                                         self.webdriver_manager.driver.get_os_type(),
-                                         f'{self.webdriver_manager.driver.get_version()}',
-                                         filename)
-            except (ValueError, ConnectionError, ProxyError) as err:
-                tool_path = os.path.join(base_dir, 'drivers/geckodriver', filename)
-                self.log.warning(err)
-        super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
 
-    def get_driver_dir(self):
-        return get_full_path(self.tool_path, step_up=1)
-
-    def install(self):
-        if self.webdriver_manager:
-            self.log.info(f"Will install {self.tool_name} into {self.tool_path}")
-
-            self.webdriver_manager.install()
-        else:
-            super().install()
+class GeckoDriver(WebDriver):
+    DRIVER_NAME = 'geckodriver'
+    MANAGER = GeckoDriverManager

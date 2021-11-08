@@ -1,4 +1,5 @@
 import bzt
+import bzt.modules._apiritif
 from bzt.utils import RequiredTool
 from tests.unit import local_paths_config, ExecutorTestCase
 from bzt.modules._selenium import SeleniumExecutor
@@ -12,9 +13,15 @@ class SeleniumTestCase(ExecutorTestCase):
     def __init__(self, methodName='runTest'):
         super(SeleniumTestCase, self).__init__(methodName)
         self.obj = None
+        self.tmp_selenium = None
+        self.tmp_selenium_apiritif = None
 
     def setUp(self):
         super(SeleniumTestCase, self).setUp()
+        self.tmp_selenium = bzt.modules._selenium.Selenium
+        self.tmp_selenium_apiritif = bzt.modules._apiritif.executor.Selenium
+        bzt.modules._selenium.Selenium = MockPythonTool
+        bzt.modules._apiritif.executor.Selenium = MockPythonTool
 
         paths = [local_paths_config()]
         self.engine.configure(paths)  # FIXME: avoid using whole engine in particular module test!
@@ -23,8 +30,8 @@ class SeleniumTestCase(ExecutorTestCase):
         self.virtual_display.engine = self.engine
         self.virtual_display.startup()
 
-        bzt.modules._selenium.ChromeDriverManager = MockDriverManager
-        bzt.modules._selenium.GeckoDriverManager = MockDriverManager
+        bzt.modules._selenium.ChromeDriver = MockDriverManager
+        bzt.modules._selenium.GeckoDriver = MockDriverManager
         self.obj.settings = self.engine.config.get("modules").get("selenium")
 
     def tearDown(self):
@@ -34,11 +41,14 @@ class SeleniumTestCase(ExecutorTestCase):
                 self.obj.runner.stdout.close()
             if self.obj.runner.stderr:
                 self.obj.runner.stderr.close()
+        bzt.modules._selenium.Selenium = self.tmp_selenium
+        bzt.modules._apiritif.executor.Selenium = self.tmp_selenium_apiritif
         super(SeleniumTestCase, self).tearDown()
 
 
 class MockPythonTool(RequiredTool):
     tool_name = "MockPythonTool"
+    version = ""
 
     def __init__(self, engine, settings, **kwargs):
         pass
@@ -49,13 +59,15 @@ class MockPythonTool(RequiredTool):
     def install(self):
         pass
 
+    def get_version(self):
+        return self.version
+
     def post_process(self):
         pass
 
 
 class MockDriver:
-
-    def __init__(self, name=None, version=None, os_type=None, url=None, latest_release_url=None, chrome_type=None):
+    def __init__(self):
         pass
 
     @staticmethod
@@ -67,12 +79,19 @@ class MockDriver:
         return ""
 
 
-class MockDriverManager:
+class MockDriverManager(RequiredTool):
     tool_name = "MockDriverManager"
+    tool_path = ""
 
-    def __init__(self, path, print_first_line, **kwargs):
+    def __init__(self, **kwargs):
         self.driver = MockDriver()
         pass
+
+    def check_if_installed(self):
+        return True
+
+    def get_driver_dir(self):
+        return ""
 
     def install(self):
         pass
