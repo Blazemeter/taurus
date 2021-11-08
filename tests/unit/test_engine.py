@@ -10,7 +10,7 @@ from bzt.engine import Configuration, EXEC
 from bzt.modules._selenium import SeleniumExecutor
 from bzt.utils import BetterDict, is_windows, get_full_path, get_uniq_name, communicate
 from tests.unit import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase, TEST_DIR, EngineEmul
-from tests.unit.modules._selenium import MockDriverManager
+from tests.unit.modules._selenium import MockWebDriver
 
 
 class MockClient(object):
@@ -26,8 +26,8 @@ class TestEngine(BZTestCase):
         super(TestEngine, self).setUp()
         self.obj = EngineEmul()
         self.paths = local_paths_config()
-        bzt.modules._selenium.ChromeDriver = MockDriverManager
-        bzt.modules._selenium.GeckoDriver = MockDriverManager
+        bzt.modules._selenium.ChromeDriver = MockWebDriver
+        bzt.modules._selenium.GeckoDriver = MockWebDriver
 
     def test_find_file(self):
         self.sniff_log(self.obj.log)
