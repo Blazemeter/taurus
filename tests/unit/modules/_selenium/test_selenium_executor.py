@@ -11,11 +11,11 @@ from bzt.engine import EXEC
 from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
-from bzt.modules._selenium import SeleniumExecutor, WebDriver
+from bzt.modules._selenium import SeleniumExecutor
 from bzt.utils import LDJSONReader, FileReader
 from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
 from tests.unit.mocks import DummyListener
-from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool, MockDriverManager
+from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool
 
 
 class LDJSONReaderEmul(object):
@@ -430,17 +430,3 @@ class TestReportReader(BZTestCase):
         self.assertEqual(items[2].status, "PASSED")
         self.assertEqual(items[4].test_case, 'SkippedTest')
         self.assertEqual(items[4].status, "SKIPPED")
-
-
-class TestWebdriverManager(BZTestCase):
-    class MockDriver(WebDriver):
-        MANAGER = MockDriverManager
-        DRIVER_NAME = "MockDriver"
-
-    def test_install_webdriver(self):
-        self.obj = self.MockDriver()
-        self.sniff_log(self.obj.log)
-        self.obj.install()
-
-        self.assertIn("Will install MockDriver into", self.log_recorder.info_buff.getvalue())
-        self.assertTrue(self.obj.get_driver_dir().endswith("MockDriver"))

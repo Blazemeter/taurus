@@ -30,8 +30,8 @@ class SeleniumTestCase(ExecutorTestCase):
         self.virtual_display.engine = self.engine
         self.virtual_display.startup()
 
-        bzt.modules._selenium.ChromeDriver = MockDriverManager
-        bzt.modules._selenium.GeckoDriver = MockDriverManager
+        bzt.modules._selenium.ChromeDriver = MockDriver
+        bzt.modules._selenium.GeckoDriver = MockDriver
         self.obj.settings = self.engine.config.get("modules").get("selenium")
 
     def tearDown(self):
@@ -66,31 +66,18 @@ class MockPythonTool(RequiredTool):
         pass
 
 
-class MockDriver:
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def get_os_type():
-        return ""
-
-    @staticmethod
-    def get_version():
-        return ""
-
-
-class MockDriverManager(RequiredTool):
-    tool_name = "MockDriverManager"
+class MockDriver(RequiredTool):
+    tool_name = "MockDriver"
     tool_path = ""
 
     def __init__(self, **kwargs):
-        self.driver = MockDriver()
         pass
 
     def check_if_installed(self):
         return True
 
-    def get_driver_dir(self):
+    @staticmethod
+    def get_driver_dir():
         return ""
 
     def install(self):
