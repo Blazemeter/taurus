@@ -258,107 +258,48 @@ class SeleniumWidget(Pile, PrioritizedWidget):
         self._invalidate()
 
 
-class ChromeDriver(RequiredTool):
+class WebDriver(RequiredTool):
+    DRIVER_NAME = None
+    MANAGER = None
 
     def __init__(self, tool_path="", log=None, **kwargs):
         self.webdriver_manager = None
         self.log = log
+        os.environ['WDM_LOG_LEVEL'] = '0'
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
+        filename = self.DRIVER_NAME
+        filename += '.exe' if is_windows() else ""
         if not tool_path:
-            tool_path = os.path.join(base_dir, 'drivers/chromedriver', filename)
             try:
-                self.webdriver_manager = ChromeDriverManager(path=base_dir, print_first_line=False)
+                self.webdriver_manager = self.MANAGER(path=base_dir, print_first_line=False, log_level=0)
+                tool_path = os.path.join(base_dir,
+                                         f'drivers/{self.DRIVER_NAME}',
+                                         self.webdriver_manager.driver.get_os_type(),
+                                         f'{self.webdriver_manager.driver.get_version()}',
+                                         filename)
             except (ValueError, ConnectionError, ProxyError) as err:
                 self.webdriver_manager = None
+                tool_path = os.path.join(base_dir, f'drivers/{self.DRIVER_NAME}', filename)
                 self.log.warning(err)
-        super().__init__(tool_path=tool_path, **kwargs)
+        super().__init__(tool_path=tool_path, installable=False, mandatory=False, **kwargs)
 
     def get_driver_dir(self):
         return get_full_path(self.tool_path, step_up=1)
 
     def install(self):
-        dest = self.get_driver_dir()
-        if not os.path.exists(dest):
-            os.makedirs(dest)
-
-        self.log.info(f"Will install {self.tool_name} into {self.tool_path}")
         if self.webdriver_manager:
-            driver_path = self.webdriver_manager.install()
-            shutil.copy2(driver_path, dest)
+            self.log.info(f"Will install {self.tool_name} into {self.tool_path}")
+
+            self.webdriver_manager.install()
         else:
-            download_link = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-            latest_driver_version = requests.get('https://chromedriver.storage.googleapis.com/LATEST_RELEASE').text
-
-            if is_windows():
-                arch = 'win32'
-            elif is_mac():
-                arch = 'mac64'
-            else:
-                arch = 'linux32' if platform_bitness() == 32 else 'linux64'
-
-            self.download_link = download_link.format(version=latest_driver_version, arch=arch)
-            dist = self._download(use_link=True)
-            unzip(dist, dest)
-            os.remove(dist)
-
-            if not is_windows():
-                os.chmod(self.tool_path, 0o755)
+            super().install()
 
 
-class GeckoDriver(RequiredTool):
+class ChromeDriver(WebDriver):
+    DRIVER_NAME = 'chromedriver'
+    MANAGER = ChromeDriverManager
 
-    def __init__(self, tool_path="", log=None, **kwargs):
-        self.webdriver_manager = None
-        self.log = log
-        base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
-        if not tool_path:
-            tool_path = os.path.join(base_dir, 'drivers/geckodriver', filename)
-            try:
-                self.webdriver_manager = GeckoDriverManager(path=base_dir, print_first_line=False)
-            except (ValueError, ConnectionError, ProxyError) as err:
-                self.webdriver_manager = None
-                self.log.warning(err)
-        super().__init__(tool_path=tool_path, **kwargs)
 
-    def get_driver_dir(self):
-        return get_full_path(self.tool_path, step_up=1)
-
-    def install(self):
-        dest = self.get_driver_dir()
-        if not os.path.exists(dest):
-            os.makedirs(dest)
-
-        self.log.info(f"Will install {self.tool_name} into {self.tool_path}")
-        if self.webdriver_manager:
-            driver_path = self.webdriver_manager.install()
-            shutil.copy2(driver_path, dest)
-        else:
-            download_link = \
-                "https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}"
-            latest_driver_version = requests.get(
-                "https://api.github.com/repos/mozilla/geckodriver/releases/latest").json()["name"]
-
-            if is_windows():
-                arch = 'win64'
-                ext = 'zip'
-            elif is_mac():
-                arch = 'macos'
-                ext = 'tar.gz'
-            else:
-                arch = 'linux32' if platform_bitness() == 32 else 'linux64'
-                ext = 'tar.gz'
-
-            self.download_link = download_link.format(version=latest_driver_version, arch=arch, ext=ext)
-            dist = self._download(use_link=True)
-            if self.download_link.endswith('.zip'):
-                self.log.info("Unzipping %s to %s", dist, dest)
-                unzip(dist, dest)
-            else:
-                self.log.info("Untaring %s to %s", dist, dest)
-                untar(dist, dest)
-            os.remove(dist)
-
-            if not is_windows():
-                os.chmod(self.tool_path, 0o755)
+class GeckoDriver(WebDriver):
+    DRIVER_NAME = 'geckodriver'
+    MANAGER = GeckoDriverManager
