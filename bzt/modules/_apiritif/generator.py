@@ -113,6 +113,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.options import ArgOptions
 """
 
     BY_TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText", "byElement", "byShadow")
@@ -1180,7 +1181,7 @@ from selenium.webdriver.common.keys import Keys
                 options.extend([ast.Assign(
                     targets=[ast.Name(id="options")],
                     value=ast_call(
-                        func=ast_attr("webdriver.ArgOptions")))])
+                        func=ast_attr("ArgOptions")))])
 
         for opt in self.executor.settings.get(self.OPTIONS):
             if opt == "ignore-proxy":
