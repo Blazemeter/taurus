@@ -2,7 +2,6 @@ import os
 import sys
 import tempfile
 
-import bzt.utils
 from bzt import TaurusConfigError
 from bzt.modules import ConsolidatingAggregator
 from bzt.modules.aggregator import DataPoint, KPISet

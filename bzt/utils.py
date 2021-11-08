@@ -58,7 +58,6 @@ from webbrowser import GenericBrowser
 import psutil
 import requests
 import requests.adapters
-import selenium
 from lxml import etree
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from requests.exceptions import ReadTimeout
@@ -286,10 +285,6 @@ def get_bytes_count(str_bytes):
         msg = "String contains unsupported unit %s: %s"
         raise TaurusConfigError(msg % (unit, str_bytes))
     return result
-
-
-def is_selenium_4():
-    return LooseVersion(selenium.__version__) >= LooseVersion('4')
 
 
 class BetterDict(defaultdict):
@@ -1087,11 +1082,11 @@ def shutdown_process(process_obj, log_obj, send_sigterm=True):
             break
 
         if count < time_limit and not send_sigterm:
-            continue    # time for sigterm, but it isn't supported (unhandled)
+            continue  # time for sigterm, but it isn't supported (unhandled)
         elif count == time_limit and not is_windows():
-            kill_signal = signal.SIGKILL    # send KILL to program on linux/mac
+            kill_signal = signal.SIGKILL  # send KILL to program on linux/mac
         else:
-            kill_signal = signal.SIGTERM    # KILL doesn't supported on win, send TERM instead
+            kill_signal = signal.SIGTERM  # KILL doesn't supported on win, send TERM instead
 
         msg = "Terminating process PID %s with signal %s (%s tries left)"
         log_obj.info(msg, process_obj.pid, kill_signal, time_limit - count)

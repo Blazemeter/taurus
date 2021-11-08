@@ -26,8 +26,8 @@ class TestEngine(BZTestCase):
         super(TestEngine, self).setUp()
         self.obj = EngineEmul()
         self.paths = local_paths_config()
-        bzt.modules._selenium.ChromeDriverManager = MockDriverManager
-        bzt.modules._selenium.GeckoDriverManager = MockDriverManager
+        bzt.modules._selenium.ChromeDriver = MockDriverManager
+        bzt.modules._selenium.GeckoDriver = MockDriverManager
 
     def test_find_file(self):
         self.sniff_log(self.obj.log)
