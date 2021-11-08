@@ -40,6 +40,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
+            bzt.modules._selenium.Selenium.version = "3"
             self.obj.prepare()
         finally:
             bzt.modules._apiritif.executor.Apiritif = tmp_tool
@@ -187,6 +188,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
+            bzt.modules._selenium.Selenium.version = "3"
             self.obj.prepare()
         finally:
             bzt.modules._apiritif.executor.Apiritif = tmp_tool
@@ -202,6 +204,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
+            bzt.modules._selenium.Selenium.version = "3"
             self.obj.runner.prepare()
         finally:
             bzt.modules._apiritif.executor.Apiritif = tmp_tool
@@ -213,7 +216,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         :return:
         """
         self.configure({EXEC: {"executor": "selenium"}})
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj_prepare)
 
     def test_various_raise(self):
         self.configure({  # RuntimeError when
@@ -224,7 +227,7 @@ class TestSeleniumStuff(SeleniumTestCase):
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/not_found"}
             }]})
-        self.assertRaises(ToolError, self.obj.prepare)
+        self.assertRaises(ToolError, self.obj_prepare)
 
     def test_empty_test_methods(self):
         self.configure({  # Test exact number of tests when
@@ -277,8 +280,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEqual(0, len(resources))
 
     def test_dont_copy_local_script_to_artifacts(self):
-        "ensures that .java file is not copied into artifacts-dir"
-        filename = "BlazeDemo.java"
+        filename = "BlazeDemo.java"  # ensures that .java file is not copied into artifacts-dir
         script_path = RESOURCES_DIR + "" + filename
         self.obj.execution.merge({
             "scenario": {

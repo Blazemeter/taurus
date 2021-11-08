@@ -20,12 +20,12 @@ class TestPipInstaller(BZTestCase):
         super(TestPipInstaller, self).setUp()
         self.obj = PipInstaller()
         self.obj.engine = EngineEmul()
+        self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
     def test_install(self):
         self.sniff_log(self.obj.log)
         self.obj.parameters['packages'] = ['test-package']
         self.obj.versions['test-package'] = "0.0.0"
-        self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
 
         self.obj.prepare()
         self.assertEqual(self.obj.packages, ['test-package'])
@@ -38,7 +38,6 @@ class TestPipInstaller(BZTestCase):
 
     def test_versions(self):
         self.obj.parameters['packages'] = ['one', 'two==2', {'name': 'three'}, {'name': 'four', 'version': '4'}]
-        self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
         self.obj.prepare()
 
         self.assertEqual(self.obj.packages, ['one', 'two', 'three', 'four'])
@@ -46,11 +45,13 @@ class TestPipInstaller(BZTestCase):
 
     def test_packages_installation(self):
         self.obj.parameters['packages'] = ['not-installed', 'new-version==1', 'installed==0']
-        self.obj.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
         self.obj.prepare()
 
         self.assertEqual(self.obj.packages, ['not-installed', 'new-version'])
         self.assertEqual(self.obj.versions, {'new-version': '1'})
+
+    def test_get_version(self):
+        self.assertEqual(self.obj.get_version('installed'), "0")
 
 
 class TestPythonTool(BZTestCase):
@@ -83,6 +84,12 @@ class TestPythonTool(BZTestCase):
 
         self.obj = self.PythonToolExample(engine=self.engine, settings={"version": "0.0.0"})
         self.assertEqual(self.obj.installer.temp, True)
+
+    def test_get_version(self):
+        self.obj = self.PythonToolExample(engine=self.engine, settings={})
+        self.obj.installer.pip_cmd = [join(RESOURCES_DIR, "python-pip", 'python-pip' + EXE_SUFFIX)]
+        self.obj.PACKAGES = ['installed']
+        self.assertEqual(self.obj.get_version(), "0")
 
 
 class TestZipFolder(BZTestCase):

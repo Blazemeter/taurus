@@ -22,13 +22,12 @@ from collections import OrderedDict
 from urllib import parse
 
 import astunparse
-import selenium
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
 from bzt.requests_model import IncludeScenarioBlock, SetUpBlock, TearDownBlock
-from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, is_selenium_4
+from bzt.utils import iteritems, dehumanize_time, ensure_is_dict
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, gen_try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
 
@@ -130,9 +129,9 @@ from selenium.webdriver.common.keys import Keys
     FINALLY_MARKER = 'finally'
     OPTIONS = 'options'
 
-    def __init__(self, scenario, label, wdlog=None, executor=None,
-                 ignore_unknown_actions=False, generate_markers=None,
-                 capabilities=None, wd_addr=None, test_mode="selenium", generate_external_handler=False):
+    def __init__(self, scenario, label, wdlog=None, executor=None, ignore_unknown_actions=False,
+                 generate_markers=None, capabilities=None, wd_addr=None, test_mode="selenium",
+                 generate_external_handler=False, selenium_version=None):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -143,6 +142,7 @@ from selenium.webdriver.common.keys import Keys
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(parent_log=self.log)
         self.service_methods = []
+        self.selenium_version = selenium_version
 
         self.remote_address = wd_addr
         self.capabilities = capabilities or {}
@@ -1040,7 +1040,7 @@ from selenium.webdriver.common.keys import Keys
 
         if self.OPTIONS in self.executor.settings:
             self.log.debug(f'Generating selenium option {self.executor.settings.get(self.OPTIONS)}. '
-                           f'Browser {browser}. Selenium version {selenium.__version__}')
+                           f'Browser {browser}. Selenium version {self.selenium_version}')
             options.extend(self._get_selenium_options(browser))
 
         return options
@@ -1166,17 +1166,17 @@ from selenium.webdriver.common.keys import Keys
     def _get_selenium_options(self, browser):
         options = []
 
-        if not is_selenium_4():
+        if not self.selenium_version.startswith("4"):
             old_version = True
             if browser != 'firefox' and browser != 'chrome':
                 self.log.warning(f'Selenium options are not supported. '
-                                 f'Browser {browser}. Selenium version {selenium.__version__}')
+                                 f'Browser {browser}. Selenium version {self.selenium_version}')
                 return []
         else:
             old_version = False
             if browser != 'firefox' and browser != 'chrome':
                 self.log.debug(
-                    f'Generating selenium options. Browser {browser}. Selenium version {selenium.__version__}')
+                    f'Generating selenium options. Browser {browser}. Selenium version {self.selenium_version}')
                 options.extend([ast.Assign(
                     targets=[ast.Name(id="options")],
                     value=ast_call(

@@ -4,9 +4,11 @@ import ast
 import astunparse
 import os
 
+import bzt
 import bzt.utils
+import bzt.modules._apiritif.generator
+import bzt.modules._selenium
 from bzt import TaurusConfigError
-from bzt.modules._apiritif.generator import is_selenium_4
 from tests.unit import RESOURCES_DIR
 from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool
 
@@ -16,6 +18,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
+            bzt.modules._selenium.Selenium.version = "3"
             self.obj.prepare()
         finally:
             bzt.modules._apiritif.executor.Apiritif = tmp_tool
@@ -2453,15 +2456,11 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
 
 class TestIsSelenium4(SeleniumTestCase):
-    def setUp(self):
-        super(TestIsSelenium4, self).setUp()
-        self.store = bzt.modules._apiritif.generator.is_selenium_4
-        bzt.modules._apiritif.generator.is_selenium_4 = lambda: True
-
     def obj_prepare(self):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
+            bzt.modules._selenium.Selenium.version = "4"
             self.obj.prepare()
         finally:
             bzt.modules._apiritif.executor.Apiritif = tmp_tool
@@ -2541,7 +2540,3 @@ class TestIsSelenium4(SeleniumTestCase):
         ]
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
-
-    def tearDown(self):
-        bzt.modules._apiritif.generator.is_selenium_4 = self.store
-        super(TestIsSelenium4, self).tearDown()
