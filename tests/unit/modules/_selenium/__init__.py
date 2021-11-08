@@ -74,5 +74,6 @@ class MockDriverManager:
         self.driver = MockDriver()
         pass
 
-    def install(self):
-        pass
+    @staticmethod
+    def install():
+        return ""
