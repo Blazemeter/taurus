@@ -5,12 +5,13 @@ import sys
 import yaml
 
 import bzt
+import bzt.modules._apiritif
 from bzt import TaurusConfigError
 from bzt.engine import Configuration, EXEC
 from bzt.modules._selenium import SeleniumExecutor
 from bzt.utils import BetterDict, is_windows, get_full_path, get_uniq_name, communicate
 from tests.unit import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase, TEST_DIR, EngineEmul
-from tests.unit.modules._selenium import MockDriver
+from tests.unit.modules._selenium import MockDriver, MockPythonTool
 
 
 class MockClient(object):
@@ -28,6 +29,8 @@ class TestEngine(BZTestCase):
         self.paths = local_paths_config()
         bzt.modules._selenium.ChromeDriver = MockDriver
         bzt.modules._selenium.GeckoDriver = MockDriver
+        bzt.modules._selenium.Selenium = MockPythonTool
+        bzt.modules._apiritif.executor.Selenium = MockPythonTool
 
     def test_find_file(self):
         self.sniff_log(self.obj.log)
