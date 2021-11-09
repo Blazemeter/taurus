@@ -794,6 +794,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
     :type underlings: list[bzt.modules.aggregator.ResultsProvider]
     """
+    OVERALL_LABEL = ""
 
     # TODO: switch to underling-count-based completeness criteria
     def __init__(self):
@@ -814,8 +815,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         return data
 
-    @staticmethod
-    def __extend_reported_data(kpi_sets):
+    def __extend_reported_data(self, kpi_sets):
         def add_kpi_set_to_state(destination, _state):
             # add kpi_set to data[<label>][<_state>] value
             if _state not in destination:
@@ -824,23 +824,26 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 destination[_state].merge_kpis(kpi_set)  # deepcopy inside
                 destination[_state].recalculate()
 
+        overall_label = self.settings.get('overall-label', self.OVERALL_LABEL)
         data = kpi_sets['current']
-        data[''] = dict()
-        for key in set(data.keys()) - {''}:
+        del data['']    # remove prev overall
+        mixed_labels = list(data.keys())    # take mixed_labels only (list of keys will be changed)
+        data[overall_label] = dict()
+        for key in mixed_labels:
             sep = key.rindex('-')
             original_label, state = key[:sep], key[sep + 1:]
             kpi_set = data.pop(key)
             if original_label not in data:
                 data[original_label] = dict()
 
-            add_kpi_set_to_state(data[''], '')
-            add_kpi_set_to_state(data[original_label], '')
-            add_kpi_set_to_state(data[''], state)
+            add_kpi_set_to_state(data[overall_label], overall_label)
+            add_kpi_set_to_state(data[original_label], overall_label)
+            add_kpi_set_to_state(data[overall_label], state)
             add_kpi_set_to_state(data[original_label], state)
 
             for agg_state in AGGREGATED_STATES:
                 if state in agg_state:
-                    add_kpi_set_to_state(data[''], agg_state)
+                    add_kpi_set_to_state(data[overall_label], agg_state)
                     add_kpi_set_to_state(data[original_label], agg_state)
 
     def prepare(self):
