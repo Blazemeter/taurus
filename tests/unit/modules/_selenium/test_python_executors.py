@@ -5,7 +5,6 @@ import yaml
 
 from platform import python_version
 from unittest import skipIf
-from apiritif import put_into_thread_store
 
 import bzt
 from bzt.engine import EXEC
@@ -18,31 +17,6 @@ from bzt.modules.robot import RobotExecutor
 from tests.unit import RESOURCES_DIR, ExecutorTestCase
 from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool, MockDriver
 from bzt.utils import EXE_SUFFIX, is_windows
-from bzt.resources.selenium_extras import BYS
-
-
-class MockWebDriver(object):
-    def __init__(self, content, timeout=60):
-        self.content = []
-        for element in content:
-            key, val = list(element.items())[0]
-            self.content.append((BYS[key.lower()], val))
-        self.timeout = timeout
-        self.waiting_time = 0
-        self.executed_script = None
-
-    def implicitly_wait(self, timeout):
-        self.timeout = timeout
-
-    def find_elements(self, *target):
-        self.waiting_time += self.timeout
-        return [element for element in self.content if element == target]
-
-    def find_element_by_css_selector(self, *target):
-        return self.find_elements(target)
-
-    def execute_script(self, script, *args):
-        self.executed_script = script
 
 
 class TestSeleniumApiritifRunner(SeleniumTestCase):
