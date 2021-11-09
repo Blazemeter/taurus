@@ -164,6 +164,8 @@ class TestConsolidatingAggregator(BZTestCase):
         #     '': <the same states>} # end of 'current' record
         # ...}
         self.obj.settings['extend-aggregation'] = True
+        overall_label = 'all_labels'
+        self.obj.settings['overall-label'] = overall_label
         reader = MockReader()
         watcher = MockListener()
         watcher.engine = self.obj.engine
@@ -177,7 +179,7 @@ class TestConsolidatingAggregator(BZTestCase):
         reader.data.append((3, "d", 1, 5, 5, 5, '200', None, '', 5))
         reader.data.append((5, "b", 1, 6, 6, 6, '200', None, '', 6))
         reader.data.append((5, "c", 1, 7, 7, 7, '200', None, '', 7))
-        original_labels = list(d[1] for d in reader.data) + ['']
+        original_labels = list(d[1] for d in reader.data)
 
         self.obj.add_underling(reader)
         self.obj.add_listener(watcher)
@@ -189,11 +191,11 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.post_process()
 
         self.assertEqual(4, len(watcher.results))
-        allowed_states = set(SAMPLE_STATES + AGGREGATED_STATES + ('',))
+        allowed_states = set(SAMPLE_STATES + AGGREGATED_STATES + (overall_label,))
         for dp in watcher.results:
             written_kpis = dp['current']
             for label in written_kpis:
-                self.assertIn(label, original_labels, f"Wrong original label: {label}")
+                self.assertIn(label, original_labels + [overall_label], f"Wrong original label: {label}")
                 for state in written_kpis[label].keys():
                     self.assertIn(state, allowed_states, f"Wrong state '{state}' for label '{label}'")
 
