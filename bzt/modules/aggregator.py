@@ -794,7 +794,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
     :type underlings: list[bzt.modules.aggregator.ResultsProvider]
     """
-    OVERALL_LABEL = ""
+    OVERALL_STATE = "all_transactions_aggregated"
 
     # TODO: switch to underling-count-based completeness criteria
     def __init__(self):
@@ -816,7 +816,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         return data
 
     def __extend_reported_data(self, kpi_sets):
-        def add_kpi_set_to_state(destination, _state):
+        def add_kpi_set_to_state(destination, _state=self.OVERALL_STATE):
             # add kpi_set to data[<label>][<_state>] value
             if _state not in destination:
                 destination[_state] = copy.deepcopy(kpi_set)  # avoid merging kpis for first sample
@@ -824,10 +824,9 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 destination[_state].merge_kpis(kpi_set)  # deepcopy inside
                 destination[_state].recalculate()
 
-        overall_label = self.settings.get('overall-label', self.OVERALL_LABEL)
         data = kpi_sets['current']
-        del data['']    # remove prev overall
-        mixed_labels = list(data.keys())    # take mixed_labels only (list of keys will be changed)
+        overall_label = ''
+        mixed_labels = set(data.keys()) - {overall_label}
         data[overall_label] = dict()
         for key in mixed_labels:
             sep = key.rindex('-')
@@ -836,8 +835,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             if original_label not in data:
                 data[original_label] = dict()
 
-            add_kpi_set_to_state(data[overall_label], overall_label)
-            add_kpi_set_to_state(data[original_label], overall_label)
+            add_kpi_set_to_state(data[overall_label])
+            add_kpi_set_to_state(data[original_label])
             add_kpi_set_to_state(data[overall_label], state)
             add_kpi_set_to_state(data[original_label], state)
 
