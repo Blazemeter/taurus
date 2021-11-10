@@ -49,6 +49,7 @@ class SeleniumTestCase(ExecutorTestCase):
 class MockPythonTool(RequiredTool):
     tool_name = "MockPythonTool"
     version = ""
+    called = False
 
     def __init__(self, engine, settings, **kwargs):
         pass
@@ -57,7 +58,7 @@ class MockPythonTool(RequiredTool):
         return False
 
     def install(self):
-        pass
+        self.called = True
 
     def get_version(self):
         return self.version

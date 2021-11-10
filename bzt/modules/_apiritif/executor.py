@@ -40,6 +40,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
         self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
         self.apiritif = None
         self.selenium = None
+        self.test_mode = None
 
     def resource_files(self):
         files = super(ApiritifNoseExecutor, self).resource_files()
@@ -62,6 +63,13 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
         super(ApiritifNoseExecutor, self).prepare()
         self.install_required_tools()
         self.script = self.get_script_path()
+
+        self.test_mode = self.execution.get("test-mode", "apiritif")
+        if self.test_mode != "apiritif":
+            self.selenium = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
+            if not self.selenium.check_if_installed():
+                self.selenium.install()
+
         if not self.script:
             if "requests" in self.get_scenario():
                 self.script = self.__tests_from_requests()
@@ -82,11 +90,10 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
-        test_mode = self.execution.get("test-mode", "apiritif")
         scenario = self.get_scenario()
 
-        if test_mode == "apiritif":
-            builder = ApiritifScriptGenerator(scenario, self.label, executor=self, test_mode=test_mode)
+        if self.test_mode == "apiritif":
+            builder = ApiritifScriptGenerator(scenario, self.label, executor=self, test_mode=self.test_mode)
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
@@ -109,9 +116,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
             capabilities = get_assembled_value(configs, "capabilities")
             remote = get_assembled_value(configs, "remote")
 
-            self.selenium = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
-            if not self.selenium.check_if_installed():
-                self.selenium.install()
             selenium_version = self.selenium.get_version()
 
             builder = ApiritifScriptGenerator(
@@ -119,7 +123,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
                 ignore_unknown_actions=self.settings.get("ignore-unknown-actions", False),
                 generate_markers=generate_markers,
                 capabilities=capabilities,
-                wd_addr=remote, test_mode=test_mode,
+                wd_addr=remote, test_mode=self.test_mode,
                 generate_external_handler=True if self.settings.get('plugins-path', False) else False,
                 selenium_version=selenium_version)
 
