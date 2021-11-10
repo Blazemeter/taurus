@@ -364,19 +364,23 @@ class AppiumLoader(Service):
         self.appium_process = None
         self.tool_path = ''
         self.tools_dir = "~/.bzt/selenium-taurus/appium-server"
+        self.default_path = None
         self.startup_timeout = None
         self.addr = ''
         self.port = ''
         self.stdout = None
         self.stderr = None
         self.appium = None
+        self.appium_server = None
 
     def prepare(self):
         self.startup_timeout = self.settings.get('timeout', 30)
         self.addr = self.settings.get('addr', '127.0.0.1')
         self.port = self.settings.get('port', 4723)
         self.tool_path = self.settings.get('path', 'appium')
-        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
+        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
+        self.default_path = os.path.join(self.tools_dir, "node_modules/.bin/appium")
+        self.env.add_path({"NODE_PATH": os.path.join(self.tools_dir, "node_modules")})
 
         self.install_required_tools()
 
@@ -384,18 +388,19 @@ class AppiumLoader(Service):
         node = Node(env=self.env, log=self.log)
         npm = NPM(env=self.env, log=self.log)
         self.appium = Appium(engine=self.engine, settings=self.settings, log=self.log)
-        appium_server = AppiumServer(tools_dir=self.tools_dir, node_tool=node, npm_tool=npm)
-
-        required_tools = [node, npm, JavaVM(log=self.log), self.appium, appium_server]
+        self.appium_server = AppiumServer(path=self.tool_path, def_path=self.default_path, tools_dir=self.tools_dir,
+                                          node_tool=node, npm_tool=npm)
+        required_tools = [node, npm, JavaVM(log=self.log), self.appium, self.appium_server]
         for tool in required_tools:
             if not tool.check_if_installed():
                 tool.install()
 
     def startup(self):
         self.log.debug('Starting Appium...')
-        self.stdout = open(os.path.join(self.engine.artifacts_dir, 'appium.out'), 'ab')
-        self.stderr = open(os.path.join(self.engine.artifacts_dir, 'appium.err'), 'ab')
-        self.appium_process = shell_exec([self.tool_path], stdout=self.stdout, stderr=self.stderr)
+        self.stdout = open(os.path.join(self.engine.artifacts_dir, 'appium.out'), 'wt')
+        self.stderr = open(os.path.join(self.engine.artifacts_dir, 'appium.err'), 'wt')
+        self.appium_process = shell_exec([self.appium_server.tool_path, "--log-no-colors"],
+                                         stdout=self.stdout, stderr=self.stderr)
 
         start_time = time.time()
         while not self.tool_is_started():
@@ -440,6 +445,31 @@ class Appium(PythonTool):
 
 class AppiumServer(NPMPackage):
     PACKAGE_NAME = "appium@1.22.0"
+
+    def __init__(self, path=None, def_path=None, **kwargs):
+        super(AppiumServer, self).__init__(**kwargs)
+        self.tool_path = path
+        self.default_path = def_path
+
+    def check_if_installed(self):
+        self.log.debug("Trying %s...", self.tool_name)
+        if not self._check_path(self.tool_path):
+            self.tool_path = self.default_path
+            return self._check_path(self.default_path)
+        return True
+
+    def _check_path(self, path):
+        cmd = [path, '--version']
+        try:
+            out, err = exec_and_communicate(cmd)
+        except CALL_PROBLEMS as exc:
+            self.log.debug("Failed to check %s: %s", self.tool_name, exc)
+            return False
+
+        if err:
+            out += err
+        self.log.debug("%s output: %s", self.tool_name, out)
+        return True
 
 
 class AndroidEmulator(RequiredTool):

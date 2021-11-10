@@ -5,14 +5,17 @@ import sys
 import zipfile
 from os.path import join
 
+import bzt.modules.services
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules._locustio import LocustIOExecutor
 from bzt.modules.blazemeter import CloudProvisioning
+from bzt.modules.javascript import NPM
 from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller, PythonTool
 from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node, is_windows
 from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
 from tests.unit.mocks import ModuleMock, BZMock
+from tests.unit.modules._selenium import MockPythonTool
 
 
 class TestPipInstaller(BZTestCase):
@@ -314,18 +317,20 @@ class TestAppiumLoader(BZTestCase):
         self.appium.engine = engine
         self.appium.settings = engine.config['services']['appium-loader']
         self.check_if_node_installed = Node.check_if_installed
+        self.check_if_npm_installed = NPM.check_if_installed
         self.check_if_java_installed = JavaVM.check_if_installed
         Node.check_if_installed = lambda slf: True
+        NPM.check_if_installed = lambda slf: True
         JavaVM.check_if_installed = lambda slf: True
+        self.tmp_tool = bzt.modules.services.Appium
+        bzt.modules.services.Appium = MockPythonTool
 
     def tearDown(self):
         AppiumLoader.tool_is_started = self.check_if_appium_started
         Node.check_if_installed = self.check_if_node_installed
+        NPM.check_if_installed = self.check_if_node_installed
         JavaVM.check_if_installed = self.check_if_java_installed
-
-    def test_appium_not_installed(self):
-        self.appium.settings['path'] = 'wrong_path'
-        self.assertRaises(ToolError, self.appium.prepare)
+        bzt.modules.services.Appium = self.tmp_tool
 
     def test_appium_full_cycle(self):
         self.create_fake_appium()
