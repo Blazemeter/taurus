@@ -141,7 +141,6 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
 
     def test_check_tools_installed_conf(self):
         self.obj.execution.merge({"scenario": {"requests": ["http://blazedemo.com/"]}})
-        self.obj.engine.aggregator = FunctionalAggregator()
         self.obj_prepare()
         self.assertTrue(self.obj.selenium.called)
         self.assertTrue(self.obj.runner.selenium.called)
@@ -149,7 +148,6 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
 
     def test_check_tools_installed_script(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "selenium/python/"}})
-        self.obj.engine.aggregator = FunctionalAggregator()
         self.obj_prepare()
         self.assertTrue(self.obj.selenium.called)
         self.assertTrue(self.obj.runner.selenium.called)
