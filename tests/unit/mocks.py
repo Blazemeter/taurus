@@ -126,7 +126,6 @@ class EngineEmul(Engine):
         self.was_finalize = False
         self.temp_pythonpath = BUILD_DIR + 'pyinstaller/'
         self.user_pythonpath = self.temp_pythonpath
-
         os.environ['PYTHONPATH'] = self.temp_pythonpath
 
     def dump_config(self):

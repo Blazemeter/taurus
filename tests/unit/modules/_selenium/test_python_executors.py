@@ -118,22 +118,6 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "selenium/python/"}})
         self.assertEqual(len(self.obj.resource_files()), 1)
 
-    # def test_setup_exception(self):  # asks for real selenium
-    #     """
-    #     Do not crash when test's setUp/setUpClass fails
-    #     :return:
-    #     """
-    #     self.obj.execution.merge({"scenario": {
-    #         "script": RESOURCES_DIR + "selenium/python/test_setup_exception.py"
-    #     }})
-    #     self.obj.engine.aggregator = FunctionalAggregator()
-    #     self.obj.prepare()
-    #     self.obj.startup()
-    #     while not self.obj.check():
-    #         time.sleep(self.obj.engine.check_interval)
-    #     diagnostics = "\n".join(self.obj.get_error_diagnostics())
-    #     self.assertIn("Nothing to test", diagnostics)
-
     def test_long_iterations_value(self):
         self.engine.aggregator = ConsolidatingAggregator()
         self.engine.aggregator.engine = self.engine
@@ -154,6 +138,22 @@ class TestSeleniumApiritifRunner(SeleniumTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
+
+    def test_check_tools_installed_conf(self):
+        self.obj.execution.merge({"scenario": {"requests": ["http://blazedemo.com/"]}})
+        self.obj.engine.aggregator = FunctionalAggregator()
+        self.obj_prepare()
+        self.assertTrue(self.obj.selenium.called)
+        self.assertTrue(self.obj.runner.selenium.called)
+        self.assertTrue(self.obj.runner.apiritif.called)
+
+    def test_check_tools_installed_script(self):
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "selenium/python/"}})
+        self.obj.engine.aggregator = FunctionalAggregator()
+        self.obj_prepare()
+        self.assertTrue(self.obj.selenium.called)
+        self.assertTrue(self.obj.runner.selenium.called)
+        self.assertTrue(self.obj.runner.apiritif.called)
 
 
 class TestApiritifRunner(ExecutorTestCase):
