@@ -352,6 +352,15 @@ class TestAppiumLoader(BZTestCase):
         for message in debug_messages:
             self.assertIn(message, self.log_recorder.debug_buff.getvalue())
 
+    def test_appium_not_installed(self):
+        self.sniff_log(self.log)
+        self.appium.settings['path'] = 'wrong_path'
+        self.appium.settings['tools-dir'] = RESOURCES_DIR  # + 'appium' + EXE_SUFFIX
+        self.appium.prepare()
+
+        self.assertEqual(self.appium.appium_server.tool_path, self.appium.appium_server.default_path)
+        self.assertIn("Failed to check AppiumServer", self.log_recorder.debug_buff.getvalue())
+
     def create_fake_appium(self):
         src_dir = RESOURCES_DIR + 'appium'
         dest_dir = self.appium.engine.artifacts_dir
