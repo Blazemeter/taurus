@@ -9,11 +9,13 @@ from random import random
 
 import requests
 
+from bzt.engine import Engine, Configuration, Singletone, Service
+from bzt.engine import Provisioning, Reporter, ScenarioExecutor
 from bzt.modules import TransactionListener
-from bzt.modules.aggregator import DataPoint, KPISet, ResultsReader, AggregatorListener, ConsolidatingAggregator
+from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregatorListener
 from bzt.utils import b, load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows, temp_file
-from bzt.engine import Engine, Configuration, Singletone, Service, Provisioning, Reporter, ScenarioExecutor
 
 from tests.unit.base import TEST_DIR, ROOT_LOGGER, BUILD_DIR
 
@@ -253,18 +255,6 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, Service):
 
     def get_error_diagnostics(self):
         return ['DIAGNOSTICS']
-
-
-class MockListener(Reporter, AggregatorListener):
-    def __init__(self):
-        super(MockListener, self).__init__()
-        self.results = []
-
-    def aggregated_second(self, data):
-        aggregator = self.engine.aggregator
-        if isinstance(aggregator, ConsolidatingAggregator):
-            data = aggregator.converter(data)
-        self.results.append(data)
 
 
 class MockReader(ResultsReader, AggregatorListener):
