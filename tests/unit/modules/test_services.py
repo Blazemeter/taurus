@@ -355,7 +355,7 @@ class TestAppiumLoader(BZTestCase):
     def test_appium_not_installed(self):
         self.sniff_log(self.log)
         self.appium.settings['path'] = 'wrong_path'
-        self.appium.settings['tools-dir'] = RESOURCES_DIR  # + 'appium' + EXE_SUFFIX
+        self.appium.settings['tools-dir'] = RESOURCES_DIR
         self.appium.prepare()
 
         self.assertEqual(self.appium.appium_server.tool_path, self.appium.appium_server.default_path)
