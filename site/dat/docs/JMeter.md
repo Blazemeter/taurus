@@ -140,7 +140,7 @@ You can specify special cli options for JMeter, for example:
 ```yaml
 modules:
   jmeter:
-    cmdline: --loglevel DEBUG  # This feature is only available in the unstable snapshot.
+    cmdline: --loglevel DEBUG
 ```
 
 ## Run JMeter in Distributed Mode
