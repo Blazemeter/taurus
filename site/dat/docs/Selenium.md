@@ -221,7 +221,7 @@ modules:
 ## Appium
 
 [Appium](http://appium.io) is a tool for testing native mobile applications.
-Taurus supports only Python scripts for Appium in Selenium executor. Additionally, you can use taurus services to run
+Taurus supports only Python scripts for Appium in Selenium executor. Additionally, you can use Taurus services to run
 [Appium server](Services.md#Appium-Loader) and [Android emulator](Services.md#Android-Emulator-Loader).
 Here is a typical example of usage:
 

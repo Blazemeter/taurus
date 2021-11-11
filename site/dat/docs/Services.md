@@ -118,7 +118,7 @@ Example of blacklisting: `bzt -install-tools -o modules.install-checker.exclude=
 ## Appium Loader
 
 Useful for start or stop [Appium](http://appium.io) server automatically. This service can be 
-automatically installed, so you have to only install NodeJS beforehand. Also, you can specify path to 
+automatically installed, so you have to only install NodeJS and NPM beforehand. Also, you can specify path to 
 Appium through the appropriate setting:
 
 ```yaml
