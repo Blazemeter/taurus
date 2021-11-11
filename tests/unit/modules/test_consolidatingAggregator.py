@@ -1,11 +1,12 @@
+import os
+import json
 from random import random, choice
 
 from apiritif import random_string
-from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, SAMPLE_STATES, AGGREGATED_STATES
+from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.utils import to_json, BetterDict
 from tests.unit import BZTestCase, EngineEmul
-
-from tests.unit.mocks import r, MockReader, MockListener
+from tests.unit.mocks import r, MockReader
 
 
 def get_success_reader(offset=0):
@@ -119,22 +120,21 @@ class TestConsolidatingAggregator(BZTestCase):
         super(TestConsolidatingAggregator, self).setUp()
         self.obj = ConsolidatingAggregator()
         self.obj.engine = EngineEmul()
-        self.obj.engine.aggregator = self.obj
 
-    def test_extend_data_avg(self):
+    def test_extend_data(self):
         self.obj.settings['extend-aggregation'] = True
         reader = MockReader()
         watcher = MockReader()
 
         reader.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        reader.data.append((1, "a", 1, 1, 1, 1, '200', None, '', 1))
-        reader.data.append((2, "b", 1, 2, 2, 2, '200', 'OK', '', 2))
-        reader.data.append((2, "b", 1, 3, 3, 3, '404', "Not Found", '', 3))
-        reader.data.append((2, "c", 1, 4, 4, 4, '200', None, '', 4))
-        reader.data.append((3, "d", 1, 5, 5, 5, '200', None, '', 5))
-        reader.data.append((5, "b", 1, 6, 6, 6, '200', None, '', 6))
-        reader.data.append((5, "c", 1, 7, 7, 7, '200', None, '', 7))
+        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 1))
+        reader.data.append((2, "b", 1, 2, 2, 2, 200, 'OK', '', 2))
+        reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 3))
+        reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 4))
+        reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 5))
+        reader.data.append((5, "b", 1, 6, 6, 6, 200, None, '', 6))
+        reader.data.append((5, "c", 1, 7, 7, 7, 200, None, '', 7))
 
         self.obj.add_underling(reader)
         self.obj.add_listener(watcher)
@@ -151,51 +151,6 @@ class TestConsolidatingAggregator(BZTestCase):
 
         b, c, overall = (converted_data[-1]["current"][key]["success"]["avg_rt"] for key in ("b", "c", ""))
         self.assertEqual(overall, (b + c) / 2.0)
-
-    def test_extend_data(self):
-        # test migrated from taurus-cloud (LDJSONExtractor tests)
-        # check aggregated results for the following hierarchy:
-        # {...
-        #   'current': {
-        #     <label>:
-        #       {'success':{..}, 'http_errors':{..}, 'jmeter_errors':{..},
-        #        'success_jmeter_errors':{..}, 'http_errors_jmeter_errors':{..}, 'success_http_errors':{..},
-        #        '':{..}}},
-        #     '': <the same states>} # end of 'current' record
-        # ...}
-        self.obj.settings['extend-aggregation'] = True
-        reader = MockReader()
-        watcher = MockListener()
-        watcher.engine = self.obj.engine
-
-        reader.buffer_scale_idx = '100.0'
-        # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        reader.data.append((1, "a", 1, 1, 1, 1, '200', None, '', 1))
-        reader.data.append((2, "b", 1, 2, 2, 2, '200', 'OK', '', 2))
-        reader.data.append((2, "b", 1, 3, 3, 3, '404', "Not Found", '', 3))
-        reader.data.append((2, "c", 1, 4, 4, 4, '200', None, '', 4))
-        reader.data.append((3, "d", 1, 5, 5, 5, '200', None, '', 5))
-        reader.data.append((5, "b", 1, 6, 6, 6, '200', None, '', 6))
-        reader.data.append((5, "c", 1, 7, 7, 7, '200', None, '', 7))
-        original_labels = list(d[1] for d in reader.data)
-
-        self.obj.add_underling(reader)
-        self.obj.add_listener(watcher)
-
-        self.obj.prepare()
-        self.obj.startup()
-        self.obj.check()
-        self.obj.shutdown()
-        self.obj.post_process()
-
-        self.assertEqual(4, len(watcher.results))
-        allowed_states = set(SAMPLE_STATES + AGGREGATED_STATES + (ConsolidatingAggregator.OVERALL_LABEL,))
-        for dp in watcher.results:
-            written_kpis = dp['current']
-            for label in written_kpis:
-                self.assertIn(label, original_labels + [''], f"Wrong original label: {label}")
-                for state in written_kpis[label].keys():
-                    self.assertIn(state, allowed_states, f"Wrong state '{state}' for label '{label}'")
 
     def test_two_executions(self):
         self.obj.track_percentiles = [0, 50, 100]
@@ -233,12 +188,12 @@ class TestConsolidatingAggregator(BZTestCase):
 
         reader.buffer_scale_idx = '100.0'
         # data format: t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        reader.data.append((1, "a", 1, 1, 1, 1, '200', None, '', 0))
-        reader.data.append((2, "b", 1, 2, 2, 2, '200', 'OK', '', 0))
-        reader.data.append((2, "b", 1, 3, 3, 3, '404', "Not Found", '', 0))
-        reader.data.append((2, "c", 1, 4, 4, 4, '200', None, '', 0))
-        reader.data.append((3, "d", 1, 5, 5, 5, '200', None, '', 0))
-        reader.data.append((4, "b", 1, 6, 6, 6, '200', None, '', 0))
+        reader.data.append((1, "a", 1, 1, 1, 1, 200, None, '', 0))
+        reader.data.append((2, "b", 1, 2, 2, 2, 200, 'OK', '', 0))
+        reader.data.append((2, "b", 1, 3, 3, 3, 404, "Not Found", '', 0))
+        reader.data.append((2, "c", 1, 4, 4, 4, 200, None, '', 0))
+        reader.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
+        reader.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
 
         # let's collect data to seconds and send something aggregated to watcher
         self.obj.shutdown()
@@ -362,7 +317,6 @@ class TestConsolidatingAggregator(BZTestCase):
         reader = get_fail_reader()
         self.obj.add_underling(reader)
         listener = MockListener()
-        listener.engine = self.obj.engine
         self.obj.add_listener(listener)
         self.obj.check()
         for dp in listener.results:
@@ -426,3 +380,11 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.post_process()
         self.assertEquals(self.obj.cumulative, {})
 
+
+class MockListener(AggregatorListener):
+    def __init__(self):
+        super(MockListener, self).__init__()
+        self.results = []
+
+    def aggregated_second(self, data):
+        self.results.append(data)

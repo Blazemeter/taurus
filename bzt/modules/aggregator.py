@@ -627,23 +627,15 @@ class ResultsReader(ResultsProvider):
             self.track_percentiles = perc_levels
 
     @staticmethod
-    def get_mixed_label(label, kpis=None, rc=None):
+    def get_label(label, kpis):
         # it is used for generation of extended label.
         # each label data is splitted according to sample state (success/error/assert)
-
-        if rc:  # rc of error (from errors.jtl)
-            if rc == '200':
-                group = SAMPLE_STATES[1]    # jmeter error (assertion, etc.)
-            else:
-                group = SAMPLE_STATES[2]    # http error
+        if kpis[5] is None:
+            group = SAMPLE_STATES[0]   # no errors
+        elif kpis[5] == 'OK':
+            group = SAMPLE_STATES[1]   # jmeter error - assert, timeout, etc.
         else:
-            if kpis[4] == '200':
-                if kpis[5] is None:
-                    group = SAMPLE_STATES[0]    # successed sample
-                else:
-                    group = SAMPLE_STATES[1]  # jmeter error
-            else:
-                group = SAMPLE_STATES[2]  # http error
+            group = SAMPLE_STATES[2]   # other errors, usually RC != 200
 
         return '-'.join((label, str(group)))
 
@@ -716,7 +708,7 @@ class ResultsReader(ResultsProvider):
 
     def __add_sample(self, current, label, kpis):
         if self.redundant_aggregation:
-            label = self.get_mixed_label(label, kpis=kpis)
+            label = self.get_label(label, kpis)
 
         if label not in current:
             current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))
