@@ -189,7 +189,7 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.post_process()
 
         self.assertEqual(4, len(watcher.results))
-        allowed_states = set(SAMPLE_STATES + AGGREGATED_STATES + (ConsolidatingAggregator.OVERALL_STATE,))
+        allowed_states = set(SAMPLE_STATES + AGGREGATED_STATES + (ConsolidatingAggregator.OVERALL_LABEL,))
         for dp in watcher.results:
             written_kpis = dp['current']
             for label in written_kpis:
