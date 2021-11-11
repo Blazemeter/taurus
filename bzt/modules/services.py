@@ -370,7 +370,7 @@ class AppiumLoader(Service):
         self.port = ''
         self.stdout = None
         self.stderr = None
-        self.appium = None
+        self.appium_python = None
         self.appium_server = None
 
     def prepare(self):
@@ -387,10 +387,10 @@ class AppiumLoader(Service):
     def install_required_tools(self):
         node = Node(env=self.env, log=self.log)
         npm = NPM(env=self.env, log=self.log)
-        self.appium = Appium(engine=self.engine, settings=self.settings, log=self.log)
+        self.appium_python = AppiumPython(engine=self.engine, settings=self.settings, log=self.log)
         self.appium_server = AppiumServer(path=self.tool_path, def_path=self.default_path, tools_dir=self.tools_dir,
                                           node_tool=node, npm_tool=npm)
-        required_tools = [node, npm, JavaVM(log=self.log), self.appium, self.appium_server]
+        required_tools = [node, npm, JavaVM(log=self.log), self.appium_python, self.appium_server]
         for tool in required_tools:
             if not tool.check_if_installed():
                 tool.install()
@@ -436,10 +436,10 @@ class AppiumLoader(Service):
             os.remove(_file)
 
     def post_process(self):
-        self.appium.post_process()
+        self.appium_python.post_process()
 
 
-class Appium(PythonTool):
+class AppiumPython(PythonTool):
     PACKAGES = ["Appium-Python-Client"]
 
 

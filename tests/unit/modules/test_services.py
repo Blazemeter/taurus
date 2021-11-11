@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import shutil
 import sys
@@ -311,33 +312,45 @@ class TestAppiumLoader(BZTestCase):
     def setUp(self):
         engine = EngineEmul()
         engine.config.merge({'services': {'appium-loader': {}}})
+        self.log = logging.getLogger('')
+        self.captured_logger = None
+
         self.check_if_appium_started = AppiumLoader.tool_is_started
         AppiumLoader.tool_is_started = lambda slf: True
+        self.check_if_node_installed = Node.check_if_installed
+        Node.check_if_installed = lambda slf: True
+        self.check_if_npm_installed = NPM.check_if_installed
+        NPM.check_if_installed = lambda slf: True
+        self.check_if_java_installed = JavaVM.check_if_installed
+        JavaVM.check_if_installed = lambda slf: True
+        self.appium_python = bzt.modules.services.AppiumPython
+        bzt.modules.services.AppiumPython = MockPythonTool
+
         self.appium = AppiumLoader()
         self.appium.engine = engine
         self.appium.settings = engine.config['services']['appium-loader']
-        self.check_if_node_installed = Node.check_if_installed
-        self.check_if_npm_installed = NPM.check_if_installed
-        self.check_if_java_installed = JavaVM.check_if_installed
-        Node.check_if_installed = lambda slf: True
-        NPM.check_if_installed = lambda slf: True
-        JavaVM.check_if_installed = lambda slf: True
-        self.tmp_tool = bzt.modules.services.Appium
-        bzt.modules.services.Appium = MockPythonTool
+
+        self.create_fake_appium()
 
     def tearDown(self):
         AppiumLoader.tool_is_started = self.check_if_appium_started
         Node.check_if_installed = self.check_if_node_installed
         NPM.check_if_installed = self.check_if_node_installed
         JavaVM.check_if_installed = self.check_if_java_installed
-        bzt.modules.services.Appium = self.tmp_tool
+        bzt.modules.services.AppiumPython = self.appium_python
 
     def test_appium_full_cycle(self):
-        self.create_fake_appium()
+        self.sniff_log(self.log)
+
         self.appium.prepare()
         self.appium.startup()
         self.appium.shutdown()
         self.appium.post_process()
+
+        self.assertIn('Appium was started successfully', self.log_recorder.info_buff.getvalue())
+        debug_messages = ['Trying AppiumServer...', 'Starting Appium...', 'Stopping appium...']
+        for message in debug_messages:
+            self.assertIn(message, self.log_recorder.debug_buff.getvalue())
 
     def create_fake_appium(self):
         src_dir = RESOURCES_DIR + 'appium'
