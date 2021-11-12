@@ -407,7 +407,7 @@ class TestMQTTSamplers(BZTestCase):
         self.assertEqual(config['topic'], sample.find(".//stringProp[@name='mqtt.topic_name']").text)
         self.assertEqual("specified elapsed time (ms)",
                          sample.find(".//stringProp[@name='mqtt.sample_condition']").text)
-        self.assertEqual(str(config['time']*1000),
+        self.assertEqual(str(config['time'] * 1000),
                          sample.find(".//stringProp[@name='mqtt.sample_condition_value']").text)
         self.assertIn('jsr223', request.config)
         jsr223 = request.config.get('jsr223')[0]
