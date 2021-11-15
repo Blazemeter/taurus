@@ -10,7 +10,7 @@ Vegeta does not have so-called "virtual users", but it is very handy because it 
 
 In Taurus, `Vegeta` executor allows to run the load for given duration with specified request rate (throughput) using either existing Vegeta scripts or YAML representation of the HTTP requests.
 
-Vegeta can be auto-installed on Linux and macOS. For Windows manual installation is necessary. _This feature is only available in the [unstable snapshot](https://gettaurus.org/install/Installation/#Unstable-features)._
+Vegeta can be auto-installed on Linux and macOS. For Windows manual installation is necessary.
 
 In order to launch Vegeta executor, you can use yaml config like in the examples below.
 
@@ -52,7 +52,6 @@ scenarios:
 ```
 
 ## Command-line Settings
-_This feature is only available in the [unstable snapshot](https://gettaurus.org/install/Installation/#Unstable-features)._
 You can specify special cli options for Vegeta, for example:
 ```yaml
 modules:

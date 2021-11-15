@@ -75,5 +75,5 @@ specific Apache Benchmark options via `cmdline`:
 modules:
   ab:
     path: /home/john/build/apache2/bin/ab
-    cmdline: -e csv-file  # This feature is only available in the unstable snapshot.
+    cmdline: -e csv-file
 ```
