@@ -29,7 +29,8 @@ from urllib.error import URLError
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import Service, HavingInstallableTools, Singletone
-from bzt.utils import get_stacktrace, communicate, BetterDict, TaurusCalledProcessError
+from bzt.modules.javascript import NPMPackage, NPM
+from bzt.utils import get_stacktrace, communicate, BetterDict, TaurusCalledProcessError, Environment
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node, CALL_PROBLEMS, exec_and_communicate
 
@@ -359,33 +360,47 @@ class AndroidEmulatorLoader(Service):
 class AppiumLoader(Service):
     def __init__(self):
         super(AppiumLoader, self).__init__()
+        self.env = Environment(log=self.log)
         self.appium_process = None
         self.tool_path = ''
+        self.tools_dir = "~/.bzt/selenium-taurus/appium-server"
+        self.default_path = None
         self.startup_timeout = None
         self.addr = ''
         self.port = ''
         self.stdout = None
         self.stderr = None
+        self.appium_python = None
+        self.appium_server = None
 
     def prepare(self):
         self.startup_timeout = self.settings.get('timeout', 30)
         self.addr = self.settings.get('addr', '127.0.0.1')
         self.port = self.settings.get('port', 4723)
         self.tool_path = self.settings.get('path', 'appium')
+        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
+        self.default_path = os.path.join(self.tools_dir, "node_modules/.bin/appium")
+        self.env.add_path({"NODE_PATH": os.path.join(self.tools_dir, "node_modules")})
 
-        required_tools = [Node(log=self.log),
-                          JavaVM(log=self.log),
-                          Appium(tool_path=self.tool_path, log=self.log)]
+        self.install_required_tools()
 
+    def install_required_tools(self):
+        node = Node(env=self.env, log=self.log)
+        npm = NPM(env=self.env, log=self.log)
+        self.appium_python = AppiumPython(engine=self.engine, settings=self.settings, log=self.log)
+        self.appium_server = AppiumServer(path=self.tool_path, def_path=self.default_path, tools_dir=self.tools_dir,
+                                          node_tool=node, npm_tool=npm)
+        required_tools = [node, npm, JavaVM(log=self.log), self.appium_python, self.appium_server]
         for tool in required_tools:
             if not tool.check_if_installed():
                 tool.install()
 
     def startup(self):
-        self.log.debug('Starting appium...')
-        self.stdout = open(os.path.join(self.engine.artifacts_dir, 'appium.out'), 'ab')
-        self.stderr = open(os.path.join(self.engine.artifacts_dir, 'appium.err'), 'ab')
-        self.appium_process = shell_exec([self.tool_path], stdout=self.stdout, stderr=self.stderr)
+        self.log.debug('Starting Appium...')
+        self.stdout = open(os.path.join(self.engine.artifacts_dir, 'appium.out'), 'wt')
+        self.stderr = open(os.path.join(self.engine.artifacts_dir, 'appium.err'), 'wt')
+        self.appium_process = shell_exec([self.appium_server.tool_path, "--log-no-colors"],
+                                         stdout=self.stdout, stderr=self.stderr)
 
         start_time = time.time()
         while not self.tool_is_started():
@@ -420,14 +435,31 @@ class AppiumLoader(Service):
         if not os.stat(_file).st_size:
             os.remove(_file)
 
+    def post_process(self):
+        self.appium_python.post_process()
 
-class Appium(RequiredTool):
-    def __init__(self, **kwargs):
-        super(Appium, self).__init__(installable=False, **kwargs)
+
+class AppiumPython(PythonTool):
+    PACKAGES = ["Appium-Python-Client"]
+
+
+class AppiumServer(NPMPackage):
+    PACKAGE_NAME = "appium@1.22.0"
+
+    def __init__(self, path=None, def_path=None, **kwargs):
+        super(AppiumServer, self).__init__(**kwargs)
+        self.tool_path = path
+        self.default_path = def_path
 
     def check_if_installed(self):
         self.log.debug("Trying %s...", self.tool_name)
-        cmd = [self.tool_path, '--version']
+        if not self._check_path(self.tool_path):
+            self.tool_path = self.default_path
+            return self._check_path(self.default_path)
+        return True
+
+    def _check_path(self, path):
+        cmd = [path, '--version']
         try:
             out, err = exec_and_communicate(cmd)
         except CALL_PROBLEMS as exc:

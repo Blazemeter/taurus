@@ -111,7 +111,7 @@ reporting:
 
 ## Requests Scenario
 
-Selenium executor supports building test script from the `requests` option of `scenario`. Look at [Apiritif executor manual page](Apiritif.md#Request-Scenario) for more information. Note: it that case `test-mode` will be equal `selenium`
+Selenium executor supports building test script from the `requests` option of `scenario`. Look at [Apiritif executor manual page](Apiritif.md#Scenario) for more information. Note: it that case `test-mode` will be equal `selenium`
 
 ## Automatic Installation of Web Driver
 
@@ -221,10 +221,10 @@ modules:
 ## Appium
 
 [Appium](http://appium.io) is a tool for testing native mobile applications.
-Taurus supports only python scripts for appium in Selenium executor. Additionally, you can use taurus services to run
+Taurus supports only Python scripts for Appium in Selenium executor. Additionally, you can use Taurus services to run
 [Appium server](Services.md#Appium-Loader) and [Android emulator](Services.md#Android-Emulator-Loader).
-There is typical example of usage:
- 
+Here is a typical example of usage:
+
 ```yaml
 execution:
 - executor: selenium

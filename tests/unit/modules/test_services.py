@@ -1,18 +1,22 @@
 import json
+import logging
 import os
 import shutil
 import sys
 import zipfile
 from os.path import join
 
+import bzt.modules.services
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules._locustio import LocustIOExecutor
 from bzt.modules.blazemeter import CloudProvisioning
+from bzt.modules.javascript import NPM
 from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller, PythonTool
 from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node, is_windows
 from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
 from tests.unit.mocks import ModuleMock, BZMock
+from tests.unit.modules._selenium import MockPythonTool
 
 
 class TestPipInstaller(BZTestCase):
@@ -308,31 +312,54 @@ class TestAppiumLoader(BZTestCase):
     def setUp(self):
         engine = EngineEmul()
         engine.config.merge({'services': {'appium-loader': {}}})
+        self.log = logging.getLogger('')
+        self.captured_logger = None
+
         self.check_if_appium_started = AppiumLoader.tool_is_started
         AppiumLoader.tool_is_started = lambda slf: True
+        self.check_if_node_installed = Node.check_if_installed
+        Node.check_if_installed = lambda slf: True
+        self.check_if_npm_installed = NPM.check_if_installed
+        NPM.check_if_installed = lambda slf: True
+        self.check_if_java_installed = JavaVM.check_if_installed
+        JavaVM.check_if_installed = lambda slf: True
+        self.appium_python = bzt.modules.services.AppiumPython
+        bzt.modules.services.AppiumPython = MockPythonTool
+
         self.appium = AppiumLoader()
         self.appium.engine = engine
         self.appium.settings = engine.config['services']['appium-loader']
-        self.check_if_node_installed = Node.check_if_installed
-        self.check_if_java_installed = JavaVM.check_if_installed
-        Node.check_if_installed = lambda slf: True
-        JavaVM.check_if_installed = lambda slf: True
+
+        self.create_fake_appium()
 
     def tearDown(self):
         AppiumLoader.tool_is_started = self.check_if_appium_started
         Node.check_if_installed = self.check_if_node_installed
+        NPM.check_if_installed = self.check_if_node_installed
         JavaVM.check_if_installed = self.check_if_java_installed
-
-    def test_appium_not_installed(self):
-        self.appium.settings['path'] = 'wrong_path'
-        self.assertRaises(ToolError, self.appium.prepare)
+        bzt.modules.services.AppiumPython = self.appium_python
 
     def test_appium_full_cycle(self):
-        self.create_fake_appium()
+        self.sniff_log(self.log)
+
         self.appium.prepare()
         self.appium.startup()
         self.appium.shutdown()
         self.appium.post_process()
+
+        self.assertIn('Appium was started successfully', self.log_recorder.info_buff.getvalue())
+        debug_messages = ['Trying AppiumServer...', 'Starting Appium...', 'Stopping appium...']
+        for message in debug_messages:
+            self.assertIn(message, self.log_recorder.debug_buff.getvalue())
+
+    def test_appium_not_installed(self):
+        self.sniff_log(self.log)
+        self.appium.settings['path'] = 'wrong_path'
+        self.appium.settings['tools-dir'] = RESOURCES_DIR
+        self.appium.prepare()
+
+        self.assertEqual(self.appium.appium_server.tool_path, self.appium.appium_server.default_path)
+        self.assertIn("Failed to check AppiumServer", self.log_recorder.debug_buff.getvalue())
 
     def create_fake_appium(self):
         src_dir = RESOURCES_DIR + 'appium'
