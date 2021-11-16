@@ -313,6 +313,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
     def test_TG_iterations_property(self):
         self.configure(jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-property.jmx', settings={'force-ctg': False})
+        self.sniff_log(self.obj.log)
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because keep-iterations is True
         self.obj.modify(self.jmx)
 
@@ -321,6 +322,8 @@ class TestLoadSettingsProcessor(BZTestCase):
             res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'iter': group.get_iterations()}
 
         self.assertEqual(res_values, {'TG': {'conc': 2, 'iter': '${__P(LoopCount,5)}'}})
+        msg = "Parsing loops \'${__P(LoopCount,5)}\' in group \'ThreadGroup\' failed, choose None"
+        self.assertNotIn(msg, self.log_recorder.warn_buff.getvalue())
 
     def test_TG_iterations_from_load(self):
         """ThreadGroup:  concurrency, ramp-up, iterations"""
