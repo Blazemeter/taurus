@@ -312,7 +312,9 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)
 
     def test_TG_iterations_property(self):
-        self.configure(jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-property.jmx', settings={'force-ctg': False})
+        self.configure(load={'hold-for': 1},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-property.jmx',
+                       settings={'force-ctg': False})
         self.sniff_log(self.obj.log)
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because keep-iterations is True
         self.obj.modify(self.jmx)
