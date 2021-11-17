@@ -57,14 +57,12 @@ class AbstractThreadGroup(object):
         if raw:
             return raw_val
 
-        try:
-            return int(raw_val)
-        except (ValueError, TypeError):
-            if isinstance(self, ThreadGroup):
-                return raw_val if raw_val else default
-            msg = "Parsing {param} '{val}' in group '{gtype}' failed, choose {default}"
-            self.log.warning(msg.format(param=name, val=raw_val, gtype=self.gtype, default=default))
-            return default
+        if raw_val:
+            if raw_val.isdigit() or raw_val[1:].isdigit():  # positive or negative number
+                return int(raw_val)
+            else:
+                return raw_val
+        return default
 
     def get_on_error(self):
         selector = ".//stringProp[@name='ThreadGroup.on_sample_error']"
