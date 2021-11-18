@@ -142,6 +142,46 @@ class TestExternalResultsLoader(ExecutorTestCase):
         http_errors_err = [(e['msg'], e['tag']) for e in dp[http_error_label][SAMPLE_STATES[2]][KPISet.ERRORS]]
         self.assertEqual({sample_http_error}, set(http_errors_err))
 
+    def test_sum_of_errors(self):
+        self.configure({
+            "execution": [{
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi-pair1.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/error-pair1.jtl",
+            }]
+        })
+        self.engine.aggregator.settings['extend-aggregation'] = False
+        watcher = MockListener()
+        watcher.engine = self.obj.engine
+
+        self.engine.aggregator.prepare()
+        self.obj.prepare()
+        self.engine.aggregator.add_listener(watcher)
+        self.engine.aggregator.startup()
+        self.obj.startup()
+
+        while not self.obj.check():
+            self.engine.aggregator.check()
+
+        self.obj.shutdown()
+        self.engine.aggregator.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        dp = watcher.results[0]['current']
+
+        assertions = {label: 0 for label in dp}
+        http_errors = {label: 0 for label in dp}
+        for label in dp:
+            for error in dp[label]['errors']:
+                if error['type'] == 1:
+                    assertions[label] += error['cnt']
+                elif error['type'] == 2:
+                    http_errors[label] += error['cnt']
+
+        sum_of_assertions = sum([assertions[label] for label in assertions if label != ''])
+        sum_of_http_errors = sum([http_errors[label] for label in assertions if label != ''])
+        self.assertEqual(sum_of_assertions, assertions[''])
+        self.assertEqual(sum_of_http_errors, sum_of_http_errors[''])
+
     def test_errors_jtl2(self):
         self.configure({
             "execution": [{
