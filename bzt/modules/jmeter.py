@@ -835,8 +835,9 @@ class JTLReader(ResultsReader):
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
         if errors_filename:
+            label_converter = self.get_mixed_label if self.redundant_aggregation else None
             self.errors_reader = JTLErrorsReader(
-                errors_filename, parent_logger, err_msg_separator, self.get_mixed_label)
+                errors_filename, parent_logger, err_msg_separator, label_converter=label_converter)
         else:
             self.errors_reader = None
 

@@ -143,6 +143,9 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.assertEqual({sample_http_error}, set(http_errors_err))
 
     def test_sum_of_errors(self):
+        # get_mixed_label was called even in not extended_aggregation case
+        # it caused lack of error info in label' kpi sets (but overall ('') errors list was correct).
+        # DE520333
         self.configure({
             "execution": [{
                 "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi-pair1.jtl",
@@ -180,7 +183,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         sum_of_assertions = sum([assertions[label] for label in assertions if label != ''])
         sum_of_http_errors = sum([http_errors[label] for label in assertions if label != ''])
         self.assertEqual(sum_of_assertions, assertions[''])
-        self.assertEqual(sum_of_http_errors, sum_of_http_errors[''])
+        self.assertEqual(sum_of_http_errors, http_errors[''])
 
     def test_errors_jtl2(self):
         self.configure({
