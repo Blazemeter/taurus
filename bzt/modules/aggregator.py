@@ -522,6 +522,10 @@ class ResultsProvider(object):
         self.max_error_count = 100
         self.known_labels = fuzzyset.FuzzySet(use_levenshtein=True)
         self.generalize_labels = 100
+        self._redundant_aggregation = False
+
+    def set_aggregation(self, aggregation):
+        self._redundant_aggregation = aggregation
 
     @staticmethod
     def _fuzzy_fold(key, dataset, limit):
@@ -618,7 +622,6 @@ class ResultsReader(ResultsProvider):
     """
     def __init__(self, perc_levels=None):
         super(ResultsReader, self).__init__()
-        self.redundant_aggregation = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
@@ -709,12 +712,12 @@ class ResultsReader(ResultsProvider):
     def _get_suffix(self, label):
         # to collect kpisets to overall sets according to rules result we need to split base label and suffix
         # the suffixes replace '' label in meaning of 'summary result'
-        if self.redundant_aggregation:
+        if self._redundant_aggregation:
             return label[label.rfind('-'):]
         return ''
 
     def __add_sample(self, current, label, kpis):
-        if self.redundant_aggregation:
+        if self._redundant_aggregation:
             label = self.get_mixed_label(label=label, kpis=kpis)
 
         if label not in current:
@@ -806,10 +809,9 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.histogram_max = 5.0
         self._sticky_concurrencies = {}
         self.min_timestamp = None
-        self.redundant_aggregation = False
 
     def converter(self, data):
-        if data and self.redundant_aggregation:
+        if data and self._redundant_aggregation:
             self.__extend_reported_data(data)
 
         return data
@@ -856,7 +858,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.track_percentiles.sort()
         self.settings["percentiles"] = self.track_percentiles
         
-        self.redundant_aggregation = self.settings.get('extend-aggregation')
+        self.set_aggregation(self.settings.get('extend-aggregation'))
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
@@ -892,7 +894,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         # send rules to underlings
         for underling in self.underlings:
-            underling.redundant_aggregation = self.redundant_aggregation
+            underling.set_aggregation(self._redundant_aggregation)
 
     def add_underling(self, underling):
         """

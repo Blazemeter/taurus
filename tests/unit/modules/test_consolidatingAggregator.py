@@ -221,7 +221,7 @@ class TestConsolidatingAggregator(BZTestCase):
 
     def test_new_aggregator(self):
         # aggregator's config
-        self.obj.redundant_aggregation = True
+        self.obj.set_aggregation(True)
 
         reader = MockReader()
         watcher = MockReader()

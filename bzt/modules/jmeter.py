@@ -835,11 +835,15 @@ class JTLReader(ResultsReader):
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
         if errors_filename:
-            label_converter = self.get_mixed_label if self.redundant_aggregation else None
             self.errors_reader = JTLErrorsReader(
-                errors_filename, parent_logger, err_msg_separator, label_converter=label_converter)
+                errors_filename, parent_logger, err_msg_separator, label_converter=self.get_mixed_label)
         else:
             self.errors_reader = None
+
+    def set_aggregation(self, aggregation):
+        super().set_aggregation(aggregation)
+        if self.errors_reader:
+            self.errors_reader.set_aggregation(aggregation)
 
     def _read(self, last_pass=False):
         """
@@ -892,7 +896,7 @@ class JTLReader(ResultsReader):
                         self.log.warning("Had error data but no KPISet %s: %s", label, err_details[label])
 
                 for label, label_data in iteritems(point[DataPoint.CURRENT]):
-                    if self.redundant_aggregation:
+                    if self._redundant_aggregation:
                         continue
 
                     if label in err_details:
@@ -1193,6 +1197,10 @@ class JTLErrorsReader(object):
         self.failed_processing = False
         self.err_msg_separator = err_msg_separator
         self.label_converter = label_converter
+        self._redundant_aggregation = False
+
+    def set_aggregation(self, aggregation):
+        self._redundant_aggregation = aggregation
 
     def read_file(self, final_pass=False):
         """
@@ -1279,7 +1287,7 @@ class JTLErrorsReader(object):
 
         err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
         buf = self.buffer.get(t_stamp, force_set=True)
-        if self.label_converter:
+        if self._redundant_aggregation:
             label = self.label_converter(label, rc=f_rc)
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
