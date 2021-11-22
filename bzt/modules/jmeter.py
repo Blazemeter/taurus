@@ -835,9 +835,15 @@ class JTLReader(ResultsReader):
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
         if errors_filename:
-            self.errors_reader = JTLErrorsReader(errors_filename, parent_logger, err_msg_separator)
+            self.errors_reader = JTLErrorsReader(
+                errors_filename, parent_logger, err_msg_separator, label_converter=self.get_mixed_label)
         else:
             self.errors_reader = None
+
+    def set_aggregation(self, aggregation):
+        super().set_aggregation(aggregation)
+        if self.errors_reader:
+            self.errors_reader.set_aggregation(aggregation)
 
     def _read(self, last_pass=False):
         """
@@ -881,8 +887,7 @@ class JTLReader(ResultsReader):
 
     def _calculate_datapoints(self, final_pass=False):
         for point in super(JTLReader, self)._calculate_datapoints(final_pass):
-            if self.errors_reader and not self.redundant_aggregation:
-                self.errors_reader.read_file()
+            if self.errors_reader:
                 err_details = self.errors_reader.get_data(point[DataPoint.TIMESTAMP])  # get only for labels we have
                 for label in err_details:
                     if label in point[DataPoint.CURRENT]:
@@ -891,6 +896,9 @@ class JTLReader(ResultsReader):
                         self.log.warning("Had error data but no KPISet %s: %s", label, err_details[label])
 
                 for label, label_data in iteritems(point[DataPoint.CURRENT]):
+                    if self._redundant_aggregation:
+                        continue
+
                     if label in err_details:
                         pass
                     elif label_data[KPISet.ERRORS]:
@@ -1179,7 +1187,7 @@ class JTLErrorsReader(object):
     """
     url_xpath = GenericTranslator().css_to_xpath("java\\.net\\.URL")
 
-    def __init__(self, filename, parent_logger, err_msg_separator=None):
+    def __init__(self, filename, parent_logger, err_msg_separator=None, label_converter=None):
         # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -1188,6 +1196,11 @@ class JTLErrorsReader(object):
         self.buffer = BetterDict()
         self.failed_processing = False
         self.err_msg_separator = err_msg_separator
+        self.label_converter = label_converter
+        self._redundant_aggregation = False
+
+    def set_aggregation(self, aggregation):
+        self._redundant_aggregation = aggregation
 
     def read_file(self, final_pass=False):
         """
@@ -1274,6 +1287,8 @@ class JTLErrorsReader(object):
 
         err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
         buf = self.buffer.get(t_stamp, force_set=True)
+        if self._redundant_aggregation:
+            label = self.label_converter(label, rc=f_rc)
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 

@@ -311,6 +311,20 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual(group.gtype, "ThreadGroup")
             self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)
 
+    def test_TG_iterations_property(self):
+        self.configure(load={'hold-for': 1},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/iterations-property.jmx',
+                       settings={'force-ctg': False})
+        self.sniff_log(self.obj.log)
+
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)
+        self.obj.modify(self.jmx)
+
+        res_values = {}
+        for group in self.get_groupset():
+            res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'iter': group.get_iterations()}
+        self.assertEqual(res_values, {'TG': {'conc': 2, 'iter': '${__P(LoopCount,5)}'}})
+
     def test_TG_iterations_from_load(self):
         """ThreadGroup:  concurrency, ramp-up, iterations"""
         self.configure(load={'concurrency': 76, 'ramp-up': 4, 'iterations': 5},
@@ -407,7 +421,7 @@ class TestMQTTSamplers(BZTestCase):
         self.assertEqual(config['topic'], sample.find(".//stringProp[@name='mqtt.topic_name']").text)
         self.assertEqual("specified elapsed time (ms)",
                          sample.find(".//stringProp[@name='mqtt.sample_condition']").text)
-        self.assertEqual(str(config['time']*1000),
+        self.assertEqual(str(config['time'] * 1000),
                          sample.find(".//stringProp[@name='mqtt.sample_condition_value']").text)
         self.assertIn('jsr223', request.config)
         jsr223 = request.config.get('jsr223')[0]

@@ -272,6 +272,9 @@ class MockReader(ResultsReader, AggregatorListener):
     test
     """
 
+    def _ramp_up_exclude(self):
+        return False    # must be implemented as abstract method
+
     def __init__(self):
         super(MockReader, self).__init__()
         self.results = []
