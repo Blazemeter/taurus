@@ -28,6 +28,39 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.obj.engine.aggregator.engine = self.obj.engine
         self.obj.engine.aggregator.add_listener(self.results_listener)
 
+    def test_ext_agg_concurrency(self):
+        self.configure({
+            "execution": [{
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi1.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/error1.jtl",
+            }]
+        })
+        self.obj.engine.aggregator.redundant_aggregation = True
+        self.obj.prepare()
+        self.obj.reader.redundant_aggregation = True
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        results = self.results_listener.results
+
+        cons = {}
+        for dp in results:
+            current = dp[DataPoint.CURRENT]
+            cons[dp['ts']] = {state: current[state][KPISet.CONCURRENCY] for state in current}
+
+        sample_cons = {
+            1637589158:
+                {'good-success': 1, 'bad-http_errors': 1, '': 1},
+            1637589159:
+                {'good-success': 3, 'bad-http_errors': 3, '': 3},
+            1637589160:
+                {'good-success': 4, 'bad-http_errors': 4, '': 4},
+            1637589161:
+                {'good-success': 3, 'bad-http_errors': 1, '': 4}}
+        self.assertEqual(cons, sample_cons)
+
     def test_no_data_file(self):
         self.configure({
             "execution": [{
