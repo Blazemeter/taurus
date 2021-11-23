@@ -35,9 +35,9 @@ class TestExternalResultsLoader(ExecutorTestCase):
                 "errors-file": RESOURCES_DIR + "/jmeter/jtl/error1.jtl",
             }]
         })
-        self.obj.engine.aggregator.redundant_aggregation = True
+        self.obj.engine.aggregator.set_aggregation(True)
         self.obj.prepare()
-        self.obj.reader.redundant_aggregation = True
+        self.obj.reader.set_aggregation(True)
         self.obj.startup()
         self.obj.check()
         self.obj.shutdown()
@@ -115,9 +115,9 @@ class TestExternalResultsLoader(ExecutorTestCase):
                 "errors-file": RESOURCES_DIR + "/jmeter/jtl/simple.error.jtl",
             }]
         })
-        self.obj.engine.aggregator._redundant_aggregation = True
+        self.obj.engine.aggregator.set_aggregation(True)
         self.obj.prepare()
-        self.obj.reader._redundant_aggregation = True
+        self.obj.reader.set_aggregation(True)
         self.obj.startup()
         self.obj.check()
         self.obj.shutdown()
