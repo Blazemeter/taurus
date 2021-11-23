@@ -76,9 +76,9 @@ class TestExternalResultsLoader(ExecutorTestCase):
         sample_cons2 = {
             1637589158: {
                 '': {
-                    'all_transactions_aggregated': 2,
+                    'all_transactions_aggregated': 1,
                     'http_errors': 1,
-                    'success_http_errors': 2,
+                    'success_http_errors': 1,
                     'http_errors_jmeter_errors': 1,
                     'success': 1,
                     'success_jmeter_errors': 1},
@@ -94,9 +94,9 @@ class TestExternalResultsLoader(ExecutorTestCase):
                     'success_http_errors': 1}},
             1637589159: {
                 '': {
-                    'all_transactions_aggregated': 4,
+                    'all_transactions_aggregated': 3,
                     'http_errors': 3,
-                    'success_http_errors': 4,
+                    'success_http_errors': 3,
                     'http_errors_jmeter_errors': 3,
                     'success': 3,
                     'success_jmeter_errors': 3},
@@ -112,9 +112,9 @@ class TestExternalResultsLoader(ExecutorTestCase):
                     'success_http_errors': 3}},
             1637589160: {
                 '': {
-                    'all_transactions_aggregated': 5,
+                    'all_transactions_aggregated': 4,
                     'http_errors': 4,
-                    'success_http_errors': 5,
+                    'success_http_errors': 4,
                     'http_errors_jmeter_errors': 4,
                     'success': 4,
                     'success_jmeter_errors': 4},
@@ -130,9 +130,9 @@ class TestExternalResultsLoader(ExecutorTestCase):
                     'success_http_errors': 4}},
             1637589161: {
                 '': {
-                    'all_transactions_aggregated': 2,
+                    'all_transactions_aggregated': 4,
                     'http_errors': 1,
-                    'success_http_errors': 2,
+                    'success_http_errors': 4,
                     'http_errors_jmeter_errors': 1,
                     'success': 3,
                     'success_jmeter_errors': 3},
