@@ -289,6 +289,11 @@ class KPISet(dict):
 
     def add_concurrency(self, cnc, sid):
         # sid: source id, e.g. node id for jmeter distributed mode
+
+        # todo: set it for ext aggregation only!
+        if sid:
+            self._concurrencies[sid] = self._concurrencies.get(sid, 0) + cnc
+
         if self._concurrencies.get(sid, 0) < cnc:   # take max value of concurrency during the second.
             self._concurrencies[sid] = cnc
 
@@ -358,7 +363,12 @@ class KPISet(dict):
             self[self.AVG_RESP_TIME] = self.sum_rt / self[self.SAMPLE_COUNT]
 
         if len(self._concurrencies):
-            self[self.CONCURRENCY] = sum(self._concurrencies.values())
+            # todo: set it for ext aggr only!
+            if set(self._concurrencies.keys()) != {''}:
+                self[self.CONCURRENCY] = len(self._concurrencies.keys())
+            else:
+
+                self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
         return self
 
@@ -825,7 +835,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 destination[_state].merge_kpis(kpi_set)  # deepcopy inside
                 destination[_state].recalculate()
 
-        data = kpi_sets['current']
+        try:
+            data = kpi_sets['current']
+        except:
+            pass
         overall_label = ''
         mixed_labels = set(data.keys()) - {overall_label}
         data[overall_label] = dict()
