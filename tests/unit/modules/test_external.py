@@ -147,7 +147,11 @@ class TestExternalResultsLoader(ExecutorTestCase):
                     'success_jmeter_errors': 3,
                     'success_http_errors': 3}}}
 
-        self.assertEqual(cons2, sample_cons2)
+        for ts in cons2:
+            for label in cons2[ts]:
+                for state in cons2[ts][label]:
+                    self.assertEqual(cons2[ts][label][state], sample_cons2[ts][label][state], f"{ts}:'{label}':{state}")
+        #self.assertEqual(cons2, sample_cons2)
 
     def test_no_data_file(self):
         self.configure({
