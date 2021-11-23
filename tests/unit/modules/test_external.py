@@ -45,21 +45,109 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.obj.engine.aggregator.post_process()
         results = self.results_listener.results
 
-        cons = {}
+        cons1 = {}
         for dp in results:
             current = dp[DataPoint.CURRENT]
-            cons[dp['ts']] = {state: current[state][KPISet.CONCURRENCY] for state in current}
+            cons1[dp['ts']] = {state: current[state][KPISet.CONCURRENCY] for state in current if state != ''}
 
-        sample_cons = {
+        sample_cons1 = {
             1637589158:
-                {'good-success': 1, 'bad-http_errors': 1, '': 1},
+                {'good-success': 1, 'bad-http_errors': 1},
             1637589159:
-                {'good-success': 3, 'bad-http_errors': 3, '': 3},
+                {'good-success': 3, 'bad-http_errors': 3},
             1637589160:
-                {'good-success': 4, 'bad-http_errors': 4, '': 4},
+                {'good-success': 4, 'bad-http_errors': 4},
             1637589161:
-                {'good-success': 3, 'bad-http_errors': 1, '': 4}}
-        self.assertEqual(cons, sample_cons)
+                {'good-success': 3, 'bad-http_errors': 1}}
+
+        self.assertEqual(cons1, sample_cons1)
+
+        cons2 = dict()
+
+        converted_results = [self.obj.engine.aggregator.converter(dp) for dp in results]
+        for dp in converted_results:
+            cons2[dp['ts']] = dict()
+            for label in dp[DataPoint.CURRENT]:
+                label_dst = cons2[dp[DataPoint.TIMESTAMP]][label] = dict()
+                label_src = dp[DataPoint.CURRENT][label]
+                for state in label_src:
+                    label_dst[state] = label_src[state][KPISet.CONCURRENCY]
+
+        sample_cons2 = {
+            1637589158: {
+                '': {
+                    'all_transactions_aggregated': 2,
+                    'http_errors': 1,
+                    'success_http_errors': 2,
+                    'http_errors_jmeter_errors': 1,
+                    'success': 1,
+                    'success_jmeter_errors': 1},
+                'bad': {
+                    'all_transactions_aggregated': 1,
+                    'http_errors': 1,
+                    'success_http_errors': 1,
+                    'http_errors_jmeter_errors': 1},
+                'good': {
+                    'all_transactions_aggregated': 1,
+                    'success': 1,
+                    'success_jmeter_errors': 1,
+                    'success_http_errors': 1}},
+            1637589159: {
+                '': {
+                    'all_transactions_aggregated': 4,
+                    'http_errors': 3,
+                    'success_http_errors': 4,
+                    'http_errors_jmeter_errors': 3,
+                    'success': 3,
+                    'success_jmeter_errors': 3},
+                'bad': {
+                    'all_transactions_aggregated': 3,
+                    'http_errors': 3,
+                    'success_http_errors': 3,
+                    'http_errors_jmeter_errors': 3},
+                'good': {
+                    'all_transactions_aggregated': 3,
+                    'success': 3,
+                    'success_jmeter_errors': 3,
+                    'success_http_errors': 3}},
+            1637589160: {
+                '': {
+                    'all_transactions_aggregated': 5,
+                    'http_errors': 4,
+                    'success_http_errors': 5,
+                    'http_errors_jmeter_errors': 4,
+                    'success': 4,
+                    'success_jmeter_errors': 4},
+                'bad': {
+                    'all_transactions_aggregated': 4,
+                    'http_errors': 4,
+                    'success_http_errors': 4,
+                    'http_errors_jmeter_errors': 4},
+                'good': {
+                    'all_transactions_aggregated': 4,
+                    'success': 4,
+                    'success_jmeter_errors': 4,
+                    'success_http_errors': 4}},
+            1637589161: {
+                '': {
+                    'all_transactions_aggregated': 2,
+                    'http_errors': 1,
+                    'success_http_errors': 2,
+                    'http_errors_jmeter_errors': 1,
+                    'success': 3,
+                    'success_jmeter_errors': 3},
+                'bad': {
+                    'all_transactions_aggregated': 1,
+                    'http_errors': 1,
+                    'success_http_errors': 1,
+                    'http_errors_jmeter_errors': 1},
+                'good': {
+                    'all_transactions_aggregated': 3,
+                    'success': 3,
+                    'success_jmeter_errors': 3,
+                    'success_http_errors': 3}}}
+
+        self.assertEqual(cons2, sample_cons2)
 
     def test_no_data_file(self):
         self.configure({
