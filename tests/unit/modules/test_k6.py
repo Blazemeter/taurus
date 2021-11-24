@@ -92,6 +92,17 @@ class TestK6Executor(ExecutorTestCase):
         })
         self.assertIn("--iterations 100", self.CMD_LINE)
 
+    def test_iterations_multiplied(self):
+        self.simple_run({
+            "execution": {
+                "iterations": "10",
+                "concurrency": "10",
+                "scenario": {"script": K6_SCRIPT},
+                "executor": "k6"
+            },
+        })
+        self.assertIn("--iterations 100", self.CMD_LINE)
+
 
 class TestK6Reader(BZTestCase):
     def test_read(self):
