@@ -441,16 +441,24 @@ class MockWebDriverManager:
 
 
 class TestWebrdivers(BZTestCase):
-    def test_chromedriver_manager(self):
+    def test_webdriver_manager(self):
         self.sniff_log(self.log)
-        bzt.modules._selenium.ChromeDriver.MANAGER = MockWebDriverManager
-        chromedriver = ChromeDriver()
-        chromedriver.install()
-        self.assertIn("Will install ChromeDriver into", self.log_recorder.info_buff.getvalue())
+        tmp_chromedriver = bzt.modules._selenium.ChromeDriver.MANAGER
+        tmp_geckodriver = bzt.modules._selenium.GeckoDriver.MANAGER
 
-    def test_geckodriver_manager(self):
-        self.sniff_log(self.log)
-        bzt.modules._selenium.GeckoDriver.MANAGER = MockWebDriverManager
-        geckodriver = GeckoDriver()
-        geckodriver.install()
+        try:
+            bzt.modules._selenium.ChromeDriver.MANAGER = MockWebDriverManager
+            bzt.modules._selenium.GeckoDriver.MANAGER = MockWebDriverManager
+
+            chromedriver = ChromeDriver()
+            chromedriver.install()
+
+            geckodriver = GeckoDriver()
+            geckodriver.install()
+
+        finally:
+            bzt.modules._selenium.ChromeDriver.MANAGER = tmp_chromedriver
+            bzt.modules._selenium.GeckoDriver.MANAGER = tmp_geckodriver
+
+        self.assertIn("Will install ChromeDriver into", self.log_recorder.info_buff.getvalue())
         self.assertIn("Will install GeckoDriver into", self.log_recorder.info_buff.getvalue())
