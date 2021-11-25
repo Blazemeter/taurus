@@ -365,6 +365,7 @@ class GeckoDriver(WebDriver):
 
     def _download_and_save(self):
         dist = self._download(use_link=True)
+        
         if self.download_link.endswith('.zip'):
             self.log.info("Unzipping %s to %s", dist, self.dest)
             unzip(dist, self.dest)
