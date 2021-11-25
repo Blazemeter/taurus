@@ -30,6 +30,8 @@ class SeleniumTestCase(ExecutorTestCase):
         self.virtual_display.engine = self.engine
         self.virtual_display.startup()
 
+        self.tmp_chromedriver = bzt.modules._selenium.ChromeDriver
+        self.tmp_geckodriver = bzt.modules._selenium.GeckoDriver
         bzt.modules._selenium.ChromeDriver = MockDriver
         bzt.modules._selenium.GeckoDriver = MockDriver
         self.obj.settings = self.engine.config.get("modules").get("selenium")
@@ -43,6 +45,8 @@ class SeleniumTestCase(ExecutorTestCase):
                 self.obj.runner.stderr.close()
         bzt.modules._selenium.Selenium = self.tmp_selenium
         bzt.modules._apiritif.executor.Selenium = self.tmp_selenium_apiritif
+        bzt.modules._selenium.ChromeDriver = self.tmp_chromedriver
+        bzt.modules._selenium.GeckoDriver = self.tmp_geckodriver
         super(SeleniumTestCase, self).tearDown()
 
 
