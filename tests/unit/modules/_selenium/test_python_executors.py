@@ -316,8 +316,14 @@ class TestPyTestExecutor(ExecutorTestCase):
 
     def setUp(self):
         super().setUp()
+        self.tmp_chromedriver = bzt.modules._selenium.ChromeDriver
         bzt.modules._selenium.ChromeDriver = MockDriver
+        self.tmp_geckodriver = bzt.modules._selenium.GeckoDriver
         bzt.modules._selenium.GeckoDriver = MockDriver
+
+    def tearDown(self):
+        bzt.modules._selenium.ChromeDriver = self.tmp_chromedriver
+        bzt.modules._selenium.GeckoDriver = self.tmp_geckodriver
 
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
