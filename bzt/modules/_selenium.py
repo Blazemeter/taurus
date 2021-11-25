@@ -272,6 +272,7 @@ class WebDriver(RequiredTool):
     def __init__(self, tool_path="", log=None, **kwargs):
         self.webdriver_manager = None
         self.log = log
+        self.dest = None
         os.environ['WDM_LOG_LEVEL'] = '0'
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = self.DRIVER_NAME
@@ -285,81 +286,92 @@ class WebDriver(RequiredTool):
                 self.log.warning(err)
         super().__init__(tool_path=tool_path, **kwargs)
 
+    def install(self):
+        self.dest = self.get_driver_dir()
+        if not os.path.exists(self.dest):
+            os.makedirs(self.dest)
+
+        self.log.info(f"Will install {self.tool_name} into {self.tool_path}")
+        if self.webdriver_manager:
+            self._install_with_manager()
+        else:
+            self._install_by_link()
+
     def get_driver_dir(self):
         return get_full_path(self.tool_path, step_up=1)
+
+    def _install_with_manager(self):
+        driver_path = self.webdriver_manager.install()
+        shutil.copy2(driver_path, self.dest)
+
+    def _install_by_link(self):
+        self._get_download_link()
+        self._download_and_save()
+
+    def _get_download_link(self):
+        pass
+
+    def _download_and_save(self):
+        pass
 
 
 class ChromeDriver(WebDriver):
     DRIVER_NAME = 'chromedriver'
     MANAGER = ChromeDriverManager
 
-    def install(self):
-        dest = self.get_driver_dir()
-        if not os.path.exists(dest):
-            os.makedirs(dest)
+    def _get_download_link(self):
+        download_link = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
+        latest_driver_version = requests.get('https://chromedriver.storage.googleapis.com/LATEST_RELEASE').text
 
-        self.log.info(f"Will install {self.tool_name} into {self.tool_path}")
-        if self.webdriver_manager:
-            driver_path = self.webdriver_manager.install()
-            shutil.copy2(driver_path, dest)
+        if is_windows():
+            arch = 'win32'
+        elif is_mac():
+            arch = 'mac64'
         else:
-            download_link = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-            latest_driver_version = requests.get('https://chromedriver.storage.googleapis.com/LATEST_RELEASE').text
+            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
 
-            if is_windows():
-                arch = 'win32'
-            elif is_mac():
-                arch = 'mac64'
-            else:
-                arch = 'linux32' if platform_bitness() == 32 else 'linux64'
+        self.download_link = download_link.format(version=latest_driver_version, arch=arch)
 
-            self.download_link = download_link.format(version=latest_driver_version, arch=arch)
-            dist = self._download(use_link=True)
-            unzip(dist, dest)
-            os.remove(dist)
+    def _download_and_save(self):
+        dist = self._download(use_link=True)
+        unzip(dist, self.dest)
+        os.remove(dist)
 
-            if not is_windows():
-                os.chmod(self.tool_path, 0o755)
+        if not is_windows():
+            os.chmod(self.tool_path, 0o755)
 
 
 class GeckoDriver(WebDriver):
     DRIVER_NAME = 'geckodriver'
     MANAGER = GeckoDriverManager
 
-    def install(self):
-        dest = self.get_driver_dir()
-        if not os.path.exists(dest):
-            os.makedirs(dest)
+    def _get_download_link(self):
+        download_link = \
+            "https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}"
+        latest_driver_version = requests.get(
+            "https://api.github.com/repos/mozilla/geckodriver/releases/latest").json()["name"]
 
-        self.log.info(f"Will install {self.tool_name} into {self.tool_path}")
-        if self.webdriver_manager:
-            driver_path = self.webdriver_manager.install()
-            shutil.copy2(driver_path, dest)
+        if is_windows():
+            arch = 'win64'
+            ext = 'zip'
+        elif is_mac():
+            arch = 'macos'
+            ext = 'tar.gz'
         else:
-            download_link = \
-                "https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}"
-            latest_driver_version = requests.get(
-                "https://api.github.com/repos/mozilla/geckodriver/releases/latest").json()["name"]
+            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
+            ext = 'tar.gz'
 
-            if is_windows():
-                arch = 'win64'
-                ext = 'zip'
-            elif is_mac():
-                arch = 'macos'
-                ext = 'tar.gz'
-            else:
-                arch = 'linux32' if platform_bitness() == 32 else 'linux64'
-                ext = 'tar.gz'
+        self.download_link = download_link.format(version=latest_driver_version, arch=arch, ext=ext)
 
-            self.download_link = download_link.format(version=latest_driver_version, arch=arch, ext=ext)
-            dist = self._download(use_link=True)
-            if self.download_link.endswith('.zip'):
-                self.log.info("Unzipping %s to %s", dist, dest)
-                unzip(dist, dest)
-            else:
-                self.log.info("Untaring %s to %s", dist, dest)
-                untar(dist, dest)
-            os.remove(dist)
+    def _download_and_save(self):
+        dist = self._download(use_link=True)
+        if self.download_link.endswith('.zip'):
+            self.log.info("Unzipping %s to %s", dist, self.dest)
+            unzip(dist, self.dest)
+        else:
+            self.log.info("Untaring %s to %s", dist, self.dest)
+            untar(dist, self.dest)
+        os.remove(dist)
 
-            if not is_windows():
-                os.chmod(self.tool_path, 0o755)
+        if not is_windows():
+            os.chmod(self.tool_path, 0o755)
