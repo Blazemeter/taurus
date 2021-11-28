@@ -14,15 +14,21 @@ COPY dist/bzt*whl /tmp
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
 RUN bash ./setup_12.x \
-   && $APT_INSTALL \
-     python3-pip unzip build-essential python3-dev software-properties-common \
-     apt-transport-https openjdk-11-jdk xvfb siege tsung apache2-utils firefox ruby nodejs locales
+   && $APT_INSTALL python3-pip python3.9-dev
+
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
+
+# numpy & chardet must be installed before the same apt packages
+RUN $PIP_INSTALL setuptools wheel numpy chardet
+
+RUN $APT_UPDATE && $APT_INSTALL \
+    unzip build-essential software-properties-common apt-transport-https \
+    openjdk-11-jdk xvfb siege apache2-utils firefox ruby nodejs locales tsung
 
 # set en_US.UTF-8 as default locale
 RUN locale-gen "en_US.UTF-8" \
    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-RUN $PIP_INSTALL setuptools wheel
 RUN gem install rspec rake selenium-webdriver
 
 # Get Google Chrome
