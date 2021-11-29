@@ -195,13 +195,16 @@ class KPISet(dict):
     ERRTYPE_ASSERT = 1
     ERRTYPE_SUBSAMPLE = 2
 
-    def __init__(self, perc_levels=(), hist_max_rt=1000.0):
+    def __init__(self, perc_levels=(), hist_max_rt=1000.0, ext_aggregation=False):
         super(KPISet, self).__init__()
         self.sum_rt = 0
         self.sum_lt = 0
         self.sum_cn = 0
         self.perc_levels = perc_levels
-        self._concurrencies = Counter()
+        if ext_aggregation:
+            self.concurrencies = set()
+        else:
+            self.concurrencies = Counter()
         # scalars
         self[KPISet.SAMPLE_COUNT] = 0
         self[KPISet.CONCURRENCY] = 0
@@ -217,14 +220,16 @@ class KPISet(dict):
         self[KPISet.RESP_TIMES] = RespTimesCounter(1, hist_max_rt, 3, perc_levels)
         self[KPISet.RESP_CODES] = Counter()
         self[KPISet.PERCENTILES] = {}
+        self.ext_aggregation = ext_aggregation
 
     def __deepcopy__(self, memo):
         mycopy = KPISet(self.perc_levels, self[KPISet.RESP_TIMES].high)
+        mycopy.ext_aggregation = self.ext_aggregation
         mycopy.sum_rt = self.sum_rt
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
         mycopy.perc_levels = self.perc_levels
-        mycopy._concurrencies = copy.deepcopy(self._concurrencies, memo)
+        mycopy.concurrencies = copy.deepcopy(self.concurrencies, memo)
         for key in self:
             mycopy[key] = copy.deepcopy(self.get(key, no_recalc=True), memo)
         return mycopy
@@ -260,7 +265,9 @@ class KPISet(dict):
         # TODO: introduce a flag to not count failed in resp times? or offer it always?
         cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
         self[self.SAMPLE_COUNT] += 1
-        if cnc:
+        if self.ext_aggregation:
+            self.concurrencies.add(trname)
+        elif cnc:
             self.add_concurrency(cnc, trname)
 
         if r_code is not None:
@@ -290,8 +297,8 @@ class KPISet(dict):
     def add_concurrency(self, cnc, sid):
         # sid: source id, e.g. node id for jmeter distributed mode
 
-        if self._concurrencies.get(sid, 0) < cnc:   # take max value of concurrency during the second.
-            self._concurrencies[sid] = cnc
+        if self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
+            self.concurrencies[sid] = cnc
 
     @staticmethod
     def inc_list(values, selector, value):
@@ -358,13 +365,11 @@ class KPISet(dict):
             self[self.AVG_LATENCY] = self.sum_lt / self[self.SAMPLE_COUNT]
             self[self.AVG_RESP_TIME] = self.sum_rt / self[self.SAMPLE_COUNT]
 
-        if len(self._concurrencies):
-            # todo: set it for ext aggr only!
-            if set(self._concurrencies.keys()) - {''}:  # we have trnames except ''
-                self[self.CONCURRENCY] = len(self._concurrencies.keys())
+        if len(self.concurrencies):
+            if self.ext_aggregation:
+                self[self.CONCURRENCY] = len(self.concurrencies)
             else:
-
-                self[self.CONCURRENCY] = sum(self._concurrencies.values())
+                self[self.CONCURRENCY] = sum(self.concurrencies.values())
 
         return self
 
@@ -387,7 +392,9 @@ class KPISet(dict):
         self[self.FAILURES] += src[self.FAILURES]
         self[self.BYTE_COUNT] += src[self.BYTE_COUNT]
         # NOTE: should it be average? mind the timestamp gaps
-        if src[self.CONCURRENCY]:
+        if self.ext_aggregation:
+            self.concurrencies.update(src.concurrencies)
+        elif src[self.CONCURRENCY]:
             self.add_concurrency(src[self.CONCURRENCY], sid)
 
         if src[self.RESP_TIMES]:
@@ -403,13 +410,13 @@ class KPISet(dict):
             self.inc_list(self[self.ERRORS], ('msg', src_item['msg']), src_item)
 
     @staticmethod
-    def from_dict(obj):
+    def from_dict(obj, ext_aggregation=False):
         """
         :type obj: dict
         :rtype: KPISet
         """
         prc_levels = [float(x) for x in obj[KPISet.PERCENTILES].keys()]
-        inst = KPISet(perc_levels=prc_levels)
+        inst = KPISet(perc_levels=prc_levels, ext_aggregation=ext_aggregation)
 
         assert inst.PERCENTILES in obj
 
@@ -585,7 +592,11 @@ class ResultsProvider(object):
         :param current: KPISet
         """
         for label, data in iteritems(current):
-            cumul = self.cumulative.setdefault(label, KPISet(self.track_percentiles, data[KPISet.RESP_TIMES].high))
+            default = KPISet(
+                perc_levels=self.track_percentiles,
+                hist_max_rt=data[KPISet.RESP_TIMES].high,
+                ext_aggregation=self._redundant_aggregation)
+            cumul = self.cumulative.setdefault(label, default)
             cumul.merge_kpis(data)
             cumul.recalculate()
 
@@ -707,7 +718,7 @@ class ResultsReader(ResultsProvider):
 
             self.__add_sample(current, base_label, sample[1:])
 
-        overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
+        overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''), ext_aggregation=self._redundant_aggregation)
 
         for label in current.values():
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
@@ -727,7 +738,10 @@ class ResultsReader(ResultsProvider):
             label = self.get_mixed_label(label=label, kpis=kpis)
 
         if label not in current:
-            current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))
+            current[label] = KPISet(
+                perc_levels=self.track_percentiles,
+                hist_max_rt=self.__get_rtimes_max(label),
+                ext_aggregation=self._redundant_aggregation)
 
         current[label].add_sample(kpis)
 
@@ -1031,7 +1045,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         concur = self._sticky_concurrencies[sid]
         for label, kpiset in iteritems(point[DataPoint.CURRENT]):  # type: (str, KPISet)
             if label in concur:
-                kpiset.add_concurrency(concur[label], sid)
+                if self._redundant_aggregation:
+                    kpiset.concurrencies.add(sid)
+                else:
+                    kpiset.add_concurrency(concur[label], sid)
 
 
 class NoneAggregator(Aggregator, ResultsProvider):
