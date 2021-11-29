@@ -292,9 +292,10 @@ class WebDriver(RequiredTool):
             os.makedirs(self.dest)
 
         self.log.info(f"Will install {self.tool_name} into {self.tool_path}")
-        if self.webdriver_manager:
+        try:
             self._install_with_manager()
-        else:
+        except (ValueError, ConnectionError, ProxyError) as err:
+            self.log.warning(err)
             self._install_by_link()
 
     def get_driver_dir(self):
