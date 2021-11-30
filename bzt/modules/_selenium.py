@@ -23,7 +23,7 @@ from abc import abstractmethod
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
 from urwid import Text, Pile
-from requests.exceptions import ConnectionError, ProxyError
+from requests.exceptions import ConnectionError, ProxyError, SSLError
 
 from bzt import TaurusConfigError
 from bzt.modules import ReportableExecutor
@@ -281,7 +281,7 @@ class WebDriver(RequiredTool):
             tool_path = os.path.join(base_dir, f'drivers/{self.DRIVER_NAME}', filename)
             try:
                 self.webdriver_manager = self.MANAGER(path=base_dir, print_first_line=False, log_level=0)
-            except (ValueError, ConnectionError, ProxyError) as err:
+            except (ValueError, ConnectionError, ProxyError, SSLError) as err:
                 self.webdriver_manager = None
                 self.log.warning(err)
         super().__init__(tool_path=tool_path, **kwargs)
@@ -296,7 +296,7 @@ class WebDriver(RequiredTool):
             try:
                 self._install_with_manager()
                 return
-            except (ValueError, ConnectionError, ProxyError) as err:
+            except (ValueError, ConnectionError, ProxyError, SSLError) as err:
                 self.log.warning(err)
         self._install_by_link()
 
