@@ -296,8 +296,12 @@ class KPISet(dict):
 
     def add_concurrency(self, cnc, sid):
         # sid: source id, e.g. node id for jmeter distributed mode
-
-        if self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
+        if self.ext_aggregation:
+            if isinstance(sid, set):
+                self.concurrencies.update(sid)
+            else:
+                self.concurrencies.add(sid)
+        elif self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
             self.concurrencies[sid] = cnc
 
     @staticmethod
@@ -393,8 +397,8 @@ class KPISet(dict):
         self[self.BYTE_COUNT] += src[self.BYTE_COUNT]
         # NOTE: should it be average? mind the timestamp gaps
         if self.ext_aggregation:
-            self.concurrencies.update(src.concurrencies)
-        elif src[self.CONCURRENCY]:
+            sid = src.concurrencies
+        if src[self.CONCURRENCY]:
             self.add_concurrency(src[self.CONCURRENCY], sid)
 
         if src[self.RESP_TIMES]:
@@ -413,6 +417,7 @@ class KPISet(dict):
     def from_dict(obj, ext_aggregation=False):
         """
         :type obj: dict
+        :type ext_aggregation: bool
         :rtype: KPISet
         """
         prc_levels = [float(x) for x in obj[KPISet.PERCENTILES].keys()]
@@ -1045,10 +1050,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         concur = self._sticky_concurrencies[sid]
         for label, kpiset in iteritems(point[DataPoint.CURRENT]):  # type: (str, KPISet)
             if label in concur:
-                if self._redundant_aggregation:
-                    kpiset.concurrencies.add(sid)
-                else:
-                    kpiset.add_concurrency(concur[label], sid)
+                kpiset.add_concurrency(concur[label], sid)
 
 
 class NoneAggregator(Aggregator, ResultsProvider):
