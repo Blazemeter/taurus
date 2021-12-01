@@ -27,10 +27,21 @@ class TestEngine(BZTestCase):
         super(TestEngine, self).setUp()
         self.obj = EngineEmul()
         self.paths = local_paths_config()
+        self.tmp_chromedriver = bzt.modules._selenium.ChromeDriver
         bzt.modules._selenium.ChromeDriver = MockDriver
+        self.tmp_geckodriver = bzt.modules._selenium.GeckoDriver
         bzt.modules._selenium.GeckoDriver = MockDriver
+        self.tmp_selenium = bzt.modules._selenium.Selenium
         bzt.modules._selenium.Selenium = MockPythonTool
+        self.tmp_apiritif_selenium = bzt.modules._apiritif.executor.Selenium
         bzt.modules._apiritif.executor.Selenium = MockPythonTool
+
+    def tearDown(self):
+        super(TestEngine, self).tearDown()
+        bzt.modules._selenium.ChromeDriver = self.tmp_chromedriver
+        bzt.modules._selenium.GeckoDriver = self.tmp_geckodriver
+        bzt.modules._selenium.Selenium = self.tmp_selenium
+        bzt.modules._apiritif.executor.Selenium = self.tmp_apiritif_selenium
 
     def test_find_file(self):
         self.sniff_log(self.obj.log)
@@ -366,7 +377,7 @@ class TestScenarioExecutor(ExecutorTestCase):
                     "VAR": "VAL"},
                 "scenario": {"requests": [{"url": "http://example.com/"}]}}]})
         self.obj.prepare()
-        self.assertEqual(os.environ["PATH"]+'-', self.obj.env.get("PATH"))
+        self.assertEqual(os.environ["PATH"] + '-', self.obj.env.get("PATH"))
         self.assertEqual("VAL", self.obj.env.get("VAR"))
 
     def test_scenario_is_script(self):
