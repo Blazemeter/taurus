@@ -14,12 +14,11 @@ COPY dist/bzt*whl /tmp
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
 RUN bash ./setup_12.x \
-   && $APT_INSTALL python3-pip python3.9-dev
+   && $APT_INSTALL build-essential python3-pip python3.9-dev
 
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
 
-# numpy & chardet must be installed before the same apt packages
-RUN $PIP_INSTALL setuptools wheel numpy chardet
+RUN $PIP_INSTALL ./bzt*whl chardet
 
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip build-essential software-properties-common apt-transport-https \
@@ -53,9 +52,8 @@ RUN wget -q "https://github.com/tsenart/vegeta/releases/download/v${VEGETA_VERSI
  && tar xzf /tmp/vegeta.tar.gz -C /bin \
  && rm /tmp/vegeta.tar.gz
 
-# Install Taurus & tools
-RUN $PIP_INSTALL ./bzt*whl \
-  && mkdir -p /etc/bzt.d \
+# auto installable tools
+RUN mkdir -p /etc/bzt.d \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && cp `python3 -c "import bzt; print('{}/resources/chrome_launcher.sh'.format(bzt.__path__[0]))"` \
