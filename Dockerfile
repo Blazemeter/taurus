@@ -18,6 +18,7 @@ RUN bash ./setup_12.x \
 
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
 
+# install python packages..
 RUN $PIP_INSTALL ./bzt*whl chardet
 
 RUN $APT_UPDATE && $APT_INSTALL \
