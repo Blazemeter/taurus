@@ -22,7 +22,7 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
 RUN $PIP_INSTALL ./bzt*whl chardet
 
 RUN $APT_UPDATE && $APT_INSTALL \
-    unzip build-essential software-properties-common apt-transport-https \
+    unzip software-properties-common apt-transport-https \
     openjdk-11-jdk xvfb siege apache2-utils firefox ruby nodejs locales tsung
 
 # set en_US.UTF-8 as default locale
