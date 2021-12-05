@@ -1,3 +1,5 @@
+import copy
+
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, SAMPLE_STATES
 from bzt.modules.external import ExternalResultsLoader
 from bzt.modules.jmeter import FuncJTLReader, JTLReader
@@ -152,6 +154,36 @@ class TestExternalResultsLoader(ExecutorTestCase):
             for label in cons2[ts]:
                 for state in cons2[ts][label]:
                     self.assertEqual(cons2[ts][label][state], sample_cons2[ts][label][state])
+
+    def test_ext_agg_embedded(self):
+        self.configure({
+            "execution": [{
+                "data-file": "wip/dima/kpi_er.jtl",
+                "errors-file": "wip/dima/error_er.jtl",
+            }]
+        })
+        ext_mode = True
+        self.obj.engine.aggregator.set_aggregation(ext_mode)
+        self.obj.prepare()
+        self.obj.reader.set_aggregation(ext_mode)
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        results = self.results_listener.results
+
+        cons1 = {}
+        for dp in results:
+            current = dp[DataPoint.CURRENT]
+            cons1[dp['ts']] = {state: current[state][KPISet.CONCURRENCY] for state in current if state != ''}
+
+        cons2 = dict()
+        res_bak = copy.deepcopy(results)
+        if ext_mode:
+            converted_results = [self.obj.engine.aggregator.converter(dp) for dp in results]
+
+        pass
 
     def test_no_data_file(self):
         self.configure({
