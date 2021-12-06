@@ -2548,7 +2548,7 @@ class TestIsSelenium4(SeleniumTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
-                    "browser": "Firefox",
+                    "browser": "Chrome",
                     "headless": True,
                     "requests": ["http://blazedemo.com/"]
                 }}})
