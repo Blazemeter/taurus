@@ -2451,7 +2451,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_shadow.py"
-        str_to_replace = (self.obj.xengine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
 
