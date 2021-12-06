@@ -1020,10 +1020,10 @@ from selenium.webdriver.common.keys import Keys
     def _get_headless_setup(self):
         if self.scenario.get("headless", False):
             self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
-            return [ast.Expr(
-                ast_call(func=ast_attr("options.set_headless")))]
-        else:
-            return []
+            if self.selenium_version.startswith("4"):
+                return [ast.Assign(targets=[ast_attr("options.headless")], value=ast_attr("True"))]
+            return [ast.Expr(ast_call(func=ast_attr("options.set_headless")))]
+        return []
 
     def _get_options(self, browser):
         if browser == 'remote':
