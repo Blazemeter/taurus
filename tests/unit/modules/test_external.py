@@ -156,8 +156,8 @@ class TestExternalResultsLoader(ExecutorTestCase):
     def test_ext_agg_embedded(self):
         self.configure({
             "execution": [{
-                "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi-pair1.jtl",
-                "errors-file": RESOURCES_DIR + "/jmeter/jtl/error-pair1.jtl",
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi_ed.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/error_ed.jtl",
             }]
         })
         ext_mode = True
@@ -178,6 +178,10 @@ class TestExternalResultsLoader(ExecutorTestCase):
 
         if ext_mode:
             converted_results = [self.obj.engine.aggregator.converter(dp) for dp in results]
+
+        first_current = converted_results[0][DataPoint.CURRENT]
+        error_type = first_current['Request 001']['all_transactions_aggregated'][KPISet.ERRORS][0]['type']
+        self.assertEqual(2, error_type)
 
     def test_no_data_file(self):
         self.configure({
