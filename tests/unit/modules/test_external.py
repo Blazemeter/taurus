@@ -158,8 +158,8 @@ class TestExternalResultsLoader(ExecutorTestCase):
     def test_ext_agg_embedded(self):
         self.configure({
             "execution": [{
-                "data-file": "wip/dima/kpi_er.jtl",
-                "errors-file": "wip/dima/error_er.jtl",
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi-pair1.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/error-pair1.jtl",
             }]
         })
         ext_mode = True
@@ -179,7 +179,6 @@ class TestExternalResultsLoader(ExecutorTestCase):
             cons1[dp['ts']] = {state: current[state][KPISet.CONCURRENCY] for state in current if state != ''}
 
         cons2 = dict()
-        res_bak = copy.deepcopy(results)
         if ext_mode:
             converted_results = [self.obj.engine.aggregator.converter(dp) for dp in results]
 
