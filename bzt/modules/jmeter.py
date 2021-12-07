@@ -1288,7 +1288,7 @@ class JTLErrorsReader(object):
         err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
         buf = self.buffer.get(t_stamp, force_set=True)
         if self._redundant_aggregation:
-            label = self.label_converter(label, rc=f_rc)
+            label = self.label_converter(label=label, f_type=f_type)
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 

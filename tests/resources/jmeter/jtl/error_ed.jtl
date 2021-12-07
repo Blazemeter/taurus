@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="1123" lt="652" ts="1638860844873" s="false" lb="Request 001" rc="200" rm="Embedded resource download error:https://blazedemo.com/img/logo12.png code:404 message:Not Found, " tn="Thread Group 1-1" dt="text" de="UTF-8" by="4432" ng="1" na="1">
+  <httpSample t="655" lt="652" ts="1638860844873" s="true" lb="Request 001-0" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="UTF-8" by="410" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+x-powered-by: PHP/7.3.17
+cache-control: no-cache, private
+vary: Accept-Encoding
+content-type: text/html; charset=UTF-8
+X-Cloud-Trace-Context: 9e82a4a6ebd8319248b8af0b2405d83c
+Date: Tue, 07 Dec 2021 07:07:24 GMT
+Server: Google Frontend
+Content-Length: 128
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_292)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/echo.php?embedded</java.net.URL>
+  </httpSample>
+  <httpSample t="170" lt="170" ts="1638860845697" s="true" lb="Request 001-1" rc="200" rm="OK" tn="Thread Group 1-1" dt="bin" de="" by="2203" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+last-modified: Wed, 13 May 2020 14:02:51 GMT
+etag: &quot;783-5a588092358c0&quot;
+accept-ranges: bytes
+content-type: image/png
+X-Cloud-Trace-Context: 81d43aa49901d44e84e450c94cdf7012
+Date: Tue, 07 Dec 2021 07:07:24 GMT
+Server: Google Frontend
+Content-Length: 1923
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_292)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/img/logo.png</java.net.URL>
+  </httpSample>
+  <httpSample t="299" lt="299" ts="1638860845697" s="false" lb="Request 001-2" rc="404" rm="Not Found" tn="Thread Group 1-1" dt="text" de="UTF-8" by="1819" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 404 Not Found
+x-powered-by: PHP/7.3.17
+cache-control: no-cache, private
+content-type: text/html; charset=UTF-8
+X-Cloud-Trace-Context: 94a8149ae6e65a885b254c791d25d8fe
+Date: Tue, 07 Dec 2021 07:07:24 GMT
+Server: Google Frontend
+Content-Length: 1552
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_292)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;meta charset=&quot;utf-8&quot;&gt;
+        &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+
+        &lt;title&gt;Not Found&lt;/title&gt;
+
+        &lt;!-- Fonts --&gt;
+        &lt;link rel=&quot;dns-prefetch&quot; href=&quot;//fonts.gstatic.com&quot;&gt;
+        &lt;link href=&quot;https://fonts.googleapis.com/css?family=Nunito&quot; rel=&quot;stylesheet&quot;&gt;
+
+        &lt;!-- Styles --&gt;
+        &lt;style&gt;
+            html, body {
+                background-color: #fff;
+                color: #636b6f;
+                font-family: &apos;Nunito&apos;, sans-serif;
+                font-weight: 100;
+                height: 100vh;
+                margin: 0;
+            }
+
+            .full-height {
+                height: 100vh;
+            }
+
+            .flex-center {
+                align-items: center;
+                display: flex;
+                justify-content: center;
+            }
+
+            .position-ref {
+                position: relative;
+            }
+
+            .code {
+                border-right: 2px solid;
+                font-size: 26px;
+                padding: 0 15px 0 15px;
+                text-align: center;
+            }
+
+            .message {
+                font-size: 18px;
+                text-align: center;
+            }
+        &lt;/style&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;div class=&quot;flex-center position-ref full-height&quot;&gt;
+            &lt;div class=&quot;code&quot;&gt;
+                404            &lt;/div&gt;
+
+            &lt;div class=&quot;message&quot; style=&quot;padding: 10px;&quot;&gt;
+                Not Found            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>https://blazedemo.com/img/logo12.png</java.net.URL>
+  </httpSample>
+  <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+x-powered-by: PHP/7.3.17
+cache-control: no-cache, private
+vary: Accept-Encoding
+content-type: text/html; charset=UTF-8
+X-Cloud-Trace-Context: 9e82a4a6ebd8319248b8af0b2405d83c
+Date: Tue, 07 Dec 2021 07:07:24 GMT
+Server: Google Frontend
+Content-Length: 128
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_292)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;echo&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;img src=&apos;/img/logo.png&apos;&gt;
+&lt;img src=&apos;/img/logo12.png&apos;&gt;
+&lt;/br&gt;
+&lt;/body&gt;
+&lt;/html&gt;</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>https://blazedemo.com/echo.php?embedded</java.net.URL>
+</httpSample>
+
+</testResults>

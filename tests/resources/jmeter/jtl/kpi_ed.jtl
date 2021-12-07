@@ -1,0 +1,2 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,success,bytes,grpThreads,allThreads,Latency,Hostname,Connect
+1638860844873,1123,Request 001,200,"Embedded resource download error:https://blazedemo.com/img/logo12.png code:404 message:Not Found, ",Thread Group 1-1,false,4432,1,1,652,f63690e4046d,374
