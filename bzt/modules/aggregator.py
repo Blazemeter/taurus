@@ -656,10 +656,10 @@ class ResultsReader(ResultsProvider):
         # it is used for generation of extended label.
         # each label data is split according to sample state (success/error/assert)
         if f_type is not None:  # type of error from errors.jtl
-            if f_type == 2 or f_type == 0:
-                group = SAMPLE_STATES[1]    # jmeter error (assertion, etc.)
-            else:   # f_type == 1:
-                group = SAMPLE_STATES[2]    # http error
+            if f_type == 1 or f_type == 2:  # if assertion or subsample error
+                group = SAMPLE_STATES[1]    # let's call it jmeter_error (assertion, etc.)
+            else:   # f_type == 0:
+                group = SAMPLE_STATES[2]    # http error otherwise
         else:
             if kpis[4] == '200':
                 if kpis[5] is None:
