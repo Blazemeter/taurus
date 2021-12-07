@@ -178,11 +178,8 @@ class TestExternalResultsLoader(ExecutorTestCase):
             current = dp[DataPoint.CURRENT]
             cons1[dp['ts']] = {state: current[state][KPISet.CONCURRENCY] for state in current if state != ''}
 
-        cons2 = dict()
         if ext_mode:
             converted_results = [self.obj.engine.aggregator.converter(dp) for dp in results]
-
-        pass
 
     def test_no_data_file(self):
         self.configure({

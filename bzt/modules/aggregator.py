@@ -655,10 +655,10 @@ class ResultsReader(ResultsProvider):
     def get_mixed_label(label, kpis=None, f_type=None):
         # it is used for generation of extended label.
         # each label data is split according to sample state (success/error/assert)
-        if f_type:  # rc of error (from errors.jtl)
-            if f_type == 2:
+        if f_type is not None:  # type of error from errors.jtl
+            if f_type == 2 or f_type == 0:
                 group = SAMPLE_STATES[1]    # jmeter error (assertion, etc.)
-            else:   # f_type == 1
+            else:   # f_type == 1:
                 group = SAMPLE_STATES[2]    # http error
         else:
             if kpis[4] == '200':
