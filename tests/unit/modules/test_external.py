@@ -1,5 +1,3 @@
-import copy
-
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, SAMPLE_STATES
 from bzt.modules.external import ExternalResultsLoader
 from bzt.modules.jmeter import FuncJTLReader, JTLReader
