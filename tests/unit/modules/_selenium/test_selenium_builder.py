@@ -2540,3 +2540,20 @@ class TestIsSelenium4(SeleniumTestCase):
         ]
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_headless_chrome_selenium_4(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Chrome",
+                    "headless": True,
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj_prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+        self.assertIn("options.headless = True", gen_contents)
