@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.16.1<sup> 08 Dec 2021</sup>
+- add alternative aggregation mode (for BlazeMeter's EFT feature)
+- make some tools auto installable (selenium, appium)
+- support versions of packages in pip-installer service
+- bring python3.9 into docker image
+- use Driver Manger to install appropriate webdriver version
+- add support for shadow DOM in Chrome 96
+- update default version of jmeter to 5.4.1
+- fix jmeter iteration handling (allow usage of props)
+- fix k6 iteration setup
+- update k6 log reader
+- update installation docs
+
 ## 1.16.0<sup> 06 Oct 2021</sup>
 - add setup/teardown python code generation
 - add autoinstallation for python tools (`apiritif`, `pytest`, `locust`, `robot`)
