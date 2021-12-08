@@ -1,1 +1,0 @@
-Update webdriver-manager. Download the latest webdriver with old logic if the webdriver-manager couldn't initialize.
