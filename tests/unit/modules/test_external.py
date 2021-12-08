@@ -153,6 +153,36 @@ class TestExternalResultsLoader(ExecutorTestCase):
                 for state in cons2[ts][label]:
                     self.assertEqual(cons2[ts][label][state], sample_cons2[ts][label][state])
 
+    def test_ext_agg_embedded(self):
+        self.configure({
+            "execution": [{
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi_ed.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/error_ed.jtl",
+            }]
+        })
+        ext_mode = True
+        self.obj.engine.aggregator.set_aggregation(ext_mode)
+        self.obj.prepare()
+        self.obj.reader.set_aggregation(ext_mode)
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        results = self.results_listener.results
+
+        cons1 = {}
+        for dp in results:
+            current = dp[DataPoint.CURRENT]
+            cons1[dp['ts']] = {state: current[state][KPISet.CONCURRENCY] for state in current if state != ''}
+
+        if ext_mode:
+            converted_results = [self.obj.engine.aggregator.converter(dp) for dp in results]
+
+        first_current = converted_results[0][DataPoint.CURRENT]
+        error_type = first_current['Request 001']['all_transactions_aggregated'][KPISet.ERRORS][0]['type']
+        self.assertEqual(2, error_type)
+
     def test_no_data_file(self):
         self.configure({
             "execution": [{

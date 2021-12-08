@@ -1,6 +1,5 @@
 # Utility functions and classes for Taurus Selenium tests
 import time
-import datetime
 
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, external_handler
 
@@ -9,6 +8,7 @@ from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameExcepti
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as econd
+from selenium.webdriver.remote.webelement import WebElement
 
 from apiritif.action_plugins import BaseActionHandler
 from bzt import TaurusException
@@ -58,7 +58,13 @@ def _find_element_in_shadow(el, css_selector, raise_exception):
 def _find_by_css_selector(root, css_selector, raise_exception):
     element = None
     try:
-        element = root.find_element_by_css_selector(css_selector)
+        # Chrome 96+ returns the element as a dict that includes the id
+        if isinstance(root, dict):
+            key = list(root.keys())[0]
+            shadow_root_el = WebElement(_get_driver(), root[key])
+            element = shadow_root_el.find_element_by_css_selector(css_selector)
+        else:
+            element = root.find_element_by_css_selector(css_selector)
     except NoSuchElementException as nse:
         if raise_exception:
             if root.tag_name == "slot":
