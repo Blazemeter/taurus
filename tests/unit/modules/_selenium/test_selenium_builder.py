@@ -2540,3 +2540,34 @@ class TestIsSelenium4(SeleniumTestCase):
         ]
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_generator_remote_edge_selenium4(self):
+        # EdgeOptions is available for MicrosoftEdge starting from Selenium version 4
+
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "remote": "http://addr-of-remote-server.com",
+                "scenario": "remote_sc"}],
+            "scenarios": {
+                "remote_sc": {
+                    "browser": "MicrosoftEdge",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "arguments": ["one", "two"]}}}})
+
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "options = webdriver.EdgeOptions()",
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
