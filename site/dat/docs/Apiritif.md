@@ -1037,7 +1037,7 @@ scenarios:
     browser: Remote
     remote: http://user:key@remote_web_driver_host:port/wd/hub
     capabilities:
-      browser: firefox  # ["firefox", "chrome", "MicrosoftEdge", etc] Depends on the capabilities of the remote selenium server
+      browser: firefox  # Depends on the capabilities of the remote selenium server
       version: "54.0"
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
@@ -1053,7 +1053,7 @@ scenarios:
   request_example:
     remote: http://user:key@remote_web_driver_host:port/wd/hub
     capabilities:
-      browser: firefox  # ["firefox", "chrome", "MicrosoftEdge", etc] Depends on the capabilities of the remote selenium server
+      browser: firefox  # Depends on the capabilities of the remote selenium server
       version: "54.0"
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
@@ -1061,6 +1061,8 @@ scenarios:
       - waitForByCSS(body, present)
     # ...
 ```
+
+Here is a list of browsers which can be used as remote: `firefox`, `chrome`, `MicrosoftEdge`.
 
 Note that `remote` keyword can be used on module settings, execution settings, or scenario level.
 
