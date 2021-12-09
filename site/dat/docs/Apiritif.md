@@ -1018,7 +1018,7 @@ It is possible to use the browser remotely using Remote WebDriver. It must be in
 
 To specify the capabilities of the Remote WebDriver, it is necessary to be able to configure properties necessary for remote instantiation. You must use the `capabilities` structure where you can specify the main properties required by the remote webdriver.
 
-Note: The capabilities are a way in which the remote service filters and selects the device or browser to be selected for the test, depending on its configuration according to the configured specifications. It is recommended to read the documentation of who provides the service
+Note: The capabilities are a way in which the remote service filters and selects the device or browser to be selected for the test, depending on its configuration according to the configured specifications. It is recommended to read the documentation of who provides the service.
 
 ### Commonly used capabilities
 
@@ -1037,7 +1037,7 @@ scenarios:
     browser: Remote
     remote: http://user:key@remote_web_driver_host:port/wd/hub
     capabilities:
-      browser: firefox  # Depends on the capabilities of the remote selenium server
+      browser: firefox  # ["firefox", "chrome", "MicrosoftEdge", etc] Depends on the capabilities of the remote selenium server
       version: "54.0"
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
@@ -1053,7 +1053,7 @@ scenarios:
   request_example:
     remote: http://user:key@remote_web_driver_host:port/wd/hub
     capabilities:
-      browser: firefox  # Depends on the capabilities of the remote selenium server
+      browser: firefox  # ["firefox", "chrome", "MicrosoftEdge", etc] Depends on the capabilities of the remote selenium server
       version: "54.0"
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
