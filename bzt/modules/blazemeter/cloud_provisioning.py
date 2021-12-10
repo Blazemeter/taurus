@@ -120,7 +120,7 @@ class MasterProvisioning(Provisioning):
 
                 if not os.path.exists(self.engine.find_file(rfile)):
                     raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
-                if to_json(rfile) not in config:  # TODO: might be check is needed to improve
+                if to_json(rfile) not in config:
                     additional_files.append(rfile)
             rfiles += executor_rfiles
 
@@ -346,7 +346,6 @@ class CloudProvisioning(MasterProvisioning):
         provisioning = config.get(Provisioning.PROV)
         self._filter_unused_modules(config, provisioning)
 
-        # todo: should we remove config['version'] before sending to cloud?
         config['local-bzt-version'] = config.get('version', 'N/A')
 
         config.filter(CLOUD_CONFIG_BLACK_LIST, black_list=True)
@@ -694,7 +693,7 @@ class ResultsFromBZA(ResultsProvider):
                 error=msg,
                 ret_c=errors[msg]['rc'],
                 cnt=errors[msg]['count'],
-                errtype=KPISet.ERRTYPE_ERROR,  # TODO: what about asserts?
+                errtype=KPISet.ERRTYPE_ERROR,
                 urls=Counter(), tag=None)
             result.append(kpi_error)
         return result

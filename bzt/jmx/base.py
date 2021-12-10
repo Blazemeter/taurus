@@ -1000,7 +1000,7 @@ class JMX(object):
                                 testclass="BoundaryExtractor", testname="Get %s" % varname, enabled="true")
         element.append(JMX._string_prop("BoundaryExtractor.useHeaders", subject))
         element.append(JMX._string_prop("BoundaryExtractor.refname", varname))
-        element.append(JMX._string_prop("BoundaryExtractor.lboundary", left))  # TODO: html-escape boundaries?
+        element.append(JMX._string_prop("BoundaryExtractor.lboundary", left))
         element.append(JMX._string_prop("BoundaryExtractor.rboundary", right))
         element.append(JMX._string_prop("RegexExtractor.default", defvalue))
         element.append(JMX._string_prop("RegexExtractor.match_number", match_no))
@@ -1361,7 +1361,6 @@ class JMX(object):
 
     @staticmethod
     def _get_foreach_controller(input_var, loop_var):
-        # TODO: useSeparator option
         controller = etree.Element("ForeachController", guiclass="ForeachControlPanel", testclass="ForeachController",
                                    testname="ForEach Controller")
         controller.append(JMX._string_prop("ForeachController.inputVal", input_var))

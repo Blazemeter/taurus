@@ -395,7 +395,7 @@ from selenium.webdriver.common.keys import Keys
     def _gen_frame_mngr(self, tag, selector):
         method = "switch_frame"
         self.selenium_extras.add(method)
-        elements = []  # todo: byid/byidx disambiguation?
+        elements = []
         if not selector:
             raise TaurusConfigError("Can not generate action for 'switchFrame'. Selector is empty.")
         if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
@@ -909,7 +909,7 @@ from selenium.webdriver.common.keys import Keys
 
         browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
-        browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
+        browser = browser.lower()
         if browser == "microsoftedge":  # for remote webdriver only
             browser = "MicrosoftEdge"
         local_browsers = ["firefox", "chrome", "ie", "opera"] + mobile_browsers
@@ -963,7 +963,7 @@ from selenium.webdriver.common.keys import Keys
             body.append(ast.Assign(
                 targets=[ast_attr("self.driver")],
                 value=ast_call(
-                    func=ast_attr("webdriver.%s" % browser))))  # todo bring 'browser' to correct case
+                    func=ast_attr("webdriver.%s" % browser))))
 
         body.append(self._get_timeout())
         body.extend(self._get_extra_mngrs())
@@ -1271,7 +1271,7 @@ from selenium.webdriver.common.keys import Keys
         stmts.extend(self._gen_data_source_readers())
         stmts.append(self._gen_classdef())
 
-        stmts = self._gen_imports() + stmts  # todo: order is important (with classdef) because of self.appium setup
+        stmts = self._gen_imports() + stmts
 
         return ast.Module(body=stmts)
 
@@ -1627,7 +1627,6 @@ from selenium.webdriver.common.keys import Keys
         return target
 
     def _init_target(self):
-        # todo: allow empty address in apiritif (HTTPTarget.__init__)
         default_address = self.scenario.get("default-address", "")
 
         target_call = ast_call(
@@ -1704,9 +1703,6 @@ from selenium.webdriver.common.keys import Keys
                 body.append(self._gen_set_vars(request))
             else:
                 body.append(self._gen_http_request(request))
-
-        # if self.test_mode == "selenium":    # todo: remove it?
-        #    transaction_class += "_logged"
 
         transaction = ast.With(
             context_expr=ast_call(
@@ -2013,14 +2009,11 @@ from selenium.webdriver.common.keys import Keys
         extractors = request.config.get("extract-regexp")
         for varname in extractors:
             cfg = ensure_is_dict(extractors, varname, "regexp")
-            # TODO: support non-'body' value of 'subject'
             stmts.append(ast.Assign(
                 targets=[self.expr_compiler.gen_var_accessor(varname, ast.Store())],
                 value=ast_call(
                     func=ast_attr("response.extract_regex"),
                     args=[self._gen_expr(cfg['regexp']), self._gen_expr(cfg.get('default', 'NOT_FOUND'))])))
-
-        # TODO: css/jquery extractor?
 
         xpath_extractors = request.config.get("extract-xpath")
         for varname in xpath_extractors:
