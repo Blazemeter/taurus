@@ -79,7 +79,7 @@ def unicode_decode(string, errors="strict"):
         return string
 
 
-def communicate(proc):  # todo: replace usage of it with sync_run()
+def communicate(proc):
     out, err = proc.communicate()
     out = unicode_decode(out, errors="ignore")
     err = unicode_decode(err, errors="ignore")
@@ -342,7 +342,6 @@ class BetterDict(defaultdict):
                 key = key[1:]
 
             if prefix == "^":  # eliminate flag
-                # TODO: improve logic - use val contents to see what to eliminate
                 if key in self:
                     self.pop(key)
                 continue

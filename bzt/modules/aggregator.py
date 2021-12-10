@@ -115,7 +115,6 @@ class RespTimesCounter(JSONConvertible):
         new._ff_iterator = self._ff_iterator
         new._perc_levels = self._perc_levels
 
-        # TODO: maybe hdrpy can encapsulate this itself
         new.histogram.counts = copy.deepcopy(self.histogram.counts, memo)
         new.histogram.total_count = self.histogram.total_count
         new.histogram.min_value = self.histogram.min_value
@@ -262,7 +261,6 @@ class KPISet(dict):
 
         :type sample: tuple
         """
-        # TODO: introduce a flag to not count failed in resp times? or offer it always?
         cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
         self[self.SAMPLE_COUNT] += 1
         if self.ext_aggregation:
@@ -291,8 +289,6 @@ class KPISet(dict):
 
         if byte_count is not None:
             self[self.BYTE_COUNT] += byte_count
-            # TODO: max/min rt? there is percentiles...
-            # TODO: throughput if interval is not 1s
 
     def add_concurrency(self, cnc, sid):
         # sid: source id, e.g. node id for jmeter distributed mode
@@ -385,7 +381,7 @@ class KPISet(dict):
         :type src: KPISet
         :return:
         """
-        src.recalculate()  # TODO: could be not resource efficient strat
+        src.recalculate()
 
         self.sum_cn += src.sum_cn
         self.sum_lt += src.sum_lt
@@ -405,7 +401,6 @@ class KPISet(dict):
             self[self.RESP_TIMES].merge(src[self.RESP_TIMES])
         elif not self[self.PERCENTILES]:
             # using existing percentiles, in case we have no source data to recalculate them
-            # TODO: it's not valid to overwrite, better take average
             self[self.PERCENTILES] = copy.deepcopy(src[self.PERCENTILES])
 
         self[self.RESP_CODES].update(src[self.RESP_CODES])
@@ -563,7 +558,7 @@ class ResultsProvider(object):
             return key
 
         size = len(dataset)
-        if size >= limit / 4:  # TODO: parameterize it
+        if size >= limit / 4:
             tolerance = (float(size) / float(limit)) ** 2
             threshold = 1 - tolerance
             matches = dataset.get(key)
@@ -823,7 +818,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
     """
     OVERALL_STATE = "all_transactions_aggregated"
 
-    # TODO: switch to underling-count-based completeness criteria
     def __init__(self):
         Aggregator.__init__(self, is_functional=False)
         ResultsProvider.__init__(self)
