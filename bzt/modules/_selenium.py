@@ -308,8 +308,11 @@ class WebDriver(RequiredTool):
         shutil.copy2(driver_path, self.dest)
 
     def _install_by_link(self):
-        self._get_download_link()
-        self._download_and_save()
+        try:
+            self._get_download_link()
+            self._download_and_save()
+        except BaseException as exc:
+            self.log.warning(f"{self.tool_name} wasn't downloaded. Reason: {type(exc).__name__}, {exc}")
 
     def _get_download_link(self):
         pass
