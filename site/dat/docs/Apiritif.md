@@ -1018,7 +1018,7 @@ It is possible to use the browser remotely using Remote WebDriver. It must be in
 
 To specify the capabilities of the Remote WebDriver, it is necessary to be able to configure properties necessary for remote instantiation. You must use the `capabilities` structure where you can specify the main properties required by the remote webdriver.
 
-Note: The capabilities are a way in which the remote service filters and selects the device or browser to be selected for the test, depending on its configuration according to the configured specifications. It is recommended to read the documentation of who provides the service
+Note: The capabilities are a way in which the remote service filters and selects the device or browser to be selected for the test, depending on its configuration according to the configured specifications. It is recommended to read the documentation of who provides the service.
 
 ### Commonly used capabilities
 
@@ -1061,6 +1061,8 @@ scenarios:
       - waitForByCSS(body, present)
     # ...
 ```
+
+Here is a list of browsers which can be used as remote: `firefox`, `chrome`, `MicrosoftEdge`.
 
 Note that `remote` keyword can be used on module settings, execution settings, or scenario level.
 

@@ -1034,10 +1034,14 @@ from selenium.webdriver.common.keys import Keys
                 browser = 'firefox'
             elif 'chrome' == self.capabilities.get('browserName'):
                 browser = 'chrome'
+            elif 'MicrosoftEdge' == self.capabilities.get('browserName'):
+                browser = 'MicrosoftEdge'
         if browser == 'firefox':
             options = self._get_firefox_options()
         elif browser == 'chrome':
             options = self._get_chrome_options()
+        elif browser == 'MicrosoftEdge' and self.selenium_version.startswith("4"):
+            options = self._get_edge_options()
         else:
             options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
 
@@ -1083,6 +1087,14 @@ from selenium.webdriver.common.keys import Keys
                           ast.Str("ignore", kind="")]))]
 
         return chrome_options + self._get_headless_setup()
+
+    def _get_edge_options(self):
+        edge_options = [
+            ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(func=ast_attr("webdriver.EdgeOptions")))]
+
+        return edge_options + self._get_headless_setup()
 
     def _get_firefox_profile(self):
         capabilities = sorted(self.capabilities.keys())
@@ -1177,7 +1189,7 @@ from selenium.webdriver.common.keys import Keys
                 return []
         else:
             old_version = False
-            if browser != 'firefox' and browser != 'chrome':
+            if browser not in ['firefox', 'chrome', 'MicrosoftEdge']:
                 self.log.debug(
                     f'Generating selenium options. Browser {browser}. Selenium version {self.selenium_version}')
                 options.extend([ast.Assign(
