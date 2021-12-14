@@ -219,7 +219,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         self.assertGreater(len(results), 0)
         converted = self.obj.engine.aggregator.converter(results[-1])[DataPoint.CURRENT]
         self.assertIn(SAMPLE_STATES[0], converted[''])  # success
-        self.assertIn(SAMPLE_STATES[2], converted[''])  # http_errors
+        self.assertNotIn(SAMPLE_STATES[2], converted[''])  # http_errors
 
     def test_errors_jtl_ext(self):
         self.configure({
