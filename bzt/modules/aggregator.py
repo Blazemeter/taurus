@@ -661,13 +661,14 @@ class ResultsReader(ResultsProvider):
             else:   # f_type == 0:
                 group = SAMPLE_STATES[2]    # .. or http_error otherwise
         else:
-            if kpis[4] == '200':
-                if kpis[5] is None:
-                    group = SAMPLE_STATES[0]    # succeeded sample
-                else:
-                    group = SAMPLE_STATES[1]  # jmeter error
+            # kpis format: conc, r_time, con_time, latency, r_code, error, trname, byte_count
+            if kpis[5] is None:
+                group = SAMPLE_STATES[0]  # succeeded sample
             else:
-                group = SAMPLE_STATES[2]  # http error
+                if kpis[4] == '200':
+                    group = SAMPLE_STATES[1]  # jmeter error
+                else:
+                    group = SAMPLE_STATES[2]  # http error
 
         return '-'.join((label, str(group)))
 
