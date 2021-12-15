@@ -738,7 +738,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
 
         self.assertNotIn("options.set_headless()", gen_contents)
 
-    def test_capabilities_type(self):
+    def test_capabilities_update(self):
         self.configure({
             "execution": [{
                 "executor": "selenium",
@@ -757,10 +757,11 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "'proxy': {'key': 'val'}",
-            "'string_cap': 'string_val'"
+            "options.set_capability('proxy', {'key': 'val'})",
+            "options.set_capability('string_cap', 'string_val')"
         ]
-        wrong_line = "'proxy': \"{'key': 'val'}\""
+
+        wrong_line = "desired_capabilities={'proxy': {'key': 'val'}, 'string_cap': 'string_val'}"
 
         for line in target_lines:
             self.assertIn(line, content)
@@ -801,12 +802,12 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             content = fds.read()
 
         target_lines = [
-            "'name1': 'settings'",
-            "'name2': 'execution'",
-            "'name3': 'scenario'",
-            "'name4': 'execution'",
-            "'name5': 'execution'",
-            "'name6': 'scenario'"]
+            "options.set_capability('name1', 'settings')",
+            "options.set_capability('name2', 'execution')",
+            "options.set_capability('name3', 'scenario')",
+            "options.set_capability('name4', 'execution')",
+            "options.set_capability('name5', 'execution')",
+            "options.set_capability('name6', 'scenario')"]
 
         for line in target_lines:
             self.assertIn(line, content)
@@ -870,7 +871,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with open(self.obj.script) as script:
             content = script.read()
 
-        sample = "desired_capabilities={'browserName': '%s'}" % browser_name
+        sample = "options.set_capability('browserName', '%s')" % browser_name
         self.assertIn(sample, content)
 
     def test_build_script_appium_browser(self):
@@ -919,7 +920,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "scenarios": {
                 "remote_sc": {  # no 'browser' element
                     "capabilities": {
-                        "browserName": "chrome"},  # must be faced in desired_capabilities
+                        "browserName": "chrome"},  # must be set among other capabilities
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "http://blazedemo.com",
@@ -931,7 +932,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "'browserName': 'chrome'"
+        target = "options.set_capability('browserName', 'chrome')"
         self.assertIn(target, content)
 
     def test_build_script_remote_browser(self):
@@ -944,7 +945,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
             "scenarios": {
                 "remote_sc": {
                     "capabilities": {
-                        "browserName": "chrome"},  # must be faced in desired_capabilities
+                        "browserName": "chrome"},  # must be set among other capabilities
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "http://blazedemo.com",
@@ -956,7 +957,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "'browserName': 'chrome'"
+        target = "options.set_capability('browserName', 'chrome')"
         self.assertIn(target, content)
 
     def test_build_script_remote_Firefox_browser(self):
@@ -968,7 +969,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 "scenario": "remote_sc"}],
             "scenarios": {
                 "remote_sc": {
-                    "browser": "Firefox",  # must be faced in desired_capabilities (in lower case)
+                    "browser": "Firefox",  # must be set among other capabilities
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "http://blazedemo.com",
@@ -980,7 +981,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "'browserName': 'firefox'"
+        target = "options.set_capability('browserName', 'firefox')"
         self.assertIn(target, content)
 
     def test_build_script_remote_Edge_browser(self):
@@ -992,7 +993,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 "scenario": "remote_sc"}],
             "scenarios": {
                 "remote_sc": {
-                    "browser": "MicrosoftEdge",  # must be faced in desired_capabilities (in camel case)
+                    "browser": "MicrosoftEdge",  # must be set among other capabilities (in camel case)
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "http://blazedemo.com",
@@ -1004,7 +1005,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "'browserName': 'MicrosoftEdge'"
+        target = "options.set_capability('browserName', 'MicrosoftEdge')"
         self.assertIn(target, content)
 
     def test_build_script_flow_markers(self):
