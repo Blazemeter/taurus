@@ -1170,7 +1170,7 @@ from selenium.webdriver.common.keys import Keys
     def _get_remote_webdriver(self):
         keys = sorted(self.capabilities.keys())
         if "browserName" in keys and self.capabilities.get('browserName').lower() in ["microsoftedge", "edge"]:
-            self.capabilities["browserName"] = "MicrosoftEdge"
+            self.capabilities["browserName"] = "MicrosoftEdge"  # MicrosoftEdge in camel case is necessary
         values = [self.capabilities[key] for key in keys]
 
         return ast.Assign(
