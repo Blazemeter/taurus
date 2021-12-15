@@ -871,7 +871,7 @@ Or using the [alternative syntax](#Alternative-syntax-supporting-multiple-locato
 ```yaml
 scenarios:
   request_example:
-    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
+    browser: Firefox  # available browsers are:  Firefox, Chrome, Ie, Opera, Edge
     headless: true  # available only for Chrome/Firefox and only on Selenium 3.8.0+, disabled by default
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
@@ -930,7 +930,7 @@ mix it with the shorter version of action definition.
 ```yaml
 scenarios:
   request_example:
-    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
+    browser: Firefox  # available browsers are: Firefox, Chrome, Ie, Opera, Edge
     headless: true  # available only for Chrome/Firefox and only on Selenium 3.8.0+, disabled by default
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
@@ -1062,7 +1062,7 @@ scenarios:
     # ...
 ```
 
-Here is a list of browsers which can be used as remote: `firefox`, `chrome`, `MicrosoftEdge`.
+Here is a list of browsers which can be used as remote: `firefox`, `chrome`, `edge`.
 
 Note that `remote` keyword can be used on module settings, execution settings, or scenario level.
 
