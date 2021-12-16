@@ -1027,6 +1027,8 @@ Note: The capabilities are a way in which the remote service filters and selects
   - acceptInsecureCerts
   - platformName — commonly used for mobile devices
 
+Full capabilities list is [here](https://www.selenium.dev/documentation/webdriver/capabilities/). 
+
 Note: Currently it is possible to perform basic tests in mobile browsers using the available actions commands, in the future more commands related to mobile will be incorporated to allow a better interactivity.
 
 ### Sample Remote Webdriver scenario:
