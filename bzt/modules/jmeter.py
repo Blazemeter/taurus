@@ -1564,7 +1564,8 @@ class JMeter(RequiredTool):
             fixed_version = '2.16.0'
             maven_link = "https://repo1.maven.org/maven2/org/apache/logging/log4j/{comp}/{ver}/{comp}-{ver}.jar"
             affected_components = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
-            for _file in os.listdir(lib_dir):
+            log4j_files = [_file for _file in os.listdir(lib_dir) if _file.startswith("log4j")]
+            for _file in log4j_files:
                 for comp in affected_components:
                     if _file.startswith(comp):
                         full_link = maven_link.format(comp=comp, ver=fixed_version)
