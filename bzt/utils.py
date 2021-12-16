@@ -1274,24 +1274,21 @@ class RequiredTool(object):
     Abstract required tool
     """
     VERSION = None
+    DOWNLOAD_LINK = None
 
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
                  env=None, version=None, installable=True, mandatory=True):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
-        self.download_link = download_link
+        self.download_link = download_link or self.DOWNLOAD_LINK
         self.mirror_manager = None
         self.mandatory = mandatory
-
-        self.version = self.VERSION
-        if version is not None:
-            self.version = str(version)
-
         self.installable = installable
-
+        self.version = str(version) if version is not None else self.VERSION
         self.tool_name = self.__class__.__name__
 
         # for browsermobproxy compatability, remove it later
+        # todo: check it! (as well as others 'remove it later')
         if not isinstance(log, logging.Logger):
             log = None
 
