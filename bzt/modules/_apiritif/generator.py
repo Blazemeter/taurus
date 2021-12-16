@@ -910,9 +910,9 @@ from selenium.webdriver.common.keys import Keys
         browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
         browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
-        if browser == "microsoftedge":  # for remote webdriver only
-            browser = "MicrosoftEdge"
-        local_browsers = ["firefox", "chrome", "ie", "opera"] + mobile_browsers
+        if browser == "microsoftedge":
+            browser = "edge"
+        local_browsers = ["firefox", "chrome", "ie", "opera", "edge"] + mobile_browsers
 
         browser_platform = None
         if browser:
@@ -934,7 +934,7 @@ from selenium.webdriver.common.keys import Keys
             self.remote_address = "http://localhost:4723/wd/hub"
             self.capabilities["platformName"] = browser_platform
             self.capabilities["browserName"] = browser
-            browser = "remote"  # Force to use remote web driver
+            browser = "remote"  # Force using remote web driver
         elif not browser:
             browser = "firefox"
         elif browser not in local_browsers:  # browser isn't supported
@@ -955,6 +955,9 @@ from selenium.webdriver.common.keys import Keys
 
         elif browser == 'chrome':
             body.extend(self._get_chrome_profile() + [self._get_chrome_webdriver()])
+
+        elif browser == 'edge':
+            body.extend([self._get_edge_webdriver()])
 
         elif browser == 'remote':
             body.append(self._get_remote_profile() + [self._get_remote_webdriver()])
@@ -1034,13 +1037,14 @@ from selenium.webdriver.common.keys import Keys
                 browser = 'firefox'
             elif 'chrome' == self.capabilities.get('browserName'):
                 browser = 'chrome'
-            elif 'MicrosoftEdge' == self.capabilities.get('browserName'):
-                browser = 'MicrosoftEdge'
+            elif self.capabilities.get('browserName') and \
+                    self.capabilities.get('browserName').lower() in ["microsoftedge", "edge"]:
+                browser = 'edge'
         if browser == 'firefox':
             options = self._get_firefox_options()
         elif browser == 'chrome':
             options = self._get_chrome_options()
-        elif browser == 'MicrosoftEdge' and self.selenium_version.startswith("4"):
+        elif browser == 'edge' and self.selenium_version.startswith("4"):
             options = self._get_edge_options()
         else:
             options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
@@ -1136,6 +1140,8 @@ from selenium.webdriver.common.keys import Keys
 
     def _get_remote_profile(self):
         capabilities = sorted(self.capabilities.keys())
+        if "browserName" in capabilities and self.capabilities.get('browserName').lower() in ["microsoftedge", "edge"]:
+            self.capabilities["browserName"] = "MicrosoftEdge"  # MicrosoftEdge in camel case is necessary
         cap_expr = []
         for capability in capabilities:
             cap_expr.append([
@@ -1171,6 +1177,12 @@ from selenium.webdriver.common.keys import Keys
                         arg="options",
                         value=ast.Name(id="options"))]))
 
+    def _get_edge_webdriver(self):
+        return ast.Assign(
+            targets=[ast_attr("self.driver")],
+            value=ast_call(
+                func=ast_attr("webdriver.Edge")))
+
     def _get_remote_webdriver(self):
         return ast.Assign(
             targets=[ast_attr("self.driver")],
@@ -1195,7 +1207,7 @@ from selenium.webdriver.common.keys import Keys
                 return []
         else:
             old_version = False
-            if browser not in ['firefox', 'chrome', 'MicrosoftEdge']:
+            if browser not in ['firefox', 'chrome', 'edge']:
                 self.log.debug(
                     f'Generating selenium options. Browser {browser}. Selenium version {self.selenium_version}')
                 options.extend([ast.Assign(

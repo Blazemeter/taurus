@@ -254,6 +254,24 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
+    def test_edge_setup_generator(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "edge",
+                    "requests": [{
+                        "url": "bla.com"}],
+                }}})
+
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertIn("self.driver = webdriver.Edge()", content)
+
     def test_ignore_proxy_option_generator_selenium_3(self):
         # Option ignore-proxy is only available starting from Selenium version 4
         self.configure({
@@ -960,7 +978,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target = "options.set_capability('browserName', 'chrome')"
         self.assertIn(target, content)
 
-    def test_build_script_remote_Firefox_browser(self):
+    def test_build_script_remote_firefox_browser(self):
         """ check usage of 'browser' scenario options as browserName (from capabilities) """
         self.configure({
             "execution": [{
@@ -984,7 +1002,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         target = "options.set_capability('browserName', 'firefox')"
         self.assertIn(target, content)
 
-    def test_build_script_remote_Edge_browser(self):
+    def test_build_script_remote_edge_browser(self):
         """ check usage of 'browser' scenario options as browserName (from capabilities) """
         self.configure({
             "execution": [{
@@ -993,7 +1011,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
                 "scenario": "remote_sc"}],
             "scenarios": {
                 "remote_sc": {
-                    "browser": "MicrosoftEdge",  # must be set among other capabilities (in camel case)
+                    "browser": "edge",
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "http://blazedemo.com",
@@ -2569,7 +2587,7 @@ class TestIsSelenium4(SeleniumTestCase):
                 "scenario": "remote_sc"}],
             "scenarios": {
                 "remote_sc": {
-                    "browser": "MicrosoftEdge",
+                    "browser": "edge",
                     "requests": [{
                         "url": "bla.com"}]}},
             "modules": {
