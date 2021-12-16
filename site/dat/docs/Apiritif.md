@@ -94,7 +94,7 @@ In `selenium` mode follow request features are supported:
 
   - `browser` for the following browser types: Chrome, Firefox, Ie, Opera, Android-Chrome, iOS-Safari, Remote
   - `remote` for local webdriver, local remote webdriver or [remote webdriver](#Remote-WebDriver)
-  - `capabilities` of local and [remote webdriver](#Remote-WebDriver): `browser`, `version`, `javascript`, `platform`, `os\_version`, `selenium`, `device`, `app`
+  - `capabilities` of local and [remote webdriver](#Remote-WebDriver)
   - `request` only for GET method
       - `action` keyword for Selenium actions
       - `assert` (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)
@@ -1022,11 +1022,12 @@ Note: The capabilities are a way in which the remote service filters and selects
 
 ### Commonly used capabilities
 
-  - browser
-  - version
-  - platform
-  - device # ID of the device (Mobile browser)
-  - os_version # commonly used only for mobile
+  - browserName
+  - browserVersion
+  - acceptInsecureCerts
+  - platformName — commonly used for mobile devices
+
+Full capabilities list is [here](https://www.selenium.dev/documentation/webdriver/capabilities/).
 
 Note: Currently it is possible to perform basic tests in mobile browsers using the available actions commands, in the future more commands related to mobile will be incorporated to allow a better interactivity.
 
@@ -1037,8 +1038,8 @@ scenarios:
     browser: Remote
     remote: http://user:key@remote_web_driver_host:port/wd/hub
     capabilities:
-      browser: firefox  # Depends on the capabilities of the remote selenium server
-      version: "54.0"
+      browserName: firefox  # Depends on the capabilities of the remote selenium server
+      browserVersion: "95.0"
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
@@ -1053,8 +1054,8 @@ scenarios:
   request_example:
     remote: http://user:key@remote_web_driver_host:port/wd/hub
     capabilities:
-      browser: firefox  # Depends on the capabilities of the remote selenium server
-      version: "54.0"
+      browserName: firefox  # Depends on the capabilities of the remote selenium server
+      browserVersion: "95.0"
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform

@@ -19,7 +19,8 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import waiter, add_flow_markers, get_locator, wait_for
+from bzt.resources.selenium_extras import get_locator, add_flow_markers, wait_for, waiter
+
 
 class TestLocScRemote(unittest.TestCase):
 
@@ -27,19 +28,21 @@ class TestLocScRemote(unittest.TestCase):
         self.vars = {}
 
         timeout = 3.5
-        self.driver = None
         options = webdriver.FirefoxOptions()
+        options.set_capability('app', '')
+        options.set_capability('browserName', 'firefox')
+        options.set_capability('deviceName', '')
+        options.set_capability('javascriptEnabled', 'True')
+        options.set_capability('platformName', 'linux')
+        options.set_capability('platformVersion', '')
+        options.set_capability('seleniumVersion', '')
+        options.set_capability('version', '54.0')
         self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub',
-                                       desired_capabilities={'app': '', 'browserName': 'firefox', 'deviceName': '',
-                                                             'javascriptEnabled': 'True', 'platformName': 'linux',
-                                                             'platformVersion': '', 'seleniumVersion': '',
-                                                             'version': '54.0'},
                                        options=options)
         self.driver.implicitly_wait(timeout)
         add_flow_markers()
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc_remote')
-
 
     def _1_(self):
         with apiritif.smart_transaction('/'):
