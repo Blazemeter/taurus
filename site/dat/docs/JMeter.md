@@ -11,7 +11,7 @@ modules:
   jmeter:
     path: ~/.bzt/jmeter-taurus/bin/jmeter
     download-link: https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip
-    version: 3.0  # minimal supported version of JMeter is 2.9
+    version: 5.4.1  # minimal supported version of JMeter is 5.0
     force-ctg: true   # true by default
     detect-plugins: true
     fix-log4j: true
@@ -415,7 +415,6 @@ Possible subjects for regexp are:
   - `http-code`
   - `url`
 
-Parameters of jsonpath exractor `concat`, `scope` and `match-num` work only on JMeter >= 3.0
 If several results are found they will be concatenated with ',' if `concat`.
 
 

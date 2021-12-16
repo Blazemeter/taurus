@@ -1571,6 +1571,7 @@ class JMeter(RequiredTool):
                         full_link = maven_link.format(comp=comp, ver=fixed_version)
                         full_path = os.path.join(lib_dir, _file)
                         direct_install_tools.append([full_link, full_path])
+                        break
 
         self.__download_additions(direct_install_tools)
         self.__install_plugins_manager(plugins_manager_path)
