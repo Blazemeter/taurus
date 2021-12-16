@@ -37,7 +37,7 @@ following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fif
 jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation.
 If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.
 
-`fix-log4j` provides hot fix for log4j vulnerabilities (CVE-2021-44228 & CVE 2021-45046) during jmeter installation.
+`fix-log4j` provides hot fix for log4j vulnerabilities (CVE-2021-44228 & CVE-2021-45046) during jmeter installation.
 This option requires internet connection for downloading from maven and may be turned off in proxy/intranet case.
 
 
