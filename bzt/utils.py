@@ -1254,7 +1254,7 @@ class ExceptionalDownloader(object):
         super(ExceptionalDownloader, self).__init__()
         self.http_client = http_client
 
-    def get(self, url, filename=None, reporthook=None, data=None, suffix="", timeout=5.0):
+    def get(self, url, filename=None, reporthook=None, data=None, suffix="", timeout=30.0):
         if os.getenv("TAURUS_DISABLE_DOWNLOADS", ""):
             raise TaurusInternalException("Downloads are disabled by TAURUS_DISABLE_DOWNLOADS env var")
 

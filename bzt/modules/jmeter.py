@@ -1396,11 +1396,11 @@ class JMeter(RequiredTool):
         command_runner_settings = settings.get("command-runner", {})
         command_runner_version = command_runner_settings.get("version", JMeter.COMMAND_RUNNER_VERSION)
         self.command_runner = command_runner_settings.get("download-link", JMeter.COMMAND_RUNNER).format(version=command_runner_version)
-
         self.plugins = settings.get("plugins", [])
 
         super(JMeter, self).__init__(tool_path=jmeter_path, download_link=download_link, version=version, **kwargs)
 
+        self.fix_log4j = LooseVersion(self.version) <= LooseVersion('5.4.1') and settings.get("fix-log4j", True)
         self.mirror_manager = JMeterMirrorsManager(self.http_client, self.log, self.version)
 
         additional_jvm_props = self._get_jvm_props(props)
@@ -1554,9 +1554,23 @@ class JMeter(RequiredTool):
         direct_install_tools = [  # source link and destination
             [self.plugins_manager, plugins_manager_path],
             [self.command_runner, command_runner_path]]
-        plugins_manager_cmd = self._pmgr_path()
 
+        plugins_manager_cmd = self._pmgr_path()
         self.__install_jmeter(dest)
+
+        # fix log4j
+        if self.fix_log4j:
+            lib_dir = os.path.join(dest, 'lib')
+            fixed_version = '2.16.0'
+            maven_link = "https://repo1.maven.org/maven2/org/apache/logging/log4j/{comp}/{ver}/{comp}-{ver}.jar"
+            affected_components = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
+            for _file in os.listdir(lib_dir):
+                for comp in affected_components:
+                    if _file.startswith(comp):
+                        full_link = maven_link.format(comp=comp, ver=fixed_version)
+                        full_path = os.path.join(lib_dir, _file)
+                        direct_install_tools.append([full_link, full_path])
+
         self.__download_additions(direct_install_tools)
         self.__install_plugins_manager(plugins_manager_path)
         self.__install_plugins(plugins_manager_cmd)
