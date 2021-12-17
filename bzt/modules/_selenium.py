@@ -345,7 +345,8 @@ class GeckoDriver(WebDriver):
         self.download_link = self.download_link.format(version=self.version, arch=arch, ext=ext)
 
     def install(self):
-        os.makedirs(self.get_dir())
+        if not os.path.exists(self.get_dir()):
+            os.makedirs(self.get_dir())
 
         dist = self._download(use_link=True)
         if self.download_link.endswith('.zip'):
