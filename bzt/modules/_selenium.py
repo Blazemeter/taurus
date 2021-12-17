@@ -98,7 +98,7 @@ class SeleniumExecutor(ReportableExecutor):
         super(SeleniumExecutor, self).prepare()
         self.install_required_tools()
         for driver in self.webdrivers:
-            self.env.add_path({"PATH": driver.get_driver_dir()})
+            self.env.add_path({"PATH": driver.get_dir()})
 
         self.create_runner()
         self.runner.prepare()
@@ -265,29 +265,34 @@ class WebDriver(RequiredTool):
     def __init__(self, settings, log=None, **kwargs):
         self.log = log
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        filename = self.__class__.__name__.lower() + '.exe' if is_windows() else ""
 
-        # some parent logic is duplicated here to define appropriate tool_path
-        version = settings.get("version", self._get_latest_version()) or self.VERSION
+        # some parent logic is duplicated here to define appropriate tool_path in time
+        filename = self.__class__.__name__.lower() + ('.exe' if is_windows() else "")
+
+        version = settings.get("version")
+        version = version or self._get_latest_version(filename)
+        version = version or self.VERSION
         version = str(version)  # let's fix reading version as number from yaml
 
         tool_path = settings.get("path") or os.path.join(base_dir, 'drivers', filename, version, filename)
-        download_link = settings.get('download-link', self.DOWNLOAD_LINK).format(version=version)
-        download_link = self._expand_link(download_link)
+        download_link = settings.get('download-link')
         super().__init__(tool_path=tool_path, version=version, download_link=download_link, **kwargs)
+        self._expand_download_link()
 
-    @staticmethod
-    def _expand_link(dl):
-        return dl
+    def get_dir(self):
+        return get_full_path(self.tool_path, step_up=1)
 
-    def _get_latest_version(self):
+    def _expand_download_link(self):
+        pass
+
+    def _get_latest_version(self, filename):
         try:
-            return self.__latest_version()
+            return self._get_latest_version_from_inet()
         except BaseException as e:
-            self.log.warning(f'Getting latest version is failed for {self.tool_name}: {e}')
+            self.log.warning(f'Getting latest version is failed for {filename}: {e}')
             # return None if external request is impossible
 
-    def __latest_version(self):
+    def _get_latest_version_from_inet(self):
         pass
 
 
@@ -295,11 +300,10 @@ class ChromeDriver(WebDriver):
     VERSION = "97.0.4692.36"
     DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
 
-    def __latest_version(self):
+    def _get_latest_version_from_inet(self):
         return requests.get('https://chromedriver.storage.googleapis.com/LATEST_RELEASE').text
 
-    @staticmethod
-    def _expand_link(link):
+    def _expand_download_link(self):
         if is_windows():
             arch = 'win32'
         elif is_mac():
@@ -307,16 +311,13 @@ class ChromeDriver(WebDriver):
         else:
             arch = 'linux64'
 
-        return link.format(arch=arch)
+        self.download_link = self.download_link.format(version=self.version, arch=arch)
 
     def install(self):
-        super().install()
-
-        destination_dir = get_full_path(self.tool_path, step_up=1)
-        os.makedirs(destination_dir)
+        os.makedirs(self.get_dir())
 
         dist = self._download(use_link=True)
-        unzip(dist, destination_dir)
+        unzip(dist, self.get_dir())
         os.remove(dist)
 
         if not is_windows():
@@ -328,11 +329,10 @@ class GeckoDriver(WebDriver):
     DOWNLOAD_LINK = \
         "https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}"
 
-    def __latest_version(self):
+    def _get_latest_version_from_inet(self):
         return requests.get("https://api.github.com/repos/mozilla/geckodriver/releases/latest").json()["name"]
 
-    @staticmethod
-    def _expand_link(link):
+    def _expand_download_link(self):
         if is_windows():
             arch = 'win64'
             ext = 'zip'
@@ -343,21 +343,18 @@ class GeckoDriver(WebDriver):
             arch = 'linux64'
             ext = 'tar.gz'
 
-        return link.format(arch=arch, ext=ext)
+        self.download_link = self.download_link.format(version=self.version, arch=arch, ext=ext)
 
     def install(self):
-        super().install()
-
-        destination_dir = get_full_path(self.tool_path, step_up=1)
-        os.makedirs(destination_dir)
+        os.makedirs(self.get_dir())
 
         dist = self._download(use_link=True)
         if self.download_link.endswith('.zip'):
-            self.log.info("Unzipping %s to %s", dist, destination_dir)
-            unzip(dist, destination_dir)
+            self.log.info("Unzipping %s to %s", dist, self.get_dir())
+            unzip(dist, self.get_dir())
         else:
-            self.log.info("Untaring %s to %s", dist, destination_dir)
-            untar(dist, destination_dir)
+            self.log.info("Untaring %s to %s", dist, self.get_dir())
+            untar(dist, self.get_dir())
         os.remove(dist)
 
         if not is_windows():
