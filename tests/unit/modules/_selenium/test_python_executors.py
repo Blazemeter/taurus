@@ -9,13 +9,12 @@ from unittest import skipIf
 import bzt
 from bzt.engine import EXEC
 from bzt.modules import ConsolidatingAggregator
-from bzt.modules._selenium import GeckoDriver
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
 from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules._pytest import PyTestExecutor
 from bzt.modules.robot import RobotExecutor
 from tests.unit import RESOURCES_DIR, ExecutorTestCase
-from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool, MockDriver
+from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool
 from bzt.utils import EXE_SUFFIX, is_windows
 
 
@@ -314,17 +313,6 @@ class TestPyTestExecutor(ExecutorTestCase):
     EXECUTOR = PyTestExecutor
     CMD_LINE = None
 
-    def setUp(self):
-        super().setUp()
-        self.tmp_chromedriver = bzt.modules._selenium.ChromeDriver
-        bzt.modules._selenium.ChromeDriver = MockDriver
-        self.tmp_geckodriver = bzt.modules._selenium.GeckoDriver
-        bzt.modules._selenium.GeckoDriver = MockDriver
-
-    def tearDown(self):
-        bzt.modules._selenium.ChromeDriver = self.tmp_chromedriver
-        bzt.modules._selenium.GeckoDriver = self.tmp_geckodriver
-
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = args
 
@@ -387,11 +375,6 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
         self.obj_prepare()
-        driver = self.obj._get_tool(MockDriver, tool_path=self.obj.settings.get('geckodriver').get('path'))
-        if not driver.check_if_installed():
-            driver.install()
-        self.obj.env.add_path({"PATH": driver.get_dir()})
-
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.post_process()
@@ -404,11 +387,6 @@ class TestPyTestExecutor(ExecutorTestCase):
             }
         })
         self.obj_prepare()
-        driver = self.obj._get_tool(MockDriver, tool_path=self.obj.settings.get('geckodriver').get('path'))
-        if not driver.check_if_installed():
-            driver.install()
-        self.obj.env.add_path({"PATH": driver.get_dir()})
-
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.post_process()
