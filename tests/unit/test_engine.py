@@ -11,7 +11,7 @@ from bzt.engine import Configuration, EXEC
 from bzt.modules._selenium import SeleniumExecutor
 from bzt.utils import BetterDict, is_windows, get_full_path, get_uniq_name, communicate
 from tests.unit import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase, TEST_DIR, EngineEmul
-from tests.unit.modules._selenium import MockDriver, MockPythonTool
+from tests.unit.modules._selenium import MockPythonTool
 
 
 class MockClient(object):
@@ -27,10 +27,6 @@ class TestEngine(BZTestCase):
         super(TestEngine, self).setUp()
         self.obj = EngineEmul()
         self.paths = local_paths_config()
-        self.tmp_chromedriver = bzt.modules._selenium.ChromeDriver
-        bzt.modules._selenium.ChromeDriver = MockDriver
-        self.tmp_geckodriver = bzt.modules._selenium.GeckoDriver
-        bzt.modules._selenium.GeckoDriver = MockDriver
         self.tmp_selenium = bzt.modules._selenium.Selenium
         bzt.modules._selenium.Selenium = MockPythonTool
         self.tmp_apiritif_selenium = bzt.modules._apiritif.executor.Selenium
@@ -38,8 +34,6 @@ class TestEngine(BZTestCase):
 
     def tearDown(self):
         super(TestEngine, self).tearDown()
-        bzt.modules._selenium.ChromeDriver = self.tmp_chromedriver
-        bzt.modules._selenium.GeckoDriver = self.tmp_geckodriver
         bzt.modules._selenium.Selenium = self.tmp_selenium
         bzt.modules._apiritif.executor.Selenium = self.tmp_apiritif_selenium
 
