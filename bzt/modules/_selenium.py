@@ -25,8 +25,7 @@ from bzt import TaurusConfigError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import PrioritizedWidget
 from bzt.modules.services import PythonTool
-from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac, platform_bitness, unzip, \
-    untar
+from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac, unzip, untar
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
