@@ -262,19 +262,19 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 
 
 class WebDriver(RequiredTool):
-    DRIVER_NAME = None
-    MANAGER = None
-
     def __init__(self, settings, log=None, **kwargs):
         self.log = log
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        filename = self.DRIVER_NAME + '.exe' if is_windows() else ""
-        tool_path = settings.get("path") or os.path.join(base_dir, 'drivers', filename)
+        filename = self.__class__.__name__.lower() + '.exe' if is_windows() else ""
+
+        # some parent logic is duplicated here to define appropriate tool_path
         version = settings.get("version", self._get_latest_version()) or self.VERSION
+        version = str(version)  # let's fix reading version as number from yaml
+
+        tool_path = settings.get("path") or os.path.join(base_dir, 'drivers', filename, version, filename)
         download_link = settings.get('download-link', self.DOWNLOAD_LINK).format(version=version)
         download_link = self._expand_link(download_link)
         super().__init__(tool_path=tool_path, version=version, download_link=download_link, **kwargs)
-        self.dest = get_full_path(self.tool_path, step_up=1)
 
     @staticmethod
     def _expand_link(dl):
@@ -284,20 +284,14 @@ class WebDriver(RequiredTool):
         try:
             return self.__latest_version()
         except BaseException as e:
-            self.log.warning(f'Getting latest version is failed for {self.DRIVER_NAME}: {e}')
+            self.log.warning(f'Getting latest version is failed for {self.tool_name}: {e}')
             # return None if external request is impossible
 
     def __latest_version(self):
         pass
 
-    def install(self):
-        os.makedirs(self.dest)   # don't break if path exists
-        self.log.info(f"Install {self.tool_name} into {self.dest}...")
-        # real installation must be here
-
 
 class ChromeDriver(WebDriver):
-    DRIVER_NAME = 'chromedriver'
     VERSION = "97.0.4692.36"
     DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
 
@@ -317,8 +311,12 @@ class ChromeDriver(WebDriver):
 
     def install(self):
         super().install()
+
+        destination_dir = get_full_path(self.tool_path, step_up=1)
+        os.makedirs(destination_dir)
+
         dist = self._download(use_link=True)
-        unzip(dist, self.dest)
+        unzip(dist, destination_dir)
         os.remove(dist)
 
         if not is_windows():
@@ -326,7 +324,6 @@ class ChromeDriver(WebDriver):
 
 
 class GeckoDriver(WebDriver):
-    DRIVER_NAME = 'geckodriver'
     VERSION = "0.30.0"
     DOWNLOAD_LINK = \
         "https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}"
@@ -350,13 +347,17 @@ class GeckoDriver(WebDriver):
 
     def install(self):
         super().install()
+
+        destination_dir = get_full_path(self.tool_path, step_up=1)
+        os.makedirs(destination_dir)
+
         dist = self._download(use_link=True)
         if self.download_link.endswith('.zip'):
-            self.log.info("Unzipping %s to %s", dist, self.dest)
-            unzip(dist, self.dest)
+            self.log.info("Unzipping %s to %s", dist, destination_dir)
+            unzip(dist, destination_dir)
         else:
-            self.log.info("Untaring %s to %s", dist, self.dest)
-            untar(dist, self.dest)
+            self.log.info("Untaring %s to %s", dist, destination_dir)
+            untar(dist, destination_dir)
         os.remove(dist)
 
         if not is_windows():

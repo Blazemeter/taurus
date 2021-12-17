@@ -1284,7 +1284,7 @@ class RequiredTool(object):
         self.mirror_manager = None
         self.mandatory = mandatory
         self.installable = installable
-        self.version = str(version) if version is not None else self.VERSION
+        self.version = str(version) if version else self.VERSION
         self.tool_name = self.__class__.__name__
 
         # for browsermobproxy compatability, remove it later
