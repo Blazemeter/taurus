@@ -430,35 +430,3 @@ class TestReportReader(BZTestCase):
         self.assertEqual(items[2].status, "PASSED")
         self.assertEqual(items[4].test_case, 'SkippedTest')
         self.assertEqual(items[4].status, "SKIPPED")
-
-
-class MockWebDriverManager:
-    def __init__(self, **kwargs):
-        pass
-
-    def install(self):
-        return os.path.join(RESOURCES_DIR, "selenium/mockdriver")
-
-
-class TestWebrdivers(BZTestCase):
-    def test_webdriver_manager(self):
-        self.sniff_log(self.log)
-        tmp_chromedriver = bzt.modules._selenium.ChromeDriver.MANAGER
-        tmp_geckodriver = bzt.modules._selenium.GeckoDriver.MANAGER
-
-        try:
-            bzt.modules._selenium.ChromeDriver.MANAGER = MockWebDriverManager
-            bzt.modules._selenium.GeckoDriver.MANAGER = MockWebDriverManager
-
-            chromedriver = ChromeDriver()
-            chromedriver.install()
-
-            geckodriver = GeckoDriver()
-            geckodriver.install()
-
-        finally:
-            bzt.modules._selenium.ChromeDriver.MANAGER = tmp_chromedriver
-            bzt.modules._selenium.GeckoDriver.MANAGER = tmp_geckodriver
-
-        self.assertIn("Will install ChromeDriver into", self.log_recorder.info_buff.getvalue())
-        self.assertIn("Will install GeckoDriver into", self.log_recorder.info_buff.getvalue())

@@ -82,7 +82,7 @@ class MockDriver(RequiredTool):
         return True
 
     @staticmethod
-    def get_driver_dir():
+    def get_dir():
         return ""
 
     def install(self):
