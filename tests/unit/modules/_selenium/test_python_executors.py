@@ -390,7 +390,7 @@ class TestPyTestExecutor(ExecutorTestCase):
         driver = self.obj._get_tool(MockDriver, tool_path=self.obj.settings.get('geckodriver').get('path'))
         if not driver.check_if_installed():
             driver.install()
-        self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+        self.obj.env.add_path({"PATH": driver.get_dir()})
 
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
@@ -407,7 +407,7 @@ class TestPyTestExecutor(ExecutorTestCase):
         driver = self.obj._get_tool(MockDriver, tool_path=self.obj.settings.get('geckodriver').get('path'))
         if not driver.check_if_installed():
             driver.install()
-        self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+        self.obj.env.add_path({"PATH": driver.get_dir()})
 
         self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()

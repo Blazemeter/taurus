@@ -197,7 +197,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         super(SeleniumExecutor, self.obj).prepare()
         self.obj.install_required_tools()
         for driver in self.obj.webdrivers:
-            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+            self.obj.env.add_path({"PATH": driver.get_dir()})
         self.obj.create_runner()
         self.obj.runner._check_tools = lambda *args: None
         self.obj.runner._compile_scripts = lambda: None
