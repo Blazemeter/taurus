@@ -266,14 +266,16 @@ class WebDriver(RequiredTool):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
 
         # some parent logic is duplicated here to define appropriate tool_path in time
-        filename = self.__class__.__name__.lower() + ('.exe' if is_windows() else "")
+        driver_name = self.__class__.__name__.lower()
+        file_name = driver_name + ('.exe' if is_windows() else "")
 
         version = settings.get("version")
-        version = version or self._get_latest_version(filename)
+        version = version or self._get_latest_version(driver_name)
         version = version or self.VERSION
         version = str(version)  # let's fix reading version as number from yaml
+        self.log.info(f'Used version of {driver_name} is {version}')
 
-        tool_path = settings.get("path") or os.path.join(base_dir, 'drivers', filename, version, filename)
+        tool_path = settings.get("path") or os.path.join(base_dir, 'drivers', driver_name, version, file_name)
         download_link = settings.get('download-link')
         super().__init__(tool_path=tool_path, version=version, download_link=download_link, **kwargs)
         self._expand_download_link()
@@ -284,11 +286,12 @@ class WebDriver(RequiredTool):
     def _expand_download_link(self):
         pass
 
-    def _get_latest_version(self, filename):
+    def _get_latest_version(self, driver_name):
         try:
-            return self._get_latest_version_from_inet()
+            latest_version = self._get_latest_version_from_inet()
+            self.log.info(f'Latest stable version of {driver_name} is {latest_version}')
         except BaseException as e:
-            self.log.warning(f'Getting latest version is failed for {filename}: {e}')
+            self.log.warning(f'Getting latest version is failed for {driver_name}: {e}')
             # return None if external request is impossible
 
     def _get_latest_version_from_inet(self):
@@ -296,7 +299,7 @@ class WebDriver(RequiredTool):
 
 
 class ChromeDriver(WebDriver):
-    VERSION = "97.0.4692.36"
+    VERSION = "96.0.4664.45"
     DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
 
     def _get_latest_version_from_inet(self):
@@ -313,10 +316,12 @@ class ChromeDriver(WebDriver):
         self.download_link = self.download_link.format(version=self.version, arch=arch)
 
     def install(self):
-        os.makedirs(self.get_dir())
+        _dir = self.get_dir()
+        if not os.path.exists(_dir):
+            os.makedirs(_dir)
 
         dist = self._download(use_link=True)
-        unzip(dist, self.get_dir())
+        unzip(dist, _dir)
         os.remove(dist)
 
         if not is_windows():
@@ -345,16 +350,17 @@ class GeckoDriver(WebDriver):
         self.download_link = self.download_link.format(version=self.version, arch=arch, ext=ext)
 
     def install(self):
-        if not os.path.exists(self.get_dir()):
-            os.makedirs(self.get_dir())
+        _dir = self.get_dir()
+        if not os.path.exists(_dir):
+            os.makedirs(_dir)
 
         dist = self._download(use_link=True)
         if self.download_link.endswith('.zip'):
-            self.log.info("Unzipping %s to %s", dist, self.get_dir())
+            self.log.info("Unzipping %s to %s", dist, _dir)
             unzip(dist, self.get_dir())
         else:
-            self.log.info("Untaring %s to %s", dist, self.get_dir())
-            untar(dist, self.get_dir())
+            self.log.info("Untaring %s to %s", dist, _dir)
+            untar(dist, _dir)
         os.remove(dist)
 
         if not is_windows():
