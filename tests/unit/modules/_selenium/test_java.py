@@ -134,7 +134,7 @@ class TestJUnitTester(BZTestCase):
         selenium.engine = engine_obj
         selenium.install_required_tools()
         for driver in selenium.webdrivers:
-            selenium.env.add_path({"PATH": driver.get_driver_dir()})
+            selenium.env.add_path({"PATH": driver.get_dir()})
 
         self.obj = JUnitTester()
         self.obj.env = selenium.env
@@ -266,7 +266,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         super(SeleniumExecutor, self.obj).prepare()
         self.obj.install_required_tools()
         for driver in self.obj.webdrivers:
-            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+            self.obj.env.add_path({"PATH": driver.get_dir()})
         self.obj.create_runner()
         self.obj.runner.install_required_tools = lambda: None
         self.obj.runner._compile_scripts = lambda: None
@@ -475,7 +475,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         super(SeleniumExecutor, self.obj).prepare()
         self.obj.install_required_tools()
         for driver in self.obj.webdrivers:
-            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+            self.obj.env.add_path({"PATH": driver.get_dir()})
         self.obj.create_runner()
         self.obj.runner.install_required_tools = lambda: None
         self.obj.runner._compile_scripts = lambda: None

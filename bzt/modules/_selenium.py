@@ -16,21 +16,16 @@ limitations under the License.
 import copy
 import os
 import time
-import shutil
 import requests
 from abc import abstractmethod
 
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.firefox import GeckoDriverManager
 from urwid import Text, Pile
-from requests.exceptions import ConnectionError, ProxyError, SSLError
 
 from bzt import TaurusConfigError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import PrioritizedWidget
 from bzt.modules.services import PythonTool
-from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac, platform_bitness, unzip, \
-    untar
+from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac, unzip, untar
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -90,8 +85,8 @@ class SeleniumExecutor(ReportableExecutor):
 
     def install_required_tools(self):
         self.selenium = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
-        self.webdrivers = [self._get_tool(ChromeDriver, tool_path=self.settings.get('chromedriver').get('path')),
-                           self._get_tool(GeckoDriver, tool_path=self.settings.get('geckodriver').get('path'))]
+        self.webdrivers = [self._get_tool(ChromeDriver, settings=self.settings.get('chromedriver')),
+                           self._get_tool(GeckoDriver, settings=self.settings.get('geckodriver'))]
 
         for tool in self.webdrivers + [self.selenium]:
             if not tool.check_if_installed():
@@ -102,7 +97,7 @@ class SeleniumExecutor(ReportableExecutor):
         super(SeleniumExecutor, self).prepare()
         self.install_required_tools()
         for driver in self.webdrivers:
-            self.env.add_path({"PATH": driver.get_driver_dir()})
+            self.env.add_path({"PATH": driver.get_dir()})
 
         self.create_runner()
         self.runner.prepare()
@@ -266,78 +261,67 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 
 
 class WebDriver(RequiredTool):
-    DRIVER_NAME = None
-    MANAGER = None
-
-    def __init__(self, tool_path="", log=None, **kwargs):
-        self.webdriver_manager = None
+    def __init__(self, settings, log=None, **kwargs):
         self.log = log
-        self.dest = None
-        os.environ['WDM_LOG_LEVEL'] = '0'
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        filename = self.DRIVER_NAME
-        filename += '.exe' if is_windows() else ""
-        if not tool_path:
-            tool_path = os.path.join(base_dir, f'drivers/{self.DRIVER_NAME}', filename)
-            try:
-                self.webdriver_manager = self.MANAGER(path=base_dir, print_first_line=False, log_level=0)
-            except (ValueError, ConnectionError, ProxyError, SSLError) as err:
-                self.webdriver_manager = None
-                self.log.warning(err)
-        super().__init__(tool_path=tool_path, **kwargs)
 
-    def install(self):
-        self.dest = self.get_driver_dir()
-        if not os.path.exists(self.dest):
-            os.makedirs(self.dest)
+        # some parent logic is duplicated here to define appropriate tool_path in time
+        driver_name = self.__class__.__name__.lower()
+        file_name = driver_name + ('.exe' if is_windows() else "")
 
-        self.log.info(f"Will install {self.tool_name} into {self.tool_path}")
-        if self.webdriver_manager:
-            try:
-                self._install_with_manager()
-                return
-            except (ValueError, ConnectionError, ProxyError, SSLError) as err:
-                self.log.warning(err)
-        self._install_by_link()
+        version = settings.get("version")
+        version = version or self._get_latest_version(driver_name)
+        version = version or self.VERSION
+        version = str(version)  # let's fix reading version as number from yaml
+        self.log.info(f'Used version of {driver_name} is {version}')
 
-    def get_driver_dir(self):
+        tool_path = settings.get("path") or os.path.join(base_dir, 'drivers', driver_name, version, file_name)
+        download_link = settings.get('download-link')
+        super().__init__(tool_path=tool_path, version=version, download_link=download_link, **kwargs)
+        self._expand_download_link()
+
+    def get_dir(self):
         return get_full_path(self.tool_path, step_up=1)
 
-    def _install_with_manager(self):
-        driver_path = self.webdriver_manager.install()
-        shutil.copy2(driver_path, self.dest)
-
-    def _install_by_link(self):
-        self._get_download_link()
-        self._download_and_save()
-
-    def _get_download_link(self):
+    def _expand_download_link(self):
         pass
 
-    def _download_and_save(self):
+    def _get_latest_version(self, driver_name):
+        try:
+            latest_version = self._get_latest_version_from_inet()
+            self.log.info(f'Latest stable version of {driver_name} is {latest_version}')
+        except BaseException as e:
+            self.log.warning(f'Getting latest version is failed for {driver_name}: {e}')
+            # return None if external request is impossible
+
+    def _get_latest_version_from_inet(self):
         pass
 
 
 class ChromeDriver(WebDriver):
-    DRIVER_NAME = 'chromedriver'
-    MANAGER = ChromeDriverManager
+    VERSION = "96.0.4664.45"
+    DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
 
-    def _get_download_link(self):
-        download_link = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-        latest_driver_version = requests.get('https://chromedriver.storage.googleapis.com/LATEST_RELEASE').text
+    def _get_latest_version_from_inet(self):
+        return requests.get('https://chromedriver.storage.googleapis.com/LATEST_RELEASE').text
 
+    def _expand_download_link(self):
         if is_windows():
             arch = 'win32'
         elif is_mac():
             arch = 'mac64'
         else:
-            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
+            arch = 'linux64'
 
-        self.download_link = download_link.format(version=latest_driver_version, arch=arch)
+        self.download_link = self.download_link.format(version=self.version, arch=arch)
 
-    def _download_and_save(self):
+    def install(self):
+        _dir = self.get_dir()
+        if not os.path.exists(_dir):
+            os.makedirs(_dir)
+
         dist = self._download(use_link=True)
-        unzip(dist, self.dest)
+        unzip(dist, _dir)
         os.remove(dist)
 
         if not is_windows():
@@ -345,15 +329,14 @@ class ChromeDriver(WebDriver):
 
 
 class GeckoDriver(WebDriver):
-    DRIVER_NAME = 'geckodriver'
-    MANAGER = GeckoDriverManager
+    VERSION = "0.30.0"
+    DOWNLOAD_LINK = \
+        "https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}"
 
-    def _get_download_link(self):
-        download_link = \
-            "https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}"
-        latest_driver_version = requests.get(
-            "https://api.github.com/repos/mozilla/geckodriver/releases/latest").json()["name"]
+    def _get_latest_version_from_inet(self):
+        return requests.get("https://api.github.com/repos/mozilla/geckodriver/releases/latest").json()["name"]
 
+    def _expand_download_link(self):
         if is_windows():
             arch = 'win64'
             ext = 'zip'
@@ -361,19 +344,23 @@ class GeckoDriver(WebDriver):
             arch = 'macos'
             ext = 'tar.gz'
         else:
-            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
+            arch = 'linux64'
             ext = 'tar.gz'
 
-        self.download_link = download_link.format(version=latest_driver_version, arch=arch, ext=ext)
+        self.download_link = self.download_link.format(version=self.version, arch=arch, ext=ext)
 
-    def _download_and_save(self):
+    def install(self):
+        _dir = self.get_dir()
+        if not os.path.exists(_dir):
+            os.makedirs(_dir)
+
         dist = self._download(use_link=True)
         if self.download_link.endswith('.zip'):
-            self.log.info("Unzipping %s to %s", dist, self.dest)
-            unzip(dist, self.dest)
+            self.log.info("Unzipping %s to %s", dist, _dir)
+            unzip(dist, self.get_dir())
         else:
-            self.log.info("Untaring %s to %s", dist, self.dest)
-            untar(dist, self.dest)
+            self.log.info("Untaring %s to %s", dist, _dir)
+            untar(dist, _dir)
         os.remove(dist)
 
         if not is_windows():

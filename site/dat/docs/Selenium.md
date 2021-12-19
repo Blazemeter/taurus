@@ -115,9 +115,9 @@ Selenium executor supports building test script from the `requests` option of `s
 
 ## Automatic Installation of Web Driver
 
-By default, Taurus will download ChromeDriver and GeckoDriver and put them in PATH when running tests.
+By default, Taurus will download newest ChromeDriver and GeckoDriver and put them in PATH when running tests.
 
-You can configure this behaviour with the following options:
+You can also order specific version or use already downloaded drivers by the following options:
 ```yaml
 execution:
 - executor: selenium
@@ -132,33 +132,10 @@ scenarios:
 modules:
   selenium:
     chromedriver:
-      version: 2.30
-      download-link: https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip
+      version: 97.0.4692.36   # desirable driver version
+
     geckodriver:
-      version: 0.17.0
-      download-link: https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}
-```
-
-By default, Taurus will download the appropriate ChromeDriver and GeckoDriver using webdriver-manager and put them in PATH when running tests.
-
-You can also use already downloaded drivers by the following options:
-```yaml
-execution:
-- executor: selenium
-  iterations: 1
-  scenario: simple
-  
-scenarios:
-  simple:
-    requests:
-    - http://blazedemo.com/
-
-modules:
-  selenium:
-    chromedriver:
-      path: /full/path/to/driver
-    geckodriver:
-      path: /full/path/to/driver
+      path: /full/path/to/driver  # path to existed driver
 ```
 
 ## Using Virtual Display on Linux
