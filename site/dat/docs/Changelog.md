@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.16.2<sup> 19 Dec 20211</sup>
+- add support of code generation for Microsoft Edge browser
+- migration to new JMeter in order to avoid log4j vulnerabilities and fix them for JMeter 5+
+- fix web drivers auto installation
+
 ## 1.16.1<sup> 08 Dec 2021</sup>
 - add alternative aggregation mode (for BlazeMeter's EFT feature)
 - make some tools auto installable (selenium, appium)
