@@ -1375,7 +1375,7 @@ class JMeter(RequiredTool):
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
     COMMAND_RUNNER_VERSION = "2.2"
     COMMAND_RUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
-    VERSION = "5.4.1"
+    VERSION = "5.4.2"
 
     def __init__(self, config=None, props=None, **kwargs):
         settings = config or {}

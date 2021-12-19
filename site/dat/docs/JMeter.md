@@ -11,7 +11,7 @@ modules:
   jmeter:
     path: ~/.bzt/jmeter-taurus/bin/jmeter
     download-link: https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip
-    version: 5.4.1  # minimal supported version of JMeter is 5.0
+    version: 5.4.2  # minimal supported version of JMeter is 5.0
     force-ctg: true   # true by default
     detect-plugins: true
     fix-log4j: true
