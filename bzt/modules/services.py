@@ -276,6 +276,7 @@ class InstallChecker(Service, Singletone):
             return
 
         self.log.info("Checking installation needs for: %s", mod_name)
+        # todo: shouldn't we make all tools mandatory for InstallChecker call?
         mod.install_required_tools()
         self.log.info("Module is fine: %s", mod_name)
 
