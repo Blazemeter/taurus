@@ -1313,6 +1313,7 @@ class RequiredTool(object):
         return False
 
     def install(self):
+        # todo: install() must be based on _download()
         if not self.installable:
             msg = "%s isn't found, automatic installation isn't implemented" % self.tool_name
             if self.mandatory:
@@ -1349,13 +1350,15 @@ class RequiredTool(object):
                     raise
                 except BaseException as exc:
                     self.log.error("Error while downloading %s: %s" % (link, exc))
-        raise TaurusInternalException("%s download failed: No more links to try" % self.tool_name)
+        error_message = "%s download failed: No more links to try" % self.tool_name
+        if self.mandatory:
+            raise TaurusInternalException(error_message)
+        else:
+            self.log.warning(error_message)
 
 
 class JavaVM(RequiredTool):
     def __init__(self, **kwargs):
-        if "mandatory" not in kwargs:
-            kwargs["mandatory"] = False
         super(JavaVM, self).__init__(installable=False, tool_path="java", **kwargs)
 
     def _get_version(self, output):

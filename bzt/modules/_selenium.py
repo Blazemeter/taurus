@@ -271,13 +271,21 @@ class WebDriver(RequiredTool):
 
         version = settings.get("version")
         version = version or self._get_latest_version(driver_name)
+
+        # try to use latest existed...
+        drivers_dir = os.path.join(base_dir, 'drivers', driver_name)
+        drivers_dir_content = os.path.exists(drivers_dir) and os.listdir(drivers_dir)
+        if drivers_dir_content:
+            drivers_dir_content.sort()
+            version = version or drivers_dir_content[-1]
+
         version = version or self.VERSION
         version = str(version)  # let's fix reading version as number from yaml
         self.log.info(f'Used version of {driver_name} is {version}')
 
-        tool_path = settings.get("path") or os.path.join(base_dir, 'drivers', driver_name, version, file_name)
+        tool_path = settings.get("path") or os.path.join(drivers_dir, version, file_name)
         download_link = settings.get('download-link')
-        super().__init__(tool_path=tool_path, version=version, download_link=download_link, **kwargs)
+        super().__init__(tool_path=tool_path, version=version, download_link=download_link, mandatory=False, **kwargs)
         self._expand_download_link()
 
     def get_dir(self):
@@ -321,11 +329,12 @@ class ChromeDriver(WebDriver):
             os.makedirs(_dir)
 
         dist = self._download(use_link=True)
-        unzip(dist, _dir)
-        os.remove(dist)
+        if dist:
+            unzip(dist, _dir)
+            os.remove(dist)
 
-        if not is_windows():
-            os.chmod(self.tool_path, 0o755)
+            if not is_windows():
+                os.chmod(self.tool_path, 0o755)
 
 
 class GeckoDriver(WebDriver):
@@ -355,13 +364,14 @@ class GeckoDriver(WebDriver):
             os.makedirs(_dir)
 
         dist = self._download(use_link=True)
-        if self.download_link.endswith('.zip'):
-            self.log.info("Unzipping %s to %s", dist, _dir)
-            unzip(dist, self.get_dir())
-        else:
-            self.log.info("Untaring %s to %s", dist, _dir)
-            untar(dist, _dir)
-        os.remove(dist)
+        if dist:
+            if self.download_link.endswith('.zip'):
+                self.log.info("Unzipping %s to %s", dist, _dir)
+                unzip(dist, self.get_dir())
+            else:
+                self.log.info("Untaring %s to %s", dist, _dir)
+                untar(dist, _dir)
+            os.remove(dist)
 
-        if not is_windows():
-            os.chmod(self.tool_path, 0o755)
+            if not is_windows():
+                os.chmod(self.tool_path, 0o755)
