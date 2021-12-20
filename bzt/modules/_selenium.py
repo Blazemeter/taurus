@@ -305,14 +305,6 @@ class WebDriver(RequiredTool):
     def _get_latest_version_from_inet(self):
         pass
 
-    def _download_driver(self, **kwargs):
-        # don't fail if driver can't be downloaded
-        try:
-            return self._download(**kwargs)
-        except:
-            if self.mandatory:
-                raise
-
 
 class ChromeDriver(WebDriver):
     VERSION = "96.0.4664.45"
@@ -336,7 +328,7 @@ class ChromeDriver(WebDriver):
         if not os.path.exists(_dir):
             os.makedirs(_dir)
 
-        dist = self._download_driver(use_link=True)
+        dist = self._download(use_link=True)
         if dist:
             unzip(dist, _dir)
             os.remove(dist)
@@ -371,7 +363,7 @@ class GeckoDriver(WebDriver):
         if not os.path.exists(_dir):
             os.makedirs(_dir)
 
-        dist = self._download_driver(use_link=True)
+        dist = self._download(use_link=True)
         if dist:
             if self.download_link.endswith('.zip'):
                 self.log.info("Unzipping %s to %s", dist, _dir)
