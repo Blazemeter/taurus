@@ -37,7 +37,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
 
         self.obj.settings = self.engine.config.get("modules").get("selenium")
         self.obj.install_required_tools = lambda: None
-        bzt.modules._selenium.Selenium.version = '3'
+        bzt.modules._selenium.Selenium.version = '3'    # fixme: affects MockPythonTool, shouldn't it be rolled back?
 
     def tearDown(self):
         if self.obj and self.obj.runner:
