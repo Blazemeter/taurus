@@ -21,19 +21,23 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         super(TestSeleniumScriptGeneration, self).__init__(methodName)
         self.obj = None
         self.tmp_selenium = None
+        self.tmp_apiritif = None
         self.tmp_selenium_apiritif = None
 
     def setUp(self):
         super(TestSeleniumScriptGeneration, self).setUp()
         self.tmp_selenium = bzt.modules._selenium.Selenium
+        self.tmp_apiritif = bzt.modules._apiritif.executor.Apiritif
         self.tmp_selenium_apiritif = bzt.modules._apiritif.executor.Selenium
         bzt.modules._selenium.Selenium = MockPythonTool
+        bzt.modules._apiritif.executor.Apiritif = MockPythonTool
         bzt.modules._apiritif.executor.Selenium = MockPythonTool
 
         paths = [local_paths_config()]
         self.engine.configure(paths)  # FIXME: avoid using whole engine in particular module test!
 
         self.obj.settings = self.engine.config.get("modules").get("selenium")
+        self.obj.install_required_tools = lambda: None
 
     def tearDown(self):
         if self.obj and self.obj.runner:
@@ -42,24 +46,16 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             if self.obj.runner.stderr:
                 self.obj.runner.stderr.close()
         bzt.modules._selenium.Selenium = self.tmp_selenium
+        bzt.modules._apiritif.executor.Apiritif = self.tmp_apiritif
         bzt.modules._apiritif.executor.Selenium = self.tmp_selenium_apiritif
-        super(TestSeleniumScriptGeneration, self).tearDown()
-
-    def obj_prepare(self):
-        tmp_tool = bzt.modules._apiritif.executor.Apiritif
-        try:
-            bzt.modules._apiritif.executor.Apiritif = MockPythonTool
-            self.obj.install_required_tools = lambda: None
-            self.obj.prepare()
-        finally:
-            bzt.modules._apiritif.executor.Apiritif = tmp_tool
+        super(TestSeleniumScriptGeneration, self).tearDown() 
 
     def test_nfc(self):
         # nose flow control: setup/teardown + graceful
         self.obj.engine.config.load([RESOURCES_DIR + 'selenium/test_nfc.yml'])
         self.configure(self.obj.engine.config['execution'][0])
         self.obj.settings['verbose'] = True
-        self.obj_prepare()
+        self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/test_nfc.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -135,7 +131,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             "screenshot()"
                         ]}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -228,7 +224,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
 
                     }]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -269,7 +265,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
 
                     }]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -297,7 +293,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "url": "bla.com"}],
                 }}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -317,7 +313,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                     "options": {
                         "ignore-proxy": True}}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -340,7 +336,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                     "options": {
                         "arguments": ["one", "two"]}}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -375,7 +371,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             "key1": "value1",
                             "key2": {"key22": "value22"}}}}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -415,7 +411,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             "key1": "value1",
                             "key2": {"key22": "value22"}}}}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -453,7 +449,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "preferences": {  # Option preferences is only available in Firefox
                             "key1": "value1"}}}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -487,7 +483,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             "key1": "value1",
                             "key2": {"key22": "value22"}}}}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -518,7 +514,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                     "requests": [{
                         "url": "bla.com"}]}}, })
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -539,7 +535,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                     "requests": [{
                         "url": "bla.com"}]}}, })
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -571,7 +567,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             "key1": "value1",
                             "key2": {"key22": "value22"}}}}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -709,7 +705,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         # it changes default of data-source loop parameter to 'false' (see second.csv params)
         self.obj.engine.aggregator.is_functional = True
 
-        self.obj_prepare()
+        self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -727,7 +723,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                     "requests": ["http://blazedemo.com/"]
                 }}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.read()
 
@@ -745,7 +741,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                     "requests": ["http://blazedemo.com/"]
                 }}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.read()
 
@@ -763,7 +759,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                     "requests": ["http://blazedemo.com/"]
                 }}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.read()
 
@@ -781,7 +777,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                     "requests": ["http://blazedemo.com/"]
                 }}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.read()
 
@@ -801,7 +797,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                     "requests": [{
                         "url": "https://blazedemo.com"}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -846,7 +842,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "name2": "settings",
                         "name3": "settings"}}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -900,7 +896,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             }
         })
 
-        self.obj_prepare()
+        self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_remote.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
@@ -916,7 +912,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                     "capabilities": {"browserName": browser_name},
                     "requests": [{"url": "/"}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as script:
             content = script.read()
 
@@ -955,7 +951,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             }
         })
 
-        self.obj_prepare()
+        self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
@@ -977,7 +973,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1002,7 +998,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1026,7 +1022,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1050,7 +1046,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
                         {"label": "empty"}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1086,7 +1082,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                 }
             }
         })
-        self.obj_prepare()
+        self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_flow_markers.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -1114,7 +1110,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                 }
             }
         })
-        self.obj_prepare()
+        self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/external_logging.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -1141,7 +1137,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             }
         })
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1162,7 +1158,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "actions": [
                             {"storeString(test_string)": "test"},
                             "openWindow('${test}')"]}]}}]})
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
         self.assertIn("open_window(self.vars['test'])", content)
@@ -1188,7 +1184,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             }
         })
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1214,7 +1210,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             }
         })
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script, encoding='utf8') as fds:
             content = fds.read()
 
@@ -1245,7 +1241,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             {"typeById(Id_123)": "London"}
                         ]}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1285,7 +1281,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             }
                         ]}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1326,7 +1322,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue('Can not generate action for \'drag\'. Source is empty.' in str(context.exception))
 
@@ -1349,7 +1345,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue('Missing param' in str(context.exception))
 
@@ -1372,7 +1368,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue('Missing param' in str(context.exception))
 
@@ -1641,7 +1637,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             }
         )
 
-        self.obj_prepare()
+        self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_v2.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -1665,7 +1661,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue("Can not generate action for 'switchFrame'. Selector is empty." in str(context.exception))
 
@@ -1761,7 +1757,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             }
         )
 
-        self.obj_prepare()
+        self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_if_then_else.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -1782,7 +1778,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue('Missing then' in str(context.exception))
 
@@ -1806,7 +1802,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue('Loop must contain' in str(context.exception))
 
@@ -1830,7 +1826,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue('Loop must contain' in str(context.exception))
 
@@ -1853,7 +1849,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue('Loop must contain' in str(context.exception))
 
@@ -1876,7 +1872,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             }
                         ]}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1911,7 +1907,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             }
                         ]}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1942,7 +1938,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             }
                         ]}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -1978,7 +1974,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             }
                         ]}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_loop_variables.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -2006,7 +2002,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             }
                         ]}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -2033,7 +2029,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue("assertDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
                         in str(context.exception))
@@ -2054,7 +2050,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue("answerDialog type must be one of the following: 'alert', 'prompt' or 'confirm'"
                         in str(context.exception))
@@ -2075,7 +2071,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue("answerDialog of type confirm must have value either '#Ok' or '#Cancel'"
                         in str(context.exception))
@@ -2096,7 +2092,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue("answerDialog of type alert must have value '#Ok'"
                         in str(context.exception))
@@ -2134,7 +2130,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             "waitForById(myId, notclickable)"
                         ]}]}}})
 
-        self.obj_prepare()
+        self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
@@ -2167,7 +2163,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue('Invalid condition' in str(context.exception),
                         "Given string was not found in '%s'" % str(context.exception))
@@ -2327,7 +2323,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             }
         )
 
-        self.obj_prepare()
+        self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_foreach.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
@@ -2351,7 +2347,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         ]}]}}})
 
         with self.assertRaises(TaurusConfigError) as context:
-            self.obj_prepare()
+            self.obj.prepare()
 
         self.assertTrue("Foreach loop must contain locators and do" in str(context.exception))
 
@@ -2499,7 +2495,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             }
         )
 
-        self.obj_prepare()
+        self.obj.prepare()
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_shadow.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
