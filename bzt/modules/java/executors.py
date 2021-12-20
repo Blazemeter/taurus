@@ -56,7 +56,7 @@ class JavaTestRunner(SubprocessedExecutor):
 
         self._tools.append(self._get_tool(TclLibrary))
 
-        self.tool = self._get_tool(JavaVM, mandatory=True)
+        self.tool = self._get_tool(JavaVM)
         self._tools.append(self.tool)
 
         self._check_tools(self._tools)

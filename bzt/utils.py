@@ -1354,8 +1354,6 @@ class RequiredTool(object):
 
 class JavaVM(RequiredTool):
     def __init__(self, **kwargs):
-        if "mandatory" not in kwargs:
-            kwargs["mandatory"] = False
         super(JavaVM, self).__init__(installable=False, tool_path="java", **kwargs)
 
     def _get_version(self, output):
