@@ -18,7 +18,7 @@ class TestSeleniumScriptGeneration(SeleniumTestCase):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
-            bzt.modules._selenium.Selenium.version = "3"
+            self.obj.install_required_tools = lambda: None
             self.obj.prepare()
         finally:
             bzt.modules._apiritif.executor.Apiritif = tmp_tool
