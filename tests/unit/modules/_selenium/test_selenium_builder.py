@@ -19,7 +19,6 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
 
     def __init__(self, methodName='runTest'):
         super(TestSeleniumScriptGeneration, self).__init__(methodName)
-        self.obj = None
         self.tmp_selenium = None
         self.tmp_apiritif = None
         self.tmp_selenium_apiritif = None
@@ -48,7 +47,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         bzt.modules._selenium.Selenium = self.tmp_selenium
         bzt.modules._apiritif.executor.Apiritif = self.tmp_apiritif
         bzt.modules._apiritif.executor.Selenium = self.tmp_selenium_apiritif
-        super(TestSeleniumScriptGeneration, self).tearDown() 
+        super(TestSeleniumScriptGeneration, self).tearDown()
 
     def test_nfc(self):
         # nose flow control: setup/teardown + graceful
@@ -2507,6 +2506,7 @@ class TestIsSelenium4(SeleniumTestCase):
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
             bzt.modules._selenium.Selenium.version = "4"
+            self.obj.install_required_tools = lambda: None
             self.obj.prepare()
         finally:
             bzt.modules._apiritif.executor.Apiritif = tmp_tool
