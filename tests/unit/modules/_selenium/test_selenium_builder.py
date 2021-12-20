@@ -8,12 +8,43 @@ import bzt
 import bzt.utils
 import bzt.modules._apiritif.generator
 import bzt.modules._selenium
+from bzt.modules._selenium import SeleniumExecutor
 from bzt import TaurusConfigError
-from tests.unit import RESOURCES_DIR
+from tests.unit import RESOURCES_DIR, ExecutorTestCase, local_paths_config
 from tests.unit.modules._selenium import SeleniumTestCase, MockPythonTool
 
 
-class TestSeleniumScriptGeneration(SeleniumTestCase):
+class TestSeleniumScriptGeneration(ExecutorTestCase):
+    EXECUTOR = SeleniumExecutor
+
+    def __init__(self, methodName='runTest'):
+        super(TestSeleniumScriptGeneration, self).__init__(methodName)
+        self.obj = None
+        self.tmp_selenium = None
+        self.tmp_selenium_apiritif = None
+
+    def setUp(self):
+        super(TestSeleniumScriptGeneration, self).setUp()
+        self.tmp_selenium = bzt.modules._selenium.Selenium
+        self.tmp_selenium_apiritif = bzt.modules._apiritif.executor.Selenium
+        bzt.modules._selenium.Selenium = MockPythonTool
+        bzt.modules._apiritif.executor.Selenium = MockPythonTool
+
+        paths = [local_paths_config()]
+        self.engine.configure(paths)  # FIXME: avoid using whole engine in particular module test!
+
+        self.obj.settings = self.engine.config.get("modules").get("selenium")
+
+    def tearDown(self):
+        if self.obj and self.obj.runner:
+            if self.obj.runner.stdout:
+                self.obj.runner.stdout.close()
+            if self.obj.runner.stderr:
+                self.obj.runner.stderr.close()
+        bzt.modules._selenium.Selenium = self.tmp_selenium
+        bzt.modules._apiritif.executor.Selenium = self.tmp_selenium_apiritif
+        super(TestSeleniumScriptGeneration, self).tearDown()
+
     def obj_prepare(self):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
