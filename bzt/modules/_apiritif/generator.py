@@ -132,6 +132,13 @@ from selenium.webdriver.common.keys import Keys
     def __init__(self, scenario, label, wdlog=None, executor=None, ignore_unknown_actions=False,
                  generate_markers=None, capabilities=None, wd_addr=None, test_mode="selenium",
                  generate_external_handler=False, selenium_version=None):
+
+        requests = scenario.data['requests']
+        for request in requests:
+            if request['url'] and not requests[requests.index(request)]['actions']:
+                requests[requests.index(request)]['actions'] = ['go(' + request['url'] + ')']
+                del request['url']
+
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())

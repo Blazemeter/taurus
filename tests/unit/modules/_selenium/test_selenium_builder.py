@@ -348,6 +348,37 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
+    def test_map_from_url_to_action(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "blazedemo_test-Selenium"}],
+            "scenarios": {
+                "blazedemo_test-Selenium": {
+                    "generate-flow-markers": True,
+                    "requests": [{
+                        "label": "open blazedemo",
+                        "url": "https://blazedemo.com/"
+                    },
+                    {
+                        "label": "open next",
+                        "url": "https://blazedemo.com/reserve.php"
+                    }]
+                }
+            },
+            "modules": {
+                "apiritif": {
+                    "plugins-path": "/Users/tivunovdv/taurus-cloud/bztcloud/reporters/apiritif_plugins"
+                }
+            }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertIn("action_start({'param': 'https://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})", content)
+
     def test_options_generator_browser_chrome(self):
         # Selenium version 3. Browser Chrome.
         # Supported options: arguments, experimental-options
