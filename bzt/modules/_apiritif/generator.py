@@ -960,7 +960,11 @@ from selenium.webdriver.common.keys import Keys
             body.extend([self._get_edge_webdriver()])
 
         elif browser == 'remote':
-            body.append(self._get_remote_profile() + [self._get_remote_webdriver()])
+            if self.selenium_version.startswith("4"):
+                remote_profile = self._get_remote_profile() + [self._get_remote_webdriver()]
+            else:
+                remote_profile = self._get_remote_webdriver()
+            body.append(remote_profile)
 
         else:
             body.append(ast.Assign(
@@ -1184,17 +1188,40 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("webdriver.Edge")))
 
     def _get_remote_webdriver(self):
-        return ast.Assign(
-            targets=[ast_attr("self.driver")],
-            value=ast_call(
-                func=ast_attr("webdriver.Remote"),
-                keywords=[
-                    ast.keyword(
-                        arg="command_executor",
-                        value=ast.Str(self.remote_address, kind="")),
-                    ast.keyword(
-                        arg="options",
-                        value=ast.Name(id="options"))]))
+        if self.selenium_version.startswith("4"):
+            return ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Remote"),
+                    keywords=[
+                        ast.keyword(
+                            arg="command_executor",
+                            value=ast.Str(self.remote_address, kind="")),
+                        ast.keyword(
+                            arg="options",
+                            value=ast.Name(id="options"))]))
+        else:
+            keys = sorted(self.capabilities.keys())
+            if "browserName" in keys and self.capabilities.get('browserName').lower() in ["microsoftedge", "edge"]:
+                self.capabilities["browserName"] = "MicrosoftEdge"  # MicrosoftEdge in camel case is necessary
+            values = [self.capabilities[key] for key in keys]
+
+            return ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Remote"),
+                    keywords=[
+                        ast.keyword(
+                            arg="command_executor",
+                            value=ast.Str(self.remote_address, kind="")),
+                        ast.keyword(
+                            arg="desired_capabilities",
+                            value=ast.Dict(
+                                keys=[ast.Str(key, kind="") for key in keys],
+                                values=[ast.Str(value, kind="") for value in values])),
+                        ast.keyword(
+                            arg="options",
+                            value=ast.Name(id="options"))]))
 
     def _get_selenium_options(self, browser):
         options = []
