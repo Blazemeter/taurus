@@ -801,12 +801,19 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target_lines = [
-            "options.set_capability('proxy', {'key': 'val'})",
-            "options.set_capability('string_cap', 'string_val')"
-        ]
+        # Selenium 4 checks
+        # target_lines = [
+        #     "options.set_capability('proxy', {'key': 'val'})",
+        #     "options.set_capability('string_cap', 'string_val')"
+        # ]
+        #
+        # wrong_line = "desired_capabilities={'proxy': {'key': 'val'}, 'string_cap': 'string_val'}"
 
-        wrong_line = "desired_capabilities={'proxy': {'key': 'val'}, 'string_cap': 'string_val'}"
+        target_lines = [
+            "'proxy': {'key': 'val'}",
+            "'string_cap': 'string_val'"
+        ]
+        wrong_line = "'proxy': \"{'key': 'val'}\""
 
         for line in target_lines:
             self.assertIn(line, content)
@@ -846,13 +853,22 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
+        # Selenium 4 checks
+        # target_lines = [
+        #     "options.set_capability('name1', 'settings')",
+        #     "options.set_capability('name2', 'execution')",
+        #     "options.set_capability('name3', 'scenario')",
+        #     "options.set_capability('name4', 'execution')",
+        #     "options.set_capability('name5', 'execution')",
+        #     "options.set_capability('name6', 'scenario')"]
+
         target_lines = [
-            "options.set_capability('name1', 'settings')",
-            "options.set_capability('name2', 'execution')",
-            "options.set_capability('name3', 'scenario')",
-            "options.set_capability('name4', 'execution')",
-            "options.set_capability('name5', 'execution')",
-            "options.set_capability('name6', 'scenario')"]
+            "'name1': 'settings'",
+            "'name2': 'execution'",
+            "'name3': 'scenario'",
+            "'name4': 'execution'",
+            "'name5': 'execution'",
+            "'name6': 'scenario'"]
 
         for line in target_lines:
             self.assertIn(line, content)
@@ -916,7 +932,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as script:
             content = script.read()
 
-        sample = "options.set_capability('browserName', '%s')" % browser_name
+        sample = "desired_capabilities={'browserName': '%s'}" % browser_name
         self.assertIn(sample, content)
 
     def test_build_script_appium_browser(self):
@@ -977,7 +993,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "options.set_capability('browserName', 'chrome')"
+        target = "'browserName': 'chrome'"
         self.assertIn(target, content)
 
     def test_build_script_remote_browser(self):
@@ -1002,7 +1018,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "options.set_capability('browserName', 'chrome')"
+        target = "'browserName': 'chrome'"
         self.assertIn(target, content)
 
     def test_build_script_remote_firefox_browser(self):
@@ -1026,7 +1042,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "options.set_capability('browserName', 'firefox')"
+        target = "'browserName': 'firefox'"
         self.assertIn(target, content)
 
     def test_build_script_remote_edge_browser(self):
@@ -1050,7 +1066,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "options.set_capability('browserName', 'MicrosoftEdge')"
+        target = "'browserName': 'MicrosoftEdge'"
         self.assertIn(target, content)
 
     def test_build_script_flow_markers(self):
