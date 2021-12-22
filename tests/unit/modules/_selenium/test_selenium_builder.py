@@ -358,6 +358,9 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                     "requests": [{
                         "label": "open blazedemo",
                         "url": "https://blazedemo.com/"
+                    }, {
+                        "label": "just_go",
+                        "actions": [{"go('https//blazemeter.com')": None}]
                     }]
                 }
             },
