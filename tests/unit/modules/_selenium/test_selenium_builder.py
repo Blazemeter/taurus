@@ -369,10 +369,9 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         })
 
         self.obj.prepare()
-        with open(self.obj.script) as fds:
-            content = fds.read()
-
-        self.assertIn("action_start({'param': 'https://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})", content)
+        exp_file = RESOURCES_DIR + "selenium/test_action_start.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
     def test_options_generator_browser_chrome(self):
         # Selenium version 3. Browser Chrome.
