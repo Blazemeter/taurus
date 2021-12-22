@@ -355,14 +355,9 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                 "scenario": "blazedemo_test-Selenium"}],
             "scenarios": {
                 "blazedemo_test-Selenium": {
-                    "generate-flow-markers": True,
                     "requests": [{
                         "label": "open blazedemo",
                         "url": "https://blazedemo.com/"
-                    },
-                    {
-                        "label": "open next",
-                        "url": "https://blazedemo.com/reserve.php"
                     }]
                 }
             },
