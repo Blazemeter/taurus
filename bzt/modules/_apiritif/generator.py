@@ -135,7 +135,7 @@ from selenium.webdriver.common.keys import Keys
 
         requests = scenario.data['requests']
         for request in requests:
-            if request['url'] and not requests[requests.index(request)]['actions']:
+            if request['url'] and 'actions' not in requests[requests.index(request)]:
                 requests[requests.index(request)]['actions'] = ['go(' + request['url'] + ')']
                 del request['url']
 
