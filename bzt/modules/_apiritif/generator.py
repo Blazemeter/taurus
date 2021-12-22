@@ -1051,7 +1051,10 @@ from selenium.webdriver.common.keys import Keys
         elif browser == 'edge' and self.selenium_version.startswith("4"):
             options = self._get_edge_options()
         else:
-            options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
+            if self.selenium_version.startswith("4"):
+                options = [ast.Assign(targets=[ast.Name(id="options")], value=ast_call(func=ast_attr("ArgOptions")))]
+            else:
+                options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
 
         if self.OPTIONS in self.executor.settings:
             self.log.debug(f'Generating selenium option {self.executor.settings.get(self.OPTIONS)}. '
@@ -1237,10 +1240,6 @@ from selenium.webdriver.common.keys import Keys
             if browser not in ['firefox', 'chrome', 'edge']:
                 self.log.debug(
                     f'Generating selenium options. Browser {browser}. Selenium version {self.selenium_version}')
-                options.extend([ast.Assign(
-                    targets=[ast.Name(id="options")],
-                    value=ast_call(
-                        func=ast_attr("ArgOptions")))])
 
         for opt in self.executor.settings.get(self.OPTIONS):
             if opt == "ignore-proxy":

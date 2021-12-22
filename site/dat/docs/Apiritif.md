@@ -1066,6 +1066,7 @@ scenarios:
 Here is a list of browsers which can be used as remote: `firefox`, `chrome`, `edge`.
 
 Note that `remote` keyword can be used on module settings, execution settings, or scenario level.
+For remote browser you can use [Brower Options](Selenium.md#Browser-options).
 
 ## Mobile Browsers
 
