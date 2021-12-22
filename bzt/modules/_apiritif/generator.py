@@ -134,10 +134,12 @@ from selenium.webdriver.common.keys import Keys
                  generate_external_handler=False, selenium_version=None):
 
         requests = scenario.data['requests']
-        for request in requests:
-            if request['url'] and 'actions' not in requests[requests.index(request)]:
-                requests[requests.index(request)]['actions'] = ['go(' + request['url'] + ')']
-                del request['url']
+
+        if requests:
+            for request in requests:
+                if request['url'] and 'actions' not in requests[requests.index(request)]:
+                    requests[requests.index(request)]['actions'] = ['go(' + request['url'] + ')']
+                    del request['url']
 
         self.scenario = scenario
         self.selenium_extras = set()
