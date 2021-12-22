@@ -48,7 +48,6 @@ class TestBlazedemoTestSelenium(unittest.TestCase):
 
     def _1_open_blazedemo(self):
         with apiritif.smart_transaction('open blazedemo'):
-            self.driver.get('https://blazedemo.com/')
             action_start({'param': 'https://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
             self.driver.get('https://blazedemo.com/')
             
