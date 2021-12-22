@@ -27,7 +27,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
 from bzt.requests_model import IncludeScenarioBlock, SetUpBlock, TearDownBlock
-from bzt.utils import iteritems, dehumanize_time, ensure_is_dict
+from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, BetterDict
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, gen_try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
 
@@ -132,12 +132,6 @@ from selenium.webdriver.common.keys import Keys
     def __init__(self, scenario, label, wdlog=None, executor=None, ignore_unknown_actions=False,
                  generate_markers=None, capabilities=None, wd_addr=None, test_mode="selenium",
                  generate_external_handler=False, selenium_version=None):
-
-        requests = scenario.data['requests']
-        for request in requests:
-            if not isinstance(request, str) and request['url'] and 'actions' not in requests[requests.index(request)]:
-                requests[requests.index(request)]['actions'] = ['go(' + request['url'] + ')']
-
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -1768,10 +1762,16 @@ from selenium.webdriver.common.keys import Keys
                 else:
                     url = req.url
 
-                lines.append(ast.Expr(
+                get_url_lines = [ast.Expr(
                     ast_call(
                         func=ast_attr("self.driver.get"),
-                        args=[self._gen_expr(url)])))
+                        args=[self._gen_expr(url)]))]
+                if self.generate_external_handler:
+                    action = BetterDict.from_dict({f"go({url})": None})
+                    get_url_lines = self._gen_action_start(action) + get_url_lines + self._gen_action_end(action)
+
+                lines.extend(get_url_lines)
+
                 if "actions" in req.config:
                     self.replace_dialogs = self._is_dialog_replacement_needed(req.config.get("actions"))
                     lines.append(self._gen_replace_dialogs())
