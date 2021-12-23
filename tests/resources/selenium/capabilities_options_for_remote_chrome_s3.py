@@ -19,46 +19,38 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import waiter, get_locator, add_flow_markers, wait_for
+from bzt.resources.selenium_extras import get_locator, add_flow_markers, waiter
 
-class TestLocSc(unittest.TestCase):
+
+class TestLocScRemote(unittest.TestCase):
 
     def setUp(self):
         self.vars = {}
 
-        timeout = 3.5
-        self.driver = None
+        timeout = 30.0
         options = webdriver.ChromeOptions()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.set_capability('unhandledPromptBehavior', 'ignore')
-        self.driver = webdriver.Chrome(
-            service_log_path='/somewhere/webdriver.log',
-            options=options)
+        options.add_argument('one')
+        options.add_argument('two')
+        options.add_experimental_option('key1', 'value1')
+        options.add_experimental_option('key2', {'key22': 'value22'})
+        self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub',
+                                       desired_capabilities={'browserName': 'chrome', 'cap1': 'val1', 'cap2': 'val2'},
+                                       options=options)
         self.driver.implicitly_wait(timeout)
         add_flow_markers()
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
-                                       scenario_name='loc_sc')
+                                       scenario_name='loc_sc_remote')
 
+    def _1_blacom(self):
+        with apiritif.smart_transaction('bla.com'):
+            self.driver.get('bla.com')
 
-    def _1_(self):
-        with apiritif.smart_transaction('/'):
-            self.driver.get('http://blazedemo.com/')
-            wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
-            self.assertEqual(self.driver.title, 'BlazeDemo')
-            body = self.driver.page_source
-            re_pattern = re.compile('contained_text')
-            self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
-
-    def _2_empty(self):
-        with apiritif.smart_transaction('empty'):
-            pass
-
-    def test_locsc(self):
-        self._1_()
-        self._2_empty()
+    def test_locscremote(self):
+        self._1_blacom()
 
     def tearDown(self):
         if self.driver:

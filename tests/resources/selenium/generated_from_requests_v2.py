@@ -19,7 +19,8 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_answer_on_next_prompt, open_window, dialogs_get_next_prompt, switch_frame, dialogs_answer_on_next_alert, dialogs_get_next_alert, dialogs_get_next_confirm, close_window, waiter, wait_for, dialogs_answer_on_next_confirm, dialogs_replace, get_locator, switch_window
+from selenium.webdriver.common.options import ArgOptions
+from bzt.resources.selenium_extras import open_window, switch_frame, waiter, close_window, switch_window, dialogs_answer_on_next_confirm, wait_for, get_locator, dialogs_answer_on_next_alert, dialogs_replace, dialogs_get_next_confirm, dialogs_answer_on_next_prompt, dialogs_get_next_alert, dialogs_get_next_prompt
 
 class TestLocSc(unittest.TestCase):
 
