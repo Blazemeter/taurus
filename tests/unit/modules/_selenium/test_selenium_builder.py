@@ -60,6 +60,11 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
+    def test_self_test(self):
+        f1 = RESOURCES_DIR + "selenium/f1.py"
+        f2 = RESOURCES_DIR + "selenium/f2.py"
+        self.assertRaises(AssertionError, self.assertFilesEqual, *(f1, f2))
+
     def test_modern_actions_generator(self):
         self.configure({
             "execution": [{
