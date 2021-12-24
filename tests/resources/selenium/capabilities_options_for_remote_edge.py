@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import add_flow_markers, get_locator, waiter
+from bzt.resources.selenium_extras import get_locator, add_flow_markers, waiter
 
 
 class TestRemoteSc(unittest.TestCase):
@@ -30,6 +30,7 @@ class TestRemoteSc(unittest.TestCase):
 
         timeout = 30.0
         options = webdriver.EdgeOptions()
+        options.ignore_local_proxy_environment_variables()
         options.add_argument('one')
         options.add_argument('two')
         options.set_capability('browserName', 'MicrosoftEdge')

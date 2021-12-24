@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import add_flow_markers, get_locator, waiter
+from bzt.resources.selenium_extras import waiter, add_flow_markers, get_locator
 
 
 class TestLocScRemote(unittest.TestCase):

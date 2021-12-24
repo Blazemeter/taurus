@@ -240,7 +240,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             "options.headless = True",
             "profile = webdriver.FirefoxProfile()",
             "profile.set_preference('webdriver.log.file', '",
-            "driver = webdriver.Firefox(profile, options=options)",
+            "self.driver = webdriver.Firefox(profile, options=options)",
             "options.set_capability('unhandledPromptBehavior', 'ignore')"
         ]
 
@@ -280,7 +280,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
 
         target_lines = [
             "options = webdriver.ChromeOptions()",
-            "driver = webdriver.Chrome(service_log_path='",
+            "self.driver = webdriver.Chrome(service_log_path='",
             "', options=options)",
             "options.set_capability('unhandledPromptBehavior', 'ignore')"
         ]
@@ -304,7 +304,27 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
+        self.assertIn("options = webdriver.EdgeOptions()", content)
         self.assertIn("self.driver = webdriver.Edge()", content)
+
+    def test_other_setup_generator(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "opera",
+                    "requests": [{
+                        "url": "bla.com"}],
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertIn("options = ArgOptions()", content)
+        self.assertIn("self.driver = webdriver.", content)
 
     def test_arguments_option_generator_ff(self):
         # Option arguments is only available for Firefox and Chrome
@@ -564,7 +584,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
-                    "browser": "Opera",
+                    "browser": "safari",
                     "headless": True,
                     "requests": ["http://blazedemo.com/"]
                 }}})
@@ -2325,6 +2345,34 @@ class TestSelenium4Only(SeleniumTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
+    def test_arguments_option_generator_edge_selenium_4(self):
+        # Option arguments is only available for Firefox and Chrome
+        # Option arguments is available for other browsers starting from Selenium version 4
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "edge",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "arguments": ["one", "two"]}}}})
+
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
     def test_arguments_option_generator_ie_selenium_4(self):
         # Option arguments is only available for Firefox and Chrome
         # Option arguments is available for other browsers starting from Selenium version 4
@@ -2463,7 +2511,6 @@ class TestSelenium4Only(SeleniumTestCase):
                 "loc_sc_remote": {
                     "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
                     "capabilities": {
-                        "browserName": "safari",
                         "cap1": "val1",
                         "cap2": "val2"},
                     "requests": [{
