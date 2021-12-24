@@ -82,6 +82,10 @@ class BZTestCase(TestCase):
             # func1 moved and order has been changed
             act_lines = [line[1:] for line in diff if line.startswith('-')]
             exp_lines = [line[1:] for line in diff if line.startswith('+')]
+
+            if len(act_lines) != len(exp_lines):
+                return False
+
             for pair in zip(act_lines, exp_lines):
                 if order(pair[0]) != order(pair[1]):
                     return False
