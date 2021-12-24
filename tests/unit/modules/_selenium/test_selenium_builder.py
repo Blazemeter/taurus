@@ -2511,7 +2511,6 @@ class TestSelenium4Only(SeleniumTestCase):
                 "loc_sc_remote": {
                     "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
                     "capabilities": {
-                        "browserName": "safari",
                         "cap1": "val1",
                         "cap2": "val2"},
                     "requests": [{
