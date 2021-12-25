@@ -348,7 +348,9 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-    def test_map_from_url_to_action(self):
+    def test_convert_url_to_action(self):
+        # in order to get appropriate logging for 'actionless' request would be great
+        # handle it as 'go' action. (enclose with action_start/action_end methods)
         self.configure({
             "execution": [{
                 "executor": "selenium",
@@ -366,7 +368,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             },
             "modules": {
                 "apiritif": {
-                    "plugins-path": "/Users/tivunovdv/taurus-cloud/bztcloud/reporters/apiritif_plugins"
+                    "plugins-path": "something_similar_to_path"
                 }
             }
         })
