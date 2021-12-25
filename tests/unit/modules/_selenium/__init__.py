@@ -45,11 +45,10 @@ class SeleniumTestCase(ExecutorTestCase):
 
 class MockPythonTool(RequiredTool):
     tool_name = "MockPythonTool"
-    version = ""
     called = False
 
     def __init__(self, engine, settings, **kwargs):
-        self.version = settings.get("version", None)
+        self.version = settings.get("version", "4")
 
     def check_if_installed(self):
         return False

@@ -36,7 +36,6 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         self.engine.configure(paths)  # FIXME: avoid using whole engine in particular module test!
 
         self.obj.settings = self.engine.config.get("modules").get("selenium")
-        self.obj.settings['version'] = "4"
         self.obj.install_required_tools = lambda: None
 
     def tearDown(self):
@@ -2480,7 +2479,6 @@ class TestSelenium4Only(SeleniumTestCase):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
-            self.obj.settings["version"] = "4"
             self.obj.install_required_tools = lambda: None
             self.obj.prepare()
         finally:
