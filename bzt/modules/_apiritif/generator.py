@@ -960,7 +960,11 @@ from selenium.webdriver.common.keys import Keys
             body.extend([self._get_edge_webdriver()])
 
         elif browser == 'remote':
-            body.append(self._get_remote_profile() + [self._get_remote_webdriver()])
+            if self.selenium_version.startswith("4"):
+                remote_profile = self._get_remote_profile() + [self._get_remote_webdriver()]
+            else:
+                remote_profile = self._get_remote_webdriver()
+            body.append(remote_profile)
 
         else:
             body.append(ast.Assign(
@@ -1047,7 +1051,10 @@ from selenium.webdriver.common.keys import Keys
         elif browser == 'edge' and self.selenium_version.startswith("4"):
             options = self._get_edge_options()
         else:
-            options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
+            if self.selenium_version.startswith("4"):
+                options = [ast.Assign(targets=[ast.Name(id="options")], value=ast_call(func=ast_attr("ArgOptions")))]
+            else:
+                options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
 
         if self.OPTIONS in self.executor.settings:
             self.log.debug(f'Generating selenium option {self.executor.settings.get(self.OPTIONS)}. '
@@ -1184,17 +1191,40 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("webdriver.Edge")))
 
     def _get_remote_webdriver(self):
-        return ast.Assign(
-            targets=[ast_attr("self.driver")],
-            value=ast_call(
-                func=ast_attr("webdriver.Remote"),
-                keywords=[
-                    ast.keyword(
-                        arg="command_executor",
-                        value=ast.Str(self.remote_address, kind="")),
-                    ast.keyword(
-                        arg="options",
-                        value=ast.Name(id="options"))]))
+        if self.selenium_version.startswith("4"):
+            return ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Remote"),
+                    keywords=[
+                        ast.keyword(
+                            arg="command_executor",
+                            value=ast.Str(self.remote_address, kind="")),
+                        ast.keyword(
+                            arg="options",
+                            value=ast.Name(id="options"))]))
+        else:
+            keys = sorted(self.capabilities.keys())
+            if "browserName" in keys and self.capabilities.get('browserName').lower() in ["microsoftedge", "edge"]:
+                self.capabilities["browserName"] = "MicrosoftEdge"  # MicrosoftEdge in camel case is necessary
+            values = [self.capabilities[key] for key in keys]
+
+            return ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Remote"),
+                    keywords=[
+                        ast.keyword(
+                            arg="command_executor",
+                            value=ast.Str(self.remote_address, kind="")),
+                        ast.keyword(
+                            arg="desired_capabilities",
+                            value=ast.Dict(
+                                keys=[ast.Str(key, kind="") for key in keys],
+                                values=[ast.Str(value, kind="") for value in values])),
+                        ast.keyword(
+                            arg="options",
+                            value=ast.Name(id="options"))]))
 
     def _get_selenium_options(self, browser):
         options = []
@@ -1210,10 +1240,6 @@ from selenium.webdriver.common.keys import Keys
             if browser not in ['firefox', 'chrome', 'edge']:
                 self.log.debug(
                     f'Generating selenium options. Browser {browser}. Selenium version {self.selenium_version}')
-                options.extend([ast.Assign(
-                    targets=[ast.Name(id="options")],
-                    value=ast_call(
-                        func=ast_attr("ArgOptions")))])
 
         for opt in self.executor.settings.get(self.OPTIONS):
             if opt == "ignore-proxy":

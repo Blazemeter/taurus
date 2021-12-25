@@ -19,7 +19,8 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import waiter, action_end, get_locator, action_start
+from selenium.webdriver.common.options import ArgOptions
+from bzt.resources.selenium_extras import get_locator, action_start, waiter, action_end
 
 class TestSample(unittest.TestCase):
 
