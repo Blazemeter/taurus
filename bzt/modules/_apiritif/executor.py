@@ -108,9 +108,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
                 self.log.warning("Obsolete format of capabilities found (list), should be dict")
                 scenario["capabilities"] = {item.keys()[0]: item.values()[0] for item in scenario_caps}
 
-            if scenario.get("external-logging", False):
-                self.log.warning("'external-logging' is deprecated and unsupported now. Use 'plugins-path' instead.")
-
             configs = (self.settings, scenario, self.execution)
 
             capabilities = get_assembled_value(configs, "capabilities")
