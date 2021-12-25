@@ -50,8 +50,7 @@ class TestBlazedemoTestSelenium(unittest.TestCase):
         with apiritif.smart_transaction('open blazedemo'):
             action_start({'param': 'https://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
             self.driver.get('https://blazedemo.com/')
-            
-            waiter()
+
             action_end({'param': 'https://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
 
     def _2_justgo(self):

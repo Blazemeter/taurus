@@ -36,8 +36,8 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         self.engine.configure(paths)  # FIXME: avoid using whole engine in particular module test!
 
         self.obj.settings = self.engine.config.get("modules").get("selenium")
+        self.obj.settings['version'] = "4"
         self.obj.install_required_tools = lambda: None
-        bzt.modules._selenium.Selenium.version = '4'    # fixme: affects MockPythonTool, shouldn't it be rolled back?
 
     def tearDown(self):
         if self.obj and self.obj.runner:
@@ -373,6 +373,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                 }
             },
             "modules": {
+                "selenium": {"version": "3"},
                 "apiritif": {
                     "plugins-path": "something_similar_to_path"
                 }
@@ -397,6 +398,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "url": "bla.com"}]}},
             "modules": {
                 "selenium": {
+                    "version": "3",
                     "options": {
                         "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
                         "arguments": ["one", "two"],
@@ -437,6 +439,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "url": "bla.com"}]}},
             "modules": {
                 "selenium": {
+                    "version": "3",
                     "options": {
                         "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
                         "arguments": ["one", "two"],
@@ -477,6 +480,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "url": "bla.com"}]}},
             "modules": {
                 "selenium": {
+                    "version": "3",
                     "options": {
                         "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
                         "arguments": ["one", "two"],  # Option arguments is only available starting from Selenium 4
@@ -509,6 +513,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "url": "bla.com"}]}},
             "modules": {
                 "selenium": {
+                    "version": "3",
                     "options": {
                         "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
                         "arguments": ["one", "two"],
@@ -2475,7 +2480,7 @@ class TestSelenium4Only(SeleniumTestCase):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
-            bzt.modules._selenium.Selenium.version = "4"
+            self.obj.settings["version"] = "4"
             self.obj.install_required_tools = lambda: None
             self.obj.prepare()
         finally:
@@ -2714,7 +2719,7 @@ class TestSelenium3Only(SeleniumTestCase):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
-            bzt.modules._selenium.Selenium.version = "3"
+            self.obj.settings["version"] = "3"
             self.obj.install_required_tools = lambda: None
             self.obj.prepare()
         finally:

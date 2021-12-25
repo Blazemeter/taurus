@@ -49,7 +49,7 @@ class MockPythonTool(RequiredTool):
     called = False
 
     def __init__(self, engine, settings, **kwargs):
-        pass
+        self.version = settings.get("version", None)
 
     def check_if_installed(self):
         return False
