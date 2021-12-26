@@ -37,7 +37,6 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
 
         self.obj.settings = self.engine.config.get("modules").get("selenium")
         self.obj.install_required_tools = lambda: None
-        bzt.modules._selenium.Selenium.version = '3'    # fixme: affects MockPythonTool, shouldn't it be rolled back?
 
     def tearDown(self):
         if self.obj and self.obj.runner:
@@ -59,6 +58,13 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         exp_file = RESOURCES_DIR + "selenium/test_nfc.py"
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+    def test_self_test(self):
+        f1 = RESOURCES_DIR + "selenium/f1.py"
+        f2 = RESOURCES_DIR + "selenium/f2.py"
+        suspicious_method = self.assertFilesEqual
+        different_files = f1, f2
+        self.assertRaises(AssertionError, suspicious_method, *different_files)
 
     def test_modern_actions_generator(self):
         self.configure({
@@ -230,10 +236,10 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
 
         target_lines = [
             "options = webdriver.FirefoxOptions()",
-            "options.set_headless()",
+            "options.headless = True",
             "profile = webdriver.FirefoxProfile()",
             "profile.set_preference('webdriver.log.file', '",
-            "driver = webdriver.Firefox(profile, options=options)",
+            "self.driver = webdriver.Firefox(profile, options=options)",
             "options.set_capability('unhandledPromptBehavior', 'ignore')"
         ]
 
@@ -273,7 +279,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
 
         target_lines = [
             "options = webdriver.ChromeOptions()",
-            "driver = webdriver.Chrome(service_log_path='",
+            "self.driver = webdriver.Chrome(service_log_path='",
             "', options=options)",
             "options.set_capability('unhandledPromptBehavior', 'ignore')"
         ]
@@ -297,28 +303,27 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
+        self.assertIn("options = webdriver.EdgeOptions()", content)
         self.assertIn("self.driver = webdriver.Edge()", content)
 
-    def test_ignore_proxy_option_generator_selenium_3(self):
-        # Option ignore-proxy is only available starting from Selenium version 4
+    def test_other_setup_generator(self):
         self.configure({
             "execution": [{
+                "executor": "selenium",
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
+                    "browser": "opera",
                     "requests": [{
-                        "url": "bla.com"}]}},
-            "modules": {
-                "selenium": {
-                    "options": {
-                        "ignore-proxy": True}}}})
+                        "url": "bla.com"}],
+                }}})
 
         self.obj.prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "options.ignore_local_proxy_environment_variables"
-        self.assertNotIn(target, content)
+        self.assertIn("options = ArgOptions()", content)
+        self.assertIn("self.driver = webdriver.", content)
 
     def test_arguments_option_generator_ff(self):
         # Option arguments is only available for Firefox and Chrome
@@ -348,6 +353,37 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
+    def test_convert_url_to_action(self):
+        # in order to get appropriate logging for 'actionless' request would be great
+        # handle it as 'go' action. (enclose with action_start/action_end methods)
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "blazedemo_test-Selenium"}],
+            "scenarios": {
+                "blazedemo_test-Selenium": {
+                    "requests": [{
+                        "label": "open blazedemo",
+                        "url": "https://blazedemo.com/"
+                    }, {
+                        "label": "just_go",
+                        "actions": [{"go('https//blazemeter.com')": None}]
+                    }]
+                }
+            },
+            "modules": {
+                "selenium": {"version": "3"},
+                "apiritif": {
+                    "plugins-path": "something_similar_to_path"
+                }
+            }
+        })
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/test_action_start.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
     def test_options_generator_browser_chrome(self):
         # Selenium version 3. Browser Chrome.
         # Supported options: arguments, experimental-options
@@ -361,6 +397,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "url": "bla.com"}]}},
             "modules": {
                 "selenium": {
+                    "version": "3",
                     "options": {
                         "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
                         "arguments": ["one", "two"],
@@ -401,6 +438,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "url": "bla.com"}]}},
             "modules": {
                 "selenium": {
+                    "version": "3",
                     "options": {
                         "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
                         "arguments": ["one", "two"],
@@ -441,6 +479,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "url": "bla.com"}]}},
             "modules": {
                 "selenium": {
+                    "version": "3",
                     "options": {
                         "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
                         "arguments": ["one", "two"],  # Option arguments is only available starting from Selenium 4
@@ -473,6 +512,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "url": "bla.com"}]}},
             "modules": {
                 "selenium": {
+                    "version": "3",
                     "options": {
                         "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
                         "arguments": ["one", "two"],
@@ -541,48 +581,6 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
 
         self.assertIn("options.set_capability('name1', 'val1')", content)
         self.assertIn("options.set_capability('name2', 'val2')", content)
-
-    def test_options_generator_remote_chrome(self):
-        # Selenium version 3. Remote webdriver. Browser Chrome.
-        # Supported options: arguments, experimental-options
-        self.configure({
-            "execution": [{
-                "scenario": "loc_sc_remote"}],
-            "scenarios": {
-                "loc_sc_remote": {
-                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
-                    "capabilities": {
-                        "browserName": "Chrome"},
-                    "requests": [{
-                        "url": "bla.com"}]}},
-            "modules": {
-                "selenium": {
-                    "options": {
-                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
-                        "arguments": ["one", "two"],
-                        "experimental-options": {  # Option experimental-options is only available in Chrome
-                            "key1": "value1",
-                            "key2": {"key22": "value22"}},
-                        "preferences": {  # Option preferences is only available in Firefox
-                            "key1": "value1",
-                            "key2": {"key22": "value22"}}}}}})
-
-        self.obj.prepare()
-        with open(self.obj.script) as fds:
-            content = fds.read()
-
-        self.assertNotIn("options.set_preference", content)
-        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
-
-        target_lines = [
-            "options.add_argument('one')",
-            "options.add_argument('two')",
-            "options.add_experimental_option('key1', 'value1')",
-            "options.add_experimental_option('key2', {'key22': 'value22'})"
-        ]
-
-        for idx in range(len(target_lines)):
-            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
     def test_build_script(self):
         self.configure({
@@ -745,7 +743,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as generated:
             gen_contents = generated.read()
 
-        self.assertIn("options.set_headless()", gen_contents)
+        self.assertIn("options.headless = True", gen_contents)
 
     def test_headless_firefox(self):
         self.configure({
@@ -763,7 +761,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as generated:
             gen_contents = generated.read()
 
-        self.assertIn("options.set_headless()", gen_contents)
+        self.assertIn("options.headless = True", gen_contents)
 
     def test_headless_safari(self):
         self.configure({
@@ -772,7 +770,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
-                    "browser": "Opera",
+                    "browser": "safari",
                     "headless": True,
                     "requests": ["http://blazedemo.com/"]
                 }}})
@@ -781,7 +779,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as generated:
             gen_contents = generated.read()
 
-        self.assertNotIn("options.set_headless()", gen_contents)
+        self.assertNotIn("options.headless = True", gen_contents)
 
     def test_capabilities_update(self):
         self.configure({
@@ -801,19 +799,12 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        # Selenium 4 checks
-        # target_lines = [
-        #     "options.set_capability('proxy', {'key': 'val'})",
-        #     "options.set_capability('string_cap', 'string_val')"
-        # ]
-        #
-        # wrong_line = "desired_capabilities={'proxy': {'key': 'val'}, 'string_cap': 'string_val'}"
-
         target_lines = [
-            "'proxy': {'key': 'val'}",
-            "'string_cap': 'string_val'"
+            "options.set_capability('proxy', {'key': 'val'})",
+            "options.set_capability('string_cap', 'string_val')"
         ]
-        wrong_line = "'proxy': \"{'key': 'val'}\""
+
+        wrong_line = "desired_capabilities={'proxy': {'key': 'val'}, 'string_cap': 'string_val'}"
 
         for line in target_lines:
             self.assertIn(line, content)
@@ -853,22 +844,13 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        # Selenium 4 checks
-        # target_lines = [
-        #     "options.set_capability('name1', 'settings')",
-        #     "options.set_capability('name2', 'execution')",
-        #     "options.set_capability('name3', 'scenario')",
-        #     "options.set_capability('name4', 'execution')",
-        #     "options.set_capability('name5', 'execution')",
-        #     "options.set_capability('name6', 'scenario')"]
-
         target_lines = [
-            "'name1': 'settings'",
-            "'name2': 'execution'",
-            "'name3': 'scenario'",
-            "'name4': 'execution'",
-            "'name5': 'execution'",
-            "'name6': 'scenario'"]
+            "options.set_capability('name1', 'settings')",
+            "options.set_capability('name2', 'execution')",
+            "options.set_capability('name3', 'scenario')",
+            "options.set_capability('name4', 'execution')",
+            "options.set_capability('name5', 'execution')",
+            "options.set_capability('name6', 'scenario')"]
 
         for line in target_lines:
             self.assertIn(line, content)
@@ -932,7 +914,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as script:
             content = script.read()
 
-        sample = "desired_capabilities={'browserName': '%s'}" % browser_name
+        sample = "options.set_capability('browserName', '%s')" % browser_name
         self.assertIn(sample, content)
 
     def test_build_script_appium_browser(self):
@@ -971,32 +953,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         exp_file = RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
-    def test_build_script_remote_empty_browser(self):
-        """ taurus should not wipe browserName (from capabilities) """
-        self.configure({
-            "execution": [{
-                "executor": "selenium",
-                "remote": "http://addr-of-remote-server.com",
-                "scenario": "remote_sc"}],
-            "scenarios": {
-                "remote_sc": {  # no 'browser' element
-                    "capabilities": {
-                        "browserName": "chrome"},  # must be set among other capabilities
-                    "timeout": "3.5s",
-                    "requests": [{
-                        "url": "http://blazedemo.com",
-                        "actions": [
-                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"}]},
-                        {"label": "empty"}]}}})
-
-        self.obj.prepare()
-        with open(self.obj.script) as fds:
-            content = fds.read()
-
-        target = "'browserName': 'chrome'"
-        self.assertIn(target, content)
-
-    def test_build_script_remote_browser(self):
+    def test_build_script_remote_chrome_browser(self):
         """ taurus should not wipe browserName (from capabilities) """
         self.configure({
             "execution": [{
@@ -1018,7 +975,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "'browserName': 'chrome'"
+        target = "options.set_capability('browserName', 'chrome')"
         self.assertIn(target, content)
 
     def test_build_script_remote_firefox_browser(self):
@@ -1042,7 +999,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "'browserName': 'firefox'"
+        target = "options.set_capability('browserName', 'firefox')"
         self.assertIn(target, content)
 
     def test_build_script_remote_edge_browser(self):
@@ -1066,7 +1023,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as fds:
             content = fds.read()
 
-        target = "'browserName': 'MicrosoftEdge'"
+        target = "options.set_capability('browserName', 'MicrosoftEdge')"
         self.assertIn(target, content)
 
     def test_build_script_flow_markers(self):
@@ -2517,12 +2474,11 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
 
-class TestIsSelenium4(SeleniumTestCase):
+class TestSelenium4Only(SeleniumTestCase):
     def obj_prepare(self):
         tmp_tool = bzt.modules._apiritif.executor.Apiritif
         try:
             bzt.modules._apiritif.executor.Apiritif = MockPythonTool
-            bzt.modules._selenium.Selenium.version = "4"
             self.obj.install_required_tools = lambda: None
             self.obj.prepare()
         finally:
@@ -2549,10 +2505,62 @@ class TestIsSelenium4(SeleniumTestCase):
         target = "options.ignore_local_proxy_environment_variables()"
         self.assertIn(target, content)
 
+    def test_arguments_option_generator_ff_selenium_4(self):
+        # Option arguments is only available for Firefox and Chrome
+        # Option arguments is available for other browsers starting from Selenium version 4
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "arguments": ["one", "two"]}}}})
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')"
+        ]
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_arguments_option_generator_edge_selenium_4(self):
+        # Option arguments is only available for Firefox and Chrome
+        # Option arguments is available for other browsers starting from Selenium version 4
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "edge",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "arguments": ["one", "two"]}}}})
+
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
     def test_arguments_option_generator_ie_selenium_4(self):
         # Option arguments is only available for Firefox and Chrome
         # Option arguments is available for other browsers starting from Selenium version 4
-
         self.configure({
             "execution": [{
                 "scenario": "loc_sc"}],
@@ -2578,32 +2586,6 @@ class TestIsSelenium4(SeleniumTestCase):
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
-    def test_arguments_option_generator_ff_selenium_4(self):
-        # Option arguments is only available for Firefox and Chrome
-        # Option arguments is available for other browsers starting from Selenium version 4
-
-        self.configure({
-            "execution": [{
-                "scenario": "loc_sc"}],
-            "scenarios": {
-                "loc_sc": {
-                    "browser": "Firefox",
-                    "requests": [{
-                        "url": "bla.com"}]}},
-            "modules": {
-                "selenium": {
-                    "options": {
-                        "arguments": ["one", "two"]}}}})
-        self.obj_prepare()
-        with open(self.obj.script) as fds:
-            content = fds.read()
-        target_lines = [
-            "options.add_argument('one')",
-            "options.add_argument('two')"
-        ]
-        for idx in range(len(target_lines)):
-            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
-
     def test_headless_chrome_selenium_4(self):
         self.configure({
             "execution": [{
@@ -2621,9 +2603,69 @@ class TestIsSelenium4(SeleniumTestCase):
             gen_contents = generated.read()
         self.assertIn("options.headless = True", gen_contents)
 
-    def test_options_generator_remote_edge_selenium4(self):
-        # EdgeOptions is available for MicrosoftEdge starting from Selenium version 4
+    def test_capabilities_options_for_remote_chrome(self):
+        # Selenium version 4. Remote webdriver. Browser Chrome.
+        # Supported options: arguments, experimental-options
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "browserName": "chrome",
+                        "cap1": "val1",
+                        "cap2": "val2"},
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
 
+        self.obj_prepare()
+        exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_chrome.py"
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+
+    def test_capabilities_options_for_remote_firefox(self):
+        # Selenium version 4. Remote webdriver. Browser Firefox.
+        # Supported options: arguments, preferences
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "browserName": "firefox",
+                        "cap1": "val1",
+                        "cap2": "val2"},
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+        self.obj_prepare()
+        exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_firefox.py"
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+
+    def test_capabilities_options_for_remote_edge(self):
+        # EdgeOptions is available for MicrosoftEdge starting from Selenium version 4
         self.configure({
             "execution": [{
                 "executor": "selenium",
@@ -2637,17 +2679,297 @@ class TestIsSelenium4(SeleniumTestCase):
             "modules": {
                 "selenium": {
                     "options": {
+                        "ignore-proxy": True,
                         "arguments": ["one", "two"]}}}})
+
+        self.obj_prepare()
+        exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_edge.py"
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+
+    def test_capabilities_options_for_remote_other(self):
+        # Selenium version 4. Remote webdriver. Unknown browser.
+        # Supported options: none
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "cap1": "val1",
+                        "cap2": "val2"},
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,
+                        "arguments": ["one", "two"],
+                        "experimental-options": {"key1": "value1"},
+                        "preferences": {"key1": "value1"}}}}})
+        self.obj_prepare()
+        exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_other.py"
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+
+
+class TestSelenium3Only(SeleniumTestCase):
+    def obj_prepare(self):
+        tmp_tool = bzt.modules._apiritif.executor.Apiritif
+        try:
+            bzt.modules._apiritif.executor.Apiritif = MockPythonTool
+            self.obj.settings["version"] = "3"
+            self.obj.install_required_tools = lambda: None
+            self.obj.prepare()
+        finally:
+            bzt.modules._apiritif.executor.Apiritif = tmp_tool
+
+    def test_ignore_proxy_option(self):
+        # Option ignore-proxy is only available starting from Selenium version 4
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True}}}})
 
         self.obj_prepare()
         with open(self.obj.script) as fds:
             content = fds.read()
 
+        target = "options.ignore_local_proxy_environment_variables"
+        self.assertNotIn(target, content)
+
+    def test_options_for_chrome(self):
+        # Selenium version 3. Browser Chrome.
+        # Supported options: arguments, experimental-options
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Chrome",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.set_preference", content)
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+
         target_lines = [
-            "options = webdriver.EdgeOptions()",
             "options.add_argument('one')",
             "options.add_argument('two')",
+            "options.add_experimental_option('key1', 'value1')",
+            "options.add_experimental_option('key2', {'key22': 'value22'})"
         ]
 
         for idx in range(len(target_lines)):
             self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_for_firefox(self):
+        # Selenium version 3. Browser Firefox.
+        # Supported options: arguments, preferences
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.add_experimental_option", content)
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+
+        target_lines = [
+            "options.add_argument('one')",
+            "options.add_argument('two')",
+            "options.set_preference('key1', 'value1')",
+            "options.set_preference('key2', {'key22': 'value22'})"
+        ]
+
+        for idx in range(len(target_lines)):
+            self.assertIn(target_lines[idx], content, msg="\n\n%s. %s" % (idx, target_lines[idx]))
+
+    def test_options_for_edge(self):
+        # Selenium version 3. Browser Edge.
+        # Supported options: None
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "edge",
+                    "capabilities": {
+                        "browserName": "chrome",
+                        "cap1": "val1",
+                        "cap2": "val2"},
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],  # Option arguments is only available starting from Selenium 4
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1"},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1"}}}}})
+
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+        self.assertNotIn("options.add_argument('one')", content)
+        self.assertNotIn("options.add_experimental_option", content)
+        self.assertNotIn("options.set_preference", content)
+
+    def test_options_for_ie(self):
+        # Selenium version 3. Browser Ie.
+        # Supported options: None
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Ie",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],  # Option arguments is only available starting from Selenium 4
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1"},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1"}}}}})
+
+        self.obj_prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertNotIn("options.ignore_local_proxy_environment_variables", content)
+        self.assertNotIn("options.add_argument('one')", content)
+        self.assertNotIn("options.add_experimental_option", content)
+        self.assertNotIn("options.set_preference", content)
+
+    def test_capabilities_options_for_remote_chrome(self):
+        # Selenium version 3. Remote webdriver. Browser Chrome.
+        # Supported options: arguments, experimental-options
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "browserName": "chrome",
+                        "cap1": "val1",
+                        "cap2": "val2"},
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+
+        self.obj_prepare()
+        exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_chrome_s3.py"
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+
+    def test_capabilities_options_for_remote_firefox(self):
+        # Selenium version 3. Remote webdriver. Browser Firefox.
+        # Supported options: arguments, preferences
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "browserName": "firefox",
+                        "cap1": "val1",
+                        "cap2": "val2"},
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {  # Option experimental-options is only available in Chrome
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}},
+                        "preferences": {  # Option preferences is only available in Firefox
+                            "key1": "value1",
+                            "key2": {"key22": "value22"}}}}}})
+        self.obj_prepare()
+        exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_firefox_s3.py"
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+
+    def test_capabilities_options_for_remote_other(self):
+        # Selenium version 3. Remote webdriver. Unknown browser.
+        # Supported options: none
+        self.configure({
+            "execution": [{
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "cap1": "val1",
+                        "cap2": "val2"},
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,  # Option ignore-proxy is only available starting from Selenium version 4
+                        "arguments": ["one", "two"],
+                        "experimental-options": {"key1": "value1"},
+                        "preferences": {"key1": "value1"}}}}})
+        self.obj_prepare()
+        exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_other_s3.py"
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)

@@ -19,7 +19,8 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import dialogs_answer_on_next_prompt, open_window, dialogs_get_next_prompt, switch_frame, dialogs_answer_on_next_alert, dialogs_get_next_alert, dialogs_get_next_confirm, close_window, waiter, wait_for, dialogs_answer_on_next_confirm, dialogs_replace, get_locator, switch_window
+from selenium.webdriver.common.options import ArgOptions
+from bzt.resources.selenium_extras import dialogs_replace, open_window, close_window, dialogs_answer_on_next_prompt, dialogs_get_next_alert, dialogs_get_next_confirm, switch_window, dialogs_answer_on_next_confirm, dialogs_answer_on_next_alert, wait_for, dialogs_get_next_prompt, get_locator, switch_frame, waiter
 
 class TestLocSc(unittest.TestCase):
 
@@ -35,7 +36,6 @@ class TestLocSc(unittest.TestCase):
         self.driver.implicitly_wait(timeout)
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc')
-
 
     def _1_Test_V2(self):
         with apiritif.smart_transaction('Test V2'):
@@ -133,7 +133,6 @@ class TestLocSc(unittest.TestCase):
 
             filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), ('screenshot-%d.png' % (time() * 1000)))
             self.driver.save_screenshot(filename)
-            wait_for('visible', [{'css': 'invalid_css'}, {'name': 'inputName'}], 3.5)
             wait_for('visible', [{'css': 'invalid_css'}, {'name': 'inputName'}], 9020.0)
 
             var_edit_content = get_locator([{'id': 'editor'}])

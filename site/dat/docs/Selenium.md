@@ -155,7 +155,7 @@ See more info [here](Services.md#Virtual-Display-Service).
 
 You can configure the following browser options:  
 - `ignore-proxy`: boolean  
-HTTP_PROXY and HTTPS_PROXY will be ignored from being picked up and used. Option is only available starting from Selenium version 4.  
+HTTP\_PROXY and HTTPS\_PROXY will be ignored from being picked up and used. Option is only available starting from Selenium version 4.  
 - `arguments`: list  
 Add [command-line arguments](https://peter.sh/experiments/chromium-command-line-switches/) to use when starting browser.  
 - `experimental-options`: dict  

@@ -27,7 +27,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
 from bzt.requests_model import IncludeScenarioBlock, SetUpBlock, TearDownBlock
-from bzt.utils import iteritems, dehumanize_time, ensure_is_dict
+from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, BetterDict
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, gen_try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
 
@@ -1051,7 +1051,10 @@ from selenium.webdriver.common.keys import Keys
         elif browser == 'edge' and self.selenium_version.startswith("4"):
             options = self._get_edge_options()
         else:
-            options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
+            if self.selenium_version.startswith("4"):
+                options = [ast.Assign(targets=[ast.Name(id="options")], value=ast_call(func=ast_attr("ArgOptions")))]
+            else:
+                options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
 
         if self.OPTIONS in self.executor.settings:
             self.log.debug(f'Generating selenium option {self.executor.settings.get(self.OPTIONS)}. '
@@ -1237,10 +1240,6 @@ from selenium.webdriver.common.keys import Keys
             if browser not in ['firefox', 'chrome', 'edge']:
                 self.log.debug(
                     f'Generating selenium options. Browser {browser}. Selenium version {self.selenium_version}')
-                options.extend([ast.Assign(
-                    targets=[ast.Name(id="options")],
-                    value=ast_call(
-                        func=ast_attr("ArgOptions")))])
 
         for opt in self.executor.settings.get(self.OPTIONS):
             if opt == "ignore-proxy":
@@ -1789,10 +1788,16 @@ from selenium.webdriver.common.keys import Keys
                 else:
                     url = req.url
 
-                lines.append(ast.Expr(
+                get_url_lines = [ast.Expr(
                     ast_call(
                         func=ast_attr("self.driver.get"),
-                        args=[self._gen_expr(url)])))
+                        args=[self._gen_expr(url)]))]
+                if self.generate_external_handler:
+                    action = BetterDict.from_dict({f"go({url})": None})
+                    get_url_lines = self._gen_action_start(action) + get_url_lines + self._gen_action_end(action)
+
+                lines.extend(get_url_lines)
+
                 if "actions" in req.config:
                     self.replace_dialogs = self._is_dialog_replacement_needed(req.config.get("actions"))
                     lines.append(self._gen_replace_dialogs())
