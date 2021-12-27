@@ -156,8 +156,8 @@ class TestExternalResultsLoader(ExecutorTestCase):
     def test_ext_agg_embedded(self):
         self.configure({
             "execution": [{
-                "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi_ed.jtl",
-                "errors-file": RESOURCES_DIR + "/jmeter/jtl/error_ed.jtl",
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/embedded_resources/kpi_ed.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/embedded_resources/error_ed.jtl",
             }]
         })
         ext_mode = True
