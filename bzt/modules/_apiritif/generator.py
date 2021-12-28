@@ -1044,12 +1044,16 @@ from selenium.webdriver.common.keys import Keys
             elif self.capabilities.get('browserName') and \
                     self.capabilities.get('browserName').lower() in ["microsoftedge", "edge"]:
                 browser = 'edge'
+            elif 'safari' == self.capabilities.get('browserName'):
+                browser = 'MiniBrowser'  # MiniBrowser uses instead of safari as a remote browser
         if browser == 'firefox':
             options = self._get_firefox_options()
         elif browser == 'chrome':
             options = self._get_chrome_options()
         elif browser == 'edge' and self.selenium_version.startswith("4"):
             options = self._get_edge_options()
+        elif browser == 'MiniBrowser':
+            options = self._get_webkitgtk_options()
         else:
             if self.selenium_version.startswith("4"):
                 options = [ast.Assign(targets=[ast.Name(id="options")], value=ast_call(func=ast_attr("ArgOptions")))]
@@ -1106,6 +1110,14 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(func=ast_attr("webdriver.EdgeOptions")))]
 
         return edge_options + self._get_headless_setup()
+
+    def _get_webkitgtk_options(self):
+        webkitgtk_options = [
+            ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(func=ast_attr("webdriver.WebKitGTKOptions")))]
+
+        return webkitgtk_options + self._get_headless_setup()
 
     def _get_firefox_profile(self):
         capabilities = sorted(self.capabilities.keys())
@@ -1231,7 +1243,7 @@ from selenium.webdriver.common.keys import Keys
 
         if not self.selenium_version.startswith("4"):
             old_version = True
-            if browser != 'firefox' and browser != 'chrome':
+            if browser not in ['firefox', 'chrome', 'MiniBrowser']:
                 self.log.warning(f'Selenium options are not supported. '
                                  f'Browser {browser}. Selenium version {self.selenium_version}')
                 return []
