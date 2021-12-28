@@ -1044,8 +1044,8 @@ from selenium.webdriver.common.keys import Keys
             elif self.capabilities.get('browserName') and \
                     self.capabilities.get('browserName').lower() in ["microsoftedge", "edge"]:
                 browser = 'edge'
-            elif 'safari' == self.capabilities.get('browserName'):
-                browser = 'MiniBrowser'  # MiniBrowser uses instead of safari as a remote browser
+            elif 'safari' == self.capabilities.get('browserName') and 'blazemeter' in self.remote_address:
+                browser = 'MiniBrowser'  # MiniBrowser uses instead of safari as a remote browser in Blazemeter
         if browser == 'firefox':
             options = self._get_firefox_options()
         elif browser == 'chrome':

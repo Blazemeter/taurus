@@ -31,7 +31,7 @@ class TestLocScRemote(unittest.TestCase):
         options = webdriver.WebKitGTKOptions()
         options.add_argument('one')
         options.add_argument('two')
-        self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub',
+        self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host.blazemeter:port/wd/hub',
                                        desired_capabilities={'browserName': 'safari', 'cap1': 'val1', 'cap2': 'val2'},
                                        options=options)
         self.driver.implicitly_wait(timeout)

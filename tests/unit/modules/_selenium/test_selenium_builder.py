@@ -2686,29 +2686,6 @@ class TestSelenium4Only(SeleniumTestCase):
         exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_edge.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
-    def test_capabilities_options_for_remote_safari(self):
-        # Selenium version 4. Remote webdriver. Browser Safari.
-        # Supported options: arguments
-        self.configure({
-            "execution": [{
-                "executor": "selenium",
-                "remote": "http://addr-of-remote-server.com",
-                "scenario": "remote_sc"}],
-            "scenarios": {
-                "remote_sc": {
-                    "browser": "safari",
-                    "requests": [{
-                        "url": "bla.com"}]}},
-            "modules": {
-                "selenium": {
-                    "options": {
-                        "ignore-proxy": True,
-                        "arguments": ["one", "two"]}}}})
-
-        self.obj_prepare()
-        exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_safari.py"
-        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
-
     def test_capabilities_options_for_remote_other(self):
         # Selenium version 4. Remote webdriver. Unknown browser.
         # Supported options: none
@@ -2732,6 +2709,29 @@ class TestSelenium4Only(SeleniumTestCase):
                         "preferences": {"key1": "value1"}}}}})
         self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_other.py"
+        self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+
+    def test_capabilities_options_for_remote_safari(self):
+        # Selenium version 4. Remote webdriver. Browser Safari.
+        # Supported options: arguments
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "remote": "http://addr-of-remote-server.blazemeter.com",
+                "scenario": "remote_sc"}],
+            "scenarios": {
+                "remote_sc": {
+                    "browser": "safari",
+                    "requests": [{
+                        "url": "bla.com"}]}},
+            "modules": {
+                "selenium": {
+                    "options": {
+                        "ignore-proxy": True,
+                        "arguments": ["one", "two"]}}}})
+
+        self.obj_prepare()
+        exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_safari.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
 
 
@@ -3005,7 +3005,7 @@ class TestSelenium3Only(SeleniumTestCase):
                 "scenario": "loc_sc_remote"}],
             "scenarios": {
                 "loc_sc_remote": {
-                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "remote": "http://user:key@remote_web_driver_host.blazemeter:port/wd/hub",
                     "capabilities": {
                         "browserName": "safari",
                         "cap1": "val1",
