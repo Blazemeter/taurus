@@ -1237,29 +1237,23 @@ from selenium.webdriver.common.keys import Keys
     def _get_selenium_options(self, browser):
         options = []
 
-        if not self.selenium_version.startswith("4"):
-            old_version = True
-            if browser not in ['firefox', 'chrome', 'MiniBrowser']:
-                self.log.warning(f'Selenium options are not supported. '
-                                 f'Browser {browser}. Selenium version {self.selenium_version}')
-                return []
-        else:
-            old_version = False
-            if browser not in ['firefox', 'chrome', 'edge']:
-                self.log.debug(
-                    f'Generating selenium options. Browser {browser}. Selenium version {self.selenium_version}')
+        old_version = self.selenium_version.startswith("3")
 
-        for opt in self.executor.settings.get(self.OPTIONS):
-            if opt == "ignore-proxy":
-                options.extend(self._get_ignore_proxy(old_version))
-            elif opt == "arguments":
-                options.extend(self._get_arguments())
-            elif opt == "experimental-options":
-                options.extend(self._get_experimental_options(browser))
-            elif opt == "preferences":
-                options.extend(self._get_preferences(browser))
-            else:
-                self.log.warning(f'Unknown option {opt}')
+        if old_version and browser not in ['firefox', 'chrome', 'MiniBrowser']:
+            self.log.warning(
+                f'Selenium options are not supported. Browser {browser}. Selenium version {self.selenium_version}')
+        else:
+            for opt in self.executor.settings.get(self.OPTIONS):
+                if opt == "ignore-proxy":
+                    options.extend(self._get_ignore_proxy(old_version))
+                elif opt == "arguments":
+                    options.extend(self._get_arguments())
+                elif opt == "experimental-options":
+                    options.extend(self._get_experimental_options(browser))
+                elif opt == "preferences":
+                    options.extend(self._get_preferences(browser))
+                else:
+                    self.log.warning(f'Unknown option {opt}')
 
         return options
 
