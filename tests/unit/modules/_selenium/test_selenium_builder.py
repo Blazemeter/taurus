@@ -2717,7 +2717,7 @@ class TestSelenium4Only(SeleniumTestCase):
         self.configure({
             "execution": [{
                 "executor": "selenium",
-                "remote": "http://addr-of-remote-server.blazemeter.com",
+                "remote": "http://addr-of-remote-server.com/api/v4/grid/wd/hub",
                 "scenario": "remote_sc"}],
             "scenarios": {
                 "remote_sc": {
@@ -3005,7 +3005,7 @@ class TestSelenium3Only(SeleniumTestCase):
                 "scenario": "loc_sc_remote"}],
             "scenarios": {
                 "loc_sc_remote": {
-                    "remote": "http://user:key@remote_web_driver_host.blazemeter:port/wd/hub",
+                    "remote": "http://user:key@remote_web_driver:port/api/v4/grid/wd/hub",
                     "capabilities": {
                         "browserName": "safari",
                         "cap1": "val1",
