@@ -1040,7 +1040,7 @@ from selenium.webdriver.common.keys import Keys
             browser = self.capabilities.get("browserName", "").lower()
             if browser in ["microsoftedge", "edge"]:
                 browser = 'edge'
-            elif browser == 'safari' and 'blazemeter' in self.remote_address:
+            elif browser == 'safari' and 'api/v4/grid/wd/hub' in self.remote_address:
                 browser = 'MiniBrowser'  # use MiniBrowser instead of safari as a remote browser in Blazemeter
         if browser == 'firefox':
             options = self._get_firefox_options()
@@ -1108,12 +1108,10 @@ from selenium.webdriver.common.keys import Keys
         return edge_options + self._get_headless_setup()
 
     def _get_webkitgtk_options(self):
-        webkitgtk_options = [
+        return [
             ast.Assign(
                 targets=[ast.Name(id="options")],
                 value=ast_call(func=ast_attr("webdriver.WebKitGTKOptions")))]
-
-        return webkitgtk_options + self._get_headless_setup()
 
     def _get_firefox_profile(self):
         capabilities = sorted(self.capabilities.keys())
