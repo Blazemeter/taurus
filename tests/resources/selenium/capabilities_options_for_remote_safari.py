@@ -34,7 +34,8 @@ class TestRemoteSc(unittest.TestCase):
         options.add_argument('one')
         options.add_argument('two')
         options.set_capability('browserName', 'safari')
-        self.driver = webdriver.Remote(command_executor='http://addr-of-remote-server.blazemeter.com', options=options)
+        self.driver = webdriver.Remote(command_executor='http://addr-of-remote-server.com/api/v4/grid/wd/hub',
+                                       options=options)
         self.driver.implicitly_wait(timeout)
         add_flow_markers()
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
