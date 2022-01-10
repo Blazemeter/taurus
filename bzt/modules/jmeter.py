@@ -1561,7 +1561,7 @@ class JMeter(RequiredTool):
         # fix log4j
         if self.fix_log4j:
             lib_dir = os.path.join(dest, 'lib')
-            fixed_version = '2.17.0'
+            fixed_version = '2.17.1'
             maven_link = "https://repo1.maven.org/maven2/org/apache/logging/log4j/{comp}/{ver}/{comp}-{ver}.jar"
             affected_components = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
             log4j_files = [_file for _file in os.listdir(lib_dir) if _file.startswith("log4j")]
