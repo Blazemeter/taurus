@@ -181,6 +181,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
             first_current = converted_results[0][DataPoint.CURRENT]
             error_type = first_current['Request 001']['all_transactions_aggregated'][KPISet.ERRORS][0]['type']
             self.assertEqual(2, error_type)
+            self.assertIn(SAMPLE_STATES[2], first_current[''])  # http_errors
             self.assertNotIn(SAMPLE_STATES[1], first_current[''])  # not jmeter_errors
 
     def test_no_data_file(self):
