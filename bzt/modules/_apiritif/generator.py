@@ -27,7 +27,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest, HierarchicRequestParser, TransactionBlock, SetVariables
 from bzt.requests_model import IncludeScenarioBlock, SetUpBlock, TearDownBlock
-from bzt.utils import iteritems, dehumanize_time, ensure_is_dict
+from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, BetterDict
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, gen_try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
 
@@ -909,10 +909,10 @@ from selenium.webdriver.common.keys import Keys
 
         browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
-        browser = browser.lower()
-        if browser == "microsoftedge":  # for remote webdriver only
-            browser = "MicrosoftEdge"
-        local_browsers = ["firefox", "chrome", "ie", "opera"] + mobile_browsers
+        browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
+        if browser == "microsoftedge":
+            browser = "edge"
+        local_browsers = ["firefox", "chrome", "ie", "opera", "edge"] + mobile_browsers
 
         browser_platform = None
         if browser:
@@ -934,7 +934,7 @@ from selenium.webdriver.common.keys import Keys
             self.remote_address = "http://localhost:4723/wd/hub"
             self.capabilities["platformName"] = browser_platform
             self.capabilities["browserName"] = browser
-            browser = "remote"  # Force to use remote web driver
+            browser = "remote"  # Force using remote web driver
         elif not browser:
             browser = "firefox"
         elif browser not in local_browsers:  # browser isn't supported
@@ -956,8 +956,15 @@ from selenium.webdriver.common.keys import Keys
         elif browser == 'chrome':
             body.extend(self._get_chrome_profile() + [self._get_chrome_webdriver()])
 
+        elif browser == 'edge':
+            body.extend([self._get_edge_webdriver()])
+
         elif browser == 'remote':
-            body.append(self._get_remote_webdriver())
+            if self.selenium_version.startswith("4"):
+                remote_profile = self._get_remote_profile() + [self._get_remote_webdriver()]
+            else:
+                remote_profile = self._get_remote_webdriver()
+            body.append(remote_profile)
 
         else:
             body.append(ast.Assign(
@@ -1030,16 +1037,24 @@ from selenium.webdriver.common.keys import Keys
 
     def _get_options(self, browser):
         if browser == 'remote':
-            if 'firefox' == self.capabilities.get('browserName'):
-                browser = 'firefox'
-            elif 'chrome' == self.capabilities.get('browserName'):
-                browser = 'chrome'
+            browser = self.capabilities.get("browserName", "").lower()
+            if browser in ["microsoftedge", "edge"]:
+                browser = 'edge'
+            elif browser == 'safari' and 'api/v4/grid/wd/hub' in self.remote_address:
+                browser = 'MiniBrowser'  # use MiniBrowser instead of safari as a remote browser in Blazemeter
         if browser == 'firefox':
             options = self._get_firefox_options()
         elif browser == 'chrome':
             options = self._get_chrome_options()
+        elif browser == 'edge' and self.selenium_version.startswith("4"):
+            options = self._get_edge_options()
+        elif browser == 'MiniBrowser':
+            options = self._get_webkitgtk_options()
         else:
-            options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
+            if self.selenium_version.startswith("4"):
+                options = [ast.Assign(targets=[ast.Name(id="options")], value=ast_call(func=ast_attr("ArgOptions")))]
+            else:
+                options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
 
         if self.OPTIONS in self.executor.settings:
             self.log.debug(f'Generating selenium option {self.executor.settings.get(self.OPTIONS)}. '
@@ -1084,6 +1099,20 @@ from selenium.webdriver.common.keys import Keys
 
         return chrome_options + self._get_headless_setup()
 
+    def _get_edge_options(self):
+        edge_options = [
+            ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(func=ast_attr("webdriver.EdgeOptions")))]
+
+        return edge_options + self._get_headless_setup()
+
+    def _get_webkitgtk_options(self):
+        return [
+            ast.Assign(
+                targets=[ast.Name(id="options")],
+                value=ast_call(func=ast_attr("webdriver.WebKitGTKOptions")))]
+
     def _get_firefox_profile(self):
         capabilities = sorted(self.capabilities.keys())
         cap_expr = []
@@ -1122,6 +1151,22 @@ from selenium.webdriver.common.keys import Keys
 
         return cap_expr
 
+    def _get_remote_profile(self):
+        capabilities = sorted(self.capabilities.keys())
+        if "browserName" in capabilities and self.capabilities.get('browserName').lower() in ["microsoftedge", "edge"]:
+            self.capabilities["browserName"] = "MicrosoftEdge"  # MicrosoftEdge in camel case is necessary
+        cap_expr = []
+        for capability in capabilities:
+            cap_expr.append([
+                ast.Expr(
+                    ast_call(
+                        func=ast_attr("options.set_capability"),
+                        args=[ast.Str(capability, kind=""), ast.Str(self.capabilities[capability], kind="")]))
+
+            ])
+
+        return cap_expr
+
     def _get_firefox_webdriver(self):
         return ast.Assign(
             targets=[ast_attr("self.driver")],
@@ -1145,57 +1190,68 @@ from selenium.webdriver.common.keys import Keys
                         arg="options",
                         value=ast.Name(id="options"))]))
 
-    def _get_remote_webdriver(self):
-        keys = sorted(self.capabilities.keys())
-        values = [self.capabilities[key] for key in keys]
-
+    def _get_edge_webdriver(self):
         return ast.Assign(
             targets=[ast_attr("self.driver")],
             value=ast_call(
-                func=ast_attr("webdriver.Remote"),
-                keywords=[
-                    ast.keyword(
-                        arg="command_executor",
-                        value=ast.Str(self.remote_address, kind="")),
-                    ast.keyword(
-                        arg="desired_capabilities",
-                        value=ast.Dict(
-                            keys=[ast.Str(key, kind="") for key in keys],
-                            values=[ast.Str(value, kind="") for value in values])),
-                    ast.keyword(
-                        arg="options",
-                        value=ast.Name(id="options"))]))
+                func=ast_attr("webdriver.Edge")))
+
+    def _get_remote_webdriver(self):
+        if self.selenium_version.startswith("4"):
+            return ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Remote"),
+                    keywords=[
+                        ast.keyword(
+                            arg="command_executor",
+                            value=ast.Str(self.remote_address, kind="")),
+                        ast.keyword(
+                            arg="options",
+                            value=ast.Name(id="options"))]))
+        else:
+            keys = sorted(self.capabilities.keys())
+            if "browserName" in keys and self.capabilities.get('browserName').lower() in ["microsoftedge", "edge"]:
+                self.capabilities["browserName"] = "MicrosoftEdge"  # MicrosoftEdge in camel case is necessary
+            values = [self.capabilities[key] for key in keys]
+
+            return ast.Assign(
+                targets=[ast_attr("self.driver")],
+                value=ast_call(
+                    func=ast_attr("webdriver.Remote"),
+                    keywords=[
+                        ast.keyword(
+                            arg="command_executor",
+                            value=ast.Str(self.remote_address, kind="")),
+                        ast.keyword(
+                            arg="desired_capabilities",
+                            value=ast.Dict(
+                                keys=[ast.Str(key, kind="") for key in keys],
+                                values=[ast.Str(value, kind="") for value in values])),
+                        ast.keyword(
+                            arg="options",
+                            value=ast.Name(id="options"))]))
 
     def _get_selenium_options(self, browser):
         options = []
 
-        if not self.selenium_version.startswith("4"):
-            old_version = True
-            if browser != 'firefox' and browser != 'chrome':
-                self.log.warning(f'Selenium options are not supported. '
-                                 f'Browser {browser}. Selenium version {self.selenium_version}')
-                return []
-        else:
-            old_version = False
-            if browser != 'firefox' and browser != 'chrome':
-                self.log.debug(
-                    f'Generating selenium options. Browser {browser}. Selenium version {self.selenium_version}')
-                options.extend([ast.Assign(
-                    targets=[ast.Name(id="options")],
-                    value=ast_call(
-                        func=ast_attr("ArgOptions")))])
+        old_version = self.selenium_version.startswith("3")
 
-        for opt in self.executor.settings.get(self.OPTIONS):
-            if opt == "ignore-proxy":
-                options.extend(self._get_ignore_proxy(old_version))
-            elif opt == "arguments":
-                options.extend(self._get_arguments())
-            elif opt == "experimental-options":
-                options.extend(self._get_experimental_options(browser))
-            elif opt == "preferences":
-                options.extend(self._get_preferences(browser))
-            else:
-                self.log.warning(f'Unknown option {opt}')
+        if old_version and browser not in ['firefox', 'chrome', 'MiniBrowser']:
+            self.log.warning(
+                f'Selenium options are not supported. Browser {browser}. Selenium version {self.selenium_version}')
+        else:
+            for opt in self.executor.settings.get(self.OPTIONS):
+                if opt == "ignore-proxy":
+                    options.extend(self._get_ignore_proxy(old_version))
+                elif opt == "arguments":
+                    options.extend(self._get_arguments())
+                elif opt == "experimental-options":
+                    options.extend(self._get_experimental_options(browser))
+                elif opt == "preferences":
+                    options.extend(self._get_preferences(browser))
+                else:
+                    self.log.warning(f'Unknown option {opt}')
 
         return options
 
@@ -1728,10 +1784,16 @@ from selenium.webdriver.common.keys import Keys
                 else:
                     url = req.url
 
-                lines.append(ast.Expr(
+                get_url_lines = [ast.Expr(
                     ast_call(
                         func=ast_attr("self.driver.get"),
-                        args=[self._gen_expr(url)])))
+                        args=[self._gen_expr(url)]))]
+                if self.generate_external_handler:
+                    action = BetterDict.from_dict({f"go({url})": None})
+                    get_url_lines = self._gen_action_start(action) + get_url_lines + self._gen_action_end(action)
+
+                lines.extend(get_url_lines)
+
                 if "actions" in req.config:
                     self.replace_dialogs = self._is_dialog_replacement_needed(req.config.get("actions"))
                     lines.append(self._gen_replace_dialogs())

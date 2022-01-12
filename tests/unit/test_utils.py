@@ -198,7 +198,7 @@ class TestJavaVM(BZTestCase):
         self.obj = JavaVM()
         self.obj.tool_path = 'java-not-found'
         self.assertEqual(False, self.obj.check_if_installed())
-        self.obj.install()
+        self.assertRaises(ToolError, self.obj.install)
 
     def test_missed_req_tool(self):
         self.obj = JavaVM()

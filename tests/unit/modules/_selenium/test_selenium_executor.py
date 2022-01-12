@@ -11,7 +11,7 @@ from bzt.engine import EXEC
 from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
-from bzt.modules._selenium import SeleniumExecutor, ChromeDriver, GeckoDriver
+from bzt.modules._selenium import SeleniumExecutor
 from bzt.utils import LDJSONReader, FileReader
 from tests.unit import BZTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
 from tests.unit.mocks import DummyListener
@@ -197,7 +197,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         super(SeleniumExecutor, self.obj).prepare()
         self.obj.install_required_tools()
         for driver in self.obj.webdrivers:
-            self.obj.env.add_path({"PATH": driver.get_driver_dir()})
+            self.obj.env.add_path({"PATH": driver.get_dir()})
         self.obj.create_runner()
         self.obj.runner._check_tools = lambda *args: None
         self.obj.runner._compile_scripts = lambda: None
@@ -430,35 +430,3 @@ class TestReportReader(BZTestCase):
         self.assertEqual(items[2].status, "PASSED")
         self.assertEqual(items[4].test_case, 'SkippedTest')
         self.assertEqual(items[4].status, "SKIPPED")
-
-
-class MockWebDriverManager:
-    def __init__(self, **kwargs):
-        pass
-
-    def install(self):
-        return os.path.join(RESOURCES_DIR, "selenium/mockdriver")
-
-
-class TestWebrdivers(BZTestCase):
-    def test_webdriver_manager(self):
-        self.sniff_log(self.log)
-        tmp_chromedriver = bzt.modules._selenium.ChromeDriver.MANAGER
-        tmp_geckodriver = bzt.modules._selenium.GeckoDriver.MANAGER
-
-        try:
-            bzt.modules._selenium.ChromeDriver.MANAGER = MockWebDriverManager
-            bzt.modules._selenium.GeckoDriver.MANAGER = MockWebDriverManager
-
-            chromedriver = ChromeDriver()
-            chromedriver.install()
-
-            geckodriver = GeckoDriver()
-            geckodriver.install()
-
-        finally:
-            bzt.modules._selenium.ChromeDriver.MANAGER = tmp_chromedriver
-            bzt.modules._selenium.GeckoDriver.MANAGER = tmp_geckodriver
-
-        self.assertIn("Will install ChromeDriver into", self.log_recorder.info_buff.getvalue())
-        self.assertIn("Will install GeckoDriver into", self.log_recorder.info_buff.getvalue())

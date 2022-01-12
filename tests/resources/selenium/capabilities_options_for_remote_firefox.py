@@ -20,23 +20,24 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import wait_for, waiter, get_locator, add_flow_markers
+from bzt.resources.selenium_extras import get_locator, add_flow_markers, waiter
+
 
 class TestLocScRemote(unittest.TestCase):
 
     def setUp(self):
         self.vars = {}
 
-        timeout = 3.5
+        timeout = 30.0
         options = webdriver.FirefoxOptions()
-        options.set_capability('app', '')
+        options.ignore_local_proxy_environment_variables()
+        options.add_argument('one')
+        options.add_argument('two')
+        options.set_preference('key1', 'value1')
+        options.set_preference('key2', {'key22': 'value22'})
         options.set_capability('browserName', 'firefox')
-        options.set_capability('deviceName', '')
-        options.set_capability('javascriptEnabled', 'True')
-        options.set_capability('platformName', 'linux')
-        options.set_capability('platformVersion', '')
-        options.set_capability('seleniumVersion', '')
-        options.set_capability('version', '54.0')
+        options.set_capability('cap1', 'val1')
+        options.set_capability('cap2', 'val2')
         self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub',
                                        options=options)
         self.driver.implicitly_wait(timeout)
@@ -44,22 +45,12 @@ class TestLocScRemote(unittest.TestCase):
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc_remote')
 
-    def _1_(self):
-        with apiritif.smart_transaction('/'):
-            self.driver.get('http://blazedemo.com/')
-            wait_for('present', [{'xpath': "//input[@type='submit']"}], 3.5)
-            self.assertEqual(self.driver.title, 'BlazeDemo')
-            body = self.driver.page_source
-            re_pattern = re.compile('contained_text')
-            self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
-
-    def _2_empty(self):
-        with apiritif.smart_transaction('empty'):
-            pass
+    def _1_blacom(self):
+        with apiritif.smart_transaction('bla.com'):
+            self.driver.get('bla.com')
 
     def test_locscremote(self):
-        self._1_()
-        self._2_empty()
+        self._1_blacom()
 
     def tearDown(self):
         if self.driver:

@@ -156,8 +156,8 @@ class TestExternalResultsLoader(ExecutorTestCase):
     def test_ext_agg_embedded(self):
         self.configure({
             "execution": [{
-                "data-file": RESOURCES_DIR + "/jmeter/jtl/kpi_ed.jtl",
-                "errors-file": RESOURCES_DIR + "/jmeter/jtl/error_ed.jtl",
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/embedded_resources/kpi_ed.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/embedded_resources/error_ed.jtl",
             }]
         })
         ext_mode = True
@@ -229,6 +229,27 @@ class TestExternalResultsLoader(ExecutorTestCase):
         cumulative_kpis = last_dp[DataPoint.CUMULATIVE]['']
         self.assertIn('200', cumulative_kpis[KPISet.RESP_CODES])
         self.assertIn('404', cumulative_kpis[KPISet.RESP_CODES])
+
+    def test_500_success(self):
+        self.configure({
+            "execution": [{
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/500-success/kpi.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/500-success/error.jtl",
+            }]
+        })
+        self.obj.engine.aggregator.set_aggregation(True)
+        self.obj.prepare()
+        self.obj.reader.set_aggregation(True)
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        results = self.results_listener.results
+        self.assertGreater(len(results), 0)
+        converted = self.obj.engine.aggregator.converter(results[-1])[DataPoint.CURRENT]
+        self.assertIn(SAMPLE_STATES[0], converted[''])  # success
+        self.assertNotIn(SAMPLE_STATES[2], converted[''])  # http_errors
 
     def test_errors_jtl_ext(self):
         self.configure({

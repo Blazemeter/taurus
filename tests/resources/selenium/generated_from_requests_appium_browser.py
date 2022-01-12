@@ -19,7 +19,9 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from bzt.resources.selenium_extras import waiter, get_locator, wait_for
+from selenium.webdriver.common.options import ArgOptions
+from bzt.resources.selenium_extras import wait_for, get_locator, waiter
+
 
 class TestLocScAppium(unittest.TestCase):
 
@@ -27,20 +29,18 @@ class TestLocScAppium(unittest.TestCase):
         self.vars = {}
 
         timeout = 3.5
-        self.driver = None
         options = webdriver.ChromeOptions()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.set_capability('unhandledPromptBehavior', 'ignore')
-        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub',
-                                       desired_capabilities={'browserName': 'chrome', 'deviceName': '',
-                                                             'platformName': 'android'},
-                                       options=options)
+        options.set_capability('browserName', 'chrome')
+        options.set_capability('deviceName', '')
+        options.set_capability('platformName', 'android')
+        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', options=options)
         self.driver.implicitly_wait(timeout)
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc_appium')
-
 
     def _1_(self):
         with apiritif.smart_transaction('/'):

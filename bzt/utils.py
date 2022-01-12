@@ -1253,7 +1253,7 @@ class ExceptionalDownloader(object):
         super(ExceptionalDownloader, self).__init__()
         self.http_client = http_client
 
-    def get(self, url, filename=None, reporthook=None, data=None, suffix="", timeout=5.0):
+    def get(self, url, filename=None, reporthook=None, data=None, suffix="", timeout=30.0):
         if os.getenv("TAURUS_DISABLE_DOWNLOADS", ""):
             raise TaurusInternalException("Downloads are disabled by TAURUS_DISABLE_DOWNLOADS env var")
 
@@ -1273,24 +1273,21 @@ class RequiredTool(object):
     Abstract required tool
     """
     VERSION = None
+    DOWNLOAD_LINK = None
 
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
                  env=None, version=None, installable=True, mandatory=True):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
-        self.download_link = download_link
+        self.download_link = download_link or self.DOWNLOAD_LINK
         self.mirror_manager = None
         self.mandatory = mandatory
-
-        self.version = self.VERSION
-        if version is not None:
-            self.version = str(version)
-
         self.installable = installable
-
+        self.version = str(version) if version else self.VERSION
         self.tool_name = self.__class__.__name__
 
         # for browsermobproxy compatability, remove it later
+        # todo: check it! (as well as others 'remove it later')
         if not isinstance(log, logging.Logger):
             log = None
 
@@ -1315,6 +1312,7 @@ class RequiredTool(object):
         return False
 
     def install(self):
+        # todo: install() must be based on _download()
         if not self.installable:
             msg = "%s isn't found, automatic installation isn't implemented" % self.tool_name
             if self.mandatory:
@@ -1351,13 +1349,15 @@ class RequiredTool(object):
                     raise
                 except BaseException as exc:
                     self.log.error("Error while downloading %s: %s" % (link, exc))
-        raise TaurusInternalException("%s download failed: No more links to try" % self.tool_name)
+        error_message = "%s download failed: No more links to try" % self.tool_name
+        if self.mandatory:
+            raise TaurusInternalException(error_message)
+        else:
+            self.log.warning(error_message)
 
 
 class JavaVM(RequiredTool):
     def __init__(self, **kwargs):
-        if "mandatory" not in kwargs:
-            kwargs["mandatory"] = False
         super(JavaVM, self).__init__(installable=False, tool_path="java", **kwargs)
 
     def _get_version(self, output):

@@ -30,7 +30,7 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.utils import iteritems, dehumanize_time, JSONConvertible
+from bzt.utils import iteritems, dehumanize_time, JSONConvertible, is_int
 
 log = logging.getLogger('aggregator')
 SAMPLE_STATES = 'success', 'jmeter_errors', 'http_errors'
@@ -656,13 +656,16 @@ class ResultsReader(ResultsProvider):
             else:   # f_type == 0:
                 group = SAMPLE_STATES[2]    # .. or http_error otherwise
         else:
-            if kpis[4] == '200':
-                if kpis[5] is None:
-                    group = SAMPLE_STATES[0]    # succeeded sample
-                else:
-                    group = SAMPLE_STATES[1]  # jmeter error
+            # kpis format: conc, r_time, con_time, latency, r_code, error, trname, byte_count
+            if kpis[5] is None:
+                group = SAMPLE_STATES[0]  # succeeded sample
             else:
-                group = SAMPLE_STATES[2]  # http error
+                rc = int(kpis[4]) if is_int(kpis[4]) else 0     # jmeter error by default
+
+                if rc < 300:
+                    group = SAMPLE_STATES[1]  # jmeter error
+                else:
+                    group = SAMPLE_STATES[2]  # http error
 
         return '-'.join((label, str(group)))
 

@@ -94,7 +94,7 @@ In `selenium` mode follow request features are supported:
 
   - `browser` for the following browser types: Chrome, Firefox, Ie, Opera, Android-Chrome, iOS-Safari, Remote
   - `remote` for local webdriver, local remote webdriver or [remote webdriver](#Remote-WebDriver)
-  - `capabilities` of local and [remote webdriver](#Remote-WebDriver): `browser`, `version`, `javascript`, `platform`, `os\_version`, `selenium`, `device`, `app`
+  - `capabilities` of local and [remote webdriver](#Remote-WebDriver)
   - `request` only for GET method
       - `action` keyword for Selenium actions
       - `assert` (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)
@@ -871,7 +871,7 @@ Or using the [alternative syntax](#Alternative-syntax-supporting-multiple-locato
 ```yaml
 scenarios:
   request_example:
-    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
+    browser: Firefox  # available browsers are:  Firefox, Chrome, Ie, Opera, Edge
     headless: true  # available only for Chrome/Firefox and only on Selenium 3.8.0+, disabled by default
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
@@ -930,7 +930,7 @@ mix it with the shorter version of action definition.
 ```yaml
 scenarios:
   request_example:
-    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
+    browser: Firefox  # available browsers are: Firefox, Chrome, Ie, Opera, Edge
     headless: true  # available only for Chrome/Firefox and only on Selenium 3.8.0+, disabled by default
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
@@ -1018,15 +1018,16 @@ It is possible to use the browser remotely using Remote WebDriver. It must be in
 
 To specify the capabilities of the Remote WebDriver, it is necessary to be able to configure properties necessary for remote instantiation. You must use the `capabilities` structure where you can specify the main properties required by the remote webdriver.
 
-Note: The capabilities are a way in which the remote service filters and selects the device or browser to be selected for the test, depending on its configuration according to the configured specifications. It is recommended to read the documentation of who provides the service
+Note: The capabilities are a way in which the remote service filters and selects the device or browser to be selected for the test, depending on its configuration according to the configured specifications. It is recommended to read the documentation of who provides the service.
 
 ### Commonly used capabilities
 
-  - browser
-  - version
-  - platform
-  - device # ID of the device (Mobile browser)
-  - os_version # commonly used only for mobile
+  - browserName
+  - browserVersion
+  - acceptInsecureCerts
+  - platformName — commonly used for mobile devices
+
+Full capabilities list is [here](https://www.selenium.dev/documentation/webdriver/capabilities/).
 
 Note: Currently it is possible to perform basic tests in mobile browsers using the available actions commands, in the future more commands related to mobile will be incorporated to allow a better interactivity.
 
@@ -1037,8 +1038,8 @@ scenarios:
     browser: Remote
     remote: http://user:key@remote_web_driver_host:port/wd/hub
     capabilities:
-      browser: firefox  # Depends on the capabilities of the remote selenium server
-      version: "54.0"
+      browserName: firefox  # Depends on the capabilities of the remote selenium server
+      browserVersion: "95.0"
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
@@ -1053,8 +1054,8 @@ scenarios:
   request_example:
     remote: http://user:key@remote_web_driver_host:port/wd/hub
     capabilities:
-      browser: firefox  # Depends on the capabilities of the remote selenium server
-      version: "54.0"
+      browserName: firefox  # Depends on the capabilities of the remote selenium server
+      browserVersion: "95.0"
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
@@ -1062,7 +1063,10 @@ scenarios:
     # ...
 ```
 
+Here is a list of browsers which can be used as remote: `firefox`, `chrome`, `edge`.
+
 Note that `remote` keyword can be used on module settings, execution settings, or scenario level.
+For remote browser you can use [Browser Options](Selenium.md#Browser-options).
 
 ## Mobile Browsers
 

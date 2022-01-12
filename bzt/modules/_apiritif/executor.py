@@ -101,8 +101,10 @@ class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
 
             scenario_caps = scenario.get("capabilities")
 
-            if scenario.get("external-logging", False):
-                self.log.warning("'external-logging' is deprecated and unsupported now. Use 'plugins-path' instead.")
+            # todo: just for legacy support, remove it later
+            if isinstance(scenario_caps, list):
+                self.log.warning("Obsolete format of capabilities found (list), should be dict")
+                scenario["capabilities"] = {item.keys()[0]: item.values()[0] for item in scenario_caps}
 
             configs = (self.settings, scenario, self.execution)
 
