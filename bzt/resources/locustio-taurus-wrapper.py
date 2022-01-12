@@ -102,34 +102,24 @@ class LocustStarter(object):
         self.locust_stop_time = time.time()
 
     def execute(self):
-        if os.getenv("WORKERS_LDJSON"):
-            fname = os.getenv("WORKERS_LDJSON")
-            is_csv = False
-        elif os.getenv("JTL"):
+        if os.getenv("JTL"):
             fname = os.getenv("JTL")
-            is_csv = True
-        else:
-            raise ValueError("Please specify JTL or WORKERS_LDJSON environment variable")
-
-        with open(fname, 'wt') as self.fhd:
-            if is_csv:
+            with open(fname, 'wt') as self.fhd:
                 fieldnames = list(self.__getrec(None, None, None, None).keys())
                 dialect = guess_csv_dialect(",".join(fieldnames))
                 self.writer = csv.DictWriter(self.fhd, fieldnames=fieldnames, dialect=dialect)
                 self.writer.writeheader()
-                self.fhd.flush()
-            else:
-                self.writer = None  # FIXME: bad code design, have zero object for it
+        elif not os.getenv("WORKERS_LDJSON"):
+            raise ValueError("Please specify JTL or WORKERS_LDJSON environment variable")
 
-            events.init.add_listener(self.__on_init)
-            events.request.add_listener(self.__on_request_success)
-            events.request.add_listener(self.__on_request_failure)
-            events.user_error.add_listener(self.__on_exception)
-            events.worker_report.add_listener(self.__on_worker_report)
-            events.quitting.add_listener(self.__on_quit)
+        events.init.add_listener(self.__on_init)
+        events.request.add_listener(self.__on_request_success)
+        events.request.add_listener(self.__on_request_failure)
+        events.user_error.add_listener(self.__on_exception)
+        events.worker_report.add_listener(self.__on_worker_report)
+        events.quitting.add_listener(self.__on_quit)
 
-            main.main()
-            self.fhd.flush()
+        main.main()
 
 
 if __name__ == '__main__':

@@ -226,11 +226,6 @@ class NewmanExecutor(JavaScriptExecutor):
         if load.iterations:
             cmdline += ['--iteration-count', str(load.iterations)]
 
-        # TODO: allow running several collections like directory, see https://github.com/postmanlabs/newman/issues/871
-        # TODO: support hold-for, probably by having own runner
-        # if load.hold:
-        #    cmdline += ['--hold-for', str(load.hold)]
-
         self.process = self._execute(cmdline, cwd=script_dir)
 
     def _dump_vars(self, key):
@@ -289,7 +284,7 @@ class NPMPackage(RequiredTool):
 
     def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
         super(NPMPackage, self).__init__(**kwargs)
-        self.package_name = self.PACKAGE_NAME   # todo: split package_name in the constants block
+        self.package_name = self.PACKAGE_NAME
         if self.package_name.startswith("@"):
             package_name_split = self.package_name.split("@")
             self.package_name = '@{}'.format(package_name_split[1])

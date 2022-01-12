@@ -755,7 +755,7 @@ class JMeterExecutor(ScenarioExecutor):
                 parts = path.split('>')
                 if len(parts) < 2:
                     raise TaurusConfigError("JMeter: property selector must have at least 2 levels")
-                sel_parts = ["[testname='%s']" % parts[0]]  # TODO: support wildcards in element names
+                sel_parts = ["[testname='%s']" % parts[0]]
 
                 for add in parts[1:]:
                     sel_parts.append("[name='%s']" % add)
@@ -1152,7 +1152,7 @@ class IncrementalCSVReader(object):
             bytes_read += len(line)
 
             if self.csv_reader is None:
-                dialect = guess_csv_dialect(line, force_doublequote=True)  # TODO: configurable doublequoting?
+                dialect = guess_csv_dialect(line, force_doublequote=True)
                 self.csv_reader = csv.DictReader(self.buffer, [], dialect=dialect)
                 self.csv_reader.fieldnames += line.strip().split(self.csv_reader.dialect.delimiter)
                 self.log.debug("Analyzed header line: %s", self.csv_reader.fieldnames)

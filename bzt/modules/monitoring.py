@@ -463,7 +463,6 @@ class ServerAgentClient(MonitoringClient):
         exc = TaurusConfigError('ServerAgent client requires metrics list')
         metrics = config.get('metrics', exc)
 
-        # TODO: handle more complex metric specifications and labeling
         self._result_fields = [x for x in metrics]
 
         self._metrics_command = "\t".join([x for x in metrics])

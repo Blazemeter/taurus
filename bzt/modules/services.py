@@ -227,7 +227,7 @@ class Unpacker(Service):
                 zip_file.extractall(self.engine.artifacts_dir)
 
             archive = os.path.basename(archive)
-            unpacked_list.append(archive[:-4])  # TODO: replace with top-level archive content
+            unpacked_list.append(archive[:-4])
 
         replace_in_config(self.engine.config, packed_list, unpacked_list, log=self.log)
 
@@ -276,7 +276,6 @@ class InstallChecker(Service, Singletone):
             return
 
         self.log.info("Checking installation needs for: %s", mod_name)
-        # todo: shouldn't we make all tools mandatory for InstallChecker call?
         mod.install_required_tools()
         self.log.info("Module is fine: %s", mod_name)
 

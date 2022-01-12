@@ -30,7 +30,7 @@ from ..services import PythonTool
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 
-class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
+class ApiritifNoseExecutor(SubprocessedExecutor):
     """
     :type _tailer: FileReader
     """

@@ -279,7 +279,7 @@ class FailCriterion(object):
         if logic == 'for':
             return lambda tstmp, value: value
         elif logic in ('within', 'over'):
-            return self._within_aggregator_avg  # FIXME: having simple average for percented values is a bit wrong
+            return self._within_aggregator_avg
         else:
             raise TaurusConfigError("Unsupported window logic: %s" % logic)
 

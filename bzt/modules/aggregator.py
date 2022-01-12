@@ -75,7 +75,7 @@ class SinglePassIterator(RecordedIterator):
         # histogram
         self.hist_values[item.value_iterated_to] = item.count_at_value_iterated_to
 
-        # stddev FIXME: protected mt
+        # stddev
         dev = (self.histogram._hdr_median_equiv_value(item.value_iterated_to) * 1.0) - self._mean * 1000
         self._geometric_dev_total += (dev * dev) * item.count_added_in_this_iter_step
 
@@ -354,7 +354,7 @@ class KPISet(dict):
     def values(self):
         raise TaurusInternalException("Invalid call")
 
-    def recalculate(self):  # FIXME: get rid of it at all?
+    def recalculate(self):
         """
         Recalculate averages, stdev and percentiles
 
@@ -610,7 +610,7 @@ class ResultsProvider(object):
             current = datapoint[DataPoint.CURRENT]
             if datapoint[DataPoint.CUMULATIVE] or not self._ramp_up_exclude():
                 self.__merge_to_cumulative(current)
-                datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)  # FIXME: this line eats RAM like hell!
+                datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
                 datapoint.recalculate()
 
             for listener in self.listeners:
