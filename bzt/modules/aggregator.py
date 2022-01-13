@@ -652,25 +652,30 @@ class ResultsReader(ResultsProvider):
             self.track_percentiles = perc_levels
 
     @staticmethod
-    def get_mixed_label(label, kpis=None, f_type=None):
+    def get_mixed_label(label, kpis=None, f_type=None, msg=None):
         # it is used for generation of extended label.
         # each label data is split according to sample state (success/error/assert)
-        if f_type is not None:  # type of error from errors.jtl
-            if f_type == 1 or f_type == 2:  # if it's assertion or subsample error...
-                group = SAMPLE_STATES[1]    # ...let's call it jmeter_error (assertion, etc.)
-            else:   # f_type == 0:
-                group = SAMPLE_STATES[2]    # .. or http_error otherwise
-        else:
-            # kpis format: conc, r_time, con_time, latency, r_code, error, trname, byte_count
-            if kpis[5] is None:
-                group = SAMPLE_STATES[0]  # succeeded sample
-            else:
-                rc = int(kpis[4]) if is_int(kpis[4]) else 0     # jmeter error by default
 
-                if rc < 300:
-                    group = SAMPLE_STATES[1]  # jmeter error
-                else:
+        def is_embedded_error():
+            return msg and msg.startswith("Embedded resource download error")
+
+        if kpis:    # from kpi.jtl
+            # kpis format: conc, r_time, con_time, latency, r_code, error_msg, trname, byte_count
+            msg = kpis[5]
+            if msg:
+                rc = int(kpis[4]) if is_int(kpis[4]) else 0  # jmeter error by default
+                if rc > 299 or is_embedded_error():
                     group = SAMPLE_STATES[2]  # http error
+                else:
+                    group = SAMPLE_STATES[1]  # jmeter error
+            else:
+                group = SAMPLE_STATES[0]  # succeeded sample
+
+        else:   # from errors.jtl
+            if f_type == 0 or is_embedded_error():
+                group = SAMPLE_STATES[2]  # http_error
+            else:
+                group = SAMPLE_STATES[1]  # jmeter_error (assertion, etc.)
 
         return '-'.join((label, str(group)))
 
