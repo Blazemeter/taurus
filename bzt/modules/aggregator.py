@@ -647,25 +647,18 @@ class ResultsReader(ResultsProvider):
             self.track_percentiles = perc_levels
 
     @staticmethod
-    def get_mixed_label(label, kpis=None, f_type=None):
+    def get_mixed_label(label, rc=None, msg=None):
         # it is used for generation of extended label.
         # each label data is split according to sample state (success/error/assert)
-        if f_type is not None:  # type of error from errors.jtl
-            if f_type == 1 or f_type == 2:  # if it's assertion or subsample error...
-                group = SAMPLE_STATES[1]    # ...let's call it jmeter_error (assertion, etc.)
-            else:   # f_type == 0:
-                group = SAMPLE_STATES[2]    # .. or http_error otherwise
-        else:
-            # kpis format: conc, r_time, con_time, latency, r_code, error, trname, byte_count
-            if kpis[5] is None:
-                group = SAMPLE_STATES[0]  # succeeded sample
-            else:
-                rc = int(kpis[4]) if is_int(kpis[4]) else 0     # jmeter error by default
 
-                if rc < 300:
-                    group = SAMPLE_STATES[1]  # jmeter error
-                else:
-                    group = SAMPLE_STATES[2]  # http error
+        rc = int(rc) if is_int(rc) else 0  # it's jmeter_error by default
+        if msg:
+            if rc > 299 or msg.startswith("Embedded resource download error"):
+                group = SAMPLE_STATES[2]  # http error
+            else:
+                group = SAMPLE_STATES[1]  # jmeter error
+        else:
+            group = SAMPLE_STATES[0]  # succeeded sample
 
         return '-'.join((label, str(group)))
 
@@ -738,7 +731,8 @@ class ResultsReader(ResultsProvider):
 
     def __add_sample(self, current, label, kpis):
         if self._redundant_aggregation:
-            label = self.get_mixed_label(label=label, kpis=kpis)
+            # kpis format: conc, r_time, con_time, latency, r_code, error_msg, trname, byte_count
+            label = self.get_mixed_label(label=label, rc=kpis[4], msg=kpis[5])
 
         if label not in current:
             current[label] = KPISet(
