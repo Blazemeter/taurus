@@ -384,7 +384,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
 
         self.report_file_path = filename
 
-
     def process_sample_labels(self, xunit):
         """
         :type xunit: XUnitFileWriter
