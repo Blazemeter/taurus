@@ -102,24 +102,28 @@ class LocustStarter(object):
         self.locust_stop_time = time.time()
 
     def execute(self):
-        if os.getenv("JTL"):
-            fname = os.getenv("JTL")
-            with open(fname, 'wt') as self.fhd:
-                fieldnames = list(self.__getrec(None, None, None, None).keys())
-                dialect = guess_csv_dialect(",".join(fieldnames))
-                self.writer = csv.DictWriter(self.fhd, fieldnames=fieldnames, dialect=dialect)
-                self.writer.writeheader()
-        elif not os.getenv("WORKERS_LDJSON"):
-            raise ValueError("Please specify JTL or WORKERS_LDJSON environment variable")
-
         events.init.add_listener(self.__on_init)
-        events.request.add_listener(self.__on_request_success)
-        events.request.add_listener(self.__on_request_failure)
         events.user_error.add_listener(self.__on_exception)
         events.worker_report.add_listener(self.__on_worker_report)
         events.quitting.add_listener(self.__on_quit)
 
+        if os.getenv("JTL"):    # regular locust worker
+            fname = os.getenv("JTL")
+            self.fhd = open(fname, 'wt')
+            fieldnames = list(self.__getrec(None, None, None, None).keys())
+            dialect = guess_csv_dialect(",".join(fieldnames))
+            self.writer = csv.DictWriter(self.fhd, fieldnames=fieldnames, dialect=dialect)
+            self.writer.writeheader()
+            events.request.add_listener(self.__on_request_success)
+            events.request.add_listener(self.__on_request_failure)
+
+        elif not os.getenv("WORKERS_LDJSON"):   # master of distributed mode
+            raise ValueError("Please specify JTL or WORKERS_LDJSON environment variable")
+
         main.main()
+
+        if self.fhd:
+            self.fhd.close()
 
 
 if __name__ == '__main__':
