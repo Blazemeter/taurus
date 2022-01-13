@@ -290,7 +290,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     def __dump_csv(self, filename):
         self.log.info("Dumping final status as CSV: %s", filename)
         with open(get_full_path(filename), 'wt') as fhd:
-            if self.last_sec and '' in self.last_sec[DataPoint.CUMULATIVE]:
+            if '' in self.last_sec[DataPoint.CUMULATIVE]:
                 fieldnames = self.__get_csv_dict('', self.last_sec[DataPoint.CUMULATIVE]['']).keys()
                 writer = csv.DictWriter(fhd, fieldnames)
                 writer.writeheader()
@@ -413,7 +413,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
         :type xunit: XUnitFileWriter
         """
         xunit.report_test_suite('bzt_pass_fail')
-        mods = self.engine.reporters
+        mods = self.engine.reporters + self.engine.services # TODO: remove it after passfail is only reporter
         pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
         self.log.debug("Processing passfail objects: %s", pass_fail_objects)
         fail_criteria = []
