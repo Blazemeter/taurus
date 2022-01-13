@@ -1761,9 +1761,6 @@ from selenium.webdriver.common.keys import Keys
             else:
                 body.append(self._gen_http_request(request))
 
-        # if self.test_mode == "selenium":    # todo: remove it?
-        #    transaction_class += "_logged"
-
         transaction = ast.With(
             context_expr=ast_call(
                 func=ast_attr(transaction_class),
