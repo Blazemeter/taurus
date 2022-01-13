@@ -62,10 +62,6 @@ class JavaTestRunner(SubprocessedExecutor):
         self._check_tools(self._tools)
 
     def _add_jar_tool(self, req_tool_class, **kwargs):
-        if "local_path" in kwargs:
-            local_path = kwargs.pop("local_path")
-            if local_path:
-                kwargs["config"] = BetterDict.from_dict({"config": local_path})
         req_tool = self._get_tool(req_tool_class, **kwargs)
         self._tools.append(req_tool)
         self.class_path.append(req_tool.tool_path)
@@ -303,7 +299,11 @@ class TestNGTester(JavaTestRunner):
     __test__ = False  # Hello, nosetests discovery mechanism
 
     def install_required_tools(self):
-        self._add_jar_tool(TestNG, local_path=self.settings.get("path"))
+        local_path = self.settings.get("path", None)
+        config = {}
+        if local_path:
+            config = BetterDict.from_dict({"config": local_path})
+        self._add_jar_tool(TestNG, config=config)
         super(TestNGTester, self).install_required_tools()
 
     def detected_testng_xml(self):
