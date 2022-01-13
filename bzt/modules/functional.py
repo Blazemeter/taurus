@@ -42,7 +42,6 @@ class FunctionalAggregator(Aggregator):
         self.listeners.append(listener)
 
     def prepare(self):
-        # TODO: setup, read settings
         pass
 
     def process_readers(self, last_pass=False):

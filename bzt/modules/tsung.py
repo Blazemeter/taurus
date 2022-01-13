@@ -302,7 +302,6 @@ class TsungConfig(object):
             return time_amount, "second"
 
     def __gen_clients(self):
-        # TODO: distributed clients?
         clients = etree.Element("clients")
         client = etree.Element("client", host="localhost", use_controller_vm="true")
         clients.append(client)

@@ -145,7 +145,6 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             for case in self.cumulative_results.test_cases(test_suite):
                 status_counter[case.status] += 1
 
-        # FIXME: it's actually not tests, but test cases
         total = sum(count for _, count in iteritems(status_counter))
         self.log.info("Total: %s %s", total, self.__plural(total, 'test'))
 
@@ -290,9 +289,8 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
 
     def __dump_csv(self, filename):
         self.log.info("Dumping final status as CSV: %s", filename)
-        # FIXME: what if there's no last_sec
         with open(get_full_path(filename), 'wt') as fhd:
-            if '' in self.last_sec[DataPoint.CUMULATIVE]:
+            if self.last_sec and '' in self.last_sec[DataPoint.CUMULATIVE]:
                 fieldnames = self.__get_csv_dict('', self.last_sec[DataPoint.CUMULATIVE]['']).keys()
                 writer = csv.DictWriter(fhd, fieldnames)
                 writer.writeheader()
@@ -384,6 +382,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
             self.process_functional(writer)
             writer.save_report(filename)
 
+        self.report_file_path = filename
+
+
     def process_sample_labels(self, xunit):
         """
         :type xunit: XUnitFileWriter
@@ -455,7 +456,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
                 "skipped": str(len([sample for sample in samples if sample.status == "SKIPPED"])),
                 "failures": str(len([sample for sample in samples if sample.status == "FAILED"])),
                 "time": str(round(duration, 3)),
-                # TODO: "timestamp" attribute
             }
             xunit.add_test_suite(suite_name, attributes=attrs)
             for sample in samples:

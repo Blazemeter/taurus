@@ -433,7 +433,7 @@ class Engine(object):
             os.makedirs(self.artifacts_dir)
 
         # dump current effective configuration
-        dump = self.create_artifact("effective", "")  # TODO: not good since this file not exists
+        dump = self.create_artifact("effective", "")
         self.config.set_dump_file(dump)
         self.config.dump()
 

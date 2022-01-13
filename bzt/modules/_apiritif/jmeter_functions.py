@@ -46,8 +46,6 @@ class RandomFunction(JMeterFunction):
         if args.get("min") is None or args.get("max") is None:
             return None
 
-        # TODO: handle `varname` arg
-
         return ast.Call(
             func=ast.Attribute(
                 value=ast.Name(id="apiritif", ctx=ast.Load()),
@@ -68,8 +66,6 @@ class RandomStringFunction(JMeterFunction):
     def _compile(self, args):
         if args.get("size") is None:
             return None
-
-        # TODO: handle `varname`
 
         size = int(args.get("size"))
         arguments = [self.compiler.gen_expr(size)]
@@ -136,7 +132,6 @@ class TimeFunction(JMeterFunction):
         super(TimeFunction, self).__init__(["format", "varname"], compiler)
 
     def _compile(self, args):
-        # TODO: handle varname
         arguments = []
         if "format" in args:
             arguments.append(self.compiler.gen_expr(args["format"]))

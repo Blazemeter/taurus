@@ -21,7 +21,6 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
     PBENCH_FORMAT = re.compile("^[0-9]+\.[0-9]{3}\t[^\t]*\t([0-9]+\t){9}[0-9]+$")
 
     def __init__(self):
-        # TODO: document this executor
         super(ExternalResultsLoader, self).__init__()
         self._result_timeout = 1
         self._file_exists_wait = 1
@@ -99,8 +98,6 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
     def _get_reader(self):
         with open(self.data_file) as fhd:
             header = fhd.readline(2048).strip()  # just header chunk of file
-
-        # TODO: detect CSV dialect for JTLs
 
         if header.startswith(self.AB_HEADER):
             reader = TSVDataReader(self.data_file, self.log)

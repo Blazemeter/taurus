@@ -80,7 +80,7 @@ class ProjectFinder(object):
     def resolve_account(self, account_name):
         account = None
 
-        if isinstance(account_name, (int, float)):  # TODO: what if it's string "123"?
+        if isinstance(account_name, (int, float)):
             acc_id = int(account_name)
             self.log.debug("Treating account name as ID: %s", acc_id)
             account = self.user.accounts(ident=acc_id).first()
@@ -102,7 +102,7 @@ class ProjectFinder(object):
     def resolve_workspace(self, account, workspace_name):
         workspace = None
 
-        if isinstance(workspace_name, (int, float)):  # TODO: what if it's string "123"?
+        if isinstance(workspace_name, (int, float)):
             workspace_id = int(workspace_name)
             self.log.debug("Treating workspace name as ID: %s", workspace_id)
             workspace = account.workspaces(ident=workspace_id).first()

@@ -484,7 +484,6 @@ class JMeterScenarioBuilder(JMX):
     def compile_if_block(self, block):
         elements = []
 
-        # TODO: pass jmeter IfController options
         if_controller = JMX._get_if_controller(block.condition)
         then_children = etree.Element("hashTree")
         for compiled in self.compile_requests(block.then_clause):

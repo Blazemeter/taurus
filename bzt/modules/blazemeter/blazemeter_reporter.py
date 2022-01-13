@@ -590,7 +590,6 @@ class DatapointSerializer(object):
                     'failureMessage': error['msg'],
                     'name': error['tag'] if error['tag'] else 'All Assertions',
                     'failures': error['cnt']
-                    # TODO: "count", "errors" = ? (according do Udi's format description)
                 })
 
     def __get_label(self, name, cumul):
