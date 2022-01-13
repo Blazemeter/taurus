@@ -18,7 +18,7 @@ import re
 import sys
 
 from bzt import TaurusConfigError
-from bzt.engine import SETTINGS, HavingInstallableTools
+from bzt.engine import SETTINGS
 from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSamplesReader
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
@@ -30,7 +30,7 @@ from ..services import PythonTool
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 
-class ApiritifNoseExecutor(SubprocessedExecutor, HavingInstallableTools):
+class ApiritifNoseExecutor(SubprocessedExecutor):
     """
     :type _tailer: FileReader
     """
