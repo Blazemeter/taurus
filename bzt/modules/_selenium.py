@@ -140,7 +140,6 @@ class SeleniumExecutor(ReportableExecutor):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types or '.jar' in file_types:
-            # todo: next detection logic is duplicated in TestNGTester - can we avoid it?
             script_dir = get_full_path(self.get_script_path(), step_up=1)
             if os.path.exists(os.path.join(script_dir, 'testng.xml')) or self.execution.get('testng-xml'):
                 script_type = 'testng'

@@ -131,7 +131,6 @@ class LocustIOExecutor(ScenarioExecutor):
         return self.widget
 
     def check(self):
-        # TODO: when we're in master mode and get no results and exceeded duration - shut down then
         retcode = self.process.poll()
         if retcode is not None:
             if retcode != 0:

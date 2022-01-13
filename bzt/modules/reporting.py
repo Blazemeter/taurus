@@ -145,7 +145,6 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             for case in self.cumulative_results.test_cases(test_suite):
                 status_counter[case.status] += 1
 
-        # FIXME: it's actually not tests, but test cases
         total = sum(count for _, count in iteritems(status_counter))
         self.log.info("Total: %s %s", total, self.__plural(total, 'test'))
 
@@ -383,7 +382,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
             self.process_functional(writer)
             writer.save_report(filename)
 
-        self.report_file_path = filename  # TODO: just for backward compatibility, remove later
+        self.report_file_path = filename
 
     def process_sample_labels(self, xunit):
         """
@@ -416,7 +415,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
         :type xunit: XUnitFileWriter
         """
         xunit.report_test_suite('bzt_pass_fail')
-        mods = self.engine.reporters + self.engine.services  # TODO: remove it after passfail is only reporter
+        mods = self.engine.reporters + self.engine.services # TODO: remove it after passfail is only reporter
         pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
         self.log.debug("Processing passfail objects: %s", pass_fail_objects)
         fail_criteria = []
@@ -456,7 +455,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
                 "skipped": str(len([sample for sample in samples if sample.status == "SKIPPED"])),
                 "failures": str(len([sample for sample in samples if sample.status == "FAILED"])),
                 "time": str(round(duration, 3)),
-                # TODO: "timestamp" attribute
             }
             xunit.add_test_suite(suite_name, attributes=attrs)
             for sample in samples:

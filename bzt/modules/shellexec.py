@@ -203,7 +203,6 @@ class Task(object):
     def _get_results(self):
         stdout, stderr = communicate(self.process)
 
-        # todo: show temp files from startup
         if stdout and (self.out == PIPE):
             self.log.debug("Output for %s:\n%s", self, stdout)
 

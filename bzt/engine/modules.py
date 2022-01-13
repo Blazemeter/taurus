@@ -186,7 +186,7 @@ class ScenarioExecutor(EngineModule, HavingInstallableTools):
         super(ScenarioExecutor, self).__init__()
         self.env = Environment(log=self.log)
         self.provisioning = None
-        self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
+        self.execution = BetterDict()
         self._cached_scenario = None
         self.label = None
         self.widget = None

@@ -52,7 +52,6 @@ class Proxy2JMX(Service, Singletone):
 
         self.proxy.address = self.settings.get("address", blazemeter_cfg.get("address", self.proxy.address))
 
-        # todo: handle network exceptions (ssl, ...) in next call
         self.proxy_addr = self.proxy.get_addr()
 
     def startup(self):

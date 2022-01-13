@@ -73,8 +73,6 @@ class MolotovExecutor(ScenarioExecutor):
         if 'processes' in self.execution:
             cmdline += ['--processes', str(self.execution['processes'])]
 
-        # TODO: autosizing as `concurrency: auto`?
-
         duration = 0
         if load.ramp_up:
             ramp_up = int(ceil(dehumanize_time(load.hold)))

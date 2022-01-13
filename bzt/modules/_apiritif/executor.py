@@ -76,8 +76,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
-        # todo: requred tools?
-
         # path to taurus dir. It's necessary for bzt usage inside tools/helpers
         self.env.add_path({"PYTHONPATH": get_full_path(BZT_DIR, step_up=1)})
 
