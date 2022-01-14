@@ -184,6 +184,37 @@ class TestExternalResultsLoader(ExecutorTestCase):
             self.assertIn(SAMPLE_STATES[2], first_current[''])  # http_errors
             self.assertNotIn(SAMPLE_STATES[1], first_current[''])  # not jmeter_errors
 
+    def test_non_http_exception(self):
+        self.configure({
+            "execution": [{
+                "data-file": RESOURCES_DIR + "/jmeter/jtl/non-http/kpi.jtl",
+                "errors-file": RESOURCES_DIR + "/jmeter/jtl/non-http/error.jtl",
+            }]
+        })
+        ext_mode = True
+        self.obj.engine.aggregator.set_aggregation(ext_mode)
+        self.obj.prepare()
+        self.obj.reader.set_aggregation(ext_mode)
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        results = self.results_listener.results
+
+        cons1 = {}
+        for dp in results:
+            current = dp[DataPoint.CURRENT]
+            cons1[dp['ts']] = {state: current[state][KPISet.CONCURRENCY] for state in current if state != ''}
+
+        if ext_mode:
+            converted_results = [self.obj.engine.aggregator.converter(dp) for dp in results]
+            currents = [converted_results[i][DataPoint.CURRENT] for i in range(len(converted_results))]
+            # error_type = first_current['Request 001']['all_transactions_aggregated'][KPISet.ERRORS][0]['type']
+            # self.assertEqual(2, error_type)
+            # self.assertIn(SAMPLE_STATES[2], first_current[''])  # http_errors
+            # self.assertNotIn(SAMPLE_STATES[1], first_current[''])  # not jmeter_errors
+
     def test_no_data_file(self):
         self.configure({
             "execution": [{

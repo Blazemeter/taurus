@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="161" lt="161" ts="1641743329684" s="false" lb="Same label error" rc="403" rm="Forbidden" tn="Errors Thread Group 1-1" dt="text" de="" by="338" ng="1" na="1">
+  <responseHeader class="java.lang.String">HTTP/1.1 403 Forbidden
+Server: openresty/1.15.8.2
+Date: Sun, 09 Jan 2022 15:48:49 GMT
+Content-Type: text/html
+Content-Length: 159
+Connection: close
+Vary: Accept-Encoding
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: close
+Host: blazeo.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_312)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;html&gt;&#xd;
+&lt;head&gt;&lt;title&gt;403 Forbidden&lt;/title&gt;&lt;/head&gt;&#xd;
+&lt;body&gt;&#xd;
+&lt;center&gt;&lt;h1&gt;403 Forbidden&lt;/h1&gt;&lt;/center&gt;&#xd;
+&lt;hr&gt;&lt;center&gt;openresty/1.15.8.2&lt;/center&gt;&#xd;
+&lt;/body&gt;&#xd;
+&lt;/html&gt;&#xd;
+</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://blazeo.com</java.net.URL>
+</httpSample>
+<httpSample t="74" lt="0" ts="1641743329852" s="false" lb="Same label error" rc="Non HTTP response code: java.net.UnknownHostException" rm="Non HTTP response message: a.blaeter.com: Name or service not known" tn="Errors Thread Group 1-1" dt="text" de="" by="2324" ng="1" na="1">
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String">Connection: close
+Host: a.blaeter.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_312)
+</requestHeader>
+  <responseData class="java.lang.String">java.net.UnknownHostException: a.blaeter.com: Name or service not known
+	at java.net.Inet4AddressImpl.lookupAllHostAddr(Native Method)
+	at java.net.InetAddress$2.lookupAllHostAddr(InetAddress.java:929)
+	at java.net.InetAddress.getAddressesFromNameService(InetAddress.java:1324)
+	at java.net.InetAddress.getAllByName0(InetAddress.java:1277)
+	at java.net.InetAddress.getAllByName(InetAddress.java:1193)
+	at java.net.InetAddress.getAllByName(InetAddress.java:1127)
+	at org.apache.http.impl.conn.SystemDefaultDnsResolver.resolve(SystemDefaultDnsResolver.java:45)
+	at org.apache.http.impl.conn.DefaultHttpClientConnectionOperator.connect(DefaultHttpClientConnectionOperator.java:112)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl$JMeterDefaultHttpClientConnectionOperator.connect(HTTPHC4Impl.java:404)
+	at org.apache.http.impl.conn.PoolingHttpClientConnectionManager.connect(PoolingHttpClientConnectionManager.java:376)
+	at org.apache.http.impl.execchain.MainClientExec.establishRoute(MainClientExec.java:393)
+	at org.apache.http.impl.execchain.MainClientExec.execute(MainClientExec.java:236)
+	at org.apache.http.impl.execchain.ProtocolExec.execute(ProtocolExec.java:186)
+	at org.apache.http.impl.execchain.RetryExec.execute(RetryExec.java:89)
+	at org.apache.http.impl.execchain.RedirectExec.execute(RedirectExec.java:110)
+	at org.apache.http.impl.client.InternalHttpClient.doExecute(InternalHttpClient.java:185)
+	at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:83)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl.executeRequest(HTTPHC4Impl.java:935)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl.sample(HTTPHC4Impl.java:646)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy.sample(HTTPSamplerProxy.java:66)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.sample(HTTPSamplerBase.java:1296)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.sample(HTTPSamplerBase.java:1285)
+	at org.apache.jmeter.threads.JMeterThread.doSampling(JMeterThread.java:638)
+	at org.apache.jmeter.threads.JMeterThread.executeSamplePackage(JMeterThread.java:558)
+	at org.apache.jmeter.threads.JMeterThread.processSampler(JMeterThread.java:489)
+	at org.apache.jmeter.threads.JMeterThread.run(JMeterThread.java:256)
+	at java.lang.Thread.run(Thread.java:748)
+</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://a.blaeter.com</java.net.URL>
+</httpSample>
+<httpSample t="10" lt="0" ts="1641743329929" s="false" lb="Same label error" rc="Non HTTP response code: java.net.UnknownHostException" rm="Non HTTP response message: www.blaemeter.com: Name or service not known" tn="Errors Thread Group 1-1" dt="text" de="" by="2328" ng="1" na="1">
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String">Connection: close
+Host: www.blaemeter.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_312)
+</requestHeader>
+  <responseData class="java.lang.String">java.net.UnknownHostException: www.blaemeter.com: Name or service not known
+	at java.net.Inet4AddressImpl.lookupAllHostAddr(Native Method)
+	at java.net.InetAddress$2.lookupAllHostAddr(InetAddress.java:929)
+	at java.net.InetAddress.getAddressesFromNameService(InetAddress.java:1324)
+	at java.net.InetAddress.getAllByName0(InetAddress.java:1277)
+	at java.net.InetAddress.getAllByName(InetAddress.java:1193)
+	at java.net.InetAddress.getAllByName(InetAddress.java:1127)
+	at org.apache.http.impl.conn.SystemDefaultDnsResolver.resolve(SystemDefaultDnsResolver.java:45)
+	at org.apache.http.impl.conn.DefaultHttpClientConnectionOperator.connect(DefaultHttpClientConnectionOperator.java:112)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl$JMeterDefaultHttpClientConnectionOperator.connect(HTTPHC4Impl.java:404)
+	at org.apache.http.impl.conn.PoolingHttpClientConnectionManager.connect(PoolingHttpClientConnectionManager.java:376)
+	at org.apache.http.impl.execchain.MainClientExec.establishRoute(MainClientExec.java:393)
+	at org.apache.http.impl.execchain.MainClientExec.execute(MainClientExec.java:236)
+	at org.apache.http.impl.execchain.ProtocolExec.execute(ProtocolExec.java:186)
+	at org.apache.http.impl.execchain.RetryExec.execute(RetryExec.java:89)
+	at org.apache.http.impl.execchain.RedirectExec.execute(RedirectExec.java:110)
+	at org.apache.http.impl.client.InternalHttpClient.doExecute(InternalHttpClient.java:185)
+	at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:83)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl.executeRequest(HTTPHC4Impl.java:935)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl.sample(HTTPHC4Impl.java:646)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy.sample(HTTPSamplerProxy.java:66)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.sample(HTTPSamplerBase.java:1296)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.sample(HTTPSamplerBase.java:1285)
+	at org.apache.jmeter.threads.JMeterThread.doSampling(JMeterThread.java:638)
+	at org.apache.jmeter.threads.JMeterThread.executeSamplePackage(JMeterThread.java:558)
+	at org.apache.jmeter.threads.JMeterThread.processSampler(JMeterThread.java:489)
+	at org.apache.jmeter.threads.JMeterThread.run(JMeterThread.java:256)
+	at java.lang.Thread.run(Thread.java:748)
+</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>https://www.blaemeter.com/blog</java.net.URL>
+</httpSample>
+<httpSample t="614" lt="356" ts="1641743330122" s="false" lb="Embedded Resource - Fail" rc="200" rm="Embedded resource download error:https://blazedemo.com/img/logo12.png code:404 message:Not Found, " tn="Errors Thread Group 1-1" dt="text" de="UTF-8" by="4489" ng="1" na="1">
+  <httpSample t="356" lt="356" ts="1641743330122" s="true" lb="Embedded Resource - Fail-0" rc="200" rm="OK" tn="Errors Thread Group 1-1" dt="text" de="UTF-8" by="429" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+x-powered-by: PHP/7.3.17
+cache-control: no-cache, private
+vary: Accept-Encoding
+content-type: text/html; charset=UTF-8
+X-Cloud-Trace-Context: 895f237e82298575f27f10e45e9ceb72
+Date: Sun, 09 Jan 2022 15:48:50 GMT
+Server: Google Frontend
+Content-Length: 128
+Connection: close
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: close
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_312)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/echo.php?embedded</java.net.URL>
+  </httpSample>
+  <httpSample t="47" lt="47" ts="1641743330531" s="true" lb="Embedded Resource - Fail-1" rc="200" rm="OK" tn="Errors Thread Group 1-1" dt="bin" de="" by="2222" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+last-modified: Wed, 13 May 2020 14:02:51 GMT
+etag: &quot;783-5a588092358c0&quot;
+accept-ranges: bytes
+content-type: image/png
+X-Cloud-Trace-Context: b6d32e9ad4dac90f7733589d5401bab4
+Date: Sun, 09 Jan 2022 15:48:50 GMT
+Server: Google Frontend
+Content-Length: 1923
+Connection: close
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: close
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_312)
+</requestHeader>
+    <java.net.URL>https://blazedemo.com/img/logo.png</java.net.URL>
+  </httpSample>
+  <httpSample t="157" lt="157" ts="1641743330579" s="false" lb="Embedded Resource - Fail-2" rc="404" rm="Not Found" tn="Errors Thread Group 1-1" dt="text" de="UTF-8" by="1838" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 404 Not Found
+x-powered-by: PHP/7.3.17
+cache-control: no-cache, private
+content-type: text/html; charset=UTF-8
+X-Cloud-Trace-Context: 22d5bf66746a2aba1dee119d23d2ccaa
+Date: Sun, 09 Jan 2022 15:48:50 GMT
+Server: Google Frontend
+Content-Length: 1552
+Connection: close
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: close
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_312)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;meta charset=&quot;utf-8&quot;&gt;
+        &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+
+        &lt;title&gt;Not Found&lt;/title&gt;
+
+        &lt;!-- Fonts --&gt;
+        &lt;link rel=&quot;dns-prefetch&quot; href=&quot;//fonts.gstatic.com&quot;&gt;
+        &lt;link href=&quot;https://fonts.googleapis.com/css?family=Nunito&quot; rel=&quot;stylesheet&quot;&gt;
+
+        &lt;!-- Styles --&gt;
+        &lt;style&gt;
+            html, body {
+                background-color: #fff;
+                color: #636b6f;
+                font-family: &apos;Nunito&apos;, sans-serif;
+                font-weight: 100;
+                height: 100vh;
+                margin: 0;
+            }
+
+            .full-height {
+                height: 100vh;
+            }
+
+            .flex-center {
+                align-items: center;
+                display: flex;
+                justify-content: center;
+            }
+
+            .position-ref {
+                position: relative;
+            }
+
+            .code {
+                border-right: 2px solid;
+                font-size: 26px;
+                padding: 0 15px 0 15px;
+                text-align: center;
+            }
+
+            .message {
+                font-size: 18px;
+                text-align: center;
+            }
+        &lt;/style&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;div class=&quot;flex-center position-ref full-height&quot;&gt;
+            &lt;div class=&quot;code&quot;&gt;
+                404            &lt;/div&gt;
+
+            &lt;div class=&quot;message&quot; style=&quot;padding: 10px;&quot;&gt;
+                Not Found            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>https://blazedemo.com/img/logo12.png</java.net.URL>
+  </httpSample>
+  <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+x-powered-by: PHP/7.3.17
+cache-control: no-cache, private
+vary: Accept-Encoding
+content-type: text/html; charset=UTF-8
+X-Cloud-Trace-Context: 895f237e82298575f27f10e45e9ceb72
+Date: Sun, 09 Jan 2022 15:48:50 GMT
+Server: Google Frontend
+Content-Length: 128
+Connection: close
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: close
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_312)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;echo&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;img src=&apos;/img/logo.png&apos;&gt;
+&lt;img src=&apos;/img/logo12.png&apos;&gt;
+&lt;/br&gt;
+&lt;/body&gt;
+&lt;/html&gt;</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>https://blazedemo.com/echo.php?embedded</java.net.URL>
+</httpSample>
+<sample t="1" lt="0" ts="1641743330885" s="false" lb="Assertion - Fail" rc="200" rm="OK" tn="Errors Thread Group 1-1" dt="text" de="UTF-8" by="2532" ng="1" na="1">
+  <assertionResult>
+    <name>BeanShell Assertion - 0</name>
+    <failure>true</failure>
+    <error>false</error>
+    <failureMessage>Oh Noes Something Wrong!</failureMessage>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+ApiKeyId=0b733398aa5933b165c199b6
+ApiKeySecret=30ba710db6dadae6af23c6616bdcb686bfac4fb464225317a77a192fb3ca4d1ee4889227
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@1283949d
+START.HMS=154846
+START.MS=1641743326824
+START.YMD=20220109
+TESTSTART.MS=1641743327488
+__jm__Loop Controller__idx=0
+__jm____idx=0
+__jmeter.U_T__=Errors Thread Group 1-1
+__jmv_SAME_USER=true
+apiKey=2cb17b83ca4172f52a4c
+apiVersion=v4
+counter=0
+failureMessage=Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend , enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper liberoneque sed ipsum .=END=. quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante. Etiam sit amet orci eget eros faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc, quis gravida magna mi a libero. Fusce vulputate eleifend sapien. Vestibulum purus quam, scelerisque ut, mollis sed, nonummy id, metus. Nullam accumsan lorem in dui. Cras ultricies mi eu turpis hendrerit fringilla. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; In ac dui quis mi consectetuer lacinia. Nam pretium turpis et arcu. Duis arcu tortor, suscipit eget, imperdiet nec, imperdiet iaculis, ipsum. Sed aliquam ultrices mauris. Integer ante arcu, accumsan a, consectetuer eget, posuere ut, mauris. Praesent adipiscing. Phasellus ullamcorper ipsum rutrum nunc. Nunc nonummy metus. Vestib
+host=a.blazemeter.com
+iterations=1
+pause=15000
+protocol=https
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="238" lt="43" ts="1641743330893" s="false" lb="Assertion - Payload" rc="200" rm="OK" tn="Errors Thread Group 1-1" dt="text" de="" by="1216" ng="1" na="1">
+  <assertionResult>
+    <name>Payload Assertion 2048 characters, in BZA should appear only 1000</name>
+    <failure>true</failure>
+    <error>false</error>
+    <failureMessage>Value expected to be &apos;Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend , enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper liberoneque sed ipsum .=END=. quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante. Etiam sit amet orci eget eros faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc, quis gravida magna mi a libero. Fusce vulputate eleifend sapien. Vestibulum purus quam, scelerisque ut, mollis sed, nonummy id, metus. Nullam accumsan lorem in dui. Cras ultricies mi eu turpis hendrerit fringilla. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; In ac dui quis mi consectetuer lacinia. Nam pretium turpis et arcu. Duis arcu tortor, suscipit eget, imperdiet nec, imperdiet iaculis, ipsum. Sed aliquam ultrices mauris. Integer ante arcu, accumsan a, consectetuer eget, posuere ut, mauris. Praesent adipiscing. Phasellus ullamcorper ipsum rutrum nunc. Nunc nonummy metus. Vestib&apos;, but found &apos;abc&apos;</failureMessage>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">{ &quot;METHOD&quot;: &quot;GET&quot;, &quot;URI&quot;: &quot;\/echo.php?echo=abc&quot;, &quot;GET&quot;: { &quot;echo&quot;: &quot;abc&quot; }, &quot;POST&quot;: [], &quot;REQUEST&quot;: { &quot;echo&quot;: &quot;abc&quot; }, &quot;FILE&quot;: [], &quot;HEADERS&quot;: { &quot;host&quot;: &quot;demo.blazemeter.com&quot;, &quot;Accept&quot;: &quot;text\/html,application\/xhtml+xml,application\/xml;q=0.9,image\/webp,image\/apng,*\/*;q=0.8,application\/signed-exchange;v=b3&quot;, &quot;Accept-Encoding&quot;: &quot;gzip, deflate&quot;, &quot;Accept-Language&quot;: &quot;en-US,en;q=0.9,he;q=0.8&quot;, &quot;Cookie&quot;: &quot;mp_94b5c311692e7c9d03cef9c9a7a32eaf_mixpanel=%7B%22distinct_id%22%3A%20%2242886%22%2C%22%24device_id%22%3A%20%2216af87478eb7a-0710b9a8ed471c-3e385e0c-1fa400-16af87478ec59e%22%2C%22%24initial_referrer%22%3A%20%22%24direct%22%2C%22%24initial_referring_domain%22%3A%20%22%24direct%22%2C%22__mps%22%3A%20%7B%7D%2C%22__mpso%22%3A%20%7B%7D%2C%22__mpus%22%3A%20%7B%7D%2C%22__mpa%22%3A%20%7B%7D%2C%22__mpu%22%3A%20%7B%7D%2C%22__mpr%22%3A%20%5B%5D%2C%22__mpap%22%3A%20%5B%5D%2C%22%24user_id%22%3A%20%2242886%22%7D&quot;, &quot;Upgrade-Insecure-Requests&quot;: &quot;1&quot;, &quot;User-Agent&quot;: &quot;Mozilla\/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/74.0.3729.131 Safari\/537.36&quot;, &quot;X-Forwarded-For&quot;: &quot;192.19.250.250&quot;, &quot;X-Forwarded-Port&quot;: &quot;80&quot;, &quot;X-Forwarded-Proto&quot;: &quot;http&quot;, &quot;Connection&quot;: &quot;keep-alive&quot; }, &quot;BODY&quot;: &quot;&quot; }</responseData>
+  <samplerData class="java.lang.String">https://blazedemo.com/echo.php?echo=abc</samplerData>
+</sample>
+<httpSample t="11" lt="0" ts="1641743331134" s="false" lb="not exist site" rc="Non HTTP response code: java.net.UnknownHostException" rm="Non HTTP response message: demo1.blazemeter.com: Name or service not known" tn="Errors Thread Group 1-1" dt="text" de="" by="2331" ng="1" na="1">
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: demo1.blazemeter.com
+User-Agent: Apache-HttpClient/4.5.12 (Java/1.8.0_312)
+</requestHeader>
+  <responseData class="java.lang.String">java.net.UnknownHostException: demo1.blazemeter.com: Name or service not known
+	at java.net.Inet4AddressImpl.lookupAllHostAddr(Native Method)
+	at java.net.InetAddress$2.lookupAllHostAddr(InetAddress.java:929)
+	at java.net.InetAddress.getAddressesFromNameService(InetAddress.java:1324)
+	at java.net.InetAddress.getAllByName0(InetAddress.java:1277)
+	at java.net.InetAddress.getAllByName(InetAddress.java:1193)
+	at java.net.InetAddress.getAllByName(InetAddress.java:1127)
+	at org.apache.http.impl.conn.SystemDefaultDnsResolver.resolve(SystemDefaultDnsResolver.java:45)
+	at org.apache.http.impl.conn.DefaultHttpClientConnectionOperator.connect(DefaultHttpClientConnectionOperator.java:112)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl$JMeterDefaultHttpClientConnectionOperator.connect(HTTPHC4Impl.java:404)
+	at org.apache.http.impl.conn.PoolingHttpClientConnectionManager.connect(PoolingHttpClientConnectionManager.java:376)
+	at org.apache.http.impl.execchain.MainClientExec.establishRoute(MainClientExec.java:393)
+	at org.apache.http.impl.execchain.MainClientExec.execute(MainClientExec.java:236)
+	at org.apache.http.impl.execchain.ProtocolExec.execute(ProtocolExec.java:186)
+	at org.apache.http.impl.execchain.RetryExec.execute(RetryExec.java:89)
+	at org.apache.http.impl.execchain.RedirectExec.execute(RedirectExec.java:110)
+	at org.apache.http.impl.client.InternalHttpClient.doExecute(InternalHttpClient.java:185)
+	at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:83)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl.executeRequest(HTTPHC4Impl.java:935)
+	at org.apache.jmeter.protocol.http.sampler.HTTPHC4Impl.sample(HTTPHC4Impl.java:646)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy.sample(HTTPSamplerProxy.java:66)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.sample(HTTPSamplerBase.java:1296)
+	at org.apache.jmeter.protocol.http.sampler.HTTPSamplerBase.sample(HTTPSamplerBase.java:1285)
+	at org.apache.jmeter.threads.JMeterThread.doSampling(JMeterThread.java:638)
+	at org.apache.jmeter.threads.JMeterThread.executeSamplePackage(JMeterThread.java:558)
+	at org.apache.jmeter.threads.JMeterThread.processSampler(JMeterThread.java:489)
+	at org.apache.jmeter.threads.JMeterThread.run(JMeterThread.java:256)
+	at java.lang.Thread.run(Thread.java:748)
+</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>https://demo1.blazemeter.com/drupal7</java.net.URL>
+</httpSample>
+<httpSample t="317" lt="8" ts="1641743331146" s="false" lb="Response Code" rc="400" rm="Bad Request" tn="Errors Thread Group 1-1" dt="text" de="" by="1377" ng="1" na="1">
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.01 Transitional//EN&quot; &quot;http://www.w3.org/TR/html4/loose.dtd&quot;&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html;charset=utf-8&quot;&gt;
+&lt;title&gt;HTML4&lt;/title&gt;
+&lt;style&gt;
+body {
+  font-family: Verdana,sans-serif;
+  font-size: 0.9em;
+}
+
+div#header, div#footer {
+  padding: 10px;
+  color: white;
+  background-color: black;
+}
+
+div#content {
+  margin: 5px;
+  padding: 10px;
+  background-color: lightgrey;
+}
+
+div.article {
+  margin: 5px;
+  padding: 10px;
+  background-color: white;
+}
+
+div#menu ul {
+  padding: 0;
+}
+
+div#menu ul li {
+  display: inline;
+  margin: 5px;
+}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+&lt;div id=&quot;header&quot;&gt;
+  &lt;h1&gt;Monday Times&lt;/h1&gt;
+&lt;/div&gt;
+
+&lt;div id=&quot;menu&quot;&gt;
+  &lt;ul&gt;
+    &lt;li&gt;News&lt;/li&gt;
+    &lt;li&gt;Sports&lt;/li&gt;
+    &lt;li&gt;Weather&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/div&gt;
+
+&lt;div id=&quot;content&quot;&gt;
+  &lt;h2&gt;News Section&lt;/h2&gt;
+  &lt;div class=&quot;article&quot;&gt;
+    &lt;h2&gt;News Article&lt;/h2&gt;
+    &lt;p&gt;Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque in porta lorem. Morbi condimentum est nibh, et consectetur tortor feugiat at.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;article&quot;&gt;
+    &lt;h2&gt;News Article&lt;/h2&gt;
+    &lt;p&gt;Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque in porta lorem. Morbi condimentum est nibh, et consectetur tortor feugiat at.&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div id=&quot;footer&quot;&gt;
+  &lt;p&gt;&amp;amp;copy; 2016 Monday Times. All rights reserved.&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>https://api.rlcdn.com/api/identity?pid=2&amp;rt=envelope</java.net.URL>
+</httpSample>
+
+</testResults>
