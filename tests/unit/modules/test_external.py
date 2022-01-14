@@ -210,10 +210,13 @@ class TestExternalResultsLoader(ExecutorTestCase):
         if ext_mode:
             converted_results = [self.obj.engine.aggregator.converter(dp) for dp in results]
             currents = [converted_results[i][DataPoint.CURRENT] for i in range(len(converted_results))]
-            # error_type = first_current['Request 001']['all_transactions_aggregated'][KPISet.ERRORS][0]['type']
-            # self.assertEqual(2, error_type)
-            # self.assertIn(SAMPLE_STATES[2], first_current[''])  # http_errors
-            # self.assertNotIn(SAMPLE_STATES[1], first_current[''])  # not jmeter_errors
+            jmeter_errors = [err['msg'] for err in currents[0][''][SAMPLE_STATES[1]][KPISet.ERRORS]]
+            http_errors = [err['msg'] for err in currents[0][''][SAMPLE_STATES[2]][KPISet.ERRORS]]
+            non_http_line = "Non HTTP response message"
+            non_http_in_jmeter_errors = any([j_err.startswith(non_http_line) for j_err in jmeter_errors])
+            non_http_in_http_errors = any([j_err.startswith(non_http_line) for j_err in http_errors])
+            self.assertFalse(non_http_in_jmeter_errors, f"'{non_http_line}' found in jmeter_errors")
+            self.assertTrue(non_http_in_http_errors, f"'{non_http_line}' not found in http_errors")
 
     def test_no_data_file(self):
         self.configure({
