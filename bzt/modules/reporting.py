@@ -415,7 +415,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
         :type xunit: XUnitFileWriter
         """
         xunit.report_test_suite('bzt_pass_fail')
-        mods = self.engine.reporters + self.engine.services # TODO: remove it after passfail is only reporter
+        mods = self.engine.reporters
         pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
         self.log.debug("Processing passfail objects: %s", pass_fail_objects)
         fail_criteria = []
