@@ -651,9 +651,13 @@ class ResultsReader(ResultsProvider):
         # it is used for generation of extended label.
         # each label data is split according to sample state (success/error/assert)
 
+        def http_mark():
+            http_prefs = ("Embedded resource download error", "Non HTTP response message")
+            return any(msg.startswith(http_pref) for http_pref in http_prefs)
+
         rc = int(rc) if is_int(rc) else 0  # it's jmeter_error by default
         if msg:
-            if rc > 299 or msg.startswith("Embedded resource download error"):
+            if rc > 299 or http_mark():
                 group = SAMPLE_STATES[2]  # http error
             else:
                 group = SAMPLE_STATES[1]  # jmeter error
