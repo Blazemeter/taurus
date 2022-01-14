@@ -879,7 +879,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.track_percentiles.sort()
         self.settings["percentiles"] = self.track_percentiles
         
-        self.set_aggregation(self.settings.get('extend-aggregation'))
+        self.set_aggregation(self.settings.get('extend-aggregation'), True)
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
