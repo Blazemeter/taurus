@@ -827,7 +827,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.underlings = []
         self.buffer = {}
         self.histogram_max = 5.0
-        self._sticky_concurrencies = {}
         self.min_timestamp = None
 
     def converter(self, data):
@@ -1016,12 +1015,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                     if subresult['ts'] < self.min_timestamp + self._get_max_ramp_up():
                         subresult[DataPoint.CUMULATIVE] = dict()
 
-                if not subresult[DataPoint.SOURCE_ID]:
-                    raise ValueError("Reader must provide source ID for datapoint")
-                self._sticky_concurrencies[subresult[DataPoint.SOURCE_ID]] = {
-                    label: kpiset[KPISet.CONCURRENCY] for label, kpiset in iteritems(subresult[DataPoint.CURRENT])
-                }
-
             if len(points_to_consolidate) == 1:
                 self.log.debug("Bypassing consolidation because of single result")
                 point = points_to_consolidate[0]
@@ -1034,19 +1027,9 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 point.recalculate()
 
             current_sids = [x[DataPoint.SOURCE_ID] for x in point[DataPoint.SUBRESULTS]]
-            for sid in self._sticky_concurrencies:
-                if sid not in current_sids:
-                    self.log.debug("Adding sticky concurrency for %s", sid)
-                    self._add_sticky_concurrency(point, sid)
 
             point[DataPoint.SOURCE_ID] = self.__class__.__name__ + '@' + str(id(self))
             yield point
-
-    def _add_sticky_concurrency(self, point, sid):
-        concur = self._sticky_concurrencies[sid]
-        for label, kpiset in iteritems(point[DataPoint.CURRENT]):  # type: (str, KPISet)
-            if label in concur:
-                kpiset.add_concurrency(concur[label], sid)
 
 
 class NoneAggregator(Aggregator, ResultsProvider):
