@@ -485,10 +485,11 @@ from selenium.webdriver.common.keys import Keys
                 func=ast_attr("self.assertTrue"),
                 args=[self._gen_eval_js_expression(name), ast.Str(name, kind="")]))
         elif atype == 'store' and tag == 'eval':
+            escaped_value = self._escape_js_blocks(value)
             elements.append(
                 gen_store(
                     self._gen_expr(name.strip()),
-                    value=self._gen_eval_js_expression(value))
+                    value=self._gen_eval_js_expression(escaped_value))
             )
         else:
             target = None

@@ -1446,7 +1446,8 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                                     {
                                         "type": "storeEval",
                                         "param": "var_eval",
-                                        "value": "0 == false"
+                                        "value": "myFunction();\nfunction myFunction(){\n "
+                                                 "btnNameVar=\"${btnName1}\";\n return \"support\";\n}"
                                     },
                                     {
                                         "type": "click",
