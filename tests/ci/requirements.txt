@@ -1,4 +1,4 @@
-apiritif>=1.1.0
+apiritif>=1.1.1
 http-here
 nose2
 codecov
