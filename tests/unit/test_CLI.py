@@ -42,7 +42,7 @@ class TestCLI(BZTestCase):
         super(BZTestCase, self).tearDown()
 
     def test_set_python_path(self):
-        dir_name = "some_dir"
+        dir_name = "first_of_all_look_into_it"
         os.environ['PYTHONPATH'] = dir_name
         self.obj.engine.set_pythonpath()
         pythonpath = os.environ['PYTHONPATH']
