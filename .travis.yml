@@ -46,7 +46,7 @@ install:
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
 - gem install rspec
-- echo $PYTHON -V
+- $PYTHON -V
 - $PIP_INSTALL --upgrade pip
 - if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.9" ]; then $PIP_INSTALL Cython; fi
 - $PIP_INSTALL -r requirements.txt -r tests/ci/requirements.txt
