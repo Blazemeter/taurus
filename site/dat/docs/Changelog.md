@@ -1,6 +1,12 @@
 # Changelog
 
-## 1.16.2<sup> 19 Dec 20211</sup>
+## 1.16.3<sup> 27 Jan 2022</sup>
+- add support of WebKitGTKOptions for remote safari
+- preserve PYTHONPATH priority
+- update remote browser logic and capabilities
+- migrate to apiritif 1.1.1
+
+## 1.16.2<sup> 19 Dec 2021</sup>
 - add support of code generation for Microsoft Edge browser
 - migration to new JMeter in order to avoid log4j vulnerabilities and fix them for JMeter 5+
 - fix web drivers auto installation
