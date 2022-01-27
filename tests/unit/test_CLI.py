@@ -41,6 +41,13 @@ class TestCLI(BZTestCase):
         self.log = self.logger
         super(BZTestCase, self).tearDown()
 
+    def test_set_python_path(self):
+        dir_name = "some_dir"
+        os.environ['PYTHONPATH'] = dir_name
+        self.obj.engine.set_pythonpath()
+        pythonpath = os.environ['PYTHONPATH']
+        self.assertTrue(pythonpath.startswith(dir_name))
+
     def test_perform_normal(self):
         ret = self.get_ret_code([RESOURCES_DIR + "json/mock_normal.json"])
         self.assertEquals(0, ret)
