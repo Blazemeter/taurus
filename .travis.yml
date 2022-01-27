@@ -24,7 +24,7 @@ jobs:
   include:
   - os: osx
     name: "Python 3 on macOS"
-    osx_image: xcode13.1    # Python 3.9.5 running on macOS 11.4
+    osx_image: xcode12.5    # Python 3.9.5 running on macOS 11.4
     language: shell
     env:
     - PYTHON=python3
@@ -49,7 +49,7 @@ install:
 - $PIP_INSTALL --upgrade pip
 - if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.9" ]; then $PIP_INSTALL Cython; fi
 - $PIP_INSTALL -r requirements.txt -r tests/ci/requirements.txt
-- $PYTHON -V
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install python-tk; fi
 
 before_script:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then nohup bash -c "Xvfb :99 &"; fi
