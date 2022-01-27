@@ -101,7 +101,7 @@ class Engine(object):
         self.user_pythonpath = get_full_path(os.path.join("~", ".bzt", path_suffix))
         self.temp_pythonpath = get_full_path(os.path.join(self.artifacts_dir, path_suffix))
         current_pythonpath = os.environ.get('PYTHONPATH', '')
-        paths = self.temp_pythonpath, self.user_pythonpath, current_pythonpath
+        paths = current_pythonpath, self.temp_pythonpath, self.user_pythonpath
 
         self.log.debug("Set PYTHONPATH to :\n\tUSER: '{}' +\n\tTEMP: '{}' +\n\tCURRENT: '{}'".format(*paths))
         try:
