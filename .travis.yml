@@ -12,6 +12,7 @@ python:
 - "3.7"
 - "3.8"
 - "3.9"
+- "3.10"
 
 env:
   global:
@@ -23,7 +24,7 @@ jobs:
   include:
   - os: osx
     name: "Python 3 on macOS"
-    osx_image: xcode11    # Python 3.7.4 running on macOS 10.14.4
+    osx_image: xcode12    # Python 3.8.5 running on macOS 10.15.7
     language: shell
     env:
     - PYTHON=python3
