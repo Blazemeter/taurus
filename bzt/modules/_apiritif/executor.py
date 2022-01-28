@@ -268,7 +268,7 @@ class ApiritifTester(ApiritifNoseExecutor):
 
 
 class Apiritif(PythonTool):
-    VERSION = "1.1.1"
+    VERSION = "1.1.2"
     PACKAGES = ["apiritif"]
 
 
