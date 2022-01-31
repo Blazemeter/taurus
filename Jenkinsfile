@@ -87,7 +87,7 @@ pipeline {
     }
     post {
         always {
-            smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
+            smartSlackNotification(channel: "bm-taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
             cleanWs()
         }
     }
