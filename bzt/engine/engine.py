@@ -731,6 +731,11 @@ class Engine(object):
             self.log.warning("Failed to check for updates")
             return
 
+        if response.status_code == 500:
+            self.log.debug("Checking for updates returned HTTP 500: %s", traceback.format_exc())
+            self.log.warning("Checking for updates returned HTTP 500.")
+            return
+         
         data = response.json()
         latest = data.get('latest')
         needs_upgrade = data.get('needsUpgrade')
