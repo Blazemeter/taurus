@@ -297,6 +297,7 @@ class WebDriver(RequiredTool):
         try:
             latest_version = self._get_latest_version_from_inet()
             self.log.info(f'Latest stable version of {driver_name} is {latest_version}')
+            return latest_version
         except BaseException as e:
             self.log.warning(f'Getting latest version is failed for {driver_name}: {e}')
             # return None if external request is impossible
