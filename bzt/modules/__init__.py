@@ -171,6 +171,6 @@ class SubprocessedExecutor(ReportableExecutor, TransactionProvider):
         :rtype: ExecutorWidget
         """
         if not self.widget:
-            label = "%s" % self
-            self.widget = ExecutorWidget(self, label)
+            label = ("%s" % self).split('/')
+            self.widget = ExecutorWidget(self, f"{label[0].title()}: {label[1]}")
         return self.widget
