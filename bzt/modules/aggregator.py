@@ -286,10 +286,7 @@ class KPISet(dict):
         """
         cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
         self[self.SAMPLE_COUNT] += 1
-        if self.ext_aggregation:
-            self.concurrency.concurrencies.add(trname)
-        elif cnc:
-            self.concurrency.add_concurrency(cnc, trname)
+        self.concurrency.add_concurrency(cnc, trname)   # todo: the change must be checked for 'true concurrency' (EFT)
 
         if r_code is not None:
             self[self.RESP_CODES][r_code] += 1
