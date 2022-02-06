@@ -172,6 +172,32 @@ class RespTimesCounter(JSONConvertible):
         self.histogram.add(old)
 
 
+class Concurrency(object):
+    def __init__(self, ext_aggregation):
+        if ext_aggregation:
+            self.concurrencies = set()
+        else:
+            self.concurrencies = Counter()
+
+        self.ext_aggregation = ext_aggregation
+
+    def get(self):
+        if len(self.concurrencies):
+            if self.ext_aggregation:
+                return len(self.concurrencies)
+            else:
+                return sum(self.concurrencies.values())
+
+    def add_concurrency(self, cnc, sid):
+        # sid: source id, e.g. node id for jmeter distributed mode
+        if self.ext_aggregation:
+            if isinstance(sid, set):
+                self.concurrencies.update(sid)
+            else:
+                self.concurrencies.add(sid)
+        elif self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
+            self.concurrencies[sid] = cnc
+
 class KPISet(dict):
     """
     Main entity in results, contains all KPIs for single label,
@@ -200,13 +226,10 @@ class KPISet(dict):
         self.sum_lt = 0
         self.sum_cn = 0
         self.perc_levels = perc_levels
-        if ext_aggregation:
-            self.concurrencies = set()
-        else:
-            self.concurrencies = Counter()
+        self.concurrency = Concurrency(ext_aggregation)
+
         # scalars
         self[KPISet.SAMPLE_COUNT] = 0
-        self[KPISet.CONCURRENCY] = 0
         self[KPISet.SUCCESSES] = 0
         self[KPISet.FAILURES] = 0
         self[KPISet.AVG_RESP_TIME] = 0
@@ -222,13 +245,13 @@ class KPISet(dict):
         self.ext_aggregation = ext_aggregation
 
     def __deepcopy__(self, memo):
-        mycopy = KPISet(self.perc_levels, self[KPISet.RESP_TIMES].high)
-        mycopy.ext_aggregation = self.ext_aggregation
+        mycopy = KPISet(self.perc_levels, self[KPISet.RESP_TIMES].high, ext_aggregation=self.ext_aggregation)
         mycopy.sum_rt = self.sum_rt
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
         mycopy.perc_levels = self.perc_levels
-        mycopy.concurrencies = copy.deepcopy(self.concurrencies, memo)
+        mycopy.concurrency.concurrencies = copy.deepcopy(self.concurrency.concurrencies)
+
         for key in self:
             mycopy[key] = copy.deepcopy(self.get(key, no_recalc=True), memo)
         return mycopy
@@ -264,9 +287,9 @@ class KPISet(dict):
         cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
         self[self.SAMPLE_COUNT] += 1
         if self.ext_aggregation:
-            self.concurrencies.add(trname)
+            self.concurrency.concurrencies.add(trname)
         elif cnc:
-            self.add_concurrency(cnc, trname)
+            self.concurrency.add_concurrency(cnc, trname)
 
         if r_code is not None:
             self[self.RESP_CODES][r_code] += 1
@@ -289,16 +312,6 @@ class KPISet(dict):
 
         if byte_count is not None:
             self[self.BYTE_COUNT] += byte_count
-
-    def add_concurrency(self, cnc, sid):
-        # sid: source id, e.g. node id for jmeter distributed mode
-        if self.ext_aggregation:
-            if isinstance(sid, set):
-                self.concurrencies.update(sid)
-            else:
-                self.concurrencies.add(sid)
-        elif self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
-            self.concurrencies[sid] = cnc
 
     @staticmethod
     def inc_list(values, selector, value):
@@ -365,12 +378,6 @@ class KPISet(dict):
             self[self.AVG_LATENCY] = self.sum_lt / self[self.SAMPLE_COUNT]
             self[self.AVG_RESP_TIME] = self.sum_rt / self[self.SAMPLE_COUNT]
 
-        if len(self.concurrencies):
-            if self.ext_aggregation:
-                self[self.CONCURRENCY] = len(self.concurrencies)
-            else:
-                self[self.CONCURRENCY] = sum(self.concurrencies.values())
-
         return self
 
     def merge_kpis(self, src, sid=None):
@@ -393,9 +400,9 @@ class KPISet(dict):
         self[self.BYTE_COUNT] += src[self.BYTE_COUNT]
         # NOTE: should it be average? mind the timestamp gaps
         if self.ext_aggregation:
-            sid = src.concurrencies
-        if src[self.CONCURRENCY]:
-            self.add_concurrency(src[self.CONCURRENCY], sid)
+            sid = src.concurrency.concurrencies
+        if src.concurrency.get():
+            self.concurrency.add_concurrency(src.concurrency.get(), sid)
 
         if src[self.RESP_TIMES]:
             self[self.RESP_TIMES].merge(src[self.RESP_TIMES])
@@ -1019,7 +1026,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 if not subresult[DataPoint.SOURCE_ID]:
                     raise ValueError("Reader must provide source ID for datapoint")
                 self._sticky_concurrencies[subresult[DataPoint.SOURCE_ID]] = {
-                    label: kpiset[KPISet.CONCURRENCY] for label, kpiset in iteritems(subresult[DataPoint.CURRENT])
+                    label: kpiset.concurrency.get() for label, kpiset in iteritems(subresult[DataPoint.CURRENT])
                 }
 
             if len(points_to_consolidate) == 1:
@@ -1046,7 +1053,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         concur = self._sticky_concurrencies[sid]
         for label, kpiset in iteritems(point[DataPoint.CURRENT]):  # type: (str, KPISet)
             if label in concur:
-                kpiset.add_concurrency(concur[label], sid)
+                kpiset.concurrency.add_concurrency(concur[label], sid)
 
 
 class NoneAggregator(Aggregator, ResultsProvider):
