@@ -401,8 +401,9 @@ class KPISet(dict):
         # NOTE: should it be average? mind the timestamp gaps
         if self.ext_aggregation:
             sid = src.concurrency.concurrencies
-        if src.concurrency.get():
-            self.concurrency.add_concurrency(src.concurrency.get(), sid)
+        src_concurrency = src.concurrency.get()
+        if src_concurrency:
+            self.concurrency.add_concurrency(src_concurrency, sid)
 
         if src[self.RESP_TIMES]:
             self[self.RESP_TIMES].merge(src[self.RESP_TIMES])
