@@ -507,8 +507,6 @@ class DataPoint(dict):
             msg = "Cannot merge different timestamps (%s and %s)"
             raise TaurusInternalException(msg % (self[self.TIMESTAMP], src[self.TIMESTAMP]))
 
-        self[DataPoint.SUBRESULTS].append(src)
-
         self.__merge_kpis(src[self.CURRENT], self[self.CURRENT], src[DataPoint.SOURCE_ID])
         self.__merge_kpis(src[self.CUMULATIVE], self[self.CUMULATIVE], src[DataPoint.SOURCE_ID])
 
@@ -1027,15 +1025,12 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                     label: kpiset.concurrency.get() for label, kpiset in iteritems(subresult[DataPoint.CURRENT])
                 }
 
-            if len(points_to_consolidate) == 1:
-                self.log.debug("Bypassing consolidation because of single result")
-                point = points_to_consolidate[0]
-                point[DataPoint.SUBRESULTS] = [points_to_consolidate[0]]
-            else:
-                point = DataPoint(tstamp, self.track_percentiles)
-                for subresult in points_to_consolidate:
-                    self.log.debug("Merging %s", subresult[DataPoint.TIMESTAMP])
-                    point.merge_point(subresult, do_recalculate=False)
+            point = points_to_consolidate[0]
+
+            for subresult in points_to_consolidate[1:]:
+                self.log.debug("Merging %s", subresult[DataPoint.TIMESTAMP])
+                point.merge_point(subresult, do_recalculate=False)
+            if len(points_to_consolidate) > 1:
                 point.recalculate()
 
             current_sids = [x[DataPoint.SOURCE_ID] for x in point[DataPoint.SUBRESULTS]]
