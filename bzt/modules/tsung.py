@@ -129,7 +129,7 @@ class TsungExecutor(ScenarioExecutor):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = ExecutorWidget(self, self.tsung_controller_id)
+            self.widget = ExecutorWidget(self, "Tsung: " + self.tsung_controller_id)
         return self.widget
 
     def resource_files(self):
