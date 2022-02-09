@@ -1348,6 +1348,11 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
     def test_syntax2_build_script(self):
         self.configure(
             {
+                "modules": {
+                    "apiritif": {
+                        "plugins-path": "/tmp"
+                    }
+                },
                 "execution": [
                     {
                         "executor": "apiritif",

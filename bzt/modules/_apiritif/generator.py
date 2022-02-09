@@ -1631,6 +1631,8 @@ from selenium.webdriver.common.keys import Keys
 
     @staticmethod
     def _escape_js_blocks(value):  # escapes plain { with {{
+        if not value:
+            return value
         value = value.replace("{", "{{").replace("}", "}}")
         while True:
             blocks = re.finditer(r"\${{[\w\d]*}}", value)
