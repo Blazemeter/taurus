@@ -94,7 +94,7 @@ class TestLocSc(unittest.TestCase):
             self.assertTrue(self.driver.execute_script('return 10 === 2*5;'), '10 === 2*5')
 
             self.vars['var_eval'] = self.driver.execute_script('return myFunction();\nfunction myFunction(){{\n btnNameVar="{}";\n return "support";\n}};'.format(self.vars['btnName1']))
-
+            self.vars['var_eval'] = self.driver.execute_script('return ["{}", "{}", "{}", "{}"];'.format(self.vars['id1'], self.vars['id2'], self.vars['id3'], self.vars['id4']))
             var_loc_keys = get_locator([{'xpath': '/wrong/one'}, {'xpath': '/html/body/div[3]/form/div/input'}])
             self.driver.find_element(
                 var_loc_keys[0],

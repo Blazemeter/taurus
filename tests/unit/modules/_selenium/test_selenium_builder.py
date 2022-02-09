@@ -1450,6 +1450,11 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                                                  "btnNameVar=\"${btnName1}\";\n return \"support\";\n}"
                                     },
                                     {
+                                        "type": "storeEval",
+                                        "param": "var_eval",
+                                        "value": '["${id1}", "${id2}", "${id3}", "${id4}"]'
+                                    },
+                                    {
                                         "type": "click",
                                         "locators": [
                                             {"xpath": "/wrong/one"},
