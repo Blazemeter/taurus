@@ -1384,10 +1384,10 @@ from selenium.webdriver.common.keys import Keys
         for idx, source in enumerate(self.data_sources, start=1):
             keywords = []
 
-            if "fieldnames" in source:
+            if "variable-names" in source:
                 fieldnames = ast.keyword()
                 fieldnames.arg = "fieldnames"
-                str_names = source.get("fieldnames").split(",")
+                str_names = source.get("variable-names").split(",")
                 fieldnames.value = ast.List(elts=[ast.Str(s=fname, kind="") for fname in str_names])
                 keywords.append(fieldnames)
 
