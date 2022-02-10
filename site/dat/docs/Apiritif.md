@@ -47,6 +47,9 @@ scenarios:
           var1: val2
       - http://blazedemo.com/receive/${var1} # get 'receive/val2'
     - include-scenario: inner
+    - teardown:
+        - http://logout1.com
+        - http://logout2.com
 
     data-sources: # these are data-sources options for Apiritif. See more info below.
     - path/to/my.csv  # this is a shorthand form
@@ -55,9 +58,6 @@ scenarios:
       quoted: false
       loop: true
       variable-names: id,name
-    - teardown:
-        - http://logout1.com
-        - http://logout2.com
 
   inner:
     requests:

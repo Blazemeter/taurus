@@ -255,9 +255,6 @@ It's possible to use follow specific values for choosing of `think-time`:
 * gaussian(1m, 1.5s): normal distribution of random values, where mean is 60s and deviation is 1.5s
 * poisson(10s, 3s): poisson distribution, mean is 10s and range of values starts from 3s.
 
-### Data sources
-See more info about data-sources [here](DataSources.md).
-
 ### Requests
 
 Request objects can be of two kinds:
