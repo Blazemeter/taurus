@@ -182,11 +182,12 @@ class Concurrency(object):
         self.ext_aggregation = ext_aggregation
 
     def get(self):
-        if len(self.concurrencies):
-            if self.ext_aggregation:
-                return len(self.concurrencies)
-            else:
-                return sum(self.concurrencies.values())
+        if not self.concurrencies:
+            return 0
+        elif self.ext_aggregation:
+            return len(self.concurrencies)
+        else:
+            return sum(self.concurrencies.values())
 
     def add_concurrency(self, cnc, sid):
         # sid: source id, e.g. node id for jmeter distributed mode
