@@ -1035,7 +1035,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             if len(points_to_consolidate) > 1:
                 point.recalculate()
 
-            current_sids = [x[DataPoint.SOURCE_ID] for x in point[DataPoint.SUBRESULTS]]
+            current_sids = [x[DataPoint.SOURCE_ID] for x in points_to_consolidate]
             for sid in self._sticky_concurrencies:
                 if sid not in current_sids:
                     self.log.debug("Adding sticky concurrency for %s", sid)
