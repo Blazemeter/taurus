@@ -199,6 +199,7 @@ class Concurrency(object):
         elif cnc and self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
             self.concurrencies[sid] = cnc
 
+
 class KPISet(dict):
     """
     Main entity in results, contains all KPIs for single label,
