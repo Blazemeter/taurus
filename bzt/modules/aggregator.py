@@ -195,7 +195,8 @@ class Concurrency(object):
                 self.concurrencies.update(sid)
             else:
                 self.concurrencies.add(sid)
-        elif self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
+        # fix me: cnc can be None? (e.g. in ab)
+        elif cnc and self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
             self.concurrencies[sid] = cnc
 
 class KPISet(dict):
