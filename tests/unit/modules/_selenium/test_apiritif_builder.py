@@ -676,7 +676,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         reader = ConsolidatingAggregator()
         reader.engine = EngineEmul()
         reader.add_underling(reader1)
-        reader.add_underling(reader2)
+        # reader.add_underling(reader2)
 
         items = list(reader.datapoints())
         self.assertEqual(39, len(items))
