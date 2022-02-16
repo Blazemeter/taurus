@@ -678,7 +678,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         reader.add_underling(reader1)
         # reader.add_underling(reader2)
 
-        items = list(reader.datapoints())
+        items = list(reader.datapoints(True))
         self.assertEqual(39, len(items))
         self.assertEqual(4, items[-1][DataPoint.CURRENT][''][KPISet.CONCURRENCY])
 
