@@ -206,6 +206,22 @@ class Concurrency(object):
         elif cnc and self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
             self.concurrencies[sid] = cnc
 
+    @staticmethod
+    def update_sticky(sticky_list, results):
+        # update sticky_list as well as results[0] with simultaneous sources concurrency values
+        for result in results:
+            sid = result[DataPoint.SOURCE_ID]
+            if not sid:
+                raise ValueError("Reader must provide source ID for datapoint")
+            current = result[DataPoint.CURRENT]
+            sticky_list[sid] = {label: current[label].concurrency for label in current}
+
+        current_sids = [x[DataPoint.SOURCE_ID] for x in results]
+
+        for sid in sticky_list:
+            if sid not in current_sids:
+                results[0].add_sticky_concurrency(sticky_list[sid], sid)
+
 
 class KPISet(dict):
     """
@@ -1037,11 +1053,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                     if subresult['ts'] < self.min_timestamp + self._get_max_ramp_up():
                         subresult[DataPoint.CUMULATIVE] = dict()
 
-                if not subresult[DataPoint.SOURCE_ID]:
-                    raise ValueError("Reader must provide source ID for datapoint")
-                self._sticky_concurrencies[subresult[DataPoint.SOURCE_ID]] = {
-                    label: kpiset.concurrency for label, kpiset in iteritems(subresult[DataPoint.CURRENT])
-                }
+            Concurrency.update_sticky(self._sticky_concurrencies, points_to_consolidate)
 
             point = points_to_consolidate[0]
 
@@ -1050,12 +1062,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 point.merge_point(subresult, do_recalculate=False)
             if len(points_to_consolidate) > 1:
                 point.recalculate()
-
-            current_sids = [x[DataPoint.SOURCE_ID] for x in points_to_consolidate]
-            for sid in self._sticky_concurrencies:
-                if sid not in current_sids:
-                    self.log.debug("Adding sticky concurrency for %s", sid)
-                    point.add_sticky_concurrency(self._sticky_concurrencies[sid], sid)
 
             point[DataPoint.SOURCE_ID] = self.__class__.__name__ + '@' + str(id(self))
             yield point
