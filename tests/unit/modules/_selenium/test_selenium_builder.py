@@ -1348,6 +1348,11 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
     def test_syntax2_build_script(self):
         self.configure(
             {
+                "modules": {
+                    "apiritif": {
+                        "plugins-path": "/tmp"
+                    }
+                },
                 "execution": [
                     {
                         "executor": "apiritif",
@@ -1448,6 +1453,11 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                                         "param": "var_eval",
                                         "value": "myFunction();\nfunction myFunction(){\n "
                                                  "btnNameVar=\"${btnName1}\";\n return \"support\";\n}"
+                                    },
+                                    {
+                                        "type": "storeEval",
+                                        "param": "var_eval",
+                                        "value": '["${id1}", "${id2}", "${id3}", "${id4}"]'
                                     },
                                     {
                                         "type": "click",
