@@ -455,7 +455,6 @@ class DataPoint(dict):
     TIMESTAMP = "ts"
     CURRENT = "current"
     CUMULATIVE = "cumulative"
-    SUBRESULTS = "subresults"
 
     def __init__(self, ts, perc_levels=()):
         """
@@ -469,7 +468,6 @@ class DataPoint(dict):
         self[self.TIMESTAMP] = ts
         self[self.CUMULATIVE] = {}
         self[self.CURRENT] = {}
-        self[self.SUBRESULTS] = []
 
     def __deepcopy__(self, memo):
         new = DataPoint(self[self.TIMESTAMP], self.perc_levels)
