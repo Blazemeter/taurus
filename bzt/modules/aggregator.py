@@ -175,17 +175,19 @@ class RespTimesCounter(JSONConvertible):
 class Concurrency(object):
     def __init__(self, ext_aggregation):
         if ext_aggregation:
-            self.concurrencies = set()
+            self.concurrencies = set()  # concurrencies is set of unique VU names
         else:
-            self.concurrencies = Counter()
+            self.concurrencies = Counter()  # concurrencies is values of concurrency for different source IDs
 
         self.ext_aggregation = ext_aggregation
 
     def merge(self, src_concurrency, sid):
         if self.ext_aggregation:
-            sid = src_concurrency.concurrencies
-        if src_concurrency:
-            self.add_concurrency(src_concurrency, sid)
+            concurrency = src_concurrency.concurrencies
+        else:
+            concurrency = src_concurrency.get()
+
+        self.add_concurrency(concurrency, sid)
 
     def get(self):
         if not self.concurrencies:
@@ -196,12 +198,12 @@ class Concurrency(object):
             return sum(self.concurrencies.values())
 
     def add_concurrency(self, cnc, sid):
-        # sid: source id, e.g. node id for jmeter distributed mode
+        # add concurrency value for some source ID, save it according to context
         if self.ext_aggregation:
             if isinstance(sid, set):
                 self.concurrencies.update(sid)
             else:
-                self.concurrencies.add(sid)
+                self.concurrencies.add(sid)     # todo: shouldn't we remove it?
         # fix me: cnc can be None? (e.g. in ab)
         elif cnc and self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
             self.concurrencies[sid] = cnc
@@ -430,7 +432,7 @@ class KPISet(dict):
         self[self.BYTE_COUNT] += src[self.BYTE_COUNT]
         # NOTE: should it be average? mind the timestamp gaps
 
-        self._concurrency.merge(src.concurrency, sid)
+        self._concurrency.merge(src._concurrency, sid)
 
         if src[self.RESP_TIMES]:
             self[self.RESP_TIMES].merge(src[self.RESP_TIMES])
