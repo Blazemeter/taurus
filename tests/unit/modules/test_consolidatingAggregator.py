@@ -211,7 +211,7 @@ class TestConsolidatingAggregator(BZTestCase):
         for _ in range(1, 10):
             for point in self.obj.datapoints():
                 overall = point[DataPoint.CURRENT]['']
-                self.assertEquals(2, overall.concurrency.get())
+                self.assertEquals(2, overall.concurrency)
                 self.assertGreater(overall[KPISet.PERCENTILES]["100.0"], 0)
                 self.assertGreater(overall[KPISet.AVG_RESP_TIME], 0)
                 cnt += 1

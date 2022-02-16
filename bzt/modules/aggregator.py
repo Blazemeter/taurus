@@ -181,10 +181,9 @@ class Concurrency(object):
 
         self.ext_aggregation = ext_aggregation
 
-    def merge(self, src, sid):
+    def merge(self, src_concurrency, sid):
         if self.ext_aggregation:
-            sid = src.concurrencies
-        src_concurrency = src.get()
+            sid = src_concurrency.concurrencies
         if src_concurrency:
             self.add_concurrency(src_concurrency, sid)
 
@@ -236,7 +235,7 @@ class KPISet(dict):
         self.sum_lt = 0
         self.sum_cn = 0
         self.perc_levels = perc_levels
-        self.concurrency = Concurrency(ext_aggregation)
+        self._concurrency = Concurrency(ext_aggregation)
 
         # scalars
         self[KPISet.SAMPLE_COUNT] = 0
@@ -260,11 +259,15 @@ class KPISet(dict):
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
         mycopy.perc_levels = self.perc_levels
-        mycopy.concurrency.concurrencies = copy.deepcopy(self.concurrency.concurrencies)
+        mycopy._concurrency.concurrencies = copy.deepcopy(self._concurrency.concurrencies)
 
         for key in self:
             mycopy[key] = copy.deepcopy(self.get(key, no_recalc=True), memo)
         return mycopy
+
+    @property
+    def concurrency(self):
+        return self._concurrency.get()
 
     @staticmethod
     def error_item_skel(error, ret_c, cnt, errtype, urls, tag):
@@ -288,6 +291,10 @@ class KPISet(dict):
             "urls": urls,
         }
 
+    def add_concurrency(self, cnc, src):
+        # delegate it to Concurrency class
+        self._concurrency.add_concurrency(cnc, src)
+
     def add_sample(self, sample):
         """
         Add sample, consisting of: cnc, rt, cn, lt, rc, error, trname, byte_count
@@ -296,7 +303,7 @@ class KPISet(dict):
         """
         cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
         self[self.SAMPLE_COUNT] += 1
-        self.concurrency.add_concurrency(cnc, trname)   # todo: the change must be checked for 'true concurrency' (EFT)
+        self.add_concurrency(cnc, trname)   # todo: the change must be checked for 'true concurrency' (EFT)
 
         if r_code is not None:
             self[self.RESP_CODES][r_code] += 1
@@ -407,7 +414,7 @@ class KPISet(dict):
         self[self.BYTE_COUNT] += src[self.BYTE_COUNT]
         # NOTE: should it be average? mind the timestamp gaps
 
-        self.concurrency.merge(src.concurrency, sid)
+        self._concurrency.merge(src.concurrency, sid)
 
         if src[self.RESP_TIMES]:
             self[self.RESP_TIMES].merge(src[self.RESP_TIMES])
@@ -478,6 +485,12 @@ class DataPoint(dict):
         for key in self.keys():
             new[key] = copy.deepcopy(self[key], memo)
         return new
+
+    def add_sticky_concurrency(self, sticky_concurrency, sid):
+        for label in self[DataPoint.CURRENT]:
+            concurrency = sticky_concurrency.get(label)
+            if concurrency:
+                self[DataPoint.CURRENT][label].add_concurrency(concurrency, sid)
 
     def __merge_kpis(self, src, dst, sid):
         """
@@ -1027,7 +1040,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 if not subresult[DataPoint.SOURCE_ID]:
                     raise ValueError("Reader must provide source ID for datapoint")
                 self._sticky_concurrencies[subresult[DataPoint.SOURCE_ID]] = {
-                    label: kpiset.concurrency.get() for label, kpiset in iteritems(subresult[DataPoint.CURRENT])
+                    label: kpiset.concurrency for label, kpiset in iteritems(subresult[DataPoint.CURRENT])
                 }
 
             point = points_to_consolidate[0]
@@ -1042,16 +1055,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             for sid in self._sticky_concurrencies:
                 if sid not in current_sids:
                     self.log.debug("Adding sticky concurrency for %s", sid)
-                    self._add_sticky_concurrency(point, sid)
+                    point.add_sticky_concurrency(self._sticky_concurrencies[sid], sid)
 
             point[DataPoint.SOURCE_ID] = self.__class__.__name__ + '@' + str(id(self))
             yield point
-
-    def _add_sticky_concurrency(self, point, sid):
-        concur = self._sticky_concurrencies[sid]
-        for label, kpiset in iteritems(point[DataPoint.CURRENT]):  # type: (str, KPISet)
-            if label in concur:
-                kpiset.concurrency.add_concurrency(concur[label], sid)
 
 
 class NoneAggregator(Aggregator, ResultsProvider):
