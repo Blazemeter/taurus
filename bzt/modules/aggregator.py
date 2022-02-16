@@ -200,11 +200,11 @@ class Concurrency(object):
     def add_concurrency(self, cnc, sid):
         # add concurrency value for some source ID, save it according to context
         if self.ext_aggregation:
-            if isinstance(sid, set):
-                self.concurrencies.update(sid)
-            else:
-                self.concurrencies.add(sid)     # todo: shouldn't we remove it?
-        # fix me: cnc can be None? (e.g. in ab)
+            if isinstance(cnc, int):
+                cnc = {sid}     # new sample - single sid
+            self.concurrencies.update(cnc)  # KPIs merging - cnc is set of sids
+
+        # fix me: can cnc be None? (e.g. in ab)
         elif cnc and self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
             self.concurrencies[sid] = cnc
 
