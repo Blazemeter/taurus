@@ -181,6 +181,13 @@ class Concurrency(object):
 
         self.ext_aggregation = ext_aggregation
 
+    def merge(self, src, sid):
+        if self.ext_aggregation:
+            sid = src.concurrencies
+        src_concurrency = src.get()
+        if src_concurrency:
+            self.add_concurrency(src_concurrency, sid)
+
     def get(self):
         if not self.concurrencies:
             return 0
@@ -399,11 +406,8 @@ class KPISet(dict):
         self[self.FAILURES] += src[self.FAILURES]
         self[self.BYTE_COUNT] += src[self.BYTE_COUNT]
         # NOTE: should it be average? mind the timestamp gaps
-        if self.ext_aggregation:
-            sid = src.concurrency.concurrencies
-        src_concurrency = src.concurrency.get()
-        if src_concurrency:
-            self.concurrency.add_concurrency(src_concurrency, sid)
+
+        self.concurrency.merge(src.concurrency, sid)
 
         if src[self.RESP_TIMES]:
             self[self.RESP_TIMES].merge(src[self.RESP_TIMES])
