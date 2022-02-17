@@ -173,40 +173,17 @@ class RespTimesCounter(JSONConvertible):
 
 
 class Concurrency(object):
-    def __init__(self, ext_aggregation):
-        if ext_aggregation:
-            self.concurrencies = set()  # concurrencies is set of unique VU names
-        else:
-            self.concurrencies = Counter()  # concurrencies is values of concurrency for different source IDs
-
-        self.ext_aggregation = ext_aggregation
-
     def merge(self, src_concurrency, sid):
-        if self.ext_aggregation:
-            concurrency = src_concurrency.concurrencies
-        else:
-            concurrency = src_concurrency.get()
+        self.add_concurrency(src_concurrency, sid)
 
-        self.add_concurrency(concurrency, sid)
-
+    @abstractmethod
     def get(self):
-        if not self.concurrencies:
-            return 0
-        elif self.ext_aggregation:
-            return len(self.concurrencies)
-        else:
-            return sum(self.concurrencies.values())
+        pass
 
+    @abstractmethod
     def add_concurrency(self, cnc, sid):
         # add concurrency value for some source ID, save it according to context
-        if self.ext_aggregation:
-            if isinstance(cnc, int):
-                cnc = {sid}     # new sample - single sid
-            self.concurrencies.update(cnc)  # KPIs merging - cnc is set of sids
-
-        # fix me: can cnc be None? (e.g. in ab)
-        elif cnc and self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
-            self.concurrencies[sid] = cnc
+        pass
 
     @staticmethod
     def update_sticky(sticky_list, results):
@@ -223,6 +200,40 @@ class Concurrency(object):
         for sid in sticky_list:
             if sid not in current_sids:
                 results[0].add_sticky_concurrency(sticky_list[sid], sid)
+
+
+class UniqueConcurrency(Concurrency):
+    def __init__(self):
+        self.concurrencies = set()  # concurrencies is set of unique VU names
+
+    def merge(self, src_concurrency, sid):
+        concurrency = src_concurrency.concurrencies
+        super().add_concurrency(concurrency, sid)
+
+    def get(self):
+        return len(self.concurrencies)
+
+    def add_concurrency(self, cnc, sid):
+        if isinstance(cnc, int):
+            cnc = {sid}  # new sample - single sid
+        self.concurrencies.update(cnc)  # KPIs merging - cnc is set of sids
+
+
+class RegularConcurrency(Concurrency):
+    def __init__(self):
+        self.concurrencies = Counter()  # concurrencies is values of concurrency for different source IDs
+
+    def merge(self, src_concurrency, sid):
+        concurrency = src_concurrency.get()
+        super().add_concurrency(concurrency, sid)
+
+    def get(self):
+        return sum(self.concurrencies.values())
+
+    def add_concurrency(self, cnc, sid):
+        # fix me: can cnc be None? (e.g. in ab)
+        if cnc and self.concurrencies.get(sid, 0) < cnc:  # take max value of concurrency during the second.
+            self.concurrencies[sid] = cnc
 
 
 class KPISet(dict):
@@ -253,7 +264,10 @@ class KPISet(dict):
         self.sum_lt = 0
         self.sum_cn = 0
         self.perc_levels = perc_levels
-        self._concurrency = Concurrency(ext_aggregation)
+        if ext_aggregation:
+            self._concurrency = UniqueConcurrency()
+        else:
+            self._concurrency = RegularConcurrency()
 
         # scalars
         self[KPISet.SAMPLE_COUNT] = 0
