@@ -1056,8 +1056,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                         subresult[DataPoint.CUMULATIVE] = dict()
 
             Concurrency.update_sticky(self._sticky_concurrencies, points_to_consolidate)
-
             point = points_to_consolidate[0]
+            point[DataPoint.SOURCE_ID] = self.__class__.__name__ + '@' + str(id(self))
 
             for subresult in points_to_consolidate[1:]:
                 self.log.debug("Merging %s", subresult[DataPoint.TIMESTAMP])
@@ -1065,7 +1065,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             if len(points_to_consolidate) > 1:
                 point.recalculate()
 
-            point[DataPoint.SOURCE_ID] = self.__class__.__name__ + '@' + str(id(self))
             yield point
 
 
