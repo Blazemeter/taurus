@@ -173,8 +173,9 @@ class RespTimesCounter(JSONConvertible):
 
 
 class Concurrency(object):
+    @abstractmethod
     def merge(self, src_concurrency, sid):
-        self.add_concurrency(src_concurrency, sid)
+        pass
 
     @abstractmethod
     def get(self):
@@ -203,6 +204,7 @@ class Concurrency(object):
 
 
 class UniqueConcurrency(Concurrency):
+    # this concurrency logic is used for EFT only
     def __init__(self):
         self.concurrencies = set()  # concurrencies is set of unique VU names
 
