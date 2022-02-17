@@ -208,7 +208,7 @@ class UniqueConcurrency(Concurrency):
 
     def merge(self, src_concurrency, sid):
         concurrency = src_concurrency.concurrencies
-        super().add_concurrency(concurrency, sid)
+        self.add_concurrency(concurrency, sid)
 
     def get(self):
         return len(self.concurrencies)
@@ -225,7 +225,7 @@ class RegularConcurrency(Concurrency):
 
     def merge(self, src_concurrency, sid):
         concurrency = src_concurrency.get()
-        super().add_concurrency(concurrency, sid)
+        self.add_concurrency(concurrency, sid)
 
     def get(self):
         return sum(self.concurrencies.values())
