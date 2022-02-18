@@ -182,7 +182,8 @@ class PythonTool(RequiredTool):
     def __init__(self, engine, settings, **kwargs):
         tool_path = engine.temp_pythonpath
         version = settings.get("version", None)
-        super(PythonTool, self).__init__(tool_path=tool_path, version=version, **kwargs)
+        dry_install = settings.get("dry-install", False)
+        super(PythonTool, self).__init__(tool_path=tool_path, version=version, dry_install=dry_install, **kwargs)
         self.installer = PipInstaller(temp_flag=True if version else False)
         self.installer.engine = engine
         packages = copy.deepcopy(self.PACKAGES)
@@ -199,6 +200,9 @@ class PythonTool(RequiredTool):
         return result
 
     def install(self):
+        if self.dry_install:
+            self.log.info(f"Dry installation for {self.tool_name}")
+            return
         self.log.debug(f"Installing {self.tool_name}.")
         self.installer.install()
 
