@@ -1276,7 +1276,7 @@ class RequiredTool(object):
     DOWNLOAD_LINK = None
 
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
-                 env=None, version=None, installable=True, mandatory=True):
+                 env=None, version=None, installable=True, mandatory=True, dry_install=False):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link or self.DOWNLOAD_LINK
@@ -1285,6 +1285,7 @@ class RequiredTool(object):
         self.installable = installable
         self.version = str(version) if version else self.VERSION
         self.tool_name = self.__class__.__name__
+        self.dry_install = dry_install
 
         # for browsermobproxy compatability, remove it later
         # todo: check it! (as well as others 'remove it later')
@@ -1312,6 +1313,10 @@ class RequiredTool(object):
         return False
 
     def install(self):
+        if self.dry_install:
+            self.log.info(f"Dry installation for {self.tool_name}")
+            return
+
         # todo: install() must be based on _download()
         if not self.installable:
             msg = "%s isn't found, automatic installation isn't implemented" % self.tool_name
