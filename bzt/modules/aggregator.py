@@ -976,10 +976,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         tstamp = point[DataPoint.TIMESTAMP]
         if self.buffer:
             mints = min(self.buffer.keys())
-            if tstamp < mints:
-                self.log.debug("Putting datapoint %s into %s", tstamp, mints)
-                point[DataPoint.TIMESTAMP] = mints
-                tstamp = mints
+            #if tstamp < mints:
+            #    self.log.debug("Putting datapoint %s into %s", tstamp, mints)
+            #    point[DataPoint.TIMESTAMP] = mints
+            #    tstamp = mints
         self.buffer.setdefault(tstamp, []).append(point)
 
     def _get_max_ramp_up(self):
