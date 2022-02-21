@@ -967,20 +967,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             for underling in self.underlings:
                 for point in underling.datapoints(final_pass):
                     had_data = True
-                    self._put_into_buffer(point)
+                    self.buffer.setdefault(point[DataPoint.TIMESTAMP], []).append(point)
 
             if not had_data:
                 break
-
-    def _put_into_buffer(self, point):
-        tstamp = point[DataPoint.TIMESTAMP]
-        if self.buffer:
-            mints = min(self.buffer.keys())
-            #if tstamp < mints:
-            #    self.log.debug("Putting datapoint %s into %s", tstamp, mints)
-            #    point[DataPoint.TIMESTAMP] = mints
-            #    tstamp = mints
-        self.buffer.setdefault(tstamp, []).append(point)
 
     def _get_max_ramp_up(self):
         ramp_ups = [0]

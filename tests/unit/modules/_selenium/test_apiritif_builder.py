@@ -662,6 +662,17 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
         self.assertTrue(reader.read_records)
         self.assertEqual(len(items), 1)
 
+    def test_both_readers(self):
+        reader1 = ApiritifLoadReader(self.obj.log)
+        reader1.engine = EngineEmul()
+        reader1.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif-20.csv")
+        reader1.register_file(RESOURCES_DIR + "jmeter/jtl/apiritif-results/apiritif-21.csv")
+
+        items = list(reader1.datapoints())
+        timestamps = tuple(dp[DataPoint.TIMESTAMP] for dp in items)
+        target_timestamps = 1551810990, 1551810991
+        self.assertEqual(timestamps, target_timestamps)
+
     def test_load_reader_real2(self):
         reader1 = ApiritifLoadReader(self.obj.log)
         reader1.engine = EngineEmul()
