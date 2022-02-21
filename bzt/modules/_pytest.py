@@ -23,8 +23,7 @@ from bzt import TaurusConfigError
 from bzt.engine import SETTINGS
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.services import PythonTool
-from bzt.utils import FileReader, RESOURCES_DIR
-from bzt.utils import RequiredTool
+from bzt.utils import FileReader, RESOURCES_DIR, RequiredTool, is_int
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
@@ -77,6 +76,11 @@ class PyTestExecutor(SubprocessedExecutor):
 
         if load.hold:
             cmdline += ['-d', str(load.hold)]
+
+        raw_concurrency = self.get_raw_load().concurrency
+
+        if raw_concurrency:
+            cmdline.extend(['-n', str(raw_concurrency)])
 
         cmdline += self._additional_args
         cmdline += [self.script]

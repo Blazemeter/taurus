@@ -143,7 +143,7 @@ class RecordingPlugin(object):
             self._report_sample(test_name)
 
 
-def run_pytest(argv, report_path, iteration_limit, duration_limit):
+def run_pytest(argv, report_path, iteration_limit, duration_limit, numprocesses):
     plugin = RecordingPlugin(report_path)
     plugin.prepare()
     start_time = int(time.time())
@@ -159,6 +159,7 @@ def run_pytest(argv, report_path, iteration_limit, duration_limit):
                 break
             if iteration >= iteration_limit:
                 break
+
     finally:
         plugin.post_process()
         if plugin.test_count == 0:
@@ -182,10 +183,14 @@ if __name__ == '__main__':
     parser.add_option('-r', '--report-file', action='store', default='report.ldjson')
     parser.add_option('-i', '--iterations', action='store', default=0)
     parser.add_option('-d', '--duration', action='store', default=0)
+    parser.add_option('-n', '--numprocesses', action='store', default=0)
     opts, args = parser.parse_args()
 
     opts.iterations = int(opts.iterations)
     opts.duration = float(opts.duration)
+    if opts.numprocesses:
+        args.extend(['-n', opts.numprocesses])
+        args.extend(['--dist', 'loadscope'])
 
     if opts.iterations == 0:
         if opts.duration > 0:
@@ -193,5 +198,4 @@ if __name__ == '__main__':
         else:
             opts.iterations = 1
 
-    run_pytest(args, opts.report_file, int(opts.iterations), float(opts.duration))
-
+    run_pytest(args, opts.report_file, int(opts.iterations), float(opts.duration), str(opts.numprocesses))
