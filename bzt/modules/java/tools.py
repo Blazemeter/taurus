@@ -130,7 +130,7 @@ class Json(JarTool):
 
 
 class TestNG(JarTool):
-    VERSION = "7.5"
+    VERSION = "6.9.9"
     REMOTE_PATH = "org/testng/testng/{version}/testng-{version}.jar"
     TOOL_FILE = "testng-{version}.jar"
 
