@@ -20,8 +20,8 @@ import shlex
 import sys
 
 from bzt import TaurusConfigError
-from bzt.engine import SETTINGS
-from bzt.modules import SubprocessedExecutor
+from bzt.engine import SETTINGS, Provisioning
+from bzt.modules import SubprocessedExecutor, ScenarioExecutor
 from bzt.modules.services import PythonTool
 from bzt.utils import FileReader, RESOURCES_DIR, RequiredTool, is_int
 
@@ -62,6 +62,13 @@ class PyTestExecutor(SubprocessedExecutor):
         self.pytest = self._get_tool(PyTest, engine=self.engine, settings=self.settings)
         self._check_tools([self.pytest, self._get_tool(TaurusPytestRunner, tool_path=self.runner_path)])
 
+    def get_load(self):
+        raw_concurrency = self.get_raw_load().concurrency
+        if raw_concurrency.lower() == 'auto':
+            prov_type = self.engine.config.get(Provisioning.PROV)
+            self.execution.get(ScenarioExecutor.CONCURR)[prov_type] = -1
+        return super().get_load()
+
     def startup(self):
         """
         run python tests
@@ -80,6 +87,8 @@ class PyTestExecutor(SubprocessedExecutor):
         raw_concurrency = self.get_raw_load().concurrency
 
         if raw_concurrency:
+            if raw_concurrency == -1:
+                raw_concurrency = 'auto'
             cmdline.extend(['-n', str(raw_concurrency)])
 
         cmdline += self._additional_args
