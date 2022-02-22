@@ -144,4 +144,3 @@ class TestDataLogReader(BZTestCase):
 
         for values in list_of_values:
             self.assertTrue(1400000000 < values['ts'] < 1500000000)
-            self.assertEqual(len(values), 5)
