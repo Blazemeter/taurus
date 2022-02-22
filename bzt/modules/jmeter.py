@@ -94,7 +94,7 @@ class JMeterExecutor(ScenarioExecutor):
     def __init__(self):
         super(JMeterExecutor, self).__init__()
         self.original_jmx = None
-        self.modified_jmx = None
+        self.modified_jmx = ""
         self.jmeter_log = None
         self.properties = BetterDict()
         self.properties_file = None
@@ -390,8 +390,7 @@ class JMeterExecutor(ScenarioExecutor):
             self.log.debug("JMeter worked for %s seconds", self.end_time - self.start_time)
 
     def post_process(self):
-        if self.modified_jmx:
-            self.engine.existing_artifact(self.modified_jmx, True)
+        self.engine.existing_artifact(self.modified_jmx, True)
         super(JMeterExecutor, self).post_process()
 
     def has_results(self):
