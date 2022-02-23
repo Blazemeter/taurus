@@ -199,7 +199,6 @@ class Checker(object):
 
     def check_for_typos(self, cpath, key, variants):
         edits, suggestion = most_similar_string(key, variants)
-        # NOTE: or should it be a list of suggestions?
         if edits <= 3:
             key_path = cpath.copy()
             key_path.add_component(key)
@@ -240,7 +239,6 @@ class ExecutionChecker(Checker):
         for field in execution:
             if field not in known_fields:
                 self.check_for_typos(cpath, field, known_fields)
-            # TODO: check value type for all values (e.g. int|timestamp for hold-for, int for concurrency, etc)?
 
 
 class ToplevelChecker(Checker):

@@ -63,8 +63,6 @@ class LocustStarter(object):
             ('responseCode', rcode),
             ('responseMessage', rmsg),
             ('success', 'true' if exc is None else 'false'),
-
-            # NOTE: might be resource-consuming
             ('Latency', 0),
         ])
 

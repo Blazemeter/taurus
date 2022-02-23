@@ -58,8 +58,6 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
     Class to show process status on the console
     :type logger_handlers: list[StreamHandler]
     """
-
-    # NOTE: maybe should use separate thread for screen re-painting
     def __init__(self):
         super(ConsoleStatusReporter, self).__init__()
         self._last_datapoint = None

@@ -337,7 +337,7 @@ class KPISet(dict):
         """
         cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
         self[self.SAMPLE_COUNT] += 1
-        self.add_concurrency(cnc, trname)   # todo: the change must be checked for 'true concurrency' (EFT)
+        self.add_concurrency(cnc, trname)
 
         if r_code is not None:
             self[self.RESP_CODES][r_code] += 1
@@ -446,7 +446,6 @@ class KPISet(dict):
         self[self.SUCCESSES] += src[self.SUCCESSES]
         self[self.FAILURES] += src[self.FAILURES]
         self[self.BYTE_COUNT] += src[self.BYTE_COUNT]
-        # NOTE: should it be average? mind the timestamp gaps
 
         self._concurrency.merge(src._concurrency, sid)
 
