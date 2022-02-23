@@ -17,7 +17,7 @@ describe('Blazedemo verification', function() {
         driver.quit();
     });
 
-    it('selenium mocha', async () => {
+    it('Selenium Mocha', async () => {
         await driver.getTitle().then(function (title) {
             assert.equal(title, 'BlazeDemo');
         });

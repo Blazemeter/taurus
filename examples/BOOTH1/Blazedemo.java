@@ -34,7 +34,7 @@ public class Blazedemo {
     }
     
     @Test
-    public void selenium_junit() {
+    public void Selenium_JUnit() {
         // Open page and choose cities
         wd.get("http://blazedemo.com/");
         if (!wd.findElement(By.xpath("//div[3]/form/select[1]//option[3]")).isSelected()) {

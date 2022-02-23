@@ -1,7 +1,7 @@
 require "rspec"
 
 describe "RspecTest" do
-  it "ruby test" do
+  it "Ruby test" do
     expect(2 + 2).to eq(4)
   end
 

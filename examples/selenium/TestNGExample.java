@@ -27,7 +27,7 @@ public class TestNGExample {
     }
 
     @Test
-    public void selenium_TestNG() {
+    public void Selenium_TestNG() {
         this.driver.get("http://blazedemo.com/");
         Assert.assertEquals(this.driver.getTitle(), "BlazeDemo");
     }
