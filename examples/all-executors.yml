@@ -19,7 +19,7 @@ reporting:
 # all of functional-style executors
 ---
 execution:
-- executor: selenium
+- executor: selenium  # selenium-firefox
   concurrency: 1
   hold-for: 10s
   iterations: 10
@@ -29,7 +29,7 @@ execution:
       - url: http://localhost:8000/
         label: selenium-firefox
 
-- executor: selenium
+- executor: selenium  # selenium-chrome
   concurrency: 1
   hold-for: 10s
   iterations: 10
@@ -39,7 +39,7 @@ execution:
       - url: http://localhost:8000/
         label: selenium-chrome
 
-- executor: selenium
+- executor: selenium  # selenium_junit
   concurrency: 1
   hold-for: 10s
   iterations: 10
@@ -47,7 +47,7 @@ execution:
   scenario:
     script: BOOTH1/Blazedemo.java
 
-- executor: selenium
+- executor: selenium  # selenium_TestNG
   concurrency: 1
   hold-for: 10s
   iterations: 10
@@ -57,56 +57,56 @@ execution:
 
 ---
 execution:
-- executor: selenium
+- executor: selenium  # selenium ruby
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: selenium/rspec_example.rb
 
-- executor: selenium
+- executor: selenium  # selenium mocha
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: selenium/mocha_example.js
 
-- executor: junit
+- executor: junit  # junit_test
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: functional/JUnitTest.java
 
-- executor: testng
+- executor: testng  # testngTest
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: functional/TestNGTest.java
 
-- executor: rspec
+- executor: rspec  # ruby test
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: functional/rspec_example.rb
 
-- executor: mocha
+- executor: mocha  # mocha
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: functional/mocha_example.js
 
-- executor: apiritif
+- executor: apiritif  # test_apiritif
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: functional/test_nose.py
 
-- executor: nunit
+- executor: nunit  # IsFive_ExistingVariable_ReturnFive
   concurrency: 1
   hold-for: 10s
   iterations: 10
@@ -120,42 +120,42 @@ execution:
   scenario:
     script: selenium/dotnet/XUnitTests.dll
 
-- executor: pytest
+- executor: pytest  # test_pytest x2
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: selenium/pytest_example.py
 
-- executor: wdio
+- executor: wdio  # WDIO test
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: functional/wdio.conf.js
 
-- executor: robot
+- executor: robot  # Robot x4
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: functional/robot-simple/test.robot
 
-- executor: newman
+- executor: newman  # Newman x3
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: functional/postman-sample-collection.json
 
-- executor: k6
+- executor: k6  # https://blazedemo.com/?tool=k6
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: k6/k6_example.js
 
-- executor: vegeta
+- executor: vegeta  # https://blazedemo.com/?tool=vegeta
   throughput: 1
   hold-for: 10s
   scenario:
@@ -163,7 +163,7 @@ execution:
 ---
 # all of load-style executors
 execution:
-- executor: jmeter
+- executor: jmeter  # jmeter
   concurrency: 1
   hold-for: 10s
   iterations: 10
@@ -172,7 +172,7 @@ execution:
       - url: http://localhost:8000/
         label: jmeter
 
-- executor: gatling
+- executor: gatling  # gatling
   concurrency: 1
   hold-for: 10s
   iterations: 10
@@ -183,7 +183,7 @@ execution:
       - url: http://localhost:8000/
         label: gatling
 
-- executor: siege
+- executor: siege  # http://localhost:8000/?tool=siege
   concurrency: 1
   hold-for: 10s
   iterations: 10
@@ -192,7 +192,7 @@ execution:
       - url: http://localhost:8000/?tool=siege
         label: siege
 
-- executor: locust
+- executor: locust  # /?tool=locust
   concurrency: 1
   hold-for: 10s
   iterations: 10
@@ -201,7 +201,7 @@ execution:
       - url: http://localhost:8000/?tool=locust
         label: locust
 
-- executor: tsung
+- executor: tsung  # localhost/?tool=tsung
   concurrency: 1
   hold-for: 10s
   scenario:
@@ -219,14 +219,14 @@ execution:
 #      - url: http://localhost:8000/
 #        label: ab
 
-- executor: molotov
+- executor: molotov  # molotov_test + https://blazedemo.com/
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
     script: molotov/blazedemo.py
 
-- executor: apiritif
+- executor: apiritif  # http://localhost:8000/?tool=apiritif
   concurrency: 1
   hold-for: 10s
   scenario:
