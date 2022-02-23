@@ -67,7 +67,7 @@ class MolotovExecutor(ScenarioExecutor):
 
         cmdline = [self.molotov.tool_path]
 
-        if load.concurrency is not None and load.concurrency:
+        if load.concurrency:
             cmdline += ['--workers', str(load.concurrency)]
         else:
             cmdline += ['--workers', "1"]
