@@ -11,7 +11,7 @@ import java.io.File;
 
 public class JUnitTest {
     @Test
-    public void aTest() {
+    public void junit_test() {
         assertEquals("Hello, " + "World!", "Hello, World!");
     }
 }

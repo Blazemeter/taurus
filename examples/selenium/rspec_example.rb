@@ -14,7 +14,7 @@ describe "Blazedemo" do
     @driver.quit
   end
 
-  it "blazedemo.com example" do
+  it "selenium ruby" do
     @driver.get(@base_url + "/purchase.php")
     @driver.find_element(:id, "inputName").clear
     @driver.find_element(:id, "inputName").send_keys "First Last"

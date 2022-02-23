@@ -198,7 +198,7 @@ execution:
   iterations: 10
   scenario:
     requests:
-      - url: http://localhost:8000/
+      - url: http://localhost:8000/?tool=locust
         label: locust
 
 - executor: tsung
@@ -206,7 +206,7 @@ execution:
   hold-for: 10s
   scenario:
     requests:
-      - url: http://localhost:8000/
+      - url: http://localhost:8000/?tool=tsung
         label: tsung
 
 # AB is sooo bad with exit codes...
@@ -231,5 +231,5 @@ execution:
   hold-for: 10s
   scenario:
     requests:
-      - url: http://localhost:8000/
+      - url: http://localhost:8000/?tool=apiritif
         label: apiritif
