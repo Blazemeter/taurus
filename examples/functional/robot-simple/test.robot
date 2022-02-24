@@ -1,10 +1,10 @@
 *** Test Cases ***
-User can create an account and log in
+Robot: User can create an account and log in
     Create Valid User    fred    P4ssw0rd
     Attempt to Login with Credentials    fred    P4ssw0rd
     Status Should Be    Logged In
 
-User cannot log in with bad password
+Robot: User cannot log in with bad password
     Create Valid User    betty    P4ssw0rd
     Attempt to Login with Credentials    betty    wrong
     Status Should Be    Access Denied
@@ -12,7 +12,7 @@ User cannot log in with bad password
 
 
 *** Test Cases ***
-User can change password
+Robot: User can change password
     Given a user has a valid account
     When she changes her password
     Then she can log in with the new password
@@ -21,7 +21,7 @@ User can change password
 
 
 *** Test Cases ***
-Invalid password
+Robot: Invalid password
     [Template]    Creating user with invalid password should fail
     abCD5            ${PWD INVALID LENGTH}
     abCD567890123    ${PWD INVALID LENGTH}
@@ -85,7 +85,7 @@ ${PWD INVALID CONTENT}    Password must be a combination of lowercase and upperc
 
 
 *** Test Cases ***
-User status is stored in database
+Robot: User status is stored in database
     [Tags]    variables    database
     Create Valid User    ${USERNAME}    ${PASSWORD}
     Database Should Contain    ${USERNAME}    ${PASSWORD}    Inactive

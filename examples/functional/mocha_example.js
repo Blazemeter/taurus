@@ -1,7 +1,7 @@
 var assert = require('assert');
 
 describe('MochaTest', function() {
-    it('sanity', function () {
+    it('Mocha', function () {
         assert.equal(2 + 2, 4);
     });
 });

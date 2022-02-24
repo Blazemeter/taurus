@@ -8,7 +8,7 @@
 	},
 	"item": [
 		{
-			"name": "A simple GET request",
+			"name": "Newman: GET request",
 			"event": [
 				{
 					"listen": "test",
@@ -55,7 +55,7 @@
 			"response": []
 		},
 		{
-			"name": "A simple POST request",
+			"name": "Newman: POST request",
 			"request": {
 				"url": "https://postman-echo.com/post",
 				"method": "POST",
@@ -74,7 +74,7 @@
 			"response": []
 		},
 		{
-			"name": "A simple POST request with JSON body",
+			"name": "Newman: POST request with JSON body",
 			"request": {
 				"url": "https://postman-echo.com/post",
 				"method": "POST",
