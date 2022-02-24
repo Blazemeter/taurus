@@ -1780,7 +1780,7 @@ from selenium.webdriver.common.keys import Keys
     def _escape_values_for_external_handler(self, action):
         if isinstance(action, dict):
             action_type = action.get("type")
-            if action_type == "storeEval" or action_type == "scriptEval":
+            if isinstance(action_type, str) and action_type.endswith("Eval"):
                 value = self._escape_js_blocks(action.get("value"))
                 action["value"] = value
         return action

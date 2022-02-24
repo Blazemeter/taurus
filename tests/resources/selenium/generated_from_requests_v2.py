@@ -131,6 +131,10 @@ class TestLocSc(unittest.TestCase):
             action_start({'param': '10 === 2*5', 'selectors': [], 'tag': 'eval', 'type': 'assert', 'value': None})
             self.assertTrue(self.driver.execute_script('return 10 === 2*5;'), '10 === 2*5')
             action_end({'param': '10 === 2*5', 'selectors': [], 'tag': 'eval', 'type': 'assert', 'value': None})
+            action_start({'param': 'var_assert', 'selectors': [], 'tag': 'eval', 'type': 'assert', 'value': 'myFunction();\nfunction myFunction(){{\n btnNameVar="{}";\n return "support";\n}}'.format(self.vars['btnName1'])})
+            self.assertTrue(self.driver.execute_script('return var_assert;'), 'var_assert')
+            action_end({'param': 'var_assert', 'selectors': [], 'tag': 'eval', 'type': 'assert', 'value': 'myFunction();\nfunction myFunction(){{\n btnNameVar="{}";\n return "support";\n}}'.format(self.vars['btnName1'])})
+
             action_start({'param': 'var_eval', 'selectors': [], 'tag': 'eval', 'type': 'store', 'value': 'myFunction();\nfunction myFunction(){{\n btnNameVar="{}";\n return "support";\n}}'.format(self.vars['btnName1'])})
 
             self.vars['var_eval'] = self.driver.execute_script('return myFunction();\nfunction myFunction(){{\n btnNameVar="{}";\n return "support";\n}};'.format(self.vars['btnName1']))
