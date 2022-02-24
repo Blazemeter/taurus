@@ -94,7 +94,7 @@ class JMeterExecutor(ScenarioExecutor):
     def __init__(self):
         super(JMeterExecutor, self).__init__()
         self.original_jmx = None
-        self.modified_jmx = None
+        self.modified_jmx = ""
         self.jmeter_log = None
         self.properties = BetterDict()
         self.properties_file = None

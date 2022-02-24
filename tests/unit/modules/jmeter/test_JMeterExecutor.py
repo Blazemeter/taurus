@@ -225,6 +225,17 @@ class TestJMeterExecutor(ExecutorTestCase):
             if self.obj.jmeter_log and os.path.exists(self.obj.jmeter_log):
                 self.obj.log.debug("%s", open(self.obj.jmeter_log).read())
 
+    def test_no_modified_jmx(self):
+        def mocked_install_required_tools():
+            raise BaseException
+
+        self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))
+        self.obj.install_required_tools = mocked_install_required_tools
+        try:
+            self.obj.prepare()  # does not initialize modified_jmx
+        except BaseException:
+            self.obj.post_process()  # fails is modified_jmx is None and not str
+
     def test_issue_no_iterations(self):
         self.configure({"execution": {
             "concurrency": 10,

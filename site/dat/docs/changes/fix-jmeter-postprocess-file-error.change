@@ -1,0 +1,1 @@
+Avoid error in engine when empty 'modified_jmx' due to exception in prepare
