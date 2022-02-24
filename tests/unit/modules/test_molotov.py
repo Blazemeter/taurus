@@ -15,6 +15,10 @@ LOADTEST_PY = join(RESOURCES_DIR, "molotov", "loadtest.py")
 
 class TestMolotov(ExecutorTestCase):
     EXECUTOR = MolotovExecutor
+    CMD_LINE = []
+
+    def start_subprocess(self, args, **kwargs):
+        self.CMD_LINE = ' '.join(args)
 
     def tearDown(self):
         if self.obj.reader:
@@ -85,11 +89,6 @@ class TestMolotov(ExecutorTestCase):
         self.obj.post_process()
 
     def test_think_time(self):
-        self.CMD_LINE = []
-
-        def start_subprocess(args, **kwargs):
-            self.CMD_LINE = ' '.join(args)
-
         self.obj.settings.merge({
             "path": TOOL_PATH})
         self.configure({
@@ -102,10 +101,21 @@ class TestMolotov(ExecutorTestCase):
                 }
             }})
         self.obj_prepare()
-        self.obj.engine.start_subprocess = start_subprocess
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.post_process()
         self.assertTrue('--delay 5.0' in self.CMD_LINE)
+
+    def test_no_concurrency(self):
+        self.configure({"execution": {
+            "iterations": 5,
+            "scenario": {
+                "script": LOADTEST_PY}}})
+        self.obj_prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.obj.post_process()
+        self.assertTrue('--workers 1' in self.CMD_LINE)
 
 
 class TestReportReader(BZTestCase):

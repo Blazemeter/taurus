@@ -910,7 +910,7 @@ from selenium.webdriver.common.keys import Keys
 
         browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
-        browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
+        browser = browser.lower()
         if browser == "microsoftedge":
             browser = "edge"
         local_browsers = ["firefox", "chrome", "ie", "opera", "edge"] + mobile_browsers
@@ -1384,10 +1384,10 @@ from selenium.webdriver.common.keys import Keys
         for idx, source in enumerate(self.data_sources, start=1):
             keywords = []
 
-            if "fieldnames" in source:
+            if "variable-names" in source:
                 fieldnames = ast.keyword()
                 fieldnames.arg = "fieldnames"
-                str_names = source.get("fieldnames").split(",")
+                str_names = source.get("variable-names").split(",")
                 fieldnames.value = ast.List(elts=[ast.Str(s=fname, kind="") for fname in str_names])
                 keywords.append(fieldnames)
 

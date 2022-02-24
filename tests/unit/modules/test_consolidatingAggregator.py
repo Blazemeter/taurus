@@ -210,9 +210,8 @@ class TestConsolidatingAggregator(BZTestCase):
         cnt = 0
         for _ in range(1, 10):
             for point in self.obj.datapoints():
-                self.assertEqual(2, len(point[DataPoint.SUBRESULTS]))
                 overall = point[DataPoint.CURRENT]['']
-                self.assertEquals(2, overall[KPISet.CONCURRENCY])
+                self.assertEquals(2, overall.concurrency)
                 self.assertGreater(overall[KPISet.PERCENTILES]["100.0"], 0)
                 self.assertGreater(overall[KPISet.AVG_RESP_TIME], 0)
                 cnt += 1
@@ -329,8 +328,6 @@ class TestConsolidatingAggregator(BZTestCase):
         labels_count = len(labels)
         self.assertLessEqual(labels_count, label_count + 1)  # didn't overflow
         self.assertGreaterEqual(labels_count, label_count * 0.25)  # at least a quarter-filled
-        self.assertEqual(1, len(last[DataPoint.SUBRESULTS]))
-        self.assertEqual(last, last[DataPoint.SUBRESULTS][0])
 
     def test_errors_variety(self):
         self.obj.track_percentiles = [50]
@@ -383,8 +380,6 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.prepare()
         self.obj.add_underling(get_success_reader())
         for point in self.obj.datapoints():
-            if point[DataPoint.SUBRESULTS] == [point]:
-                del point[DataPoint.SUBRESULTS]
             self.obj.log.info(to_json(point))
 
     def test_negative_response_time_scaling_crash(self):

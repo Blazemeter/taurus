@@ -106,7 +106,8 @@ class K6LogReader(ResultsReader):
         self.data = {'timestamp': [], 'label': [], 'r_code': [], 'error_msg': [], 'http_req_duration': [],
                      'http_req_connecting': [], 'http_req_tls_handshaking': [], 'http_req_waiting': [], 'vus': [],
                      'data_received': []}
-        self.position = {'timestamp': None, 'metric_value': None, 'error': None, 'name': None, 'status': None}
+        self.position = {'timestamp': None, 'metric_value': None, 'error': None,
+                         'expected_response': None, 'name': None, 'status': None}
 
     def _read(self, last_pass=False):
         self.lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
@@ -117,13 +118,17 @@ class K6LogReader(ResultsReader):
                 self.position['timestamp'] = parts.index('timestamp')
                 self.position['metric_value'] = parts.index('metric_value')
                 self.position['error'] = parts.index('error')
+                self.position['expected_response'] = parts.index('expected_response')
                 self.position['name'] = parts.index('name')
                 self.position['status'] = parts.index('status')
             elif line.startswith("http_reqs"):
                 self.data['timestamp'].append(int(line.split(',')[self.position['timestamp']]))
                 self.data['label'].append(line.split(',')[self.position['name']])
                 self.data['r_code'].append(line.split(',')[self.position['status']])
-                self.data['error_msg'].append(line.split(',')[self.position['error']])
+                error = line.split(',')[self.position['error']]
+                if not error and line.split(',')[self.position['expected_response']] == 'false':
+                    error = f"Response code: {line.split(',')[self.position['status']]}"
+                self.data['error_msg'].append(error)
             elif line.startswith("http_req_duration"):
                 self.data['http_req_duration'].append(float(line.split(',')[self.position['metric_value']]))
             elif line.startswith("http_req_connecting"):

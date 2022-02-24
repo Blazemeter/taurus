@@ -386,7 +386,6 @@ class BetterDict(defaultdict):
                     if isinstance(lefty, BetterDict) and isinstance(righty, BetterDict):
                         lefty.merge(righty)
                     else:
-                        # todo: should we log all overwriting cases?
                         LOG.warning("Overwriting the value of %r when merging configs", key)
                         left[index] = righty
                 else:
@@ -532,7 +531,6 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
         if pgrp:
             kwargs["preexec_fn"] = os.setpgrp
         return psutil.Popen(args, **kwargs)
-        # FIXME: shouldn't we bother closing opened descriptors?
 
 
 class Environment(object):
@@ -868,7 +866,6 @@ def to_json(obj, indent=True):
     :param obj: object to convert
     :return:
     """
-    # NOTE: you can set allow_nan=False to fail when serializing NaN/Infinity
     return json.dumps(obj, indent=indent, cls=ComplexEncoder)
 
 
@@ -890,7 +887,6 @@ class ComplexEncoder(json.JSONEncoder):
     """
     Magic class to help serialize in JSON any object.
     """
-    # todo: should we add complex type?
     TYPES = (dict, list, tuple, str, int, float, bool, type(None))
 
     def default(self, obj):  # pylint: disable=method-hidden
@@ -1113,7 +1109,7 @@ class LocalFileAdapter(requests.adapters.BaseAdapter):
     def _chkpath(method, path):
         """Return an HTTP status for the given filesystem path."""
         if method.lower() in ('put', 'delete'):
-            return 501, "Not Implemented"  # TODO
+            return 501, "Not Implemented"
         elif method.lower() not in ('get', 'head'):
             return 405, "Method Not Allowed"
         elif os.path.isdir(path):
@@ -1276,7 +1272,7 @@ class RequiredTool(object):
     DOWNLOAD_LINK = None
 
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
-                 env=None, version=None, installable=True, mandatory=True):
+                 env=None, version=None, installable=True, mandatory=True, dry_install=False):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link or self.DOWNLOAD_LINK
@@ -1285,11 +1281,7 @@ class RequiredTool(object):
         self.installable = installable
         self.version = str(version) if version else self.VERSION
         self.tool_name = self.__class__.__name__
-
-        # for browsermobproxy compatability, remove it later
-        # todo: check it! (as well as others 'remove it later')
-        if not isinstance(log, logging.Logger):
-            log = None
+        self.dry_install = dry_install
 
         log = log or LOG
         self.log = log.getChild(self.tool_name)
@@ -1312,7 +1304,10 @@ class RequiredTool(object):
         return False
 
     def install(self):
-        # todo: install() must be based on _download()
+        if self.dry_install:
+            self.log.info(f"Dry installation for {self.tool_name}")
+            return
+
         if not self.installable:
             msg = "%s isn't found, automatic installation isn't implemented" % self.tool_name
             if self.mandatory:

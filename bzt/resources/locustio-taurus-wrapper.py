@@ -63,8 +63,6 @@ class LocustStarter(object):
             ('responseCode', rcode),
             ('responseMessage', rmsg),
             ('success', 'true' if exc is None else 'false'),
-
-            # NOTE: might be resource-consuming
             ('Latency', 0),
         ])
 
@@ -116,14 +114,16 @@ class LocustStarter(object):
             self.writer.writeheader()
             events.request.add_listener(self.__on_request_success)
             events.request.add_listener(self.__on_request_failure)
-
-        elif not os.getenv("WORKERS_LDJSON"):   # master of distributed mode
+        elif os.getenv("WORKERS_LDJSON"):   # master of distributed mode
+            fname = os.getenv("WORKERS_LDJSON")
+            self.fhd = open(fname, 'wt')
+            self.writer = None
+        else:
             raise ValueError("Please specify JTL or WORKERS_LDJSON environment variable")
 
         main.main()
 
-        if self.fhd:
-            self.fhd.close()
+        self.fhd.close()
 
 
 if __name__ == '__main__':
