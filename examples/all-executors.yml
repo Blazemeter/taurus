@@ -218,8 +218,7 @@ execution:
 
 - executor: molotov  # Molotov_test + https://blazedemo.com/
   concurrency: 1
-  hold-for: 10s
-  iterations: 10
+  hold-for: 5s
   scenario:
     script: molotov/blazedemo.py
 
