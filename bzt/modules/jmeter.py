@@ -1558,17 +1558,39 @@ class JMeter(RequiredTool):
         plugins_manager_cmd = self._pmgr_path()
         self.__install_jmeter(dest)
 
-        # fix log4j
-        if self.fix_jars and  LooseVersion(self.version) <= LooseVersion('5.4.2'):
+        # fix jars vulnerabilities
+        if self.fix_jars:
             lib_dir = os.path.join(dest, 'lib')
-            fixed_version = '2.17.1'
-            maven_link = "https://repo1.maven.org/maven2/org/apache/logging/log4j/{comp}/{ver}/{comp}-{ver}.jar"
-            affected_components = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
-            log4j_files = [_file for _file in os.listdir(lib_dir) if _file.startswith("log4j")]
-            for _file in log4j_files:
+
+            #  fix log4j
+            if LooseVersion(self.version) <= LooseVersion('5.4.2'):
+                fixed_version = '2.17.1'
+                maven_link = "https://repo1.maven.org/maven2/org/apache/logging/log4j/{comp}/{ver}/{comp}-{ver}.jar"
+                affected_components = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
+                log4j_files = [_file for _file in os.listdir(lib_dir) if _file.startswith("log4j")]
+                for _file in log4j_files:
+                    for comp in affected_components:
+                        if _file.startswith(comp):
+                            full_link = maven_link.format(comp=comp, ver=fixed_version)
+                            full_path = os.path.join(lib_dir, _file)
+                            direct_install_tools.append([full_link, full_path])
+                            break
+
+            # fix other jars
+            affected_components = {
+                "xstream": "com/thoughtworks/xstream/xstream/1.4.16/xstream-1.4.16.jar",
+                "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.10.5.1/jackson-databind-2.10.5.1.jar",
+                "netty-codec": "io/netty/netty-codec/4.1.50.Final/netty-codec-4.1.50.Final.jar",
+                "jetty-io": "org/eclipse/jetty/jetty-io/9.4.43.v20210629/jetty-io-9.4.43.v20210629.jar",
+                "snakeyaml": "org/yaml/snakeyaml/1.26/snakeyaml-1.26.jar",
+                "json-smart": "net/minidev/json-smart/2.4.7/json-smart-2.4.7.jar",
+                "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.6/xmlgraphics-commons-2.6.jar"}
+
+            jar_files = [_file for _file in os.listdir(lib_dir) if _file.endswith(".jar")]
+            for _file in jar_files:
                 for comp in affected_components:
                     if _file.startswith(comp):
-                        full_link = maven_link.format(comp=comp, ver=fixed_version)
+                        full_link = "https://repo1.maven.org/maven2/" + affected_components[comp]
                         full_path = os.path.join(lib_dir, _file)
                         direct_install_tools.append([full_link, full_path])
                         break
