@@ -1400,7 +1400,7 @@ class JMeter(RequiredTool):
 
         super(JMeter, self).__init__(tool_path=jmeter_path, download_link=download_link, version=version, **kwargs)
 
-        self.fix_log4j = LooseVersion(self.version) <= LooseVersion('5.4.2') and settings.get("fix-log4j", True)
+        self.fix_jars = settings.get("fix-jars", True)
         self.mirror_manager = JMeterMirrorsManager(self.http_client, self.log, self.version)
 
         additional_jvm_props = self._get_jvm_props(props)
@@ -1559,7 +1559,7 @@ class JMeter(RequiredTool):
         self.__install_jmeter(dest)
 
         # fix log4j
-        if self.fix_log4j:
+        if self.fix_jars and  LooseVersion(self.version) <= LooseVersion('5.4.2'):
             lib_dir = os.path.join(dest, 'lib')
             fixed_version = '2.17.1'
             maven_link = "https://repo1.maven.org/maven2/org/apache/logging/log4j/{comp}/{ver}/{comp}-{ver}.jar"
