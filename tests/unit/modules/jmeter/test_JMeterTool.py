@@ -1,5 +1,5 @@
 import os
-from bzt.utils import EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from bzt.modules.jmeter import JMeter
 
 from . import MockJMeter
@@ -9,7 +9,8 @@ from tests.unit import BZTestCase, RESOURCES_DIR
 class TestJMeterTool(BZTestCase):
     def setUp(self):
         super(TestJMeterTool, self).setUp()
-        self.obj = MockJMeter()
+        config = BetterDict()
+        self.obj = MockJMeter(config=config)
 
     def test_get_jar_fixes(self):
         lib_dir_path = get_full_path(__file__, step_up=1)
@@ -73,8 +74,8 @@ class TestJMeterTool(BZTestCase):
 
     def test_plugins_manager_and_command_runner_default_urls(self):
         self.obj.__init__()
-        self.assertEqual(self.obj.plugins_manager, JMeter.PLUGINS_MANAGER.format(version=JMeter.PLUGINS_MANAGER_VERSION))
-        self.assertEqual(self.obj.command_runner, JMeter.COMMAND_RUNNER.format(version=JMeter.COMMAND_RUNNER_VERSION))
+        self.assertEqual(self.obj.plugins_manager, JMeter.PLUGINS_MANAGER_LINK.format(version=JMeter.PLUGINS_MANAGER_VERSION))
+        self.assertEqual(self.obj.command_runner, JMeter.COMMAND_RUNNER_LINK.format(version=JMeter.COMMAND_RUNNER_VERSION))
 
     def test_plugins_manager_and_command_runner_configured_url(self):
         plugins_manager_test_url = "http://somewhere.else/plugins-manager/{version}/plugins-manager.jar"

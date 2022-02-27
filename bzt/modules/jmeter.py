@@ -1372,14 +1372,14 @@ class JMeter(RequiredTool):
     JMeter tool
     """
     PLUGINS_MANAGER_VERSION = "1.3"
-    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
+    PLUGINS_MANAGER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
     COMMAND_RUNNER_VERSION = "2.2"
-    COMMAND_RUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
+    COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
     VERSION = "5.4.2"
 
     def __init__(self, config=None, props=None, **kwargs):
-        settings = config or {}
-        props = props or {}
+        settings = config or BetterDict()
+        props = props or BetterDict()
 
         version = settings.get("version", JMeter.VERSION)
         jmeter_path = settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
@@ -1389,13 +1389,15 @@ class JMeter(RequiredTool):
         if download_link is not None:
             download_link = download_link.format(version=version)
 
-        plugins_manager_settings = settings.get("plugins-manager", {})
+        plugins_manager_settings = settings.get("plugins-manager")
         plugins_manager_version = plugins_manager_settings.get("version", JMeter.PLUGINS_MANAGER_VERSION)
-        self.plugins_manager = plugins_manager_settings.get("download-link", JMeter.PLUGINS_MANAGER).format(version=plugins_manager_version)
+        self.plugins_manager_link = plugins_manager_settings.get(
+            "download-link", JMeter.PLUGINS_MANAGER_LINK).format(version=plugins_manager_version)
 
-        command_runner_settings = settings.get("command-runner", {})
+        command_runner_settings = settings.get("command-runner")
         command_runner_version = command_runner_settings.get("version", JMeter.COMMAND_RUNNER_VERSION)
-        self.command_runner = command_runner_settings.get("download-link", JMeter.COMMAND_RUNNER).format(version=command_runner_version)
+        self.command_runner_link = command_runner_settings.get(
+            "download-link", JMeter.COMMAND_RUNNER_LINK).format(version=command_runner_version)
         self.plugins = settings.get("plugins", [])
 
         super(JMeter, self).__init__(tool_path=jmeter_path, download_link=download_link, version=version, **kwargs)
@@ -1546,9 +1548,11 @@ class JMeter(RequiredTool):
         return os.path.join(dest, 'bin', 'PluginsManagerCMD' + EXE_SUFFIX)
 
     def _get_jar_fixes(self, lib_dir):
-        direct_install_tools = []   # source link and destination in https://repo1.maven.org/maven2/
+        direct_install_tools = []
         if self.fix_jars:
             # these jars should be replaced with newer version in order to fix some vulnerabilities
+
+            # component name and download link in https://repo1.maven.org/maven2/
             affected_components = {
                 "xstream": "com/thoughtworks/xstream/xstream/1.4.16/xstream-1.4.16.jar",
                 "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.10.5.1/jackson-databind-2.10.5.1.jar",
@@ -1581,17 +1585,17 @@ class JMeter(RequiredTool):
         jmeter_dir = get_full_path(self.tool_path, step_up=2)
         lib_dir = os.path.join(jmeter_dir, 'lib')
         self.log.info("Will install %s into %s", self.tool_name, jmeter_dir)
-        plugins_manager_name = os.path.basename(self.plugins_manager)
-        command_runner_name = os.path.basename(self.command_runner)
+        plugins_manager_name = os.path.basename(self.plugins_manager_link)
+        command_runner_name = os.path.basename(self.command_runner_link)
         pm_installer_path = os.path.join(lib_dir, 'ext', plugins_manager_name)
         command_runner_path = os.path.join(lib_dir, command_runner_name)
 
         self.__install_jmeter(jmeter_dir)
 
-        direct_install_tools = self._get_jar_fixes(lib_dir)
+        direct_install_tools = self._get_jar_fixes(lib_dir)     # format: download link, local destination path
         direct_install_tools.extend([
-            [self.plugins_manager, pm_installer_path],
-            [self.command_runner, command_runner_path]])
+            [self.plugins_manager_link, pm_installer_path],
+            [self.command_runner_link, command_runner_path]])
 
         self.__download_additions(direct_install_tools)
         self.__install_plugins_manager(pm_installer_path)
