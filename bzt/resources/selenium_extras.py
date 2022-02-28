@@ -33,12 +33,12 @@ def find_element_by_shadow(shadow_loc):
     css_path = [x.strip() for x in shadow_loc.split(',')]
     for p in css_path:
         if not el:
-            el = _get_driver().find_element_by_css_selector(p)
+            el = _get_driver().find_element(By.CSS_SELECTOR, p)
         else:
             curr_el = _find_element_in_shadow(el, p, False)
             if curr_el is None:
                 # try to search in the shadowRoot of the parent element
-                parent_el = el.find_element_by_xpath('..')
+                parent_el = el.find_element(By.XPATH, '..')
                 curr_el = _find_element_in_shadow(parent_el, p, True)
             el = curr_el
     return ShadowElement(el, _get_driver())
@@ -62,9 +62,9 @@ def _find_by_css_selector(root, css_selector, raise_exception):
         if isinstance(root, dict):
             key = list(root.keys())[0]
             shadow_root_el = WebElement(_get_driver(), root[key])
-            element = shadow_root_el.find_element_by_css_selector(css_selector)
+            element = shadow_root_el.find_element(By.CSS_SELECTOR, css_selector)
         else:
-            element = root.find_element_by_css_selector(css_selector)
+            element = root.find_element(By.CSS_SELECTOR, css_selector)
     except NoSuchElementException as nse:
         if raise_exception:
             if root.tag_name == "slot":

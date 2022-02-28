@@ -1,0 +1,1 @@
+Replaced specific 'find_element' methods by 'By' object in Selenium
