@@ -78,8 +78,7 @@ class MolotovExecutor(ScenarioExecutor):
         if load.ramp_up:
             cmdline += ['--ramp-up', str(int(ceil(load.ramp_up)))]
 
-        if load.hold:
-            cmdline += ['--duration', str(int(ceil(load.hold)))]
+        cmdline += ['--duration', str(int(ceil(load.hold)))]
 
         think_time = self.get_scenario().get("think-time", None)
         if think_time:

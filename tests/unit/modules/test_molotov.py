@@ -95,6 +95,18 @@ class TestMolotov(ExecutorTestCase):
         for line in target_lines:
             self.assertTrue(line in self.CMD_LINE)
 
+    def test_no_hold_for(self):
+        self.configure({"execution": {
+            "scenario": {
+                "script": LOADTEST_PY}}})
+        self.obj_prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.get_widget()
+        self.obj.startup()
+        self.obj.post_process()
+
+        self.assertTrue("--duration 0" in self.CMD_LINE)
+
     def test_think_time(self):
         self.obj.settings.merge({
             "path": TOOL_PATH})
