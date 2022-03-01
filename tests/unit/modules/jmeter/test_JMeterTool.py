@@ -74,23 +74,25 @@ class TestJMeterTool(BZTestCase):
 
     def test_plugins_manager_and_command_runner_default_urls(self):
         self.obj.__init__()
-        self.assertEqual(self.obj.plugins_manager, JMeter.PLUGINS_MANAGER_LINK.format(version=JMeter.PLUGINS_MANAGER_VERSION))
-        self.assertEqual(self.obj.command_runner, JMeter.COMMAND_RUNNER_LINK.format(version=JMeter.COMMAND_RUNNER_VERSION))
+        pm_link = JMeter.PLUGINS_MANAGER_LINK.format(version=JMeter.PLUGINS_MANAGER_VERSION)
+        cr_link = JMeter.COMMAND_RUNNER_LINK.format(version=JMeter.COMMAND_RUNNER_VERSION)
+        self.assertEqual(self.obj.plugins_manager_link, pm_link)
+        self.assertEqual(self.obj.command_runner_link, cr_link)
 
     def test_plugins_manager_and_command_runner_configured_url(self):
-        plugins_manager_test_url = "http://somewhere.else/plugins-manager/{version}/plugins-manager.jar"
-        plugins_manager_test_version = "1.0"
-        command_runner_test_url = "http://somewhere.else/command-runner/{version}/command-runner.jar"
-        command_runner_test_version = "1.0"
+        pm_test_url = "http://somewhere.else/plugins-manager/{version}/plugins-manager.jar"
+        pm_test_version = "1.0"
+        cr_test_url = "http://somewhere.else/command-runner/{version}/command-runner.jar"
+        cr_test_version = "1.0"
         self.obj.__init__(config={
             "plugins-manager": {
-                "download-link": plugins_manager_test_url,
-                "version": plugins_manager_test_version
+                "download-link": pm_test_url,
+                "version": pm_test_version
             },
             "command-runner": {
-                "download-link": command_runner_test_url,
-                "version": command_runner_test_version
+                "download-link": cr_test_url,
+                "version": cr_test_version
             }
         })
-        self.assertEqual(self.obj.plugins_manager, plugins_manager_test_url.format(version=plugins_manager_test_version))
-        self.assertEqual(self.obj.command_runner, command_runner_test_url.format(version=command_runner_test_version))
+        self.assertEqual(self.obj.plugins_manager_link, pm_test_url.format(version=pm_test_version))
+        self.assertEqual(self.obj.command_runner_link, cr_test_url.format(version=cr_test_version))
