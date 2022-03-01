@@ -15,7 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
 import shutil
 from math import ceil
 
@@ -37,12 +36,15 @@ class MolotovExecutor(ScenarioExecutor):
         self.stderr = None
         self.molotov = None
         self.scenario = None
+        self.script = None
         self.launch_cmdline = None
         self.user_tool_path = None
 
     def prepare(self):
         super(MolotovExecutor, self).prepare()
         self.install_required_tools()
+
+        self.script = self.get_script_path()
         self.stdout = open(self.engine.create_artifact("molotov", ".out"), 'w')
         self.stderr = open(self.engine.create_artifact("molotov", ".err"), 'w')
 
@@ -69,21 +71,14 @@ class MolotovExecutor(ScenarioExecutor):
 
         if load.concurrency:
             cmdline += ['--workers', str(load.concurrency)]
-        else:
-            cmdline += ['--workers', "1"]
 
         if 'processes' in self.execution:
             cmdline += ['--processes', str(self.execution['processes'])]
 
-        duration = 0
         if load.ramp_up:
-            ramp_up = int(ceil(dehumanize_time(load.hold)))
-            duration += ramp_up
-            cmdline += ['--ramp-up', str(ramp_up)]
-        if load.hold:
-            hold = int(ceil(dehumanize_time(load.hold)))
-            duration += hold
-        cmdline += ['--duration', str(duration)]
+            cmdline += ['--ramp-up', str(int(ceil(load.ramp_up)))]
+
+        cmdline += ['--duration', str(int(ceil(load.hold)))]
 
         think_time = self.get_scenario().get("think-time", None)
         if think_time:
@@ -151,6 +146,7 @@ class MolotovReportReader(ResultsReader):
             self.read_records += 1
             if row.get("type") == "workers":
                 self._concurrency = row.get("value", self._concurrency)
+
             elif row.get("type") == "scenario_success":
                 label = unicode_decode(row["name"])
                 tstmp = int(float(row["ts"]))
@@ -160,6 +156,7 @@ class MolotovReportReader(ResultsReader):
                 cnn = ltc = byte_count = 0
                 trname = ''
                 yield tstmp, label, self._concurrency, rtm, cnn, ltc, rcd, error, trname, byte_count
+
             elif row.get("type") == "scenario_failure":
                 label = unicode_decode(row["name"])
                 tstmp = int(float(row["ts"]))
@@ -168,17 +165,4 @@ class MolotovReportReader(ResultsReader):
                 error = row["errorMessage"]
                 cnn = ltc = byte_count = 0
                 trname = ''
-                yield tstmp, label, self._concurrency, rtm, cnn, ltc, rcd, error, trname, byte_count
-            elif row.get("type") == "request":
-                label = unicode_decode(row["label"])
-                tstmp = int(float(row["ts"]))
-                rtm = float(row["elapsed"])
-                rcd = row["responseCode"]
-                error = None
-                if int(rcd) >= 400:
-                    error = row["responseMessage"]
-                cnn = 0
-                ltc = 0
-                trname = ''
-                byte_count = 0
                 yield tstmp, label, self._concurrency, rtm, cnn, ltc, rcd, error, trname, byte_count
