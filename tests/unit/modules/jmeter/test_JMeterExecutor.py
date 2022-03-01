@@ -387,57 +387,6 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual(fake.check_if_installed(), False)
         self.assertEqual(fake.tool_path, os.path.join('*', end_str))
 
-    def test_install_jmeter_542(self):
-        path = os.path.join(BUILD_DIR, "jmeter-taurus", "bin",  "jmeter" + EXE_SUFFIX)
-        self.obj.mock_install = False
-
-        shutil.rmtree(get_full_path(path, step_up=3), ignore_errors=True)
-        self.assertFalse(os.path.exists(path))
-
-        jmeter_res_dir = os.path.join(RESOURCES_DIR, "jmeter")
-        http_client = MockHTTPClient()
-        http_client.add_response('https://jmeter.apache.org/download_jmeter.cgi',
-                                 file=os.path.join(jmeter_res_dir, "unicode_file"))
-        http_client.add_response('https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.4.2.zip',
-                                 file=os.path.join(jmeter_res_dir, "jmeter-dist-5.4.2.zip"))
-        url = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
-              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeter.PLUGINS_MANAGER_VERSION)
-
-        http_client.add_response(url, file=os.path.join(jmeter_res_dir, "jmeter-plugins-manager.jar"))
-        http_client.add_response('https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.3/cmdrunner-2.3.jar',
-                                 file=os.path.join(jmeter_res_dir, "jmeter-plugins-manager.jar"))
-
-        self.obj.engine.get_http_client = lambda: http_client
-        jmeter_ver = JMeter.VERSION
-        try:
-            JMeter.VERSION = '5.4.2'
-
-            self.configure({
-                "execution": [{"scenario": {"requests": ["http://localhost"]}}],
-                "settings": {
-                    "proxy": {
-                        "address": "http://myproxy.com:8080",
-                        "username": "user",
-                        "password": "pass"}}})
-            self.obj.settings.merge({"path": path})
-            self.obj.prepare()
-            jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
-            self.assertNotIn('httpclient-4.5.jar', jars)
-            self.assertIn('httpclient-4.5.2.jar', jars)
-
-            self.assertTrue(os.path.exists(path))
-
-            # start again..
-            self.tearDown()
-            self.setUp()
-
-            self.configure({"execution": {"scenario": {"requests": ["http://localhost"]}}})
-            self.obj.settings.merge({"path": path})
-
-            self.obj.prepare()
-        finally:
-            JMeter.VERSION = jmeter_ver
-
     def test_install_disabled(self):
         path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
         self.obj.mock_install = False
