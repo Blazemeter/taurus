@@ -3,7 +3,7 @@ import json
 import os
 import shutil
 import time
-from unittest import skipUnless, skipIf
+from unittest import skipUnless
 from distutils.version import LooseVersion
 
 import yaml
@@ -18,12 +18,7 @@ from bzt.modules.jmeter import JTLReader, FuncJTLReader, JMeter
 from bzt.modules.provisioning import Local
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM, etree
 from tests.unit import RESOURCES_DIR, BUILD_DIR, close_reader_file, ExecutorTestCase
-from . import MockJMeterExecutor, MockHTTPClient
-
-_jvm = JavaVM()
-_jvm.check_if_installed()
-java_version = _jvm.version
-java10 = LooseVersion(java_version) >= LooseVersion("10")
+from . import MockJMeterExecutor
 
 
 class TestJMeterExecutor(ExecutorTestCase):
