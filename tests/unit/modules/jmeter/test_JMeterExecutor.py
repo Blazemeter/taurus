@@ -4,7 +4,6 @@ import os
 import shutil
 import time
 from unittest import skipUnless
-from distutils.version import LooseVersion
 
 import yaml
 
@@ -16,7 +15,8 @@ from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JTLReader, FuncJTLReader, JMeter
 from bzt.modules.provisioning import Local
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM, etree
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, etree
+
 from tests.unit import RESOURCES_DIR, BUILD_DIR, close_reader_file, ExecutorTestCase
 from . import MockJMeterExecutor
 
