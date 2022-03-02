@@ -161,7 +161,6 @@ class GUIScreen(BaseScreen):
 
     def __prepare_tags(self):
         for name, style in iteritems(self._palette):
-            # NOTE: not sure which index use, used [0]
             bgc = self.__translate_tcl_color(style[0].background)
             fgc = self.__translate_tcl_color(style[0].foreground)
             self.text.tag_configure(name, background=bgc, foreground=fgc)

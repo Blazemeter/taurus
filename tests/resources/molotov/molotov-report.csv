@@ -1,14 +1,20 @@
-{"type": "workers", "ts": 1506336427.9278605, "value": 0}
-{"type": "request", "label": "http://52.57.188.88/", "responseMessage": "OK", "responseCode": "200", "ts": 1506336429.3267288, "elapsed": 0.065}
-{"wid": "worker-0", "name": "scenario_one", "ts": 1506336429.26943, "duration": 0.122, "type": "scenario_success"}
-{"type": "request", "label": "http://52.57.188.88/", "responseMessage": "OK", "responseCode": "200", "ts": 1506336429.4511755, "elapsed": 0.067}
-{"wid": "worker-0", "name": "scenario_one", "ts": 1506336429.3925147, "duration": 0.126, "type": "scenario_success"}
-{"type": "request", "label": "http://52.57.188.88/", "responseMessage": "OK", "responseCode": "200", "ts": 1506336429.6974301, "elapsed": 0.064}
-{"wid": "worker-0", "name": "scenario_one", "ts": 1506336429.6404092, "duration": 0.122, "type": "scenario_success"}
-{"type": "request", "label": "http://52.57.188.88/", "responseMessage": "OK", "responseCode": "200", "ts": 1506336429.9443498, "elapsed": 0.063}
-{"wid": "worker-0", "name": "scenario_one", "ts": 1506336430.1332557, "duration": 0.123, "type": "scenario_success"}
-{"type": "request", "label": "http://52.57.188.88/", "responseMessage": "OK", "responseCode": "200", "ts": 1506336430.2567751, "elapsed": 0.063}
-{"wid": "worker-0", "name": "scenario_one", "ts": 1506336430.2562625, "duration": 0.063, "type": "scenario_success"}
-{"type": "workers", "ts": 1506336430.3888893, "value": 1}
-{"name": "scenario_two", "type": "scenario_failure", "exception": "AssertionError", "wid": "worker-0", "duration": 0.124, "errorMessage": "Yo dude", "ts": 1506336439.5200522}
-{"type": "request", "label": "http://52.57.188.88/not-found", "responseMessage": "Not Found", "responseCode": "404", "ts": 1506336439.6972542, "elapsed": 0.066}
+{"ts": 1645712661.5029047, "type": "workers", "value": 0}
+{"ts": 1645712661.7488089, "type": "request", "label": "https://blazedemo.com/", "elapsed": 0.251, "responseCode": "200", "responseMessage": "OK"}
+{"ts": 1645712661.5035622, "wid": "worker-0", "type": "scenario_success", "name": "scenario_one", "duration": 0.496}
+{"ts": 1645712662.1414242, "type": "request", "label": "https://blazedemo.com/not-found", "elapsed": 0.264, "responseCode": "404", "responseMessage": "Not Found"}
+{"ts": 1645712662.0000732, "wid": "worker-0", "type": "scenario_failure", "name": "scenario_two", "duration": 0.406, "exception": "AssertionError", "errorMessage": ""}
+{"ts": 1645712662.50475, "type": "workers", "value": 1}
+{"ts": 1645712662.6180196, "type": "request", "label": "https://blazedemo.com/", "elapsed": 0.22, "responseCode": "200", "responseMessage": "OK"}
+{"ts": 1645712662.4058871, "wid": "worker-0", "type": "scenario_success", "name": "scenario_one", "duration": 0.433}
+{"ts": 1645712663.0457025, "type": "request", "label": "https://blazedemo.com/not-found", "elapsed": 0.321, "responseCode": "404", "responseMessage": "Not Found"}
+{"ts": 1645712662.8385682, "wid": "worker-0", "type": "scenario_failure", "name": "scenario_two", "duration": 0.529, "exception": "AssertionError", "errorMessage": ""}
+{"ts": 1645712663.5058749, "type": "workers", "value": 1}
+{"ts": 1645712663.510754, "type": "request", "label": "https://blazedemo.com/not-found", "elapsed": 0.249, "responseCode": "404", "responseMessage": "Not Found"}
+{"ts": 1645712663.367201, "wid": "worker-0", "type": "scenario_failure", "name": "scenario_two", "duration": 0.393, "exception": "AssertionError", "errorMessage": ""}
+{"ts": 1645712663.9051208, "type": "request", "label": "https://blazedemo.com/not-found", "elapsed": 0.258, "responseCode": "404", "responseMessage": "Not Found"}
+{"ts": 1645712663.7601733, "wid": "worker-0", "type": "scenario_failure", "name": "scenario_two", "duration": 0.403, "exception": "AssertionError", "errorMessage": ""}
+{"ts": 1645712664.506538, "type": "workers", "value": 1}
+{"ts": 1645712664.305398, "type": "request", "label": "https://blazedemo.com/", "elapsed": 0.241, "responseCode": "200", "responseMessage": "OK"}
+{"ts": 1645712664.1636362, "wid": "worker-0", "type": "scenario_success", "name": "scenario_one", "duration": 0.383}
+{"ts": 1645712664.754881, "type": "request", "label": "https://blazedemo.com/", "elapsed": 0.339, "responseCode": "200", "responseMessage": "OK"}
+{"ts": 1645712664.5464728, "wid": "worker-0", "type": "scenario_success", "name": "scenario_one", "duration": 0.547}

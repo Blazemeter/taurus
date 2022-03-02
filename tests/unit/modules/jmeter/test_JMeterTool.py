@@ -1,15 +1,40 @@
 import os
-from bzt.utils import EXE_SUFFIX
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
+from bzt.modules.jmeter import JMeter
 
 from . import MockJMeter
-from bzt.modules.jmeter import JTLReader, FuncJTLReader, JMeter
 from tests.unit import BZTestCase, RESOURCES_DIR
 
 
 class TestJMeterTool(BZTestCase):
     def setUp(self):
         super(TestJMeterTool, self).setUp()
-        self.obj = MockJMeter()
+        config = BetterDict()
+        self.obj = MockJMeter(config=config)
+
+    def test_get_jar_fixes(self):
+        lib_dir_path = get_full_path(__file__, step_up=1)
+        lib_dir_content = [
+            "xstream-1.4.15.jar",   # lib with some vulnerability, must be replaced
+            "log4j-core-2.16.jar",  # only old jmeter versions contains affected log4j components
+            "some-other-lib-0.99.jar"]  # other jar, mustn't be touched
+        listdir = lambda _: lib_dir_content
+        self.obj.version = '1.0'
+
+        saved_listdir = os.listdir
+        os.listdir = listdir
+        try:
+            jar_tools = self.obj._get_jar_fixes(lib_dir_path)
+            target_tools_list = [
+                [
+                    'https://repo1.maven.org/maven2/com/thoughtworks/xstream/xstream/1.4.16/xstream-1.4.16.jar',
+                    os.path.join(lib_dir_path, 'xstream-1.4.15.jar')],
+                [
+                    'https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/2.17.1/log4j-core-2.17.1.jar',
+                    os.path.join(lib_dir_path, 'log4j-core-2.16.jar')]]
+            self.assertEqual(target_tools_list, jar_tools)
+        finally:
+            os.listdir = saved_listdir
 
     def test_additional_jvm_props(self):
         self.obj.tool_path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
@@ -49,23 +74,25 @@ class TestJMeterTool(BZTestCase):
 
     def test_plugins_manager_and_command_runner_default_urls(self):
         self.obj.__init__()
-        self.assertEqual(self.obj.plugins_manager, JMeter.PLUGINS_MANAGER.format(version=JMeter.PLUGINS_MANAGER_VERSION))
-        self.assertEqual(self.obj.command_runner, JMeter.COMMAND_RUNNER.format(version=JMeter.COMMAND_RUNNER_VERSION))
+        pm_link = JMeter.PLUGINS_MANAGER_LINK.format(version=JMeter.PLUGINS_MANAGER_VERSION)
+        cr_link = JMeter.COMMAND_RUNNER_LINK.format(version=JMeter.COMMAND_RUNNER_VERSION)
+        self.assertEqual(self.obj.plugins_manager_link, pm_link)
+        self.assertEqual(self.obj.command_runner_link, cr_link)
 
     def test_plugins_manager_and_command_runner_configured_url(self):
-        plugins_manager_test_url = "http://somewhere.else/plugins-manager/{version}/plugins-manager.jar"
-        plugins_manager_test_version = "1.0"
-        command_runner_test_url = "http://somewhere.else/command-runner/{version}/command-runner.jar"
-        command_runner_test_version = "1.0"
+        pm_test_url = "http://somewhere.else/plugins-manager/{version}/plugins-manager.jar"
+        pm_test_version = "1.0"
+        cr_test_url = "http://somewhere.else/command-runner/{version}/command-runner.jar"
+        cr_test_version = "1.0"
         self.obj.__init__(config={
             "plugins-manager": {
-                "download-link": plugins_manager_test_url,
-                "version": plugins_manager_test_version
+                "download-link": pm_test_url,
+                "version": pm_test_version
             },
             "command-runner": {
-                "download-link": command_runner_test_url,
-                "version": command_runner_test_version
+                "download-link": cr_test_url,
+                "version": cr_test_version
             }
         })
-        self.assertEqual(self.obj.plugins_manager, plugins_manager_test_url.format(version=plugins_manager_test_version))
-        self.assertEqual(self.obj.command_runner, command_runner_test_url.format(version=command_runner_test_version))
+        self.assertEqual(self.obj.plugins_manager_link, pm_test_url.format(version=pm_test_version))
+        self.assertEqual(self.obj.command_runner_link, cr_test_url.format(version=cr_test_version))

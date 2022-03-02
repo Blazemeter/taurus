@@ -10,12 +10,12 @@ Usage:
 execution:
 - executor: molotov
   concurrency: 10  # number of Molotov workers
-  iterations: 5  # iteration limit for the test
   ramp-up: 30s
   hold-for: 1m
   scenario:
-    script: loadtest.py  # has to be valid Molotov's script
+    script: loadtest.py  # has to be  a valid Molotov script
 ```
+Please keep in mind, that Molotov does not support `iterations` keyword.
 
 ## Process number
 

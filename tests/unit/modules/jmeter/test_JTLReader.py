@@ -358,5 +358,7 @@ class TestJTLReader(BZTestCase):
                u'succ': 0,
                u'throughput': 0}
 
-        self.assertEqual(exp, enc_dec_iter(new().items()))
+        subj = new()
+        items = list(subj.items()) + [('concurrency', subj.concurrency)]
+        self.assertEqual(exp, enc_dec_iter(items))
         self.assertEqual('{"100.0": 0.1}', to_json(new().get(KPISet.PERCENTILES), indent=None))

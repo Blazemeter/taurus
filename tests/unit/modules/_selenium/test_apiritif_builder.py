@@ -680,7 +680,7 @@ class TestApiritifScriptGeneration(ExecutorTestCase):
 
         items = list(reader.datapoints())
         self.assertEqual(39, len(items))
-        self.assertEqual(4, items[-1][DataPoint.CURRENT][''][KPISet.CONCURRENCY])
+        self.assertEqual(4, items[-1][DataPoint.CURRENT][''].concurrency)
 
     def test_func_reader(self):
         reader = ApiritifFuncReader(self.obj.engine, self.obj.log)

@@ -1449,6 +1449,12 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                                         "param": "10 === 2*5"
                                     },
                                     {
+                                        "type": "assertEval",
+                                        "param": "var_assert",
+                                        "value": "myFunction();\nfunction myFunction(){\n "
+                                                 "btnNameVar=\"${btnName1}\";\n return \"support\";\n}"
+                                    },
+                                    {
                                         "type": "storeEval",
                                         "param": "var_eval",
                                         "value": "myFunction();\nfunction myFunction(){\n "

@@ -94,7 +94,7 @@ class JMeterExecutor(ScenarioExecutor):
     def __init__(self):
         super(JMeterExecutor, self).__init__()
         self.original_jmx = None
-        self.modified_jmx = None
+        self.modified_jmx = ""
         self.jmeter_log = None
         self.properties = BetterDict()
         self.properties_file = None
@@ -1293,7 +1293,7 @@ class JTLErrorsReader(object):
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
     def _extract_nonstandard(self, elem):
-        t_stamp = int(elem.findtext("timeStamp")) / 1000.0  # NOTE: will it be sometimes EndTime?
+        t_stamp = int(elem.findtext("timeStamp")) / 1000.0
         label = elem.findtext("label")
         message = elem.findtext("responseMessage")
         r_code = elem.findtext("responseCode")
@@ -1371,15 +1371,15 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
-    PLUGINS_MANAGER_VERSION = "1.3"
-    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
-    COMMAND_RUNNER_VERSION = "2.2"
-    COMMAND_RUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
+    PLUGINS_MANAGER_VERSION = "1.7"
+    PLUGINS_MANAGER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
+    COMMAND_RUNNER_VERSION = "2.3"
+    COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
     VERSION = "5.4.3"
 
     def __init__(self, config=None, props=None, **kwargs):
-        settings = config or {}
-        props = props or {}
+        settings = config or BetterDict()
+        props = props or BetterDict()
 
         version = settings.get("version", JMeter.VERSION)
         jmeter_path = settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
@@ -1389,18 +1389,20 @@ class JMeter(RequiredTool):
         if download_link is not None:
             download_link = download_link.format(version=version)
 
-        plugins_manager_settings = settings.get("plugins-manager", {})
+        plugins_manager_settings = settings.get("plugins-manager")
         plugins_manager_version = plugins_manager_settings.get("version", JMeter.PLUGINS_MANAGER_VERSION)
-        self.plugins_manager = plugins_manager_settings.get("download-link", JMeter.PLUGINS_MANAGER).format(version=plugins_manager_version)
+        self.plugins_manager_link = plugins_manager_settings.get(
+            "download-link", JMeter.PLUGINS_MANAGER_LINK).format(version=plugins_manager_version)
 
-        command_runner_settings = settings.get("command-runner", {})
+        command_runner_settings = settings.get("command-runner")
         command_runner_version = command_runner_settings.get("version", JMeter.COMMAND_RUNNER_VERSION)
-        self.command_runner = command_runner_settings.get("download-link", JMeter.COMMAND_RUNNER).format(version=command_runner_version)
+        self.command_runner_link = command_runner_settings.get(
+            "download-link", JMeter.COMMAND_RUNNER_LINK).format(version=command_runner_version)
         self.plugins = settings.get("plugins", [])
 
         super(JMeter, self).__init__(tool_path=jmeter_path, download_link=download_link, version=version, **kwargs)
 
-        self.fix_log4j = LooseVersion(self.version) <= LooseVersion('5.4.2') and settings.get("fix-log4j", True)
+        self.fix_jars = settings.get("fix-jars", True)
         self.mirror_manager = JMeterMirrorsManager(self.http_client, self.log, self.version)
 
         additional_jvm_props = self._get_jvm_props(props)
@@ -1513,9 +1515,9 @@ class JMeter(RequiredTool):
                     self.log.debug("Error details: %s", traceback.format_exc())
                     raise TaurusNetworkError("Error while downloading %s: %s" % (_file, exc))
 
-    def __install_plugins_manager(self, plugins_manager_path):
+    def __install_plugins_manager(self, pm_installer_path):
         installer = "org.jmeterplugins.repository.PluginManagerCMDInstaller"
-        cmd_line = ["java", "-cp", plugins_manager_path, installer]
+        cmd_line = ["java", "-cp", pm_installer_path, installer]
         self.log.debug("Trying: %s", cmd_line)
         try:
             out, err = self.call(cmd_line)
@@ -1524,7 +1526,8 @@ class JMeter(RequiredTool):
 
         self.log.debug("Install PluginsManager: %s / %s", out, err)
 
-    def __install_plugins(self, plugins_manager_cmd):
+    def __install_plugins(self):
+        plugins_manager_cmd = self._pmgr_path()
         plugin_str = ",".join(self.plugins)
         self.log.info("Installing JMeter plugins: %s", plugin_str)
         cmd_line = [plugins_manager_cmd, 'install', plugin_str]
@@ -1544,41 +1547,62 @@ class JMeter(RequiredTool):
         dest = get_full_path(self.tool_path, step_up=2)
         return os.path.join(dest, 'bin', 'PluginsManagerCMD' + EXE_SUFFIX)
 
-    def install(self):
-        dest = get_full_path(self.tool_path, step_up=2)
-        self.log.info("Will install %s into %s", self.tool_name, dest)
-        plugins_manager_name = os.path.basename(self.plugins_manager)
-        command_runner_name = os.path.basename(self.command_runner)
-        plugins_manager_path = os.path.join(dest, 'lib', 'ext', plugins_manager_name)
-        command_runner_path = os.path.join(dest, 'lib', command_runner_name)
-        direct_install_tools = [  # source link and destination
-            [self.plugins_manager, plugins_manager_path],
-            [self.command_runner, command_runner_path]]
+    def _get_jar_fixes(self, lib_dir):
+        direct_install_tools = []
+        if self.fix_jars:
+            # these jars should be replaced with newer version in order to fix some vulnerabilities
 
-        plugins_manager_cmd = self._pmgr_path()
-        self.__install_jmeter(dest)
+            # component name and download link in https://repo1.maven.org/maven2/
+            affected_components = {
+                "xstream": "com/thoughtworks/xstream/xstream/1.4.16/xstream-1.4.16.jar",
+                "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.10.5.1/jackson-databind-2.10.5.1.jar",
+                "netty-codec": "io/netty/netty-codec/4.1.50.Final/netty-codec-4.1.50.Final.jar",
+                "jetty-io": "org/eclipse/jetty/jetty-io/9.4.43.v20210629/jetty-io-9.4.43.v20210629.jar",
+                "snakeyaml": "org/yaml/snakeyaml/1.26/snakeyaml-1.26.jar",
+                "json-smart": "net/minidev/json-smart/2.4.7/json-smart-2.4.7.jar",
+                "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.6/xmlgraphics-commons-2.6.jar"}
 
-        # fix log4j
-        if self.fix_log4j:
-            lib_dir = os.path.join(dest, 'lib')
-            fixed_version = '2.17.1'
-            maven_link = "https://repo1.maven.org/maven2/org/apache/logging/log4j/{comp}/{ver}/{comp}-{ver}.jar"
-            affected_components = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
-            log4j_files = [_file for _file in os.listdir(lib_dir) if _file.startswith("log4j")]
-            for _file in log4j_files:
-                for comp in affected_components:
-                    if _file.startswith(comp):
-                        full_link = maven_link.format(comp=comp, ver=fixed_version)
-                        full_path = os.path.join(lib_dir, _file)
-                        direct_install_tools.append([full_link, full_path])
+            if LooseVersion(self.version) <= LooseVersion('5.4.2'):  # log4j must be fixed till jmeter 5.4.2
+                affected_names = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
+                fixed_version = '2.17.1'
+                maven_link = "org/apache/logging/log4j/{name}/{ver}/{name}-{ver}.jar"
+
+                for name in affected_names:
+                    affected_components[name] = maven_link.format(name=name, ver=fixed_version)
+
+            jar_files = [_file for _file in os.listdir(lib_dir) if _file.endswith(".jar")]
+            for jar_file in jar_files:
+                for comp_name in affected_components:
+                    if jar_file.startswith(comp_name):
+                        download_link = "https://repo1.maven.org/maven2/" + affected_components[comp_name]
+                        target_path = os.path.join(lib_dir, jar_file)
+                        direct_install_tools.append([download_link, target_path])
                         break
 
+        return direct_install_tools
+
+    def install(self):
+        jmeter_dir = get_full_path(self.tool_path, step_up=2)
+        lib_dir = os.path.join(jmeter_dir, 'lib')
+        self.log.info("Will install %s into %s", self.tool_name, jmeter_dir)
+        plugins_manager_name = os.path.basename(self.plugins_manager_link)
+        command_runner_name = os.path.basename(self.command_runner_link)
+        pm_installer_path = os.path.join(lib_dir, 'ext', plugins_manager_name)
+        command_runner_path = os.path.join(lib_dir, command_runner_name)
+
+        self.__install_jmeter(jmeter_dir)
+
+        direct_install_tools = self._get_jar_fixes(lib_dir)     # format: download link, local destination path
+        direct_install_tools.extend([
+            [self.plugins_manager_link, pm_installer_path],
+            [self.command_runner_link, command_runner_path]])
+
         self.__download_additions(direct_install_tools)
-        self.__install_plugins_manager(plugins_manager_path)
-        self.__install_plugins(plugins_manager_cmd)
+        self.__install_plugins_manager(pm_installer_path)
+        self.__install_plugins()
 
         cleaner = JarCleaner(self.log)
-        cleaner.clean(os.path.join(dest, 'lib'))
+        cleaner.clean(lib_dir)
 
     def ctg_plugin_installed(self):
         """
