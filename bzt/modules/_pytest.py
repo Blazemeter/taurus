@@ -63,8 +63,8 @@ class PyTestExecutor(SubprocessedExecutor):
         self._check_tools([self.pytest, self._get_tool(TaurusPytestRunner, tool_path=self.runner_path)])
 
     def get_load(self):
-        raw_concurrency = self.get_raw_load().concurrency
-        if raw_concurrency.lower() == 'auto':
+        raw_concurrency = str(self.get_raw_load().concurrency).lower()
+        if raw_concurrency == 'auto':
             prov_type = self.engine.config.get(Provisioning.PROV)
             self.execution.get(ScenarioExecutor.CONCURR)[prov_type] = -1
         return super().get_load()
