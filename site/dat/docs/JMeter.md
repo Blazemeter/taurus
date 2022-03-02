@@ -14,7 +14,7 @@ modules:
     version: 5.4.2  # minimal supported version of JMeter is 5.0
     force-ctg: true   # true by default
     detect-plugins: true
-    fix-log4j: true
+    fix-jars: true
     plugins:
     - jpgc-json=2.2
     - jmeter-ftp

@@ -13,7 +13,7 @@ class MockHTTPClient(HTTPClient):
         super(MockHTTPClient, self).__init__()
         self.responses_dict = {}
 
-    def add_response(self, method, url, text=None, file=None):
+    def add_response(self, method="GET", url="", text=None, file=None):
         self.responses_dict[(method, url)] = MockResponse(text, file)
 
     def download_file(self, url, filename, reporthook=None, data=None, timeout=None):
