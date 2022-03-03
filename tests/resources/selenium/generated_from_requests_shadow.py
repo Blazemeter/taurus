@@ -20,7 +20,8 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import get_locator, find_element_by_shadow, waiter
+from bzt.resources.selenium_extras import get_locator, find_element_by_shadow, waiter, wait_for
+
 
 class TestLocSc(unittest.TestCase):
 
@@ -157,6 +158,9 @@ class TestLocSc(unittest.TestCase):
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys(Keys.ENTER)
 
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys(Keys.ENTER)
+
+            wait_for('visible', [{'shadow': 'toPort'}], 5.0)
+            wait_for('notvisible', [{'shadow': 'c-basic, lightning-accordion-section, .slds-button'}], 2.0)
 
     def test_locsc(self):
         self._1_Shadow_locators_test()

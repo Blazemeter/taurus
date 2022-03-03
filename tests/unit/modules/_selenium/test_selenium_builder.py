@@ -2476,6 +2476,13 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                                         "type": "keys",
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
                                         "param": "KEY_ENTER"
+                                    },
+                                    {"waitForByShadow('toPort', visible)": "5s"},
+                                    {
+                                        "type": "waitFor",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "notvisible",
+                                        "value": "2s"
                                     }
                                 ]
                             }
