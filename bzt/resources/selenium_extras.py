@@ -74,6 +74,10 @@ def _find_by_css_selector(root, css_selector, raise_exception):
     return element
 
 
+def _is_shadow_locator(locators):
+    return len(locators) == 1 and locators[0].get("shadow")
+
+
 def get_locator(locators, parent_el=None, ignore_implicit_wait=False, raise_exception=False):
     """
     :param locators: List of Dictionaries holding the locators, e.g. [{'id': 'elem_id'},
@@ -91,7 +95,7 @@ def get_locator(locators, parent_el=None, ignore_implicit_wait=False, raise_exce
     first_locator = None
     if ignore_implicit_wait:
         driver.implicitly_wait(0)
-    if len(locators) == 1 and locators[0].get("shadow"):
+    if _is_shadow_locator(locators):
         return locators
     for locator in locators:
         locator_type = list(locator.keys())[0]
@@ -309,9 +313,59 @@ def dialogs_answer_on_next_confirm(value):
 
 def wait_for(condition, locators, wait_timeout=10):
     if condition.lower() in ["present", "visible", "clickable"]:
-        _wait_for_positive(condition.lower(), locators, wait_timeout)
+        if _is_shadow_locator(locators):
+            _wait_for_positive_shadow(condition.lower(), locators[0].get("shadow"), wait_timeout)
+        else:
+            _wait_for_positive(condition.lower(), locators, wait_timeout)
     elif condition.lower() in ["notpresent", "notvisible", "notclickable"]:
-        _wait_for_negative(condition.lower(), locators, wait_timeout)
+        if _is_shadow_locator(locators):
+            _wait_for_negative_shadow(condition.lower(), locators[0].get("shadow"), wait_timeout)
+        else:
+            _wait_for_negative(condition.lower(), locators, wait_timeout)
+
+
+def presence_of_shadow_element_located(locator):
+    """
+    Extends expected_conditions.py to support shadow locators
+    """
+    def _predicate(driver=None):
+        return find_element_by_shadow(locator)
+
+    return _predicate
+
+
+def _wait_for_positive_shadow(condition, shadow_loc, wait_timeout):
+    start_time = time.time()
+    while True:
+        shadow_element = None
+        try:
+            shadow_element = find_element_by_shadow(shadow_loc)
+        except NoSuchElementException:
+            pass
+        if shadow_element:
+            try:
+                element = WebDriverWait(_get_driver(), wait_timeout).until(
+                    _get_until_cond_shadow(condition, shadow_element.element, shadow_loc))
+                if element:
+                    return
+            except TimeoutException:
+                pass
+        elapsed_time = time.time() - start_time
+        if elapsed_time > wait_timeout:
+            raise NoSuchElementException("Timeout occurred while waiting for element (%s) to become '%s' " % (shadow_loc, condition))
+
+
+def _wait_for_negative_shadow(condition, shadow_loc, wait_timeout):
+    shadow_element = None
+    try:
+        shadow_element = find_element_by_shadow(shadow_loc)
+    except NoSuchElementException:
+        pass
+    if shadow_element:
+        WebDriverWait(_get_driver(), wait_timeout).until_not(
+            _get_until_cond_shadow(condition, shadow_element, shadow_loc),
+            message="Timeout occurred while waiting for element (%s) to become '%s'" %
+                    (shadow_loc, condition))
 
 
 def _wait_for_positive(condition, locators, wait_timeout):
@@ -363,6 +417,15 @@ def _get_until_cond(condition, locator):
         return econd.presence_of_element_located(loc_tuple)
     if "visible" in condition:
         return econd.visibility_of_element_located(loc_tuple)
+
+
+def _get_until_cond_shadow(condition, element, shadow_locator=None):
+    if "clickable" in condition:
+        return econd.element_to_be_clickable(element)
+    if "present" in condition:
+        return presence_of_shadow_element_located(shadow_locator)
+    if "visible" in condition:
+        return econd.visibility_of(element)
 
 
 def get_loop_range(start, end, step):
