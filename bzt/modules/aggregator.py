@@ -665,7 +665,9 @@ class ResultsProvider(object):
         """
         for datapoint in self._calculate_datapoints(final_pass):
             current = datapoint[DataPoint.CURRENT]
-            if datapoint[DataPoint.CUMULATIVE] or not self._ramp_up_exclude():
+
+            exclude_as_ramp_up = self._ramp_up_exclude() and not datapoint[DataPoint.CUMULATIVE]
+            if not exclude_as_ramp_up:
                 self.__merge_to_cumulative(current)
                 datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
                 datapoint.recalculate()
@@ -888,7 +890,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.buffer = {}
         self.histogram_max = 5.0
         self._sticky_concurrencies = {}
-        self.min_timestamp = None
+        self.min_timestamp = None   # first aggregated data timestamp, just for exclude_ramp_up feature
 
     def converter(self, data):
         if data and self._redundant_aggregation:
@@ -1075,6 +1077,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
                     if subresult['ts'] < self.min_timestamp + self._get_max_ramp_up():
                         subresult[DataPoint.CUMULATIVE] = dict()
+                        # cleaning cumulative value is used as 'exclude ramp-up still' flag
 
             Concurrency.update_sticky(self._sticky_concurrencies, points_to_consolidate)
             point = points_to_consolidate[0]
