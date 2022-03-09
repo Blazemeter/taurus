@@ -51,7 +51,8 @@ Supported values:
 - `xunit`: [xUnit](XUnit.md)-based C# tests
 
 Note that automatic detection can't differentiate between `apiritif` and `pytest`-based test suites,
-so if you want to run `pytest` - you have to specify it as a `runner` explicitly. Same situation with `nunit` and `xunit`.
+so if you want to run `pytest` - you have to specify it as a `runner` explicitly. 
+Same situation with `nunit` and `xunit`. `testng` will be detected and not `junit` if there is `testng-xml` keyword in execution.
 
 Usage:
 ```yaml
