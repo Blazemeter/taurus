@@ -1884,10 +1884,9 @@ class TestResultsFromBZA(BZTestCase):
         obj.master = Master(data={"id": 1})
         mock.apply(obj.master)
         res = list(obj.datapoints(True))
-        cumulative_ = res[0][DataPoint.CUMULATIVE]
-        total = cumulative_['']
-        percentiles_ = total[KPISet.PERCENTILES]
-        self.assertEquals(1.05, percentiles_['99.0'])
+        current = res[0][DataPoint.CURRENT]
+        percentiles = current[''][KPISet.PERCENTILES]
+        self.assertEquals(1.05, percentiles['99.0'])
 
     def test_no_kpis_on_cloud_crash(self):
         mock = BZMock()

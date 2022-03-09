@@ -292,17 +292,13 @@ class MockReader(ResultsReader, AggregatorListener):
         while self.data:
             yield self.data.pop(0)
 
-    def aggregated_second(self, data):
-        """
-        Store and assert aggregate sequence
-
-        :type data: dict
-        :raise AssertionError:
-        """
-        if self.results:
-            if self.results[-1]["ts"] >= data["ts"]:
-                raise AssertionError("TS sequence wrong: %s>=%s" % (self.results[-1]["ts"], data["ts"]))
-        self.results.append(data)
+    def datapoints(self, final_pass=False):
+        for point in super().datapoints(final_pass):
+            if self.results:
+                if self.results[-1]["ts"] >= point["ts"]:
+                    raise AssertionError("TS sequence wrong: %s>=%s" % (self.results[-1]["ts"], point["ts"]))
+            self.results.append(point)
+            yield point
 
 
 class MockFunctionalReader(FunctionalResultsReader):
