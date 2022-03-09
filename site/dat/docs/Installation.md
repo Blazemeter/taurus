@@ -173,3 +173,6 @@ Install the plugin with:
 ```
 pip install pytest-xdist
 ```
+ After installation use `concurrency` parameter for [pytest](https://gettaurus.org/docs/PyTest/#Pytest-Executor) 
+ executor which will work as `-n` option for pytest in command line.
+ 
