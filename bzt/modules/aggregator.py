@@ -579,11 +579,14 @@ class ResultsProvider(object):
         self.cumulative = {}
         self.track_percentiles = [0.0, 50.0, 90.0, 95.0, 99.0, 99.9, 100.0]
         self.listeners = []
-        self.buffer_len = 2
-        self.min_buffer_len = 2
-        self.max_buffer_len = float('inf')
-        self.buffer_multiplier = 2
-        self.buffer_scale_idx = None
+
+        self.buffer_scale_idx = None    # string value of the most interesting percentile (e.q. '90.0')
+        self.buffer_multiplier = 2      # how many sequential samples we want to get before aggregation (approximately)
+
+        self.buffer_len = 2                     # how many data points we want to collect before aggregation
+        self.min_buffer_len = 2                 # small buffer is more responsive but tends to loose data
+        self.max_buffer_len = float('inf')      # buffer_len value can be changed during runtime.
+
         self.histogram_max = 1.0
         self.known_errors = fuzzyset.FuzzySet(use_levenshtein=True)
         self.max_error_count = 100
@@ -696,7 +699,7 @@ class ResultsReader(ResultsProvider):
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
-        self.min_timestamp = 0
+        self.min_timestamp = 0      # last aggregated timestamp, older data is obsolete and must be fixed
         if perc_levels is not None:
             self.track_percentiles = perc_levels
 
@@ -825,9 +828,12 @@ class ResultsReader(ResultsProvider):
 
         if self.cumulative and self.track_percentiles and self.buffer_scale_idx is not None:
             old_len = self.buffer_len
-            chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
-            self.buffer_len = round(chosen_timing * self.buffer_multiplier)
 
+            # choose average timing of the most interesting percentile
+            chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
+
+            # and calculate new buffer_len based on current speed of data getting
+            self.buffer_len = round(chosen_timing * self.buffer_multiplier)
             self.buffer_len = max(self.min_buffer_len, self.buffer_len)
             self.buffer_len = min(self.max_buffer_len, self.buffer_len)
             if self.buffer_len != old_len:
