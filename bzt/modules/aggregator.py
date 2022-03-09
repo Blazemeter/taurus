@@ -643,20 +643,6 @@ class ResultsProvider(object):
         """
         self.listeners.append(listener)
 
-    def __merge_to_cumulative(self, current):
-        """
-        Merge current KPISet to cumulative
-        :param current: KPISet
-        """
-        for label, data in iteritems(current):
-            default = KPISet(
-                perc_levels=self.track_percentiles,
-                hist_max_rt=data[KPISet.RESP_TIMES].high,
-                ext_aggregation=self._redundant_aggregation)
-            cumul = self.cumulative.setdefault(label, default)
-            cumul.merge_kpis(data)
-            cumul.recalculate()
-
     def datapoints(self, final_pass=False):
         """
         Generator object that returns datapoints from the reader
@@ -664,16 +650,6 @@ class ResultsProvider(object):
         :type final_pass: bool
         """
         for datapoint in self._calculate_datapoints(final_pass):
-            current = datapoint[DataPoint.CURRENT]
-
-            exclude_as_ramp_up = self._ramp_up_exclude() and not datapoint[DataPoint.CUMULATIVE]
-            if not exclude_as_ramp_up:
-                self.__merge_to_cumulative(current)
-                datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
-                datapoint.recalculate()
-
-            for listener in self.listeners:
-                listener.aggregated_second(datapoint)
             yield datapoint
 
     @abstractmethod
@@ -682,13 +658,6 @@ class ResultsProvider(object):
         :rtype : list[DataPoint]
         """
         yield
-
-    @abstractmethod
-    def _ramp_up_exclude(self):
-        """
-        :rtype : bool
-        """
-        return False
 
 
 class ResultsReader(ResultsProvider):
@@ -979,6 +948,39 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         for underling in self.underlings:
             underling.set_aggregation(self._redundant_aggregation)
 
+    def datapoints(self, final_pass=False):
+        for datapoint in super(ConsolidatingAggregator, self).datapoints(final_pass):
+            if self.__class__.__name__ == "ConsolidatingAggregator":    # it's true aggregator)
+                current = datapoint[DataPoint.CURRENT]
+
+                if not self.min_timestamp:
+                    self.min_timestamp = datapoint['ts']
+
+                exclude_as_ramp_up = self._ramp_up_exclude() and \
+                    (datapoint['ts'] < self.min_timestamp + self._get_max_ramp_up())
+                if not exclude_as_ramp_up:
+                    self.__merge_to_cumulative(current)
+                    datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
+                    datapoint.recalculate()
+
+                for listener in self.listeners:
+                    listener.aggregated_second(datapoint)
+            yield datapoint
+
+    def __merge_to_cumulative(self, current):
+        """
+        Merge current KPISet to cumulative
+        :param current: KPISet
+        """
+        for label, data in iteritems(current):
+            default = KPISet(
+                perc_levels=self.track_percentiles,
+                hist_max_rt=data[KPISet.RESP_TIMES].high,
+                ext_aggregation=self._redundant_aggregation)
+            cumul = self.cumulative.setdefault(label, default)
+            cumul.merge_kpis(data)
+            cumul.recalculate()
+
     def add_underling(self, underling):
         """
         Add source for aggregating
@@ -1069,15 +1071,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             tstamp = timestamps.pop(0)
             self.log.debug("Merging into %s", tstamp)
             points_to_consolidate = self.buffer.pop(tstamp)
-
-            for subresult in points_to_consolidate:
-                if self._ramp_up_exclude():
-                    if not self.min_timestamp:
-                        self.min_timestamp = subresult['ts']
-
-                    if subresult['ts'] < self.min_timestamp + self._get_max_ramp_up():
-                        subresult[DataPoint.CUMULATIVE] = dict()
-                        # cleaning cumulative value is used as 'exclude ramp-up still' flag
 
             Concurrency.update_sticky(self._sticky_concurrencies, points_to_consolidate)
             point = points_to_consolidate[0]
