@@ -350,6 +350,24 @@ class TestPyTestExecutor(ExecutorTestCase):
         })
         self.assertTrue('-i 10' in ' '.join(self.CMD_LINE))
 
+    def test_concurrency(self):
+        self.full_run({
+            "concurrency": 2,
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
+            }
+        })
+        self.assertTrue('-n 2' in ' '.join(self.CMD_LINE))
+
+    def test_concurrency_auto(self):
+        self.full_run({
+            "concurrency": "auto",
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
+            }
+        })
+        self.assertTrue('-n auto' in ' '.join(self.CMD_LINE))
+
     def test_hold(self):
         self.full_run({
             "hold-for": "3s",
