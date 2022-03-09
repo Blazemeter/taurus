@@ -579,11 +579,14 @@ class ResultsProvider(object):
         self.cumulative = {}
         self.track_percentiles = [0.0, 50.0, 90.0, 95.0, 99.0, 99.9, 100.0]
         self.listeners = []
-        self.buffer_len = 2
-        self.min_buffer_len = 2
-        self.max_buffer_len = float('inf')
-        self.buffer_multiplier = 2
-        self.buffer_scale_idx = None
+
+        self.buffer_scale_idx = None    # string value of the most interesting percentile (e.q. '90.0')
+        self.buffer_multiplier = 2      # how many sequential samples we want to get before aggregation (approximately)
+
+        self.buffer_len = 2                     # how many data points we want to collect before aggregation
+        self.min_buffer_len = 2                 # small buffer is more responsive but tends to loose data
+        self.max_buffer_len = float('inf')      # buffer_len value can be changed during runtime.
+
         self.histogram_max = 1.0
         self.known_errors = fuzzyset.FuzzySet(use_levenshtein=True)
         self.max_error_count = 100
@@ -640,20 +643,6 @@ class ResultsProvider(object):
         """
         self.listeners.append(listener)
 
-    def __merge_to_cumulative(self, current):
-        """
-        Merge current KPISet to cumulative
-        :param current: KPISet
-        """
-        for label, data in iteritems(current):
-            default = KPISet(
-                perc_levels=self.track_percentiles,
-                hist_max_rt=data[KPISet.RESP_TIMES].high,
-                ext_aggregation=self._redundant_aggregation)
-            cumul = self.cumulative.setdefault(label, default)
-            cumul.merge_kpis(data)
-            cumul.recalculate()
-
     def datapoints(self, final_pass=False):
         """
         Generator object that returns datapoints from the reader
@@ -661,14 +650,6 @@ class ResultsProvider(object):
         :type final_pass: bool
         """
         for datapoint in self._calculate_datapoints(final_pass):
-            current = datapoint[DataPoint.CURRENT]
-            if datapoint[DataPoint.CUMULATIVE] or not self._ramp_up_exclude():
-                self.__merge_to_cumulative(current)
-                datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
-                datapoint.recalculate()
-
-            for listener in self.listeners:
-                listener.aggregated_second(datapoint)
             yield datapoint
 
     @abstractmethod
@@ -677,13 +658,6 @@ class ResultsProvider(object):
         :rtype : list[DataPoint]
         """
         yield
-
-    @abstractmethod
-    def _ramp_up_exclude(self):
-        """
-        :rtype : bool
-        """
-        return False
 
 
 class ResultsReader(ResultsProvider):
@@ -696,7 +670,7 @@ class ResultsReader(ResultsProvider):
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
-        self.min_timestamp = 0
+        self.min_timestamp = 0      # last aggregated timestamp, older data is obsolete and must be fixed
         if perc_levels is not None:
             self.track_percentiles = perc_levels
 
@@ -825,9 +799,12 @@ class ResultsReader(ResultsProvider):
 
         if self.cumulative and self.track_percentiles and self.buffer_scale_idx is not None:
             old_len = self.buffer_len
-            chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
-            self.buffer_len = round(chosen_timing * self.buffer_multiplier)
 
+            # choose average timing of the most interesting percentile
+            chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
+
+            # and calculate new buffer_len based on current speed of data getting
+            self.buffer_len = round(chosen_timing * self.buffer_multiplier)
             self.buffer_len = max(self.min_buffer_len, self.buffer_len)
             self.buffer_len = min(self.max_buffer_len, self.buffer_len)
             if self.buffer_len != old_len:
@@ -882,7 +859,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.buffer = {}
         self.histogram_max = 5.0
         self._sticky_concurrencies = {}
-        self.min_timestamp = None
+        self.min_timestamp = None   # first aggregated data timestamp, just for exclude_ramp_up feature
 
     def converter(self, data):
         if data and self._redundant_aggregation:
@@ -970,6 +947,39 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         # send rules to underlings
         for underling in self.underlings:
             underling.set_aggregation(self._redundant_aggregation)
+
+    def datapoints(self, final_pass=False):
+        for datapoint in super(ConsolidatingAggregator, self).datapoints(final_pass):
+            if self.__class__.__name__ == "ConsolidatingAggregator":    # it's true aggregator)
+                current = datapoint[DataPoint.CURRENT]
+
+                if not self.min_timestamp:
+                    self.min_timestamp = datapoint['ts']
+
+                exclude_as_ramp_up = self._ramp_up_exclude() and \
+                    (datapoint['ts'] < self.min_timestamp + self._get_max_ramp_up())
+                if not exclude_as_ramp_up:
+                    self.__merge_to_cumulative(current)
+                    datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
+                    datapoint.recalculate()
+
+                for listener in self.listeners:
+                    listener.aggregated_second(datapoint)
+            yield datapoint
+
+    def __merge_to_cumulative(self, current):
+        """
+        Merge current KPISet to cumulative
+        :param current: KPISet
+        """
+        for label, data in iteritems(current):
+            default = KPISet(
+                perc_levels=self.track_percentiles,
+                hist_max_rt=data[KPISet.RESP_TIMES].high,
+                ext_aggregation=self._redundant_aggregation)
+            cumul = self.cumulative.setdefault(label, default)
+            cumul.merge_kpis(data)
+            cumul.recalculate()
 
     def add_underling(self, underling):
         """
@@ -1061,14 +1071,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             tstamp = timestamps.pop(0)
             self.log.debug("Merging into %s", tstamp)
             points_to_consolidate = self.buffer.pop(tstamp)
-
-            for subresult in points_to_consolidate:
-                if self._ramp_up_exclude():
-                    if not self.min_timestamp:
-                        self.min_timestamp = subresult['ts']
-
-                    if subresult['ts'] < self.min_timestamp + self._get_max_ramp_up():
-                        subresult[DataPoint.CUMULATIVE] = dict()
 
             Concurrency.update_sticky(self._sticky_concurrencies, points_to_consolidate)
             point = points_to_consolidate[0]

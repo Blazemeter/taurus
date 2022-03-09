@@ -1754,22 +1754,16 @@ class TestResultsFromBZA(BZTestCase):
         # frame [0, 1464248744)
         res1 = list(obj.datapoints(False))
         self.assertEqual(1, len(res1))
-        cumul = res1[0][DataPoint.CUMULATIVE]
         cur = res1[0][DataPoint.CURRENT]
-        self.assertEqual(1, len(cumul.keys()))
         self.assertEqual(1, len(cur.keys()))
         errors_1 = {'Not found': {'count': 10, 'rc': u'404'}}
-        self.assertEqual(self.convert_kpi_errors(cumul[""]["errors"]), errors_1)  # all error data is written
-        self.assertEqual(self.convert_kpi_errors(cur[""]["errors"]), errors_1)  # to 'current' and 'cumulative'
+        self.assertEqual(self.convert_kpi_errors(cur[""]["errors"]), errors_1)
 
         # frame [1464248744, 1464248745)
         res2 = list(obj.datapoints(False))
         self.assertEqual(1, len(res2))
-        cumul = res2[0][DataPoint.CUMULATIVE]
         cur = res2[0][DataPoint.CURRENT]
-        self.assertEqual(1, len(cumul.keys()))
         self.assertEqual(1, len(cur.keys()))
-        self.assertEqual(self.convert_kpi_errors(cumul[""]["errors"]), errors_1)  # the same errors,
         self.assertEqual(cur[""]["errors"], [])  # new errors not found
 
         mock.mock_get.update(self.get_errors_mock({
@@ -1785,7 +1779,6 @@ class TestResultsFromBZA(BZTestCase):
 
         res3 = list(obj.datapoints(True))  # let's add the last timestamp [1464248745]
         self.assertEqual(1, len(res3))
-        cumul = res3[0][DataPoint.CUMULATIVE]
         cur = res3[0][DataPoint.CURRENT]
         errors_all_full = {
             'Not found': {'count': 11, 'rc': '404'},
@@ -1797,8 +1790,6 @@ class TestResultsFromBZA(BZTestCase):
             'assertion_example': {'count': 33, 'rc': 'All Assertions'}}
 
         errors_label1 = {'Strange behaviour': {'count': 666, 'rc': '666'}}
-        self.assertEqual(errors_label1, self.convert_kpi_errors(cumul["label1"]["errors"]))
-        self.assertEqual(errors_all_full, self.convert_kpi_errors(cumul[""]["errors"]))
         self.assertEqual(errors_label1, self.convert_kpi_errors(cur["label1"]["errors"]))
         self.assertEqual(errors_all_update, self.convert_kpi_errors(cur[""]["errors"]))
 
@@ -1884,10 +1875,9 @@ class TestResultsFromBZA(BZTestCase):
         obj.master = Master(data={"id": 1})
         mock.apply(obj.master)
         res = list(obj.datapoints(True))
-        cumulative_ = res[0][DataPoint.CUMULATIVE]
-        total = cumulative_['']
-        percentiles_ = total[KPISet.PERCENTILES]
-        self.assertEquals(1.05, percentiles_['99.0'])
+        current = res[0][DataPoint.CURRENT]
+        percentiles = current[''][KPISet.PERCENTILES]
+        self.assertEquals(1.05, percentiles['99.0'])
 
     def test_no_kpis_on_cloud_crash(self):
         mock = BZMock()

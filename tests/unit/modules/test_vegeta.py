@@ -210,5 +210,5 @@ class TestVegetaReader(BZTestCase):
 
         for datapoint in points:
             self.assertTrue(datapoint['ts'] > 1500000000)
-        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.SUCCESSES], 3)
-        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.FAILURES], 1)
+        self.assertEqual(points[-1][DataPoint.CURRENT][''][KPISet.SUCCESSES], 3)
+        self.assertEqual(points[-1][DataPoint.CURRENT][''][KPISet.FAILURES], 1)

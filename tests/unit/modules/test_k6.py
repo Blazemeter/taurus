@@ -114,5 +114,7 @@ class TestK6Reader(BZTestCase):
 
         for datapoint in points:
             self.assertTrue(datapoint['ts'] > 1500000000)
-        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.SUCCESSES], 2)
-        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.FAILURES], 2)
+        self.assertEqual(points[0][DataPoint.CURRENT][''][KPISet.SUCCESSES], 1)
+        self.assertEqual(points[1][DataPoint.CURRENT][''][KPISet.SUCCESSES], 1)
+        self.assertEqual(points[2][DataPoint.CURRENT][''][KPISet.FAILURES], 1)
+        self.assertEqual(points[3][DataPoint.CURRENT][''][KPISet.FAILURES], 1)

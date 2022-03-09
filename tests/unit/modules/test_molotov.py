@@ -136,5 +136,18 @@ class TestReportReader(BZTestCase):
 
         for datapoint in points:
             self.assertTrue(datapoint['ts'] > 1500000000)
-        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.SUCCESSES], 4)
-        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.FAILURES], 4)
+
+        current_overalls = [point[DataPoint.CURRENT][''] for point in points]
+
+        self.assertEqual(1, current_overalls[0][KPISet.SUCCESSES])
+        self.assertEqual(0, current_overalls[0][KPISet.FAILURES])
+
+        self.assertEqual(1, current_overalls[1][KPISet.SUCCESSES])
+        self.assertEqual(2, current_overalls[1][KPISet.FAILURES])
+
+        self.assertEqual(0, current_overalls[2][KPISet.SUCCESSES])
+        self.assertEqual(2, current_overalls[2][KPISet.FAILURES])
+
+        self.assertEqual(2, current_overalls[3][KPISet.SUCCESSES])
+        self.assertEqual(0, current_overalls[3][KPISet.FAILURES])
+

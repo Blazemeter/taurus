@@ -625,8 +625,8 @@ class TestDataLogReader(BZTestCase):
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 1)
         self.assertEqual(obj.guessed_gatling_version, "3.4+")
-        last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
-        self.assertEqual(1, last_cumul['User-Login'][KPISet.SAMPLE_COUNT])
+        last_current = list_of_values[-1][DataPoint.CURRENT]
+        self.assertEqual(1, last_current['User-Login'][KPISet.SAMPLE_COUNT])
 
     def test_read_labels_regular(self):
         log_path = RESOURCES_DIR + "gatling/"
@@ -642,8 +642,10 @@ class TestDataLogReader(BZTestCase):
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 179)
         self.assertEqual(obj.guessed_gatling_version, "3.4+")
-        last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
-        self.assertEqual(2, len(last_cumul['[empty]'][KPISet.ERRORS]))
+        for val in list_of_values:
+            if '[empty]' in val[DataPoint.CURRENT]:
+                errors = val[DataPoint.CURRENT]['[empty]'][KPISet.ERRORS]
+                self.assertEqual(2, len(errors))
 
     def test_read_rc_asserts(self):
         log_path = RESOURCES_DIR + "gatling/"
@@ -651,6 +653,6 @@ class TestDataLogReader(BZTestCase):
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 1)
         self.assertEqual(obj.guessed_gatling_version, "3.4+")
-        last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
-        self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['400'])
-        self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['401'])
+        current = list_of_values[0][DataPoint.CURRENT]
+        self.assertEqual(1, current[''][KPISet.RESP_CODES]['400'])
+        self.assertEqual(1, current[''][KPISet.RESP_CODES]['401'])

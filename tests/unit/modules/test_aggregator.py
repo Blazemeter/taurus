@@ -32,7 +32,7 @@ class TestResultsReader(BZTestCase):
         obj.add_listener(mock)
 
         for point in mock.datapoints():
-            self.assertNotEquals(0, point[DataPoint.CUMULATIVE][''].concurrency)
+            self.assertNotEquals(0, point[DataPoint.CURRENT][''].concurrency)
 
         mock.data.append((2, "", 1, r(), r(), r(), 200, None, '', 0))
         mock.data.append((2, "", 1, r(), r(), r(), 200, None, '', 0))
@@ -58,13 +58,10 @@ class TestResultsReader(BZTestCase):
         mock.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
         mock.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
 
-        list(mock.datapoints(True))
+        results = list(mock.datapoints(True))
 
-        failed = mock.results[1]
-        self.assertEqual(2, failed['ts'])
-
-        for kpis in (failed['current'], failed['cumulative']):
-            self.assertEqual(1, kpis['b']['fail'])
+        self.assertEqual(2, results[1]['ts'])
+        self.assertEqual(1, results[1]['current']['b']['fail'])
 
     def test_max_concurrency(self):
         mock = MockReader()
@@ -75,7 +72,6 @@ class TestResultsReader(BZTestCase):
 
         data_point = list(mock.datapoints(True))[0]
         self.assertEqual(3, data_point[DataPoint.CURRENT][''].concurrency)
-        self.assertEqual(3, data_point[DataPoint.CUMULATIVE][''].concurrency)
 
     def test_sample_ignores(self):
         mock = MockReader()

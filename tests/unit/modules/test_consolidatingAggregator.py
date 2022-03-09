@@ -257,7 +257,7 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.add_underling(reader)
         self.obj.shutdown()
         self.obj.post_process()
-        cum_dict = self.obj.underlings[0].cumulative
+        cum_dict = self.obj.cumulative
         first_err_ids = [id(err) for err in cum_dict['first']['errors']]
         second_err_ids = [id(err) for err in cum_dict['second']['errors']]
         total_err_ids = [id(err) for err in cum_dict['']['errors']]
