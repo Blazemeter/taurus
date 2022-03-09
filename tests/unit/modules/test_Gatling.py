@@ -653,6 +653,6 @@ class TestDataLogReader(BZTestCase):
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 1)
         self.assertEqual(obj.guessed_gatling_version, "3.4+")
-        last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
-        self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['400'])
-        self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['401'])
+        current = list_of_values[0][DataPoint.CURRENT]
+        self.assertEqual(1, current[''][KPISet.RESP_CODES]['400'])
+        self.assertEqual(1, current[''][KPISet.RESP_CODES]['401'])

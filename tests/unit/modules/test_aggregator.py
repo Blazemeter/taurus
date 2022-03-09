@@ -58,12 +58,10 @@ class TestResultsReader(BZTestCase):
         mock.data.append((3, "d", 1, 5, 5, 5, 200, None, '', 0))
         mock.data.append((4, "b", 1, 6, 6, 6, 200, None, '', 0))
 
-        list(mock.datapoints(True))
+        results = list(mock.datapoints(True))
 
-        failed = mock.results[1]
-        self.assertEqual(2, failed['ts'])
-
-        self.assertEqual(1, failed['current']['b']['fail'])
+        self.assertEqual(2, results[1]['ts'])
+        self.assertEqual(1, results[1]['current']['b']['fail'])
 
     def test_max_concurrency(self):
         mock = MockReader()
