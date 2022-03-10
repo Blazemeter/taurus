@@ -893,11 +893,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 datapoint[DataPoint.CUMULATIVE] = dict()    # todo remove it after removing cumulative from readers
 
                 # exclude ramp-up block
+                timestamp = datapoint[DataPoint.TIMESTAMP]
                 if not self.first_timestamp:
-                    self.first_timestamp = datapoint['ts']
-                ramp_up_period = datapoint['ts'] < self.first_timestamp + self._get_max_ramp_up()
-                exclude_as_ramp_up = self._ramp_up_exclude() and ramp_up_period
-                if not exclude_as_ramp_up:
+                    self.first_timestamp = timestamp
+                if not (self._ramp_up_exclude() and self._is_ramp_up(timestamp)):
                     self._merge_to_cumulative(current)
                     datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
                     datapoint.recalculate()
@@ -1059,12 +1058,16 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 tstamp = mints
         self.buffer.setdefault(tstamp, []).append(point)
 
-    def _get_max_ramp_up(self):
+    def _is_ramp_up(self, ts):
         ramp_ups = [0]
+        if not self.first_timestamp:
+            self.first_timestamp = ts
+
         for execution in self.engine.config['execution']:
             if 'ramp-up' in execution:
                 ramp_ups.append(dehumanize_time(execution['ramp-up']))
-        return max(ramp_ups)
+        max_ramp_up = max(ramp_ups)
+        return ts < self.first_timestamp + max_ramp_up
 
     def _ramp_up_exclude(self):
         return self.engine.config.get('settings').get('ramp-up-exclude')
