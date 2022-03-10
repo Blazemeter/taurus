@@ -643,7 +643,7 @@ class ResultsProvider(object):
         """
         self.listeners.append(listener)
 
-    def __merge_to_cumulative(self, current):
+    def _merge_to_cumulative(self, current):
         """
         Merge current KPISet to cumulative
         :param current: KPISet
@@ -665,7 +665,7 @@ class ResultsProvider(object):
         """
         for datapoint in self._calculate_datapoints(final_pass):
             current = datapoint[DataPoint.CURRENT]
-            self.__merge_to_cumulative(current)
+            self._merge_to_cumulative(current)
             datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
             datapoint.recalculate()
 
@@ -898,7 +898,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                 ramp_up_period = datapoint['ts'] < self.first_timestamp + self._get_max_ramp_up()
                 exclude_as_ramp_up = self._ramp_up_exclude() and ramp_up_period
                 if not exclude_as_ramp_up:
-                    self.__merge_to_cumulative(current)
+                    self._merge_to_cumulative(current)
                     datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
                     datapoint.recalculate()
 
