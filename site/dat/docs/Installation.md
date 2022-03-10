@@ -167,12 +167,8 @@ where you have run Taurus.
 ## pytest-xdist Disclaimer
 
 The [pytest-xdist](https://pypi.org/project/pytest-xdist/#parallelization) plugin extends pytest with new test execution
-modes, the most used being distributing tests across multiple CPUs to speed up test execution
-Install the plugin with:
-
-```
-pip install pytest-xdist
-```
- After installation use `concurrency` parameter for [pytest](https://gettaurus.org/docs/PyTest/#Pytest-Executor) 
- executor which will work as `-n` option for pytest in command line.
+modes, the most used being distributing tests across multiple CPUs to speed up test execution. 
+Plugin is preinstalled into bzt pytest executor.  
+Use `concurrency` parameter for [pytest](https://gettaurus.org/docs/PyTest/#Pytest-Executor) executor which will work 
+as `-n` option for pytest in command line.
  

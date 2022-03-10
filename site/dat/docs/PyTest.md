@@ -19,8 +19,8 @@ To run tests in parallel and distribute them across multiple CPUs, set `concurre
 Concurrency in the case with pytest executor is not the number of target concurrent virtual users, but
 the number of parallel processes.
 
-For now if `concurrency` is set - all tests are grouped by module for test functions and by class for test methods. 
-Groups are distributed to available workers as whole units.
+For now if `concurrency` is set in the test execution - all tests are grouped by module for test functions and by class 
+for test methods. Groups are distributed to available workers as whole units.
 
 Usage:
 ```yaml
