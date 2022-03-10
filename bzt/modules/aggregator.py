@@ -665,12 +665,9 @@ class ResultsProvider(object):
         """
         for datapoint in self._calculate_datapoints(final_pass):
             current = datapoint[DataPoint.CURRENT]
-
-            exclude_as_ramp_up = self._ramp_up_exclude() and not datapoint[DataPoint.CUMULATIVE]
-            if not exclude_as_ramp_up:
-                self.__merge_to_cumulative(current)
-                datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
-                datapoint.recalculate()
+            self.__merge_to_cumulative(current)
+            datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
+            datapoint.recalculate()
 
             for listener in self.listeners:
                 listener.aggregated_second(datapoint)
@@ -682,13 +679,6 @@ class ResultsProvider(object):
         :rtype : list[DataPoint]
         """
         yield
-
-    @abstractmethod
-    def _ramp_up_exclude(self):
-        """
-        :rtype : bool
-        """
-        return False
 
 
 class ResultsReader(ResultsProvider):
@@ -890,7 +880,32 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.buffer = {}
         self.histogram_max = 5.0
         self._sticky_concurrencies = {}
-        self.min_timestamp = None   # first aggregated data timestamp, just for exclude_ramp_up feature
+        self.first_timestamp = None   # first aggregated data timestamp, just for exclude_ramp_up feature
+
+    def datapoints(self, final_pass=False):
+        """
+        :type final_pass: bool
+        """
+        for datapoint in self._calculate_datapoints(final_pass):
+            current = datapoint[DataPoint.CURRENT]
+
+            if self.__class__.__name__ == "ConsolidatingAggregator":  # it's true aggregator)
+                datapoint[DataPoint.CUMULATIVE] = dict()    # todo remove it after removing cumulative from readers
+
+                # exclude ramp-up block
+                if not self.first_timestamp:
+                    self.first_timestamp = datapoint['ts']
+                ramp_up_period = datapoint['ts'] < self.first_timestamp + self._get_max_ramp_up()
+                exclude_as_ramp_up = self._ramp_up_exclude() and ramp_up_period
+                if not exclude_as_ramp_up:
+                    self.__merge_to_cumulative(current)
+                    datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
+                    datapoint.recalculate()
+
+            for listener in self.listeners:
+                listener.aggregated_second(datapoint)
+
+            yield datapoint
 
     def converter(self, data):
         if data and self._redundant_aggregation:
@@ -1069,16 +1084,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             tstamp = timestamps.pop(0)
             self.log.debug("Merging into %s", tstamp)
             points_to_consolidate = self.buffer.pop(tstamp)
-
-            for subresult in points_to_consolidate:
-                if self._ramp_up_exclude():
-                    if not self.min_timestamp:
-                        self.min_timestamp = subresult['ts']
-
-                    if subresult['ts'] < self.min_timestamp + self._get_max_ramp_up():
-                        subresult[DataPoint.CUMULATIVE] = dict()
-                        # cleaning cumulative value is used as 'exclude ramp-up still' flag
-
             Concurrency.update_sticky(self._sticky_concurrencies, points_to_consolidate)
             point = points_to_consolidate[0]
             point[DataPoint.SOURCE_ID] = self.__class__.__name__ + '@' + str(id(self))
