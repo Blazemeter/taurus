@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import codecs
-import json
 import os
 import re
 import time
@@ -28,7 +27,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import ExecutorWidget
 from bzt.requests_model import HTTPRequest, SetVariables, HierarchicRequestParser
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
-from bzt.utils import simple_body_dict, CALL_PROBLEMS, numeric_types
+from bzt.utils import CALL_PROBLEMS, convert_body_to_string
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
@@ -113,13 +112,7 @@ class GatlingScriptBuilder(object):
                 exec_template = self.indent('.header("%(key)s", "%(val)s")\n', level=3)
                 exec_str += exec_template % {'key': key, 'val': req.headers[key]}
 
-            if isinstance(req.body, (dict, list, numeric_types)):
-                if req.get_header('content-type') == 'application/json' or isinstance(req.body, numeric_types):
-                    req.body = json.dumps(req.body)
-                elif not simple_body_dict(req.body):
-                    self.log.debug('Header "Content-Type: application/json" is required for body: "%s"', req.body)
-                    req.body = json.dumps(req.body)
-
+            convert_body_to_string(req)
             if isinstance(req.body, str):
                 stmt = '.body(%(method)s("""%(body)s"""))\n' % {'method': 'StringBody', 'body': req.body}
                 exec_str += self.indent(stmt, level=3)

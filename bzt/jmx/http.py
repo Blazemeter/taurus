@@ -1,10 +1,9 @@
-import json
 import logging
 from lxml import etree
 
 from bzt.jmx.base import JMX
 from bzt.jmx.tools import ProtocolHandler
-from bzt.utils import numeric_types, get_host_ips, simple_body_dict
+from bzt.utils import get_host_ips, convert_body_to_string
 
 LOG = logging.getLogger("")
 
@@ -43,14 +42,7 @@ class HTTPProtocolHandler(ProtocolHandler):
         return elements
 
     def get_sampler_pair(self, request):
-        # convert body to string
-        if isinstance(request.body, (dict, list, numeric_types)):
-            if request.get_header('content-type') == 'application/json' or isinstance(request.body, numeric_types):
-                request.body = json.dumps(request.body)
-            elif not simple_body_dict(request.body):
-                LOG.debug('Header "Content-Type: application/json" is required for body: "%s"', request.body)
-                request.body = json.dumps(request.body)
-
+        convert_body_to_string(request)
         use_random_host_ip = request.priority_option('random-source-ip', default=False)
         host_ips = get_host_ips(filter_loopbacks=True) if use_random_host_ip else []
 

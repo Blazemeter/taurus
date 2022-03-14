@@ -1825,6 +1825,15 @@ def parse_think_time(think_time, full=False):
         return [res.group(i + 1).lower() for i in range(3)]
 
 
+def convert_body_to_string(request):
+    if isinstance(request.body, (dict, list, numeric_types)):
+        if request.get_header('content-type') == 'application/json' or isinstance(request.body, numeric_types):
+            request.body = json.dumps(request.body)
+        elif not simple_body_dict(request.body):
+            LOG.debug('Header "Content-Type: application/json" is required for body: "%s"', request.body)
+            request.body = json.dumps(request.body)
+
+
 class SoapUIScriptConverter(object):
     NAMESPACES = dict(con="http://eviware.com/soapui/config")
 
