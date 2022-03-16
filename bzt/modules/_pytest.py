@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import multiprocessing
 import os
 import re
 import shlex
@@ -89,6 +89,9 @@ class PyTestExecutor(SubprocessedExecutor):
         if raw_concurrency:
             if raw_concurrency == -1:
                 raw_concurrency = 'auto'
+            elif raw_concurrency > multiprocessing.cpu_count():
+                raw_concurrency = multiprocessing.cpu_count()
+                self.log.warning(f"pytest concurrency is limited to CPU count [{raw_concurrency}]")
             cmdline.extend(['-n', str(raw_concurrency)])
 
         cmdline += self._additional_args
