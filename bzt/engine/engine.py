@@ -103,7 +103,7 @@ class Engine(object):
         current_pythonpath = os.environ.get('PYTHONPATH', '')
         paths = current_pythonpath, self.temp_pythonpath, self.user_pythonpath
 
-        self.log.debug("Set PYTHONPATH to :\n\tUSER: '{}' +\n\tTEMP: '{}' +\n\tCURRENT: '{}'".format(*paths))
+        self.log.debug("Set PYTHONPATH to :\n\tCURRENT: '{}' +\n\tTEMP: '{}' +\n\tUSER: '{}'".format(*paths))
         try:
             user_packages = os.listdir(self.user_pythonpath)
         except:

@@ -9,7 +9,7 @@ import org.testng.annotations.Test;
 
 public class TestNGTest {
     @Test
-    public void testngTest() {
+    public void testTestNG() {
         Assert.assertEquals(2 + 2, 4);
     }
 

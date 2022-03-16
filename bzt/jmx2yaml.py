@@ -636,8 +636,6 @@ class JMXasDict(JMX):
             redirect["follow-redirects"] = False
         elif follow_redirects or auto_redirects:
             redirect["follow-redirects"] = True
-        # NOTE: there's no need to handle 'if follow_redirects is True or auto_redirects is True' case
-        # as it's the default behaviour
         return redirect
 
     def _get_extractors(self, element):

@@ -1,11 +1,10 @@
 import sys
 import time
-import unittest
 from os.path import join
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules._molotov import MolotovExecutor, MolotovReportReader
-from bzt.utils import EXE_SUFFIX, is_windows
+from bzt.utils import EXE_SUFFIX
 from tests.unit import BZTestCase, ExecutorTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 
 TOOL_NAME = 'molotov-mock' + EXE_SUFFIX
@@ -15,6 +14,10 @@ LOADTEST_PY = join(RESOURCES_DIR, "molotov", "loadtest.py")
 
 class TestMolotov(ExecutorTestCase):
     EXECUTOR = MolotovExecutor
+    CMD_LINE = []
+
+    def start_subprocess(self, args, **kwargs):
+        self.CMD_LINE = ' '.join(args)
 
     def tearDown(self):
         if self.obj.reader:
@@ -53,7 +56,6 @@ class TestMolotov(ExecutorTestCase):
         self.obj.settings.merge({
             "path": TOOL_PATH})
         self.obj.execution.merge({
-            "iterations": 1,
             "scenario": {
                 "script": LOADTEST_PY}})
         self.obj_prepare()
@@ -69,27 +71,43 @@ class TestMolotov(ExecutorTestCase):
         resources = self.obj.get_resource_files()
         self.assertEqual(resources, [LOADTEST_PY])
 
-    @unittest.skipIf(is_windows(), "disabled on windows")
     def test_full(self):
         self.configure({"execution": {
-            "concurrency": 3,
+            "concurrency": 1,
             "processes": 2,
-            "hold-for": "5s",
-            "iterations": 10,
+            "ramp-up": "3s",
+            "hold-for": "4",
             "scenario": {
                 "script": LOADTEST_PY}}})
         self.obj_prepare()
-        self.obj.engine.start_subprocess = lambda **kwargs: None
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.get_widget()
         self.obj.startup()
         self.obj.post_process()
 
+        target_lines = [
+            '--workers 1',
+            '--processes 2',
+            '--ramp-up 3',
+            '--duration 4',
+            '--use-extension=bzt.resources.molotov_ext'
+        ]
+        for line in target_lines:
+            self.assertTrue(line in self.CMD_LINE)
+
+    def test_no_hold_for(self):
+        self.configure({"execution": {
+            "scenario": {
+                "script": LOADTEST_PY}}})
+        self.obj_prepare()
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.get_widget()
+        self.obj.startup()
+        self.obj.post_process()
+
+        self.assertTrue("--duration 0" in self.CMD_LINE)
+
     def test_think_time(self):
-        self.CMD_LINE = []
-
-        def start_subprocess(args, **kwargs):
-            self.CMD_LINE = ' '.join(args)
-
         self.obj.settings.merge({
             "path": TOOL_PATH})
         self.configure({
@@ -102,7 +120,7 @@ class TestMolotov(ExecutorTestCase):
                 }
             }})
         self.obj_prepare()
-        self.obj.engine.start_subprocess = start_subprocess
+        self.obj.engine.start_subprocess = self.start_subprocess
         self.obj.startup()
         self.obj.post_process()
         self.assertTrue('--delay 5.0' in self.CMD_LINE)
@@ -114,9 +132,9 @@ class TestReportReader(BZTestCase):
         obj = MolotovReportReader(log_path, ROOT_LOGGER)
         points = list(obj.datapoints(True))
 
-        self.assertEqual(len(points), 3)
+        self.assertEqual(len(points), 4)
 
         for datapoint in points:
             self.assertTrue(datapoint['ts'] > 1500000000)
-        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.SUCCESSES], 10)
-        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.FAILURES], 2)
+        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.SUCCESSES], 4)
+        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.FAILURES], 4)

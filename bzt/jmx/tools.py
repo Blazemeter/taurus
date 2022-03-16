@@ -621,7 +621,6 @@ class JMeterScenarioBuilder(JMX):
         thread_group = JMX.get_thread_group(testname=self.executor.label)
         thread_group_ht = etree.Element("hashTree", type="tg")
 
-        # NOTE: set realistic dns-cache and JVM prop by default?
         self.request_compiler = RequestCompiler(self)
         for element in self.compile_scenario(self.scenario):
             thread_group_ht.append(element)
@@ -640,7 +639,6 @@ class JMeterScenarioBuilder(JMX):
 
         :type filename: str
         """
-        # NOTE: bad design, as repetitive save will duplicate stuff
         self.__generate()
         super(JMeterScenarioBuilder, self).save(filename)
 

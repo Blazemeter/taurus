@@ -631,7 +631,7 @@ class Session(BZAObject):
         self._request(url, method='POST')
 
     def stop_anonymous(self):
-        url = self.address + "/api/v4/sessions/%s/terminate-external" % self['id']  # FIXME: V4 API has issue with it
+        url = self.address + "/api/v4/sessions/%s/terminate-external" % self['id']
         data = {"signature": self.data_signature, "testId": self['testId'], "sessionId": self['id']}
         self._request(url, data)
 
@@ -679,8 +679,7 @@ class Session(BZAObject):
         :type contents: str
         :raise TaurusNetworkError:
         """
-        body = MultiPartForm()  # TODO: can we migrate off it, and use something native to requests lib?
-        # maybe http://stackoverflow.com/questions/12385179/how-to-send-a-multipart-form-data-with-requests-in-python
+        body = MultiPartForm()
 
         if contents is None:
             body.add_file('file', filename)

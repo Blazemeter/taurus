@@ -306,23 +306,18 @@ class TestNGTester(JavaTestRunner):
         self._add_jar_tool(TestNG, config=config)
         super(TestNGTester, self).install_required_tools()
 
-    def detected_testng_xml(self):
-        script_path = self.get_script_path()
-        if script_path and self.settings.get("autodetect-xml", True):
-            script_dir = get_full_path(script_path, step_up=1)
-            testng_xml = join(script_dir, 'testng.xml')
+    def _store_testng_xml(self):
+        if not self.execution.get('testng-xml') and self.settings.get("autodetect-xml", True):
+            script_dir = get_full_path(self.get_script_path(), step_up=1)
+            testng_xml = os.path.join(script_dir, 'testng.xml')
             if os.path.exists(testng_xml):
-                return testng_xml
-        return None
+                self.log.info("Detected testng.xml file at %s", testng_xml)
+                self.execution['testng-xml'] = testng_xml
 
     def resource_files(self):
         resources = super(TestNGTester, self).resource_files()
+        self._store_testng_xml()
         testng_xml = self.execution.get('testng-xml')
-        if not testng_xml:
-            testng_xml = self.detected_testng_xml()
-            if testng_xml:
-                self.log.info("Detected testng.xml file at %s", testng_xml)
-                self.execution['testng-xml'] = testng_xml
         if testng_xml:
             resources.append(testng_xml)
 
@@ -336,6 +331,7 @@ class TestNGTester(JavaTestRunner):
         jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
         self.class_path.extend(jar_list)
+        self._store_testng_xml()
 
         with open(self.props_file, 'wt') as props:
             props.write("report_file=%s\n" % self.report_file)
@@ -350,7 +346,7 @@ class TestNGTester(JavaTestRunner):
             for index, item in enumerate(jar_list):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
-            testng_xml = self.execution.get('testng-xml') or self.detected_testng_xml()
+            testng_xml = self.execution.get('testng-xml')
             if testng_xml:
                 props.write('testng_config=%s\n' % testng_xml.replace(os.path.sep, '/'))
 

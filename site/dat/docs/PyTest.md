@@ -56,11 +56,12 @@ scenarios:
 ## Configuration Options
 
 The `interpreter` option allows providing custom interpreter for your tests. 
-Also, you can specify PyTest version via `verion` keyword:
+Also, you can specify PyTest version via `version` keyword:
 
 ```yaml
 modules:
   pytest:
     interpreter: /usr/local/bin/python  # path to custom Python interpreter
     version: 6.2.1
+    dry-install: false  # turn it on to avoid auto installation 
 ```

@@ -910,7 +910,7 @@ from selenium.webdriver.common.keys import Keys
 
         browser = self.capabilities.get("browserName", "")
         browser = self.scenario.get("browser", browser)
-        browser = browser.lower()  # todo: whether we should take browser as is? (without lower case)
+        browser = browser.lower()
         if browser == "microsoftedge":
             browser = "edge"
         local_browsers = ["firefox", "chrome", "ie", "opera", "edge"] + mobile_browsers
@@ -1384,10 +1384,10 @@ from selenium.webdriver.common.keys import Keys
         for idx, source in enumerate(self.data_sources, start=1):
             keywords = []
 
-            if "fieldnames" in source:
+            if "variable-names" in source:
                 fieldnames = ast.keyword()
                 fieldnames.arg = "fieldnames"
-                str_names = source.get("fieldnames").split(",")
+                str_names = source.get("variable-names").split(",")
                 fieldnames.value = ast.List(elts=[ast.Str(s=fname, kind="") for fname in str_names])
                 keywords.append(fieldnames)
 
@@ -1631,11 +1631,18 @@ from selenium.webdriver.common.keys import Keys
 
     @staticmethod
     def _escape_js_blocks(value):  # escapes plain { with {{
+        if not value:
+            return value
         value = value.replace("{", "{{").replace("}", "}}")
-        for block in re.finditer(r"\${{[\w\d]*}}", value):
-            start, end = block.start(), block.end()
-            line = "$" + value[start + 2:end - 1]
-            value = value[:start] + line + value[end:]
+        while True:
+            blocks = re.finditer(r"\${{[\w\d]*}}", value)
+            block = next(blocks, None)
+            if block:
+                start, end = block.start(), block.end()
+                line = "$" + value[start + 2:end - 1]
+                value = value[:start] + line + value[end:]
+            else:
+                break
         return value
 
     def _gen_target_setup(self, key, value):
@@ -1770,6 +1777,14 @@ from selenium.webdriver.common.keys import Keys
 
         return transaction
 
+    def _escape_values_for_external_handler(self, action):
+        if isinstance(action, dict):
+            action_type = action.get("type")
+            if isinstance(action_type, str) and action_type.endswith("Eval"):
+                value = self._escape_js_blocks(action.get("value"))
+                action["value"] = value
+        return action
+
     def _gen_http_request(self, req):
         lines = []
         think_time = dehumanize_time(req.get_think_time())
@@ -1830,6 +1845,7 @@ from selenium.webdriver.common.keys import Keys
             for action in actions:
                 action_lines = self._gen_action(action)
                 if self.generate_external_handler:
+                    action = self._escape_values_for_external_handler(action)
                     action_lines = self._gen_action_start(action) + action_lines + self._gen_action_end(action)
 
                 lines.extend(action_lines)

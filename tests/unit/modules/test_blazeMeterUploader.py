@@ -463,7 +463,8 @@ class TestBlazeMeterClientUnicode(BZTestCase):
             session = Session(data={'id': 1})
             mock = BZMock(session)
             mock.mock_post['https://data.blazemeter.com/api/v4/image/1/files?signature=None'] = {"result": 1}
-            with open(RESOURCES_DIR + "jmeter/jmeter-dist-2.13.zip", 'rb') as fds:
+            binary_file = os.path.join(RESOURCES_DIR, 'gatling', 'simulations.jar')
+            with open(binary_file, 'rb') as fds:
                 zip_content = fds.read()
             session.upload_file("jtls_and_more.zip", zip_content)
         finally:

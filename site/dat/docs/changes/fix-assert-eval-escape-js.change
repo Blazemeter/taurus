@@ -1,0 +1,1 @@
+fixed JS escaping to action_start and action_end calls for all JS Eval actions
