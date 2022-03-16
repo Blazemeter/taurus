@@ -23,7 +23,7 @@ from bzt import TaurusConfigError
 from bzt.engine import SETTINGS, Provisioning
 from bzt.modules import SubprocessedExecutor, ScenarioExecutor
 from bzt.modules.services import PythonTool
-from bzt.utils import FileReader, RESOURCES_DIR, RequiredTool, is_int
+from bzt.utils import FileReader, RESOURCES_DIR, RequiredTool
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 

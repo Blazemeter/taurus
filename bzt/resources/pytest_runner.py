@@ -17,7 +17,6 @@ import json
 import os.path
 import sys
 import time
-import traceback
 from optparse import OptionParser, BadOptionError, AmbiguousOptionError
 
 import pytest
