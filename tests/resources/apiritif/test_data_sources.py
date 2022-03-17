@@ -10,7 +10,7 @@ from time import time, sleep
 import apiritif
 
 reader_1 = apiritif.CSVReaderPerThread('first-file.csv', loop=True)
-reader_2 = apiritif.CSVReaderPerThread('/second/file.csv', loop=True, quoted=False, delimiter='-')
+reader_2 = apiritif.CSVReaderPerThread('/second/file.csv', fieldnames=['bn', ' bbn'], loop=True, quoted=False, delimiter='-')
 
 
 class TestAPI(unittest.TestCase):

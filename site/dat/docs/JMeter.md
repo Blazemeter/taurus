@@ -14,7 +14,7 @@ modules:
     version: 5.4.2  # minimal supported version of JMeter is 5.0
     force-ctg: true   # true by default
     detect-plugins: true
-    fix-log4j: true
+    fix-jars: true
     plugins:
     - jpgc-json=2.2
     - jmeter-ftp
@@ -254,9 +254,6 @@ It's possible to use follow specific values for choosing of `think-time`:
 * uniform(5s, 1s): random `think-time`, uniform distribution, possible values are 5±1 sec
 * gaussian(1m, 1.5s): normal distribution of random values, where mean is 60s and deviation is 1.5s
 * poisson(10s, 3s): poisson distribution, mean is 10s and range of values starts from 3s.
-
-### Data sources
-See more info about data-sources [here](DataSources.md).
 
 ### Requests
 

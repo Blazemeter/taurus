@@ -62,7 +62,6 @@ class HTTPRequest(Request):
         if not has_variable_pattern(self.method):
             self.method = self.method.upper()
 
-        # TODO: add method to join dicts/lists from scenario/request level?
         self.headers = self.config.get("headers", {})
 
         self.keepalive = self.config.get('keepalive', None)
@@ -86,7 +85,6 @@ class HTTPRequest(Request):
         return headers.get(name.lower(), None)
 
     def _get_body(self, pure_body_file=False):
-        # todo: if self.method not in ("PUT", "POST")?
         body = self.config.get('body', None)
         body_file = self.config.get('body-file')
         if body_file:
@@ -308,8 +306,6 @@ class HierarchicRequestParser(RequestParser):
     def _parse_request(self, req):
         if 'if' in req:
             condition = req.get("if")
-
-            # TODO: apply some checks to `condition`?
             then_clause = req.get("then", TaurusConfigError("'then' clause is mandatory for 'if' blocks"))
             then_requests = self._parse_requests(then_clause)
             else_clause = req.get("else", [])

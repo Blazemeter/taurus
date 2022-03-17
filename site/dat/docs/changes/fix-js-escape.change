@@ -1,0 +1,2 @@
+fixed incorrect escaping of JavaScript blocks for storeEval and scriptEval actions
+added JS escaping to action_start and action_end calls

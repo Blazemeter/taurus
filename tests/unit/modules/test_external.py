@@ -48,7 +48,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         cons1 = {}
         for dp in results:
             current = dp[DataPoint.CURRENT]
-            cons1[dp['ts']] = {state: current[state][KPISet.CONCURRENCY] for state in current if state != ''}
+            cons1[dp['ts']] = {state: current[state].concurrency for state in current if state != ''}
 
         sample_cons1 = {
             1637589158:
@@ -71,7 +71,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
                 label_dst = cons2[dp[DataPoint.TIMESTAMP]][label] = dict()
                 label_src = dp[DataPoint.CURRENT][label]
                 for state in label_src:
-                    label_dst[state] = label_src[state][KPISet.CONCURRENCY]
+                    label_dst[state] = label_src[state].concurrency
 
         sample_cons2 = {
             1637589158: {
@@ -174,7 +174,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         cons1 = {}
         for dp in results:
             current = dp[DataPoint.CURRENT]
-            cons1[dp['ts']] = {state: current[state][KPISet.CONCURRENCY] for state in current if state != ''}
+            cons1[dp['ts']] = {state: current[state].concurrency for state in current if state != ''}
 
         if ext_mode:
             converted_results = [self.obj.engine.aggregator.converter(dp) for dp in results]
@@ -205,7 +205,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
         cons1 = {}
         for dp in results:
             current = dp[DataPoint.CURRENT]
-            cons1[dp['ts']] = {state: current[state][KPISet.CONCURRENCY] for state in current if state != ''}
+            cons1[dp['ts']] = {state: current[state].concurrency for state in current if state != ''}
 
         if ext_mode:
             converted_results = [self.obj.engine.aggregator.converter(dp) for dp in results]

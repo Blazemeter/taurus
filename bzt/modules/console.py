@@ -58,8 +58,6 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
     Class to show process status on the console
     :type logger_handlers: list[StreamHandler]
     """
-
-    # NOTE: maybe should use separate thread for screen re-painting
     def __init__(self):
         super(ConsoleStatusReporter, self).__init__()
         self._last_datapoint = None
@@ -160,7 +158,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
     def __print_one_line_stats(self, log_method):
         cur = self._last_datapoint[DataPoint.CURRENT]['']
         line = "Current: %s vu\t%s succ\t%s fail\t%.3f avg rt"
-        stats = (cur[KPISet.CONCURRENCY], cur[KPISet.SUCCESSES], cur[KPISet.FAILURES],
+        stats = (cur.concurrency, cur[KPISet.SUCCESSES], cur[KPISet.FAILURES],
                  cur[KPISet.AVG_RESP_TIME])
         if '' in self._last_datapoint[DataPoint.CUMULATIVE]:
             cumul = self._last_datapoint[DataPoint.CUMULATIVE]['']
@@ -418,8 +416,8 @@ class TaurusConsole(Columns):
 
         active = int(math.floor(overall[KPISet.SAMPLE_COUNT] * overall[
             KPISet.AVG_RESP_TIME]))
-        self.graphs.append(overall[KPISet.CONCURRENCY],
-                           min(overall[KPISet.CONCURRENCY], active),
+        self.graphs.append(overall.concurrency,
+                           min(overall.concurrency, active),
                            overall[KPISet.SAMPLE_COUNT],
                            overall[KPISet.FAILURES],
                            overall[KPISet.AVG_RESP_TIME],

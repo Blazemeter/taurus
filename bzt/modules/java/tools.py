@@ -130,7 +130,7 @@ class Json(JarTool):
 
 
 class TestNG(JarTool):
-    VERSION = "6.8.5"
+    VERSION = "6.9.9"
     REMOTE_PATH = "org/testng/testng/{version}/testng-{version}.jar"
     TOOL_FILE = "testng-{version}.jar"
 
@@ -142,67 +142,67 @@ class Hamcrest(JarTool):
 
 
 class JUnitJupiterApi(JarTool):
-    VERSION = "5.2.0"
+    VERSION = "5.8.2"
     REMOTE_PATH = "org/junit/jupiter/junit-jupiter-api/{version}/junit-jupiter-api-{version}.jar"
     TOOL_FILE = "junit-jupiter-api-{version}.jar"
 
 
 class JUnitJupiterEngine(JarTool):
-    VERSION = "5.2.0"
+    VERSION = "5.8.2"
     REMOTE_PATH = "org/junit/jupiter/junit-jupiter-engine/{version}/junit-jupiter-engine-{version}.jar"
     TOOL_FILE = "junit-jupiter-engine-{version}.jar"
 
 
 class JUnitVintageEngine(JarTool):
-    VERSION = "5.2.0"
+    VERSION = "5.8.2"
     REMOTE_PATH = "org/junit/vintage/junit-vintage-engine/{version}/junit-vintage-engine-{version}.jar"
     TOOL_FILE = "junit-vintage-engine-{version}.jar"
 
 
 class JUnitPlatformCommons(JarTool):
-    VERSION = "1.2.0"
+    VERSION = "1.8.2"
     REMOTE_PATH = "org/junit/platform/junit-platform-commons/{version}/junit-platform-commons-{version}.jar"
     TOOL_FILE = "junit-platform-commons-{version}.jar"
 
 
 class JUnitPlatformEngine(JarTool):
-    VERSION = "1.2.0"
+    VERSION = "1.8.2"
     REMOTE_PATH = "org/junit/platform/junit-platform-engine/{version}/junit-platform-engine-{version}.jar"
     TOOL_FILE = "junit-platform-engine-{version}.jar"
 
 
 class JUnitPlatformLauncher(JarTool):
-    VERSION = "1.2.0"
+    VERSION = "1.8.2"
     REMOTE_PATH = "org/junit/platform/junit-platform-launcher/{version}/junit-platform-launcher-{version}.jar"
     TOOL_FILE = "junit-platform-launcher-{version}.jar"
 
 
 class JUnitPlatformRunner(JarTool):
-    VERSION = "1.2.0"
+    VERSION = "1.8.2"
     REMOTE_PATH = "org/junit/platform/junit-platform-runner/{version}/junit-platform-runner-{version}.jar"
     TOOL_FILE = "junit-platform-runner-{version}.jar"
 
 
 class JUnitPlatformSuiteApi(JarTool):
-    VERSION = "1.2.0"
+    VERSION = "1.8.2"
     REMOTE_PATH = "org/junit/platform/junit-platform-suite-api/{version}/junit-platform-suite-api-{version}.jar"
     TOOL_FILE = "junit-platform-suite-api-{version}.jar"
 
 
 class ApiGuardian(JarTool):
-    VERSION = "1.0.0"
+    VERSION = "1.1.2"
     REMOTE_PATH = "org/apiguardian/apiguardian-api/{version}/apiguardian-api-{version}.jar"
     TOOL_FILE = "apiguardian-api-{version}.jar"
 
 
 class OpenTest4j(JarTool):
-    VERSION = "1.1.0"
+    VERSION = "1.2.0"
     REMOTE_PATH = "org/opentest4j/opentest4j/{version}/opentest4j-{version}.jar"
     TOOL_FILE = "opentest4j-{version}.jar"
 
 
 class JUnit(JarTool):
-    VERSION = "4.13.1"
+    VERSION = "4.13.2"
     REMOTE_PATH = "junit/junit/{version}/junit-{version}.jar"
     TOOL_FILE = "junit-{version}.jar"
 

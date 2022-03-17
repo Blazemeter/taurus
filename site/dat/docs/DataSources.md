@@ -25,10 +25,10 @@ scenarios:
 Explanation:
   - `path` is a path to a csv file. This option is required.
   - `delimiter` is a CSV delimiter. It is auto-detected by default, but you can use a symbol, i.e. `'.'` for dot, `','` for comma. Also, you can use `'tab'` for a tab symbol.
-  - `quoted` allows quoted data. Can be `true` of `false`. Omit for autodetection.
-  - `encoding` allows you to specify encoding type.
+  - `quoted` allows quoted data. Can be `true` of `false`. Omit for autodetection. Not available for Gatling.
+  - `encoding` allows you to specify encoding type. Available only for Apiritif.
   - `loop` allows to loop over in case of end-of-file reached if `true`, stop thread if `false`.
-  - `variable-names` delimiter-separated list of variable names, empty by default. When omitted, the first line of CSV file will be used as variable names.
+  - `variable-names` delimiter-separated list of variable names, empty by default. When omitted, the first line of CSV file will be used as variable names. Not available for Gatling.
   - `random-order` enables randomizing plugin; false by default. Available only for JMeter.
 
 When `random-order` is `false`, data extraction will proceed in direct manner. Data lines, which contain delimiters, will be read from the top down to the bottom, just the way they were written. Otherwise, the data will be extracted in a random way.
