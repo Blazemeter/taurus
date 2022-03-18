@@ -30,7 +30,7 @@ Usage:
 ```yaml
 execution:
 - executor: pytest
-  concurrency: 2  # all tests will be split to 2 processes
+  concurrency: 2  # all tests will be split into 2 processes
   scenario:
     script: tests/
 ```
