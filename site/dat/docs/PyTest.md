@@ -20,8 +20,8 @@ _This is available only in [unstable snapshot](https://gettaurus.org/install/Ins
 In this mode Pytest splits tests between several CPUs to speed up test execution unlike other executors
 that increase load performance by multiplying single load with concurrency number.
 
-To run tests in parallel and distribute them across multiple CPUs, set `concurrency` either to positive integer or to 
-'auto' value. ("as many processes as your computer has CPU cores")
+To distribute tests set `concurrency` either to positive integer or to 'auto' value.
+("as many processes as your computer has CPU cores")
 
 Tests are grouped by module for test functions and by class for test methods.
 Groups are distributed to available workers as whole units.
