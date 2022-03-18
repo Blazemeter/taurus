@@ -13,18 +13,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import multiprocessing
 import os
 import re
 import shlex
 import sys
 
 from bzt import TaurusConfigError
-from bzt.engine import SETTINGS
-from bzt.modules import SubprocessedExecutor
+from bzt.engine import SETTINGS, Provisioning
+from bzt.modules import SubprocessedExecutor, ScenarioExecutor
 from bzt.modules.services import PythonTool
-from bzt.utils import FileReader, RESOURCES_DIR
-from bzt.utils import RequiredTool
+from bzt.utils import FileReader, RESOURCES_DIR, RequiredTool
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
@@ -63,6 +62,13 @@ class PyTestExecutor(SubprocessedExecutor):
         self.pytest = self._get_tool(PyTest, engine=self.engine, settings=self.settings)
         self._check_tools([self.pytest, self._get_tool(TaurusPytestRunner, tool_path=self.runner_path)])
 
+    def get_load(self):
+        raw_concurrency = str(self.get_raw_load().concurrency).lower()
+        if raw_concurrency == 'auto':
+            prov_type = self.engine.config.get(Provisioning.PROV)
+            self.execution.get(ScenarioExecutor.CONCURR)[prov_type] = -1
+        return super().get_load()
+
     def startup(self):
         """
         run python tests
@@ -77,6 +83,16 @@ class PyTestExecutor(SubprocessedExecutor):
 
         if load.hold:
             cmdline += ['-d', str(load.hold)]
+
+        raw_concurrency = self.get_raw_load().concurrency
+
+        if raw_concurrency:
+            if raw_concurrency == -1:
+                raw_concurrency = 'auto'
+            elif raw_concurrency > multiprocessing.cpu_count():
+                raw_concurrency = multiprocessing.cpu_count()
+                self.log.warning(f"pytest concurrency is limited to CPU count [{raw_concurrency}]")
+            cmdline.extend(['-n', str(raw_concurrency)])
 
         cmdline += self._additional_args
         cmdline += [self.script]

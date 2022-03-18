@@ -163,4 +163,3 @@ UNSTABLE_SNAPSHOT
 
 We have [Usage Statistics](/bzt-usage-stats) on our website. That's why we collect the name of desktop OS, 
 where you have run Taurus.
-

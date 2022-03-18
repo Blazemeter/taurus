@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
+import os.path
 import sys
 import time
-import traceback
 from optparse import OptionParser, BadOptionError, AmbiguousOptionError
 
 import pytest
@@ -58,26 +58,20 @@ class RecordingPlugin(object):
         sys.stdout.write(report_pattern % (label, self.test_count, self.passed_tests, self.failed_tests))
         sys.stdout.flush()
 
-    def _fill_sample(self, report, call, item, status):
-        filename, lineno, _ = report.location
+    def _fill_sample(self, report, status):
+
+        # check following
+        filename, lineno, test_case = report.location
+        test_suite = os.path.splitext(os.path.basename(filename))[0]
+        start_time = time.time() - report.duration
 
         if self._sample is None:
-            self._sample = Sample()
-            self._sample.test_case = item.name
-            self._sample.test_suite = item.module.__name__
-            self._sample.start_time = call.start
-            self._sample.extras = {"filename": filename, "lineno": lineno}
+            self._sample = Sample(test_suite=test_suite, test_case=test_case, status=status,
+                                  duration=report.duration, start_time=start_time)
+            self._sample.extras = {"filename": filename}
 
-        self._sample.status = status
-        self._sample.duration = time.time() - self._sample.start_time
-
-        if call.excinfo is not None:
-            self._sample.error_msg = call.excinfo.exconly().strip()
-            self._sample.error_trace = "\n".join(traceback.format_tb(call.excinfo.tb)).strip()
-            if call.excinfo.errisinstance(AssertionError):
-                self._sample.add_assertion(call.excinfo.exconly(), {'args': '', 'kwargs': ''})
-                self._sample.set_assertion_failed(call.excinfo.exconly(), str(call.excinfo.value),
-                                                  str(call.excinfo.getrepr(style="native")))
+        if status == 'FAILED':
+            self._sample.error_msg = report.longrepr.reprcrash.message
 
     def _report_sample(self, label):
         if self._sample.status == "PASSED":
@@ -114,36 +108,33 @@ class RecordingPlugin(object):
 
         return samples_processed
 
-    @pytest.mark.hookwrapper
-    def pytest_runtest_makereport(self, item, call):
-        outcome = (yield)
-        report = outcome.get_result()
+    def pytest_runtest_logreport(self, report):
         filename, lineno, test_name = report.location
         if report.when == 'call':
             if report.passed:
-                self._fill_sample(report, call, item, "PASSED")
+                self._fill_sample(report, "PASSED")
             elif report.failed:
-                self._fill_sample(report, call, item, "FAILED")
+                self._fill_sample(report, "FAILED")
             elif report.skipped:
-                self._fill_sample(report, call, item, "SKIPPED")
+                self._fill_sample(report, "SKIPPED")
         elif report.when == 'setup':
             self.test_count += 1
             self.start_time = time.time()
             if report.failed:
-                self._fill_sample(report, call, item, "BROKEN")
+                self._fill_sample(report, "BROKEN")
             elif report.skipped:
-                self._fill_sample(report, call, item, "SKIPPED")
+                self._fill_sample(report, "SKIPPED")
         elif report.when == 'teardown':
             if not report.passed:
                 if self._sample.status not in ["FAILED", "BROKEN"]:
-                    self._fill_sample(report, call, item, "BROKEN")
+                    self._fill_sample(report, "BROKEN")
                 else:
                     self._sample.status = "BROKEN"
             self.end_time = time.time()
             self._report_sample(test_name)
 
 
-def run_pytest(argv, report_path, iteration_limit, duration_limit):
+def run_pytest(argv, report_path, iteration_limit, duration_limit, numprocesses):
     plugin = RecordingPlugin(report_path)
     plugin.prepare()
     start_time = int(time.time())
@@ -159,6 +150,7 @@ def run_pytest(argv, report_path, iteration_limit, duration_limit):
                 break
             if iteration >= iteration_limit:
                 break
+
     finally:
         plugin.post_process()
         if plugin.test_count == 0:
@@ -182,10 +174,14 @@ if __name__ == '__main__':
     parser.add_option('-r', '--report-file', action='store', default='report.ldjson')
     parser.add_option('-i', '--iterations', action='store', default=0)
     parser.add_option('-d', '--duration', action='store', default=0)
+    parser.add_option('-n', '--numprocesses', action='store', default=0)
     opts, args = parser.parse_args()
 
     opts.iterations = int(opts.iterations)
     opts.duration = float(opts.duration)
+    if opts.numprocesses:
+        args.extend(['-n', opts.numprocesses])
+        args.extend(['--dist', 'loadscope'])
 
     if opts.iterations == 0:
         if opts.duration > 0:
@@ -193,5 +189,4 @@ if __name__ == '__main__':
         else:
             opts.iterations = 1
 
-    run_pytest(args, opts.report_file, int(opts.iterations), float(opts.duration))
-
+    run_pytest(args, opts.report_file, int(opts.iterations), float(opts.duration), str(opts.numprocesses))
