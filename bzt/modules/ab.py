@@ -64,7 +64,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
         """
         if not self.widget:
             label = "%s" % self
-            self.widget = ExecutorWidget(self, "ab: " + label.split('/')[1])
+            self.widget = ExecutorWidget(self, "AB: " + label.split('/')[1])
         return self.widget
 
     def __first_http_request(self):

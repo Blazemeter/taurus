@@ -19,11 +19,9 @@ import time
 import requests
 from abc import abstractmethod
 
-from urwid import Text, Pile
-
 from bzt import TaurusConfigError
 from bzt.modules import ReportableExecutor
-from bzt.modules.console import PrioritizedWidget
+from bzt.modules.console import ExecutorWidget
 from bzt.modules.services import PythonTool
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac, unzip, untar
 
@@ -209,7 +207,8 @@ class SeleniumExecutor(ReportableExecutor):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.script, self.runner.stdout.name)
+            label = ("%s" % self.runner).split('/')
+            self.widget = ExecutorWidget(self, f"Selenium/{label[0].title()}: {label[1]}")
         return self.widget
 
     def get_error_diagnostics(self):
@@ -226,37 +225,6 @@ class SeleniumExecutor(ReportableExecutor):
 
 class Selenium(PythonTool):
     PACKAGES = ["selenium"]
-
-
-class SeleniumWidget(Pile, PrioritizedWidget):
-    def __init__(self, script, runner_output):
-        widgets = []
-        self.script_name = Text("Selenium: %s" % os.path.basename(script))
-        self.summary_stats = Text("Delayed...")
-        self.runner_output = runner_output
-        widgets.append(self.script_name)
-        widgets.append(self.summary_stats)
-        super(SeleniumWidget, self).__init__(widgets)
-        PrioritizedWidget.__init__(self, priority=10)
-
-    def update(self):
-        reader_summary = ''
-        if self.runner_output is not None and os.path.exists(self.runner_output):
-            with open(self.runner_output, "rt") as fds:
-                lines = fds.readlines()
-                if lines:
-                    line = lines[-1]
-                    if not line.endswith("\n") and len(lines) > 1:
-                        line = lines[-2]
-                    if line and "," in line:
-                        reader_summary = line.split(",")[-1]
-
-        if reader_summary:
-            self.summary_stats.set_text(reader_summary)
-        else:
-            self.summary_stats.set_text('In progress...')
-
-        self._invalidate()
 
 
 class WebDriver(RequiredTool):

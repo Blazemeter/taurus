@@ -141,11 +141,8 @@ class SiegeExecutor(ScenarioExecutor):
 
     def get_widget(self):
         if not self.widget:
-            if self.get_load().hold:
-                label = "Siege Benchmark"
-            else:
-                label = None
-            self.widget = ExecutorWidget(self, label)
+            label = "%s" % self
+            self.widget = ExecutorWidget(self, "Siege: " + label.split('/')[1])
         return self.widget
 
     def shutdown(self):
