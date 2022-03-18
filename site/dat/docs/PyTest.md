@@ -14,23 +14,26 @@ execution:
     script: tests/
 ```
 
-To run tests in parallel and distribute them across multiple CPUs, set `concurrency` either to positive integer or to 
-'auto' value. Pass 'auto' to use as many processes as your computer has CPU cores.
-Concurrency in the case with pytest executor is not the number of target concurrent virtual users, but
-the number of parallel processes.
+## Concurrency mode (based on xdist)
+_This is available only in [unstable snapshot](https://gettaurus.org/install/Installation/#Latest-Unstable-Snapshot)._
 
-For now if `concurrency` is set in the test execution - all tests are grouped by module for test functions and by class 
-for test methods. Groups are distributed to available workers as whole units.
+In this mode Pytest splits tests between several CPUs to speed up test execution unlike other executors
+that increase load performance by multiplying single load with concurrency number.
+
+To run tests in parallel and distribute them across multiple CPUs, set `concurrency` either to positive integer or to 
+'auto' value. ("as many processes as your computer has CPU cores")
+
+Tests are grouped by module for test functions and by class for test methods.
+Groups are distributed to available workers as whole units.
 
 Usage:
 ```yaml
 execution:
 - executor: pytest
-  concurrency: 2  # all tests will be executed into 2 processes
+  concurrency: 2  # all tests will be split to 2 processes
   scenario:
     script: tests/
 ```
-
 
 Possible `script` values for this executor are:
 - single Python module (single .py file)
