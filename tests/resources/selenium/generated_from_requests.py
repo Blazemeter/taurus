@@ -157,6 +157,8 @@ class TestLocSc(unittest.TestCase):
                 var_loc_keys[1]).submit()
             self.driver.execute_script("alert('This is Sparta');")
             waiter()
+            self.driver.execute_script("{{alert('This is {}');}}".format(self.vars['red_pill']))
+            waiter()
 
             for i in range(10):
                 if ((i % 2) == 0):
