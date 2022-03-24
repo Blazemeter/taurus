@@ -29,7 +29,7 @@ class TestLocSc(unittest.TestCase):
         self.driver = None
         action_start({'param': {}, 'type': 'new_session', 'value': None})
         try:
-            self.vars = {'my_xpath_locator': '/html/body/div[3]', 'name': 'Name', 'red_pill': 'take_it,'}
+            self.vars = {'my_xpath_locator': '/html/body/div[3]', 'name': 'Name', 'pos': 100, 'red_pill': 'take_it,'}
 
             timeout = 3.5
             options = webdriver.FirefoxOptions()
@@ -134,7 +134,6 @@ class TestLocSc(unittest.TestCase):
             action_start({'param': 'var_assert', 'selectors': [], 'tag': 'eval', 'type': 'assert', 'value': 'myFunction();\nfunction myFunction(){{\n btnNameVar="{}";\n return "support";\n}}'.format(self.vars['btnName1'])})
             self.assertTrue(self.driver.execute_script('return var_assert;'), 'var_assert')
             action_end({'param': 'var_assert', 'selectors': [], 'tag': 'eval', 'type': 'assert', 'value': 'myFunction();\nfunction myFunction(){{\n btnNameVar="{}";\n return "support";\n}}'.format(self.vars['btnName1'])})
-
             action_start({'param': 'var_eval', 'selectors': [], 'tag': 'eval', 'type': 'store', 'value': 'myFunction();\nfunction myFunction(){{\n btnNameVar="{}";\n return "support";\n}}'.format(self.vars['btnName1'])})
 
             self.vars['var_eval'] = self.driver.execute_script('return myFunction();\nfunction myFunction(){{\n btnNameVar="{}";\n return "support";\n}};'.format(self.vars['btnName1']))
@@ -177,10 +176,18 @@ class TestLocSc(unittest.TestCase):
                 var_loc_select[1])).select_by_visible_text('American Express')
             waiter()
             action_end({'param': 'American Express', 'selectors': [{'css': 'myclass'}, {'xpath': '//*[@id="cardType"]'}], 'tag': '', 'type': 'select', 'value': None})
-            action_start({'param': 'window.scrollTo(0, document.body.scrollHeight);', 'selectors': [], 'tag': 'eval', 'type': 'script', 'value': None})
-            self.driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
+            action_start({'param': '{window.scrollTo(0, document.body.scrollHeight);}', 'selectors': [], 'tag': 'eval', 'type': 'script', 'value': None})
+            self.driver.execute_script('{window.scrollTo(0, document.body.scrollHeight);}')
             waiter()
-            action_end({'param': 'window.scrollTo(0, document.body.scrollHeight);', 'selectors': [], 'tag': 'eval', 'type': 'script', 'value': None})
+            action_end({'param': '{window.scrollTo(0, document.body.scrollHeight);}', 'selectors': [], 'tag': 'eval', 'type': 'script', 'value': None})
+            action_start({'param': '{{window.scrollTo(0, {});}}'.format(self.vars['pos']), 'selectors': [], 'tag': 'eval', 'type': 'script', 'value': None})
+            self.driver.execute_script('{{window.scrollTo(0, {});}}'.format(self.vars['pos']))
+            waiter()
+            action_end({'param': '{{window.scrollTo(0, {});}}'.format(self.vars['pos']), 'selectors': [], 'tag': 'eval', 'type': 'script', 'value': None})
+            action_start({'param': "{var event = new InputEvent('input', { bubbles: true,cancelable: false,data: true });}", 'selectors': [], 'tag': 'eval', 'type': 'script', 'value': None})
+            self.driver.execute_script("{var event = new InputEvent('input', { bubbles: true,cancelable: false,data: true });}")
+            waiter()
+            action_end({'param': "{var event = new InputEvent('input', { bubbles: true,cancelable: false,data: true });}", 'selectors': [], 'tag': 'eval', 'type': 'script', 'value': None})
             action_start({'param': 'for i in range(10):\n  if i % 2 == 0:\n    print(i)', 'selectors': [], 'tag': '', 'type': 'rawcode', 'value': None})
 
             for i in range(10):

@@ -481,9 +481,10 @@ from selenium.webdriver.common.keys import Keys
                 name=self._gen_expr(name.strip()),
                 value=self._gen_expr(value.strip())))
         elif atype == 'assert' and tag == 'eval':
+            escaped_value = self._escape_js_blocks(name)
             elements.append(ast_call(
                 func=ast_attr("self.assertTrue"),
-                args=[self._gen_eval_js_expression(name), ast.Str(name, kind="")]))
+                args=[self._gen_eval_js_expression(escaped_value), ast.Str(name, kind="")]))
         elif atype == 'store' and tag == 'eval':
             escaped_value = self._escape_js_blocks(value)
             elements.append(
@@ -1633,6 +1634,9 @@ from selenium.webdriver.common.keys import Keys
     def _escape_js_blocks(value):  # escapes plain { with {{
         if not value:
             return value
+        variables = re.findall(r"\${[\w\d]*}", str(value))
+        if len(variables) == 0:
+            return value    # don't escape when there are no variables
         value = value.replace("{", "{{").replace("}", "}}")
         while True:
             blocks = re.finditer(r"\${{[\w\d]*}}", value)
@@ -1783,6 +1787,8 @@ from selenium.webdriver.common.keys import Keys
             if isinstance(action_type, str) and action_type.endswith("Eval"):
                 value = self._escape_js_blocks(action.get("value"))
                 action["value"] = value
+                param = self._escape_js_blocks(action.get("param"))
+                action["param"] = param
         return action
 
     def _gen_http_request(self, req):

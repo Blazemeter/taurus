@@ -124,6 +124,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
 
                             # exec, rawcode, go, edit
                             "scriptEval(\"{alert('This is ${sparta}');}\")",
+                            "scriptEval(\"{alert('Alert');}\")",
                             {"rawCode": "for i in range(10):\n  if i % 2 == 0:\n    print(i)"},
                             "go(http:\\blazemeter.com)",
                             {"editContentById(editor)": "lo-la-lu"},
@@ -635,6 +636,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             "closeWindow('that_window')",
                             "submitByName(\"toPort\")",
                             "scriptEval(\"alert('This is Sparta');\")",
+                            "scriptEval(\"{alert('This is ${red_pill}');}\")",
                             {"rawCode": "for i in range(10):\n  if i % 2 == 0:\n    print(i)"},
                             {"dragByID(address)": "elementByName(toPort)"},
                             "switchFrameByName('my_frame')",
@@ -1365,7 +1367,8 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                         "variables": {
                             "my_xpath_locator": "/html/body/div[3]",
                             "red_pill": "take_it,",
-                            "name": "Name"
+                            "name": "Name",
+                            "pos": 100
                         },
                         "timeout": "3.5s",
                         "requests": [
@@ -1499,7 +1502,20 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                                     },
                                     {
                                         "type": "scriptEval",
-                                        "param": "window.scrollTo(0, document.body.scrollHeight);"
+                                        "param": "{window.scrollTo(0, document.body.scrollHeight);}"
+                                    },
+                                    {
+                                        "type": "scriptEval",
+                                        "param": "{window.scrollTo(0, ${pos});}"
+                                    },
+                                    {
+                                        "type": "scriptEval",
+                                        "param": "{"
+                                                 "var event = new InputEvent('input', { "
+                                                 "bubbles: true,"
+                                                 "cancelable: false,"
+                                                 "data: true });"
+                                                 "}"
                                     },
                                     {
                                         "type": "rawCode",
