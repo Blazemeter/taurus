@@ -1,4 +1,9 @@
 # Changelog
+## 1.16.4<sup> 13 Apr 2022</sup>
+- Make all ExecutorWidgets more informative (“executor_name: scenario”)
+- Refactor concurrency calculations
+- Add ‘concurrency’ option to taurus based on ‘pytest -n’ to split tests between several CPUs
+- Scriptless defect fixes
 
 ## 1.16.3<sup> 27 Jan 2022</sup>
 - add support of WebKitGTKOptions for remote safari
