@@ -861,7 +861,7 @@ class JTLReader(ResultsReader):
                 trname = row["Hostname"] + row["threadName"][:row["threadName"].rfind('-')]
             else:
                 concur = int(row["allThreads"])
-                trname = row["threadName"] if row["threadName"] else ""
+                trname = row.get("threadName", "")
 
             rtm = int(row["elapsed"]) / 1000.0
             ltc = int(row["Latency"]) / 1000.0
@@ -1592,7 +1592,7 @@ class JMeter(RequiredTool):
 
         self.__install_jmeter(jmeter_dir)
 
-        direct_install_tools = self._get_jar_fixes(lib_dir)     # format: download link, local destination path
+        direct_install_tools = self._get_jar_fixes(lib_dir)  # format: download link, local destination path
         direct_install_tools.extend([
             [self.plugins_manager_link, pm_installer_path],
             [self.command_runner_link, command_runner_path]])
