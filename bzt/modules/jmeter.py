@@ -861,7 +861,7 @@ class JTLReader(ResultsReader):
                 trname = row["Hostname"] + row["threadName"][:row["threadName"].rfind('-')]
             else:
                 concur = int(row["allThreads"])
-                trname = row["threadName"]
+                trname = row["threadName"] if row["threadName"] else ""
 
             rtm = int(row["elapsed"]) / 1000.0
             ltc = int(row["Latency"]) / 1000.0
