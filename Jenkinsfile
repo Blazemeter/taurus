@@ -1,5 +1,4 @@
 @Library("jenkins_library") _
-
 pipeline {
     agent {
         dockerfile {
