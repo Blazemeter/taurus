@@ -1,4 +1,7 @@
 # Changelog
+## 1.16.5<sup> 18 May 2022</sup>
+- Concurrency issues fix
+
 ## 1.16.4<sup> 13 Apr 2022</sup>
 - Make all ExecutorWidgets more informative (“executor_name: scenario”)
 - Refactor concurrency calculations
