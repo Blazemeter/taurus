@@ -349,6 +349,7 @@ class Engine(object):
         for module in modules:
             if module in self.prepared:
                 try:
+                    module.is_error = True if self.stopping_reason else None
                     module.post_process()
                 except BaseException as exc:
                     if isinstance(exc, KeyboardInterrupt):
@@ -356,6 +357,7 @@ class Engine(object):
                     else:
                         self.log.debug("post_process: %s\n%s", exc, traceback.format_exc())
                     if not self.stopping_reason:
+                        module.is_error = True
                         self.stopping_reason = exc
                     if not exc_value:
                         exc_value = exc
