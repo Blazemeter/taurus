@@ -46,7 +46,7 @@ class EngineModule(object):
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
-        self.is_error = None
+        self.errors = None
 
     def prepare(self):
         """
