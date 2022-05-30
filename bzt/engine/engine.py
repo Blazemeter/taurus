@@ -349,7 +349,7 @@ class Engine(object):
         for module in modules:
             if module in self.prepared:
                 try:
-                    if self.stopping_reason and isinstance(module.errors, list):
+                    if self.stopping_reason and module.errors is not None:
                         module.errors.append(str(self.stopping_reason))
                     module.post_process()
                 except BaseException as exc:
