@@ -108,6 +108,7 @@ class TestNonBlockingTasks(TaskTestCase):
         self.obj.engine.stopping_reason = ManualShutdown()
         self.obj.post_process()
         buff_getvalue = self.log_recorder.debug_buff.getvalue()
+        self.assertIsNone(self.obj.errors)
         self.assertIn("Task was finished with exit code 0: sleep 1", buff_getvalue)
         self.assertIn("Output for echo " + varspec + ":\n2", buff_getvalue)
 
