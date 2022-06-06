@@ -88,7 +88,7 @@ class SeleniumExecutor(ReportableExecutor):
 
         for tool in self.webdrivers + [self.selenium]:
             if not tool.check_if_installed():
-                self.log.info("Installing %s...", tool.tool_name)
+                self.log.info("Installing %s %s...", tool.tool_name, tool.version)
                 tool.install()
 
     def prepare(self):
@@ -225,6 +225,10 @@ class SeleniumExecutor(ReportableExecutor):
 
 class Selenium(PythonTool):
     PACKAGES = ["selenium"]
+    VERSION = '4.1.3'
+
+    def _get_version(self, output):
+        return Selenium.VERSION
 
 
 class WebDriver(RequiredTool):

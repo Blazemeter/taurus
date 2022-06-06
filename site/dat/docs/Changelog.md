@@ -1,4 +1,7 @@
 # Changelog
+## 1.16.6<sup> 18 May 2022</sup>
+- Default selenium version is set to 4.1.3 to fix blazemeter grid issue
+
 ## 1.16.5<sup> 18 May 2022</sup>
 - Concurrency issues fix
 
