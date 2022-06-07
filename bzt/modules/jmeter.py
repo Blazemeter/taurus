@@ -1373,7 +1373,7 @@ class JMeter(RequiredTool):
     """
     PLUGINS_MANAGER_VERSION = "1.7"
     PLUGINS_MANAGER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
-    COMMAND_RUNNER_VERSION = "2.2"
+    COMMAND_RUNNER_VERSION = "2.3"
     COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
     VERSION = "5.4.3"
 
@@ -1554,17 +1554,17 @@ class JMeter(RequiredTool):
 
             # component name and download link in https://repo1.maven.org/maven2/
             affected_components = {
-                "xstream": "com/thoughtworks/xstream/xstream/1.4.16/xstream-1.4.16.jar",
-                "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.10.5.1/jackson-databind-2.10.5.1.jar",
-                "netty-codec": "io/netty/netty-codec/4.1.50.Final/netty-codec-4.1.50.Final.jar",
-                "jetty-io": "org/eclipse/jetty/jetty-io/9.4.43.v20210629/jetty-io-9.4.43.v20210629.jar",
-                "snakeyaml": "org/yaml/snakeyaml/1.26/snakeyaml-1.26.jar",
-                "json-smart": "net/minidev/json-smart/2.4.7/json-smart-2.4.7.jar",
-                "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.6/xmlgraphics-commons-2.6.jar"}
+                "xstream": "com/thoughtworks/xstream/xstream/1.4.19/xstream-1.4.19.jar",
+                "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.13.3/jackson-databind-2.13.3.jar",
+                "netty-codec": "io/netty/netty-codec/4.1.77.Final/netty-codec-4.1.77.Final.jar",
+                "jetty-io": "org/eclipse/jetty/jetty-io/9.4.46.v20220331/jetty-io-9.4.46.v20220331.jar",
+                "snakeyaml": "org/yaml/snakeyaml/1.30/snakeyaml-1.30.jar",
+                "json-smart": "net/minidev/json-smart/2.4.8/json-smart-2.4.8.jar",
+                "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.7/xmlgraphics-commons-2.7.jar"}
 
             if LooseVersion(self.version) <= LooseVersion('5.4.2'):  # log4j must be fixed till jmeter 5.4.2
                 affected_names = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
-                fixed_version = '2.17.1'
+                fixed_version = '2.17.2'
                 maven_link = "org/apache/logging/log4j/{name}/{ver}/{name}-{ver}.jar"
 
                 for name in affected_names:
