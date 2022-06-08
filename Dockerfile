@@ -54,12 +54,13 @@ RUN wget -q "https://github.com/tsenart/vegeta/releases/download/v${VEGETA_VERSI
  && rm /tmp/vegeta.tar.gz
 
 # auto installable tools
-RUN mkdir -p /etc/bzt.d
-RUN echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json
-RUN echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
-RUN cp `python3 -c "import bzt; print('{}/resources/chrome_launcher.sh'.format(bzt.__path__[0]))"` /opt/google/chrome/google-chrome
-RUN bzt -install-tools -v
-RUN google-chrome-stable --version && firefox --version && dotnet --version | head -1
+RUN mkdir -p /etc/bzt.d \
+  && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
+  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
+  && cp `python3 -c "import bzt; print('{}/resources/chrome_launcher.sh'.format(bzt.__path__[0]))"` \
+    /opt/google/chrome/google-chrome \
+  && bzt -install-tools -v \
+  && google-chrome-stable --version && firefox --version && dotnet --version | head -1
 
 RUN rm -rf /tmp/* \
   && mkdir /bzt-configs /tmp/artifacts
