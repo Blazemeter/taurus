@@ -24,7 +24,7 @@ modules:
       version: 1.3   # minimum 0.16
     command-runner:
       download-link: https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar
-      version: 2.3   # minimum 2.0
+      version: 2.2   # minimum 2.0
 ```
 `force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for jmx script modifications purpose. This group
 provides `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default)
