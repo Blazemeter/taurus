@@ -1,6 +1,6 @@
 # Changelog
-## 1.16.7<sup> 08 June 2022</sup>
-- Vulnerability fixes, NodeJS 18.x, Moved to Ubuntu 21.10 as the base image
+## 1.16.7<sup> 09 June 2022</sup>
+- Vulnerability fixes, Moved to Ubuntu 21.10 as the base image
 
 ## 1.16.6<sup> 07 June 2022</sup>
 - Default selenium version is set to 4.1.3 to fix blazemeter grid issue
