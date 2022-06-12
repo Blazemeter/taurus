@@ -27,10 +27,10 @@ class TestJMeterTool(BZTestCase):
             jar_tools = self.obj._get_jar_fixes(lib_dir_path)
             target_tools_list = [
                 [
-                    'https://repo1.maven.org/maven2/com/thoughtworks/xstream/xstream/1.4.16/xstream-1.4.16.jar',
+                    'https://repo1.maven.org/maven2/com/thoughtworks/xstream/xstream/1.4.19/xstream-1.4.19.jar',
                     os.path.join(lib_dir_path, 'xstream-1.4.15.jar')],
                 [
-                    'https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/2.17.1/log4j-core-2.17.1.jar',
+                    'https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/2.17.2/log4j-core-2.17.2.jar',
                     os.path.join(lib_dir_path, 'log4j-core-2.16.jar')]]
             self.assertEqual(target_tools_list, jar_tools)
         finally:

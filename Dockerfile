@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:21.10
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
@@ -8,7 +8,7 @@ ENV PIP_INSTALL="python3 -m pip install"
 
 ADD https://deb.nodesource.com/setup_12.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
-ADD https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb /tmp
+ADD https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.deb /tmp
 COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
