@@ -90,6 +90,24 @@ class TestEngine(BZTestCase):
 
         self.obj.run()
         self.obj.post_process()
+        self.assertIsNone(self.obj.provisioning.errors)
+
+    def test_requests_with_stopping_reason(self):
+        configs = [
+                RESOURCES_DIR + "json/get-post.json",
+                RESOURCES_DIR + "json/reporting.json",
+                self.paths]
+        self.obj.configure(configs)
+        self.obj.prepare()
+
+        for executor in self.obj.provisioning.executors:
+            executor.env.set({"TEST_MODE": "files"})
+
+        self.obj.run()
+        self.obj.stopping_reason = TaurusConfigError('an error occurred')
+        self.obj.provisioning.errors = []
+        self.obj.post_process()
+        self.assertEquals(['an error occurred'], self.obj.provisioning.errors)
 
     def test_double_exec(self):
         configs = [
