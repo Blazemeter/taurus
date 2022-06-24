@@ -1,5 +1,9 @@
 FROM ubuntu:21.10
 
+#replace 21.10 sources
+RUN sed -i 's/archive.ubuntu.com/old-releases.ubuntu.com/' /etc/apt/sources.list
+RUN sed -i 's/security.ubuntu.com/old-releases.ubuntu.com/' /etc/apt/sources.list
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 ENV APT_INSTALL="apt-get -y install --no-install-recommends"
