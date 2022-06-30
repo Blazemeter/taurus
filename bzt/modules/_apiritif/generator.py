@@ -1634,6 +1634,7 @@ from selenium.webdriver.common.keys import Keys
     def _escape_js_blocks(value):  # escapes plain { with {{
         if not value:
             return value
+        value = re.sub(r"^\n", "", value, flags=re.UNICODE)    # replace all new lines at the beginning
         variables = re.findall(r"\${[\w\d]*}", str(value))
         if len(variables) == 0:
             return value    # don't escape when there are no variables
