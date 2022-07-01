@@ -1556,6 +1556,7 @@ class JMeter(RequiredTool):
             affected_components = {
                 # Needs to be <1.4.18 for now https://stackoverflow.com/questions/30812293/com-thoughtworks-xstream-security-forbiddenclassexception
                 "xstream": "com/thoughtworks/xstream/xstream/1.4.17/xstream-1.4.17.jar",
+                "jackson-core": "com/fasterxml/jackson/core/jackson-core/2.13.3/jackson-core-2.13.3.jar",
                 "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.13.3/jackson-databind-2.13.3.jar",
                 "netty-codec": "io/netty/netty-codec/4.1.77.Final/netty-codec-4.1.77.Final.jar",
                 "jetty-io": "org/eclipse/jetty/jetty-io/9.4.46.v20220331/jetty-io-9.4.46.v20220331.jar",
