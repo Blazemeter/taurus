@@ -875,7 +875,7 @@ class JTLReader(ResultsReader):
                 rcd = rcd.split('.')[-1]
 
             if row["success"] != "true":
-                error = row["responseMessage"]
+                error = row["responseMessage"] if row["responseMessage"] else 'unknown error'
             else:
                 error = None
 
