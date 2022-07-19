@@ -55,8 +55,8 @@ def get_with_retry(method):
                 return method(self, *args, **kwargs)
             except NETWORK_PROBLEMS:
                 self.log.debug("Error making request: %s", traceback.format_exc())
-                self.log.warning("Failed to make request, will retry in %s sec...", self.user.timeout)
-                time.sleep(self.user.timeout)
+                self.log.warning("Failed to make request, will retry in %s sec...", self.timeout)
+                time.sleep(self.timeout)
 
     return _impl
 
