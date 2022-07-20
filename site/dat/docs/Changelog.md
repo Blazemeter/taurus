@@ -1,4 +1,10 @@
 # Changelog
+## 1.16.9<sup> 20 July 2022</sup>
+- fix handling of BlazeMeter backend timeouts
+
+## 1.16.8<sup> 22 June 2022</sup>
+- Vulnerability fixes
+
 ## 1.16.7<sup> 09 June 2022</sup>
 - Vulnerability fixes, Moved to Ubuntu 21.10 as the base image
 
