@@ -11,13 +11,13 @@ RUN apt-get update
 
 ADD https://deb.nodesource.com/setup_12.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
-ADD https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.deb /tmp
+ADD https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb /tmp
 COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
 RUN bash ./setup_12.x \
-   && $APT_INSTALL build-essential python3-pip python3.9-dev
+   && $APT_INSTALL build-essential python3-pip python3.9
 
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
 
