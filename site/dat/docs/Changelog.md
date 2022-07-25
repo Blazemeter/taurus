@@ -1,4 +1,8 @@
 # Changelog
+
+## 1.16.10<sup> 25 July 2022</sup>
+- Taurus base image updated to Ubuntu 22.04 LTS
+
 ## 1.16.9<sup> 20 July 2022</sup>
 - fix handling of BlazeMeter backend timeouts
 
