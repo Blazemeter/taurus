@@ -1,7 +1,7 @@
 # Notes:
 # don't worry about apt-utils warning - just fake
 # it works correctly with cache
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
