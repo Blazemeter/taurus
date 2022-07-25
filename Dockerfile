@@ -1,10 +1,13 @@
-FROM ubuntu:21.10
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 ENV APT_UPDATE="apt-get -y update"
 ENV PIP_INSTALL="python3 -m pip install"
+
+RUN add-apt-repository ppa:deadsnakes/ppa -y
+RUN apt-get update
 
 ADD https://deb.nodesource.com/setup_12.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
