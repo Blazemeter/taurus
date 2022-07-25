@@ -6,8 +6,7 @@ ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 ENV APT_UPDATE="apt-get -y update"
 ENV PIP_INSTALL="python3 -m pip install"
 
-RUN add-apt-repository ppa:deadsnakes/ppa -y
-RUN apt-get update
+RUN add-apt-repository ppa:deadsnakes/ppa -y && apt-get update
 
 ADD https://deb.nodesource.com/setup_12.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
