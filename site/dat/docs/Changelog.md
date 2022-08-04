@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.16.11<sup> 04 August 2022</sup>
+- Taurus base image reverted to Ubuntu 21.10 as 22.04 LTS breaks too many things for now
+- Vulnerability fixes in pip, pillow and other libraries
+
 ## 1.16.10<sup> 25 July 2022</sup>
 - Taurus base image updated to Ubuntu 22.04 LTS
 
