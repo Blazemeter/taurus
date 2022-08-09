@@ -21,7 +21,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import action_start, dialogs_get_next_confirm, dialogs_answer_on_next_prompt, waiter, get_locator, open_window, switch_window, dialogs_replace, close_window, dialogs_answer_on_next_confirm, dialogs_get_next_alert, dialogs_get_next_prompt, switch_frame, wait_for, action_end, dialogs_answer_on_next_alert
+from bzt.resources.selenium_extras import dialogs_answer_on_next_confirm, dialogs_get_next_prompt, dialogs_get_next_alert, dialogs_answer_on_next_alert, wait_for, action_start, get_locator, action_end, waiter, dialogs_answer_on_next_prompt, dialogs_replace, switch_frame, open_window, close_window, dialogs_get_next_confirm, switch_window
 
 class TestLocSc(unittest.TestCase):
 
@@ -171,6 +171,9 @@ class TestLocSc(unittest.TestCase):
             action_start({'param': '************', 'selectors': [{'id': 'fjkafjk'}, {'css': 'testCss'}], 'tag': '', 'type': 'typesecret', 'value': None})
 
             var_loc_keys = get_locator([{'id': 'fjkafjk'}, {'css': 'testCss'}])
+            self.driver.find_element(
+                var_loc_keys[0],
+                var_loc_keys[1]).clear()
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).send_keys('mysecret')
