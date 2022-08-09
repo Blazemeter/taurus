@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import find_element_by_shadow, get_locator, wait_for, waiter
+from bzt.resources.selenium_extras import find_element_by_shadow, waiter, wait_for, get_locator
 
 class TestLocSc(unittest.TestCase):
 
@@ -150,8 +150,10 @@ class TestLocSc(unittest.TestCase):
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys('text')
             waiter()
 
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').clear()
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys('password')
 
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').clear()
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys('password')
 
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').submit()
