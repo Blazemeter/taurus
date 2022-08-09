@@ -121,6 +121,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
 
                             # click, type, keys, submit
                             {"typeByName(\"toPort\")": "B"},
+                            {"typeSecretByName(\"toPort\")": "mysecret"},
 
                             # exec, rawcode, go, edit
                             "scriptEval(\"{alert('This is ${sparta}');}\")",
@@ -175,6 +176,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             "get_attribute('value').strip(),\'123 Beautiful st.\'.strip())",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).clear()",
             "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('B')",
+            "self.driver.find_element(var_loc_keys[0],var_loc_keys[1]).send_keys('mysecret')",
             "self.driver.execute_script(\"{{alert(\'Thisis{}\');}}\".format(self.vars[\'sparta\']))",
             "for i in range(10):",
             "if ((i % 2) == 0):",
@@ -623,6 +625,7 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             {"typeByName(\"toPort\")": "B"},
                             {"keysByName(\"toPort\")": u"KEY_ENTER"},
                             {"typeByName(\"toPort\")": "KEY_ENTER"},
+                            {"typeByName(\"toPort\")": "mypassword"},
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
                             "clickByXPath(//div[3]/form/select[2]//option[6])",
                             "switchWindow(0)",
@@ -1493,6 +1496,14 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                                         ]
                                     },
                                     {
+                                        "type": "typeSecret",
+                                        "param": "mysecret",
+                                        "locators": [
+                                            {"id": "fjkafjk"},
+                                            {"css": "testCss"}
+                                        ]
+                                    },
+                                    {
                                         "type": "select",
                                         "param": "American Express",
                                         "locators": [
@@ -2308,6 +2319,12 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                                                 "element": "el",
                                                 "param": "text"
                                             },
+                                            {"typeSecretByElement(el)": "passwd"},
+                                            {
+                                                "type": "typeSecret",
+                                                "element": "el",
+                                                "param": "passwd"
+                                            },
                                             "submitByElement(el)",
                                             {
                                                 "type": "submit",
@@ -2481,6 +2498,12 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                                         "type": "type",
                                         "shadow": "c-basic, lightning-accordion-section, .slds-button",
                                         "param": "text"
+                                    },
+                                    {"typeSecretByShadow(c-basic, lightning-accordion-section, .slds-button)": "password"},
+                                    {
+                                        "type": "typeSecret",
+                                        "shadow": "c-basic, lightning-accordion-section, .slds-button",
+                                        "param": "password"
                                     },
                                     "submitByShadow(c-basic, lightning-accordion-section, .slds-button)",
                                     {

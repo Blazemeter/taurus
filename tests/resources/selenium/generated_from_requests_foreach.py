@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import waiter, get_elements, get_locator
+from bzt.resources.selenium_extras import get_elements, waiter, get_locator
 
 class TestLocSc(unittest.TestCase):
 
@@ -130,6 +130,8 @@ class TestLocSc(unittest.TestCase):
                 el.clear()
                 el.send_keys('text')
                 waiter()
+                el.send_keys('passwd')
+                el.send_keys('passwd')
                 el.submit()
                 el.submit()
                 el.send_keys(Keys.ENTER)
