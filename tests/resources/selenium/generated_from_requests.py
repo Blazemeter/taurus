@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import open_window, switch_frame, waiter, close_window, switch_window, dialogs_answer_on_next_confirm, wait_for, get_locator, dialogs_answer_on_next_alert, dialogs_replace, dialogs_get_next_confirm, dialogs_answer_on_next_prompt, dialogs_get_next_alert, dialogs_get_next_prompt
+from bzt.resources.selenium_extras import wait_for, dialogs_replace, open_window, switch_window, dialogs_get_next_prompt, dialogs_answer_on_next_prompt, dialogs_answer_on_next_confirm, dialogs_answer_on_next_alert, dialogs_get_next_alert, switch_frame, dialogs_get_next_confirm, close_window, get_locator, waiter
 reader_1 = apiritif.CSVReaderPerThread('first.csv', loop=True)
 reader_2 = apiritif.CSVReaderPerThread('second.csv', loop=False)
 
@@ -128,6 +128,15 @@ class TestLocSc(unittest.TestCase):
             self.driver.find_element(
                 var_loc_keys[0],
                 var_loc_keys[1]).send_keys(Keys.ENTER)
+            waiter()
+
+            var_loc_keys = get_locator([{'name': 'toPort'}])
+            self.driver.find_element(
+                var_loc_keys[0],
+                var_loc_keys[1]).clear()
+            self.driver.find_element(
+                var_loc_keys[0],
+                var_loc_keys[1]).send_keys('mypassword')
             waiter()
 
             var_loc_keys = get_locator([{'xpath': '//div[3]/form/select[1]//option[3]'}])

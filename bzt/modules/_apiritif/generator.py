@@ -92,12 +92,12 @@ class ApiritifScriptGenerator(object):
                         'mouseOver', 'select', 'wait', 'keys', 'pauseFor', 'clear', 'assert',
                         'assertText', 'assertValue', 'assertDialog', 'answerDialog', 'submit',
                         'close', 'script', 'editcontent',
-                        'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
+                        'switch', 'switchFrame', 'go', 'echo', 'type', 'typeSecret', 'element', 'drag',
                         'storeText', 'storeValue', 'store', 'open', 'screenshot', 'rawCode',
                         'resize', 'maximize', 'alert', 'waitFor'
                         ])
 
-    ACTIONS_WITH_WAITER = ['go', 'click', 'doubleclick', 'contextclick', 'drag', 'select', 'type', 'script']
+    ACTIONS_WITH_WAITER = ['go', 'click', 'doubleclick', 'contextclick', 'drag', 'select', 'type', 'typeSecret', 'script']
 
     EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach'])
 
@@ -540,8 +540,8 @@ from selenium.webdriver.common.keys import Keys
             action = "click"
         elif atype == "submit":
             action = "submit"
-        elif atype in ["keys", "type"]:
-            if atype == "type":
+        elif atype in ["keys", "type", "typesecret"]:
+            if atype.startswith("type"):
                 elements.append(ast_call(
                     func=ast_attr(
                         fields=(
@@ -705,7 +705,7 @@ from selenium.webdriver.common.keys import Keys
         elif atype is not None and (atype.startswith("assert") or atype.startswith("store")):
             action_elements.extend(self._gen_assert_store_mngr(atype, tag, param, value, selectors))
 
-        elif atype in ("click", "type", "keys", "submit"):
+        elif atype in ("click", "type", "typesecret", "keys", "submit"):
             action_elements.extend(self._gen_keys_mngr(atype, param, selectors))
 
         elif atype == 'echo' and tag == 'string':
@@ -1913,6 +1913,12 @@ from selenium.webdriver.common.keys import Keys
             'param': val,
         })
 
+    @staticmethod
+    def _get_param_for_action_log(atype, param):
+        if atype == "typesecret":
+            return "************"
+        return param
+
     def _gen_action_start(self, action):
         atype, tag, param, value, selectors = self._parse_action(action)
         return self._gen_action({
@@ -1921,7 +1927,7 @@ from selenium.webdriver.common.keys import Keys
             'param': {
                 'type': atype,
                 'tag': tag,
-                'param': param,
+                'param': ApiritifScriptGenerator._get_param_for_action_log(atype, param),
                 'value': value,
                 'selectors': selectors,
             },
@@ -1935,7 +1941,7 @@ from selenium.webdriver.common.keys import Keys
             'param': {
                 'type': atype,
                 'tag': tag,
-                'param': param,
+                'param': ApiritifScriptGenerator._get_param_for_action_log(atype, param),
                 'value': value,
                 'selectors': selectors,
             },

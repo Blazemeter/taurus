@@ -821,6 +821,7 @@ Or use the [alternative syntax](#Alternative-syntax-supporting-multiple-locators
 #### Typing
 Typing actions are the following:
 - `typeByX(X\_name): "text\_to\_type"` clears `X` value and then types text.
+- `typeSecretByXX\_name): "secret"` hides the secret value in the action logging  
 - `submitByX(X\_name)`
 - `keysByX(X\_name): value` sends keystrokes to `X`. `value` can be formed like this: `KEY\_ENTER`. See docs for it [here](http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys).
 
@@ -833,6 +834,10 @@ Typing actions with [multiple locators support](#Alternative-syntax-supporting-m
   locators:
     - css: input_css
     - name: input_name
+- type: typeSecret
+  param: mysecret
+  locators:
+    - name: secret_input
 - type: submit
   locators:
     - id: element_id

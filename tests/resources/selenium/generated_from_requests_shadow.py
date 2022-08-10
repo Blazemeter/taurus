@@ -20,8 +20,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import get_locator, find_element_by_shadow, waiter, wait_for
-
+from bzt.resources.selenium_extras import find_element_by_shadow, waiter, wait_for, get_locator
 
 class TestLocSc(unittest.TestCase):
 
@@ -151,6 +150,12 @@ class TestLocSc(unittest.TestCase):
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys('text')
             waiter()
 
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').clear()
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys('password')
+
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').clear()
+            find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys('password')
+
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').submit()
 
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').submit()
@@ -158,7 +163,6 @@ class TestLocSc(unittest.TestCase):
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys(Keys.ENTER)
 
             find_element_by_shadow('c-basic, lightning-accordion-section, .slds-button').send_keys(Keys.ENTER)
-
             wait_for('visible', [{'shadow': 'toPort'}], 5.0)
             wait_for('notvisible', [{'shadow': 'c-basic, lightning-accordion-section, .slds-button'}], 2.0)
 

@@ -21,7 +21,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import dialogs_get_next_prompt, dialogs_get_next_alert, close_window, dialogs_answer_on_next_alert, dialogs_answer_on_next_prompt, switch_frame, dialogs_get_next_confirm, waiter, get_locator, switch_window, dialogs_answer_on_next_confirm, action_end, dialogs_replace, open_window, action_start, wait_for
+from bzt.resources.selenium_extras import dialogs_answer_on_next_confirm, dialogs_get_next_prompt, dialogs_get_next_alert, dialogs_answer_on_next_alert, wait_for, action_start, get_locator, action_end, waiter, dialogs_answer_on_next_prompt, dialogs_replace, switch_frame, open_window, close_window, dialogs_get_next_confirm, switch_window
 
 class TestLocSc(unittest.TestCase):
 
@@ -168,6 +168,16 @@ class TestLocSc(unittest.TestCase):
                 var_loc_keys[1]).send_keys('myusername')
             waiter()
             action_end({'param': 'myusername', 'selectors': [{'id': 'fjkafjk'}, {'css': 'testCss'}], 'tag': '', 'type': 'type', 'value': None})
+            action_start({'param': '************', 'selectors': [{'id': 'fjkafjk'}, {'css': 'testCss'}], 'tag': '', 'type': 'typesecret', 'value': None})
+
+            var_loc_keys = get_locator([{'id': 'fjkafjk'}, {'css': 'testCss'}])
+            self.driver.find_element(
+                var_loc_keys[0],
+                var_loc_keys[1]).clear()
+            self.driver.find_element(
+                var_loc_keys[0],
+                var_loc_keys[1]).send_keys('mysecret')
+            action_end({'param': '************', 'selectors': [{'id': 'fjkafjk'}, {'css': 'testCss'}], 'tag': '', 'type': 'typesecret', 'value': None})
             action_start({'param': 'American Express', 'selectors': [{'css': 'myclass'}, {'xpath': '//*[@id="cardType"]'}], 'tag': '', 'type': 'select', 'value': None})
 
             var_loc_select = get_locator([{'css': 'myclass'}, {'xpath': '//*[@id="cardType"]'}])
