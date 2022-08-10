@@ -30,7 +30,7 @@ RUN $PIP_INSTALL --user --upgrade pip pillow oauthlib pyjwt httplib2
 
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
-    openjdk-11-jdk xvfb siege apache2-utils firefox ruby nodejs locales tsung
+    openjdk-11-jdk xvfb siege apache2-utils firefox ruby ruby-dev make nodejs locales tsung
 
 # set en_US.UTF-8 as default locale
 RUN locale-gen "en_US.UTF-8" && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
