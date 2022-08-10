@@ -11,6 +11,9 @@ pipeline {
     options {
         timestamps()
     }
+    parameters{
+        booleanParam(name: 'PERFORM_PRISMA_SCAN', defaultValue: true, description: 'Perform a Prisma scan for the local image')
+    }
     stages {
         stage('Checkout') {
             steps {
@@ -45,6 +48,7 @@ pipeline {
             }
         }
         stage("Prisma scan") {
+            when { expression { return PERFORM_PRISMA_SCAN } }
             steps {
                 script{
                     prismaCloudScanImage(dockerAddress: 'unix:///var/run/docker.sock',
