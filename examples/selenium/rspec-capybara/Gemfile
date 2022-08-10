@@ -25,6 +25,9 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 gem 'bootstrap-sass', '>= 3.4.1'
 gem 'autoprefixer-rails'
 
+# Fix CVE-2021-41816
+gem 'cgi', '>=0.1.1'
+
 # Use ActiveModel has_secure_password
 # gem 'bcrypt', '~> 3.1.7'
 

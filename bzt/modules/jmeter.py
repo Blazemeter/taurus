@@ -1375,7 +1375,7 @@ class JMeter(RequiredTool):
     PLUGINS_MANAGER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
     COMMAND_RUNNER_VERSION = "2.2"
     COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
-    VERSION = "5.4.3"
+    VERSION = "5.5"
 
     def __init__(self, config=None, props=None, **kwargs):
         settings = config or BetterDict()
@@ -1559,10 +1559,11 @@ class JMeter(RequiredTool):
                 "jackson-annotations": "com/fasterxml/jackson/core/jackson-annotations/2.13.3/jackson-annotations-2.13.3.jar",
                 "jackson-core": "com/fasterxml/jackson/core/jackson-core/2.13.3/jackson-core-2.13.3.jar",
                 "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.13.3/jackson-databind-2.13.3.jar",
-                "netty-codec": "io/netty/netty-codec/4.1.77.Final/netty-codec-4.1.77.Final.jar",
-                "jetty-io": "org/eclipse/jetty/jetty-io/9.4.46.v20220331/jetty-io-9.4.46.v20220331.jar",
+                "netty-codec": "io/netty/netty-codec/4.1.79.Final/netty-codec-4.1.79.Final.jar",
+                "jetty-io": "org/eclipse/jetty/jetty-io/9.4.48.v20220622/jetty-io-9.4.48.v20220622.jar",
                 "snakeyaml": "org/yaml/snakeyaml/1.30/snakeyaml-1.30.jar",
                 "json-smart": "net/minidev/json-smart/2.4.8/json-smart-2.4.8.jar",
+                "jsoup": "org/jsoup/jsoup/1.15.2/jsoup-1.15.2.jar",
                 "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.7/xmlgraphics-commons-2.7.jar"}
 
             if LooseVersion(self.version) <= LooseVersion('5.4.2'):  # log4j must be fixed till jmeter 5.4.2

@@ -33,10 +33,10 @@ RUN $APT_UPDATE && $APT_INSTALL \
     openjdk-11-jdk xvfb siege apache2-utils firefox ruby nodejs locales tsung
 
 # set en_US.UTF-8 as default locale
-RUN locale-gen "en_US.UTF-8" \
-   && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+RUN locale-gen "en_US.UTF-8" && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-RUN gem install rspec rake selenium-webdriver
+# Force cgi version to fix CVE-2021-41816
+RUN gem install rspec rake selenium-webdriver cgi:0.1.1 && gem update bundler date && gem cleanup
 
 # Get Google Chrome
 RUN $APT_INSTALL ./google-chrome-stable_current_amd64.deb \
