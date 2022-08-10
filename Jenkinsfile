@@ -11,6 +11,9 @@ pipeline {
     options {
         timestamps()
     }
+    parameters{
+        booleanParam(name: 'PERFORM_PRISMA_SCAN', defaultValue: true, description: 'Perform a Prisma scan for the local image')
+    }
     stages {
         stage('Checkout') {
             steps {
@@ -41,6 +44,19 @@ pipeline {
             steps {
                 script {
                     sh "docker build --no-cache -t ${JOB_NAME} -t ${extraImageTag} ."
+                }
+            }
+        }
+        stage("Prisma scan") {
+            when { expression { return PERFORM_PRISMA_SCAN } }
+            steps {
+                script{
+                    prismaCloudScanImage(dockerAddress: 'unix:///var/run/docker.sock',
+                            image: "${JOB_NAME}",
+                            logLevel: 'info',
+                            resultsFile: 'prisma-cloud-scan-results.json',
+                            ignoreImageBuildTime: true)
+                    prismaCloudPublish(resultsFilePattern: 'prisma-cloud-scan-results.json')
                 }
             }
         }
