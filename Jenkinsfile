@@ -44,6 +44,18 @@ pipeline {
                 }
             }
         }
+        stage("Prisma scan") {
+            steps {
+                script{
+                    prismaCloudScanImage(dockerAddress: 'unix:///var/run/docker.sock',
+                            image: "${JOB_NAME}",
+                            logLevel: 'info',
+                            resultsFile: 'prisma-cloud-scan-results.json',
+                            ignoreImageBuildTime: true)
+                    prismaCloudPublish(resultsFilePattern: 'prisma-cloud-scan-results.json')
+                }
+            }
+        }
         stage("Integration Tests") {
             steps {
                 sh """
