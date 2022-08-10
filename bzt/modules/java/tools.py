@@ -88,7 +88,8 @@ class SeleniumServer(RequiredTool):
 
         version = config.get("version", self.VERSION)
         version = str(version).split('.')
-        version.extend(['0'] * (3 - len(version)))
+        # 3.141.59 version
+        version.extend(['59'] * (3 - len(version)))
         short_version = '.'.join(version[:2])   # 2 elements
         full_version = '.'.join(version)        # 3+ elements
 
