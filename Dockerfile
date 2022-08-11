@@ -68,6 +68,9 @@ RUN mkdir -p /etc/bzt.d \
   && bzt -install-tools -v \
   && google-chrome-stable --version && firefox --version && dotnet --version | head -1
 
+# Fix npm vulnerabilites
+RUN npm update minimist minimatch mocha mkdirp yargs ansi-regex string-width
+
 RUN rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
 # Rootless user
