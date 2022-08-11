@@ -17,8 +17,7 @@ COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
-RUN bash ./setup_12.x \
-   && $APT_INSTALL build-essential python3-pip python3.9-dev
+RUN bash ./setup_12.x && $APT_INSTALL build-essential python3-pip python3.9-dev
 
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
 
@@ -69,8 +68,9 @@ RUN mkdir -p /etc/bzt.d \
   && bzt -install-tools -v \
   && google-chrome-stable --version && firefox --version && dotnet --version | head -1
 
-RUN rm -rf /tmp/* \
-  && mkdir /bzt-configs /tmp/artifacts
+RUN rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
+# Rootless user
+USER 1337:0
 WORKDIR /bzt-configs
 ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]

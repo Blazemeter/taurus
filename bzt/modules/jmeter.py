@@ -1563,6 +1563,7 @@ class JMeter(RequiredTool):
             "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.13.3/jackson-databind-2.13.3.jar",
             "json-smart": "net/minidev/json-smart/2.4.8/json-smart-2.4.8.jar",
             "jsoup": "org/jsoup/jsoup/1.15.2/jsoup-1.15.2.jar",
+            "snakeyaml": "org/yaml/snakeyaml/1.30/snakeyaml-1.30.jar",
             "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.7/xmlgraphics-commons-2.7.jar"}
 
         if LooseVersion(self.version) <= LooseVersion('5.4.2'):  # log4j must be fixed till jmeter 5.4.2
@@ -1595,14 +1596,13 @@ class JMeter(RequiredTool):
 
         self.__install_jmeter(jmeter_dir)
 
-        direct_install_tools = self._get_jar_fixes(lib_dir)  # format: download link, local destination path
-        direct_install_tools.extend([
-            [self.plugins_manager_link, pm_installer_path],
-            [self.command_runner_link, command_runner_path]])
-
+        direct_install_tools = [[self.plugins_manager_link, pm_installer_path],
+                                [self.command_runner_link, command_runner_path]]
         self.__download_additions(direct_install_tools)
         self.__install_plugins_manager(pm_installer_path)
         self.__install_plugins()
+        # Apply JAR vulnerability fixes
+        self.__download_additions(self._get_jar_fixes(lib_dir))
 
         cleaner = JarCleaner(self.log)
         cleaner.clean(lib_dir)
