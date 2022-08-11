@@ -1549,39 +1549,38 @@ class JMeter(RequiredTool):
 
     def _get_jar_fixes(self, lib_dir):
         direct_install_tools = []
-        if self.fix_jars:
-            # these jars should be replaced with newer version in order to fix some vulnerabilities
 
-            # component name and download link in https://repo1.maven.org/maven2/
-            affected_components = {
-                # Needs to be <1.4.18 for now https://stackoverflow.com/questions/30812293/com-thoughtworks-xstream-security-forbiddenclassexception
-                "xstream": "com/thoughtworks/xstream/xstream/1.4.17/xstream-1.4.17.jar",
-                "jackson-annotations": "com/fasterxml/jackson/core/jackson-annotations/2.13.3/jackson-annotations-2.13.3.jar",
-                "jackson-core": "com/fasterxml/jackson/core/jackson-core/2.13.3/jackson-core-2.13.3.jar",
-                "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.13.3/jackson-databind-2.13.3.jar",
-                "netty-codec": "io/netty/netty-codec/4.1.79.Final/netty-codec-4.1.79.Final.jar",
-                "jetty-io": "org/eclipse/jetty/jetty-io/9.4.48.v20220622/jetty-io-9.4.48.v20220622.jar",
-                "snakeyaml": "org/yaml/snakeyaml/1.30/snakeyaml-1.30.jar",
-                "json-smart": "net/minidev/json-smart/2.4.8/json-smart-2.4.8.jar",
-                "jsoup": "org/jsoup/jsoup/1.15.2/jsoup-1.15.2.jar",
-                "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.7/xmlgraphics-commons-2.7.jar"}
+        if not self.fix_jars or LooseVersion(self.version) < LooseVersion('5.0.0'):
+            return direct_install_tools
 
-            if LooseVersion(self.version) <= LooseVersion('5.4.2'):  # log4j must be fixed till jmeter 5.4.2
-                affected_names = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
-                fixed_version = '2.17.2'
-                maven_link = "org/apache/logging/log4j/{name}/{ver}/{name}-{ver}.jar"
+        # these jars should be replaced with newer version in order to fix some vulnerabilities
+        # component name and download link in https://repo1.maven.org/maven2/
+        affected_components = {
+            # Needs to be <1.4.18 for old Jmeters https://stackoverflow.com/questions/30812293/com-thoughtworks-xstream-security-forbiddenclassexception
+            "xstream": "com/thoughtworks/xstream/xstream/1.4.19/xstream-1.4.19.jar",
+            "jackson-annotations": "com/fasterxml/jackson/core/jackson-annotations/2.13.3/jackson-annotations-2.13.3.jar",
+            "jackson-core": "com/fasterxml/jackson/core/jackson-core/2.13.3/jackson-core-2.13.3.jar",
+            "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.13.3/jackson-databind-2.13.3.jar",
+            "json-smart": "net/minidev/json-smart/2.4.8/json-smart-2.4.8.jar",
+            "jsoup": "org/jsoup/jsoup/1.15.2/jsoup-1.15.2.jar",
+            "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.7/xmlgraphics-commons-2.7.jar"}
 
-                for name in affected_names:
-                    affected_components[name] = maven_link.format(name=name, ver=fixed_version)
+        if LooseVersion(self.version) <= LooseVersion('5.4.2'):  # log4j must be fixed till jmeter 5.4.2
+            affected_names = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
+            fixed_version = '2.17.2'
+            maven_link = "org/apache/logging/log4j/{name}/{ver}/{name}-{ver}.jar"
 
-            jar_files = [_file for _file in os.listdir(lib_dir) if _file.endswith(".jar")]
-            for jar_file in jar_files:
-                for comp_name in affected_components:
-                    if jar_file.startswith(comp_name):
-                        download_link = "https://repo1.maven.org/maven2/" + affected_components[comp_name]
-                        target_path = os.path.join(lib_dir, jar_file)
-                        direct_install_tools.append([download_link, target_path])
-                        break
+            for name in affected_names:
+                affected_components[name] = maven_link.format(name=name, ver=fixed_version)
+
+        jar_files = [_file for _file in os.listdir(lib_dir) if _file.endswith(".jar")]
+        for jar_file in jar_files:
+            for comp_name in affected_components:
+                if jar_file.startswith(comp_name):
+                    download_link = "https://repo1.maven.org/maven2/" + affected_components[comp_name]
+                    target_path = os.path.join(lib_dir, jar_file)
+                    direct_install_tools.append([download_link, target_path])
+                    break
 
         return direct_install_tools
 
