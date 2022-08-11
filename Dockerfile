@@ -69,11 +69,11 @@ RUN mkdir -p /etc/bzt.d \
   && google-chrome-stable --version && firefox --version && dotnet --version | head -1
 
 # Fix npm vulnerabilites
-RUN npm update minimist minimatch mocha mkdirp yargs ansi-regex string-width
+RUN npm install -g npm@latest && npm -g update
 
 RUN rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
 # Rootless user
-USER 1337:0
+# USER 1337:0
 WORKDIR /bzt-configs
 ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
