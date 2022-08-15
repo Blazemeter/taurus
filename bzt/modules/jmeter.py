@@ -1594,7 +1594,7 @@ class JMeter(RequiredTool):
         jquery_src_dir = os.path.join(jmeter_dir, "jquery-dist-3.6.0")
         jquery_target_dir = os.path.join(jmeter_dir,
             "bin/report-template/sbadmin2-1.0.7/bower_components/jquery")
-        jquery_tar = os.path.join(jquery_src_dir, "jquery-dist-3.6.0.tar.gz")
+        jquery_tar = os.path.join(jmeter_dir, "jquery-dist-3.6.0.tar.gz")
         self.__download_additions([["https://github.com/jquery/jquery-dist/archive/3.6.0.tar.gz",
                                     jquery_tar]])
         shutil.unpack_archive(jquery_tar, jmeter_dir)
