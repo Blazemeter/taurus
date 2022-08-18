@@ -218,8 +218,21 @@ class JMeterExecutor(ScenarioExecutor):
         is_jmx_generated = False
 
         self.original_jmx = self.get_script_path()
-        if self.settings.get("version", JMeter.VERSION, force_set=True) == "auto":
-            self.settings["version"] = self._get_tool_version(self.original_jmx)
+        if os.getenv('TAURUS_JMETER_DISABLE_AUTO_DETECT', 'False') == 'True':
+            # autodection NOT active -> use STABLE if auto,
+            # xyz if STABLE|LATEST
+            # STABLE otherwise
+            config_version = self.settings.get("version", JMeter.VERSION, force_set=True)
+            if config_version == "auto":
+                self.settings["version"] = JMeter.VERSION
+            elif config_version == JMeter.VERSION or config_version == JMeter.VERSION_LATEST:
+                self.settings["version"] = config_version
+            else:
+                self.settings["version"] = JMeter.VERSION
+        else:
+            # autodetection IS active (original default behavior)
+            if self.settings.get("version", JMeter.VERSION, force_set=True) == "auto":
+                self.settings["version"] = self._get_tool_version(self.original_jmx)
 
         if not self.original_jmx:
             if self.get_scenario().get("requests"):
@@ -1377,6 +1390,7 @@ class JMeter(RequiredTool):
     COMMAND_RUNNER_VERSION = "2.2"
     COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
     VERSION = "5.5"
+    VERSION_LATEST = "5.5"
 
     def __init__(self, config=None, props=None, **kwargs):
         settings = config or BetterDict()
