@@ -195,9 +195,17 @@ class JMeterExecutor(ScenarioExecutor):
         test_plan = jmx.get(selector)[0]
         ver = test_plan.get('jmeter')
         if isinstance(ver, str):
-            index = ver.find(" ")
-            if index != -1:
-                return ver[:index]
+            space_index = ver.find(" ")
+            # return original value if it doesn't contain the space
+            # ver = "4.0" -> return "4.0" (NOT JMeter.VERSION)
+            # ver = "2.13 r1665067" -> return "2.13"
+            if space_index != -1:
+                return ver[:space_index]
+            dash_index = ver.find("-")
+            if dash_index != -1:
+                # not supported version like: 2.12-SNAPSHOT.20150128
+                return JMeter.VERSION
+            return ver
 
         return JMeter.VERSION
 
@@ -218,7 +226,9 @@ class JMeterExecutor(ScenarioExecutor):
         is_jmx_generated = False
 
         self.original_jmx = self.get_script_path()
+        self.log.debug("Getting Jmeter version.")
         if os.getenv('TAURUS_JMETER_DISABLE_AUTO_DETECT', 'False') == 'True':
+            self.log.debug("Autodetect version is disabled.")
             # autodection NOT active -> use STABLE if auto,
             # xyz if STABLE|LATEST
             # STABLE otherwise
@@ -231,8 +241,10 @@ class JMeterExecutor(ScenarioExecutor):
                 self.settings["version"] = JMeter.VERSION
         else:
             # autodetection IS active (original default behavior)
+            self.log.debug("Autodetect version is enabled")
             if self.settings.get("version", JMeter.VERSION, force_set=True) == "auto":
                 self.settings["version"] = self._get_tool_version(self.original_jmx)
+        self.log.debug("JMeter version: " + self.settings["version"])
 
         if not self.original_jmx:
             if self.get_scenario().get("requests"):

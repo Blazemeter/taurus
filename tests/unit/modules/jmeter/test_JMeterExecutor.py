@@ -2431,6 +2431,14 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.prepare()
         self.assertEqual(JMeter.VERSION, self.obj.tool.version)
 
+    def test_detect_single_version(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/dummy_plan.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.prepare()
+        self.assertEqual("2.8.20130705", self.obj.tool.version)
+
     def test_detect_ver_2_13(self):
         self.obj.execution.merge({
             'scenario': {
