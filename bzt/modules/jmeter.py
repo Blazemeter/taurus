@@ -206,6 +206,7 @@ class JMeterExecutor(ScenarioExecutor):
                 # not supported version like: 2.12-SNAPSHOT.20150128
                 return JMeter.VERSION
             return ver
+
         return JMeter.VERSION
 
     def prepare(self):
