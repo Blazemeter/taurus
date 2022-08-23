@@ -232,9 +232,7 @@ class JMeterExecutor(ScenarioExecutor):
             # xyz if STABLE|LATEST
             # STABLE otherwise
             config_version = self.settings.get("version", JMeter.VERSION, force_set=True)
-            if config_version == "auto":
-                self.settings["version"] = JMeter.VERSION
-            elif config_version == JMeter.VERSION or config_version == JMeter.VERSION_LATEST:
+            if config_version in [JMeter.VERSION, JMeter.VERSION_LATEST]:
                 self.settings["version"] = config_version
             else:
                 self.settings["version"] = JMeter.VERSION
