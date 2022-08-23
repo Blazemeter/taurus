@@ -243,7 +243,7 @@ class JMeterExecutor(ScenarioExecutor):
             self.log.debug("Autodetect version is enabled")
             if self.settings.get("version", JMeter.VERSION, force_set=True) == "auto":
                 self.settings["version"] = self._get_tool_version(self.original_jmx)
-        self.log.debug("JMeter version: " + self.settings["version"])
+        self.log.debug("JMeter version: %s", self.settings["version"])
 
         if not self.original_jmx:
             if self.get_scenario().get("requests"):
