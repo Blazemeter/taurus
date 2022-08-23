@@ -69,6 +69,15 @@ class TestJMeterExecutor(ExecutorTestCase):
         #version will be stable
         self.assertEqual(self.obj.settings["version"], JMeter.VERSION)
 
+    def test_version_autodetect_on2(self):
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/disable_autodetect.yml").read()))
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
+        self.obj.settings.merge({"version": "2.2"})
+        os.environ["TAURUS_JMETER_DISABLE_AUTO_DETECT"] = "True"
+        self.obj.prepare()
+        #version will be stable
+        self.assertEqual(self.obj.settings["version"], JMeter.VERSION)
+
     def test_version_autodetect_off(self):
         self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/disable_autodetect.yml").read()))
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
