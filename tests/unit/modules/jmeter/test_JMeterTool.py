@@ -19,7 +19,7 @@ class TestJMeterTool(BZTestCase):
             "log4j-core-2.16.jar",  # only old jmeter versions contains affected log4j components
             "some-other-lib-0.99.jar"]  # other jar, mustn't be touched
         listdir = lambda _: lib_dir_content
-        self.obj.version = '1.0'
+        self.obj.version = '5.0.0'
 
         saved_listdir = os.listdir
         os.listdir = listdir
@@ -28,7 +28,7 @@ class TestJMeterTool(BZTestCase):
             target_tools_list = [
                 [
                     # Needs to be <1.4.18 for now https://stackoverflow.com/questions/30812293/com-thoughtworks-xstream-security-forbiddenclassexception
-                    'https://repo1.maven.org/maven2/com/thoughtworks/xstream/xstream/1.4.17/xstream-1.4.17.jar',
+                    'https://repo1.maven.org/maven2/com/thoughtworks/xstream/xstream/1.4.19/xstream-1.4.19.jar',
                     os.path.join(lib_dir_path, 'xstream-1.4.15.jar')],
                 [
                     'https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/2.17.2/log4j-core-2.17.2.jar',
