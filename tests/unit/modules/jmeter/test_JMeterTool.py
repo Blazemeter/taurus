@@ -37,7 +37,7 @@ class TestJMeterTool(BZTestCase):
         finally:
             os.listdir = saved_listdir
 
-    def test_get_jar_fixes(self):
+    def test_get_jar_fixes2(self):
         lib_dir_path = get_full_path(__file__, step_up=1)
         lib_dir_content = [
             "xstream-1.4.15.jar",   # lib with some vulnerability, must be replaced
