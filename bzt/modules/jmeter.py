@@ -228,7 +228,7 @@ class JMeterExecutor(ScenarioExecutor):
         self.log.debug("Getting Jmeter version.")
         if os.getenv('TAURUS_JMETER_DISABLE_AUTO_DETECT', 'False') == 'True':
             self.log.debug("Autodetect version is disabled.")
-            # autodection NOT active -> use STABLE if auto,
+            # autodetection NOT active -> use STABLE if auto,
             # xyz if STABLE|LATEST
             # STABLE otherwise
             config_version = self.settings.get("version", JMeter.VERSION, force_set=True)
