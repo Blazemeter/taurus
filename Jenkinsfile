@@ -43,7 +43,7 @@ pipeline {
         stage("Docker Image Build") {
             steps {
                 script {
-                    sh "docker build --no-cache -t ${JOB_NAME} -t ${extraImageTag} ."
+                    sh "docker build --no-cache -t ${JOB_NAME.toLowerCase()} -t ${extraImageTag} ."
                 }
             }
         }
@@ -52,7 +52,7 @@ pipeline {
             steps {
                 script{
                     prismaCloudScanImage(dockerAddress: 'unix:///var/run/docker.sock',
-                            image: "${JOB_NAME}",
+                            image: "${JOB_NAME.toLowerCase()}",
                             logLevel: 'info',
                             resultsFile: 'prisma-cloud-scan-results.json',
                             ignoreImageBuildTime: true)
@@ -63,7 +63,7 @@ pipeline {
         stage("Integration Tests") {
             steps {
                 sh """
-                   docker run -v `pwd`:/bzt-configs -v `pwd`/integr-artifacts:/tmp/artifacts ${JOB_NAME} -sequential examples/all-executors.yml
+                   docker run -v `pwd`:/bzt-configs -v `pwd`/integr-artifacts:/tmp/artifacts ${JOB_NAME.toLowerCase()} -sequential examples/all-executors.yml
                    """
             }
         }
