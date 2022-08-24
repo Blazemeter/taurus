@@ -58,7 +58,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
             1637589160:
                 {'good-success': 4, 'bad-http_errors': 4},
             1637589161:
-                {'good-success': 3, 'bad-http_errors': 1}}
+                {'good-success': 4, 'bad-http_errors': 1}} #todo-vus: double check the correct value here  -allGrp has max value in the second = 4
 
         self.assertEqual(cons1, sample_cons1)
 

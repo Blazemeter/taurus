@@ -200,10 +200,7 @@ class KPISet(dict):
         self.sum_lt = 0
         self.sum_cn = 0
         self.perc_levels = perc_levels
-        if ext_aggregation:
-            self.concurrencies = set()
-        else:
-            self.concurrencies = Counter()
+        self.concurrencies = Counter()
         # scalars
         self[KPISet.SAMPLE_COUNT] = 0
         self[KPISet.CONCURRENCY] = 0
@@ -263,9 +260,7 @@ class KPISet(dict):
         """
         cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
         self[self.SAMPLE_COUNT] += 1
-        if self.ext_aggregation:
-            self.concurrencies.add(trname)
-        elif cnc:
+        if cnc:
             self.add_concurrency(cnc, trname)
 
         if r_code is not None:
@@ -292,12 +287,7 @@ class KPISet(dict):
 
     def add_concurrency(self, cnc, sid):
         # sid: source id, e.g. node id for jmeter distributed mode
-        if self.ext_aggregation:
-            if isinstance(sid, set):
-                self.concurrencies.update(sid)
-            else:
-                self.concurrencies.add(sid)
-        elif self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
+        if self.concurrencies.get(sid, 0) < cnc:    # take max value of concurrency during the second.
             self.concurrencies[sid] = cnc
 
     @staticmethod
@@ -366,10 +356,7 @@ class KPISet(dict):
             self[self.AVG_RESP_TIME] = self.sum_rt / self[self.SAMPLE_COUNT]
 
         if len(self.concurrencies):
-            if self.ext_aggregation:
-                self[self.CONCURRENCY] = len(self.concurrencies)
-            else:
-                self[self.CONCURRENCY] = sum(self.concurrencies.values())
+            self[self.CONCURRENCY] = max(self.concurrencies.values()) #todo-vus - here should be max? (from all different rows in one second
 
         return self
 
@@ -392,8 +379,6 @@ class KPISet(dict):
         self[self.FAILURES] += src[self.FAILURES]
         self[self.BYTE_COUNT] += src[self.BYTE_COUNT]
         # NOTE: should it be average? mind the timestamp gaps
-        if self.ext_aggregation:
-            sid = src.concurrencies
         if src[self.CONCURRENCY]:
             self.add_concurrency(src[self.CONCURRENCY], sid)
 
