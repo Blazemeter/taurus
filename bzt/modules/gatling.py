@@ -764,8 +764,8 @@ class Gatling(RequiredTool):
                     elif line.startswith('GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
-                    # elif line.startswith('CLASSPATH='):
-                    #     mod_success = True
+                    elif line.startswith('CLASSPATH='):
+                        mod_success = True
                     #     line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
                     elif line.startswith('"$JAVA"'):
                         line = 'eval ' + line
