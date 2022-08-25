@@ -292,9 +292,10 @@ class GatlingExecutor(ScenarioExecutor):
         scenario = self.get_scenario()
 
         self.env.set({"GATLING_HOME": self.tool.tool_dir})
+        self.log.info("setting GATLING_HOME %s", self.tool.tool_dir)
 
         cpath = self.get_additional_classpath()
-        self.log.debug("Classpath for Gatling: %s", cpath)
+        self.log.info("Classpath for Gatling: %s", cpath)
 
         for element in cpath:
             self.env.add_path({"JAVA_CLASSPATH": element})
@@ -763,9 +764,9 @@ class Gatling(RequiredTool):
                     elif line.startswith('GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
-                    elif line.startswith('CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
+                    # elif line.startswith('CLASSPATH='):
+                    #     mod_success = True
+                    #     line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
                     elif line.startswith('"$JAVA"'):
                         line = 'eval ' + line
                 modified_lines.append(line)
