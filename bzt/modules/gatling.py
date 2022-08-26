@@ -757,6 +757,8 @@ class Gatling(RequiredTool):
                     elif line.startswith('set CLASSPATH='):
                         mod_success = True
                         line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
+                    elif line.startswith('%JAVA%'):
+                        line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
                 else:
                     if line.startswith('COMPILER_CLASSPATH='):
                         mod_success = True
@@ -769,6 +771,7 @@ class Gatling(RequiredTool):
                         line = line.rstrip()[:-1] + ':${JAVA_CLASSPATH}"\n'  # add from env
                         line = line + '\necho $CLASSPATH\n' #to test, if the value was set correctly
                     elif line.startswith('"$JAVA"'):
+                        line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
                         line = 'eval ' + line
                 modified_lines.append(line)
 
