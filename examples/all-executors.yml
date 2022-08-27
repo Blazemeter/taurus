@@ -178,7 +178,7 @@ execution:
   iterations: 10
   scenario:
     properties:
-      dangerous: "IFS"
+      dangerous: "I F S"
     requests:
       - url: http://localhost:8000/
         label: Gatling
