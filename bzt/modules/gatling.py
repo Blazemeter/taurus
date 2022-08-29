@@ -292,10 +292,9 @@ class GatlingExecutor(ScenarioExecutor):
         scenario = self.get_scenario()
 
         self.env.set({"GATLING_HOME": self.tool.tool_dir})
-        self.log.info("setting GATLING_HOME %s", self.tool.tool_dir)
 
         cpath = self.get_additional_classpath()
-        self.log.info("Classpath for Gatling: %s", cpath)
+        self.log.debug("Classpath for Gatling: %s", cpath)
 
         for element in cpath:
             self.env.add_path({"JAVA_CLASSPATH": element})
@@ -703,7 +702,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "3.8.3"
+    VERSION = "3.7.5"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):
@@ -754,11 +753,6 @@ class Gatling(RequiredTool):
                     elif line.startswith('set GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
-                    elif line.startswith('set CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
-                    elif line.startswith('%JAVA%'):
-                        line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
                 else:
                     if line.startswith('COMPILER_CLASSPATH='):
                         mod_success = True
@@ -766,18 +760,7 @@ class Gatling(RequiredTool):
                     elif line.startswith('GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
-                    elif line.startswith('CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip()[:-1] + ':${JAVA_CLASSPATH}"\n'  # add from env
-                        line = line + '\necho $CLASSPATH\n' #to test, if the value was set correctly
                     elif line.startswith('"$JAVA"'):
-                        line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
-                        modified_lines.append('echo "*****************************"\n')
-                        modified_lines.append('echo "java:" $JAVA\n')
-                        modified_lines.append('echo "java opts: " $JAVA_OPTS\n')
-                        modified_lines.append('echo "classpath:" $CLASSPATH\n')
-                        modified_lines.append('echo eval ' + line)
-                        modified_lines.append('echo "*****************************"\n')
                         line = 'eval ' + line
                 modified_lines.append(line)
 
