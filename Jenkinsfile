@@ -76,6 +76,7 @@ pipeline {
             }
         }
         stage("Docker Image Push") {
+            when { expression { isRelease } }
             steps {
                 withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
                     sh "docker image push --all-tags ${imageName}"
@@ -83,6 +84,7 @@ pipeline {
             }
         }
         stage("Deploy site") {
+            when { expression { isRelease } }
             steps {
                 script {
                     PROJECT_ID = "blazemeter-taurus-website-prod"
@@ -104,7 +106,7 @@ pipeline {
     post {
         always {
             smartSlackNotification(channel: "bm-taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
-//            cleanWs()
+            cleanWs()
         }
     }
 }
