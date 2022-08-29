@@ -753,8 +753,6 @@ class Gatling(RequiredTool):
                     elif line.startswith('set GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
-                    elif line.startswith('GATLING_HOME'):
-                        mod_success = True
                 else:
                     if line.startswith('COMPILER_CLASSPATH='):
                         mod_success = True
@@ -764,8 +762,6 @@ class Gatling(RequiredTool):
                         line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
                     elif line.startswith('"$JAVA"'):
                         line = 'eval ' + line
-                    elif line.startswith('GATLING_HOME'):
-                        mod_success = True
                 modified_lines.append(line)
 
         if not mod_success:
