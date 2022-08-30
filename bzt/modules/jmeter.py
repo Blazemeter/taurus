@@ -1586,8 +1586,9 @@ class JMeter(RequiredTool):
             "jackson-core": "com/fasterxml/jackson/core/jackson-core/2.13.3/jackson-core-2.13.3.jar",
             "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.13.3/jackson-databind-2.13.3.jar",
             "json-smart": "net/minidev/json-smart/2.4.8/json-smart-2.4.8.jar",
-            "jsoup": "org/jsoup/jsoup/1.15.2/jsoup-1.15.2.jar",
-            "snakeyaml": "org/yaml/snakeyaml/1.30/snakeyaml-1.30.jar",
+            "jsoup": "org/jsoup/jsoup/1.15.3/jsoup-1.15.3.jar",
+            "snakeyaml": "org/yaml/snakeyaml/1.31/snakeyaml-1.31.jar",
+            "okhttp" : "com/squareup/okhttp3/okhttp/4.10.0/okhttp-4.10.0.jar",
             "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.7/xmlgraphics-commons-2.7.jar"}
 
         if LooseVersion(self.version) <= LooseVersion('5.4.2'):  # log4j must be fixed till jmeter 5.4.2
