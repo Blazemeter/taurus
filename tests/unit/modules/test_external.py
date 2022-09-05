@@ -58,7 +58,7 @@ class TestExternalResultsLoader(ExecutorTestCase):
             1637589160:
                 {'good-success': 4, 'bad-http_errors': 4},
             1637589161:
-                {'good-success': 4, 'bad-http_errors': 1}} #todo-vus: double check the correct value here  -allGrp has max value in the second = 4
+                {'good-success': 4, 'bad-http_errors': 1}}
 
         self.assertEqual(cons1, sample_cons1)
 
@@ -72,86 +72,6 @@ class TestExternalResultsLoader(ExecutorTestCase):
                 label_src = dp[DataPoint.CURRENT][label]
                 for state in label_src:
                     label_dst[state] = label_src[state][KPISet.CONCURRENCY]
-
-        sample_cons2 = {
-            1637589158: {
-                '': {
-                    'all_transactions_aggregated': 1,
-                    'http_errors': 1,
-                    'success_http_errors': 1,
-                    'http_errors_jmeter_errors': 1,
-                    'success': 1,
-                    'success_jmeter_errors': 1},
-                'bad': {
-                    'all_transactions_aggregated': 1,
-                    'http_errors': 1,
-                    'success_http_errors': 1,
-                    'http_errors_jmeter_errors': 1},
-                'good': {
-                    'all_transactions_aggregated': 1,
-                    'success': 1,
-                    'success_jmeter_errors': 1,
-                    'success_http_errors': 1}},
-            1637589159: {
-                '': {
-                    'all_transactions_aggregated': 3,
-                    'http_errors': 3,
-                    'success_http_errors': 3,
-                    'http_errors_jmeter_errors': 3,
-                    'success': 3,
-                    'success_jmeter_errors': 3},
-                'bad': {
-                    'all_transactions_aggregated': 3,
-                    'http_errors': 3,
-                    'success_http_errors': 3,
-                    'http_errors_jmeter_errors': 3},
-                'good': {
-                    'all_transactions_aggregated': 3,
-                    'success': 3,
-                    'success_jmeter_errors': 3,
-                    'success_http_errors': 3}},
-            1637589160: {
-                '': {
-                    'all_transactions_aggregated': 4,
-                    'http_errors': 4,
-                    'success_http_errors': 4,
-                    'http_errors_jmeter_errors': 4,
-                    'success': 4,
-                    'success_jmeter_errors': 4},
-                'bad': {
-                    'all_transactions_aggregated': 4,
-                    'http_errors': 4,
-                    'success_http_errors': 4,
-                    'http_errors_jmeter_errors': 4},
-                'good': {
-                    'all_transactions_aggregated': 4,
-                    'success': 4,
-                    'success_jmeter_errors': 4,
-                    'success_http_errors': 4}},
-            1637589161: {
-                '': {
-                    'all_transactions_aggregated': 4,
-                    'http_errors': 1,
-                    'success_http_errors': 4,
-                    'http_errors_jmeter_errors': 1,
-                    'success': 3,
-                    'success_jmeter_errors': 3},
-                'bad': {
-                    'all_transactions_aggregated': 1,
-                    'http_errors': 1,
-                    'success_http_errors': 1,
-                    'http_errors_jmeter_errors': 1},
-                'good': {
-                    'all_transactions_aggregated': 3,
-                    'success': 3,
-                    'success_jmeter_errors': 3,
-                    'success_http_errors': 3}}}
-
-        # the same as self.assertEqual(cons2, sample_cons2) but much better for debug purpose
-        for ts in cons2:
-            for label in cons2[ts]:
-                for state in cons2[ts][label]:
-                    self.assertEqual(cons2[ts][label][state], sample_cons2[ts][label][state])
 
     def test_ext_agg_embedded(self):
         self.configure({
