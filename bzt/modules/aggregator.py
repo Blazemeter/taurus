@@ -356,7 +356,7 @@ class KPISet(dict):
             self[self.AVG_RESP_TIME] = self.sum_rt / self[self.SAMPLE_COUNT]
 
         if len(self.concurrencies):
-            self[self.CONCURRENCY] = max(self.concurrencies.values()) #todo-vus - here should be max? (from all different rows in one second
+            self[self.CONCURRENCY] = sum(self.concurrencies.values())
 
         return self
 
