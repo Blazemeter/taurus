@@ -76,7 +76,6 @@ pipeline {
             }
         }
         stage("Docker Image Push") {
-            when { expression { isRelease } }
             steps {
                 withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
                     sh "docker image push --all-tags ${imageName}"
