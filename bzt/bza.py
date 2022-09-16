@@ -493,7 +493,7 @@ class Test(BZAObject):
         resp = self._request(url, method='GET')
         validated = False
         for result in resp.get('result'):
-            if result['status'] == 100:
+            if result['fileName'] == 'taurus.yml' and result['status'] == 100:
                 for warning_msg in result['warnings'] + result['fileWarnings']:
                     self.log.warning(f"Passfail Warning: {warning_msg}")
                 validated = True
