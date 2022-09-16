@@ -1568,6 +1568,7 @@ class TestCloudProvisioning(BZTestCase):
             get={
                 'https://a.blazemeter.com/api/v4/tests/1/validations': {'result': [
                     {'status': 100,
+                     'fileName': 'taurus.yml',
                      'warnings': ["passfail warning"],
                      'fileWarnings': ["passfail file warning"]}]},
                 'https://a.blazemeter.com/api/v4/masters/1/status': {'result': {"status": "CREATED", "progress": 100}},
