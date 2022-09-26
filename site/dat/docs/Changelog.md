@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.16.15<sup> ?? September 2022</sup>
+- Added net-tools to Dockerfile to fix startup loop finding `netstat` command
+
 ## 1.16.14<sup> 13 September 2022</sup>
 - Fixes for VU calculation
 
