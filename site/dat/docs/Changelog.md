@@ -1,5 +1,7 @@
 # Changelog
-
+## 1.16.15<sup> 19 October 2022</sup>
+- Fixes for pass-fail validation
+- 
 ## 1.16.14<sup> 13 September 2022</sup>
 - Fixes for VU calculation
 
