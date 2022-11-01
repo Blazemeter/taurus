@@ -1582,18 +1582,19 @@ class JMeter(RequiredTool):
         affected_components = {
             # Needs to be <1.4.18 for old Jmeters https://stackoverflow.com/questions/30812293/com-thoughtworks-xstream-security-forbiddenclassexception
             "xstream": "com/thoughtworks/xstream/xstream/1.4.19/xstream-1.4.19.jar",
-            "jackson-annotations": "com/fasterxml/jackson/core/jackson-annotations/2.13.3/jackson-annotations-2.13.3.jar",
-            "jackson-core": "com/fasterxml/jackson/core/jackson-core/2.13.3/jackson-core-2.13.3.jar",
-            "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.13.3/jackson-databind-2.13.3.jar",
+            "jackson-annotations": "com/fasterxml/jackson/core/jackson-annotations/2.13.4/jackson-annotations-2.13.4.jar",
+            "jackson-core": "com/fasterxml/jackson/core/jackson-core/2.13.4/jackson-core-2.13.4.jar",
+            "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.13.4.2/jackson-databind-2.13.4.2.jar",
             "json-smart": "net/minidev/json-smart/2.4.8/json-smart-2.4.8.jar",
             "jsoup": "org/jsoup/jsoup/1.15.3/jsoup-1.15.3.jar",
-            "snakeyaml": "org/yaml/snakeyaml/1.31/snakeyaml-1.31.jar",
-            "okhttp" : "com/squareup/okhttp3/okhttp/4.10.0/okhttp-4.10.0.jar",
+            "snakeyaml": "org/yaml/snakeyaml/1.33/snakeyaml-1.33.jar",
+            "okhttp": "com/squareup/okhttp3/okhttp/4.10.0/okhttp-4.10.0.jar",
+            "commons-text": "org/apache/commons/commons-text/1.10.0/commons-text-1.10.0.jar",
             "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.7/xmlgraphics-commons-2.7.jar"}
 
         if LooseVersion(self.version) <= LooseVersion('5.4.2'):  # log4j must be fixed till jmeter 5.4.2
             affected_names = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
-            fixed_version = '2.17.2'
+            fixed_version = '2.19.0'
             maven_link = "org/apache/logging/log4j/{name}/{ver}/{name}-{ver}.jar"
 
             for name in affected_names:

@@ -1,4 +1,7 @@
 # Changelog
+## 1.16.16<sup> 1 November 2022</sup>
+- Vulnerability fixes
+
 ## 1.16.15<sup> 19 October 2022</sup>
 - Fixes for pass-fail validation
 - 
