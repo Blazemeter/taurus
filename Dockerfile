@@ -56,12 +56,6 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747
    && $APT_UPDATE \
    && $APT_INSTALL k6
 
-# Install Vegeta
-ENV VEGETA_VERSION 12.8.4
-RUN wget -q "https://github.com/tsenart/vegeta/releases/download/v${VEGETA_VERSION}/vegeta_${VEGETA_VERSION}_linux_amd64.tar.gz" -O /tmp/vegeta.tar.gz \
- && tar xzf /tmp/vegeta.tar.gz -C /bin \
- && rm /tmp/vegeta.tar.gz
-
 # auto installable tools
 RUN mkdir -p /etc/bzt.d \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
