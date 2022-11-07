@@ -35,7 +35,10 @@ RUN $APT_UPDATE && $APT_INSTALL \
 RUN locale-gen "en_US.UTF-8" && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 # Force cgi version to fix CVE-2021-41816
-RUN gem install rspec rake selenium-webdriver cgi:0.1.1 && gem update bundler date && gem cleanup
+RUN gem install rspec rake selenium-webdriver cgi:0.1.1 && gem update bundler date && gem cleanup \
+    && rm /usr/lib/ruby/gems/2.7.0/specifications/default/cgi-0.1.0.gemspec \
+    && rm /usr/lib/ruby/gems/2.7.0/specifications/default/bundler-2.1.4.gemspec \
+    && rm /usr/lib/ruby/gems/2.7.0/specifications/default/date-3.0.0.gemspec
 
 # Get Google Chrome
 RUN $APT_INSTALL ./google-chrome-stable_current_amd64.deb \
@@ -52,12 +55,6 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747
    && echo "deb https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list \
    && $APT_UPDATE \
    && $APT_INSTALL k6
-
-# Install Vegeta
-ENV VEGETA_VERSION 12.8.4
-RUN wget -q "https://github.com/tsenart/vegeta/releases/download/v${VEGETA_VERSION}/vegeta_${VEGETA_VERSION}_linux_amd64.tar.gz" -O /tmp/vegeta.tar.gz \
- && tar xzf /tmp/vegeta.tar.gz -C /bin \
- && rm /tmp/vegeta.tar.gz
 
 # auto installable tools
 RUN mkdir -p /etc/bzt.d \

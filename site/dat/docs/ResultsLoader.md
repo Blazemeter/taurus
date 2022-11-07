@@ -23,7 +23,6 @@ List of supported file formats:
 - `kpi.jtl`/`error.jtl` (JMeter CSV & XML files)
 - `simulation.log` (Gatling)
 - TSV files (Apache Benchmark)
-- Headerless CSV files (Vegeta)
 
 You can put `data-file`, and `errors-file` under scenario definition also, and point execution item onto corresponding scenario. If file is defined in both scenario and execution blocks, execution will have higher priority.
 
