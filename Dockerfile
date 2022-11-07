@@ -17,7 +17,7 @@ COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
-RUN bash ./setup_12.x && $APT_INSTALL build-essential python3-pip python3.9-dev
+RUN bash ./setup_12.x && $APT_INSTALL build-essential python3-pip python3.9-dev net-tools
 
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
 
