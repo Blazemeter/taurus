@@ -285,10 +285,10 @@ class WorkersReader(ResultsProvider):
 
             for err in data['errors'].values():
                 if err['name'] == item['name']:
-                    new_err = KPISet.error_item_skel(err['error'], None, err['occurences'], KPISet.ERRTYPE_ERROR,
+                    new_err = KPISet.error_item_skel(err['error'], None, err['occurrences'], KPISet.ERRTYPE_ERROR,
                                                      Counter(), None)
                     KPISet.inc_list(kpiset[KPISet.ERRORS], ("msg", err['error']), new_err)
-                    kpiset[KPISet.FAILURES] += err['occurences']
+                    kpiset[KPISet.FAILURES] += err['occurrences']
 
             kpiset[KPISet.SUCCESSES] = kpiset[KPISet.SAMPLE_COUNT] - kpiset[KPISet.FAILURES]
             point[DataPoint.CURRENT][item['name']] = kpiset
