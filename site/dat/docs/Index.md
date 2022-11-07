@@ -27,7 +27,6 @@
     1. [Siege Executor](Siege.md)
     1. [TestNG Executor](TestNG.md)
     1. [Tsung Executor](Tsung.md)
-    1. [Vegeta Executor](Vegeta.md)
     1. [WebdriverIO Executor](WebdriverIO.md)
     1. [xUnit Executor](XUnit.md)
  1. [Cloud Provisioned Test Execution](Cloud.md)

@@ -1,5 +1,9 @@
 # Changelog
-## 1.16.16<sup> 1 November 2022</sup>
+
+## 1.16.18<sup> 7 November 2022</sup>
+- Removing Vegeta test executor as it's not maintained for 2+ years
+
+## 1.16.17<sup> 1 November 2022</sup>
 - Vulnerability fixes
 
 ## 1.16.15<sup> 19 October 2022</sup>
