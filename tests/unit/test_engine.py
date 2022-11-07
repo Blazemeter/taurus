@@ -15,6 +15,9 @@ from tests.unit.modules._selenium import MockPythonTool
 
 
 class MockClient(object):
+
+    status_code = 200
+
     def request(self, *args, **kwargs):
         return self
 
