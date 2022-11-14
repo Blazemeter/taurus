@@ -1,9 +1,11 @@
 # Changelog
 
-## 1.16.18<sup> 7 November 2022</sup>
+## 1.16.18<sup> 14 November 2022</sup>
 - Removing Vegeta test executor as it's not maintained for 2+ years
 - Added net-tools to Dockerfile to fix startup loop finding `netstat` command (thanks to community!)
 - Correct typo on Locust error occurrences datapoint (thanks to community!) 
+- Change NodeJS 12->14, include apt-utils (#1690) (thanks to community!)
+- DE23863 Fix double counting of requests in Locust executor (#1691)
 
 ## 1.16.17<sup> 1 November 2022</sup>
 - Vulnerability fixes
