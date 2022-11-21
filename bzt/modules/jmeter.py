@@ -1616,11 +1616,11 @@ class JMeter(RequiredTool):
             return
 
         # Fix CVE-2016-10707 in jquery
-        jquery_src_dir = os.path.join(jmeter_dir, "jquery-dist-3.6.0")
+        jquery_src_dir = os.path.join(jmeter_dir, "jquery-dist-3.6.1")
         jquery_target_dir = os.path.join(jmeter_dir,
             "bin/report-template/sbadmin2-1.0.7/bower_components/jquery/")
-        jquery_tar = os.path.join(jmeter_dir, "jquery-dist-3.6.0.tar.gz")
-        self.__download_additions([["https://github.com/jquery/jquery-dist/archive/3.6.0.tar.gz",
+        jquery_tar = os.path.join(jmeter_dir, "jquery-dist-3.6.1.tar.gz")
+        self.__download_additions([["https://github.com/jquery/jquery-dist/archive/3.6.1.tar.gz",
                                     jquery_tar]])
         shutil.unpack_archive(jquery_tar, jmeter_dir)
         shutil.rmtree(jquery_target_dir, ignore_errors=True)
