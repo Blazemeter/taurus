@@ -1605,7 +1605,7 @@ class JMeter(RequiredTool):
             for comp_name in affected_components:
                 if jar_file.startswith(comp_name):
                     download_link = "https://repo1.maven.org/maven2/" + affected_components[comp_name]
-                    target_path = os.path.join(lib_dir, jar_file)
+                    target_path = os.path.join(lib_dir, os.path.basename(download_link))
                     direct_install_tools.append([download_link, target_path])
                     break
 
