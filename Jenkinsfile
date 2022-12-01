@@ -67,6 +67,7 @@ pipeline {
                    """
             }
         }
+/*
         stage("Deploy an artifact to PyPi") {
             when { expression { isRelease } }
             steps {
@@ -75,6 +76,7 @@ pipeline {
                }
             }
         }
+*/
         stage("Docker Image Push") {
             steps {
                 withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
@@ -82,6 +84,7 @@ pipeline {
                 }
             }
         }
+/*
         stage("Deploy site") {
             when { expression { isRelease } }
             steps {
@@ -101,6 +104,7 @@ pipeline {
                 }
             }
         }
+*/
     }
     post {
         always {
