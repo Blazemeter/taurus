@@ -240,17 +240,40 @@ class WebDriver(RequiredTool):
         driver_name = self.__class__.__name__.lower()
         file_name = driver_name + ('.exe' if is_windows() else "")
 
-        version = settings.get("version")
-        version = version or self._get_latest_version(driver_name)
+        # Versions, which needs to be handled (by priority):
+        # 1) from the config (yml) file
+        # 2) the already installed on the filesystem (check via tooldir property)
+        # 3) the latest taken from network (via url)
+        #
+        # Usecases when the version needs to be selected
+        # 1) Docker image build (= nothing installed -> emtpy driver dir)
+        #   - use the latest version (nothing in config, nothing in folder, 3rd option taken automatically
+        # 2) Running test inside the image (= tool already exists in tool folder, installed during image build)
+        #   - use the version already installed during image build (ignore version from yml)
+        # 3) Running test via taurus on local system (taurus downloaded as bzt tool from web)
+        #   - config 1) -> existing 2) -> latest from network 3)
+
+        version = None
+        # version from yml config (override)
+        settings_version = settings.get("version")
+
+        # latest if no override in settings
+        latest_version = self._get_latest_version(driver_name)
 
         # try to use latest existed...
         drivers_dir = os.path.join(base_dir, 'drivers', driver_name)
         drivers_dir_content = os.path.exists(drivers_dir) and os.listdir(drivers_dir)
+        # version from already existing(installed) items
         if drivers_dir_content:
             drivers_dir_content.sort()
-            version = version or drivers_dir_content[-1]
+            installed_version = drivers_dir_content[-1]
+        else:
+            installed_version = None
+        # decide, which version to use:
+        if not self._is_running_in_cloud():
+            version = settings_version
+        version = version or installed_version or latest_version
 
-        version = version or self.VERSION
         version = str(version)  # let's fix reading version as number from yaml
         self.log.info(f'Used version of {driver_name} is {version}')
 
@@ -276,6 +299,9 @@ class WebDriver(RequiredTool):
 
     def _get_latest_version_from_inet(self):
         pass
+
+    def _is_running_in_cloud(self):
+        return os.path.exists("/usr/local/taurus-cloud")
 
 
 class ChromeDriver(WebDriver):
