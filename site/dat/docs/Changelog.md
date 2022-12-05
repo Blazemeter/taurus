@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.16.19<sup> 5 December 2022</sup>
+- Vulnerability fixes
+- Improvement for Selenium WebDrivers version handling
+
 ## 1.16.18<sup> 14 November 2022</sup>
 - Removing Vegeta test executor as it's not maintained for 2+ years
 - Added net-tools to Dockerfile to fix startup loop finding `netstat` command (thanks to community!)
