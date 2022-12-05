@@ -225,10 +225,6 @@ class SeleniumExecutor(ReportableExecutor):
 
 class Selenium(PythonTool):
     PACKAGES = ["selenium"]
-    VERSION = '4.1.3'
-
-    def _get_version(self, output):
-        return Selenium.VERSION
 
 
 class WebDriver(RequiredTool):
