@@ -1150,29 +1150,7 @@ from selenium.webdriver.common.keys import Keys
                            args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
 
     def _get_firefox_profile_v414(self):
-        blazemeter_capabilities = {k: v for k, v in self.capabilities.items() if k.startswith('blazemeter')}
-        native_capabilities = {k: v for k, v in self.capabilities.items() if not k.startswith('blazemeter')}
-        cap_expr = []
-        bzm_options = self._get_bzm_options(blazemeter_capabilities)
-        if bzm_options:
-            cap_expr.append(bzm_options)
-            if len(cap_expr) > 0:
-                cap_expr.append([
-                    ast.Expr(
-                        ast_call(
-                            func=ast_attr("options.set_capability"),
-                            args=[ast.Str('bzm:options', kind=""), ast.Name(id='bzm_options')]))
-
-            ])
-        for capability in sorted(native_capabilities.keys()):
-            cap_expr.append([
-                ast.Expr(
-                    ast_call(
-                        func=ast_attr("options.set_capability"),
-                        args=[ast.Str(capability, kind=""), ast.Str(native_capabilities[capability], kind="")]))
-
-            ])
-
+        cap_expr = self._get_capabilities_v414()
         return [
                    ast.Assign(
                        targets=[ast.Name(id="profile")],
@@ -1200,30 +1178,7 @@ from selenium.webdriver.common.keys import Keys
         return cap_expr
 
     def _get_chrome_profile_v414(self):
-        blazemeter_capabilities = {k: v for k, v in self.capabilities.items() if k.startswith('blazemeter')}
-        native_capabilities = {k: v for k, v in self.capabilities.items() if not k.startswith('blazemeter')}
-        cap_expr = []
-        bzm_options = self._get_bzm_options(blazemeter_capabilities)
-        if bzm_options:
-            cap_expr.append(bzm_options)
-            if len(cap_expr) > 0:
-                cap_expr.append([
-                    ast.Expr(
-                        ast_call(
-                            func=ast_attr("options.set_capability"),
-                            args=[ast.Str('bzm:options', kind=""), ast.Name(id='bzm_options')]))
-
-            ])
-        for capability in sorted(native_capabilities.keys()):
-            cap_expr.append([
-                ast.Expr(
-                    ast_call(
-                        func=ast_attr("options.set_capability"),
-                        args=[ast.Str(capability, kind=""), ast.Str(native_capabilities[capability], kind="")]))
-
-            ])
-
-        return cap_expr
+        return self._get_capabilities_v414()
 
     def _get_remote_profile(self):
         capabilities = sorted(self.capabilities.keys())
@@ -1245,30 +1200,7 @@ from selenium.webdriver.common.keys import Keys
         capabilities = sorted(self.capabilities.keys())
         if "browserName" in capabilities and self.capabilities.get('browserName').lower() in ["microsoftedge", "edge"]:
             self.capabilities["browserName"] = "MicrosoftEdge"  # MicrosoftEdge in camel case is necessary
-        blazemeter_capabilities = {k: v for k, v in self.capabilities.items() if k.startswith('blazemeter')}
-        native_capabilities = {k: v for k, v in self.capabilities.items() if not k.startswith('blazemeter')}
-        cap_expr = []
-        bzm_options = self._get_bzm_options(blazemeter_capabilities)
-        if bzm_options:
-            cap_expr.append(bzm_options)
-            if len(cap_expr) > 0:
-                cap_expr.append([
-                    ast.Expr(
-                        ast_call(
-                            func=ast_attr("options.set_capability"),
-                            args=[ast.Str('bzm:options', kind=""), ast.Name(id='bzm_options')]))
-
-            ])
-        for capability in sorted(native_capabilities.keys()):
-            cap_expr.append([
-                ast.Expr(
-                    ast_call(
-                        func=ast_attr("options.set_capability"),
-                        args=[ast.Str(capability, kind=""), ast.Str(native_capabilities[capability], kind="")]))
-
-            ])
-
-        return cap_expr
+        return self._get_capabilities_v414()
 
     def _get_firefox_webdriver(self):
         return ast.Assign(
@@ -2129,6 +2061,31 @@ from selenium.webdriver.common.keys import Keys
             value=ast.Dict(
                 keys=[self._gen_expr(name) for name in names],
                 values=[self._gen_expr(val) for val in values]))
+
+    def _get_capabilities_v414(self):
+        blazemeter_capabilities = {k: v for k, v in self.capabilities.items() if k.startswith('blazemeter')}
+        native_capabilities = {k: v for k, v in self.capabilities.items() if not k.startswith('blazemeter')}
+        cap_expr = []
+        bzm_options = self._get_bzm_options(blazemeter_capabilities)
+        if bzm_options:
+            cap_expr.append(bzm_options)
+            if len(cap_expr) > 0:
+                cap_expr.append([
+                    ast.Expr(
+                        ast_call(
+                            func=ast_attr("options.set_capability"),
+                            args=[ast.Str('bzm:options', kind=""), ast.Name(id='bzm_options')]))
+
+                ])
+        for capability in sorted(native_capabilities.keys()):
+            cap_expr.append([
+                ast.Expr(
+                    ast_call(
+                        func=ast_attr("options.set_capability"),
+                        args=[ast.Str(capability, kind=""), ast.Str(native_capabilities[capability], kind="")]))
+
+            ])
+        return cap_expr
 
     def _gen_assertions(self, request):
         stmts = []
