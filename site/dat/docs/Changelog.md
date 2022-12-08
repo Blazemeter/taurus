@@ -1,4 +1,6 @@
 # Changelog
+## 1.16.20<sup> 6 December 2022</sup>
+- Selenium >=4.1.4 support
 
 ## 1.16.19<sup> 5 December 2022</sup>
 - Vulnerability fixes
