@@ -102,6 +102,8 @@ class ApiritifScriptGenerator(object):
 
     EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach'])
 
+    SELENIUM_413_VERSION =  LooseVersion('4.1.3')
+
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
     IMPORTS = """import os
@@ -954,13 +956,13 @@ from selenium.webdriver.common.keys import Keys
         body = [self._get_options(browser)]
 
         if browser == 'firefox':
-            if self.selenium_version.startswith("4") and LooseVersion(self.selenium_version) > LooseVersion('4.1.3'):
+            if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
                 body.extend(self._get_firefox_profile_v414() + [self._get_firefox_webdriver()])
             else:
                 body.extend(self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
         elif browser == 'chrome':
-            if self.selenium_version.startswith("4") and LooseVersion(self.selenium_version) > LooseVersion('4.1.3'):
+            if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
                 body.extend(self._get_chrome_profile_v414() + [self._get_chrome_webdriver()])
             else:
                 body.extend(self._get_chrome_profile() + [self._get_chrome_webdriver()])
@@ -970,7 +972,7 @@ from selenium.webdriver.common.keys import Keys
 
         elif browser == 'remote':
             if self.selenium_version.startswith("4"):
-                if LooseVersion(self.selenium_version) > LooseVersion('4.1.3'):
+                if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
                     remote_profile = self._get_remote_profile_v414() + [self._get_remote_webdriver()]
                 else:
                     remote_profile = self._get_remote_profile() + [self._get_remote_webdriver()]
