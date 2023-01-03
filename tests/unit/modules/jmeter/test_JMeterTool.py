@@ -27,9 +27,8 @@ class TestJMeterTool(BZTestCase):
             jar_tools = self.obj._get_jar_fixes(lib_dir_path)
             target_tools_list = [
                 [
-                    # Needs to be <1.4.18 for now https://stackoverflow.com/questions/30812293/com-thoughtworks-xstream-security-forbiddenclassexception
-                    'https://repo1.maven.org/maven2/com/thoughtworks/xstream/xstream/1.4.19/xstream-1.4.19.jar',
-                    os.path.join(lib_dir_path, 'xstream-1.4.19.jar')],
+                    'https://repo1.maven.org/maven2/com/thoughtworks/xstream/xstream/1.4.20/xstream-1.4.20.jar',
+                    os.path.join(lib_dir_path, 'xstream-1.4.20.jar')],
                 [
                     'https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/2.19.0/log4j-core-2.19.0.jar',
                     os.path.join(lib_dir_path, 'log4j-core-2.19.0.jar')]]
