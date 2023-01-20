@@ -37,6 +37,9 @@ class RequestCompiler(RequestVisitor):
     def visit_mqttrequest(self, request):
         return self.jmx_builder.compile_request(request)
 
+    def visit_grpcrequest(self, request):
+        return self.jmx_builder.compile_request(request)
+
     def visit_hierarchichttprequest(self, request):
         return self.jmx_builder.compile_request(request)
 

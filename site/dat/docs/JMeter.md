@@ -1150,3 +1150,76 @@ scenarios:
 Here you see three sensors ('publisher') and one checker ('subscriber'). Messages that created by sensors
 must be handled by broker and redirected to appropriate subscribers.
 All logic blocks, data sources and many other functionality of JMeter Executor are available with mqtt protocol as well.
+
+
+## gRPC Protocol Load Testing
+
+JMeter tool can also perform load testing of gRPC services, via [jmeter-grpc-request](https://github.com/zalopay-oss/jmeter-grpc-request) plugin.
+
+Here's a very basic request (the `url` and `grpc-proto-folder` fields are required):
+
+```yaml
+# Install the relevant JMeter plugin
+modules:
+  jmeter:
+    plugins:
+      - jmeter-grpc-request
+
+scenarios:
+  hello-world:
+    protocol: grpc
+    grpc-proto-folder: /path/to/protobuf/folder
+    requests:
+    - url: http://api.example.com:8888/com.example.HelloWorldService/sayHello
+```
+
+Here's the full set of options:
+
+```yaml
+scenarios:
+  my-req:
+    protocol: grpc
+    # These options can be set at the scenario level, or at the request level
+    timeout: 5s
+    grpc-proto-folder: /path/to/protobuf/folder
+    grpc-lib-folder: /path/to/grpc/lib/folder
+    grpc-max-inbound-message-size: 4194304
+    grpc-max-inbound-metadata-size: 8192
+    tls-disable-verification: false
+      
+    requests:
+      # The URL is parsed into (scheme, hostname, port, path) which are propagated to the jmeter-grpc-request plugin
+      # The "path" component of the URL is used as the "Full Method" param
+      # If the scheme is "https" then the SSL/TLS param will be set to "true"
+    - url: http://api.example.com:8888/com.example.HelloWorldService/sayHello  # url to hit
+      label: homepage  # sampler label, defaults to the value of url
+
+      # Request body can be sepcified as a JSON string, as a dictionary, or as JSON in a separate file
+      body: '{ "param1": "value1", "param2": value2 }'  # if present, will be used as body
+      body:  # nested attributes will be converted to JSON
+        param1: value1
+        param2: value2
+      body-file: path/to/file.json  # this file contents will be used as request body
+
+      # Request metadata can be sepcified as a JSON string or as a dictionary
+      metadata: 'key1:value1,key2:value2'
+      metadata: '{"key1":"Value1", "key2":"value2"}'
+      metadata:
+        key1: Value1
+        key2: value2
+
+      # These options can be set at the scenario level, or at the request level
+      timeout: 5s  # Timeout is used for both "deadline" and "channelAwaitTermination"
+      grpc-proto-folder: /path/to/protobuf/folder
+      grpc-lib-folder: /path/to/grpc/lib/folder
+      grpc-max-inbound-message-size: 4194304
+      grpc-max-inbound-metadata-size: 8192
+      tls-disable-verification: false
+      
+      extract-regexp: {}  # same as described for HTTP sampler above
+      extract-jsonpath: {}  # same as described for HTTP sampler above
+      assert: []  # same as described for HTTP sampler above
+      jsr223: []  # same as described for HTTP sampler above
+```
+
+All logic blocks, data sources and many other functionality of JMeter Executor are available with grpc protocol as well.
