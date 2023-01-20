@@ -79,7 +79,7 @@ class HTTPRequest(BodyRequest):
     NAME = "request"
 
     def __init__(self, config, scenario, engine, pure_body_file=False):
-        super(HTTPRequest, self).__init__(config, scenario, engine, pure_body_file=False)
+        super(HTTPRequest, self).__init__(config, scenario, engine, pure_body_file=pure_body_file)
         msg = "Option 'url' is mandatory for request but not found in %s" % config
         self.url = self.config.get("url", TaurusConfigError(msg))
         self.label = str(self.config.get("label", self.url))
