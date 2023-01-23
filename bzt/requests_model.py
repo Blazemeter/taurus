@@ -47,42 +47,18 @@ class Request(object):
             val = default
         return val
 
-
-class HTTPRequest(Request):
-    NAME = "request"
-
-    def __init__(self, config, scenario, engine, pure_body_file=False):
-        self.engine = engine
-        self.log = self.engine.log.getChild(self.__class__.__name__)
-        super(HTTPRequest, self).__init__(config, scenario)
-        msg = "Option 'url' is mandatory for request but not found in %s" % config
-        self.url = self.config.get("url", TaurusConfigError(msg))
-        self.label = str(self.config.get("label", self.url))
-        self.method = self.config.get("method", "GET")
-        if not has_variable_pattern(self.method):
-            self.method = self.method.upper()
-
-        self.headers = self.config.get("headers", {})
-
-        self.keepalive = self.config.get('keepalive', None)
-        self.timeout = self.config.get('timeout', None)
-        self.follow_redirects = self.config.get('follow-redirects', None)
-        self.body = self._get_body(pure_body_file=pure_body_file)
-
     def get_think_time(self, full=False):
         think_time = self.priority_option('think-time')
         if think_time:
             return parse_think_time(think_time=think_time, full=full)
 
-    def get_header(self, name):
-        def dic_lower(dic):
-            return {str(k).lower(): str(dic[k]).lower() for k in dic}
 
-        scenario_headers = dic_lower(self.scenario.get_headers())
-        request_headers = dic_lower(self.headers)
-        headers = BetterDict.from_dict(scenario_headers)
-        headers.merge(request_headers)
-        return headers.get(name.lower(), None)
+class BodyRequest(Request):
+    def __init__(self, config, scenario, engine, pure_body_file=False):
+        super(BodyRequest, self).__init__(config, scenario)
+        self.engine = engine
+        self.log = self.engine.log.getChild(self.__class__.__name__)
+        self.body = self._get_body(pure_body_file=pure_body_file)
 
     def _get_body(self, pure_body_file=False):
         body = self.config.get('body', None)
@@ -99,16 +75,63 @@ class HTTPRequest(Request):
         return body
 
 
+class HTTPRequest(BodyRequest):
+    NAME = "request"
+
+    def __init__(self, config, scenario, engine, pure_body_file=False):
+        super(HTTPRequest, self).__init__(config, scenario, engine, pure_body_file=pure_body_file)
+        msg = "Option 'url' is mandatory for request but not found in %s" % config
+        self.url = self.config.get("url", TaurusConfigError(msg))
+        self.label = str(self.config.get("label", self.url))
+        self.method = self.config.get("method", "GET")
+        if not has_variable_pattern(self.method):
+            self.method = self.method.upper()
+
+        self.headers = self.config.get("headers", {})
+
+        self.keepalive = self.config.get('keepalive', None)
+        self.timeout = self.config.get('timeout', None)
+        self.follow_redirects = self.config.get('follow-redirects', None)
+
+    def get_header(self, name):
+        def dic_lower(dic):
+            return {str(k).lower(): str(dic[k]).lower() for k in dic}
+
+        scenario_headers = dic_lower(self.scenario.get_headers())
+        request_headers = dic_lower(self.headers)
+        headers = BetterDict.from_dict(scenario_headers)
+        headers.merge(request_headers)
+        return headers.get(name.lower(), None)
+
+
 class MQTTRequest(Request):
     def __init__(self, config, scenario):
         super(MQTTRequest, self).__init__(config, scenario)
         self.method = config.get('cmd')
         self.label = str(self.config.get("label", self.method))
 
-    def get_think_time(self, full):
-        think_time = self.priority_option('think-time')
-        if think_time:
-            return parse_think_time(think_time=think_time, full=full)
+
+class GRPCRequest(BodyRequest):
+    def __init__(self, config, scenario, engine):
+        super(GRPCRequest, self).__init__(config, scenario, engine, False)
+
+        url_msg = "Option 'url' is mandatory for request but not found in %s" % config
+        self.url = self.config.get("url", default=TaurusConfigError(url_msg))
+
+        proto_msg = "Option 'grpc-proto-folder' is mandatory for request but not found in %s" % config
+        self.protoFolder = self.priority_option('grpc-proto-folder', default=TaurusConfigError(proto_msg))
+
+        self.libFolder = self.priority_option('grpc-lib-folder', default='')
+        self.maxInboundMessageSize = self.priority_option('grpc-max-inbound-message-size', default=4194304)
+        self.maxInboundMetadataSize = self.priority_option('grpc-max-inbound-metadata-size', default=8192)
+        self.tlsDisableVerification = self.priority_option('tls-disable-verification', default=False)
+        self.timeout = self.priority_option("timeout", default="5s")
+
+        self.label = str(self.config.get("label", default=self.url))
+        self.metadata = self.config.get("metadata", default='')
+        self.body = self._get_body(pure_body_file=False)
+        if self.body is None:
+            self.body = ''
 
 
 class HierarchicHTTPRequest(HTTPRequest):
@@ -369,6 +392,8 @@ class HierarchicRequestParser(RequestParser):
             return TearDownBlock(do_requests, req)
         elif self.scenario.get("protocol") == "mqtt":
             return MQTTRequest(req, self.scenario)
+        elif self.scenario.get("protocol") == "grpc":
+            return GRPCRequest(req, self.scenario, self.engine)
         else:
             return HierarchicHTTPRequest(req, self.scenario, self.engine)
 

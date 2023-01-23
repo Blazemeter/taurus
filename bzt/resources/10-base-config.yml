@@ -11,6 +11,7 @@ modules:
     protocol-handlers:
       http: bzt.jmx.http.HTTPProtocolHandler
       mqtt: bzt.jmx.mqtt.MQTTProtocolHandler
+      grpc: bzt.jmx.grpc.GRPCProtocolHandler
   locust:
     class: bzt.modules._locustio.LocustIOExecutor
   molotov:

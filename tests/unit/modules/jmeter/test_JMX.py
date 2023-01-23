@@ -429,6 +429,82 @@ class TestMQTTSamplers(BZTestCase):
         self.assertIn('script-file', jsr223)
         self.assertEqual('after', jsr223['execute'])
 
+class TestGRPCSamplers(BZTestCase):
+    def test_full_generation(self):
+        # check gRPC protocol handling: getting request, parsing of it, generation of jmx
+        engine = EngineEmul()
+        jmeter = MockJMeterExecutor()
+        jmeter.engine = engine
+        jmeter.configure({'scenario': 'sc1'})
+        scenario = BetterDict.from_dict({
+            'protocol': 'grpc',
+            'timeout': '5s',
+            'grpc-proto-folder': '/path/to/protobuf/folder',
+            'grpc-lib-folder': '/path/to/grpc/lib/folder',
+            'grpc-max-inbound-message-size': 4194304,
+            'grpc-max-inbound-metadata-size': 8192,
+            'tls-disable-verification': False,
+            'requests': [
+                {'url': 'http://api.example.com:8888/com.example.HelloWorldService/sayHello'},
+                {
+                    'url': 'https://api2.example.com:9999/com.example.AnotherService/fooBar',
+                    'label': 'fooBar',
+                    'body': '{ "param1": "value1", "param2": value2 }',
+                    'metadata': 'key1:value1,key2:value2',
+
+                    'timeout': '10s',
+                    'grpc-proto-folder': '/another/proto/path',
+                    'grpc-lib-folder': '/another/lib/path',
+                    'grpc-max-inbound-message-size': 12345,
+                    'grpc-max-inbound-metadata-size': 42,
+                    'tls-disable-verification': True
+                },
+            ]})
+        jmeter.engine.config.merge({'scenarios': {'sc1': scenario}})
+        jmeter.settings.merge({'protocol-handlers': {'grpc': 'bzt.jmx.grpc.GRPCProtocolHandler'}})
+        builder = JMeterScenarioBuilder(jmeter)
+        elements = builder.compile_scenario(jmeter.get_scenario())
+        self.assertEqual(4, len(elements))
+
+        # appropriate classes has been generated
+        element = elements[0]
+        self.assertEqual('vn.zalopay.benchmark.GRPCSampler', element.attrib['testclass'])
+        # URL-parsed props
+        self.assertEqual('false', element.find(".//boolProp[@name='GRPCSampler.tls']").text)
+        self.assertEqual('api.example.com', element.find(".//stringProp[@name='GRPCSampler.host']").text)
+        self.assertEqual('8888', element.find(".//stringProp[@name='GRPCSampler.port']").text)
+        self.assertEqual('com.example.HelloWorldService/sayHello', element.find(".//stringProp[@name='GRPCSampler.fullMethod']").text)
+        # Other props
+        self.assertEqual('/path/to/protobuf/folder', element.find(".//stringProp[@name='GRPCSampler.protoFolder']").text)
+        self.assertEqual('/path/to/grpc/lib/folder', element.find(".//stringProp[@name='GRPCSampler.libFolder']").text)
+        self.assertEqual('', element.find(".//stringProp[@name='GRPCSampler.metadata']").text)
+        self.assertEqual('false', element.find(".//boolProp[@name='GRPCSampler.tlsDisableVerification']").text)
+        self.assertEqual('5000', element.find(".//stringProp[@name='GRPCSampler.deadline']").text)
+        self.assertEqual('5000', element.find(".//stringProp[@name='GRPCSampler.channelAwaitTermination']").text)
+        self.assertEqual('4194304', element.find(".//stringProp[@name='GRPCSampler.maxInboundMessageSize']").text)
+        self.assertEqual('8192', element.find(".//stringProp[@name='GRPCSampler.maxInboundMetadataSize']").text)
+        self.assertEqual('', element.find(".//stringProp[@name='GRPCSampler.requestJson']").text)
+
+
+
+        element = elements[2]
+        self.assertEqual('vn.zalopay.benchmark.GRPCSampler', element.attrib['testclass'])
+        # URL-parsed props
+        self.assertEqual('true', element.find(".//boolProp[@name='GRPCSampler.tls']").text)
+        self.assertEqual('api2.example.com', element.find(".//stringProp[@name='GRPCSampler.host']").text)
+        self.assertEqual('9999', element.find(".//stringProp[@name='GRPCSampler.port']").text)
+        self.assertEqual('com.example.AnotherService/fooBar', element.find(".//stringProp[@name='GRPCSampler.fullMethod']").text)
+        # Other props
+        self.assertEqual('/another/proto/path', element.find(".//stringProp[@name='GRPCSampler.protoFolder']").text)
+        self.assertEqual('/another/lib/path', element.find(".//stringProp[@name='GRPCSampler.libFolder']").text)
+        self.assertEqual('key1:value1,key2:value2', element.find(".//stringProp[@name='GRPCSampler.metadata']").text)
+        self.assertEqual('true', element.find(".//boolProp[@name='GRPCSampler.tlsDisableVerification']").text)
+        self.assertEqual('10000', element.find(".//stringProp[@name='GRPCSampler.deadline']").text)
+        self.assertEqual('10000', element.find(".//stringProp[@name='GRPCSampler.channelAwaitTermination']").text)
+        self.assertEqual('12345', element.find(".//stringProp[@name='GRPCSampler.maxInboundMessageSize']").text)
+        self.assertEqual('42', element.find(".//stringProp[@name='GRPCSampler.maxInboundMetadataSize']").text)
+        self.assertEqual('{ "param1": "value1", "param2": value2 }', element.find(".//stringProp[@name='GRPCSampler.requestJson']").text)
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
