@@ -27,3 +27,8 @@ node_modules
 
 bzt/resources/NUnitRunner/*
 .gradle
+
+integr-artifacts*
+*.log
+examples/local*
+bzt/20*
