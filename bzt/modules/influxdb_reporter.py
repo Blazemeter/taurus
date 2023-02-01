@@ -25,13 +25,30 @@ from influxdb import InfluxDBClient
 
 from bzt.engine import Reporter, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
-from bzt.utils import to_json, iteritems
+from bzt.utils import iteritems
 from influxdb.exceptions import InfluxDBServerError, InfluxDBClientError
-
-from . import const
 
 
 class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
+
+    METRIC_COUNT = "count"
+    METRIC_COUNT_ERROR = "countError"
+    METRIC_HIT = "hit"
+    METRIC_AVG = "avg"
+    METRIC_SENT_BYTES = "sb"
+    METRIC_RECEIVED_BYTES = "rb"
+    METRIC_PCT_PREFIX = "pct"
+    METRIC_MEAN_ACTIVE_THREADS = "meanAT"
+    TAG_TRANSACTION = "transaction"
+    TAG_TRANSACTION_INTERNAL = "internal"  # used with internal metrics (e.g. active threads, started threads ...)
+    TAG_STATUS = "statut"
+    TAG_APPLICATION = "application"
+    TAG_RESPONSE_CODE = "responseCode"
+    TAG_RESPONSE_MESSAGE = "responseMessage"
+    TAG_OK = "ok"
+    TAG_KO = "ko"
+    TAG_ALL = "all"  # used for cumulated metrics
+
     """
     A reporter that send statistic status on test end to an influxdb datasource
     """
@@ -96,10 +113,10 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
     def post_process(self):
         super(InfluxdbStatusReporter, self).post_process()
 
-        self.log.debug("Proceding to %s KPI remaining report ...", len(self.kpi_buffer))
+        self.log.debug("Proceeding to %s KPI remaining report ...", len(self.kpi_buffer))
 
         self.log.info("Sending remaining KPI data to server...")
-        self.__send_data(self.kpi_buffer, True)
+        self.__send_data(self.kpi_buffer)
         self.kpi_buffer = []
 
     # from AggregatorListener
@@ -123,8 +140,8 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
 
         return super(InfluxdbStatusReporter, self).check()
 
-    def __send_data(self, data, is_final=False):
-        # depend de l'aggregator
+    def __send_data(self, data):
+        # depends on aggregator
         self.engine.aggregator.converter(data)
         series = self.__compute_data_points(data)
 
@@ -139,7 +156,7 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
             agg = data[-1]
             time_stamp = agg[DataPoint.TIMESTAMP]
             for label, kpi_set in iteritems(agg[DataPoint.CUMULATIVE]):
-                if label == "": # process total cumulated label
+                if label == "":  # process total cumulated label
                     dps.extend(self.__compute_cumulative(kpi_set, time_stamp))
 
             # processing detailed metric for each label
@@ -175,27 +192,27 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
         :returns metrics [dict, Any]
         """
         metrics = []
-        transaction = const.TAG_ALL if sample_label == '' else sample_label
+        transaction = self.TAG_ALL if sample_label == '' else sample_label
         # total count for the sample
         if kpi_set[KPISet.SAMPLE_COUNT]:
             metrics.append({
                 "time": self._timestamp_serie,
                 "measurement": self.measurement,
                 "fields": {
-                    const.METRIC_COUNT: kpi_set[KPISet.SAMPLE_COUNT],
+                    self.METRIC_COUNT: kpi_set[KPISet.SAMPLE_COUNT],
                 },
                 "tags": {
-                    const.TAG_TRANSACTION: transaction
+                    self.TAG_TRANSACTION: transaction
                 }
             })
             metrics.append({
                 "time": self._timestamp_serie,
                 "measurement": self.measurement,
                 "fields": {
-                    const.METRIC_HIT: kpi_set[KPISet.SAMPLE_COUNT],
+                    self.METRIC_HIT: kpi_set[KPISet.SAMPLE_COUNT],
                 },
                 "tags": {
-                    const.TAG_TRANSACTION: transaction
+                    self.TAG_TRANSACTION: transaction
                 }
             })
 
@@ -204,10 +221,10 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
                 "time": self._timestamp_serie,
                 "measurement": self.measurement,
                 "fields": {
-                    const.METRIC_COUNT_ERROR: kpi_set[KPISet.FAILURES],
+                    self.METRIC_COUNT_ERROR: kpi_set[KPISet.FAILURES],
                 },
                 "tags": {
-                    const.TAG_TRANSACTION: transaction
+                    self.TAG_TRANSACTION: transaction
                 }
             })
 
@@ -219,7 +236,7 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
         kpi_set: DataPoint
         """
         metrics = []
-        if sample_label != "": # ignore cumulated dp
+        if sample_label != "":  # ignore cumulated dp
             """
             reports all transactions
             """
@@ -227,16 +244,16 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
                 "time": ts,
                 "measurement": self.measurement,
                 "fields": {
-                    const.METRIC_COUNT: kpi_set['throughput'],
-                    const.METRIC_AVG: kpi_set[KPISet.AVG_RESP_TIME]
+                    self.METRIC_COUNT: kpi_set['throughput'],
+                    self.METRIC_AVG: kpi_set[KPISet.AVG_RESP_TIME]
                 },
                 "tags": {
-                    const.TAG_TRANSACTION: sample_label,
+                    self.TAG_TRANSACTION: sample_label,
                 }
             })
 
             """
-            reports sucessful transactions
+            reports successful transactions
             """
             successful_samples_count = kpi_set['succ']
             if successful_samples_count:
@@ -244,11 +261,11 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
                     "time": ts,
                     "measurement": self.measurement,
                     "fields": {
-                        const.METRIC_COUNT: successful_samples_count,
+                        self.METRIC_COUNT: successful_samples_count,
                     },
                     "tags": {
-                        const.TAG_TRANSACTION: sample_label,
-                        const.TAG_STATUS: const.TAG_OK
+                        self.TAG_TRANSACTION: sample_label,
+                        self.TAG_STATUS: self.TAG_OK
                     }
                 })
 
@@ -262,13 +279,13 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
                         "time": ts,
                         "measurement": self.measurement,
                         "fields": {
-                            const.METRIC_COUNT: error['cnt'],
+                            self.METRIC_COUNT: error['cnt'],
                         },
                         "tags": {
-                            const.TAG_TRANSACTION: sample_label,
-                            const.TAG_STATUS: const.TAG_KO,
-                            const.TAG_RESPONSE_CODE: error['rc'],
-                            const.TAG_RESPONSE_MESSAGE: error['msg'] if 'msg' in error else None
+                            self.TAG_TRANSACTION: sample_label,
+                            self.TAG_STATUS: self.TAG_KO,
+                            self.TAG_RESPONSE_CODE: error['rc'],
+                            self.TAG_RESPONSE_MESSAGE: error['msg'] if 'msg' in error else None
                         }
                     })
             """
@@ -280,10 +297,10 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
                         "time": ts,
                         "measurement": self.measurement,
                         "fields": {
-                            const.METRIC_PCT_PREFIX + str(float(key)): kpi_set[KPISet.PERCENTILES][key],
+                            self.METRIC_PCT_PREFIX + str(float(key)): kpi_set[KPISet.PERCENTILES][key],
                         },
                         "tags": {
-                            const.TAG_TRANSACTION: sample_label
+                            self.TAG_TRANSACTION: sample_label
                         }
                     })
         return metrics
@@ -293,17 +310,17 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
         reports internals (active users..)
         """
         metrics = []
-        transaction = const.TAG_ALL if sample_label == '' else sample_label
+        transaction = self.TAG_ALL if sample_label == '' else sample_label
         # average number of Virtual Users
         if kpi_set[KPISet.CONCURRENCY]:
             metrics.append({
                 "time": ts,
                 "measurement": self.measurement,
                 "fields": {
-                    const.METRIC_MEAN_ACTIVE_THREADS: kpi_set[KPISet.CONCURRENCY],
+                    self.METRIC_MEAN_ACTIVE_THREADS: kpi_set[KPISet.CONCURRENCY],
                 },
                 "tags": {
-                    const.TAG_TRANSACTION: transaction
+                    self.TAG_TRANSACTION: transaction
                 }
             })
         return metrics
@@ -315,29 +332,30 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
         :rtype: [dict, Any]
         """
         metrics = []
-        transaction = const.TAG_ALL if sample_label == '' else sample_label
+        transaction = self.TAG_ALL if sample_label == '' else sample_label
         # total download size
         if kpi_set[KPISet.BYTE_COUNT]:
             metrics.append({
                 "time": ts,
                 "measurement": self.measurement,
                 "fields": {
-                    const.METRIC_RECEIVED_BYTES: kpi_set[KPISet.BYTE_COUNT],
+                    self.METRIC_RECEIVED_BYTES: kpi_set[KPISet.BYTE_COUNT],
                 },
                 "tags": {
-                    const.TAG_TRANSACTION: transaction
+                    self.TAG_TRANSACTION: transaction
                 }
             })
         return metrics
 
     def __compute_common_tags(self):
         return {
-            const.TAG_APPLICATION: self.application,
-            const.TAG_TRANSACTION: const.TAG_ALL,
-            const.TAG_STATUS: const.TAG_ALL,
+            self.TAG_APPLICATION: self.application,
+            self.TAG_TRANSACTION: self.TAG_ALL,
+            self.TAG_STATUS: self.TAG_ALL,
         }
 
-    def __merge_tags(self, series, common_tags=None):
+    @staticmethod
+    def __merge_tags(series, common_tags=None):
         """
         :param common_tags:
         :type series: Union[dict,str]
