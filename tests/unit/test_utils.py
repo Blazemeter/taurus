@@ -318,7 +318,8 @@ class TestHTTPClient(BZTestCase):
         obj = HTTPClient()
         obj.add_proxy_settings({"address": "http://localhost:3128",
                                 "username": "me",
-                                "password": "too"})
+                                "password": "too",
+                                "nonProxy": "localhost"})
 
         self.assertIn('http', obj.session.proxies)
         self.assertIn('https', obj.session.proxies)
@@ -338,12 +339,50 @@ class TestHTTPClient(BZTestCase):
         obj = HTTPClient()
         obj.add_proxy_settings({"address": "http://localhost:3128",
                                 "username": "me",
-                                "password": "too"})
+                                "password": "too",
+                                "nonProxy": "localhost"})
         jvm_args = obj.get_proxy_props()
         for protocol in ['http', 'https']:
-            for key in ['proxyHost', 'proxyPort', 'proxyUser', 'proxyPass']:
+            for key in ['proxyHost', 'proxyPort', 'proxyUser', 'proxyPass', 'nonProxyHosts']:
                 combo_key = protocol + '.' + key
                 self.assertIn(combo_key, jvm_args)
+
+    def test_get_proxy_settings_from_url(self):
+        obj = HTTPClient()
+        settings = obj._get_proxy_settings_from_url("http://10.0.0.0:8080")
+        self.assertEqual('http://10.0.0.0:8080', settings['address'])
+        self.assertFalse('username' in settings)
+        self.assertFalse('password' in settings)
+        settings = obj._get_proxy_settings_from_url("http://10.0.0.0")
+        self.assertEqual('http://10.0.0.0', settings['address'])
+        self.assertFalse('username' in settings)
+        self.assertFalse('password' in settings)
+        settings = obj._get_proxy_settings_from_url("http://user:@10.0.0.0")
+        self.assertEqual('http://10.0.0.0', settings['address'])
+        self.assertEqual("user", settings['username'])
+        self.assertFalse('password' in settings)
+        settings = obj._get_proxy_settings_from_url("http://user:pass@10.0.0.0")
+        self.assertEqual('http://10.0.0.0', settings['address'])
+        self.assertEqual("user", settings['username'])
+        self.assertEqual('pass', settings['password'])
+
+        settings = obj._get_proxy_settings_from_url("https://10.0.0.0:8080")
+        self.assertEqual('https://10.0.0.0:8080', settings['address'])
+        self.assertFalse('username' in settings)
+        self.assertFalse('password' in settings)
+        settings = obj._get_proxy_settings_from_url("https://10.0.0.0")
+        self.assertEqual('https://10.0.0.0', settings['address'])
+        self.assertFalse('username' in settings)
+        self.assertFalse('password' in settings)
+        settings = obj._get_proxy_settings_from_url("https://user:@10.0.0.0")
+        self.assertEqual('https://10.0.0.0', settings['address'])
+        self.assertEqual("user", settings['username'])
+        self.assertFalse('password' in settings)
+        settings = obj._get_proxy_settings_from_url("https://user:pass@10.0.0.0")
+        self.assertEqual('https://10.0.0.0', settings['address'])
+        self.assertEqual("user", settings['username'])
+        self.assertEqual('pass', settings['password'])
+
 
     def test_download_file(self):
         obj = HTTPClient()
