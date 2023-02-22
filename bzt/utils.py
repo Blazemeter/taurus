@@ -52,6 +52,7 @@ from ssl import SSLError
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
 from urllib import parse
 from urllib.error import URLError
+from urllib.parse import urlparse
 from urllib.request import url2pathname
 from webbrowser import GenericBrowser
 
@@ -1157,7 +1158,21 @@ class HTTPClient(object):
         self.proxy_settings = None
 
     def add_proxy_settings(self, proxy_settings):
+        if os.getenv("APPLY_PROXY_SETTINGS", "False").lower() in 'true':
+            self.log.info('Using proxy settings from environment variables')
+            self.proxy_settings = {}
+            http_proxy = os.getenv("HTTP_PROXY")
+            if http_proxy:
+                self.proxy_settings = self._get_proxy_settings_from_url(http_proxy)
+            https_proxy = os.getenv("HTTPS_PROXY")
+            if https_proxy:
+                self.proxy_settings = self._get_proxy_settings_from_url(https_proxy)
+            no_proxy = os.getenv("NO_PROXY")
+            if no_proxy:
+                self.proxy_settings['nonProxy'] = no_proxy
+
         if proxy_settings and proxy_settings.get("address"):
+            self.log.info('Overriding proxy settings using taurus configuration')
             self.proxy_settings = proxy_settings
             proxy_addr = proxy_settings.get("address")
             self.log.info("Using proxy %r", proxy_addr)
@@ -1172,6 +1187,9 @@ class HTTPClient(object):
                 proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
             self.session.proxies = {"https": proxy_uri, "http": proxy_uri}
 
+        if not self.proxy_settings:
+            self.log.warning('Proxy settings not set')
+
         self.session.verify = proxy_settings.get('ssl-cert', True)
         self.session.cert = proxy_settings.get('ssl-client-cert', None)
 
@@ -1184,7 +1202,10 @@ class HTTPClient(object):
         proxy_url = parse.urlsplit(self.proxy_settings.get("address"))
         username = self.proxy_settings.get("username")
         pwd = self.proxy_settings.get("password")
+        non_proxy = self.proxy_settings.get("nonProxy")
         for protocol in ["http", "https"]:
+            if non_proxy:
+                props[protocol + '.nonProxyHosts'] = non_proxy
             props[protocol + '.proxyHost'] = proxy_url.hostname
             props[protocol + '.proxyPort'] = proxy_url.port or 80
             if username and pwd:
@@ -1207,6 +1228,25 @@ class HTTPClient(object):
                     count += 1
                     if reporthook:
                         reporthook(count, block_size, total)
+
+    @staticmethod
+    def _get_proxy_settings_from_url(url):
+        proxy_settings = {}
+        if not url:
+            return proxy_settings
+        proxy_url = urlparse(url)
+        if proxy_url.username:
+            proxy_settings['username'] = proxy_url.username
+        if proxy_url.password:
+            proxy_settings['password'] = proxy_url.password
+        port = ""
+        if proxy_url.port:
+            port = ":" + str(proxy_url.port)
+        if proxy_url.username or proxy_url.password:
+            proxy_url = proxy_url._replace(netloc=f"{proxy_url.hostname}{port}",
+                                           )
+        proxy_settings['address'] = proxy_url.geturl()
+        return proxy_settings
 
     def download_file(self, url, filename, reporthook=None, data=None, timeout=None):
         headers = None
