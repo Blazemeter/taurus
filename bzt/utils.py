@@ -1188,7 +1188,7 @@ class HTTPClient(object):
             self.session.proxies = {"https": proxy_uri, "http": proxy_uri}
 
         if not self.proxy_settings:
-            self.log.warning('Proxy settings not set')
+            self.log.info('Proxy settings not set')
 
         self.session.verify = proxy_settings.get('ssl-cert', True)
         self.session.cert = proxy_settings.get('ssl-client-cert', None)
