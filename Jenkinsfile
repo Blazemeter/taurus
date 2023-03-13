@@ -41,7 +41,6 @@ pipeline {
             }
         }
         stage("Deploy site") {
-            when { expression { isRelease } }
             steps {
                 script {
                     PROJECT_ID = "blazemeter-taurus-website-prod"
