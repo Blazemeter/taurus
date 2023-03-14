@@ -38,3 +38,4 @@ docker push us.gcr.io/${PROJECT_ID}/taurus-site:latest
 gcloud container clusters get-credentials taurus-site
 
 kubectl set image deployment/taurus-site taurus-site=us.gcr.io/${PROJECT_ID}/taurus-site:latest
+kubectl delete pod -l run=taurus-site
