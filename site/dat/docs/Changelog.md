@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.16.21<sup> 14 March 2023</sup>
+- Added influxdb-reporter (thanks to community!)
+
 ## 1.16.20<sup> 13 March 2023</sup>
 - Upgrade to Ubuntu:22.04 as base image
 - Selenium >=4.1.4 support
