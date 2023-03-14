@@ -35,12 +35,10 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
     METRIC_COUNT_ERROR = "countError"
     METRIC_HIT = "hit"
     METRIC_AVG = "avg"
-    METRIC_SENT_BYTES = "sb"
     METRIC_RECEIVED_BYTES = "rb"
     METRIC_PCT_PREFIX = "pct"
     METRIC_MEAN_ACTIVE_THREADS = "meanAT"
     TAG_TRANSACTION = "transaction"
-    TAG_TRANSACTION_INTERNAL = "internal"  # used with internal metrics (e.g. active threads, started threads ...)
     TAG_STATUS = "status"
     TAG_APPLICATION = "application"
     TAG_RESPONSE_CODE = "responseCode"
@@ -333,7 +331,7 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
         """
         metrics = []
         transaction = self.TAG_ALL if sample_label == '' else sample_label
-        # total download size
+        # total response size (header+body)
         if kpi_set[KPISet.BYTE_COUNT]:
             metrics.append({
                 "time": ts,
