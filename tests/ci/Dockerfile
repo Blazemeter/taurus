@@ -17,7 +17,15 @@ RUN echo "deb http://packages.cloud.google.com/apt cloud-sdk main" >> /etc/apt/s
  && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - \
  && curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
  && add-apt-repository -n "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-RUN $APT_UPDATE && $APT_INSTALL docker-ce-cli kubectl google-cloud-sdk
+RUN $APT_UPDATE && $APT_INSTALL docker-ce-cli kubectl
+
+# Install GCE CLI
+RUN curl -sSL https://sdk.cloud.google.com | bash
+ENV PATH $PATH:/root/google-cloud-sdk/bin
+
+# Install gke gcloud auth plugin
+RUN /root/google-cloud-sdk/bin/gcloud components install gke-gcloud-auth-plugin
+RUN apt-get install google-cloud-sdk-gke-gcloud-auth-plugin
 
 # at the moment setuptools is included to python3-pip
 RUN python3 -m pip install setuptools twine pyyaml
