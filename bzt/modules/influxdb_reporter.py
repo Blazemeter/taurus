@@ -41,7 +41,7 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
     METRIC_MEAN_ACTIVE_THREADS = "meanAT"
     TAG_TRANSACTION = "transaction"
     TAG_TRANSACTION_INTERNAL = "internal"  # used with internal metrics (e.g. active threads, started threads ...)
-    TAG_STATUS = "statut"
+    TAG_STATUS = "status"
     TAG_APPLICATION = "application"
     TAG_RESPONSE_CODE = "responseCode"
     TAG_RESPONSE_MESSAGE = "responseMessage"

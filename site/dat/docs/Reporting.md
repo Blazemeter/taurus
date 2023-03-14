@@ -149,7 +149,7 @@ Here is an example of datapoint
      "tags": {
          "application": "myapp",
          "transaction": "all",
-         "statut": "all"
+         "status": "all"
      }
 }
 ```
@@ -158,8 +158,8 @@ Here is an example of datapoint
 
 Tags allow you to define criteria to filter datapoint. The plugin used 3 common tags:
 * application: the application name. the name of System Under Test specified in _application_ property.
-* transaction: the sample (e.g the request url or label ). For aggregated metrics _statut_ is set to _all_
-* statut: all, ok, ko. For aggregated metrics _statut_ is set to _all_
+* transaction: the sample (e.g the request url or label ). For aggregated metrics _status_ is set to _all_
+* status: all, ok, ko. For aggregated metrics _status_ is set to _all_
 
 ## Results Reading and Aggregating Facility
 
