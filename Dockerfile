@@ -51,10 +51,11 @@ RUN $APT_INSTALL ./packages-microsoft-prod.deb \
    && $APT_INSTALL dotnet-sdk-3.1
 
 # Install K6
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 \
-   && echo "deb https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list \
-   && $APT_UPDATE \
-   && $APT_INSTALL k6
+RUN $APT_INSTALL gpg-agent \
+  && gpg -k \
+  && gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 \
+  && echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list \
+  && apt-get install k6
 
 # auto installable tools
 RUN mkdir -p /etc/bzt.d \
