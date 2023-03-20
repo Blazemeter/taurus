@@ -81,11 +81,7 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
         super(InfluxdbStatusReporter, self).prepare()
 
         self.send_data = self.parameters.get("send-data", self.send_data)
-
         self.application = self.parameters.get("application", self.settings.get("application", self.application))
-        if not self.application:
-            raise bzt.TaurusConfigError("'application' property must be set. You should fix your configuration.")
-
         self.measurement = self.settings.get("measurement", None)
         host = self.settings.get("host", 'localhost')
         port = self.settings.get("port", 8086)
@@ -346,11 +342,13 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
         return metrics
 
     def __compute_common_tags(self):
-        return {
-            self.TAG_APPLICATION: self.application,
+        common_tags = {
             self.TAG_TRANSACTION: self.TAG_ALL,
             self.TAG_STATUS: self.TAG_ALL,
         }
+        if self.application is not None:
+            common_tags[self.TAG_APPLICATION] = self.application
+        return common_tags
 
     @staticmethod
     def __merge_tags(series, common_tags=None):
