@@ -537,7 +537,7 @@ class TestBlazeMeterUploader(BZTestCase):
                 'timestamp': 1678892271398,
                 'values': {
                     'cpu': 9.4,
-                    'mem': 5560.0,
+                    'mem': 55.6,
                 }
             }
         ])
@@ -554,7 +554,7 @@ class TestBlazeMeterUploader(BZTestCase):
                 'timestamp': 1678893271376,
                 'values': {
                     'cpu': 7.4,
-                    'mem': 5210.0,
+                    'mem': 52.1,
                 }
             }
         ])
