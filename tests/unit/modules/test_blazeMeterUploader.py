@@ -8,14 +8,14 @@ from tempfile import mkstemp
 from io import BytesIO
 from urllib.error import HTTPError
 
-from bzt import TaurusException
+from unittest.mock import patch
+from bzt import TaurusException, TaurusNetworkError
 from bzt.bza import Master, Session
-from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
+from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader
 from bzt.modules.blazemeter.blazemeter_reporter import MonitoringBuffer
 from bzt.utils import iteritems, viewvalues
 from tests.unit import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER, EngineEmul, BZMock
-from tests.unit.mocks import MockReader
 
 
 class TestBlazeMeterUploader(BZTestCase):
@@ -440,6 +440,154 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.aggregated_second(random_datapoint(10))
         obj.kpi_buffer[-1][DataPoint.CUMULATIVE] = {}  # remove cumulative when ramp-up data is excluded
         obj.post_process()  # no 'Cumulative KPISet is non-consistent' exception here
+
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_engine_metrics_no_metrics_to_send(self, mock_client_class):
+        # prepare mocks
+        client = mock_client_class.return_value
+        # perform test
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.parameters['calibration-id'] = 4306
+        reporter.parameters['calibration-step-id'] = 10
+        reporter.parameters["send-data"] = False
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['monitoring-buffer-limit'] = 100
+        reporter.settings['send-monitoring'] = False  # disable sending old monitoring
+        reporter.prepare()
+        reporter.startup()
+        # no metrics get produced here
+        reporter.check()
+        reporter.post_process()
+        # verify
+        client.send_engine_metrics.assert_not_called()
+        client.disconnect.assert_called_once()
+
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_engine_metrics_sending_metrics_disabled(self, mock_client_class):
+        # prepare mocks
+        client = mock_client_class.return_value
+        client.send_engine_metrics.side_effect = TaurusNetworkError('Test error')
+        # perform test
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.parameters['calibration-id'] = 4306
+        reporter.parameters['calibration-step-id'] = 10
+        reporter.parameters["send-data"] = False
+        reporter.settings['send-monitoring'] = False  # disable sending old monitoring
+        reporter.prepare()
+        reporter.startup()
+        reporter.monitoring_data([
+            {'source': 'local', 'ts': 1678892271.3985019, 'cpu': 9.4},
+        ])
+        reporter.check()
+        reporter.post_process()
+        # verify
+        client.send_engine_metrics.assert_not_called()
+        client.disconnect.assert_not_called()
+
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_engine_metrics_success(self, mock_client_class):
+        # prepare mocks
+        client = mock_client_class.return_value
+        # perform test
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.parameters['calibration-id'] = 4306
+        reporter.parameters['calibration-step-id'] = 10
+        reporter.parameters["send-data"] = False
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['monitoring-buffer-limit'] = 100
+        reporter.settings['send-monitoring'] = False  # disable sending old monitoring
+        reporter.prepare()
+        reporter.startup()
+        reporter.monitoring_data([
+            {'source': 'local', 'ts': 1678892271.3985019, 'cpu': 9.4},
+            {'source': 'local', 'ts': 1678892271.3985019, 'mem': 55.6},
+            {'source': 'local', 'ts': 1678892271.3985019, 'bytes-sent': 26302},
+        ])
+        reporter.check()
+        reporter.monitoring_data([
+            {'source': 'local', 'ts': 1678893271.3765019, 'cpu': 7.4},
+            {'source': 'local', 'ts': 1678893271.3765019, 'mem': 52.1},
+            {'source': 'local', 'ts': 1678893271.3765019, 'bytes-sent': 6302},
+        ])
+        reporter.post_process()
+        # verify
+        self.assertEqual(client.send_engine_metrics.call_count, 2)
+        call0 = client.send_engine_metrics.call_args_list[0]
+        self.assertEqual(call0[0][0], [
+            {
+                'metadata': {
+                    'source': 'local',
+                    'entityId': 'r-v4-5f50153f49a13',
+                    'masterId': 122362,
+                    'calibrationId': 4306,
+                    'calibrationStepId': 10,
+                },
+                'timestamp': 1678892271398,
+                'values': {
+                    'cpu': 9.4,
+                    'mem': 5560.0,
+                }
+            }
+        ])
+        call1 = client.send_engine_metrics.call_args_list[1]
+        self.assertEqual(call1[0][0], [
+            {
+                'metadata': {
+                    'source': 'local',
+                    'entityId': 'r-v4-5f50153f49a13',
+                    'masterId': 122362,
+                    'calibrationId': 4306,
+                    'calibrationStepId': 10,
+                },
+                'timestamp': 1678893271376,
+                'values': {
+                    'cpu': 7.4,
+                    'mem': 5210.0,
+                }
+            }
+        ])
+        client.disconnect.assert_called_once()
+
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_engine_metrics_send_error(self, mock_client_class):
+        # errors when sending metrics must not break other logic in BlazeMeterUploader
+        # prepare mocks
+        client = mock_client_class.return_value
+        client.send_engine_metrics.side_effect = TaurusNetworkError('Test error')
+        # perform test
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.parameters['calibration-id'] = 4306
+        reporter.parameters['calibration-step-id'] = 10
+        reporter.parameters["send-data"] = False
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['monitoring-buffer-limit'] = 100
+        reporter.settings['send-monitoring'] = False  # disable sending old monitoring
+        reporter.prepare()
+        reporter.startup()
+        reporter.monitoring_data([
+            {'source': 'local', 'ts': 1678892271.3985019, 'cpu': 9.4},
+        ])
+        reporter.check()
+        reporter.post_process()
+        # verify
+        self.assertEqual(client.send_engine_metrics.call_count, 2)
+        client.disconnect.assert_called_once()
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):
