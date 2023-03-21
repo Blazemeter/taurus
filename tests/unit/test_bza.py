@@ -1,7 +1,10 @@
-from unittest import skipUnless
+from logging import Logger
+from unittest.mock import patch
+
+from socketio.exceptions import ConnectionError
 
 from bzt import TaurusNetworkError
-from bzt.bza import User, BZAObject
+from bzt.bza import User, BZAObject, HappysocksClient
 from tests.unit import BZTestCase
 from tests.unit.mocks import BZMock
 
@@ -31,3 +34,161 @@ class TestBZAObject(BZTestCase):
             self.fail()
         except TaurusNetworkError:
             pass
+
+
+class TestHappysocksClient(BZTestCase):
+    NAMESPACE = "/v1/engine"
+
+    @patch('bzt.bza.socketio.Client')
+    def test_construct_1(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class
+        # perform test
+        HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                         "ci12NC02NDEwMmYxYWI", True, False)
+        sio.assert_called_once()
+        args = sio.call_args
+        self.assertEqual(args[1]["http_session"].verify, False)
+        self.assertIsInstance(args[1]["logger"], Logger)
+        self.assertIsInstance(args[1]["engineio_logger"], Logger)
+
+    @patch('bzt.bza.socketio.Client')
+    def test_construct_2(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class
+        # perform test
+        HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                         "ci12NC02NDEwMmYxYWI", False, True)
+        sio.assert_called_once()
+        args = sio.call_args
+        self.assertEqual(args[1]["http_session"].verify, True)
+        self.assertEqual(args[1]["logger"], False)
+        self.assertEqual(args[1]["engineio_logger"], False)
+
+    @patch('bzt.bza.socketio.Client')
+    def test_connect_error(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        sio.connect.side_effect = ConnectionError("Invalid hostname")
+        # perform test
+        client = HappysocksClient("http://invalid", "r-v4-64102f1ab8795890049369", "ci12NC02NDEwMmYxYWI")
+        try:
+            client.connect()
+            self.fail("Expected TaurusNetworkError")
+        except TaurusNetworkError:
+            pass
+        sio.connect.assert_called_once()
+
+    @patch('bzt.bza.socketio.Client')
+    def test_connect_success(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        sio.connected.return_value = True
+        # perform test
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True)
+        client.connect()
+        self.assertTrue(sio.connected())
+        sio.connect.assert_called_once()
+        args = sio.connect.call_args
+        self.assertEqual(args[0][0], "https://happysocks-5100-tester-dev.blazemeter.net")
+        self.assertEqual(args[1]["namespaces"], ["/v1/engine"])
+        self.assertEqual(args[1]["transports"], ["websocket"])
+        self.assertEqual(args[1]["socketio_path"], "/api-ws")
+        self.assertEqual(args[1]["headers"],
+                         {"x-bzm-session": "r-v4-64102f1ab8795890049369", "x-auth-token": "ci12NC02NDEwMmYxYWI"})
+
+    @patch('bzt.bza.socketio.Client')
+    def test_connect_success_trailing_slash(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        sio.connected.return_value = True
+        # perform test
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net/", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True)
+        client.connect()
+        self.assertTrue(sio.connected())
+        sio.connect.assert_called_once()
+        args = sio.connect.call_args
+        self.assertEqual(args[0][0], "https://happysocks-5100-tester-dev.blazemeter.net")
+        self.assertEqual(args[1]["namespaces"], ["/v1/engine"])
+        self.assertEqual(args[1]["transports"], ["websocket"])
+        self.assertEqual(args[1]["socketio_path"], "/api-ws")
+        self.assertEqual(args[1]["headers"],
+                         {"x-bzm-session": "r-v4-64102f1ab8795890049369", "x-auth-token": "ci12NC02NDEwMmYxYWI"})
+
+    @patch('bzt.bza.socketio.Client')
+    def test_connect_success_hs_path(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        sio.connected.return_value = True
+        # perform test
+        client = HappysocksClient("https://prod-rc.blazemeter.com/hs", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True)
+        client.connect()
+        self.assertTrue(sio.connected())
+        sio.connect.assert_called_once()
+        args = sio.connect.call_args
+        self.assertEqual(args[0][0], "https://prod-rc.blazemeter.com")
+        self.assertEqual(args[1]["namespaces"], ["/v1/engine"])
+        self.assertEqual(args[1]["transports"], ["websocket"])
+        self.assertEqual(args[1]["socketio_path"], "/hs/api-ws")
+        self.assertEqual(args[1]["headers"],
+                         {"x-bzm-session": "r-v4-64102f1ab8795890049369", "x-auth-token": "ci12NC02NDEwMmYxYWI"})
+
+    @patch('bzt.bza.socketio.Client')
+    def test_disconnect_not_connected(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        # perform test
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True)
+        client.disconnect()
+        sio.disconnect.assert_not_called()
+
+    @patch('bzt.bza.socketio.Client')
+    def test_disconnect_connected(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        # perform test
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True)
+        client.connect()
+        client.disconnect()
+        sio.connect.assert_called_once()
+        sio.disconnect.assert_called_once()
+
+    @patch('bzt.bza.socketio.Client')
+    def test_send_engine_metrics(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        sio.connected.return_value = True
+        # perform test
+        client = HappysocksClient("https://prod-rc.blazemeter.com/hs", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True)
+        client.send_engine_metrics([
+            {
+                'metadata': {
+                    'source': 'local',
+                    'entityId': 'r-v4-64102f1ab8795890049369',
+                    'masterId': 100,
+                    'calibrationId': 200,
+                    'calibrationStepId': 300,
+                },
+                'timestamp': 1678892271398,
+                'values': {
+                    'cpu': 9.4,
+                    'mem': 5560.0,
+                }
+            }
+        ])
+        # verify
+        sio.connect.assert_called_once()
+        sio.emit.assert_called_once()
+        args = sio.emit.call_args
+        self.assertEqual(args[0][0], "metrics")
+        self.assertEqual(args[0][1], [{'metadata': {'source': 'local', 'entityId': 'r-v4-64102f1ab8795890049369',
+                                                    'masterId': 100, 'calibrationId': 200, 'calibrationStepId': 300},
+                                       'timestamp': 1678892271398, 'values': {'cpu': 9.4, 'mem': 5560.0}}])
+        self.assertEqual(args[0][2], "/v1/engine")
+        self.assertTrue(args[1]["callback"] is not None)

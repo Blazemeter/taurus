@@ -6,6 +6,7 @@ import time
 import traceback
 from abc import abstractmethod
 from collections import OrderedDict, namedtuple
+from typing import List
 
 import csv
 import psutil
@@ -94,7 +95,7 @@ class Monitoring(Service, Singletone):
 
 class MonitoringListener(object):
     @abstractmethod
-    def monitoring_data(self, data):
+    def monitoring_data(self, data: List[dict]):
         pass
 
 

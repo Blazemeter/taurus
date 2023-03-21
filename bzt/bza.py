@@ -9,7 +9,10 @@ import time
 import traceback
 from collections import OrderedDict
 from functools import wraps
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
+from typing import List
+from socketio.exceptions import ConnectionError
+import socketio
 
 import requests
 
@@ -760,3 +763,87 @@ class BZAProxy(BZAObject):
     def get_json(self):
         response = self._request(self._get_url("/download?format=json"), raw_result=True)
         return response
+
+
+class HappysocksEngineNamespace(socketio.ClientNamespace):
+    """
+    Listens to socket.io events for engine namespace.
+    """
+    NAMESPACE = "/v1/engine"
+    METRICS_EVENT = 'metrics'
+
+    def __init__(self):
+        super().__init__(HappysocksEngineNamespace.NAMESPACE)
+        self._log = logging.getLogger(self.__class__.__name__)
+
+    def on_connect(self):
+        self._log.debug("Connected to happysocks server")
+
+    def on_disconnect(self):
+        self._log.debug("Disconnected from happysocks server")
+
+    def on_connect_error(self):
+        self._log.error("Happysocks connection error")
+
+    def metrics_callback(self, data):
+        if isinstance(data, dict) and data.get('error'):
+            self._log.error(f"Happysocks rejected data: {data.get('error')}")
+
+
+class HappysocksClient:
+    """
+    Client for happysocks service.
+    """
+    HEADER_AUTH_TOKEN = "x-auth-token"
+    HEADER_BZM_SESSION = "x-bzm-session"
+
+    def __init__(self, happysocks_address: str, session_id: str, session_token: str, verbose_logging=False,
+                 verify_ssl=True) -> None:
+        super().__init__()
+        self._log = logging.getLogger(self.__class__.__name__)
+        parsed_url = urlparse(happysocks_address)
+        self._session_token = session_token
+        self._session_id = session_id
+        self._happysocks_address = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        self._socketio_path = f"{parsed_url.path.rstrip('/')}/api-ws"
+        # socketio logging is too verbose by default
+        socketio_logger = logging.getLogger("SocketIO") if verbose_logging else False
+        http_session = requests.Session()
+        http_session.verify = verify_ssl
+        self._sio = socketio.Client(http_session=http_session, logger=socketio_logger, engineio_logger=socketio_logger)
+        self._engine_namespace = HappysocksEngineNamespace()
+        self._sio.register_namespace(self._engine_namespace)
+        self._connected = False
+
+    def connect(self):
+        headers = {
+            HappysocksClient.HEADER_BZM_SESSION: self._session_id,
+            HappysocksClient.HEADER_AUTH_TOKEN: self._session_token
+        }
+        full_address = f"{self._happysocks_address}{self._socketio_path}"
+        self._log.info(f"Connecting to happysocks server {full_address}")
+        try:
+            self._sio.connect(self._happysocks_address, namespaces=[HappysocksEngineNamespace.NAMESPACE],
+                              transports=['websocket'], socketio_path=self._socketio_path, headers=headers)
+        except ConnectionError as e:
+            raise TaurusNetworkError(f"Failed to connect to happysocks server {full_address}") from e
+        self._connected = True
+
+    def connected(self):
+        """
+        Returns True if the client is connected. Also handles situation when the connection is dropped. Client supports
+        auto reconnect.
+        """
+        return self._connected and self._sio.connected
+
+    def disconnect(self):
+        if self._connected:
+            self._sio.disconnect()
+            self._connected = False
+
+    def send_engine_metrics(self, metrics_batch: List[dict]):
+        if not self._connected:
+            self.connect()
+        self._log.debug(f"Sending {len(metrics_batch)} metrics items to happysocks")
+        self._sio.emit(HappysocksEngineNamespace.METRICS_EVENT, metrics_batch, HappysocksEngineNamespace.NAMESPACE,
+                       callback=self._engine_namespace.metrics_callback)

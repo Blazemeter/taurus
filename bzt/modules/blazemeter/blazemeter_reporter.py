@@ -28,15 +28,17 @@ from io import BytesIO
 from urllib.error import HTTPError
 
 import requests
+from typing import List
 
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
-from bzt.bza import User, Session, Test
+from bzt.bza import User, Session, Test, HappysocksClient
 from bzt.engine import Reporter, Singletone
 from bzt.utils import b, humanize_bytes, iteritems, open_browser, BetterDict, to_json, dehumanize_time
-from bzt.modules.aggregator import AggregatorListener, DataPoint, KPISet, ResultsProvider, ConsolidatingAggregator
+from bzt.modules.aggregator import AggregatorListener, DataPoint, KPISet, ResultsProvider
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.blazemeter.project_finder import ProjectFinder
 from bzt.modules.blazemeter.const import NOTE_SIZE_LIMIT
+from bzt.modules.blazemeter.engine_metrics import HappysocksMetricsConverter, EngineMetricsBuffer
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singletone):
@@ -52,19 +54,28 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         super(BlazeMeterUploader, self).__init__()
         self.browser_open = 'start'
         self.kpi_buffer = []
+        self._engine_metrics_send_interval = 5
         self.send_interval = 30
         self._last_status_check = time.time()
         self.send_data = True
         self.upload_artifacts = True
         self.send_monitoring = True
         self.monitoring_buffer = None
+        self._engine_metrics_buffer = None
+        self._sess_id = None
+        self._master_id = None
+        self._calibration_id = None
+        self._calibration_step_id = None
         self.public_report = False
         self.last_dispatch = 0
+        self._last_engine_metrics_dispatch = 0
+        self._happysocks_address = None
         self.results_url = None
         self._user = User()
         self._test = None
         self._master = None
         self._session = None
+        self.happysocks_client = None
         self.first_ts = sys.maxsize
         self.last_ts = 0
         self.report_name = None
@@ -80,6 +91,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
+        self._engine_metrics_buffer = EngineMetricsBuffer(monitoring_buffer_limit)
+        self._engine_metrics_send_interval = dehumanize_time(
+            self.settings.get("engine-metrics-send-interval", self._engine_metrics_send_interval))
+        happysocks_verbose_logging = self.settings.get("happysocks-verbose-logging", False)
+        happysocks_verify_ssl = self.settings.get("happysocks-verify-ssl", True)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.public_report = self.settings.get("public-report", self.public_report)
         self.upload_artifacts = self.parameters.get("upload-artifacts", self.upload_artifacts)
@@ -99,15 +115,20 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             self._user.http_session = self.engine.get_http_client()
             self._user.http_request = self._user.http_session.request
 
+        self._calibration_id = self.parameters.get("calibration-id")
+        self._calibration_step_id = self.parameters.get("calibration-step-id")
         # direct data feeding case
-        sess_id = self.parameters.get("session-id")
-        if sess_id:
-            self._session = Session(self._user, {'id': sess_id})
+        self._master_id = self.parameters.get("master-id")
+        self._sess_id = self.parameters.get("session-id")
+        signature = None
+        if self._sess_id:
+            self._session = Session(self._user, {'id': self._sess_id})
             self._session['userId'] = self.parameters.get("user-id", None)
             self._session['testId'] = self.parameters.get("test-id", None)
             self._test = Test(self._user, {'id': self._session['testId']})
             exc = TaurusConfigError("Need signature for session")
-            self._session.data_signature = self.parameters.get("signature", exc)
+            signature = self.parameters.get("signature", exc)
+            self._session.data_signature = signature
             self._session.kpi_target = self.parameters.get("kpi-target", self._session.kpi_target)
             self.send_data = self.parameters.get("send-data", self.send_data)
         else:
@@ -125,6 +146,20 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                 self._test = finder.resolve_external_test()
             else:
                 self._test = Test(self._user, {'id': None})
+        happysocks_address = self.settings.get("happysocks-address")
+        if happysocks_address and self._sess_id and signature:
+            self.log.info(f"Engine metrics will be sent to '{happysocks_address}'")
+            self.happysocks_client = HappysocksClient(happysocks_address, self._sess_id, signature,
+                                                      happysocks_verbose_logging, happysocks_verify_ssl)
+        else:
+            reason = ""
+            if not happysocks_address:
+                reason = "modules.blazemeter.happysocks-address setting was not provided"
+            elif not self._sess_id:
+                reason = "Missing session-id parameter in blazemeter reporting module"
+            elif not signature:
+                reason = "Missing signature parameter in blazemeter reporting module"
+            self.log.info(f"Sending of engine metrics to happysocks is disabled. {reason}")
 
         self.report_name = self.parameters.get("report-name", self.settings.get("report-name", self.report_name))
         if self.report_name == 'ask' and sys.stdin.isatty():
@@ -257,6 +292,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
             if self.send_monitoring:
                 self.__send_monitoring()
+            if self._engine_metrics_enabled():
+                try:
+                    self._send_engine_metrics()
+                except BaseException:
+                    self.log.error("Failed to send engine metrics", exc_info=True)
+                finally:
+                    self.happysocks_client.disconnect()
         finally:
             self._postproc_phase2()
 
@@ -343,6 +385,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
             if self.send_monitoring:
                 self.__send_monitoring()
+        if self._engine_metrics_enabled() and self._last_engine_metrics_dispatch < (
+                time.time() - self._engine_metrics_send_interval):
+            self._last_engine_metrics_dispatch = time.time()
+            try:
+                self._send_engine_metrics()
+            except BaseException:
+                self.log.error("Failed to send engine metrics", exc_info=True)
         return super(BlazeMeterUploader, self).check()
 
     def __send_data(self, data, do_check=True, is_final=False):
@@ -365,9 +414,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if self.send_data:
             self.kpi_buffer.append(data)
 
-    def monitoring_data(self, data):
+    def monitoring_data(self, data: List[dict]):
         if self.send_monitoring:
             self.monitoring_buffer.record_data(data)
+        if self._engine_metrics_enabled():
+            self._engine_metrics_buffer.record_data(data)
 
     def __send_monitoring(self):
         engine_id = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '')
@@ -384,6 +435,24 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                 fname = fname[len(self.engine.artifacts_dir) + 1:]
             lines.append(bytestr + " " + fname)
         return "\n".join(lines)
+
+    def _engine_metrics_enabled(self) -> bool:
+        """
+        Returns True if sending of engine metrics to happysocks API is enabled.
+        """
+        return self.happysocks_client is not None
+
+    def _send_engine_metrics(self):
+        """
+        Sends engine metrics to happysocks API via WebSockets.
+        """
+        raw_data = self._engine_metrics_buffer.get_data()
+        metrics_batch = HappysocksMetricsConverter.to_metrics_batch(raw_data, self._sess_id,
+                                                                    self._master_id,
+                                                                    self._calibration_id, self._calibration_step_id)
+        if metrics_batch:
+            self.happysocks_client.send_engine_metrics(metrics_batch)
+        self._engine_metrics_buffer.clear()
 
 
 class MonitoringBuffer(object):
