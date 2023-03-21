@@ -70,6 +70,8 @@ modules:
     class: bzt.modules.reporting.FinalStatus
   functional-consolidator:
     class: bzt.modules.functional.FunctionalAggregator
+  influxdb-reporter:
+    class: bzt.modules.influxdb_reporter.InfluxdbStatusReporter
   android-emulator:
     class: bzt.modules.services.AndroidEmulatorLoader
   appium:

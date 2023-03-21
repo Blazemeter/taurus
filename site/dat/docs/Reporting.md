@@ -26,6 +26,7 @@ Taurus provides the following reporter modules:
 - `blazemeter`, that provides interactive online test reports
 - `final\_stats`, that provides post-test summary stats
 - `junit-xml`, that generates test stats in JUnit-compatible format
+- `influxdb-reporter`, that generates test stats to an influxdb datasource
 
 ## Console Reporter
 
@@ -108,6 +109,57 @@ reporting:
   filename: /path_to_file/file.xml
   data-source: pass-fail
 ```
+
+## Influxdb Reporter
+
+Influxdb Reporter is a Taurus extension which send stats to an influxdb (1.X) datasource.
+The plugin has several settings:
+
+```yaml
+    modules:
+      influxdb:
+        class: influxdb_reporter.InfluxdbStatusReporter
+        host: localhost # influxdb address (default: localhost)
+        port: 8086 # port (default: 8086)
+        database: jmeter # the datasource name
+        measurement: taurus # the measurement name
+        username: ... # username if influxdb authentication enabled
+        password: ...  # password if influxdb authentication enabled
+        summary: true  # overall samples count and percent of failures
+        percentiles: true  # send average times and percentiles
+        send-data: true # enable/disable the sending
+        send-interval: 30s   # send data each n-th second
+```
+
+### Tags and measurement
+
+Influxdb is a time series database based on the following key concept:
+* measurement : key represents the serie used to store data. By default _measurement_ is set to _jmeter_. You can override it.
+* tags : provides a dimensionnal projection to measurement.
+
+Here is an example of datapoint
+
+```json
+    {
+     "time": 1666575154,
+     "measurement": "jmeter",
+     "fields": {
+         "countError": 21
+     },
+     "tags": {
+         "application": "myapp",
+         "transaction": "all",
+         "status": "all"
+     }
+}
+```
+
+> As you can see the time attribute is a timestamp. To perform write, the reporter use 'seconds' as epoch
+
+Tags allow you to define criteria to filter datapoint. The plugin used 3 common tags:
+* application: the application name. the name of System Under Test specified in _application_ property.
+* transaction: the sample (e.g the request url or label ). For aggregated metrics _status_ is set to _all_
+* status: all, ok, ko. For aggregated metrics _status_ is set to _all_
 
 ## Results Reading and Aggregating Facility
 

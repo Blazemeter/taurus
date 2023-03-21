@@ -36,8 +36,12 @@ RUN $APT_UPDATE && $APT_INSTALL firefox
 # set en_US.UTF-8 as default locale
 RUN locale-gen "en_US.UTF-8" && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-# Force cgi version to fix CVE-2021-41816 -> updated to 0.2.0
-RUN gem install rspec rake selenium-webdriver cgi:0.1.1 && gem update bundler date && gem cleanup
+# Force cgi version to fix CVE-2021-41816 -> updated to 0.2.1
+RUN gem install rspec rake selenium-webdriver cgi:0.2.1 && gem update bundler date && gem cleanup \
+    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/cgi-0.2.0.gemspec \
+    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/bundler-2.2.22.gemspec \
+    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/date-3.1.0.gemspec
+
 
 # Get Google Chrome
 RUN $APT_INSTALL ./google-chrome-stable_current_amd64.deb \
@@ -51,10 +55,12 @@ RUN $APT_INSTALL ./packages-microsoft-prod.deb \
    && $APT_INSTALL dotnet-sdk-3.1
 
 # Install K6
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 \
-   && echo "deb https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list \
-   && $APT_UPDATE \
-   && $APT_INSTALL k6
+RUN $APT_INSTALL gpg-agent \
+  && gpg -k \
+  && gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 \
+  && echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list \
+  && $APT_UPDATE \
+  && $APT_INSTALL k6
 
 # auto installable tools
 RUN mkdir -p /etc/bzt.d \
@@ -64,6 +70,10 @@ RUN mkdir -p /etc/bzt.d \
     /opt/google/chrome/google-chrome \
   && bzt -install-tools -v \
   && google-chrome-stable --version && firefox --version && dotnet --version | head -1
+
+### remove unused pem files
+WORKDIR /root/.bzt/python-packages/3.10.6/gevent/tests
+RUN rm -rf *.pem
 
 # Fix npm vulnerabilites
 WORKDIR /root/.bzt/selenium-taurus/wdio/node_modules/recursive-readdir
