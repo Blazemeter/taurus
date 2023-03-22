@@ -1186,6 +1186,10 @@ class HTTPClient(object):
             else:
                 proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
             self.session.proxies = {"https": proxy_uri, "http": proxy_uri}
+            self.session.proxies = {"https": proxy_uri, "http": proxy_uri}
+            non_proxy = proxy_settings.get("nonProxy")
+            if non_proxy:
+                os.environ['NO_PROXY'] = self.convert_to_python_no_proxy_string(non_proxy)
 
         if not self.proxy_settings:
             self.log.info('Proxy settings not set')
@@ -1257,6 +1261,19 @@ class HTTPClient(object):
                     host = '*' + host
                 java_no_proxy_string = java_no_proxy_string + host + '|'
             if java_no_proxy_string.endswith('|'):
+                java_no_proxy_string = java_no_proxy_string[:-1]
+            return java_no_proxy_string
+        return no_proxy
+
+    @staticmethod
+    def convert_to_python_no_proxy_string(no_proxy):
+        if no_proxy:
+            java_no_proxy_string = ''
+            for host in no_proxy.split('|'):
+                if host.startswith('.'):
+                    host = '*' + host
+                java_no_proxy_string = java_no_proxy_string + host + ','
+            if java_no_proxy_string.endswith(','):
                 java_no_proxy_string = java_no_proxy_string[:-1]
             return java_no_proxy_string
         return no_proxy

@@ -391,6 +391,13 @@ class TestHTTPClient(BZTestCase):
         self.assertEqual('*.test.com|*.test2.com', HTTPClient.convert_to_java_no_proxy_string('*.test.com,.test2.com'))
         self.assertEqual('*.test.com|*.test2.com', HTTPClient.convert_to_java_no_proxy_string('.test.com,.test2.com'))
 
+    def test_proxy_string_convert_to_python(self):
+        self.assertEqual('', HTTPClient.convert_to_python_no_proxy_string(''))
+        self.assertEqual('localhost', HTTPClient.convert_to_python_no_proxy_string('localhost'))
+        self.assertEqual('*.test.com', HTTPClient.convert_to_python_no_proxy_string('.test.com'))
+        self.assertEqual('*.test.com', HTTPClient.convert_to_python_no_proxy_string('*.test.com'))
+        self.assertEqual('*.test.com,*.test2.com', HTTPClient.convert_to_python_no_proxy_string('*.test.com,*.test2.com'))
+        self.assertEqual('*.test.com,*.test2.com', HTTPClient.convert_to_python_no_proxy_string('.test.com|.test2.com'))
 
     def test_download_file(self):
         obj = HTTPClient()
