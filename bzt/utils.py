@@ -1205,7 +1205,7 @@ class HTTPClient(object):
         non_proxy = self.proxy_settings.get("nonProxy")
         for protocol in ["http", "https"]:
             if non_proxy:
-                props[protocol + '.nonProxyHosts'] = non_proxy
+                props[protocol + '.nonProxyHosts'] = self.convert_to_java_no_proxy_string(non_proxy)
             props[protocol + '.proxyHost'] = proxy_url.hostname
             props[protocol + '.proxyPort'] = proxy_url.port or 80
             if username and pwd:
@@ -1247,6 +1247,19 @@ class HTTPClient(object):
                                            )
         proxy_settings['address'] = proxy_url.geturl()
         return proxy_settings
+
+    @staticmethod
+    def convert_to_java_no_proxy_string(no_proxy):
+        if no_proxy:
+            java_no_proxy_string = ''
+            for host in no_proxy.split(','):
+                if host.startswith('.'):
+                    host = '*' + host
+                java_no_proxy_string = java_no_proxy_string + host + '|'
+            if java_no_proxy_string.endswith('|'):
+                java_no_proxy_string = java_no_proxy_string[:-1]
+            return java_no_proxy_string
+        return no_proxy
 
     def download_file(self, url, filename, reporthook=None, data=None, timeout=None):
         headers = None

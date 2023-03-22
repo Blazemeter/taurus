@@ -340,7 +340,7 @@ class TestHTTPClient(BZTestCase):
         obj.add_proxy_settings({"address": "http://localhost:3128",
                                 "username": "me",
                                 "password": "too",
-                                "nonProxy": "localhost"})
+                                "nonProxy": ".test.com"})
         jvm_args = obj.get_proxy_props()
         for protocol in ['http', 'https']:
             for key in ['proxyHost', 'proxyPort', 'proxyUser', 'proxyPass', 'nonProxyHosts']:
@@ -382,6 +382,14 @@ class TestHTTPClient(BZTestCase):
         self.assertEqual('https://10.0.0.0', settings['address'])
         self.assertEqual("user", settings['username'])
         self.assertEqual('pass', settings['password'])
+
+    def test_proxy_string_convert(self):
+        self.assertEqual('', HTTPClient.convert_to_java_no_proxy_string(''))
+        self.assertEqual('localhost', HTTPClient.convert_to_java_no_proxy_string('localhost'))
+        self.assertEqual('*.test.com', HTTPClient.convert_to_java_no_proxy_string('.test.com'))
+        self.assertEqual('*.test.com', HTTPClient.convert_to_java_no_proxy_string('*.test.com'))
+        self.assertEqual('*.test.com|*.test2.com', HTTPClient.convert_to_java_no_proxy_string('*.test.com,.test2.com'))
+        self.assertEqual('*.test.com|*.test2.com', HTTPClient.convert_to_java_no_proxy_string('.test.com,.test2.com'))
 
 
     def test_download_file(self):
