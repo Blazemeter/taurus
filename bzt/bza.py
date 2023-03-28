@@ -782,8 +782,11 @@ class HappysocksEngineNamespace(socketio.ClientNamespace):
     def on_disconnect(self):
         self._log.debug("Disconnected from happysocks server")
 
-    def on_connect_error(self):
-        self._log.error("Happysocks connection error")
+    def on_connect_error(self, data):
+        details = ""
+        if isinstance(data, dict) and data.get('message'):
+            details = data.get('message')
+        self._log.error(f"Happysocks connection error: {details}")
 
     def metrics_callback(self, data):
         if isinstance(data, dict) and data.get('error'):
