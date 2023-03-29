@@ -68,6 +68,9 @@ class TestHappysocksMetricsConverter(BZTestCase):
         result = HappysocksMetricsConverter.to_metrics_batch([
             {'source': 'local', 'ts': 1678892271.3985019, 'cpu': 9.4},
             {'source': 'local', 'ts': 1678892271.3985019, 'mem': 55.6},
+            {'source': 'local', 'ts': 1678892271.3985019, 'bytes-recv': 2485},
+            {'source': 'local', 'ts': 1678892271.3985019, 'conn-all': 63},
+            {'source': 'local', 'ts': 1678892271.3985019, 'engine-loop': 10},
         ], 'r-v4-64102f1ab8795890049369', 100, 200, 300)
         self.assertEqual(result, [
             {
@@ -82,6 +85,9 @@ class TestHappysocksMetricsConverter(BZTestCase):
                 'values': {
                     'cpu': 9.4,
                     'mem': 55.6,
+                    'network_io': 2485,
+                    'connections': 63,
+                    'busy_taurus': 10,
                 }
             },
         ])

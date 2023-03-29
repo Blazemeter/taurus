@@ -1,12 +1,12 @@
 from logging import Logger
 from unittest.mock import patch
-
 from socketio.exceptions import ConnectionError
+import time
 
 from bzt import TaurusNetworkError
 from bzt.bza import User, BZAObject, HappysocksClient
 from tests.unit import BZTestCase
-from tests.unit.mocks import BZMock
+from tests.unit.mocks import BZMock, MockHappysocksServer
 
 
 class TestBZAClient(BZTestCase):
@@ -192,3 +192,74 @@ class TestHappysocksClient(BZTestCase):
                                        'timestamp': 1678892271398, 'values': {'cpu': 9.4, 'mem': 5560.0}}])
         self.assertEqual(args[0][2], "/v1/engine")
         self.assertTrue(args[1]["callback"] is not None)
+
+
+class TestHappysocksClientMockServer(BZTestCase):
+    NAMESPACE = "/v1/engine"
+
+    def setUp(self):
+        super().setUp()
+        self.server = MockHappysocksServer()
+        self.server.start()
+        self.address = f"http://{self.server.server_host}:{self.server.server_port}"
+        self.client = HappysocksClient(self.address, "r-v4-64102f1ab8795890049369", "ci12NC02NDEwMmYxYWI", False, False)
+
+    def tearDown(self):
+        super().tearDown()
+        if self.client:
+            self.client.disconnect()
+        self.server.stop()
+
+    def test_connect_success(self):
+        self.client.connect()
+        self.assertTrue(self.server.engine_namespace.connect_event.isSet())
+
+    def test_connect_error(self):
+        self.server.engine_namespace.accept_connect = False
+        try:
+            self.client.connect()
+            self.fail("Expected TaurusNetworkError")
+        except TaurusNetworkError:
+            pass
+
+    def test_send_metrics_success(self):
+        self.server.engine_namespace.metrics_response = {}
+        self.client.connect()
+        metrics_to_send = [
+            {
+                'metadata': {
+                    'source': 'local',
+                    'entityId': 'r-v4-64102f1ab8795890049369',
+                    'masterId': 100,
+                    'calibrationId': 200,
+                    'calibrationStepId': 300,
+                },
+                'timestamp': 1678892271398,
+                'values': {
+                    'cpu': 9.4,
+                    'mem': 5560.0,
+                }
+            }
+        ]
+        self.client.send_engine_metrics(metrics_to_send)
+        self.server.engine_namespace.metrics_event.wait()
+        self.assertEqual(self.server.engine_namespace.received_metrics, metrics_to_send)
+
+    def test_send_metrics_error(self):
+        self.server.engine_namespace.metrics_response = {"error": "Missing entityId at index 0"}
+        self.client.connect()
+        metrics_to_send = [
+            {
+                'timestamp': 1678892271398,
+                'values': {
+                    'cpu': 9.4,
+                    'mem': 5560.0,
+                }
+            }
+        ]
+        self.client.send_engine_metrics(metrics_to_send)
+        self.server.engine_namespace.metrics_event.wait()
+        self.assertEqual(self.server.engine_namespace.received_metrics, metrics_to_send)
+        # error while processing metrics in happysocks is handled by HappysocksEngineNamespace callback and logged
+        # we have no reliable way of waiting for the callback before disconnect
+        time.sleep(0.1)
