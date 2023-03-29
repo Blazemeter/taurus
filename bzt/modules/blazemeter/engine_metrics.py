@@ -15,6 +15,9 @@ class EngineMetricsBuffer:
         {'source': 'local', 'ts': 1678892271.3985019, 'bytes-sent': 26302},
         {'source': 'local', 'ts': 1678892271.3985019, 'bytes-recv': 2485},
         {'source': 'local', 'ts': 1678892271.3985019, 'conn-all': 63},
+        {'source': 'local', 'ts': 1678892271.3985019, 'disk-read': 1195099},
+        {'source': 'local', 'ts': 1678892271.3985019, 'disk-write': 1044112},
+        {'source': 'local', 'ts': 1678892271.3985019, 'disk-space': 54.2},
         ...
     ]
     """
@@ -36,7 +39,9 @@ class EngineMetricsBuffer:
 
 
 class HappysocksMetricsConverter:
-    known_metrics = {'cpu', 'mem'}
+    # mapped names similar to MonitoringBuffer.get_monitoring_json
+    metrics_mapping = {'cpu': 'cpu', 'mem': 'mem', 'bytes-recv': 'network_io', 'engine-loop': 'busy_taurus',
+                       'conn-all': 'connections'}
 
     @staticmethod
     def to_metrics_batch(raw_metrics: List[dict], session_id, master_id=None, calibration_id=None,
@@ -51,15 +56,22 @@ class HappysocksMetricsConverter:
             source = raw_item_copy.pop('source')
             ts = math.floor(raw_item_copy.pop('ts') * 1000)
             for metric_name, metric_value in raw_item_copy.items():
-                if metric_name in HappysocksMetricsConverter.known_metrics:
+                mapped_metric_name = HappysocksMetricsConverter.map_metric_name(metric_name)
+                if mapped_metric_name:
                     key = frozenset({'source': source, 'ts': ts}.items())
                     metrics_bag = metrics_per_ts.get(key)
                     if not metrics_bag:
                         metrics_bag = HappysocksMetricsConverter.new_metrics_bag(source, ts, session_id, master_id,
                                                                                  calibration_id, calibration_step_id)
                         metrics_per_ts[key] = metrics_bag
-                    metrics_bag['values'][metric_name] = metric_value
+                    metrics_bag['values'][mapped_metric_name] = metric_value
         return sorted(list(metrics_per_ts.values()), key=itemgetter('timestamp'))
+
+    @staticmethod
+    def map_metric_name(metric_name):
+        if metric_name.lower().startswith('net'):
+            return HappysocksMetricsConverter.metrics_mapping.get('bytes-recv')
+        return HappysocksMetricsConverter.metrics_mapping.get(metric_name)
 
     @staticmethod
     def new_metrics_bag(source, ts, session_id, master_id, calibration_id, calibration_step_id):

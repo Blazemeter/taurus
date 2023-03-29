@@ -3,9 +3,15 @@ import datetime
 import os
 import random
 import sys
+import socketio
+import threading
+import time
 from _socket import SOCK_STREAM, AF_INET
 from collections import Counter
 from random import random
+from socketio.exceptions import ConnectionRefusedError
+from gevent import pywsgi
+from geventwebsocket.handler import WebSocketHandler
 
 import requests
 
@@ -456,3 +462,84 @@ class DummyListener(TransactionListener):
 
     def transaction_ended(self, sender, label, end_time):
         self.transactions[label] += 1
+
+
+class MockEngineNamespace(socketio.Namespace):
+    """
+    Listens to socket.io events for engine namespace.
+    """
+    NAMESPACE = "/v1/engine"
+    METRICS_EVENT = 'metrics'
+
+    def __init__(self):
+        super().__init__(MockEngineNamespace.NAMESPACE)
+        self.connect_event = threading.Event()
+        self.metrics_event = threading.Event()
+        self.accept_connect = True
+        self.metrics_response = {}
+        self.received_metrics = None
+
+    def on_connect(self, sid, environ, auth):
+        try:
+            if self.accept_connect:
+                return True
+            raise ConnectionRefusedError("authentication failed")
+        finally:
+            self.connect_event.set()
+
+    def on_disconnect(self, sid):
+        pass
+
+    def on_metrics(self, sid, data):
+        try:
+            self.received_metrics = data
+            return self.metrics_response
+        finally:
+            self.metrics_event.set()
+
+
+class MockHappysocksServer:
+
+    def __init__(self) -> None:
+        super().__init__()
+        # create a Socket.IO server
+        self._sio = socketio.Server(async_mode='gevent')
+        self._engine_namespace = MockEngineNamespace()
+        self._sio.register_namespace(self._engine_namespace)
+        # wrap with a WSGI application
+        self._app = socketio.WSGIApp(self._sio, socketio_path="api-ws")
+        self._server = None
+        self._thread = threading.Thread(target=self._run, name="mock-happysocks-server", daemon=True)
+        self._started_event = threading.Event()
+
+    def start(self):
+        if self._started_event.isSet():
+            return
+        self._thread.start()
+        self._started_event.wait()
+        # wait until bind port is known
+        while self.server_port == 0:
+            time.sleep(0.05)
+
+    def _run(self):
+        # WSGIServer must be created in thread
+        self._server = pywsgi.WSGIServer("localhost:0", self._app, handler_class=WebSocketHandler)
+        self._started_event.set()
+        self._server.serve_forever()
+
+    @property
+    def engine_namespace(self) -> MockEngineNamespace:
+        return self._engine_namespace
+
+    @property
+    def server_port(self):
+        return self._server.server_port
+
+    @property
+    def server_host(self):
+        return self._server.server_host
+
+    def stop(self):
+        self._server.stop()
+        self._thread.join()
+        self._started_event.clear()

@@ -2,3 +2,5 @@ apiritif>=1.1.3
 http-here
 nose2
 codecov
+gevent
+gevent-websocket
