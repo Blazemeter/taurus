@@ -1186,7 +1186,6 @@ class HTTPClient(object):
             else:
                 proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
             self.session.proxies = {"https": proxy_uri, "http": proxy_uri}
-            self.session.proxies = {"https": proxy_uri, "http": proxy_uri}
             non_proxy = proxy_settings.get("nonProxy")
             if non_proxy:
                 os.environ['NO_PROXY'] = self.convert_to_python_no_proxy_string(non_proxy)

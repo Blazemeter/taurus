@@ -129,13 +129,23 @@ The plugin has several settings:
         percentiles: true  # send average times and percentiles
         send-data: true # enable/disable the sending
         send-interval: 30s   # send data each n-th second
+        applications: myapp  # Optional - will attach tag 'application'
+```
+
+Influxdb reporting capabilities need to be explicitly enabled in the reporting section of the configuration, for example like this:
+
+```yaml
+    reporting:
+    - final-stats
+    - console
+    - influxdb-reporter
 ```
 
 ### Tags and measurement
 
 Influxdb is a time series database based on the following key concept:
-* measurement : key represents the serie used to store data. By default _measurement_ is set to _jmeter_. You can override it.
-* tags : provides a dimensionnal projection to measurement.
+* measurement : key represents the series used to store data. By default, _measurement_ is set to _jmeter_. You can override it.
+* tags : provides a dimensional projection to measurement.
 
 Here is an example of datapoint
 
@@ -157,7 +167,7 @@ Here is an example of datapoint
 > As you can see the time attribute is a timestamp. To perform write, the reporter use 'seconds' as epoch
 
 Tags allow you to define criteria to filter datapoint. The plugin used 3 common tags:
-* application: the application name. the name of System Under Test specified in _application_ property.
+* application: the application name. the name of System Under Test specified in _application_ property. (Optional)
 * transaction: the sample (e.g the request url or label ). For aggregated metrics _status_ is set to _all_
 * status: all, ok, ko. For aggregated metrics _status_ is set to _all_
 

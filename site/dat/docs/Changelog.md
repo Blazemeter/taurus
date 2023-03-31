@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.16.22<sup> 31 March 2023</sup>
+- #1706 Make influxdb application parameter optional
+- Influxdb documentation fixes
+- BlazeMeter websocket reporter
+- Vulnerability fixes
+- Allow user to use different syntax's for non-proxy variables
+
 ## 1.16.21<sup> 14 March 2023</sup>
 - Added influxdb-reporter (thanks to community!)
 
