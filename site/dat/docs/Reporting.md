@@ -117,8 +117,7 @@ The plugin has several settings:
 
 ```yaml
     modules:
-      influxdb:
-        class: influxdb_reporter.InfluxdbStatusReporter
+      influxdb-reporter:
         host: localhost # influxdb address (default: localhost)
         port: 8086 # port (default: 8086)
         database: jmeter # the datasource name
