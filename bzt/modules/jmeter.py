@@ -1587,7 +1587,7 @@ class JMeter(RequiredTool):
             "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.14.1/jackson-databind-2.14.1.jar",
             "json-smart": "net/minidev/json-smart/2.4.8/json-smart-2.4.8.jar",
             "jsoup": "org/jsoup/jsoup/1.15.3/jsoup-1.15.3.jar",
-            "snakeyaml": "org/yaml/snakeyaml/1.33/snakeyaml-1.33.jar",
+            "snakeyaml": "org/yaml/snakeyaml/2.0/snakeyaml-2.0.jar",
             "okhttp": "com/squareup/okhttp3/okhttp/4.10.0/okhttp-4.10.0.jar",
             "commons-text": "org/apache/commons/commons-text/1.10.0/commons-text-1.10.0.jar",
             "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.8/xmlgraphics-commons-2.8.jar"}
