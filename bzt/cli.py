@@ -285,9 +285,10 @@ class CLI(object):
                 self.handle_exception(exc)
 
         if self.options.verbose:
-            for module_name in sys.modules:
-                version = str(getattr(sys.modules[module_name], '__version__', ""))
-                file = getattr(sys.modules[module_name], '__file__', "")
+            modules = sys.modules.copy()
+            for module_name in modules:
+                version = str(getattr(modules[module_name], '__version__', ""))
+                file = getattr(modules[module_name], '__file__', "")
                 if version:
                     module_name = "-".join((module_name, version))
                     self.log.debug("\t{}\t{}".format(module_name, file))
