@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.16.23<sup> 24 April 2023</sup>
+- snakeyaml in Jmeter updated to 2.0 to address CVEs
+
 ## 1.16.22<sup> 31 March 2023</sup>
 - #1706 Make influxdb application parameter optional
 - Influxdb documentation fixes
