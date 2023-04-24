@@ -75,6 +75,7 @@ class TestHappysocksMetricsConverter(BZTestCase):
         self.assertEqual(result, [
             {
                 'metadata': {
+                    'type': 'engine-health',
                     'source': 'local',
                     'entityId': 'r-v4-64102f1ab8795890049369',
                     'masterId': 100,
@@ -100,6 +101,7 @@ class TestHappysocksMetricsConverter(BZTestCase):
         self.assertEqual(result, [
             {
                 'metadata': {
+                    'type': 'engine-health',
                     'source': 'local',
                     'entityId': 'r-v4-64102f1ab8795890049369',
                     'masterId': 100,
@@ -114,6 +116,7 @@ class TestHappysocksMetricsConverter(BZTestCase):
             },
             {
                 'metadata': {
+                    'type': 'engine-health',
                     'source': 'local',
                     'entityId': 'r-v4-64102f1ab8795890049369',
                     'masterId': 100,
@@ -141,6 +144,7 @@ class TestHappysocksMetricsConverter(BZTestCase):
         self.assertEqual(result, [
             {
                 'metadata': {
+                    'type': 'engine-health',
                     'source': 'local',
                     'entityId': 'r-v4-64102f1ab8795890049369',
                     'masterId': 100,
@@ -154,6 +158,7 @@ class TestHappysocksMetricsConverter(BZTestCase):
             },
             {
                 'metadata': {
+                    'type': 'engine-health',
                     'source': 'local',
                     'entityId': 'r-v4-64102f1ab8795890049369',
                     'masterId': 100,
@@ -175,6 +180,7 @@ class TestHappysocksMetricsConverter(BZTestCase):
         self.assertEqual(result, [
             {
                 'metadata': {
+                    'type': 'engine-health',
                     'source': 'local',
                     'entityId': 'r-v4-64102f1ab8795890049369',
                     'masterId': 100,
@@ -195,6 +201,7 @@ class TestHappysocksMetricsConverter(BZTestCase):
         self.assertEqual(result, [
             {
                 'metadata': {
+                    'type': 'engine-health',
                     'source': 'local',
                     'entityId': 'r-v4-64102f1ab8795890049369',
                 },

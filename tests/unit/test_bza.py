@@ -1,5 +1,5 @@
 from logging import Logger
-from unittest.mock import patch
+from unittest.mock import patch, PropertyMock
 from socketio.exceptions import ConnectionError
 import time
 
@@ -140,6 +140,7 @@ class TestHappysocksClient(BZTestCase):
     def test_disconnect_not_connected(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
+        sio.connected = False
         # perform test
         client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
                                   "ci12NC02NDEwMmYxYWI", True, True)
@@ -150,6 +151,7 @@ class TestHappysocksClient(BZTestCase):
     def test_disconnect_connected(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
+        type(sio).connected = PropertyMock(side_effect=[True, False])
         # perform test
         client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
                                   "ci12NC02NDEwMmYxYWI", True, True)
@@ -162,7 +164,7 @@ class TestHappysocksClient(BZTestCase):
     def test_send_engine_metrics(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
-        sio.connected.return_value = True
+        sio.connected = False
         # perform test
         client = HappysocksClient("https://prod-rc.blazemeter.com/hs", "r-v4-64102f1ab8795890049369",
                                   "ci12NC02NDEwMmYxYWI", True, True)
