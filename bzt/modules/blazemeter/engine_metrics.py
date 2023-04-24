@@ -76,7 +76,7 @@ class HappysocksMetricsConverter:
     @staticmethod
     def new_metrics_bag(source, ts, session_id, master_id, calibration_id, calibration_step_id):
         metrics_bag = dict()
-        metrics_bag['metadata'] = {'source': source, 'entityId': session_id}
+        metrics_bag['metadata'] = {'type': 'engine-health', 'source': source, 'entityId': session_id}
         if master_id:
             metrics_bag['metadata']['masterId'] = master_id
         # if we are doing calibration then add info to metadata

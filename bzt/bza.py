@@ -799,6 +799,7 @@ class HappysocksClient:
     """
     HEADER_AUTH_TOKEN = "x-auth-token"
     HEADER_BZM_SESSION = "x-bzm-session"
+    REQUEST_TIMEOUT = 10
 
     def __init__(self, happysocks_address: str, session_id: str, session_token: str, verbose_logging=False,
                  verify_ssl=True) -> None:
@@ -813,10 +814,10 @@ class HappysocksClient:
         socketio_logger = logging.getLogger("SocketIO") if verbose_logging else False
         http_session = requests.Session()
         http_session.verify = verify_ssl
-        self._sio = socketio.Client(http_session=http_session, logger=socketio_logger, engineio_logger=socketio_logger)
+        self._sio = socketio.Client(http_session=http_session, logger=socketio_logger, engineio_logger=socketio_logger,
+                                    request_timeout=HappysocksClient.REQUEST_TIMEOUT)
         self._engine_namespace = HappysocksEngineNamespace()
         self._sio.register_namespace(self._engine_namespace)
-        self._connected = False
 
     def connect(self):
         headers = {
@@ -830,22 +831,20 @@ class HappysocksClient:
                               transports=['websocket'], socketio_path=self._socketio_path, headers=headers)
         except ConnectionError as e:
             raise TaurusNetworkError(f"Failed to connect to happysocks server {full_address}") from e
-        self._connected = True
 
     def connected(self):
         """
         Returns True if the client is connected. Also handles situation when the connection is dropped. Client supports
         auto reconnect.
         """
-        return self._connected and self._sio.connected
+        return self._sio.connected
 
     def disconnect(self):
-        if self._connected:
+        if self._sio.connected:
             self._sio.disconnect()
-            self._connected = False
 
     def send_engine_metrics(self, metrics_batch: List[dict]):
-        if not self._connected:
+        if not self.connected():
             self.connect()
         self._log.debug(f"Sending {len(metrics_batch)} metrics items to happysocks")
         self._sio.emit(HappysocksEngineNamespace.METRICS_EVENT, metrics_batch, HappysocksEngineNamespace.NAMESPACE,
