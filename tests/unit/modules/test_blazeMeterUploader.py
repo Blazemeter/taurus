@@ -528,6 +528,7 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEqual(call0[0][0], [
             {
                 'metadata': {
+                    'type': 'engine-health',
                     'source': 'local',
                     'entityId': 'r-v4-5f50153f49a13',
                     'masterId': 122362,
@@ -545,6 +546,7 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEqual(call1[0][0], [
             {
                 'metadata': {
+                    'type': 'engine-health',
                     'source': 'local',
                     'entityId': 'r-v4-5f50153f49a13',
                     'masterId': 122362,
