@@ -188,6 +188,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             if self._user.token and self.public_report:
                 report_link = self._master.make_report_public()
                 self.log.info("Public report link: %s", report_link)
+        if self._engine_metrics_enabled():
+            try:
+                self.happysocks_client.connect()
+            except BaseException:
+                self.log.error("Failed to connect to happysocks", exc_info=True)
 
     def _start_online(self):
         """
@@ -446,6 +451,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         """
         Sends engine metrics to happysocks API via WebSockets.
         """
+        if not self.happysocks_client.connected():
+            # This may happen when the client hasn't managed to connect - e.g error during initial connect,
+            # may reconnect later. Engine metrics are buffered for a short period.
+            self.log.warning("Unable to send engine health metrics to happysocks. No connection to server.")
+            return
         raw_data = self._engine_metrics_buffer.get_data()
         metrics_batch = HappysocksMetricsConverter.to_metrics_batch(raw_data, self._sess_id,
                                                                     self._master_id,
