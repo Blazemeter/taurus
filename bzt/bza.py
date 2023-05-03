@@ -840,12 +840,17 @@ class HappysocksClient:
         return self._sio.connected
 
     def disconnect(self):
-        if self._sio.connected:
-            self._sio.disconnect()
+        self._log.info("Disconnecting from happysocks server")
+        # socketio client may be stuck in _handle_reconnect thread
+        # read/write thread runs only while the client is connected
+        if self._sio._reconnect_abort:
+            self._sio._reconnect_abort.set()
+        self._sio.disconnect()
 
     def send_engine_metrics(self, metrics_batch: List[dict]):
-        if not self.connected():
-            self.connect()
         self._log.debug(f"Sending {len(metrics_batch)} metrics items to happysocks")
-        self._sio.emit(HappysocksEngineNamespace.METRICS_EVENT, metrics_batch, HappysocksEngineNamespace.NAMESPACE,
-                       callback=self._engine_namespace.metrics_callback)
+        try:
+            self._sio.emit(HappysocksEngineNamespace.METRICS_EVENT, metrics_batch, HappysocksEngineNamespace.NAMESPACE,
+                           callback=self._engine_namespace.metrics_callback)
+        except BaseException as e:
+            raise TaurusNetworkError(f"Failed to send {len(metrics_batch)} metrics items") from e

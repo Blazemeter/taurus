@@ -83,12 +83,10 @@ class TestHappysocksClient(BZTestCase):
     def test_connect_success(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
-        sio.connected.return_value = True
         # perform test
         client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
                                   "ci12NC02NDEwMmYxYWI", True, True)
         client.connect()
-        self.assertTrue(sio.connected())
         sio.connect.assert_called_once()
         args = sio.connect.call_args
         self.assertEqual(args[0][0], "https://happysocks-5100-tester-dev.blazemeter.net")
@@ -102,12 +100,10 @@ class TestHappysocksClient(BZTestCase):
     def test_connect_success_trailing_slash(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
-        sio.connected.return_value = True
         # perform test
         client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net/", "r-v4-64102f1ab8795890049369",
                                   "ci12NC02NDEwMmYxYWI", True, True)
         client.connect()
-        self.assertTrue(sio.connected())
         sio.connect.assert_called_once()
         args = sio.connect.call_args
         self.assertEqual(args[0][0], "https://happysocks-5100-tester-dev.blazemeter.net")
@@ -121,12 +117,10 @@ class TestHappysocksClient(BZTestCase):
     def test_connect_success_hs_path(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
-        sio.connected.return_value = True
         # perform test
         client = HappysocksClient("https://prod-rc.blazemeter.com/hs", "r-v4-64102f1ab8795890049369",
                                   "ci12NC02NDEwMmYxYWI", True, True)
         client.connect()
-        self.assertTrue(sio.connected())
         sio.connect.assert_called_once()
         args = sio.connect.call_args
         self.assertEqual(args[0][0], "https://prod-rc.blazemeter.com")
@@ -140,18 +134,28 @@ class TestHappysocksClient(BZTestCase):
     def test_disconnect_not_connected(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
-        sio.connected = False
+        sio._reconnect_abort = None
         # perform test
         client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
                                   "ci12NC02NDEwMmYxYWI", True, True)
         client.disconnect()
-        sio.disconnect.assert_not_called()
+        sio.disconnect.assert_called_once()
+
+    @patch('bzt.bza.socketio.Client')
+    def test_disconnect_while_reconnecting(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        # perform test
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True)
+        client.disconnect()
+        sio._reconnect_abort.set.assert_called_once()
+        sio.disconnect.assert_called_once()
 
     @patch('bzt.bza.socketio.Client')
     def test_disconnect_connected(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
-        type(sio).connected = PropertyMock(side_effect=[True, False])
         # perform test
         client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
                                   "ci12NC02NDEwMmYxYWI", True, True)
@@ -164,7 +168,6 @@ class TestHappysocksClient(BZTestCase):
     def test_send_engine_metrics(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
-        sio.connected = False
         # perform test
         client = HappysocksClient("https://prod-rc.blazemeter.com/hs", "r-v4-64102f1ab8795890049369",
                                   "ci12NC02NDEwMmYxYWI", True, True)
@@ -185,7 +188,6 @@ class TestHappysocksClient(BZTestCase):
             }
         ])
         # verify
-        sio.connect.assert_called_once()
         sio.emit.assert_called_once()
         args = sio.emit.call_args
         self.assertEqual(args[0][0], "metrics")
@@ -265,3 +267,27 @@ class TestHappysocksClientMockServer(BZTestCase):
         # error while processing metrics in happysocks is handled by HappysocksEngineNamespace callback and logged
         # we have no reliable way of waiting for the callback before disconnect
         time.sleep(0.1)
+
+    def test_send_metrics_not_connected(self):
+        self.server.engine_namespace.metrics_response = {}
+        metrics_to_send = [
+            {
+                'metadata': {
+                    'source': 'local',
+                    'entityId': 'r-v4-64102f1ab8795890049369',
+                    'masterId': 100,
+                    'calibrationId': 200,
+                    'calibrationStepId': 300,
+                },
+                'timestamp': 1678892271398,
+                'values': {
+                    'cpu': 9.4,
+                    'mem': 5560.0,
+                }
+            }
+        ]
+        try:
+            self.client.send_engine_metrics(metrics_to_send)
+            self.fail("Expected TaurusNetworkError")
+        except TaurusNetworkError:
+            pass
