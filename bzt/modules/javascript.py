@@ -330,7 +330,7 @@ class NPMPackage(RequiredTool):
 
 
 class Mocha(NPMPackage):
-    PACKAGE_NAME = "mocha@9.2.2"
+    PACKAGE_NAME = "mocha@10.1.0"
 
 
 class JSSeleniumWebdriver(NPMPackage):
