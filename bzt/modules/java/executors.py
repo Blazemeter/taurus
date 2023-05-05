@@ -23,7 +23,7 @@ from bzt.modules import SubprocessedExecutor
 from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, BetterDict, get_assembled_value
-from .tools import SeleniumServer, Hamcrest, Json, TaurusJavaHelper, JavaC, JUnitJupiterApi, JUnitJupiterEngine
+from .tools import Hamcrest, Json, TaurusJavaHelper, JavaC, JUnitJupiterApi, JUnitJupiterEngine
 from .tools import JUnitPlatformCommons, JUnitPlatformLauncher, JUnitPlatformEngine, JUnitPlatformRunner
 from .tools import JUnitPlatformSuiteApi, JUnitVintageEngine, ApiGuardian, JUnit, OpenTest4j, TestNG
 
@@ -46,7 +46,6 @@ class JavaTestRunner(SubprocessedExecutor):
         self.report_file_suffix = ".ldjson"
 
     def install_required_tools(self):
-        self._add_jar_tool(SeleniumServer, config=self.settings.get("selenium-server"))
         self._add_jar_tool(Hamcrest, config=self.settings.get("hamcrest-core"))
         self._add_jar_tool(Json, config=self.settings.get("json-jar"))
         self._add_jar_tool(TaurusJavaHelper)
