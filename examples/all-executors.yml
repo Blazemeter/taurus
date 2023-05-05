@@ -39,22 +39,6 @@ execution:
       - url: http://localhost:8000/
         label: Selenium Chrome
 
-- executor: selenium  # Selenium_JUnit
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  runner: junit
-  scenario:
-    script: BOOTH1/Blazedemo.java
-
-- executor: selenium  # Selenium_TestNG
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  runner: testng
-  scenario:
-    script: selenium/TestNGExample.java
-
 ---
 execution:
 - executor: selenium  # Selenium Ruby
@@ -78,13 +62,6 @@ execution:
   scenario:
     script: functional/JUnitTest.java
 
-- executor: testng  # testTestNG
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: functional/TestNGTest.java
-
 - executor: rspec  # Ruby test
   concurrency: 1
   hold-for: 10s
@@ -105,20 +82,6 @@ execution:
   iterations: 10
   scenario:
     script: functional/test_nose.py
-
-- executor: nunit  # IsFive_ExistingVariable_ReturnFive - 10 samples
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: selenium/dotnet/NUnitTests.dll
-
-- executor: xunit  # IsFive_ExistingVariable_ReturnFive - 10 more samples
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: selenium/dotnet/XUnitTests.dll
 
 - executor: pytest  # test_Pytest x2
   concurrency: 1

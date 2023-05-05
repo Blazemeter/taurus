@@ -76,55 +76,6 @@ class JavaC(RequiredTool):
         return True
 
 
-class SeleniumServer(RequiredTool):
-    VERSION = "3.141"
-    REMOTE_ADDR = "http://selenium-release.storage.googleapis.com/"
-    REMOTE_PATH = "{short_version}/selenium-server-standalone-{full_version}.jar"
-    TOOL_FILE = "selenium-server-{version}.jar"
-
-    def __init__(self, config, **kwargs):
-        if not isinstance(config, dict):
-            config = BetterDict.from_dict({"path": config})
-
-        version = config.get("version", self.VERSION)
-        version = str(version).split('.')
-        # 3.141.59 version
-        version.extend(['59'] * (3 - len(version)))
-        short_version = '.'.join(version[:2])   # 2 elements
-        full_version = '.'.join(version)        # 3+ elements
-
-        remote_path = config.get("remote-path", self.REMOTE_PATH)
-        remote_path = remote_path.format(short_version=short_version, full_version=full_version)
-
-        tool_file = config.get("tool-file", self.TOOL_FILE)
-        tool_file = tool_file.format(version=full_version)
-
-        local_path = config.get("path", JarTool.LOCAL_PATH)
-        local_path = local_path.format(tool_file=tool_file)
-
-        download_link = config.get("download-link", JarTool.URL)
-        download_link = download_link.format(remote_addr=self.REMOTE_ADDR, remote_path=remote_path)
-
-        super(SeleniumServer, self).__init__(
-            tool_path=local_path,
-            download_link=download_link,
-            version=full_version,
-            **kwargs)
-
-    def check_if_installed(self):
-        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
-        try:
-            out, err = self.call(["java", "-jar", self.tool_path, "-help"])
-        except CALL_PROBLEMS as exc:
-            self.log.warning("%s check failed: %s", self.tool_name, exc)
-            return False
-
-        if err:
-            out += err
-        self.log.debug("%s output: %s", self.tool_name, out)
-        return True
-
-
 class Json(JarTool):
     REMOTE_PATH = "org/json/json/20160810/json-20160810.jar"
     TOOL_FILE = "json.jar"

@@ -1582,9 +1582,9 @@ class JMeter(RequiredTool):
         affected_components = {
             # Needs to be <1.4.18 for old Jmeters https://stackoverflow.com/questions/30812293/com-thoughtworks-xstream-security-forbiddenclassexception
             "xstream": "com/thoughtworks/xstream/xstream/1.4.20/xstream-1.4.20.jar",
-            "jackson-annotations": "com/fasterxml/jackson/core/jackson-annotations/2.14.1/jackson-annotations-2.14.1.jar",
-            "jackson-core": "com/fasterxml/jackson/core/jackson-core/2.14.1/jackson-core-2.14.1.jar",
-            "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.14.1/jackson-databind-2.14.1.jar",
+            "jackson-annotations": "com/fasterxml/jackson/core/jackson-annotations/2.15.0/jackson-annotations-2.15.0.jar",
+            "jackson-core": "com/fasterxml/jackson/core/jackson-core/2.15.0/jackson-core-2.15.0.jar",
+            "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.15.0/jackson-databind-2.15.0.jar",
             "json-smart": "net/minidev/json-smart/2.4.8/json-smart-2.4.8.jar",
             "jsoup": "org/jsoup/jsoup/1.15.3/jsoup-1.15.3.jar",
             "snakeyaml": "org/yaml/snakeyaml/2.0/snakeyaml-2.0.jar",
