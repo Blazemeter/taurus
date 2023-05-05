@@ -46,7 +46,6 @@ class JavaTestRunner(SubprocessedExecutor):
         self.report_file_suffix = ".ldjson"
 
     def install_required_tools(self):
-        # self._add_jar_tool(SeleniumServer, config=self.settings.get("selenium-server"))
         self._add_jar_tool(Hamcrest, config=self.settings.get("hamcrest-core"))
         self._add_jar_tool(Json, config=self.settings.get("json-jar"))
         self._add_jar_tool(TaurusJavaHelper)
