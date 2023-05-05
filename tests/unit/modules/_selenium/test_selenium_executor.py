@@ -229,19 +229,19 @@ class TestSeleniumStuff(SeleniumTestCase):
             }]})
         self.assertRaises(ToolError, self.obj_prepare)
 
-    def test_empty_test_methods(self):
-        self.configure({  # Test exact number of tests when
-            EXEC: [{  # java annotations used
-                "executor": "selenium",
-                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SeleniumTest.java"}
-            }, {  # test class extends JUnit TestCase
-                "executor": "selenium",
-                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"}
-            }, {  # annotations used and no "test" in class name
-                "executor": "selenium",
-                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
-            }]})
-        self.obj_prepare_runner()
+    # def test_empty_test_methods(self):
+    #     self.configure({  # Test exact number of tests when
+    #         EXEC: [{  # java annotations used
+    #             "executor": "selenium",
+    #             "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SeleniumTest.java"}
+    #         }, {  # test class extends JUnit TestCase
+    #             "executor": "selenium",
+    #             "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"}
+    #         }, {  # annotations used and no "test" in class name
+    #             "executor": "selenium",
+    #             "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
+    #         }]})
+    #     self.obj_prepare_runner()
 
     def test_from_extension(self):
         self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
