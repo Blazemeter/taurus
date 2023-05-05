@@ -9,7 +9,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader
 from bzt.modules.java import JUnitTester, TestNGTester
 from bzt.modules.java.executors import JavaTestRunner
-from bzt.modules.java.tools import JavaC, JarTool, Hamcrest, SeleniumServer
+from bzt.modules.java.tools import JavaC, JarTool, Hamcrest
 from bzt.modules.jmeter import JTLReader
 from bzt.modules._selenium import SeleniumExecutor
 from bzt.utils import ToolError
@@ -87,8 +87,6 @@ class TestTestNGTester(ExecutorTestCase):
         for tool in jar_tools:
             msg = "Wrong path to {tool}: {path}".format(tool=str(tool), path=str(tool.tool_path))
             self.assertTrue(os.path.isfile(tool.tool_path), msg)
-            if isinstance(tool, SeleniumServer):
-                self.assertEqual(tool.version, "9.9.0")
 
 
 class TestJavaC(BZTestCase):
