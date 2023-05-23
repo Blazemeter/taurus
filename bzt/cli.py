@@ -286,7 +286,7 @@ class CLI(object):
 
         if self.options.verbose:
             modules = sys.modules.copy()
-            for module_name in modules:
+            for module_name in list(modules):
                 version = str(getattr(modules[module_name], '__version__', ""))
                 file = getattr(modules[module_name], '__file__', "")
                 if version:
