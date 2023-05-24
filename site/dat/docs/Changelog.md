@@ -1,7 +1,9 @@
 # Changelog
 
-## 1.16.23<sup> 24 April 2023</sup>
+## 1.16.23<sup> 24 May 2023</sup>
 - snakeyaml in Jmeter updated to 2.0 to address CVEs
+- US47299 Upgrade .NET to 6.0 to fix vulnerabilities (#1721)
+- Small bugfixes
 
 ## 1.16.22<sup> 31 March 2023</sup>
 - #1706 Make influxdb application parameter optional
