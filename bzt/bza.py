@@ -799,10 +799,9 @@ class HappysocksClient:
     """
     HEADER_AUTH_TOKEN = "x-auth-token"
     HEADER_BZM_SESSION = "x-bzm-session"
-    REQUEST_TIMEOUT = 10
 
     def __init__(self, happysocks_address: str, session_id: str, session_token: str, verbose_logging=False,
-                 verify_ssl=True) -> None:
+                 verify_ssl=True, request_timeout=10, connect_timeout=7) -> None:
         super().__init__()
         self._log = logging.getLogger(self.__class__.__name__)
         parsed_url = urlparse(happysocks_address)
@@ -810,12 +809,13 @@ class HappysocksClient:
         self._session_id = session_id
         self._happysocks_address = f"{parsed_url.scheme}://{parsed_url.netloc}"
         self._socketio_path = f"{parsed_url.path.rstrip('/')}/api-ws"
+        self._connect_timeout = connect_timeout
         # socketio logging is too verbose by default
         socketio_logger = logging.getLogger("SocketIO") if verbose_logging else False
         http_session = requests.Session()
         http_session.verify = verify_ssl
         self._sio = socketio.Client(http_session=http_session, logger=socketio_logger, engineio_logger=socketio_logger,
-                                    request_timeout=HappysocksClient.REQUEST_TIMEOUT)
+                                    request_timeout=request_timeout)
         self._engine_namespace = HappysocksEngineNamespace()
         self._sio.register_namespace(self._engine_namespace)
 
@@ -826,11 +826,17 @@ class HappysocksClient:
         }
         full_address = f"{self._happysocks_address}{self._socketio_path}"
         self._log.info(f"Connecting to happysocks server {full_address}")
+        start_time = time.time()
         try:
             self._sio.connect(self._happysocks_address, namespaces=[HappysocksEngineNamespace.NAMESPACE],
-                              transports=['websocket'], socketio_path=self._socketio_path, headers=headers)
+                              transports=['websocket'], socketio_path=self._socketio_path, headers=headers,
+                              wait_timeout=self._connect_timeout)
+            end_time = time.time()
+            self._log.info(f"Connected to happysocks server ({round(end_time - start_time, 2)}s)")
         except ConnectionError as e:
-            raise TaurusNetworkError(f"Failed to connect to happysocks server {full_address}") from e
+            end_time = time.time()
+            raise TaurusNetworkError(
+                f"Failed to connect to happysocks server {full_address} ({round(end_time - start_time, 2)}s)") from e
 
     def connected(self):
         """
@@ -846,6 +852,7 @@ class HappysocksClient:
         if self._sio._reconnect_abort:
             self._sio._reconnect_abort.set()
         self._sio.disconnect()
+        self._log.info("Disconnected from happysocks server")
 
     def send_engine_metrics(self, metrics_batch: List[dict]):
         self._log.debug(f"Sending {len(metrics_batch)} metrics items to happysocks")

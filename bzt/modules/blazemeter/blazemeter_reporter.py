@@ -149,8 +149,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         happysocks_address = self.settings.get("happysocks-address")
         if happysocks_address and self._sess_id and signature:
             self.log.info(f"Engine metrics will be sent to '{happysocks_address}'")
+            request_timeout = self.settings.get("happysocks-request-timeout", 10)
+            connect_timeout = self.settings.get("happysocks-connect-timeout", 7)
             self.happysocks_client = HappysocksClient(happysocks_address, self._sess_id, signature,
-                                                      happysocks_verbose_logging, happysocks_verify_ssl)
+                                                      happysocks_verbose_logging, happysocks_verify_ssl,
+                                                      request_timeout, connect_timeout)
         else:
             reason = ""
             if not happysocks_address:
