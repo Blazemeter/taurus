@@ -26,7 +26,7 @@
 
 The most recent video is: [Webinar on September 27, 2017: Automating Performance Tests with Taurus](https://www.youtube.com/watch?v=DN0VNnG-lzs)
 
-<iframe width="700" height="394" src="https://www.youtube.com/embed/EFIWFfvKolw" frameborder="0" allowfullscreen></iframe>
+<iframe width="700" height="394" src="https://www.youtube.com/embed/DN0VNnG-lzs" frameborder="0" allowfullscreen></iframe>
  
 You can find educational videos [here](Videos.md).
  
