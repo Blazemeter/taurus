@@ -90,8 +90,16 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         filename = self.engine.create_artifact("test_requests", ".py")
         scenario = self.get_scenario()
 
+        bzm_tdo_settings = None
+        if self.engine.config.get("settings").get("master_publish_url"):
+            bzm_tdo_settings = {
+                "master_publish_url": self.engine.config.get("settings").get("master_publish_url"),
+                "master_signature": self.engine.config.get("settings").get("master_signature")
+            }
+
         if self.test_mode == "apiritif":
-            builder = ApiritifScriptGenerator(scenario, self.label, executor=self, test_mode=self.test_mode)
+            builder = ApiritifScriptGenerator(scenario, self.label, executor=self, test_mode=self.test_mode,
+                                              bzm_tdo_settings=bzm_tdo_settings)
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
@@ -119,7 +127,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 capabilities=capabilities,
                 wd_addr=remote, test_mode=self.test_mode,
                 generate_external_handler=True if self.settings.get('plugins-path', False) else False,
-                selenium_version=selenium_version)
+                selenium_version=selenium_version,
+                bzm_tdo_settings=bzm_tdo_settings)
 
         builder.build_source_code()
         builder.save(filename)

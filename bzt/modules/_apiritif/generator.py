@@ -98,11 +98,12 @@ class ApiritifScriptGenerator(object):
                         'resize', 'maximize', 'alert', 'waitFor'
                         ])
 
-    ACTIONS_WITH_WAITER = ['go', 'click', 'doubleclick', 'contextclick', 'drag', 'select', 'type', 'typeSecret', 'script']
+    ACTIONS_WITH_WAITER = ['go', 'click', 'doubleclick', 'contextclick', 'drag', 'select', 'type', 'typeSecret',
+                           'script']
 
     EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach'])
 
-    SELENIUM_413_VERSION =  LooseVersion('4.1.3')
+    SELENIUM_413_VERSION = LooseVersion('4.1.3')
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
@@ -134,7 +135,7 @@ from selenium.webdriver.common.keys import Keys
 
     def __init__(self, scenario, label, wdlog=None, executor=None, ignore_unknown_actions=False,
                  generate_markers=None, capabilities=None, wd_addr=None, test_mode="selenium",
-                 generate_external_handler=False, selenium_version=None):
+                 generate_external_handler=False, selenium_version=None, bzm_tdo_settings=None):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -158,6 +159,8 @@ from selenium.webdriver.common.keys import Keys
         self.generate_external_handler = generate_external_handler
         self.test_mode = test_mode
         self.replace_dialogs = True
+        self.bzm_tdo_settings = bzm_tdo_settings
+        self.do_testdata_orchestration = False
 
     def _parse_action_params(self, expr, name):
         res = expr.match(name)
@@ -722,6 +725,10 @@ from selenium.webdriver.common.keys import Keys
             action_elements.append(ast_call(func=ast_attr("self.driver.execute_script"),
                                             args=[self._gen_expr(escaped_param)]))
         elif atype == "rawcode":
+            if "do_testdata_orchestration" in param:
+                action_elements.append([ast.Assign(targets=[ast_attr("do_testdata_orchestration")],
+                                                   value=ast_attr("self.bzm_extras.do_testdata_orchestration"))])
+                self.do_testdata_orchestration = True
             action_elements.append(ast.parse(param))
         elif atype == 'go':
             if param:
@@ -1412,7 +1419,12 @@ from selenium.webdriver.common.keys import Keys
                     module="bzt.resources.selenium_extras",
                     names=extra_names,
                     level=0))
-
+            if self.do_testdata_orchestration:
+                imports.append(
+                    ast.ImportFrom(
+                        module="bzt.resources.bzm_extras",
+                        names=[ast.alias(name="BzmExtras", asname=None)],
+                        level=0))
         return imports
 
     def _gen_data_source_readers(self):
@@ -1530,6 +1542,16 @@ from selenium.webdriver.common.keys import Keys
             targets=[ast_attr("timeout")],
             value=ast.Num(self._get_scenario_timeout(), kind="")))]
         body = data_sources + timeout_setup + target_init + handlers + store_block
+
+        if self.bzm_tdo_settings:
+            names = self.bzm_tdo_settings.keys()
+            values = self.bzm_tdo_settings.values()
+            bzm_args = ast.Dict(
+                keys=[self._gen_expr(name) for name in names],
+                values=[self._gen_expr(val) for val in values])
+            body = body + [ast.Assign(targets=[ast_attr("self.bzm_extras")], value=ast_call(func=ast_attr("BzmExtras"),
+                                                                                            args=[bzm_args]))]
+
         if self.generate_external_handler:
             body = self._wrap_with_try_except(body)
         setup = ast.FunctionDef(
@@ -1669,10 +1691,10 @@ from selenium.webdriver.common.keys import Keys
     def _escape_js_blocks(value):  # escapes plain { with {{
         if not value:
             return value
-        value = re.sub(r"^\n", "", value, flags=re.UNICODE)    # replace all new lines at the beginning
+        value = re.sub(r"^\n", "", value, flags=re.UNICODE)  # replace all new lines at the beginning
         variables = re.findall(r"\${[\w\d]*}", str(value))
         if len(variables) == 0:
-            return value    # don't escape when there are no variables
+            return value  # don't escape when there are no variables
         value = value.replace("{", "{{").replace("}", "}}")
         while True:
             blocks = re.finditer(r"\${{[\w\d]*}}", value)
