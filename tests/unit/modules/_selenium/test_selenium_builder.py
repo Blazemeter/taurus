@@ -3082,3 +3082,30 @@ class TestSelenium3Only(SeleniumTestCase):
         self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_safari_s3.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
+
+    def test_testdata_publish(self):
+        self.configure({
+            "settings": {
+                "master_publish_url": "https://tdm.blazemeter.com/api/v1/publish",
+                "master_signature": "kjflaksj3jk3jj3j12saf3",
+            },
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "publish_sc"}],
+            "scenarios": {
+                "publish_sc": {
+                    "requests": [{
+                        "actions": [
+                            {
+                                "type": "rawCode",
+                                "param": "do_testdata_orchestration('publish', 'entity1', 'target1')",
+                            },
+                            {
+                                "type": "rawCode",
+                                "param": "do_testdata_orchestration('un-publish', 'entity1', 'target1')",
+                            }
+                        ]}]}}})
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_td_publish.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)

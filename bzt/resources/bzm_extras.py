@@ -1,0 +1,37 @@
+import requests
+import uuid
+from bzt import TaurusException
+
+
+# Allows for calling Blazemeter Test Data API Orchestration (publish, un-publish)
+class BzmExtras(object):
+
+    def __init__(self, settings=None):
+        self.settings = settings
+        self.publish_map = {}
+
+    def do_testdata_orchestration(self, operation, entity_name, target_name=""):
+        if self.settings.get('master_publish_url') is None:
+            raise TaurusException("Publish URL is not defined")
+        if self.settings.get('master_signature') is None:
+            raise TaurusException("Publish Signature is not defined")
+        if operation not in ["publish", "un-publish"]:
+            raise TaurusException(f"Invalid operation for publishing, must be either 'publish' or 'un-publish', "
+                                  f"received {operation}")
+
+        if operation == "publish":
+            session_id = str(uuid.uuid4())
+            self.publish_map[entity_name + target_name] = session_id
+        else:
+            session_id = self.publish_map[entity_name + target_name]
+
+        post_obj = {'operation': operation, 'entity': entity_name, 'sessionId': session_id}
+        if target_name:
+            post_obj['target'] = target_name
+
+        url = f'{self.settings.get("master_publish_url")}?signature={self.settings.get("master_signature")}'
+
+        post_response = requests.post(url, json=post_obj)
+        if post_response.status_code >= 400:
+            raise TaurusException(
+                f"Publish data failed, status code: {post_response.status_code}, reason: {post_response.reason}")
