@@ -36,8 +36,7 @@ class TestPublishSc(unittest.TestCase):
         self.driver = webdriver.Firefox(profile, options=options)
         self.driver.implicitly_wait(timeout)
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={}, scenario_name='publish_sc')
-        self.bzm_extras = BzmExtras({'master_publish_url': 'https://tdm.blazemeter.com/api/v1/publish', 'master_signature': 'kjflaksj3jk3jj3j12saf3'})
-    
+        self.bzm_extras = BzmExtras({'master_publish_url': 'https://tdm.blazemeter.com/api/v1/publish?signature=8UJR9hHfsdjg9032nkvx'})
 
     def _1_None(self):
         with apiritif.smart_transaction('None'):

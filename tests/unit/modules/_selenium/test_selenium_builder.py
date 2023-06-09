@@ -3086,8 +3086,7 @@ class TestSelenium3Only(SeleniumTestCase):
     def test_testdata_publish(self):
         self.configure({
             "settings": {
-                "master_publish_url": "https://tdm.blazemeter.com/api/v1/publish",
-                "master_signature": "kjflaksj3jk3jj3j12saf3",
+                "master_publish_url": "https://tdm.blazemeter.com/api/v1/publish?signature=8UJR9hHfsdjg9032nkvx"
             },
             "execution": [{
                 "executor": "apiritif",
