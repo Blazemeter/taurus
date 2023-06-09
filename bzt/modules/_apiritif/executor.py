@@ -93,8 +93,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         bzm_tdo_settings = None
         if self.engine.config.get("settings").get("master_publish_url"):
             bzm_tdo_settings = {
-                "master_publish_url": self.engine.config.get("settings").get("master_publish_url"),
-                "master_signature": self.engine.config.get("settings").get("master_signature")
+                "master_publish_url": self.engine.config.get("settings").get("master_publish_url")
             }
 
         if self.test_mode == "apiritif":
