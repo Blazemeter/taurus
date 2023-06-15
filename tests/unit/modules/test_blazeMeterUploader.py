@@ -591,6 +591,129 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEqual(client.send_engine_metrics.call_count, 2)
         client.disconnect.assert_called_once()
 
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_engine_metrics_persistent_connect_error(self, mock_client_class):
+        # error on every connect
+        # prepare mocks
+        client = mock_client_class.return_value
+        client.connected.return_value = False
+        client.connect.side_effect = TaurusNetworkError('Test error')
+        # perform test
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.parameters['calibration-id'] = 4306
+        reporter.parameters['calibration-step-id'] = 10
+        reporter.parameters["send-data"] = False
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['monitoring-buffer-limit'] = 100
+        reporter.settings['send-monitoring'] = False  # disable sending old monitoring
+        reporter.prepare()
+        reporter.startup()
+        reporter.monitoring_data([
+            {'source': 'local', 'ts': 1678892271.3985019, 'cpu': 9.4},
+        ])
+        reporter.check()
+        reporter.post_process()
+        # verify
+        self.assertEqual(client.connect.call_count, 3)  # startup, check, post_process
+        client.send_engine_metrics.assert_not_called()
+        client.disconnect.assert_called_once()
+
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_engine_metrics_initial_connect_error(self, mock_client_class):
+        # error on initial connect but subsequently succeeds
+        # prepare mocks
+        connect_attempt = 0
+        connected = False
+
+        def is_connected():
+            nonlocal connected
+            return connected
+
+        def do_connect():
+            nonlocal connected, connect_attempt
+            connect_attempt = connect_attempt + 1
+            if connect_attempt <= 1:
+                raise TaurusNetworkError('Test error')
+            connected = True
+
+        client = mock_client_class.return_value
+        client.connected.side_effect = is_connected
+        client.connect.side_effect = do_connect
+        # perform test
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.parameters['calibration-id'] = 4306
+        reporter.parameters['calibration-step-id'] = 10
+        reporter.parameters["send-data"] = False
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['monitoring-buffer-limit'] = 100
+        reporter.settings['send-monitoring'] = False  # disable sending old monitoring
+        reporter.prepare()
+        reporter.startup()
+        reporter.monitoring_data([
+            {'source': 'local', 'ts': 1678892271.3985019, 'cpu': 9.4},
+        ])
+        reporter.check()
+        reporter.post_process()
+        # verify
+        self.assertEqual(client.connect.call_count, 2)  # startup, check
+        self.assertEqual(client.send_engine_metrics.call_count, 1)  # check
+        client.disconnect.assert_called_once()
+
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_engine_metrics_later_disconnect(self, mock_client_class):
+        # we initially connect but then connection is dropped
+        # prepare mocks
+        connected = False
+
+        def is_connected():
+            nonlocal connected
+            return connected
+
+        def do_connect():
+            nonlocal connected
+            connected = True
+
+        client = mock_client_class.return_value
+        client.connected.side_effect = is_connected
+        client.connect.side_effect = do_connect
+        # perform test
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.parameters['calibration-id'] = 4306
+        reporter.parameters['calibration-step-id'] = 10
+        reporter.parameters["send-data"] = False
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['monitoring-buffer-limit'] = 100
+        reporter.settings['send-monitoring'] = False  # disable sending old monitoring
+        reporter.prepare()
+        reporter.startup()
+        reporter.monitoring_data([
+            {'source': 'local', 'ts': 1678892271.3985019, 'cpu': 9.4},
+        ])
+        reporter.check()
+        # simulate disconnect
+        connected = False
+        reporter.monitoring_data([
+            {'source': 'local', 'ts': 1678892275.7552141, 'cpu': 4.2},
+        ])
+        reporter.check()
+        reporter.post_process()
+        # verify
+        self.assertEqual(client.connect.call_count, 1)  # startup
+        self.assertEqual(client.send_engine_metrics.call_count, 1)  # 1st check
+        client.disconnect.assert_called_once()
+
 
 class TestBlazeMeterClientUnicode(BZTestCase):
     def test_unicode_request(self):
