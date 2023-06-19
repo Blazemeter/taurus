@@ -71,6 +71,7 @@ class TestHappysocksMetricsConverter(BZTestCase):
             {'source': 'local', 'ts': 1678892271.3985019, 'bytes-recv': 2485},
             {'source': 'local', 'ts': 1678892271.3985019, 'conn-all': 63},
             {'source': 'local', 'ts': 1678892271.3985019, 'engine-loop': 10},
+            {'source': 'local', 'ts': 1678892271.3985019, 'disk-space': 30.6},
         ], 'r-v4-64102f1ab8795890049369', 100, 200, 300)
         self.assertEqual(result, [
             {
@@ -89,6 +90,7 @@ class TestHappysocksMetricsConverter(BZTestCase):
                     'network_io': 2485,
                     'connections': 63,
                     'busy_taurus': 10,
+                    'disk_space': 30.6,
                 }
             },
         ])

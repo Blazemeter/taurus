@@ -41,7 +41,7 @@ class EngineMetricsBuffer:
 class HappysocksMetricsConverter:
     # mapped names similar to MonitoringBuffer.get_monitoring_json
     metrics_mapping = {'cpu': 'cpu', 'mem': 'mem', 'bytes-recv': 'network_io', 'engine-loop': 'busy_taurus',
-                       'conn-all': 'connections'}
+                       'conn-all': 'connections', 'disk-space': 'disk_space'}
 
     @staticmethod
     def to_metrics_batch(raw_metrics: List[dict], session_id, master_id=None, calibration_id=None,

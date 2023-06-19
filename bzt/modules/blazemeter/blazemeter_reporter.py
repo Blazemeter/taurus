@@ -76,6 +76,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self._master = None
         self._session = None
         self.happysocks_client = None
+        # when true, happysocks client handles reconnect by itself
+        self._happysocks_auto_reconnect = False
         self.first_ts = sys.maxsize
         self.last_ts = 0
         self.report_name = None
@@ -194,6 +196,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if self._engine_metrics_enabled():
             try:
                 self.happysocks_client.connect()
+                # socket.io client can auto reconnect but only after initial successful connect
+                self._happysocks_auto_reconnect = True
             except BaseException:
                 self.log.error("Failed to connect to happysocks", exc_info=True)
 
@@ -306,6 +310,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                 except BaseException:
                     self.log.error("Failed to send engine metrics", exc_info=True)
                 finally:
+                    self._happysocks_auto_reconnect = False
                     self.happysocks_client.disconnect()
         finally:
             self._postproc_phase2()
@@ -455,10 +460,19 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         Sends engine metrics to happysocks API via WebSockets.
         """
         if not self.happysocks_client.connected():
-            # This may happen when the client hasn't managed to connect - e.g error during initial connect,
-            # may reconnect later. Engine metrics are buffered for a short period.
-            self.log.warning("Unable to send engine health metrics to happysocks. No connection to server.")
-            return
+            if not self._happysocks_auto_reconnect:
+                try:
+                    self.happysocks_client.connect()
+                    # socket.io client can auto reconnect but only after initial successful connect
+                    self._happysocks_auto_reconnect = True
+                except BaseException as ex:
+                    self.log.warning(f"Unable to send engine health metrics to happysocks. {str(ex)}")
+                    return
+            else:
+                # This may happen when the client managed to connect but then connection was dropped. It
+                # may reconnect later. Engine metrics are buffered for a short period.
+                self.log.warning("Unable to send engine health metrics to happysocks. No connection to server.")
+                return
         raw_data = self._engine_metrics_buffer.get_data()
         metrics_batch = HappysocksMetricsConverter.to_metrics_batch(raw_data, self._sess_id,
                                                                     self._master_id,
