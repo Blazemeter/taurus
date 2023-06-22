@@ -143,7 +143,9 @@ class PipInstaller(Service):
         for package in self.packages:
             version = self.versions.get(package, None)
             cmdline += [f"{package}=={version}"] if version else [package]
-        cmdline += ["--upgrade"]
+        # temporary fix for selenium US48138
+        if package != 'selenium':
+            cmdline += ["--upgrade"]
         self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
         try:
             out, err = exec_and_communicate(cmdline)
