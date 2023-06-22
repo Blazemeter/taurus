@@ -14,3 +14,4 @@ requests>=2.18.1
 urwid
 terminaltables>=3.1.0
 molotov!=2.3
+urllib3==1.26.16
