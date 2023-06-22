@@ -144,8 +144,10 @@ class PipInstaller(Service):
             version = self.versions.get(package, None)
             cmdline += [f"{package}=={version}"] if version else [package]
         # temporary fix for selenium US48138
-        if package not in ['selenium', 'robotframework-seleniumlibrary']:
+        if package not in ['selenium']:
             cmdline += ["--upgrade"]
+        if package in ['robotframework-seleniumlibrary']:
+            cmdline += ["--no-deps"]
         self.log.debug("pip-installer cmdline: '%s'" % ' '.join(cmdline))
         try:
             out, err = exec_and_communicate(cmdline)
