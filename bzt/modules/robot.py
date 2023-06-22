@@ -115,7 +115,11 @@ class RobotExecutor(SubprocessedExecutor):
 
 
 class Robot(PythonTool):
+    VERSION = '6.0.2'
     PACKAGES = ["robotframework", "apiritif", "robotframework-seleniumlibrary"]
+
+    def _get_version(self, output):
+        return Robot.VERSION
 
 
 class TaurusRobotRunner(RequiredTool):
