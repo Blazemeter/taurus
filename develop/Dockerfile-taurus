@@ -1,0 +1,14 @@
+FROM local_taurus_base
+
+COPY dist/bzt*whl /tmp
+
+WORKDIR /tmp
+# install python packages..
+RUN $PIP_INSTALL ./bzt*whl chardet
+
+RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
+
+# Rootless user
+# USER 1337:0
+WORKDIR /bzt-configs
+ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
