@@ -104,6 +104,7 @@ class ApiritifScriptGenerator(object):
     EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach'])
 
     SELENIUM_413_VERSION = LooseVersion('4.1.3')
+    SELENIUM_491_VERSION = LooseVersion('4.9.1')
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
@@ -961,6 +962,10 @@ from selenium.webdriver.common.keys import Keys
 
         browser = self._check_platform()
         body = [self._get_options(browser)]
+        if browser == 'chrome' and LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
+            service = self._get_service(browser)
+            if service:
+                body.extend(self._get_service(browser))
 
         if browser == 'firefox':
             if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
@@ -1084,6 +1089,17 @@ from selenium.webdriver.common.keys import Keys
 
         return options
 
+    def _get_service(self, browser):
+        if browser == 'chrome':
+            return [ast.Assign(
+                targets=[ast.Name(id="service")],
+                value=ast_call(
+                    func=ast_attr("Service"),
+                    keywords=[
+                        ast.keyword(
+                            arg="service_log_path",
+                            value=ast.Str(self.wdlog, kind=""))]))]
+
     def _get_firefox_options(self):
         firefox_options = [
             ast.Assign(
@@ -1147,30 +1163,30 @@ from selenium.webdriver.common.keys import Keys
             ])
 
         return [
-                   ast.Assign(
-                       targets=[ast.Name(id="profile")],
-                       value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
-                   ast.Expr(ast_call(
-                       func=ast_attr("profile.set_preference"),
-                       args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
-                   ast.Expr(
-                       ast_call(
-                           func=ast_attr("options.set_capability"),
-                           args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
+            ast.Assign(
+                targets=[ast.Name(id="profile")],
+                value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
+            ast.Expr(ast_call(
+                func=ast_attr("profile.set_preference"),
+                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.set_capability"),
+                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
 
     def _get_firefox_profile_v414(self):
         cap_expr = self._get_capabilities_v414()
         return [
-                   ast.Assign(
-                       targets=[ast.Name(id="profile")],
-                       value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
-                   ast.Expr(ast_call(
-                       func=ast_attr("profile.set_preference"),
-                       args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
-                   ast.Expr(
-                       ast_call(
-                           func=ast_attr("options.set_capability"),
-                           args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
+            ast.Assign(
+                targets=[ast.Name(id="profile")],
+                value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
+            ast.Expr(ast_call(
+                func=ast_attr("profile.set_preference"),
+                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.set_capability"),
+                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
 
     def _get_chrome_profile(self):
         capabilities = sorted(self.capabilities.keys())
@@ -1222,14 +1238,18 @@ from selenium.webdriver.common.keys import Keys
                     value=ast.Name(id="options"))]))
 
     def _get_chrome_webdriver(self):
+
+        log_keyword = ast.keyword(arg="service_log_path",
+                                  value=ast.Str(self.wdlog, kind="")),
+        if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
+            log_keyword = ast.keyword(arg="service", value=ast.Name(id="service"))
+
         return ast.Assign(
             targets=[ast_attr("self.driver")],
             value=ast_call(
                 func=ast_attr("webdriver.Chrome"),
                 keywords=[
-                    ast.keyword(
-                        arg="service_log_path",
-                        value=ast.Str(self.wdlog, kind="")),
+                    log_keyword,
                     ast.keyword(
                         arg="options",
                         value=ast.Name(id="options"))]))
@@ -1408,6 +1428,13 @@ from selenium.webdriver.common.keys import Keys
                     ast.ImportFrom(
                         module="selenium.webdriver.common.options",
                         names=[ast.alias(name="ArgOptions", asname=None)],
+                        level=0
+                    )
+                )
+                imports.append(
+                    ast.ImportFrom(
+                        module="selenium.webdriver.common.service",
+                        names=[ast.alias(name="Service", asname=None)],
                         level=0
                     )
                 )
