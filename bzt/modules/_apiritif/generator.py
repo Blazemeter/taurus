@@ -1239,8 +1239,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _get_chrome_webdriver(self):
 
-        log_keyword = ast.keyword(arg="service_log_path",
-                                  value=ast.Str(self.wdlog, kind="")),
+        log_keyword = ast.keyword(arg="service_log_path", value=ast.Str(self.wdlog, kind=""))
         if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
             log_keyword = ast.keyword(arg="service", value=ast.Name(id="service"))
 
