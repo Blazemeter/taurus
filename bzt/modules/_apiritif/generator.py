@@ -1423,18 +1423,19 @@ from selenium.webdriver.common.keys import Keys
                 source = "selenium"
 
             imports.append(ast.parse(self.IMPORTS % source).body)
+            if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
+                imports.append(
+                    ast.ImportFrom(
+                        module="selenium.webdriver.common.service",
+                        names=[ast.alias(name="Service", asname=None)],
+                        level=0
+                    )
+                )
             if self.selenium_version.startswith("4"):
                 imports.append(
                     ast.ImportFrom(
                         module="selenium.webdriver.common.options",
                         names=[ast.alias(name="ArgOptions", asname=None)],
-                        level=0
-                    )
-                )
-                imports.append(
-                    ast.ImportFrom(
-                        module="selenium.webdriver.common.service",
-                        names=[ast.alias(name="Service", asname=None)],
                         level=0
                     )
                 )
