@@ -34,7 +34,7 @@ class TestLocSc(unittest.TestCase):
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.set_capability('unhandledPromptBehavior', 'ignore')
-        service = Service(service_log_path='/somewhere/webdriver.log')
+        service = Service(log_file='/somewhere/webdriver.log')
         self.driver = webdriver.Chrome(service=service, options=options)
         self.driver.implicitly_wait(timeout)
         add_flow_markers()

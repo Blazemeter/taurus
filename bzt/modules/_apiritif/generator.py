@@ -1099,7 +1099,7 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("Service"),
                     keywords=[
                         ast.keyword(
-                            arg="service_log_path",
+                            arg="log_file",
                             value=ast.Str(self.wdlog, kind=""))]))]
 
     def _get_firefox_options(self):
