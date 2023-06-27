@@ -81,3 +81,23 @@ class MockPythonTool414(RequiredTool):
 
     def post_process(self):
         pass
+
+
+class MockPythonTool410(RequiredTool):
+    tool_name = "MockPythonTool410"
+    called = False
+
+    def __init__(self, engine, settings, **kwargs):
+        self.version = settings.get("version", "4.10.0")
+
+    def check_if_installed(self):
+        return False
+
+    def install(self):
+        self.called = True
+
+    def get_version(self):
+        return self.version
+
+    def post_process(self):
+        pass
