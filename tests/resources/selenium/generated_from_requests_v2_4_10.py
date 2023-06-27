@@ -20,7 +20,6 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.service import Service
 from selenium.webdriver.common.options import ArgOptions
 from bzt.resources.selenium_extras import dialogs_answer_on_next_confirm, dialogs_get_next_prompt, dialogs_get_next_alert, dialogs_answer_on_next_alert, wait_for, action_start, get_locator, action_end, waiter, dialogs_answer_on_next_prompt, dialogs_replace, switch_frame, open_window, close_window, dialogs_get_next_confirm, switch_window
 

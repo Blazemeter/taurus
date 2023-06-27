@@ -19,7 +19,6 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.service import Service
 from selenium.webdriver.common.options import ArgOptions
 from bzt.resources.selenium_extras import wait_for, waiter, get_locator, add_flow_markers
 

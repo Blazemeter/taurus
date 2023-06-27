@@ -19,7 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.service import Service
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.options import ArgOptions
 from bzt.resources.selenium_extras import find_element_by_shadow, waiter, wait_for, get_locator
 

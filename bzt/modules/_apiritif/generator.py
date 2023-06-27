@@ -1450,10 +1450,11 @@ from selenium.webdriver.common.keys import Keys
                 source = "selenium"
 
             imports.append(ast.parse(self.IMPORTS % source).body)
-            if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
+            browser = self._check_platform()
+            if browser == "chrome" and LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
                 imports.append(
                     ast.ImportFrom(
-                        module="selenium.webdriver.common.service",
+                        module="selenium.webdriver.chrome.service",
                         names=[ast.alias(name="Service", asname=None)],
                         level=0
                     )
