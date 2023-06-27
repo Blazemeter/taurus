@@ -242,7 +242,8 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
             "options.headless = True",
             "profile = webdriver.FirefoxProfile()",
             "profile.set_preference('webdriver.log.file', '",
-            "self.driver = webdriver.Firefox(profile, options=options)",
+            "options.profile = profile",
+            "self.driver = webdriver.Firefox(options=options)",
             "options.set_capability('unhandledPromptBehavior', 'ignore')"
         ]
 

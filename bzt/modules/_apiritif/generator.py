@@ -968,7 +968,9 @@ from selenium.webdriver.common.keys import Keys
                 body.extend(self._get_service(browser))
 
         if browser == 'firefox':
-            if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
+            if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
+                body.extend(self._get_firefox_profile_v410() + [self._get_firefox_webdriver_4_10()])
+            elif LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
                 body.extend(self._get_firefox_profile_v414() + [self._get_firefox_webdriver()])
             else:
                 body.extend(self._get_firefox_profile() + [self._get_firefox_webdriver()])
@@ -1188,6 +1190,23 @@ from selenium.webdriver.common.keys import Keys
                     func=ast_attr("options.set_capability"),
                     args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
 
+    def _get_firefox_profile_v410(self):
+        cap_expr = self._get_capabilities_v414()
+        return [
+            ast.Assign(
+                targets=[ast.Name(id="profile")],
+                value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
+            ast.Expr(ast_call(
+                func=ast_attr("profile.set_preference"),
+                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
+            ast.Assign(
+                targets=[ast.Name(id="options.profile")],
+                value=ast_attr("profile")),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.set_capability"),
+                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
+
     def _get_chrome_profile(self):
         capabilities = sorted(self.capabilities.keys())
         cap_expr = []
@@ -1233,6 +1252,15 @@ from selenium.webdriver.common.keys import Keys
             value=ast_call(
                 func=ast_attr("webdriver.Firefox"),
                 args=[ast.Name(id="profile")],
+                keywords=[ast.keyword(
+                    arg="options",
+                    value=ast.Name(id="options"))]))
+
+    def _get_firefox_webdriver_4_10(self):
+        return ast.Assign(
+            targets=[ast_attr("self.driver")],
+            value=ast_call(
+                func=ast_attr("webdriver.Firefox"),
                 keywords=[ast.keyword(
                     arg="options",
                     value=ast.Name(id="options"))]))

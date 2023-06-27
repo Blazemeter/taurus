@@ -32,8 +32,9 @@ class TestLocSc(unittest.TestCase):
         options = webdriver.FirefoxOptions()
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
+        options.profile = profile
         options.set_capability('unhandledPromptBehavior', 'ignore')
-        self.driver = webdriver.Firefox(profile, options=options)
+        self.driver = webdriver.Firefox(options=options)
         self.driver.implicitly_wait(timeout)
         apiritif.put_into_thread_store(timeout=timeout, func_mode=False, driver=self.driver, windows={},
                                        scenario_name='loc_sc')
