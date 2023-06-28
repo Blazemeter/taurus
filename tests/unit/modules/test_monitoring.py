@@ -161,12 +161,12 @@ class TestMonitoring(BZTestCase):
         obj.prepare()
         self.assertEqual(1, len(obj.clients))
         self.assertEqual({'mem', 'cpu', 'engine-loop'}, set(obj.clients[0].metrics))
-        self.assertTrue(isinstance(obj.clients[0].monitor, StandardLocalMonitor))
+        self.assertTrue(isinstance(obj.clients[0].monitor, BaseLocalMonitor))
 
         obj.prepare()
         self.assertEqual(1, len(obj.clients))
         self.assertEqual({'mem', 'cpu', 'engine-loop'}, set(obj.clients[0].metrics))
-        self.assertTrue(isinstance(obj.clients[0].monitor, StandardLocalMonitor))
+        self.assertTrue(isinstance(obj.clients[0].monitor, BaseLocalMonitor))
 
         data1 = obj.clients[0].get_data()
         obj.clients[0].interval = 1     # take cached data
