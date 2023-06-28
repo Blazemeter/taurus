@@ -1,12 +1,17 @@
 """ Monitoring service subsystem """
+import os
+import re
+from logging import Logger
+
 import select
 import socket
 import subprocess
 import time
 import traceback
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections import OrderedDict, namedtuple
-from typing import List
+from typing import List, Optional
+from abc import ABC
 
 import csv
 import psutil
@@ -17,7 +22,7 @@ from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service, Singletone
 from bzt.modules.console import PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.utils import iteritems, b, stream_decode, dehumanize_time, BetterDict
+from bzt.utils import iteritems, b, stream_decode, dehumanize_time, BetterDict, is_windows
 
 
 class Monitoring(Service, Singletone):
@@ -185,7 +190,8 @@ class LocalClient(MonitoringClient):
 
         self.metrics = list(set(good_list))
 
-        self.monitor = LocalMonitor(self.log, self.metrics, self.engine)
+        self.monitor = LocalMonitorFactory.create_local_monitor(self.log, self.metrics, self.engine)
+        self.log.info(f'Using {self.monitor.__class__.__name__} for engine health monitoring')
         self.interval = dehumanize_time(self.config.get("interval", self.engine.check_interval))
 
         if self.config.get("logging", False):
@@ -218,8 +224,8 @@ class LocalClient(MonitoringClient):
         return self._cached_data
 
 
-class LocalMonitor(object):
-    def __init__(self, parent_logger, metrics, engine):
+class BaseLocalMonitor(ABC):
+    def __init__(self, parent_logger, metrics: List[str], engine):
         if not engine:
             raise TaurusInternalException('Local monitor requires valid engine instance')
         self._informed_on_mem_issue = False
@@ -251,7 +257,7 @@ class LocalMonitor(object):
         result = {}
 
         if 'mem' in self.metrics:
-            result['mem'] = self.__get_mem_info()
+            result['mem'] = self._get_mem_info()
 
         if 'disk-space' in self.metrics:
             result['disk-space'] = self.__get_disk_usage(self.engine.artifacts_dir).percent
@@ -271,7 +277,7 @@ class LocalMonitor(object):
                 result['conn-all'] = 0
 
         if 'cpu' in self.metrics:
-            result['cpu'] = self.__get_cpu_percent()
+            result['cpu'] = self._get_cpu_percent()
 
         if 'bytes-recv' in self.metrics or 'bytes-sent' in self.metrics:
             net = self.__get_net_counters()
@@ -304,15 +310,6 @@ class LocalMonitor(object):
                 result['disk-write'] = dwu
 
         return result
-
-    def __get_mem_info(self):
-        try:
-            return psutil.virtual_memory().percent
-        except KeyError:
-            if not self._informed_on_mem_issue:
-                self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
-                self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
-                self._informed_on_mem_issue = True
 
     def __get_disk_counters(self):
         counters = None
@@ -347,7 +344,30 @@ class LocalMonitor(object):
             # noinspection PyProtectedMember
         return disk
 
-    def __get_cpu_percent(self):
+    @abstractmethod
+    def _get_mem_info(self):
+        pass
+
+    @abstractmethod
+    def _get_cpu_percent(self):
+        pass
+
+
+class StandardLocalMonitor(BaseLocalMonitor):
+
+    def __init__(self, parent_logger, metrics, engine):
+        super().__init__(parent_logger, metrics, engine)
+
+    def _get_mem_info(self):
+        try:
+            return psutil.virtual_memory().percent
+        except KeyError:
+            if not self._informed_on_mem_issue:
+                self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
+                self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
+                self._informed_on_mem_issue = True
+
+    def _get_cpu_percent(self):
         cpu = None
         try:
             cpu = psutil.cpu_percent()
@@ -357,6 +377,238 @@ class LocalMonitor(object):
             cpu = 0
 
         return cpu
+
+
+class BaseCgroupsLocalMonitor(BaseLocalMonitor, ABC):
+    """
+    Base class for cgroups and cgroups2 local monitors.
+    """
+
+    def __init__(self, cgroup_fs_path: str, parent_logger: Logger, metrics: List[str], engine):
+        super().__init__(parent_logger, metrics, engine)
+        self._log = parent_logger.getChild(self.__class__.__name__)
+        self._cgroup_fs_path = cgroup_fs_path
+
+    def _read_int_key_from_cgroups(self, filename: str, semantics: str, key: str) -> Optional[int]:
+        path = os.path.join(self._cgroup_fs_path, filename)
+        if not os.path.exists(path) or not os.path.isfile(path):
+            self._log.warning(f'Unable to determine cgroups {semantics}. File {path} not found')
+            return None
+        try:
+            with open(path) as f:
+                lines = f.read().splitlines()
+        except IOError:
+            self._log.warning(f'Unable to determine cgroups {semantics}. File {path} is not readable')
+            return None
+        # the file contains multiple lines. Look for line “{key} 80173951“
+        return Cgroups2LocalMonitor._get_key_value(lines, key)
+
+    def _read_int_from_cgroups(self, filename: str, semantics: str) -> Optional[int]:
+        path = os.path.join(self._cgroup_fs_path, filename)
+        if not os.path.exists(path) or not os.path.isfile(path):
+            self._log.warning(f'Unable to determine cgroups {semantics}. File {path} not found')
+            return None
+
+        try:
+            with open(path) as f:
+                content = f.readline()
+        except IOError:
+            self._log.warning(f'Unable to determine cgroups {semantics}. File {path} is not readable')
+            return None
+
+        int_value = None
+        try:
+            int_value = int(content)
+        except ValueError:
+            self._log.debug(f'Unable to determine cgroups {semantics}. Value {content} is not an integer.')
+        return int_value
+
+    @staticmethod
+    def _get_key_value(lines: List[str], key: str):
+        key_value_p = re.compile(r'^([^ ]+)\s([^ ]+)$')
+        for line in lines:
+            m = key_value_p.match(line)
+            if m:
+                k = m.group(1)
+                if k == key:
+                    try:
+                        return int(m.group(2))
+                    except ValueError:
+                        pass
+        return None
+
+
+class Cgroups2LocalMonitor(BaseCgroupsLocalMonitor):
+    """
+    Local monitor that takes some health metrics from cgroups2 virtual file system for accuracy.
+    """
+
+    def __init__(self, cgroup_fs_path: str, parent_logger: Logger, metrics: List[str], engine):
+        super().__init__(cgroup_fs_path, parent_logger, metrics, engine)
+        self._log = parent_logger.getChild(self.__class__.__name__)
+        # max cpu usage in microseconds per one second
+        self._max_cpu_usage = self._get_max_cpu_usage()
+        self._max_memory_usage = self._get_max_memory_usage()
+        self._cpu_usage1_usec = None
+        self._cpu_usage1_time = None
+
+    def _get_mem_info(self):
+        """
+        Returns memory usage in percentage of available memory.
+        """
+        memory_usage_pct = None
+        try:
+            memory_usage = self._get_cgroups2_current_memory_usage()
+            if self._max_memory_usage and memory_usage:
+                memory_usage_pct = round((memory_usage / self._max_memory_usage) * 100, 1)
+        except BaseException:
+            self._log.warning(f'Unable to determine memory usage', exc_info=True)
+        return memory_usage_pct
+
+    def _get_cgroups2_current_memory_usage(self) -> Optional[int]:
+        total_memory_usage = self._read_int_from_cgroups('memory.current', 'current memory usage')
+        cache_memory_usage = self._read_int_key_from_cgroups('memory.stat', 'cache memory', 'inactive_file')
+        if total_memory_usage and cache_memory_usage:
+            total_memory_usage = total_memory_usage - cache_memory_usage
+        return total_memory_usage
+
+    def _get_cpu_percent(self):
+        """
+        Returns average cpu usage in percentage between the last and this measurement. First call returns 0.
+        """
+        cpu_delta = None
+        total_delta = None
+        cpu_usage = 0
+        try:
+            cpu_usage2_time = time.time()
+            cpu_usage2_usec = self._get_cpu_usage_snapshot()
+            if cpu_usage2_usec and self._cpu_usage1_usec:
+                # elapsed cpu time our cgroup consumed in time period between measurements
+                cpu_delta = cpu_usage2_usec - self._cpu_usage1_usec
+            if self._cpu_usage1_time:
+                time_delta = cpu_usage2_time - self._cpu_usage1_time
+                # max possible cpu usage per one second adjusted to elapsed time between measurements
+                total_delta = self._max_cpu_usage * time_delta
+            if cpu_delta and total_delta:
+                cpu_usage = round((cpu_delta / total_delta) * 100, 1)
+            self._cpu_usage1_usec = cpu_usage2_usec
+            self._cpu_usage1_time = cpu_usage2_time
+        except BaseException:
+            self._log.warning(f'Unable to determine cpu usage', exc_info=True)
+        return cpu_usage
+
+    def _get_cpu_usage_snapshot(self) -> Optional[int]:
+        # the file /sys/fs/cgroup/cpu.stat contains multiple lines. Look for line “usage_usec 80173951“
+        return self._read_int_key_from_cgroups('cpu.stat', 'cpu usage', 'usage_usec')
+
+    def _get_max_cpu_usage(self) -> Optional[int]:
+        """
+        Returns maximum possible cpu usage per one second.
+        """
+        max_cpu_usage = self._get_cgroups2_max_cpu_usage()
+        if not max_cpu_usage:
+            # if no cgroups2 limit is in place, then maximum possible cpu usage depends on the number of available cpus
+            max_cpu_usage = psutil.cpu_count() * 1000000  # number of cpus * microseconds in one second
+        return max_cpu_usage
+
+    def _get_cgroups2_max_cpu_usage(self) -> Optional[int]:
+        """
+        Returns maximum possible cpu usage per one second determined from cgroups2 limits. Returns None if there is
+        no cgroups2 limit set.
+        """
+        path = os.path.join(self._cgroup_fs_path, 'cpu.max')
+        if not os.path.exists(path) or not os.path.isfile(path):
+            self._log.warning(f'Unable to determine cgroups2 max cpu usage. File {path} not found')
+            return None
+
+        max_cpu_p = re.compile(r'^([^ ]+)\s([^ ]+)$')
+        try:
+            with open(path) as f:
+                content = f.readline()
+        except IOError:
+            self._log.warning(f'Unable to determine cgroups2 max cpu usage. File {path} is not readable')
+            return None
+        m = max_cpu_p.match(content)
+        if m:
+            try:
+                quota_us = int(m.group(1))
+            except ValueError:
+                quota_us = None
+            try:
+                period_us = int(m.group(2))
+            except ValueError:
+                period_us = None
+            if quota_us and period_us:
+                cpu_periods_count = 1 / (period_us / 1000000)
+                return int(cpu_periods_count * quota_us)
+        self._log.debug(f'No cgroups2 cpu usage limit set: {content}')
+        return None
+
+    def _get_max_memory_usage(self) -> Optional[int]:
+        max_memory_usage = self._get_cgroups2_max_memory_usage()
+        if not max_memory_usage:
+            # if no cgroups2 limit is in place, then maximum possible memory usage is total available system memory
+            try:
+                max_memory_usage = psutil.virtual_memory().total
+            except KeyError:
+                self._log.warning(f'Unable to determine total available memory', exc_info=True)
+        return max_memory_usage
+
+    def _get_cgroups2_max_memory_usage(self) -> Optional[int]:
+        return self._read_int_from_cgroups('memory.max', 'max memory usage')
+
+
+class LocalMonitorFactory:
+
+    @classmethod
+    def create_local_monitor(cls, parent_logger: Logger, metrics: List[str], engine,
+                             mtab_path=None) -> BaseLocalMonitor:
+        """
+        Constructs concrete instance of BaseLocalMonitor depending on OS and cgroups version.
+        """
+        log = parent_logger.getChild(cls.__name__)
+        if not mtab_path:
+            if is_windows():
+                return StandardLocalMonitor(parent_logger, metrics, engine)
+            mtab_path = '/etc/mtab'
+        cgroups_version, cgroups_fs_path = cls._detect_cgroup_info(log, mtab_path)
+        if cgroups_version == 2:
+            return Cgroups2LocalMonitor(cgroups_fs_path, parent_logger, metrics, engine)
+        elif cgroups_version == 1:
+            # swap for Cgroups1LocalMonitor once it is implemented
+            return StandardLocalMonitor(parent_logger, metrics, engine)
+        else:
+            return StandardLocalMonitor(parent_logger, metrics, engine)
+
+    @classmethod
+    def _detect_cgroup_info(cls, log: Logger, mtab_path: str):
+        """
+        Detects version of cgroups and base path of cgroups filesystem. By default, it is '/sys/fs/cgroup',
+        but it could be customized.
+        """
+        if not os.path.exists(mtab_path) or not os.path.isfile(mtab_path):
+            log.warning(f'Unable to detect cgroups version. File {mtab_path} not found')
+            return None, None
+        try:
+            with open(mtab_path) as f:
+                lines = f.read().splitlines()
+        except IOError:
+            log.warning(f'Unable to detect cgroups version. File {mtab_path} is not readable')
+            return None, None
+
+        mtab_p = re.compile(r'^([^ ]+)\s([^ ]+)\s([^ ]+).*$')
+        cgroups_version = None
+        cgroups_fs_path = None
+        for line in lines:
+            m = mtab_p.match(line)
+            if m:
+                fs_type = m.group(3)
+                if fs_type == 'cgroup2':
+                    return 2, m.group(2)
+                elif fs_type == 'cgroup':
+                    cgroups_version = 1
+                    cgroups_fs_path = os.path.dirname(m.group(2))
+        return cgroups_version, cgroups_fs_path
 
 
 class GraphiteClient(MonitoringClient):
