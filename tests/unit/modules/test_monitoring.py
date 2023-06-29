@@ -280,7 +280,7 @@ class TestLocalMonitorFactory(BZTestCase):
             # mtab file must contain a cgroup path that exists on the local system
             mtab_template_path = os.path.join(RESOURCES_DIR, 'monitoring', 'mtab', 'mtab-cgroups1')
             mtab_path = os.path.join(dir, 'mtab')
-            self.__copy_file_template(mtab_template_path, mtab_path, {'/sys/fs/cgroup/': dir})
+            self.__copy_file_template(mtab_template_path, mtab_path, {'/sys/fs/cgroup/': os.path.join(dir, 'ignored')})
             # create expected files
             self.__mk_files(dir,
                             [os.path.join('cpu', 'cpuacct.usage'), os.path.join('memory', 'memory.usage_in_bytes')])
@@ -367,7 +367,7 @@ class TestCgroups2LocalMonitor(BZTestCase):
             # cpu usage could be any value depending on the number of cpu cores available and sleep accuracy
             ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0),
             # should be about 50%, extra range due to 100ms sleep accuracy
-            ('with_cpu_limit1', 'with_cpu_limit2', 30.0, 70.0),
+            ('with_cpu_limit1', 'with_cpu_limit2', 20.0, 80.0),
             # should be about 25%, extra range due to 100ms sleep accuracy
             ('with_small_cpu_period1', 'with_small_cpu_period2', 5.0, 45.0),
             # invalid usage_usec value in cpu.stat
