@@ -437,20 +437,14 @@ class BaseCgroupsLocalMonitor(BaseLocalMonitor, ABC):
         return None
 
 
-class Cgroups1LocalMonitor(BaseCgroupsLocalMonitor):
+class Cgroups1LocalMonitor(StandardLocalMonitor):
     """
     Local monitor that takes some health metrics from cgroups1 virtual file system for accuracy.
     """
     REQUIRED_FILES = [os.path.join('cpu', 'cpuacct.usage'), os.path.join('memory', 'memory.usage_in_bytes')]
 
     def __init__(self, cgroup_fs_path: str, parent_logger: Logger, metrics: List[str], engine):
-        super().__init__(cgroup_fs_path, parent_logger, metrics, engine)
-
-    def _get_mem_info(self):
-        raise NotImplementedError()
-
-    def _get_cpu_percent(self):
-        raise NotImplementedError()
+        super().__init__(parent_logger, metrics, engine)
 
 
 class Cgroups2LocalMonitor(BaseCgroupsLocalMonitor):
@@ -591,8 +585,7 @@ class LocalMonitorFactory:
         if cgroups_version == 2:
             return Cgroups2LocalMonitor(cgroups_fs_path, parent_logger, metrics, engine)
         elif cgroups_version == 1:
-            # swap for Cgroups1LocalMonitor once it is implemented
-            return StandardLocalMonitor(parent_logger, metrics, engine)
+            return Cgroups1LocalMonitor(cgroups_fs_path, parent_logger, metrics, engine)
         else:
             return StandardLocalMonitor(parent_logger, metrics, engine)
 

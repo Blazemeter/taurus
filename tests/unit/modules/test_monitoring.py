@@ -7,7 +7,7 @@ from typing import List
 from unittest.mock import patch
 
 from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria, StandardLocalMonitor, \
-    LocalMonitorFactory, Cgroups2LocalMonitor, BaseLocalMonitor
+    LocalMonitorFactory, Cgroups2LocalMonitor, BaseLocalMonitor, Cgroups1LocalMonitor
 from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient
 from bzt.utils import b, BetterDict
 from tests.unit import BZTestCase, ROOT_LOGGER, EngineEmul, RESOURCES_DIR
@@ -285,8 +285,7 @@ class TestLocalMonitorFactory(BZTestCase):
             self.__mk_files(dir,
                             [os.path.join('cpu', 'cpuacct.usage'), os.path.join('memory', 'memory.usage_in_bytes')])
             monitor = LocalMonitorFactory.create_local_monitor(ROOT_LOGGER, ['cpu', 'mem'], EngineEmul(), mtab_path)
-            # update to Cgroups1LocalMonitor once implemented
-            self.assertIsInstance(monitor, StandardLocalMonitor)
+            self.assertIsInstance(monitor, Cgroups1LocalMonitor)
         finally:
             shutil.rmtree(dir)
 
