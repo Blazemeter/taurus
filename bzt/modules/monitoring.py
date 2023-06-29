@@ -623,18 +623,18 @@ class LocalMonitorFactory:
                 if fs_type == 'cgroup2':
                     base_path = m.group(2)
                     # verify the path contains files we expect to be there, perhaps not all controllers are active
-                    for required_file in Cgroups2LocalMonitor.REQUIRED_FILES:
-                        if not os.path.exists(os.path.join(base_path, required_file)):
-                            continue
-                    return 2, base_path
+                    files_exist = all([os.path.exists(os.path.join(base_path, required_file)) for required_file in
+                                       Cgroups2LocalMonitor.REQUIRED_FILES])
+                    if files_exist:
+                        return 2, base_path
                 elif fs_type == 'cgroup':
                     base_path = os.path.dirname(m.group(2))
                     # verify the path contains files we expect to be there, perhaps not all controllers are active
-                    for required_file in Cgroups1LocalMonitor.REQUIRED_FILES:
-                        if not os.path.exists(os.path.join(base_path, required_file)):
-                            continue
-                    cgroups_version = 1
-                    cgroups_fs_path = base_path
+                    files_exist = all([os.path.exists(os.path.join(base_path, required_file)) for required_file in
+                                       Cgroups1LocalMonitor.REQUIRED_FILES])
+                    if files_exist:
+                        cgroups_version = 1
+                        cgroups_fs_path = base_path
         return cgroups_version, cgroups_fs_path
 
 
