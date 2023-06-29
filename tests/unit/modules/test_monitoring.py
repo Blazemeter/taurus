@@ -1,6 +1,9 @@
 import csv
 import os.path
 import time
+import tempfile
+import shutil
+from typing import List
 from unittest.mock import patch
 
 from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria, StandardLocalMonitor, \
@@ -271,6 +274,50 @@ class TestLocalMonitorFactory(BZTestCase):
     def setUp(self):
         super().setUp()
 
+    def test_create_local_monitor_mtab_cgroups1(self):
+        dir = tempfile.mkdtemp(prefix='mtab-cgroups1-')
+        try:
+            # mtab file must contain a cgroup path that exists on the local system
+            mtab_template_path = os.path.join(RESOURCES_DIR, 'monitoring', 'mtab', 'mtab-cgroups1')
+            mtab_path = os.path.join(dir, 'mtab')
+            self.__copy_file_template(mtab_template_path, mtab_path, {'/sys/fs/cgroup/': dir})
+            # create expected files
+            self.__mk_files(dir,
+                            [os.path.join('cpu', 'cpuacct.usage'), os.path.join('memory', 'memory.usage_in_bytes')])
+            monitor = LocalMonitorFactory.create_local_monitor(ROOT_LOGGER, ['cpu', 'mem'], EngineEmul(), mtab_path)
+            # update to Cgroups1LocalMonitor once implemented
+            self.assertIsInstance(monitor, StandardLocalMonitor)
+        finally:
+            shutil.rmtree(dir)
+
+    def test_create_local_monitor_mtab_cgroups2(self):
+        dir = tempfile.mkdtemp(prefix='mtab-cgroups2-')
+        try:
+            # mtab file must contain a cgroup path that exists on the local system
+            mtab_template_path = os.path.join(RESOURCES_DIR, 'monitoring', 'mtab', 'mtab-cgroups2')
+            mtab_path = os.path.join(dir, 'mtab')
+            self.__copy_file_template(mtab_template_path, mtab_path, {'/sys/fs/cgroup': dir})
+            # create expected files
+            self.__mk_files(dir, ['cpu.stat', 'memory.current'])
+            monitor = LocalMonitorFactory.create_local_monitor(ROOT_LOGGER, ['cpu', 'mem'], EngineEmul(), mtab_path)
+            self.assertIsInstance(monitor, Cgroups2LocalMonitor)
+        finally:
+            shutil.rmtree(dir)
+
+    def __mk_files(self, base_path: str, file_paths: List[str]):
+        for file_path in file_paths:
+            full_path = os.path.join(base_path, file_path)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, "w"):
+                pass
+    def __copy_file_template(self, template_path: str, target_path: str, mapping: dict):
+        with open(template_path) as f:
+            content = f.read()
+        for k, v in mapping.items():
+            content = content.replace(k, v)
+        with open(target_path, "w") as f:
+            f.write(content)
+
     @patch('bzt.modules.monitoring.is_windows')
     def test_create_local_monitor(self, is_windows):
         test_params = [
@@ -278,8 +325,6 @@ class TestLocalMonitorFactory(BZTestCase):
             (False, None, BaseLocalMonitor),
             (False, 'mtab-nonexistent', StandardLocalMonitor),
             (False, 'mtab-empty', StandardLocalMonitor),
-            (False, 'mtab-cgroups1', StandardLocalMonitor),
-            (False, 'mtab-cgroups2', Cgroups2LocalMonitor),
         ]
         for windows, mtab_file, expected_monitor_cls in test_params:
             with self.subTest(str((windows, mtab_file, expected_monitor_cls))):

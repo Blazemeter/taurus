@@ -438,10 +438,27 @@ class BaseCgroupsLocalMonitor(BaseLocalMonitor, ABC):
         return None
 
 
+class Cgroups1LocalMonitor(BaseCgroupsLocalMonitor):
+    """
+    Local monitor that takes some health metrics from cgroups1 virtual file system for accuracy.
+    """
+    REQUIRED_FILES = [os.path.join('cpu', 'cpuacct.usage'), os.path.join('memory', 'memory.usage_in_bytes')]
+
+    def __init__(self, cgroup_fs_path: str, parent_logger: Logger, metrics: List[str], engine):
+        super().__init__(cgroup_fs_path, parent_logger, metrics, engine)
+
+    def _get_mem_info(self):
+        raise NotImplementedError()
+
+    def _get_cpu_percent(self):
+        raise NotImplementedError()
+
+
 class Cgroups2LocalMonitor(BaseCgroupsLocalMonitor):
     """
     Local monitor that takes some health metrics from cgroups2 virtual file system for accuracy.
     """
+    REQUIRED_FILES = ['cpu.stat', 'memory.current']
 
     def __init__(self, cgroup_fs_path: str, parent_logger: Logger, metrics: List[str], engine):
         super().__init__(cgroup_fs_path, parent_logger, metrics, engine)
@@ -604,10 +621,20 @@ class LocalMonitorFactory:
             if m:
                 fs_type = m.group(3)
                 if fs_type == 'cgroup2':
-                    return 2, m.group(2)
+                    base_path = m.group(2)
+                    # verify the path contains files we expect to be there, perhaps not all controllers are active
+                    for required_file in Cgroups2LocalMonitor.REQUIRED_FILES:
+                        if not os.path.exists(os.path.join(base_path, required_file)):
+                            continue
+                    return 2, base_path
                 elif fs_type == 'cgroup':
+                    base_path = os.path.dirname(m.group(2))
+                    # verify the path contains files we expect to be there, perhaps not all controllers are active
+                    for required_file in Cgroups1LocalMonitor.REQUIRED_FILES:
+                        if not os.path.exists(os.path.join(base_path, required_file)):
+                            continue
                     cgroups_version = 1
-                    cgroups_fs_path = os.path.dirname(m.group(2))
+                    cgroups_fs_path = base_path
         return cgroups_version, cgroups_fs_path
 
 
