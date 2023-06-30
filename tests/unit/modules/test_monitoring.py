@@ -347,6 +347,82 @@ class TestLocalMonitorFactory(BZTestCase):
                 self.assertIsInstance(monitor, expected_monitor_cls)
 
 
+class TestCgroups1LocalMonitor(BZTestCase):
+
+    def test_get_mem_stats_no_limit(self):
+        cgroups_path = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups1', 'no_mem_limit')
+        monitor = Cgroups1LocalMonitor(cgroups_path, ROOT_LOGGER, ['mem'], EngineEmul())
+        stats = monitor.resource_stats()
+        self.assertGreater(stats['mem'], 0.0)
+
+    def test_get_mem_stats(self):
+        test_params = [
+            ('nonexistent', None),
+            ('with_mem_limit', 9.6),
+            ('no_total_inactive_file', 12.5),
+            ('zero_total_inactive_file', 12.5),
+            ('invalid_total_inactive_file', 12.5),
+        ]
+        for cgroups_dir, value_eq in test_params:
+            with self.subTest(str((cgroups_dir, value_eq))):
+                cgroups_path = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups1',
+                                            cgroups_dir) if cgroups_dir else None
+                monitor = Cgroups1LocalMonitor(cgroups_path, ROOT_LOGGER, ['mem'], EngineEmul())
+                stats = monitor.resource_stats()
+                self.assertEqual(stats['mem'], value_eq)
+
+    @patch('bzt.modules.monitoring.open')
+    def test_get_mem_stats_not_readable(self, open):
+        open.side_effect = IOError('Test error')
+        cgroups_path = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups1', 'with_mem_limit')
+        monitor = Cgroups1LocalMonitor(cgroups_path, ROOT_LOGGER, ['mem'], EngineEmul())
+        stats = monitor.resource_stats()
+        self.assertIsNone(stats['mem'])
+
+    def test_get_cpu_stats(self):
+        test_params = [
+            ('nonexistent1', 'nonexistent2', 0.0, 0.0),
+            # cpu usage could be any value depending on the number of cpu cores available and sleep accuracy
+            ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0),
+            # should be about 50%, extra range due to 200ms sleep accuracy
+            ('with_cpu_limit1', 'with_cpu_limit2', 30.0, 70.0),
+            # should be about 25%, extra range due to 200ms sleep accuracy
+            ('with_small_cpu_period1', 'with_small_cpu_period2', 10.0, 40.0),
+            # invalid value in cpuacct.usage
+            ('with_invalid_cpu_usage1', 'with_invalid_cpu_usage1', 0.0, 0.0),
+            # absent cpuacct.usage file
+            ('with_absent_cpu_usage1', 'with_absent_cpu_usage1', 0.0, 0.0),
+        ]
+        for cgroups_dir1, cgroups_dir2, value_gte, value_lte in test_params:
+            with self.subTest(str((cgroups_dir1, cgroups_dir2, value_gte, value_lte))):
+                cgroups_path1 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups1',
+                                             cgroups_dir1) if cgroups_dir1 else None
+                cgroups_path2 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups1',
+                                             cgroups_dir2) if cgroups_dir2 else None
+                monitor = Cgroups1LocalMonitor(cgroups_path1, ROOT_LOGGER, ['cpu'], EngineEmul())
+                stats = monitor.resource_stats()
+                self.assertEqual(stats['cpu'], 0)
+                # resource_stats() requires a short time period to elapse
+                time.sleep(0.2)
+                monitor._cgroup_fs_path = cgroups_path2
+                stats = monitor.resource_stats()
+                self.assertGreaterEqual(stats['cpu'], value_gte)
+                self.assertLessEqual(stats['cpu'], value_lte)
+
+    @patch('bzt.modules.monitoring.open')
+    def test_get_cpu_stats_not_readable(self, open):
+        open.side_effect = IOError('Test error')
+        cgroups_path1 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups1', 'with_cpu_limit1')
+        cgroups_path2 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups1', 'with_cpu_limit2')
+        monitor = Cgroups1LocalMonitor(cgroups_path1, ROOT_LOGGER, ['cpu'], EngineEmul())
+        monitor.resource_stats()
+        # resource_stats() requires a short time period to elapse
+        time.sleep(0.2)
+        monitor._cgroup_fs_path = cgroups_path2
+        stats = monitor.resource_stats()
+        self.assertEqual(stats['cpu'], 0)
+
+
 class TestCgroups2LocalMonitor(BZTestCase):
 
     def test_get_mem_stats_no_limit(self):
@@ -385,9 +461,9 @@ class TestCgroups2LocalMonitor(BZTestCase):
             # cpu usage could be any value depending on the number of cpu cores available and sleep accuracy
             ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0),
             # should be about 50%, extra range due to 100ms sleep accuracy
-            ('with_cpu_limit1', 'with_cpu_limit2', 20.0, 80.0),
+            ('with_cpu_limit1', 'with_cpu_limit2', 30.0, 70.0),
             # should be about 25%, extra range due to 100ms sleep accuracy
-            ('with_small_cpu_period1', 'with_small_cpu_period2', 5.0, 45.0),
+            ('with_small_cpu_period1', 'with_small_cpu_period2', 10.0, 40.0),
             # invalid usage_usec value in cpu.stat
             ('with_invalid_cpu_usage1', 'with_invalid_cpu_usage1', 0.0, 0.0),
             # absent usage_usec in cpu.stat
@@ -403,7 +479,7 @@ class TestCgroups2LocalMonitor(BZTestCase):
                 stats = monitor.resource_stats()
                 self.assertEqual(stats['cpu'], 0)
                 # resource_stats() requires a short time period to elapse
-                time.sleep(0.1)
+                time.sleep(0.2)
                 monitor._cgroup_fs_path = cgroups_path2
                 stats = monitor.resource_stats()
                 self.assertGreaterEqual(stats['cpu'], value_gte)
@@ -417,7 +493,7 @@ class TestCgroups2LocalMonitor(BZTestCase):
         monitor = Cgroups2LocalMonitor(cgroups_path1, ROOT_LOGGER, ['cpu'], EngineEmul())
         monitor.resource_stats()
         # resource_stats() requires a short time period to elapse
-        time.sleep(0.1)
+        time.sleep(0.2)
         monitor._cgroup_fs_path = cgroups_path2
         stats = monitor.resource_stats()
         self.assertEqual(stats['cpu'], 0)
