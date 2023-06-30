@@ -460,9 +460,9 @@ class TestCgroups2LocalMonitor(BZTestCase):
             ('nonexistent1', 'nonexistent2', 0.0, 0.0),
             # cpu usage could be any value depending on the number of cpu cores available and sleep accuracy
             ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0),
-            # should be about 50%, extra range due to 100ms sleep accuracy
+            # should be about 50%, extra range due to 200ms sleep accuracy
             ('with_cpu_limit1', 'with_cpu_limit2', 30.0, 70.0),
-            # should be about 25%, extra range due to 100ms sleep accuracy
+            # should be about 25%, extra range due to 200ms sleep accuracy
             ('with_small_cpu_period1', 'with_small_cpu_period2', 10.0, 40.0),
             # invalid usage_usec value in cpu.stat
             ('with_invalid_cpu_usage1', 'with_invalid_cpu_usage1', 0.0, 0.0),
