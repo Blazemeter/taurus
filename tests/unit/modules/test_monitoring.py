@@ -271,6 +271,17 @@ class GraphiteClientEmul(GraphiteClient):
         return self.prepared_data
 
 
+class TestStandardLocalMonitor(BZTestCase):
+
+    @patch('bzt.modules.monitoring.psutil')
+    def test_get_mem_stats_failure(self, psutil):
+        svmem = namedtuple('svmem', ['available'])
+        psutil.virtual_memory.return_value = svmem(580373951)
+        monitor = StandardLocalMonitor(ROOT_LOGGER, ['mem'], EngineEmul())
+        stats = monitor.resource_stats()
+        self.assertIsNone(stats['mem'])
+
+
 class TestLocalMonitorFactory(BZTestCase):
 
     def test_create_local_monitor_mtab_cgroups1(self):
