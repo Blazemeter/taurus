@@ -1,18 +1,22 @@
 import csv
+import os.path
 import time
-import unittest
+import tempfile
+import shutil
+from typing import List
+from unittest.mock import patch
 
-from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria
-from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient, LocalMonitor
+from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria, StandardLocalMonitor, \
+    LocalMonitorFactory, Cgroups2LocalMonitor, BaseLocalMonitor, Cgroups1LocalMonitor
+from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient
 from bzt.utils import b, BetterDict
-from tests.unit import BZTestCase, ROOT_LOGGER, EngineEmul
+from tests.unit import BZTestCase, ROOT_LOGGER, EngineEmul, RESOURCES_DIR
 from tests.unit.mocks import SocketEmul
 
 
 class TestMonitoring(BZTestCase):
     def setUp(self):
         super(TestMonitoring, self).setUp()
-        LocalMonitor._instance = None
 
     def test_server_agent(self):
         obj = Monitoring()
@@ -160,12 +164,12 @@ class TestMonitoring(BZTestCase):
         obj.prepare()
         self.assertEqual(1, len(obj.clients))
         self.assertEqual({'mem', 'cpu', 'engine-loop'}, set(obj.clients[0].metrics))
-        self.assertTrue(isinstance(obj.clients[0].monitor, LocalMonitor))
+        self.assertTrue(isinstance(obj.clients[0].monitor, BaseLocalMonitor))
 
         obj.prepare()
         self.assertEqual(1, len(obj.clients))
         self.assertEqual({'mem', 'cpu', 'engine-loop'}, set(obj.clients[0].metrics))
-        self.assertTrue(isinstance(obj.clients[0].monitor, LocalMonitor))
+        self.assertTrue(isinstance(obj.clients[0].monitor, BaseLocalMonitor))
 
         data1 = obj.clients[0].get_data()
         obj.clients[0].interval = 1     # take cached data
@@ -264,3 +268,156 @@ class GraphiteClientEmul(GraphiteClient):
 
     def _data_transfer(self):
         return self.prepared_data
+
+
+class TestLocalMonitorFactory(BZTestCase):
+
+    def test_create_local_monitor_mtab_cgroups1(self):
+        dir = tempfile.mkdtemp(prefix='mtab-cgroups1-')
+        try:
+            # mtab file must contain a cgroup path that exists on the local system
+            mtab_template_path = os.path.join(RESOURCES_DIR, 'monitoring', 'mtab', 'mtab-cgroups1')
+            mtab_path = os.path.join(dir, 'mtab')
+            self.__copy_file_template(mtab_template_path, mtab_path, {'/sys/fs/cgroup/': os.path.join(dir, 'ignored')})
+            # create expected files
+            self.__mk_files(dir,
+                            [os.path.join('cpu', 'cpuacct.usage'), os.path.join('memory', 'memory.usage_in_bytes')])
+            monitor = LocalMonitorFactory.create_local_monitor(ROOT_LOGGER, ['cpu', 'mem'], EngineEmul(), mtab_path)
+            self.assertIsInstance(monitor, Cgroups1LocalMonitor)
+        finally:
+            shutil.rmtree(dir)
+
+    def test_create_local_monitor_mtab_cgroups2(self):
+        dir = tempfile.mkdtemp(prefix='mtab-cgroups2-')
+        try:
+            # mtab file must contain a cgroup path that exists on the local system
+            mtab_template_path = os.path.join(RESOURCES_DIR, 'monitoring', 'mtab', 'mtab-cgroups2')
+            mtab_path = os.path.join(dir, 'mtab')
+            self.__copy_file_template(mtab_template_path, mtab_path, {'/sys/fs/cgroup': dir})
+            # create expected files
+            self.__mk_files(dir, ['cpu.stat', 'memory.current'])
+            monitor = LocalMonitorFactory.create_local_monitor(ROOT_LOGGER, ['cpu', 'mem'], EngineEmul(), mtab_path)
+            self.assertIsInstance(monitor, Cgroups2LocalMonitor)
+        finally:
+            shutil.rmtree(dir)
+
+    def __mk_files(self, base_path: str, file_paths: List[str]):
+        for file_path in file_paths:
+            full_path = os.path.join(base_path, file_path)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, "w"):
+                pass
+    def __copy_file_template(self, template_path: str, target_path: str, mapping: dict):
+        with open(template_path) as f:
+            content = f.read()
+        for k, v in mapping.items():
+            content = content.replace(k, v)
+        with open(target_path, "w") as f:
+            f.write(content)
+
+    @patch('bzt.modules.monitoring.open')
+    def test_create_local_monitor_mtab_not_readable(self, open):
+        open.side_effect = IOError('Test error')
+        dir = tempfile.mkdtemp(prefix='mtab-cgroups2-')
+        try:
+            # mtab file must contain a cgroup path that exists on the local system
+            mtab_template_path = os.path.join(RESOURCES_DIR, 'monitoring', 'mtab', 'mtab-cgroups2')
+            mtab_path = os.path.join(dir, 'mtab')
+            self.__copy_file_template(mtab_template_path, mtab_path, {'/sys/fs/cgroup': dir})
+            # create expected files
+            self.__mk_files(dir, ['cpu.stat', 'memory.current'])
+            monitor = LocalMonitorFactory.create_local_monitor(ROOT_LOGGER, ['cpu', 'mem'], EngineEmul(), mtab_path)
+            self.assertIsInstance(monitor, StandardLocalMonitor)
+        finally:
+            shutil.rmtree(dir)
+
+    @patch('bzt.modules.monitoring.is_windows')
+    def test_create_local_monitor(self, is_windows):
+        test_params = [
+            (True, None, StandardLocalMonitor),
+            (False, None, BaseLocalMonitor),
+            (False, 'mtab-nonexistent', StandardLocalMonitor),
+            (False, 'mtab-empty', StandardLocalMonitor),
+        ]
+        for windows, mtab_file, expected_monitor_cls in test_params:
+            with self.subTest(str((windows, mtab_file, expected_monitor_cls))):
+                is_windows.return_value = windows
+                mtab_path = os.path.join(RESOURCES_DIR, 'monitoring', 'mtab', mtab_file) if mtab_file else None
+                monitor = LocalMonitorFactory.create_local_monitor(ROOT_LOGGER, ['cpu', 'mem'], EngineEmul(), mtab_path)
+                self.assertIsInstance(monitor, expected_monitor_cls)
+
+
+class TestCgroups2LocalMonitor(BZTestCase):
+
+    def test_get_mem_stats_no_limit(self):
+        cgroups_path = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2', 'no_mem_limit')
+        monitor = Cgroups2LocalMonitor(cgroups_path, ROOT_LOGGER, ['mem'], EngineEmul())
+        stats = monitor.resource_stats()
+        self.assertGreater(stats['mem'], 0.0)
+
+    def test_get_mem_stats(self):
+        test_params = [
+            ('nonexistent', None),
+            ('with_mem_limit', 9.6),
+            ('no_inactive_file', 12.5),
+            ('zero_inactive_file', 12.5),
+            ('invalid_inactive_file', 12.5),
+        ]
+        for cgroups_dir, value_eq in test_params:
+            with self.subTest(str((cgroups_dir, value_eq))):
+                cgroups_path = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2',
+                                            cgroups_dir) if cgroups_dir else None
+                monitor = Cgroups2LocalMonitor(cgroups_path, ROOT_LOGGER, ['mem'], EngineEmul())
+                stats = monitor.resource_stats()
+                self.assertEqual(stats['mem'], value_eq)
+
+    @patch('bzt.modules.monitoring.open')
+    def test_get_mem_stats_not_readable(self, open):
+        open.side_effect = IOError('Test error')
+        cgroups_path = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2', 'with_mem_limit')
+        monitor = Cgroups2LocalMonitor(cgroups_path, ROOT_LOGGER, ['mem'], EngineEmul())
+        stats = monitor.resource_stats()
+        self.assertIsNone(stats['mem'])
+
+    def test_get_cpu_stats(self):
+        test_params = [
+            ('nonexistent1', 'nonexistent2', 0.0, 0.0),
+            # cpu usage could be any value depending on the number of cpu cores available and sleep accuracy
+            ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0),
+            # should be about 50%, extra range due to 100ms sleep accuracy
+            ('with_cpu_limit1', 'with_cpu_limit2', 20.0, 80.0),
+            # should be about 25%, extra range due to 100ms sleep accuracy
+            ('with_small_cpu_period1', 'with_small_cpu_period2', 5.0, 45.0),
+            # invalid usage_usec value in cpu.stat
+            ('with_invalid_cpu_usage1', 'with_invalid_cpu_usage1', 0.0, 0.0),
+            # absent usage_usec in cpu.stat
+            ('with_absent_cpu_usage1', 'with_absent_cpu_usage1', 0.0, 0.0),
+        ]
+        for cgroups_dir1, cgroups_dir2, value_gte, value_lte in test_params:
+            with self.subTest(str((cgroups_dir1, cgroups_dir2, value_gte, value_lte))):
+                cgroups_path1 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2',
+                                             cgroups_dir1) if cgroups_dir1 else None
+                cgroups_path2 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2',
+                                             cgroups_dir2) if cgroups_dir2 else None
+                monitor = Cgroups2LocalMonitor(cgroups_path1, ROOT_LOGGER, ['cpu'], EngineEmul())
+                stats = monitor.resource_stats()
+                self.assertEqual(stats['cpu'], 0)
+                # resource_stats() requires a short time period to elapse
+                time.sleep(0.1)
+                monitor._cgroup_fs_path = cgroups_path2
+                stats = monitor.resource_stats()
+                self.assertGreaterEqual(stats['cpu'], value_gte)
+                self.assertLessEqual(stats['cpu'], value_lte)
+
+    @patch('bzt.modules.monitoring.open')
+    def test_get_cpu_stats_not_readable(self, open):
+        open.side_effect = IOError('Test error')
+        cgroups_path1 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2', 'with_cpu_limit1')
+        cgroups_path2 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2', 'with_cpu_limit2')
+        monitor = Cgroups2LocalMonitor(cgroups_path1, ROOT_LOGGER, ['cpu'], EngineEmul())
+        monitor.resource_stats()
+        # resource_stats() requires a short time period to elapse
+        time.sleep(0.1)
+        monitor._cgroup_fs_path = cgroups_path2
+        stats = monitor.resource_stats()
+        self.assertEqual(stats['cpu'], 0)
