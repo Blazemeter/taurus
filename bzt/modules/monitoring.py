@@ -360,7 +360,7 @@ class StandardLocalMonitor(BaseLocalMonitor):
     def _get_mem_info(self):
         try:
             return psutil.virtual_memory().percent
-        except KeyError:
+        except AttributeError:
             if not self._informed_on_mem_issue:
                 self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
                 self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
@@ -413,7 +413,7 @@ class BaseCgroupsLocalMonitor(BaseLocalMonitor, ABC):
             # if no cgroups limit is in place, then maximum possible memory usage is total available system memory
             try:
                 max_memory_usage = psutil.virtual_memory().total
-            except KeyError:
+            except AttributeError:
                 self._log.warning(f'Unable to determine total available memory', exc_info=True)
         return max_memory_usage
 

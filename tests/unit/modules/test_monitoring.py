@@ -3,6 +3,7 @@ import os.path
 import time
 import tempfile
 import shutil
+from collections import namedtuple
 from typing import List
 from unittest.mock import patch
 
@@ -431,6 +432,15 @@ class TestCgroups2LocalMonitor(BZTestCase):
         stats = monitor.resource_stats()
         self.assertGreater(stats['mem'], 0.0)
 
+    @patch('bzt.modules.monitoring.psutil')
+    def test_get_mem_stats_limit_failure(self, psutil):
+        svmem = namedtuple('svmem', ['available'])
+        psutil.virtual_memory.return_value = svmem(580373951)
+        cgroups_path = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2', 'no_mem_limit')
+        monitor = Cgroups2LocalMonitor(cgroups_path, ROOT_LOGGER, ['mem'], EngineEmul())
+        stats = monitor.resource_stats()
+        self.assertIsNone(stats['mem'])
+
     def test_get_mem_stats(self):
         test_params = [
             ('nonexistent', None),
@@ -460,6 +470,7 @@ class TestCgroups2LocalMonitor(BZTestCase):
             ('nonexistent1', 'nonexistent2', 0.0, 0.0),
             # cpu usage could be any value depending on the number of cpu cores available and sleep accuracy
             ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0),
+            ('invalid_cpu_quota1', 'invalid_cpu_quota2', 0.1, 100.0),
             # should be about 50%, extra range due to 200ms sleep accuracy
             ('with_cpu_limit1', 'with_cpu_limit2', 30.0, 70.0),
             # should be about 25%, extra range due to 200ms sleep accuracy
