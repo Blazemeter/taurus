@@ -271,8 +271,6 @@ class GraphiteClientEmul(GraphiteClient):
 
 
 class TestLocalMonitorFactory(BZTestCase):
-    def setUp(self):
-        super().setUp()
 
     def test_create_local_monitor_mtab_cgroups1(self):
         dir = tempfile.mkdtemp(prefix='mtab-cgroups1-')
@@ -317,6 +315,22 @@ class TestLocalMonitorFactory(BZTestCase):
         with open(target_path, "w") as f:
             f.write(content)
 
+    @patch('bzt.modules.monitoring.open')
+    def test_create_local_monitor_mtab_not_readable(self, open):
+        open.side_effect = IOError('Test error')
+        dir = tempfile.mkdtemp(prefix='mtab-cgroups2-')
+        try:
+            # mtab file must contain a cgroup path that exists on the local system
+            mtab_template_path = os.path.join(RESOURCES_DIR, 'monitoring', 'mtab', 'mtab-cgroups2')
+            mtab_path = os.path.join(dir, 'mtab')
+            self.__copy_file_template(mtab_template_path, mtab_path, {'/sys/fs/cgroup': dir})
+            # create expected files
+            self.__mk_files(dir, ['cpu.stat', 'memory.current'])
+            monitor = LocalMonitorFactory.create_local_monitor(ROOT_LOGGER, ['cpu', 'mem'], EngineEmul(), mtab_path)
+            self.assertIsInstance(monitor, StandardLocalMonitor)
+        finally:
+            shutil.rmtree(dir)
+
     @patch('bzt.modules.monitoring.is_windows')
     def test_create_local_monitor(self, is_windows):
         test_params = [
@@ -334,9 +348,6 @@ class TestLocalMonitorFactory(BZTestCase):
 
 
 class TestCgroups2LocalMonitor(BZTestCase):
-
-    def setUp(self):
-        super().setUp()
 
     def test_get_mem_stats_no_limit(self):
         cgroups_path = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2', 'no_mem_limit')
@@ -359,6 +370,14 @@ class TestCgroups2LocalMonitor(BZTestCase):
                 monitor = Cgroups2LocalMonitor(cgroups_path, ROOT_LOGGER, ['mem'], EngineEmul())
                 stats = monitor.resource_stats()
                 self.assertEqual(stats['mem'], value_eq)
+
+    @patch('bzt.modules.monitoring.open')
+    def test_get_mem_stats_not_readable(self, open):
+        open.side_effect = IOError('Test error')
+        cgroups_path = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2', 'with_mem_limit')
+        monitor = Cgroups2LocalMonitor(cgroups_path, ROOT_LOGGER, ['mem'], EngineEmul())
+        stats = monitor.resource_stats()
+        self.assertIsNone(stats['mem'])
 
     def test_get_cpu_stats(self):
         test_params = [
@@ -389,3 +408,16 @@ class TestCgroups2LocalMonitor(BZTestCase):
                 stats = monitor.resource_stats()
                 self.assertGreaterEqual(stats['cpu'], value_gte)
                 self.assertLessEqual(stats['cpu'], value_lte)
+
+    @patch('bzt.modules.monitoring.open')
+    def test_get_cpu_stats_not_readable(self, open):
+        open.side_effect = IOError('Test error')
+        cgroups_path1 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2', 'with_cpu_limit1')
+        cgroups_path2 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2', 'with_cpu_limit2')
+        monitor = Cgroups2LocalMonitor(cgroups_path1, ROOT_LOGGER, ['cpu'], EngineEmul())
+        monitor.resource_stats()
+        # resource_stats() requires a short time period to elapse
+        time.sleep(0.1)
+        monitor._cgroup_fs_path = cgroups_path2
+        stats = monitor.resource_stats()
+        self.assertEqual(stats['cpu'], 0)
