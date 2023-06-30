@@ -396,9 +396,9 @@ class TestCgroups1LocalMonitor(BZTestCase):
             ('nonexistent1', 'nonexistent2', 0.0, 0.0),
             # cpu usage could be any value depending on the number of cpu cores available and sleep accuracy
             ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0),
-            # should be about 50%, extra range due to 200ms sleep accuracy
+            # should be about 50%, extra range due to 400ms sleep accuracy
             ('with_cpu_limit1', 'with_cpu_limit2', 30.0, 70.0),
-            # should be about 25%, extra range due to 200ms sleep accuracy
+            # should be about 25%, extra range due to 400ms sleep accuracy
             ('with_small_cpu_period1', 'with_small_cpu_period2', 10.0, 40.0),
             # invalid value in cpuacct.usage
             ('with_invalid_cpu_usage1', 'with_invalid_cpu_usage1', 0.0, 0.0),
@@ -415,7 +415,7 @@ class TestCgroups1LocalMonitor(BZTestCase):
                 stats = monitor.resource_stats()
                 self.assertEqual(stats['cpu'], 0)
                 # resource_stats() requires a short time period to elapse
-                time.sleep(0.2)
+                time.sleep(0.4)
                 monitor._cgroup_fs_path = cgroups_path2
                 stats = monitor.resource_stats()
                 self.assertGreaterEqual(stats['cpu'], value_gte)
@@ -429,7 +429,7 @@ class TestCgroups1LocalMonitor(BZTestCase):
         monitor = Cgroups1LocalMonitor(cgroups_path1, ROOT_LOGGER, ['cpu'], EngineEmul())
         monitor.resource_stats()
         # resource_stats() requires a short time period to elapse
-        time.sleep(0.2)
+        time.sleep(0.4)
         monitor._cgroup_fs_path = cgroups_path2
         stats = monitor.resource_stats()
         self.assertEqual(stats['cpu'], 0)
@@ -482,9 +482,9 @@ class TestCgroups2LocalMonitor(BZTestCase):
             # cpu usage could be any value depending on the number of cpu cores available and sleep accuracy
             ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0),
             ('invalid_cpu_quota1', 'invalid_cpu_quota2', 0.1, 100.0),
-            # should be about 50%, extra range due to 200ms sleep accuracy
+            # should be about 50%, extra range due to 400ms sleep accuracy
             ('with_cpu_limit1', 'with_cpu_limit2', 30.0, 70.0),
-            # should be about 25%, extra range due to 200ms sleep accuracy
+            # should be about 25%, extra range due to 400ms sleep accuracy
             ('with_small_cpu_period1', 'with_small_cpu_period2', 10.0, 40.0),
             # invalid usage_usec value in cpu.stat
             ('with_invalid_cpu_usage1', 'with_invalid_cpu_usage1', 0.0, 0.0),
@@ -501,7 +501,7 @@ class TestCgroups2LocalMonitor(BZTestCase):
                 stats = monitor.resource_stats()
                 self.assertEqual(stats['cpu'], 0)
                 # resource_stats() requires a short time period to elapse
-                time.sleep(0.2)
+                time.sleep(0.4)
                 monitor._cgroup_fs_path = cgroups_path2
                 stats = monitor.resource_stats()
                 self.assertGreaterEqual(stats['cpu'], value_gte)
@@ -515,7 +515,7 @@ class TestCgroups2LocalMonitor(BZTestCase):
         monitor = Cgroups2LocalMonitor(cgroups_path1, ROOT_LOGGER, ['cpu'], EngineEmul())
         monitor.resource_stats()
         # resource_stats() requires a short time period to elapse
-        time.sleep(0.2)
+        time.sleep(0.4)
         monitor._cgroup_fs_path = cgroups_path2
         stats = monitor.resource_stats()
         self.assertEqual(stats['cpu'], 0)
