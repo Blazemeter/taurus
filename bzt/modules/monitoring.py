@@ -360,7 +360,7 @@ class StandardLocalMonitor(BaseLocalMonitor):
     def _get_mem_info(self):
         try:
             return psutil.virtual_memory().percent
-        except KeyError:
+        except AttributeError:
             if not self._informed_on_mem_issue:
                 self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
                 self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
@@ -387,6 +387,85 @@ class BaseCgroupsLocalMonitor(BaseLocalMonitor, ABC):
         super().__init__(parent_logger, metrics, engine)
         self._log = parent_logger.getChild(self.__class__.__name__)
         self._cgroup_fs_path = cgroup_fs_path
+        # max cpu usage in microseconds per one second
+        self._max_cpu_usage = self._get_max_cpu_usage()
+        self._max_memory_usage = self._get_max_memory_usage()
+        self._cpu_usage1_usec = None
+        self._cpu_usage1_time = None
+
+    def _get_max_cpu_usage(self) -> Optional[int]:
+        """
+        Returns maximum possible cpu usage per one second.
+        """
+        max_cpu_usage = self._get_cgroups_max_cpu_usage()
+        if not max_cpu_usage:
+            # if no cgroups limit is in place, then maximum possible cpu usage depends on the number of available cpus
+            max_cpu_usage = psutil.cpu_count() * 1000000  # number of cpus * microseconds in one second
+        return max_cpu_usage
+
+    @abstractmethod
+    def _get_cgroups_max_cpu_usage(self) -> Optional[int]:
+        pass
+
+    def _get_max_memory_usage(self) -> Optional[int]:
+        max_memory_usage = self._get_cgroups_max_memory_usage()
+        if not max_memory_usage:
+            # if no cgroups limit is in place, then maximum possible memory usage is total available system memory
+            try:
+                max_memory_usage = psutil.virtual_memory().total
+            except AttributeError:
+                self._log.warning(f'Unable to determine total available memory', exc_info=True)
+        return max_memory_usage
+
+    @abstractmethod
+    def _get_cgroups_max_memory_usage(self) -> Optional[int]:
+        pass
+
+    def _get_cpu_percent(self):
+        """
+        Returns average cpu usage in percentage between the last and this measurement. First call returns 0.
+        """
+        cpu_delta = None
+        total_delta = None
+        cpu_usage = 0
+        try:
+            cpu_usage2_time = time.time()
+            cpu_usage2_usec = self._get_cgroups_cpu_usage_snapshot()
+            if cpu_usage2_usec and self._cpu_usage1_usec:
+                # elapsed cpu time our cgroup consumed in time period between measurements
+                cpu_delta = cpu_usage2_usec - self._cpu_usage1_usec
+            if self._cpu_usage1_time:
+                time_delta = cpu_usage2_time - self._cpu_usage1_time
+                # max possible cpu usage per one second adjusted to elapsed time between measurements
+                total_delta = self._max_cpu_usage * time_delta
+            if cpu_delta and total_delta:
+                cpu_usage = round((cpu_delta / total_delta) * 100, 1)
+            self._cpu_usage1_usec = cpu_usage2_usec
+            self._cpu_usage1_time = cpu_usage2_time
+        except BaseException:
+            self._log.warning(f'Unable to determine cpu usage', exc_info=True)
+        return cpu_usage
+
+    @abstractmethod
+    def _get_cgroups_cpu_usage_snapshot(self) -> Optional[int]:
+        pass
+
+    def _get_mem_info(self):
+        """
+        Returns memory usage in percentage of available memory.
+        """
+        memory_usage_pct = None
+        try:
+            memory_usage = self._get_cgroups_current_memory_usage()
+            if self._max_memory_usage and memory_usage:
+                memory_usage_pct = round((memory_usage / self._max_memory_usage) * 100, 1)
+        except BaseException:
+            self._log.warning(f'Unable to determine memory usage', exc_info=True)
+        return memory_usage_pct
+
+    @abstractmethod
+    def _get_cgroups_current_memory_usage(self) -> Optional[int]:
+        pass
 
     def _read_int_key_from_cgroups(self, filename: str, semantics: str, key: str) -> Optional[int]:
         path = os.path.join(self._cgroup_fs_path, filename)
@@ -415,11 +494,15 @@ class BaseCgroupsLocalMonitor(BaseLocalMonitor, ABC):
             self._log.warning(f'Unable to determine cgroups {semantics}. File {path} is not readable')
             return None
 
-        int_value = None
         try:
             int_value = int(content)
         except ValueError:
             self._log.debug(f'Unable to determine cgroups {semantics}. Value {content} is not an integer.')
+            return None
+        # max value can be represented as -1 or max 64bit value
+        if int_value < 0 or int_value > 9000000000000000000:
+            self._log.debug(f'Unable to determine cgroups {semantics}. Value {int_value} is outside of accepted range.')
+            int_value = None
         return int_value
 
     @staticmethod
@@ -437,14 +520,44 @@ class BaseCgroupsLocalMonitor(BaseLocalMonitor, ABC):
         return None
 
 
-class Cgroups1LocalMonitor(StandardLocalMonitor):
+class Cgroups1LocalMonitor(BaseCgroupsLocalMonitor):
     """
     Local monitor that takes some health metrics from cgroups1 virtual file system for accuracy.
     """
     REQUIRED_FILES = [os.path.join('cpu', 'cpuacct.usage'), os.path.join('memory', 'memory.usage_in_bytes')]
 
     def __init__(self, cgroup_fs_path: str, parent_logger: Logger, metrics: List[str], engine):
-        super().__init__(parent_logger, metrics, engine)
+        super().__init__(cgroup_fs_path, parent_logger, metrics, engine)
+        self._log = parent_logger.getChild(self.__class__.__name__)
+
+    def _get_cgroups_current_memory_usage(self) -> Optional[int]:
+        total_memory_usage = self._read_int_from_cgroups(os.path.join('memory', 'memory.usage_in_bytes'),
+                                                         'current memory usage')
+        cache_memory_usage = self._read_int_key_from_cgroups(os.path.join('memory', 'memory.stat'), 'cache memory',
+                                                             'total_inactive_file')
+        if total_memory_usage and cache_memory_usage:
+            total_memory_usage = total_memory_usage - cache_memory_usage
+        return total_memory_usage
+
+    def _get_cgroups_cpu_usage_snapshot(self) -> Optional[int]:
+        return self._read_int_from_cgroups(os.path.join('cpu', 'cpuacct.usage'), 'cpu usage')
+
+    def _get_cgroups_max_cpu_usage(self) -> Optional[int]:
+        """
+        Returns maximum possible cpu usage per one second determined from cgroups1 limits. Returns None if there is
+        no cgroups limit set.
+        """
+        quota_us = self._read_int_from_cgroups(os.path.join('cpu', 'cpu.cfs_quota_us'), 'max cpu quota us')
+        period_us = self._read_int_from_cgroups(os.path.join('cpu', 'cpu.cfs_period_us'), 'max cpu period us')
+
+        if quota_us and period_us:
+            cpu_periods_count = 1 / (period_us / 1000000)
+            return int(cpu_periods_count * quota_us)
+        self._log.debug(f'No cgroups1 cpu usage limit set: {quota_us} {period_us}')
+        return None
+
+    def _get_cgroups_max_memory_usage(self) -> Optional[int]:
+        return self._read_int_from_cgroups(os.path.join('memory', 'memory.limit_in_bytes'), 'max memory usage')
 
 
 class Cgroups2LocalMonitor(BaseCgroupsLocalMonitor):
@@ -456,72 +569,19 @@ class Cgroups2LocalMonitor(BaseCgroupsLocalMonitor):
     def __init__(self, cgroup_fs_path: str, parent_logger: Logger, metrics: List[str], engine):
         super().__init__(cgroup_fs_path, parent_logger, metrics, engine)
         self._log = parent_logger.getChild(self.__class__.__name__)
-        # max cpu usage in microseconds per one second
-        self._max_cpu_usage = self._get_max_cpu_usage()
-        self._max_memory_usage = self._get_max_memory_usage()
-        self._cpu_usage1_usec = None
-        self._cpu_usage1_time = None
 
-    def _get_mem_info(self):
-        """
-        Returns memory usage in percentage of available memory.
-        """
-        memory_usage_pct = None
-        try:
-            memory_usage = self._get_cgroups2_current_memory_usage()
-            if self._max_memory_usage and memory_usage:
-                memory_usage_pct = round((memory_usage / self._max_memory_usage) * 100, 1)
-        except BaseException:
-            self._log.warning(f'Unable to determine memory usage', exc_info=True)
-        return memory_usage_pct
-
-    def _get_cgroups2_current_memory_usage(self) -> Optional[int]:
+    def _get_cgroups_current_memory_usage(self) -> Optional[int]:
         total_memory_usage = self._read_int_from_cgroups('memory.current', 'current memory usage')
         cache_memory_usage = self._read_int_key_from_cgroups('memory.stat', 'cache memory', 'inactive_file')
         if total_memory_usage and cache_memory_usage:
             total_memory_usage = total_memory_usage - cache_memory_usage
         return total_memory_usage
 
-    def _get_cpu_percent(self):
-        """
-        Returns average cpu usage in percentage between the last and this measurement. First call returns 0.
-        """
-        cpu_delta = None
-        total_delta = None
-        cpu_usage = 0
-        try:
-            cpu_usage2_time = time.time()
-            cpu_usage2_usec = self._get_cpu_usage_snapshot()
-            if cpu_usage2_usec and self._cpu_usage1_usec:
-                # elapsed cpu time our cgroup consumed in time period between measurements
-                cpu_delta = cpu_usage2_usec - self._cpu_usage1_usec
-            if self._cpu_usage1_time:
-                time_delta = cpu_usage2_time - self._cpu_usage1_time
-                # max possible cpu usage per one second adjusted to elapsed time between measurements
-                total_delta = self._max_cpu_usage * time_delta
-            if cpu_delta and total_delta:
-                cpu_usage = round((cpu_delta / total_delta) * 100, 1)
-            self._cpu_usage1_usec = cpu_usage2_usec
-            self._cpu_usage1_time = cpu_usage2_time
-        except BaseException:
-            self._log.warning(f'Unable to determine cpu usage', exc_info=True)
-        return cpu_usage
-
-    def _get_cpu_usage_snapshot(self) -> Optional[int]:
+    def _get_cgroups_cpu_usage_snapshot(self) -> Optional[int]:
         # the file /sys/fs/cgroup/cpu.stat contains multiple lines. Look for line “usage_usec 80173951“
         return self._read_int_key_from_cgroups('cpu.stat', 'cpu usage', 'usage_usec')
 
-    def _get_max_cpu_usage(self) -> Optional[int]:
-        """
-        Returns maximum possible cpu usage per one second.
-        """
-        max_cpu_usage = self._get_cgroups2_max_cpu_usage()
-        if not max_cpu_usage:
-            # if no cgroups2 limit is in place, then maximum possible cpu usage depends on the number of available cpus
-            max_cpu_usage = psutil.cpu_count() * 1000000  # number of cpus * microseconds in one second
-        return max_cpu_usage
-
-    def _get_cgroups2_max_cpu_usage(self) -> Optional[int]:
+    def _get_cgroups_max_cpu_usage(self) -> Optional[int]:
         """
         Returns maximum possible cpu usage per one second determined from cgroups2 limits. Returns None if there is
         no cgroups2 limit set.
@@ -554,17 +614,7 @@ class Cgroups2LocalMonitor(BaseCgroupsLocalMonitor):
         self._log.debug(f'No cgroups2 cpu usage limit set: {content}')
         return None
 
-    def _get_max_memory_usage(self) -> Optional[int]:
-        max_memory_usage = self._get_cgroups2_max_memory_usage()
-        if not max_memory_usage:
-            # if no cgroups2 limit is in place, then maximum possible memory usage is total available system memory
-            try:
-                max_memory_usage = psutil.virtual_memory().total
-            except KeyError:
-                self._log.warning(f'Unable to determine total available memory', exc_info=True)
-        return max_memory_usage
-
-    def _get_cgroups2_max_memory_usage(self) -> Optional[int]:
+    def _get_cgroups_max_memory_usage(self) -> Optional[int]:
         return self._read_int_from_cgroups('memory.max', 'max memory usage')
 
 
