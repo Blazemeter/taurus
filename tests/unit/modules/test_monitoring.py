@@ -393,19 +393,19 @@ class TestCgroups1LocalMonitor(BZTestCase):
 
     def test_get_cpu_stats(self):
         test_params = [
-            ('nonexistent1', 'nonexistent2', 0.0, 0.0),
+            ('nonexistent1', 'nonexistent2', 0.0, 0.0, 0.4),
             # cpu usage could be any value depending on the number of cpu cores available and sleep accuracy
-            ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0),
+            ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0, 0.4),
             # should be about 50%, extra range due to 400ms sleep accuracy
-            ('with_cpu_limit1', 'with_cpu_limit2', 30.0, 70.0),
+            ('with_cpu_limit1', 'with_cpu_limit2', 30.0, 70.0, 0.4),
             # should be about 25%, extra range due to 400ms sleep accuracy
-            ('with_small_cpu_period1', 'with_small_cpu_period2', 10.0, 40.0),
+            ('with_small_cpu_period1', 'with_small_cpu_period2', 10.0, 40.0, 0.4),
             # invalid value in cpuacct.usage
-            ('with_invalid_cpu_usage1', 'with_invalid_cpu_usage1', 0.0, 0.0),
+            ('with_invalid_cpu_usage1', 'with_invalid_cpu_usage1', 0.0, 0.0, 0.4),
             # absent cpuacct.usage file
-            ('with_absent_cpu_usage1', 'with_absent_cpu_usage1', 0.0, 0.0),
+            ('with_absent_cpu_usage1', 'with_absent_cpu_usage1', 0.0, 0.0, 0.4),
         ]
-        for cgroups_dir1, cgroups_dir2, value_gte, value_lte in test_params:
+        for cgroups_dir1, cgroups_dir2, value_gte, value_lte, sleep_sec in test_params:
             with self.subTest(str((cgroups_dir1, cgroups_dir2, value_gte, value_lte))):
                 cgroups_path1 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups1',
                                              cgroups_dir1) if cgroups_dir1 else None
@@ -415,7 +415,7 @@ class TestCgroups1LocalMonitor(BZTestCase):
                 stats = monitor.resource_stats()
                 self.assertEqual(stats['cpu'], 0)
                 # resource_stats() requires a short time period to elapse
-                time.sleep(0.4)
+                time.sleep(sleep_sec)
                 monitor._cgroup_fs_path = cgroups_path2
                 stats = monitor.resource_stats()
                 self.assertGreaterEqual(stats['cpu'], value_gte)
@@ -429,7 +429,7 @@ class TestCgroups1LocalMonitor(BZTestCase):
         monitor = Cgroups1LocalMonitor(cgroups_path1, ROOT_LOGGER, ['cpu'], EngineEmul())
         monitor.resource_stats()
         # resource_stats() requires a short time period to elapse
-        time.sleep(0.4)
+        time.sleep(0.1)
         monitor._cgroup_fs_path = cgroups_path2
         stats = monitor.resource_stats()
         self.assertEqual(stats['cpu'], 0)
@@ -478,20 +478,20 @@ class TestCgroups2LocalMonitor(BZTestCase):
 
     def test_get_cpu_stats(self):
         test_params = [
-            ('nonexistent1', 'nonexistent2', 0.0, 0.0),
+            ('nonexistent1', 'nonexistent2', 0.0, 0.0, 0.4),
             # cpu usage could be any value depending on the number of cpu cores available and sleep accuracy
-            ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0),
-            ('invalid_cpu_quota1', 'invalid_cpu_quota2', 0.1, 100.0),
+            ('no_cpu_limit1', 'no_cpu_limit2', 0.1, 100.0, 0.4),
+            ('invalid_cpu_quota1', 'invalid_cpu_quota2', 0.1, 100.0, 0.4),
             # should be about 50%, extra range due to 400ms sleep accuracy
-            ('with_cpu_limit1', 'with_cpu_limit2', 30.0, 70.0),
+            ('with_cpu_limit1', 'with_cpu_limit2', 30.0, 70.0, 0.4),
             # should be about 25%, extra range due to 400ms sleep accuracy
-            ('with_small_cpu_period1', 'with_small_cpu_period2', 10.0, 40.0),
+            ('with_small_cpu_period1', 'with_small_cpu_period2', 10.0, 40.0, 0.4),
             # invalid usage_usec value in cpu.stat
-            ('with_invalid_cpu_usage1', 'with_invalid_cpu_usage1', 0.0, 0.0),
+            ('with_invalid_cpu_usage1', 'with_invalid_cpu_usage1', 0.0, 0.0, 0.4),
             # absent usage_usec in cpu.stat
-            ('with_absent_cpu_usage1', 'with_absent_cpu_usage1', 0.0, 0.0),
+            ('with_absent_cpu_usage1', 'with_absent_cpu_usage1', 0.0, 0.0, 0.4),
         ]
-        for cgroups_dir1, cgroups_dir2, value_gte, value_lte in test_params:
+        for cgroups_dir1, cgroups_dir2, value_gte, value_lte, sleep_sec in test_params:
             with self.subTest(str((cgroups_dir1, cgroups_dir2, value_gte, value_lte))):
                 cgroups_path1 = os.path.join(RESOURCES_DIR, 'monitoring', 'cgroups2',
                                              cgroups_dir1) if cgroups_dir1 else None
@@ -501,7 +501,7 @@ class TestCgroups2LocalMonitor(BZTestCase):
                 stats = monitor.resource_stats()
                 self.assertEqual(stats['cpu'], 0)
                 # resource_stats() requires a short time period to elapse
-                time.sleep(0.4)
+                time.sleep(sleep_sec)
                 monitor._cgroup_fs_path = cgroups_path2
                 stats = monitor.resource_stats()
                 self.assertGreaterEqual(stats['cpu'], value_gte)
@@ -515,7 +515,7 @@ class TestCgroups2LocalMonitor(BZTestCase):
         monitor = Cgroups2LocalMonitor(cgroups_path1, ROOT_LOGGER, ['cpu'], EngineEmul())
         monitor.resource_stats()
         # resource_stats() requires a short time period to elapse
-        time.sleep(0.4)
+        time.sleep(0.1)
         monitor._cgroup_fs_path = cgroups_path2
         stats = monitor.resource_stats()
         self.assertEqual(stats['cpu'], 0)
