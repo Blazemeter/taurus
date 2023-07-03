@@ -540,7 +540,11 @@ class Cgroups1LocalMonitor(BaseCgroupsLocalMonitor):
         return total_memory_usage
 
     def _get_cgroups_cpu_usage_snapshot(self) -> Optional[int]:
-        return self._read_int_from_cgroups(os.path.join('cpu', 'cpuacct.usage'), 'cpu usage')
+        cpu_usage = self._read_int_from_cgroups(os.path.join('cpu', 'cpuacct.usage'), 'cpu usage')
+        if cpu_usage:
+            # cgroups1 cpuacct.usage contains cpu usage in nanoseconds, but we need value in microseconds
+            cpu_usage = round(cpu_usage / 1000)
+        return cpu_usage
 
     def _get_cgroups_max_cpu_usage(self) -> Optional[int]:
         """
