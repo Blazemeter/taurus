@@ -25,7 +25,13 @@ RUN $PIP_INSTALL --user --upgrade pip pillow oauthlib pyjwt httplib2 numpy
 
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
-    openjdk-11-jdk xvfb siege apache2-utils ruby ruby-dev make nodejs locales tsung dotnet-sdk-6.0
+    openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung dotnet-sdk-6.0
+
+RUN curl -fsSL https://github.com/rbenv/rbenv-installer/raw/HEAD/bin/rbenv-installer | bash
+RUN echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
+RUN echo 'eval "$(rbenv init -)"' >> ~/.bashrc
+RUN source ~/.bashrc
+RUN rbenv install 3.2.2
 
 # firefox repo - do not use snap
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap
