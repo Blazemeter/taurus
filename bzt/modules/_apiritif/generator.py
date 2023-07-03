@@ -967,19 +967,19 @@ from selenium.webdriver.common.keys import Keys
             or_else = []
             if isinstance(v_to, numbers.Integral):
                 or_else = [ast.If(test=ast.Compare(left=ast.Name(id=counter, ctx=ast.Load()), ops=[ast.Gt()],
-                                                   comparators=[ast.Constant(value=v_to, kind="")]), body=[ast.Break()],
+                                                   comparators=[ast.Num(n=v_to, kind="")]), body=[ast.Break()],
                                   orelse=[])]
 
             if isinstance(v_from, numbers.Integral) and isinstance(v_to, numbers.Integral):
-                compare_expr = ast.Compare(left=ast.Constant(value=v_from-1, kind=""), ops=[ast.Lt(), ast.Lt()],
+                compare_expr = ast.Compare(left=ast.Num(n=v_from-1, kind=""), ops=[ast.Lt(), ast.Lt()],
                                            comparators=[ast.Name(id=counter, ctx=ast.Load()),
-                                                        ast.Constant(value=v_to+1, kind="")])
+                                                        ast.Num(n=v_to+1, kind="")])
             elif isinstance(v_from, numbers.Integral):
                 compare_expr = ast.Compare(left=ast.Name(id=counter, ctx=ast.Load()), ops=[ast.Gt()],
-                                           comparators=[ast.Constant(value=v_from-1, kind="")])
+                                           comparators=[ast.Num(n=v_from-1, kind="")])
             else:
                 compare_expr = ast.Compare(left=ast.Name(id=counter, ctx=ast.Load()), ops=[ast.Lt()],
-                                           comparators=[ast.Constant(value=v_to+1, kind="")])
+                                           comparators=[ast.Num(n=v_to+1, kind="")])
             try_body.append(ast.If(test=compare_expr, body=actions_body, orelse=or_else))
         else:
             try_body.append(actions_body)
