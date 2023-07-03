@@ -937,7 +937,7 @@ from selenium.webdriver.common.keys import Keys
         counter = ""
         if isinstance(v_from, numbers.Integral) or isinstance(v_to, numbers.Integral):
             counter = '{}_loop_counter'.format(entity)
-            elements.append(ast.Assign(targets=[ast.Name(id=counter, ctx=ast.Store())], value=ast.Num(0)))
+            elements.append(ast.Assign(targets=[ast.Name(id=counter, ctx=ast.Store())], value=ast.Constant(0, kind="")))
 
         # generate code to retrieve one row from the CSV file
         try_body = [gen_empty_line_stmt(),
@@ -961,25 +961,25 @@ from selenium.webdriver.common.keys import Keys
                 raise TaurusConfigError("From index must be lower than to in 'loopOverData'")
 
             # increment the counter during each loop
-            try_body.append(ast.AugAssign(target=[ast.Name(id=counter, ctx=ast.Store())], value=ast.Num(1, kind=""),
+            try_body.append(ast.AugAssign(target=[ast.Name(id=counter, ctx=ast.Store())], value=ast.Constant(1, kind=""),
                                           op=ast.Add()))
 
             or_else = []
             if isinstance(v_to, numbers.Integral):
                 or_else = [ast.If(test=ast.Compare(left=ast.Name(id=counter, ctx=ast.Load()), ops=[ast.Gt()],
-                                                   comparators=[ast.Num(v_to, kind="")]), body=[ast.Break()],
+                                                   comparators=[ast.Constant(v_to, kind="")]), body=[ast.Break()],
                                   orelse=[])]
 
             if isinstance(v_from, numbers.Integral) and isinstance(v_to, numbers.Integral):
-                compare_expr = ast.Compare(left=ast.Num(v_from-1, kind=""), ops=[ast.Lt(), ast.Lt()],
+                compare_expr = ast.Compare(left=ast.Constant(v_from-1, kind=""), ops=[ast.Lt(), ast.Lt()],
                                            comparators=[ast.Name(id=counter, ctx=ast.Load()),
-                                                        ast.Num(v_to+1, kind="")])
+                                                        ast.Constant(v_to+1, kind="")])
             elif isinstance(v_from, numbers.Integral):
                 compare_expr = ast.Compare(left=ast.Name(id=counter, ctx=ast.Load()), ops=[ast.Gt()],
-                                           comparators=[ast.Num(v_from-1, kind="")])
+                                           comparators=[ast.Constant(v_from-1, kind="")])
             else:
                 compare_expr = ast.Compare(left=ast.Name(id=counter, ctx=ast.Load()), ops=[ast.Lt()],
-                                           comparators=[ast.Num(v_to+1, kind="")])
+                                           comparators=[ast.Constant(v_to+1, kind="")])
             try_body.append(ast.If(test=compare_expr, body=actions_body, orelse=or_else))
         else:
             try_body.append(actions_body)
