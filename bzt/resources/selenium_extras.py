@@ -1,7 +1,8 @@
 # Utility functions and classes for Taurus Selenium tests
 import time
 
-from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, external_handler
+from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, \
+    external_handler, CSVReaderPerThread
 
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException, NoSuchElementException, \
     TimeoutException, UnexpectedAlertPresentException
@@ -533,3 +534,25 @@ def action_start(action):
 def action_end(action):
     driver = _get_driver()
     external_handler(driver.session_id if driver else None, BaseActionHandler.YAML_ACTION_END, action)
+
+
+def get_csv_reader_for_entity_loop(data_sources, entity_name):
+    filename = None
+    fieldnames = None
+    quoted = False
+    delimiter = None
+    encoding = None
+    for idx, source in enumerate(data_sources, start=1):
+        if source.get("path", "").lower().endswith(entity_name.lower() + ".csv") \
+                or source.get("path", "").lower().endswith(entity_name.lower()):
+            filename = source.get("path")
+            fieldnames = source.get("variable-names", None)
+            quoted = source.get("quoted", None)
+            delimiter = source.get("delimiter", None)
+            encoding = source.get("encoding", None)
+
+    if not filename:
+        raise TaurusException("Data entity name '{}' for 'loopOverData' not found in 'data-sources'!".format(entity_name))
+
+    return CSVReaderPerThread(filename=filename, fieldnames=fieldnames, loop=False, quoted=quoted, delimiter=delimiter,
+                              encoding=encoding)

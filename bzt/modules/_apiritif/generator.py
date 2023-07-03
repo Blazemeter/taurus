@@ -16,6 +16,7 @@ limitations under the License.
 
 import ast
 import math
+import numbers
 import re
 import string
 from collections import OrderedDict
@@ -101,7 +102,7 @@ class ApiritifScriptGenerator(object):
     ACTIONS_WITH_WAITER = ['go', 'click', 'doubleclick', 'contextclick', 'drag', 'select', 'type', 'typeSecret',
                            'script']
 
-    EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach'])
+    EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach', 'loopOverData'])
 
     SELENIUM_413_VERSION = LooseVersion('4.1.3')
 
@@ -754,6 +755,8 @@ from selenium.webdriver.common.keys import Keys
             action_elements.append(self._gen_loop_mngr(action_config))
         elif atype == 'foreach':
             action_elements.append(self._gen_foreach_mngr(action_config))
+        elif atype == 'loopoverdata':
+            action_elements.append(self._gen_loop_over_data_mngr(action_config))
 
         if not action_elements and not self.ignore_unknown_actions:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
@@ -887,6 +890,107 @@ from selenium.webdriver.common.keys import Keys
                                   args=range_args),
                     body=body,
                     orelse=[]))
+
+        return elements
+
+    def _gen_loop_over_data_mngr(self, action_config):
+        exc = TaurusConfigError("LoopOverData must contain do")
+        actions = action_config.get('do', exc)
+        if len(actions) == 0:
+            raise exc
+
+        self.selenium_extras.add("get_csv_reader_for_entity_loop")
+        data_sources = []
+        v_from = action_config.get('from')
+        v_to = action_config.get('to')
+
+        # pass defined data sources to the get_csv_reader_for_entity_loop method from selenium_extras
+        for ds in self.data_sources:
+            var_names = []
+            if ds["variable-names"]:
+                var_names = [ast.Str(v.strip(), kind="") for v in ds["variable-names"].split(",")]
+            variable_names = ast.List(elts=var_names)
+            keys = [
+                ast.Str("path", kind=""),
+                ast.Str("variable-names", kind=""),
+                ast.Str("quoted", kind=""),
+                ast.Str("delimiter", kind=""),
+                ast.Str("encoding", kind="")]
+            values = [
+                ast.Str(ds["path"], kind=""),
+                variable_names,
+                ast.Str(ds["quoted"], kind=""),
+                ast.Str(ds["delimiter"], kind=""),
+                ast.Str(ds["encoding"], kind="")]
+            data_sources.append(ast.Dict(keys, values))
+
+        entity = action_config.get("loopOverData").replace(".", "_").replace("/", "_").replace("\\", "_")\
+            .replace(":", "_")
+
+        csv_reader = '{}_csv_reader'.format(entity)
+        elements = [ast.Assign(targets=[ast.Name(id=csv_reader, ctx=ast.Store())],
+                               value=ast_call(func=ast_attr("get_csv_reader_for_entity_loop"),
+                                              args=[ast.List(elts=data_sources),
+                                                    ast.Str(action_config.get("loopOverData"), kind="")]))]
+
+        # if from or to is specified we need to define the loop counter
+        counter = ""
+        if isinstance(v_from, numbers.Integral) or isinstance(v_to, numbers.Integral):
+            counter = '{}_loop_counter'.format(entity)
+            elements.append(ast.Assign(targets=[ast.Name(id=counter, ctx=ast.Store())], value=ast.Num(0)))
+
+        # generate code to retrieve one row from the CSV file
+        try_body = [gen_empty_line_stmt(),
+                    ast_call(func=ast_attr("{}.read_vars".format(csv_reader))),
+                    gen_empty_line_stmt(),
+                    ast.Assign(
+                        targets=[ast.Name(id='self.vars["{}"]'.format(action_config.get("variable")), ctx=ast.Store())],
+                        value=ast_call(func=ast_attr("{}.get_vars".format(csv_reader))))]
+
+        # the actual actions inside the loopOverData
+        actions_body = []
+        for action in actions:
+            actions_body.append(self._gen_action(action))
+
+        if isinstance(v_from, numbers.Integral) or isinstance(v_to, numbers.Integral):
+            if isinstance(v_from, numbers.Integral) and v_from < 0:
+                raise TaurusConfigError("From index in loopOverData must be greater than 0")
+            if isinstance(v_to, numbers.Integral) and v_to < 0:
+                raise TaurusConfigError("To index in loopOverData must be greater than 0")
+            if isinstance(v_from, numbers.Integral) and isinstance(v_to, numbers.Integral) and v_from > v_to:
+                raise TaurusConfigError("From index must be lower than to in 'loopOverData'")
+
+            # increment the counter during each loop
+            try_body.append(ast.AugAssign(target=[ast.Name(id=counter, ctx=ast.Store())], value=ast.Num(1),
+                                          op=ast.Add()))
+
+            or_else = []
+            if isinstance(v_to, numbers.Integral):
+                or_else = [ast.If(test=ast.Compare(left=ast.Name(id=counter, ctx=ast.Load()), ops=[ast.Gt()],
+                                                   comparators=[ast.Constant(value=v_to)]), body=[ast.Break()],
+                                  orelse=[])]
+
+            if isinstance(v_from, numbers.Integral) and isinstance(v_to, numbers.Integral):
+                compare_expr = ast.Compare(left=ast.Constant(value=v_from-1), ops=[ast.Lt(), ast.Lt()],
+                                           comparators=[ast.Name(id=counter, ctx=ast.Load()),
+                                                        ast.Constant(value=v_to+1)])
+            elif isinstance(v_from, numbers.Integral):
+                compare_expr = ast.Compare(left=ast.Name(id=counter, ctx=ast.Load()), ops=[ast.Gt()],
+                                           comparators=[ast.Constant(value=v_from-1)])
+            else:
+                compare_expr = ast.Compare(left=ast.Name(id=counter, ctx=ast.Load()), ops=[ast.Lt()],
+                                           comparators=[ast.Constant(value=v_to+1)])
+            try_body.append(ast.If(test=compare_expr, body=actions_body, orelse=or_else))
+        else:
+            try_body.append(actions_body)
+
+        handlers = [ast.ExceptHandler(
+            type=ast.Name(id='apiritif.utils.NormalShutdown', ctx=ast.Load()),
+            name=None,
+            body=[ast.Break()])]
+
+        while_body = ast.Try(body=try_body, handlers=handlers, orelse=[], finalbody=[])
+        elements.append(ast.While(test=ast.Name(True, ctx=ast.Load()), body=while_body, orelse=[]))
 
         return elements
 
