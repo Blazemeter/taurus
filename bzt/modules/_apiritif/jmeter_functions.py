@@ -196,11 +196,27 @@ class JMeterExprCompiler(object):
         if ctx is None:
             ctx = ast.Load()
 
-        return ast.Subscript(
-            value=ast.Name(id="self.vars", ctx=ast.Load()),
-            slice=ast.Index(value=ast.Str(s=varname, kind="")),
-            ctx=ctx
-        )
+        # in case this is a variable with dots, we need to access the inner dict
+        if "." in varname:
+            ixs = varname.split(".")
+            subs = ast.Subscript(
+                value=ast.Name(id="self.vars", ctx=ast.Load()),
+                slice=ast.Index(value=ast.Str(s=ixs[0], kind="")),
+                ctx=ctx
+            )
+            for i in range(1, len(ixs)):
+                subs = ast.Subscript(
+                    value=subs,
+                    slice=ast.Index(value=ast.Str(s=ixs[i], kind="")),
+                    ctx=ctx
+                )
+            return subs
+        else:
+            return ast.Subscript(
+                value=ast.Name(id="self.vars", ctx=ast.Load()),
+                slice=ast.Index(value=ast.Str(s=varname, kind="")),
+                ctx=ctx
+            )
 
     def gen_expr(self, value):
         if isinstance(value, bool):

@@ -664,6 +664,40 @@ scenarios:
               - clickById(id_${i}) 
 ``` 
 
+#### Loop Over Data
+
+`loopOverData` blocks allow looping over data rows of a csv file.
+
+For example:
+
+```yaml
+ - loopOverData: cities.csv # name of the csv file to loop over
+   variable: city # name of the variable that will hold the current row from the csv file
+   do:
+    - type: go
+      param: https://www.google.com?q=${city.name}  # to reference a value, use the variable name defined above and use the dot notation
+```
+
+To use `loopOverData` you need to specify the csv file in the `data-sources` section first,
+then you can reference it via either the full path or just the file name.
+
+Optionally it is possible to use indexes `from` and `to` so that you can loop only over a subset of csv data.
+You may use just one of the indexes or both in one block.
+
+The following example will start the loop at the 5th row and ends with the 10th row, so it will loop over 6 rows.
+
+```yaml
+ - loopOverData: cities.csv 
+   variable: city 
+   from: 5
+   to: 10
+   do:
+    - type: go
+      param: https://www.google.com?q=${city.name} 
+```
+
+Note that the first row in a csv file has an index value of 1.
+
 #### Mouse actions
 For mouse imitating actions you can use the following:
 - `clickByX(X\_name)`
