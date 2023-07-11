@@ -25,7 +25,7 @@ RUN $PIP_INSTALL --user --upgrade pip pillow oauthlib pyjwt httplib2 numpy
 
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
-    openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung dotnet-sdk-6.0 libtool libss-dev libyaml-dev libxml2-dev libxslt-dev
+    openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung dotnet-sdk-6.0 libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
 
 # Install rbenv and ruby-build
 RUN git clone https://github.com/sstephenson/rbenv.git /root/.rbenv
