@@ -50,7 +50,7 @@ RUN $APT_UPDATE && $APT_INSTALL firefox
 RUN locale-gen "en_US.UTF-8" && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 # Force cgi version to fix CVE-2021-41816 -> updated to 0.2.1
-RUN gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup #\
+RUN gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup
 #    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/cgi-0.2.0.gemspec \
 #    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/bundler-2.2.22.gemspec \
 #    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/date-3.1.0.gemspec
