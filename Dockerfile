@@ -31,13 +31,15 @@ RUN $APT_UPDATE && $APT_INSTALL \
 RUN git clone https://github.com/sstephenson/rbenv.git /root/.rbenv
 RUN git clone https://github.com/sstephenson/ruby-build.git /root/.rbenv/plugins/ruby-build
 RUN /root/.rbenv/plugins/ruby-build/install.sh
-ENV PATH /root/.rbenv/bin:$PATH
+ENV PATH /root/.rbenv/shims:/root/.rbenv/bin:$PATH
 RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh # or /etc/profile
 RUN echo 'eval "$(rbenv init -)"' >> .bashrc
 
 #ENV CONFIGURE_OPTS --disable-install-doc
 #ADD ./versions.txt /root/versions.txt
 RUN xargs -L 1 rbenv install 3.2.2
+RUN rbenv global 3.2.2 | rbenv rehash
+
 
 # firefox repo - do not use snap
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap
@@ -48,10 +50,10 @@ RUN $APT_UPDATE && $APT_INSTALL firefox
 RUN locale-gen "en_US.UTF-8" && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 # Force cgi version to fix CVE-2021-41816 -> updated to 0.2.1
-RUN gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup \
-    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/cgi-0.2.0.gemspec \
-    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/bundler-2.2.22.gemspec \
-    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/date-3.1.0.gemspec
+RUN gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup #\
+#    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/cgi-0.2.0.gemspec \
+#    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/bundler-2.2.22.gemspec \
+#    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/date-3.1.0.gemspec
 
 
 # Get Google Chrome
