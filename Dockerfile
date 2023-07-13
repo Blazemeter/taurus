@@ -9,7 +9,7 @@ ENV PIP_INSTALL="python3 -m pip install"
 ADD https://deb.nodesource.com/setup_14.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
 ADD https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.deb /tmp
-COPY dist/bzt*whl /tmp
+COPY dist_orig/bzt*whl /tmp
 
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
@@ -88,6 +88,8 @@ RUN sed -i 's/3.0.4/3.0.8/g' package.json && npm update && npm install -g npm@la
 WORKDIR /root/.bzt/newman/node_modules/tough-cookie
 RUN sed -i 's/3.0.1/4.1.3/g' package.json
 
+WORKDIR /root/.bzt/newman/node_modules/postman-request/node_modules/tough-cookie
+RUN sed -i 's/2.5.0/4.1.3/g' package.json
 
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
