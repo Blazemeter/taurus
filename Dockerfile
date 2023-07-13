@@ -85,6 +85,10 @@ RUN rm -rf *.pem
 WORKDIR /root/.bzt/selenium-taurus/wdio/node_modules/recursive-readdir
 RUN sed -i 's/3.0.4/3.0.8/g' package.json && npm update && npm install -g npm@latest && npm -g update
 
+WORKDIR /root/.bzt/newman/node_modules/tough-cookie
+RUN sed -i 's/3.0.1/4.1.3/g' package.json
+
+
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
 # Rootless user
