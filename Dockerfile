@@ -64,6 +64,7 @@ RUN $APT_INSTALL gpg-agent \
   && $APT_INSTALL k6
 
 # auto installable tools
+SHELL ["/bin/sh", "-cl"]
 RUN mkdir -p /etc/bzt.d \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
