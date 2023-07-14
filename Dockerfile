@@ -52,8 +52,8 @@ RUN $APT_UPDATE && $APT_INSTALL firefox
 RUN locale-gen "en_US.UTF-8" && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 # Get Google Chrome
-#RUN $APT_INSTALL ./google-chrome-stable_current_amd64.deb \
-#  && mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome
+RUN $APT_INSTALL ./google-chrome-stable_current_amd64.deb \
+  && mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome
 
 # Install K6
 RUN $APT_INSTALL gpg-agent \
