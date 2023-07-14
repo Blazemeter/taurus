@@ -28,18 +28,20 @@ RUN $APT_UPDATE && $APT_INSTALL \
     openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung dotnet-sdk-6.0 libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
 
 # Install rbenv and ruby-build
-RUN git clone https://github.com/sstephenson/rbenv.git /root/.rbenv
-RUN git clone https://github.com/sstephenson/ruby-build.git /root/.rbenv/plugins/ruby-build
-RUN /root/.rbenv/plugins/ruby-build/install.sh
-ENV PATH /root/.rbenv/shims:/root/.rbenv/bin:$PATH
-RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh # or /etc/profile
-RUN echo 'eval "$(rbenv init -)"' >> .bashrc
-
-#ENV CONFIGURE_OPTS --disable-install-doc
-#ADD ./versions.txt /root/versions.txt
-RUN xargs -L 1 rbenv install 3.2.2
-RUN rbenv global 3.2.2 | rbenv rehash
-
+SHELL ["/bin/bash", "-c"]
+RUN git clone https://github.com/sstephenson/rbenv.git /usr/local/rbenv
+RUN git clone https://github.com/sstephenson/ruby-build.git /usr/local/rbenv/plugins/ruby-build
+RUN echo '# rbenv setup' > /etc/profile.d/rbenv.sh
+RUN echo 'export RBENV_ROOT=/usr/local/rbenv' >> /etc/profile.d/rbenv.sh
+RUN echo 'export PATH="$RBENV_ROOT/bin:$PATH"' >> /etc/profile.d/rbenv.sh
+RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh
+RUN chmod +x /etc/profile.d/rbenv.sh
+RUN source /etc/profile.d/rbenv.sh \
+    && rbenv install 3.2.2 && rbenv global 3.2.2 && rbenv rehash \
+    && gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup \
+    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/default/cgi-0.3.6.gemspec \
+    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/bundler-2.4.16.gemspec \
+    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/default/date-3.3.3.gemspec
 
 # firefox repo - do not use snap
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap
@@ -48,13 +50,6 @@ RUN $APT_UPDATE && $APT_INSTALL firefox
 
 # set en_US.UTF-8 as default locale
 RUN locale-gen "en_US.UTF-8" && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
-
-# Force cgi version to fix CVE-2021-41816 -> updated to 0.2.1
-RUN gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup
-#    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/cgi-0.2.0.gemspec \
-#    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/bundler-2.2.22.gemspec \
-#    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/date-3.1.0.gemspec
-
 
 # Get Google Chrome
 RUN $APT_INSTALL ./google-chrome-stable_current_amd64.deb \
@@ -96,4 +91,4 @@ RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-u
 # Rootless user
 # USER 1337:0
 WORKDIR /bzt-configs
-ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
+ENTRYPOINT ["sh", "-cl", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
