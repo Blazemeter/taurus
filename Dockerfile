@@ -38,10 +38,10 @@ RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh
 RUN chmod +x /etc/profile.d/rbenv.sh
 RUN source /etc/profile.d/rbenv.sh \
     && rbenv install 3.2.2 && rbenv global 3.2.2 && rbenv rehash \
-    && gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup \
-    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/default/cgi-0.3.6.gemspec \
-    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/bundler-2.4.16.gemspec \
-    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/default/date-3.3.3.gemspec
+    && gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup 
+#    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/default/cgi-0.3.6.gemspec \
+#    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/bundler-2.4.16.gemspec \
+#    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/default/date-3.3.3.gemspec
 
 # firefox repo - do not use snap
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap
@@ -52,8 +52,8 @@ RUN $APT_UPDATE && $APT_INSTALL firefox
 RUN locale-gen "en_US.UTF-8" && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 # Get Google Chrome
-RUN $APT_INSTALL ./google-chrome-stable_current_amd64.deb \
-  && mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome
+#RUN $APT_INSTALL ./google-chrome-stable_current_amd64.deb \
+#  && mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome
 
 # Install K6
 RUN $APT_INSTALL gpg-agent \
