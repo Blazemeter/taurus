@@ -38,10 +38,7 @@ RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh
 RUN chmod +x /etc/profile.d/rbenv.sh
 RUN source /etc/profile.d/rbenv.sh \
     && rbenv install 3.2.2 && rbenv global 3.2.2 && rbenv rehash \
-    && gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup 
-#    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/default/cgi-0.3.6.gemspec \
-#    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/bundler-2.4.16.gemspec \
-#    && rm /usr/local/rbenv/versions/3.2.2/lib/ruby/gems/3.2.0/specifications/default/date-3.3.3.gemspec
+    && gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup
 
 # firefox repo - do not use snap
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap
