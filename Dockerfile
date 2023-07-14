@@ -25,7 +25,20 @@ RUN $PIP_INSTALL --user --upgrade pip pillow oauthlib pyjwt httplib2 numpy
 
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
-    openjdk-11-jdk xvfb siege apache2-utils ruby ruby-dev make nodejs locales tsung dotnet-sdk-6.0
+    openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung dotnet-sdk-6.0 libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
+
+# Install rbenv and ruby-build
+SHELL ["/bin/bash", "-c"]
+RUN git clone https://github.com/sstephenson/rbenv.git /usr/local/rbenv
+RUN git clone https://github.com/sstephenson/ruby-build.git /usr/local/rbenv/plugins/ruby-build
+RUN echo '# rbenv setup' > /etc/profile.d/rbenv.sh
+RUN echo 'export RBENV_ROOT=/usr/local/rbenv' >> /etc/profile.d/rbenv.sh
+RUN echo 'export PATH="$RBENV_ROOT/bin:$PATH"' >> /etc/profile.d/rbenv.sh
+RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh
+RUN chmod +x /etc/profile.d/rbenv.sh
+RUN source /etc/profile.d/rbenv.sh \
+    && rbenv install 3.2.2 && rbenv global 3.2.2 && rbenv rehash \
+    && gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup
 
 # firefox repo - do not use snap
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap
@@ -34,13 +47,6 @@ RUN $APT_UPDATE && $APT_INSTALL firefox
 
 # set en_US.UTF-8 as default locale
 RUN locale-gen "en_US.UTF-8" && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
-
-# Force cgi version to fix CVE-2021-41816 -> updated to 0.2.1
-RUN gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup \
-    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/cgi-0.2.0.gemspec \
-    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/bundler-2.2.22.gemspec \
-    && rm /usr/lib/ruby/gems/3.0.0/specifications/default/date-3.1.0.gemspec
-
 
 # Get Google Chrome
 RUN $APT_INSTALL ./google-chrome-stable_current_amd64.deb \
@@ -55,6 +61,7 @@ RUN $APT_INSTALL gpg-agent \
   && $APT_INSTALL k6
 
 # auto installable tools
+SHELL ["/bin/sh", "-cl"]
 RUN mkdir -p /etc/bzt.d \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
@@ -71,9 +78,15 @@ RUN rm -rf *.pem
 WORKDIR /root/.bzt/selenium-taurus/wdio/node_modules/recursive-readdir
 RUN sed -i 's/3.0.4/3.0.8/g' package.json && npm update && npm install -g npm@latest && npm -g update
 
+WORKDIR /root/.bzt/newman/node_modules/tough-cookie
+RUN sed -i 's/3.0.1/4.1.3/g' package.json
+
+WORKDIR /root/.bzt/newman/node_modules/postman-request/node_modules/tough-cookie
+RUN sed -i 's/2.5.0/4.1.3/g' package.json
+
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
 # Rootless user
 # USER 1337:0
 WORKDIR /bzt-configs
-ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
+ENTRYPOINT ["sh", "-cl", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
