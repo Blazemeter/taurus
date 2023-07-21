@@ -40,6 +40,9 @@ RUN source /etc/profile.d/rbenv.sh \
     && rbenv install 3.2.2 && rbenv global 3.2.2 && rbenv rehash \
     && gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup
 
+RUN update-alternatives --install /usr/local/bin/ruby ruby /usr/local/rbenv/shims/ruby 1
+RUN update-alternatives --install /usr/local/bin/gem gem /usr/local/rbenv/shims/gem 1
+
 # firefox repo - do not use snap
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap
 RUN add-apt-repository ppa:mozillateam/ppa
@@ -61,7 +64,6 @@ RUN $APT_INSTALL gpg-agent \
   && $APT_INSTALL k6
 
 # auto installable tools
-SHELL ["/bin/sh", "-cl"]
 RUN mkdir -p /etc/bzt.d \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
@@ -89,4 +91,4 @@ RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-u
 # Rootless user
 # USER 1337:0
 WORKDIR /bzt-configs
-ENTRYPOINT ["sh", "-cl", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
+ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
