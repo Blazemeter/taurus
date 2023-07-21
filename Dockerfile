@@ -42,6 +42,7 @@ RUN source /etc/profile.d/rbenv.sh \
 
 RUN update-alternatives --install /usr/local/bin/ruby ruby /usr/local/rbenv/shims/ruby 1
 RUN update-alternatives --install /usr/local/bin/gem gem /usr/local/rbenv/shims/gem 1
+RUN update-alternatives --install /usr/local/bin/rspec rspec /usr/local/rbenv/shims/rspec 1
 
 # firefox repo - do not use snap
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap
