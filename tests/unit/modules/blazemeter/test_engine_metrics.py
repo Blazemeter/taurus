@@ -267,3 +267,28 @@ class TestHappySocksConcurrencyConverter(BZTestCase):
         data = {'ts': 5, 'current': {'': {'concurrency': 5}}}
         res = HappySocksConcurrencyConverter.extract_concurrency_data(data)
         self.assertIsNone(res)
+
+    def test_extract_concurrency_data_missing_ts_key(self):
+        data = random_datapoint(12345)
+        data.pop('ts')
+        res = HappySocksConcurrencyConverter.extract_concurrency_data(data)
+        self.assertIsNone(res)
+
+    def test_extract_concurrency_data_missing_current_key(self):
+        data = random_datapoint(12345)
+        data.pop('current')
+        res = HappySocksConcurrencyConverter.extract_concurrency_data(data)
+        self.assertIsNone(res)
+
+    def test_extract_concurrency_data_missing_all_key(self):
+        data = random_datapoint(12345)
+        data['current'].pop('')
+        res = HappySocksConcurrencyConverter.extract_concurrency_data(data)
+        self.assertIsNone(res)
+
+    def test_extract_concurrency_data_all_not_kpi_set(self):
+        data = random_datapoint(12345)
+        data['current'].pop('')
+        data['current'][''] = {'concurrency': 100}
+        res = HappySocksConcurrencyConverter.extract_concurrency_data(data)
+        self.assertIsNone(res)
