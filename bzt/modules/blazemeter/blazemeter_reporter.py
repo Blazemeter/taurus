@@ -31,14 +31,15 @@ import requests
 from typing import List
 
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
-from bzt.bza import User, Session, Test, HappysocksClient
+from bzt.bza import User, Session, Test, HappysocksClient, HappysocksEngineNamespace
 from bzt.engine import Reporter, Singletone
 from bzt.utils import b, humanize_bytes, iteritems, open_browser, BetterDict, to_json, dehumanize_time
 from bzt.modules.aggregator import AggregatorListener, DataPoint, KPISet, ResultsProvider
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.blazemeter.project_finder import ProjectFinder
 from bzt.modules.blazemeter.const import NOTE_SIZE_LIMIT
-from bzt.modules.blazemeter.engine_metrics import HappysocksMetricsConverter, EngineMetricsBuffer
+from bzt.modules.blazemeter.engine_metrics import HappysocksMetricsConverter, HSReportingBuffer, \
+    HappySocksConcurrencyConverter
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singletone):
@@ -62,13 +63,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.send_monitoring = True
         self.monitoring_buffer = None
         self._engine_metrics_buffer = None
+        self._concurrency_buffer = None
         self._sess_id = None
         self._master_id = None
         self._calibration_id = None
         self._calibration_step_id = None
         self.public_report = False
         self.last_dispatch = 0
-        self._last_engine_metrics_dispatch = 0
+        self._last_hs_dispatch = 0
         self._happysocks_address = None
         self.results_url = None
         self._user = User()
@@ -93,7 +95,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
-        self._engine_metrics_buffer = EngineMetricsBuffer(monitoring_buffer_limit)
+        self._engine_metrics_buffer = HSReportingBuffer(monitoring_buffer_limit)
+        self._concurrency_buffer = HSReportingBuffer(monitoring_buffer_limit)
         self._engine_metrics_send_interval = dehumanize_time(
             self.settings.get("engine-metrics-send-interval", self._engine_metrics_send_interval))
         happysocks_verbose_logging = self.settings.get("happysocks-verbose-logging", False)
@@ -193,7 +196,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             if self._user.token and self.public_report:
                 report_link = self._master.make_report_public()
                 self.log.info("Public report link: %s", report_link)
-        if self._engine_metrics_enabled():
+        if self._hs_reporting_enabled():
             try:
                 self.happysocks_client.connect()
                 # socket.io client can auto reconnect but only after initial successful connect
@@ -304,9 +307,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
             if self.send_monitoring:
                 self.__send_monitoring()
-            if self._engine_metrics_enabled():
+            if self._hs_reporting_enabled():
                 try:
-                    self._send_engine_metrics()
+                    self._send_engine_metrics_and_concurrency()
                 except BaseException:
                     self.log.error("Failed to send engine metrics", exc_info=True)
                 finally:
@@ -398,11 +401,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
             if self.send_monitoring:
                 self.__send_monitoring()
-        if self._engine_metrics_enabled() and self._last_engine_metrics_dispatch < (
+        if self._hs_reporting_enabled() and self._last_hs_dispatch < (
                 time.time() - self._engine_metrics_send_interval):
-            self._last_engine_metrics_dispatch = time.time()
+            self._last_hs_dispatch = time.time()
             try:
-                self._send_engine_metrics()
+                self._send_engine_metrics_and_concurrency()
             except BaseException:
                 self.log.error("Failed to send engine metrics", exc_info=True)
         return super(BlazeMeterUploader, self).check()
@@ -421,16 +424,20 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
     def aggregated_second(self, data):
         """
-        Send online data
+        Send online data and store concurrency data
         :param data: DataPoint
         """
         if self.send_data:
             self.kpi_buffer.append(data)
+        if self._hs_reporting_enabled():
+            concurrency_data = HappySocksConcurrencyConverter.extract_concurrency_data(data)
+            if concurrency_data is not None:
+                self._concurrency_buffer.record_data(concurrency_data)
 
     def monitoring_data(self, data: List[dict]):
         if self.send_monitoring:
             self.monitoring_buffer.record_data(data)
-        if self._engine_metrics_enabled():
+        if self._hs_reporting_enabled():
             self._engine_metrics_buffer.record_data(data)
 
     def __send_monitoring(self):
@@ -449,15 +456,15 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             lines.append(bytestr + " " + fname)
         return "\n".join(lines)
 
-    def _engine_metrics_enabled(self) -> bool:
+    def _hs_reporting_enabled(self) -> bool:
         """
-        Returns True if sending of engine metrics to happysocks API is enabled.
+        Returns True if sending reports to happysocks API is enabled.
         """
         return self.happysocks_client is not None
 
-    def _send_engine_metrics(self):
+    def _send_engine_metrics_and_concurrency(self):
         """
-        Sends engine metrics to happysocks API via WebSockets.
+        Sends engine metrics and concurrency to happysocks API via WebSockets.
         """
         if not self.happysocks_client.connected():
             if not self._happysocks_auto_reconnect:
@@ -478,8 +485,16 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                                                                     self._master_id,
                                                                     self._calibration_id, self._calibration_step_id)
         if metrics_batch:
-            self.happysocks_client.send_engine_metrics(metrics_batch)
+            self.happysocks_client.send_hs_data(metrics_batch, HappysocksEngineNamespace.METRICS_EVENT)
         self._engine_metrics_buffer.clear()
+
+        # concurrency
+        raw_concurrency = self._concurrency_buffer.get_data()
+        concurrency_batch = HappySocksConcurrencyConverter.to_concurrency_batch(raw_concurrency,
+                                                                                self._sess_id, self._master_id)
+        if concurrency_batch:
+            self.happysocks_client.send_hs_data(concurrency_batch, HappysocksEngineNamespace.CONCURRENCY_EVENT)
+        self._concurrency_buffer.clear()
 
 
 class MonitoringBuffer(object):

@@ -523,8 +523,8 @@ class TestBlazeMeterUploader(BZTestCase):
         ])
         reporter.post_process()
         # verify
-        self.assertEqual(client.send_engine_metrics.call_count, 2)
-        call0 = client.send_engine_metrics.call_args_list[0]
+        self.assertEqual(client.send_hs_data.call_count, 2)
+        call0 = client.send_hs_data.call_args_list[0]
         self.assertEqual(call0[0][0], [
             {
                 'metadata': {
@@ -542,7 +542,7 @@ class TestBlazeMeterUploader(BZTestCase):
                 }
             }
         ])
-        call1 = client.send_engine_metrics.call_args_list[1]
+        call1 = client.send_hs_data.call_args_list[1]
         self.assertEqual(call1[0][0], [
             {
                 'metadata': {
@@ -567,7 +567,7 @@ class TestBlazeMeterUploader(BZTestCase):
         # errors when sending metrics must not break other logic in BlazeMeterUploader
         # prepare mocks
         client = mock_client_class.return_value
-        client.send_engine_metrics.side_effect = TaurusNetworkError('Test error')
+        client.send_hs_data.side_effect = TaurusNetworkError('Test error')
         # perform test
         reporter = BlazeMeterUploader()
         reporter.engine = EngineEmul()
@@ -588,7 +588,7 @@ class TestBlazeMeterUploader(BZTestCase):
         reporter.check()
         reporter.post_process()
         # verify
-        self.assertEqual(client.send_engine_metrics.call_count, 2)
+        self.assertEqual(client.send_hs_data.call_count, 2)
         client.disconnect.assert_called_once()
 
     @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
@@ -619,7 +619,7 @@ class TestBlazeMeterUploader(BZTestCase):
         reporter.post_process()
         # verify
         self.assertEqual(client.connect.call_count, 3)  # startup, check, post_process
-        client.send_engine_metrics.assert_not_called()
+        client.send_hs_data.assert_not_called()
         client.disconnect.assert_called_once()
 
     @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
@@ -664,7 +664,7 @@ class TestBlazeMeterUploader(BZTestCase):
         reporter.post_process()
         # verify
         self.assertEqual(client.connect.call_count, 2)  # startup, check
-        self.assertEqual(client.send_engine_metrics.call_count, 1)  # check
+        self.assertEqual(client.send_hs_data.call_count, 1)  # check
         client.disconnect.assert_called_once()
 
     @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
@@ -711,7 +711,7 @@ class TestBlazeMeterUploader(BZTestCase):
         reporter.post_process()
         # verify
         self.assertEqual(client.connect.call_count, 1)  # startup
-        self.assertEqual(client.send_engine_metrics.call_count, 1)  # 1st check
+        self.assertEqual(client.send_hs_data.call_count, 1)  # 1st check
         client.disconnect.assert_called_once()
 
 
