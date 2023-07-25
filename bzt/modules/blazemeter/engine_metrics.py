@@ -121,7 +121,9 @@ class HappySocksConcurrencyConverter:
         adds metadata to the extracted concurrency data and aligns it with the expected format by
         happysocks service.
         """
-        full_concurrency_data = [dict(item, **{'metadata': {'sessionId': session_id, 'masterId': master_id}})
+        full_concurrency_data = [dict(item, **{'metadata': {'type': 'concurrency-data',
+                                                            'sessionId': session_id,
+                                                            'masterId': master_id}})
                                  for item in raw_concurrency_data]
         return sorted(full_concurrency_data, key=itemgetter('timestamp'))
 

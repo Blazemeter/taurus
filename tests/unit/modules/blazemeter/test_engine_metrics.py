@@ -1,7 +1,8 @@
 import sys
 
-from modules.blazemeter.engine_metrics import HSReportingBuffer, HappysocksMetricsConverter
-from unit import BZTestCase
+from modules.blazemeter.engine_metrics import HSReportingBuffer, HappysocksMetricsConverter, \
+    HappySocksConcurrencyConverter
+from unit import BZTestCase, random_datapoint
 
 
 class TestEngineMetricsBuffer(BZTestCase):
@@ -214,3 +215,55 @@ class TestHappysocksMetricsConverter(BZTestCase):
                 }
             },
         ])
+
+
+class TestHappySocksConcurrencyConverter(BZTestCase):
+
+    def setUp(self):
+        super().setUp()
+        sys.stdout = self.stdout_backup  # super().setUp() disables sys.stdout, restore it
+
+    def tearDown(self):
+        super().tearDown()
+
+    def test_empty(self):
+        result = HappySocksConcurrencyConverter.to_concurrency_batch([], 'r-v4-64102f1ab8795890049369', 100)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 0)
+
+    def test_concurrency_batch(self):
+        result = HappySocksConcurrencyConverter.to_concurrency_batch([
+            {'timestamp': 1678892271398, 'concurrency': 8},
+            {'timestamp': 1678892274765, 'concurrency': 500}
+        ], 'r-v4-64102f1ab8795890049369', 100)
+        self.assertEqual([
+            {
+                'metadata': {
+                    'type': 'concurrency-data',
+                    'sessionId': 'r-v4-64102f1ab8795890049369',
+                    'masterId': 100,
+                },
+                'timestamp': 1678892271398,
+                'concurrency': 8
+            },
+            {
+                'metadata': {
+                    'type': 'concurrency-data',
+                    'sessionId': 'r-v4-64102f1ab8795890049369',
+                    'masterId': 100,
+                },
+                'timestamp': 1678892274765,
+                'concurrency': 500
+            }
+        ], result)
+
+    def test_extract_concurrency_data(self):
+        ts = 1234
+        data = random_datapoint(ts)
+        res = HappySocksConcurrencyConverter.extract_concurrency_data(data)
+        self.assertEqual([{'timestamp': ts * 1000, 'concurrency': data['current']['']['concurrency']}], res)
+
+    def test_extract_concurrency_data_not_data_point(self):
+        data = {'ts': 5, 'current': {'': {'concurrency': 5}}}
+        res = HappySocksConcurrencyConverter.extract_concurrency_data(data)
+        self.assertIsNone(res)

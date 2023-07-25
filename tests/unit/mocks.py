@@ -52,7 +52,7 @@ def random_sample(ts, label='', conc=1):
 def random_datapoint(n):
     point = DataPoint(n)
     overall = point[DataPoint.CURRENT].setdefault('', KPISet())
-    overall[KPISet.CONCURRENCY] = r(100)
+    overall[KPISet.CONCURRENCY] = int(r(100) * 100)
     overall[KPISet.SAMPLE_COUNT] = int(100 * r(1000)) + 1
     overall[KPISet.SUCCESSES] = int(overall[KPISet.SAMPLE_COUNT] * random())
     overall[KPISet.FAILURES] = overall[KPISet.SAMPLE_COUNT] - overall[KPISet.SUCCESSES]
