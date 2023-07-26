@@ -239,7 +239,6 @@ class TestHappySocksConcurrencyConverter(BZTestCase):
         self.assertEqual([
             {
                 'metadata': {
-                    'type': 'concurrency-data',
                     'sessionId': 'r-v4-64102f1ab8795890049369',
                     'masterId': 100,
                 },
@@ -248,7 +247,6 @@ class TestHappySocksConcurrencyConverter(BZTestCase):
             },
             {
                 'metadata': {
-                    'type': 'concurrency-data',
                     'sessionId': 'r-v4-64102f1ab8795890049369',
                     'masterId': 100,
                 },
