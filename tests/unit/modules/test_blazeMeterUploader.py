@@ -441,6 +441,87 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.kpi_buffer[-1][DataPoint.CUMULATIVE] = {}  # remove cumulative when ramp-up data is excluded
         obj.post_process()  # no 'Cumulative KPISet is non-consistent' exception here
 
+    def test_record_data_aggregated_second(self):
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.parameters['calibration-id'] = 4306
+        reporter.parameters['calibration-step-id'] = 10
+        reporter.parameters["send-data"] = False
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['monitoring-buffer-limit'] = 100
+        reporter.settings['send-concurrency-metric'] = True
+        reporter.prepare()
+
+        ts = 123
+        datapoint = random_datapoint(ts)
+        reporter.aggregated_second(datapoint)
+        concurrency_data = reporter._concurrency_buffer.get_data()
+        expected_concurrency_data = [{'timestamp': ts * 1000, 'concurrency': datapoint['current']['']['concurrency']}]
+        self.assertEqual(concurrency_data, expected_concurrency_data)
+
+    def test_record_data_aggregated_second_concurrency_param_false(self):
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.parameters['calibration-id'] = 4306
+        reporter.parameters['calibration-step-id'] = 10
+        reporter.parameters["send-data"] = False
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['monitoring-buffer-limit'] = 100
+        reporter.settings['send-concurrency-metric'] = False
+        reporter.prepare()
+
+        ts = 123
+        datapoint = random_datapoint(ts)
+        reporter.aggregated_second(datapoint)
+        concurrency_data = reporter._concurrency_buffer.get_data()
+        expected_concurrency_data = []
+        self.assertEqual(concurrency_data, expected_concurrency_data)
+
+    def test_record_data_aggregated_second_concurrency_param_not_exists(self):
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.parameters['calibration-id'] = 4306
+        reporter.parameters['calibration-step-id'] = 10
+        reporter.parameters["send-data"] = False
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['monitoring-buffer-limit'] = 100
+        reporter.prepare()
+
+        ts = 123
+        datapoint = random_datapoint(ts)
+        reporter.aggregated_second(datapoint)
+        concurrency_data = reporter._concurrency_buffer.get_data()
+        expected_concurrency_data = []
+        self.assertEqual(concurrency_data, expected_concurrency_data)
+
+    def test_record_data_aggregated_second_no_data(self):
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.parameters['calibration-id'] = 4306
+        reporter.parameters['calibration-step-id'] = 10
+        reporter.parameters["send-data"] = False
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['monitoring-buffer-limit'] = 100
+        reporter.settings['send-concurrency-metric'] = True
+        reporter.prepare()
+
+        reporter.aggregated_second([])
+        concurrency_data = reporter._concurrency_buffer.get_data()
+        expected_concurrency_data = []
+        self.assertEqual(concurrency_data, expected_concurrency_data)
+
     @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
     def test_engine_metrics_no_metrics_to_send(self, mock_client_class):
         # prepare mocks

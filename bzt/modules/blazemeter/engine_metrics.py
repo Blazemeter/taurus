@@ -5,10 +5,13 @@ from collections import deque
 from operator import itemgetter
 from typing import List
 
+from bzt.modules.aggregator import DataPoint, KPISet
 
-class EngineMetricsBuffer:
+
+class MetricsReportingBuffer:
     """
-    Acts as a buffer for engine metrics coming from various sources. Engine metrics have the following form:
+    Acts as a buffer for engine metrics coming from various sources or for concurrency metric batching.
+    Engine metrics have the following form:
     [
         {'source': 'local', 'ts': 1678892271.3985019, 'cpu': 9.4},
         {'source': 'local', 'ts': 1678892271.3985019, 'mem': 55.6},
@@ -20,14 +23,20 @@ class EngineMetricsBuffer:
         {'source': 'local', 'ts': 1678892271.3985019, 'disk-space': 54.2},
         ...
     ]
+    Concurrency has the following form:
+    [
+        {'timestamp': 1678892271398, 'concurrency': 7},
+        ...
+    ]
     """
-    def __init__(self, max_len=500):
+    def __init__(self, max_len=500, is_engine_metric=True):
         self._log = logging.getLogger(self.__class__.__name__)
         self.queue = deque(maxlen=max_len)
+        self.type = 'Engine metrics' if is_engine_metric else 'Concurrency'
 
     def record_data(self, data: List[dict]):
         if len(self.queue) + len(data) > self.queue.maxlen:
-            self._log.debug(f"Engine metrics queue overflow, max size {self.queue.maxlen} reached")
+            self._log.debug(f"{self.type} queue overflow, max size {self.queue.maxlen} reached")
         for item in data:
             self.queue.append(item)
 
@@ -87,3 +96,33 @@ class HappysocksMetricsConverter:
         metrics_bag['timestamp'] = ts
         metrics_bag['values'] = dict()
         return metrics_bag
+
+
+class HappySocksConcurrencyConverter:
+    ALL_LABEL = ''
+    HS_TIMESTAMP_KEY = 'timestamp'
+
+    @staticmethod
+    def extract_concurrency_data(data):
+        try:
+            if data is not None and isinstance(data, DataPoint):
+                ts = data.get(DataPoint.TIMESTAMP) * 1000
+                current_data = data.get(DataPoint.CURRENT)
+                all_label = current_data.get(HappySocksConcurrencyConverter.ALL_LABEL)
+                if isinstance(all_label, KPISet):
+                    concurrency = all_label.get(KPISet.CONCURRENCY)
+                    return [{HappySocksConcurrencyConverter.HS_TIMESTAMP_KEY: ts, KPISet.CONCURRENCY: concurrency}]
+        except BaseException as ex:
+            logging.warning(f"Unable to extract concurrency from data. {str(ex)}")
+        return None
+
+    @staticmethod
+    def to_concurrency_batch(raw_concurrency_data: List[dict], session_id, master_id=None) -> List[dict]:
+        """
+        adds metadata to the extracted concurrency data and aligns it with the expected format by
+        happysocks service.
+        """
+        full_concurrency_data = [dict(item, **{'metadata': {'sessionId': session_id, 'masterId': master_id}})
+                                 for item in raw_concurrency_data]
+        return sorted(full_concurrency_data, key=itemgetter('timestamp'))
+

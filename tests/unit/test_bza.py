@@ -4,7 +4,7 @@ from socketio.exceptions import ConnectionError
 import time
 
 from bzt import TaurusNetworkError
-from bzt.bza import User, BZAObject, HappysocksClient
+from bzt.bza import User, BZAObject, HappysocksClient, HappysocksEngineNamespace
 from tests.unit import BZTestCase
 from tests.unit.mocks import BZMock, MockHappysocksServer
 
@@ -186,7 +186,7 @@ class TestHappysocksClient(BZTestCase):
                     'mem': 5560.0,
                 }
             }
-        ])
+        ], HappysocksEngineNamespace.METRICS_EVENT)
         # verify
         sio.emit.assert_called_once()
         args = sio.emit.call_args
@@ -245,7 +245,7 @@ class TestHappysocksClientMockServer(BZTestCase):
                 }
             }
         ]
-        self.client.send_engine_metrics(metrics_to_send)
+        self.client.send_engine_metrics(metrics_to_send, HappysocksEngineNamespace.METRICS_EVENT)
         self.server.engine_namespace.metrics_event.wait()
         self.assertEqual(self.server.engine_namespace.received_metrics, metrics_to_send)
 
@@ -261,7 +261,7 @@ class TestHappysocksClientMockServer(BZTestCase):
                 }
             }
         ]
-        self.client.send_engine_metrics(metrics_to_send)
+        self.client.send_engine_metrics(metrics_to_send, HappysocksEngineNamespace.METRICS_EVENT)
         self.server.engine_namespace.metrics_event.wait()
         self.assertEqual(self.server.engine_namespace.received_metrics, metrics_to_send)
         # error while processing metrics in happysocks is handled by HappysocksEngineNamespace callback and logged
@@ -287,7 +287,7 @@ class TestHappysocksClientMockServer(BZTestCase):
             }
         ]
         try:
-            self.client.send_engine_metrics(metrics_to_send)
+            self.client.send_engine_metrics(metrics_to_send, HappysocksEngineNamespace.METRICS_EVENT)
             self.fail("Expected TaurusNetworkError")
         except TaurusNetworkError:
             pass
