@@ -452,7 +452,7 @@ class TestBlazeMeterUploader(BZTestCase):
         reporter.parameters["send-data"] = False
         reporter.settings['happysocks-address'] = 'https://unknown/hs'
         reporter.settings['monitoring-buffer-limit'] = 100
-        reporter.settings['send-concurrency-on-happysocks'] = True
+        reporter.settings['send-concurrency-metric'] = True
         reporter.prepare()
 
         ts = 123
@@ -473,7 +473,7 @@ class TestBlazeMeterUploader(BZTestCase):
         reporter.parameters["send-data"] = False
         reporter.settings['happysocks-address'] = 'https://unknown/hs'
         reporter.settings['monitoring-buffer-limit'] = 100
-        reporter.settings['send-concurrency-on-happysocks'] = False
+        reporter.settings['send-concurrency-metric'] = False
         reporter.prepare()
 
         ts = 123
@@ -514,7 +514,7 @@ class TestBlazeMeterUploader(BZTestCase):
         reporter.parameters["send-data"] = False
         reporter.settings['happysocks-address'] = 'https://unknown/hs'
         reporter.settings['monitoring-buffer-limit'] = 100
-        reporter.settings['send-concurrency-on-happysocks'] = True
+        reporter.settings['send-concurrency-metric'] = True
         reporter.prepare()
 
         reporter.aggregated_second([])
