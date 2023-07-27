@@ -1,6 +1,6 @@
 import sys
 
-from modules.blazemeter.engine_metrics import HSReportingBuffer, HappysocksMetricsConverter, \
+from modules.blazemeter.engine_metrics import MetricsReportingBuffer, HappysocksMetricsConverter, \
     HappySocksConcurrencyConverter
 from unit import BZTestCase, random_datapoint
 
@@ -8,12 +8,12 @@ from unit import BZTestCase, random_datapoint
 class TestEngineMetricsBuffer(BZTestCase):
 
     def test_empty(self):
-        buffer = HSReportingBuffer()
+        buffer = MetricsReportingBuffer()
         data = buffer.get_data()
         self.assertEqual(data, [])
 
     def test_push_get(self):
-        buffer = HSReportingBuffer()
+        buffer = MetricsReportingBuffer()
         buffer.record_data([
             {'source': 'local', 'ts': 1678892271.3985019, 'cpu': 9.4},
             {'source': 'local', 'ts': 1678892271.3985019, 'mem': 55.6},
@@ -28,7 +28,7 @@ class TestEngineMetricsBuffer(BZTestCase):
         self.assertEqual(data1, data2)
 
     def test_limit_reached(self):
-        buffer = HSReportingBuffer(2, True)
+        buffer = MetricsReportingBuffer(2, True)
         buffer.record_data([
             {'source': 'local', 'ts': 1678892271.3985019, 'cpu': 9.4},
             {'source': 'local', 'ts': 1678892271.3985019, 'mem': 55.6},
@@ -41,7 +41,7 @@ class TestEngineMetricsBuffer(BZTestCase):
         self.assertEqual(len(list(filter(lambda item: 'bytes-sent' in item, data))), 1)
 
     def test_clear(self):
-        buffer = HSReportingBuffer(2, False)
+        buffer = MetricsReportingBuffer(2, False)
         buffer.record_data([
             {'timestamp': 1678892271398, 'concurrency': 7},
         ])

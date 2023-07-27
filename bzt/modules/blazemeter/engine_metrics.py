@@ -8,9 +8,9 @@ from typing import List
 from bzt.modules.aggregator import DataPoint, KPISet
 
 
-class HSReportingBuffer:
+class MetricsReportingBuffer:
     """
-    Acts as a buffer for engine metrics coming from various sources or for concurrency reported through HappySocks.
+    Acts as a buffer for engine metrics coming from various sources or for concurrency metric batching.
     Engine metrics have the following form:
     [
         {'source': 'local', 'ts': 1678892271.3985019, 'cpu': 9.4},
@@ -29,10 +29,10 @@ class HSReportingBuffer:
         ...
     ]
     """
-    def __init__(self, max_len=500, is_metric=True):
+    def __init__(self, max_len=500, is_engine_metric=True):
         self._log = logging.getLogger(self.__class__.__name__)
         self.queue = deque(maxlen=max_len)
-        self.type = 'Engine metrics' if is_metric else 'Concurrency'
+        self.type = 'Engine metrics' if is_engine_metric else 'Concurrency'
 
     def record_data(self, data: List[dict]):
         if len(self.queue) + len(data) > self.queue.maxlen:

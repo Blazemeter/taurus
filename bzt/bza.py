@@ -789,7 +789,7 @@ class HappysocksEngineNamespace(socketio.ClientNamespace):
             details = data.get('message')
         self._log.error(f"Happysocks connection error: {details}")
 
-    def hs_callback(self, data):
+    def metrics_callback(self, data):
         if isinstance(data, dict) and data.get('error'):
             self._log.error(f"Happysocks rejected data: {data.get('error')}")
 
@@ -855,10 +855,10 @@ class HappysocksClient:
         self._sio.disconnect()
         self._log.info("Disconnected from happysocks server")
 
-    def send_hs_data(self, hs_batch: List[dict], event: str):
-        self._log.debug(f"Sending {len(hs_batch)} to happysocks on {event} event")
+    def send_engine_metrics(self, metrics_batch: List[dict], event: str):
+        self._log.debug(f"Sending {len(metrics_batch)} metric items to happysocks on {event} event")
         try:
-            self._sio.emit(event, hs_batch, HappysocksEngineNamespace.NAMESPACE,
-                           callback=self._engine_namespace.hs_callback)
+            self._sio.emit(event, metrics_batch, HappysocksEngineNamespace.NAMESPACE,
+                           callback=self._engine_namespace.metrics_callback)
         except BaseException as e:
-            raise TaurusNetworkError(f"Failed to send the following items {len(hs_batch)} on {event} event") from e
+            raise TaurusNetworkError(f"Failed to send the following items {len(metrics_batch)} on {event} event") from e

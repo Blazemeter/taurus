@@ -171,7 +171,7 @@ class TestHappysocksClient(BZTestCase):
         # perform test
         client = HappysocksClient("https://prod-rc.blazemeter.com/hs", "r-v4-64102f1ab8795890049369",
                                   "ci12NC02NDEwMmYxYWI", True, True)
-        client.send_hs_data([
+        client.send_engine_metrics([
             {
                 'metadata': {
                     'source': 'local',
@@ -245,7 +245,7 @@ class TestHappysocksClientMockServer(BZTestCase):
                 }
             }
         ]
-        self.client.send_hs_data(metrics_to_send, HappysocksEngineNamespace.METRICS_EVENT)
+        self.client.send_engine_metrics(metrics_to_send, HappysocksEngineNamespace.METRICS_EVENT)
         self.server.engine_namespace.metrics_event.wait()
         self.assertEqual(self.server.engine_namespace.received_metrics, metrics_to_send)
 
@@ -261,7 +261,7 @@ class TestHappysocksClientMockServer(BZTestCase):
                 }
             }
         ]
-        self.client.send_hs_data(metrics_to_send, HappysocksEngineNamespace.METRICS_EVENT)
+        self.client.send_engine_metrics(metrics_to_send, HappysocksEngineNamespace.METRICS_EVENT)
         self.server.engine_namespace.metrics_event.wait()
         self.assertEqual(self.server.engine_namespace.received_metrics, metrics_to_send)
         # error while processing metrics in happysocks is handled by HappysocksEngineNamespace callback and logged
@@ -287,7 +287,7 @@ class TestHappysocksClientMockServer(BZTestCase):
             }
         ]
         try:
-            self.client.send_hs_data(metrics_to_send, HappysocksEngineNamespace.METRICS_EVENT)
+            self.client.send_engine_metrics(metrics_to_send, HappysocksEngineNamespace.METRICS_EVENT)
             self.fail("Expected TaurusNetworkError")
         except TaurusNetworkError:
             pass

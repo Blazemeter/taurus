@@ -38,7 +38,7 @@ from bzt.modules.aggregator import AggregatorListener, DataPoint, KPISet, Result
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.blazemeter.project_finder import ProjectFinder
 from bzt.modules.blazemeter.const import NOTE_SIZE_LIMIT
-from bzt.modules.blazemeter.engine_metrics import HappysocksMetricsConverter, HSReportingBuffer, \
+from bzt.modules.blazemeter.engine_metrics import HappysocksMetricsConverter, MetricsReportingBuffer, \
     HappySocksConcurrencyConverter
 
 
@@ -71,7 +71,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self._calibration_step_id = None
         self.public_report = False
         self.last_dispatch = 0
-        self._last_hs_dispatch = 0
+        self._last_metrics_dispatch = 0
         self._happysocks_address = None
         self.results_url = None
         self._user = User()
@@ -96,8 +96,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
-        self._engine_metrics_buffer = HSReportingBuffer(monitoring_buffer_limit, True)
-        self._concurrency_buffer = HSReportingBuffer(monitoring_buffer_limit, False)
+        self._engine_metrics_buffer = MetricsReportingBuffer(monitoring_buffer_limit, True)
+        self._concurrency_buffer = MetricsReportingBuffer(monitoring_buffer_limit, False)
         self._engine_metrics_send_interval = dehumanize_time(
             self.settings.get("engine-metrics-send-interval", self._engine_metrics_send_interval))
         happysocks_verbose_logging = self.settings.get("happysocks-verbose-logging", False)
@@ -403,9 +403,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
             if self.send_monitoring:
                 self.__send_monitoring()
-        if self._hs_reporting_enabled() and self._last_hs_dispatch < (
+        if self._hs_reporting_enabled() and self._last_metrics_dispatch < (
                 time.time() - self._engine_metrics_send_interval):
-            self._last_hs_dispatch = time.time()
+            self._last_metrics_dispatch = time.time()
             try:
                 self._send_engine_metrics_and_concurrency()
             except BaseException:
@@ -493,7 +493,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                                                                     self._master_id,
                                                                     self._calibration_id, self._calibration_step_id)
         if metrics_batch:
-            self.happysocks_client.send_hs_data(metrics_batch, HappysocksEngineNamespace.METRICS_EVENT)
+            self.happysocks_client.send_engine_metrics(metrics_batch, HappysocksEngineNamespace.METRICS_EVENT)
         self._engine_metrics_buffer.clear()
 
         # concurrency
@@ -501,7 +501,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         concurrency_batch = HappySocksConcurrencyConverter.to_concurrency_batch(raw_concurrency,
                                                                                 self._sess_id, self._master_id)
         if concurrency_batch:
-            self.happysocks_client.send_hs_data(concurrency_batch, HappysocksEngineNamespace.CONCURRENCY_EVENT)
+            self.happysocks_client.send_engine_metrics(concurrency_batch, HappysocksEngineNamespace.CONCURRENCY_EVENT)
         self._concurrency_buffer.clear()
 
 
