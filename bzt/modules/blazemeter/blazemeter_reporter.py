@@ -53,6 +53,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
+        self.send_concurrency_on_happysocks = False
         self.browser_open = 'start'
         self.kpi_buffer = []
         self._engine_metrics_send_interval = 5
@@ -101,6 +102,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             self.settings.get("engine-metrics-send-interval", self._engine_metrics_send_interval))
         happysocks_verbose_logging = self.settings.get("happysocks-verbose-logging", False)
         happysocks_verify_ssl = self.settings.get("happysocks-verify-ssl", True)
+        self.send_concurrency_on_happysocks = self.settings.get("send-concurrency-on-happysocks", False)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.public_report = self.settings.get("public-report", self.public_report)
         self.upload_artifacts = self.parameters.get("upload-artifacts", self.upload_artifacts)
@@ -429,7 +431,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         """
         if self.send_data:
             self.kpi_buffer.append(data)
-        if self._hs_reporting_enabled():
+        if self._hs_concurrency_reporting_enabled():
             concurrency_data = HappySocksConcurrencyConverter.extract_concurrency_data(data)
             if concurrency_data is not None:
                 self._concurrency_buffer.record_data(concurrency_data)
@@ -461,6 +463,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         Returns True if sending reports to happysocks API is enabled.
         """
         return self.happysocks_client is not None
+
+    def _hs_concurrency_reporting_enabled(self) -> bool:
+        """
+        Returns True if sending reports to happsocks API is enabled and concurrency flag is enabled.
+        """
+        return self._hs_reporting_enabled() and self.send_concurrency_on_happysocks
 
     def _send_engine_metrics_and_concurrency(self):
         """
