@@ -53,7 +53,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
     def __init__(self):
         super(BlazeMeterUploader, self).__init__()
-        self.send_concurrency_on_happysocks = False
+        self.send_concurrency_metric = False
         self.browser_open = 'start'
         self.kpi_buffer = []
         self._engine_metrics_send_interval = 5
@@ -102,7 +102,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             self.settings.get("engine-metrics-send-interval", self._engine_metrics_send_interval))
         happysocks_verbose_logging = self.settings.get("happysocks-verbose-logging", False)
         happysocks_verify_ssl = self.settings.get("happysocks-verify-ssl", True)
-        self.send_concurrency_on_happysocks = self.settings.get("send-concurrency-on-happysocks", False)
+        self.send_concurrency_metric = self.settings.get("send-concurrency-metric", False)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.public_report = self.settings.get("public-report", self.public_report)
         self.upload_artifacts = self.parameters.get("upload-artifacts", self.upload_artifacts)
@@ -198,7 +198,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             if self._user.token and self.public_report:
                 report_link = self._master.make_report_public()
                 self.log.info("Public report link: %s", report_link)
-        if self._hs_reporting_enabled():
+        if self._metric_reporting_enabled():
             try:
                 self.happysocks_client.connect()
                 # socket.io client can auto reconnect but only after initial successful connect
@@ -309,7 +309,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
             if self.send_monitoring:
                 self.__send_monitoring()
-            if self._hs_reporting_enabled():
+            if self._metric_reporting_enabled():
                 try:
                     self._send_engine_metrics_and_concurrency()
                 except BaseException:
@@ -403,7 +403,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
             if self.send_monitoring:
                 self.__send_monitoring()
-        if self._hs_reporting_enabled() and self._last_metrics_dispatch < (
+        if self._metric_reporting_enabled() and self._last_metrics_dispatch < (
                 time.time() - self._engine_metrics_send_interval):
             self._last_metrics_dispatch = time.time()
             try:
@@ -431,7 +431,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         """
         if self.send_data:
             self.kpi_buffer.append(data)
-        if self._hs_concurrency_reporting_enabled():
+        if self._concurrency_reporting_enabled():
             concurrency_data = HappySocksConcurrencyConverter.extract_concurrency_data(data)
             if concurrency_data is not None:
                 self._concurrency_buffer.record_data(concurrency_data)
@@ -439,7 +439,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
     def monitoring_data(self, data: List[dict]):
         if self.send_monitoring:
             self.monitoring_buffer.record_data(data)
-        if self._hs_reporting_enabled():
+        if self._metric_reporting_enabled():
             self._engine_metrics_buffer.record_data(data)
 
     def __send_monitoring(self):
@@ -458,17 +458,17 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             lines.append(bytestr + " " + fname)
         return "\n".join(lines)
 
-    def _hs_reporting_enabled(self) -> bool:
+    def _metric_reporting_enabled(self) -> bool:
         """
         Returns True if sending reports to happysocks API is enabled.
         """
         return self.happysocks_client is not None
 
-    def _hs_concurrency_reporting_enabled(self) -> bool:
+    def _concurrency_reporting_enabled(self) -> bool:
         """
-        Returns True if sending reports to happsocks API is enabled and concurrency flag is enabled.
+        Returns True if concurrency reporting is enabled.
         """
-        return self._hs_reporting_enabled() and self.send_concurrency_on_happysocks
+        return self._metric_reporting_enabled() and self.send_concurrency_metric
 
     def _send_engine_metrics_and_concurrency(self):
         """
