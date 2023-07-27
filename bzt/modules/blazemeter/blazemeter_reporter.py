@@ -96,8 +96,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
-        self._engine_metrics_buffer = HSReportingBuffer(monitoring_buffer_limit)
-        self._concurrency_buffer = HSReportingBuffer(monitoring_buffer_limit)
+        self._engine_metrics_buffer = HSReportingBuffer(monitoring_buffer_limit, True)
+        self._concurrency_buffer = HSReportingBuffer(monitoring_buffer_limit, False)
         self._engine_metrics_send_interval = dehumanize_time(
             self.settings.get("engine-metrics-send-interval", self._engine_metrics_send_interval))
         happysocks_verbose_logging = self.settings.get("happysocks-verbose-logging", False)

@@ -25,17 +25,18 @@ class HSReportingBuffer:
     ]
     Concurrency has the following form:
     [
-        {'source': 'local', 'ts': 1678892271.3985019, 'concurrency': 7},
+        {'timestamp': 1678892271398, 'concurrency': 7},
         ...
     ]
     """
-    def __init__(self, max_len=500):
+    def __init__(self, max_len=500, is_metric=True):
         self._log = logging.getLogger(self.__class__.__name__)
         self.queue = deque(maxlen=max_len)
+        self.type = 'Engine metrics' if is_metric else 'Concurrency'
 
     def record_data(self, data: List[dict]):
         if len(self.queue) + len(data) > self.queue.maxlen:
-            self._log.debug(f"Engine metrics queue overflow, max size {self.queue.maxlen} reached")
+            self._log.debug(f"{self.type} queue overflow, max size {self.queue.maxlen} reached")
         for item in data:
             self.queue.append(item)
 
