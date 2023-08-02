@@ -1647,14 +1647,16 @@ from selenium.webdriver.common.keys import Keys
             value=ast.Num(self._get_scenario_timeout(), kind="")))]
         body = data_sources + timeout_setup + target_init + handlers + store_block
 
-        if self.bzm_tdo_settings:
-            names = self.bzm_tdo_settings.keys()
-            values = self.bzm_tdo_settings.values()
-            bzm_args = ast.Dict(
-                keys=[self._gen_expr(name) for name in names],
-                values=[self._gen_expr(val) for val in values])
+        if self.do_testdata_orchestration:
+            bzm_extras_args = []
+            if self.bzm_tdo_settings:
+                names = self.bzm_tdo_settings.keys()
+                values = self.bzm_tdo_settings.values()
+                bzm_extras_args = ast.Dict(
+                    keys=[self._gen_expr(name) for name in names],
+                    values=[self._gen_expr(val) for val in values])
             body = body + [ast.Assign(targets=[ast_attr("self.bzm_extras")], value=ast_call(func=ast_attr("BzmExtras"),
-                                                                                            args=[bzm_args]))]
+                                                                                            args=[bzm_extras_args]))]
 
         if self.generate_external_handler:
             body = self._wrap_with_try_except(body)

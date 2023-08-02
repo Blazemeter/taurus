@@ -11,8 +11,9 @@ class BzmExtras(object):
         self.publish_map = {}
 
     def do_testdata_orchestration(self, operation, entity_name, target_name=""):
-        if self.settings.get('master_publish_url') is None:
-            raise TaurusException("Publish URL is not defined")
+        if self.settings is None or self.settings.get('master_publish_url') is None:
+            raise TaurusException("Can't perform Test Data Orchestration. API Publish URL was not provided to the "
+                                  "test!")
         if operation not in ["publish", "un-publish"]:
             raise TaurusException(f"Invalid operation for publishing, must be either 'publish' or 'un-publish', "
                                   f"received {operation}")
