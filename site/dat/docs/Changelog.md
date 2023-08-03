@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.16.24<sup> 01 August 2023</sup>
+- bump jmeter version to 5.6.2 - latest stable
+
 ## 1.16.23<sup> 24 May 2023</sup>
 - snakeyaml in Jmeter updated to 2.0 to address CVEs
 - US47299 Upgrade .NET to 6.0 to fix vulnerabilities (#1721)
