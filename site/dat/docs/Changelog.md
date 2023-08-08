@@ -5,7 +5,6 @@
 - Upgrade to ruby 3.2.2
 - Vulnerability fixes
 - Small bugfixes
-- 
 
 ## 1.16.23<sup> 24 May 2023</sup>
 - snakeyaml in Jmeter updated to 2.0 to address CVEs
@@ -19,7 +18,7 @@
 - Vulnerability fixes
 - Allow user to use different syntax's for non-proxy variables
 
-## 1.16.21<sup> 14 March 2023</sup>git q
+## 1.16.21<sup> 14 March 2023</sup>
 - Added influxdb-reporter (thanks to community!)
 
 ## 1.16.20<sup> 13 March 2023</sup>
