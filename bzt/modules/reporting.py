@@ -107,7 +107,10 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 self.__dump_xml(self.parameters.get("dump-xml"))
 
             if self.parameters.get("dump-csv"):
-                self.__dump_csv(self.parameters.get("dump-csv"))
+                if isinstance(self.engine.provisioning, CloudProvisioning):
+                    self.__dump_cloud_csv(self.engine.provisioning.router.master, self.parameters.get("dump-csv"))
+                else:
+                    self.__dump_csv(self.parameters.get("dump-csv"))
         elif self.cumulative_results:
             self.__report_summary()
 
@@ -296,6 +299,22 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 writer.writeheader()
                 for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
                     writer.writerow(self.__get_csv_dict(label, kpiset))
+
+    def __dump_cloud_csv(self, master, filename):
+        report = master.get_csv_report()
+        self.log.info("Dumping final cloud status as CSV: %s", filename)
+        with open(get_full_path(filename), 'wt') as fhd:
+            writer = csv.writer(fhd)
+            for table in report:
+                has_header = False
+                for line in str(report[table]).splitlines():
+                    if not has_header:
+                        header = [table]
+                        for _ in range(line.count(',')):
+                            header.append(None)
+                        writer.writerow(header)
+                        has_header = True
+                    writer.writerow(line.split(','))
 
     def __get_csv_dict(self, label, kpiset):
         kpi_copy = copy.deepcopy(kpiset)
