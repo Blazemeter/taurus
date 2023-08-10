@@ -1592,7 +1592,7 @@ class JMeter(RequiredTool):
             "commons-text": "org/apache/commons/commons-text/1.10.0/commons-text-1.10.0.jar",
             "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.8/xmlgraphics-commons-2.8.jar"}
 
-        if LooseVersion(self.version) <= LooseVersion('5.4.2'):  # log4j must be fixed till jmeter 5.4.2
+        if LooseVersion(self.version) <= LooseVersion('5.4.3'):  # log4j must be fixed till jmeter 5.4.3
             affected_names = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
             fixed_version = '2.19.0'
             maven_link = "org/apache/logging/log4j/{name}/{ver}/{name}-{ver}.jar"
