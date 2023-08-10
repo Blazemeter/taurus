@@ -306,15 +306,44 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         with open(get_full_path(filename), 'wt') as fhd:
             writer = csv.writer(fhd)
             for table in report:
-                has_header = False
-                for line in str(report[table]).splitlines():
-                    if not has_header:
+                csv_lines = str(report[table]).splitlines()
+                csv_lines_cells = []
+                # iterate and set ALL label
+                for line in csv_lines:
+                    cells = line.split(',')
+                    if cells and not cells[0]:
+                        cells[0] = 'ALL'
+                    csv_lines_cells.append(cells)
+                # sort ALL to the top
+                self.__move_string_starting_with_all_to_front(csv_lines_cells)
+                # write csv
+                has_title = False
+                for cells in csv_lines_cells:
+                    if not has_title:
                         header = [table]
-                        for _ in range(line.count(',')):
+                        for _ in cells:
                             header.append(None)
                         writer.writerow(header)
-                        has_header = True
-                    writer.writerow(line.split(','))
+                        has_title = True
+                    writer.writerow(cells)
+
+    def __move_string_starting_with_all_to_front(self, cells_array):
+        if cells_array is None:
+            return None
+        if not cells_array:
+            return []
+        if len(cells_array) == 1:
+            return cells_array;
+        all_labeled = None
+        for idx, row in enumerate(cells_array):
+            if row and row[0] and row[0].startswith("ALL"):
+                all_labeled = cells_array.pop(idx)
+                break
+
+        if all_labeled is not None:
+            cells_array.insert(1, all_labeled)
+
+        return cells_array
 
     def __get_csv_dict(self, label, kpiset):
         kpi_copy = copy.deepcopy(kpiset)
