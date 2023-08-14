@@ -554,5 +554,9 @@ def get_csv_reader_for_entity_loop(data_sources, entity_name):
     if not filename:
         raise TaurusException("Data entity name '{}' for 'loopOverData' not found in 'data-sources'!".format(entity_name))
 
+    # fieldnames can't be empty array otherwise the csv reader will not read the header
+    if isinstance(fieldnames, list) and len(fieldnames) == 0:
+        fieldnames = None
+
     return CSVReaderPerThread(filename=filename, fieldnames=fieldnames, loop=False, quoted=quoted, delimiter=delimiter,
                               encoding=encoding)
