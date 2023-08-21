@@ -606,6 +606,11 @@ class Master(BZAObject):
         url = self.address + "/api/v4/masters/%s/reports/functional/groups/%s" % (self['id'], group_id)
         return self._request(url)['result']
 
+    def get_csv_report(self):
+        url = self.address + "/api/v4/data/dump?masterId=%s" % self['id']
+        res = self._request(url)
+        return res['result']
+
 
 class Session(BZAObject):
     def __init__(self, proto=None, data=None):

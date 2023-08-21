@@ -107,7 +107,10 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 self.__dump_xml(self.parameters.get("dump-xml"))
 
             if self.parameters.get("dump-csv"):
-                self.__dump_csv(self.parameters.get("dump-csv"))
+                if isinstance(self.engine.provisioning, CloudProvisioning):
+                    self.__dump_cloud_csv(self.engine.provisioning.router.master, self.parameters.get("dump-csv"))
+                else:
+                    self.__dump_csv(self.parameters.get("dump-csv"))
         elif self.cumulative_results:
             self.__report_summary()
 
@@ -296,6 +299,51 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 writer.writeheader()
                 for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
                     writer.writerow(self.__get_csv_dict(label, kpiset))
+
+    def __dump_cloud_csv(self, master, filename):
+        report = master.get_csv_report()
+        self.log.info("Dumping final cloud status as CSV: %s", filename)
+        with open(get_full_path(filename), 'wt') as fhd:
+            writer = csv.writer(fhd)
+            for table in report:
+                csv_lines = str(report[table]).splitlines()
+                csv_lines_cells = []
+                # iterate and set ALL label
+                for line in csv_lines:
+                    cells = line.split(',')
+                    if cells and not cells[0]:
+                        cells[0] = 'ALL'
+                    csv_lines_cells.append(cells)
+                # sort ALL to the top
+                self.__move_string_starting_with_all_to_front(csv_lines_cells)
+                # write csv
+                has_title = False
+                for cells in csv_lines_cells:
+                    if not has_title:
+                        header = [table]
+                        for _ in cells:
+                            header.append(None)
+                        writer.writerow(header)
+                        has_title = True
+                    writer.writerow(cells)
+
+    def __move_string_starting_with_all_to_front(self, cells_array):
+        if cells_array is None:
+            return None
+        if not cells_array:
+            return []
+        if len(cells_array) == 1:
+            return cells_array;
+        all_labeled = None
+        for idx, row in enumerate(cells_array):
+            if row and row[0] and row[0].startswith("ALL"):
+                all_labeled = cells_array.pop(idx)
+                break
+
+        if all_labeled is not None:
+            cells_array.insert(1, all_labeled)
+
+        return cells_array
 
     def __get_csv_dict(self, label, kpiset):
         kpi_copy = copy.deepcopy(kpiset)
