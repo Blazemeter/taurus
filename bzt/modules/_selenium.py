@@ -276,6 +276,15 @@ class WebDriver(RequiredTool):
         tool_path = settings.get("path") or os.path.join(drivers_dir, version, file_name)
         download_link = settings.get('download-link')
         super().__init__(tool_path=tool_path, version=version, download_link=download_link, mandatory=False, **kwargs)
+        if is_windows():
+            self.arch = 'win64'
+            self.ext = 'zip'
+        elif is_mac():
+            self.arch = 'macos'
+            self.ext = 'tar.gz'
+        else:
+            self.arch = 'linux64'
+            self.ext = 'tar.gz'
         self._expand_download_link()
 
     def get_dir(self):
@@ -317,14 +326,7 @@ class ChromeDriver(WebDriver):
             return self.VERSION
 
     def _expand_download_link(self):
-        if is_windows():
-            arch = 'win32'
-        elif is_mac():
-            arch = 'mac64'
-        else:
-            arch = 'linux64'
-
-        self.download_link = self.download_link.format(version=self.version, arch=arch)
+        self.download_link = self.download_link.format(version=self.version, arch=self.arch)
 
     def install(self):
         _dir = self.get_dir()
@@ -337,12 +339,7 @@ class ChromeDriver(WebDriver):
             os.remove(dist)
 
             if not is_windows():
-                try:
-                    os.chmod(self.tool_path, 0o755)
-                except Exception as e:
-                    print(_dir)
-                    print(self.tool_path)
-                    print("An chromedriver error occurred:", e)
+                os.chmod(self.tool_path + '-' + self.arch + '/chromedriver', 0o755)
 
 
 class GeckoDriver(WebDriver):
@@ -354,17 +351,7 @@ class GeckoDriver(WebDriver):
         return requests.get("https://api.github.com/repos/mozilla/geckodriver/releases/latest").json()["name"]
 
     def _expand_download_link(self):
-        if is_windows():
-            arch = 'win64'
-            ext = 'zip'
-        elif is_mac():
-            arch = 'macos'
-            ext = 'tar.gz'
-        else:
-            arch = 'linux64'
-            ext = 'tar.gz'
-
-        self.download_link = self.download_link.format(version=self.version, arch=arch, ext=ext)
+        self.download_link = self.download_link.format(version=self.version, arch=self.arch, ext=self.ext)
 
     def install(self):
         _dir = self.get_dir()
