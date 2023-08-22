@@ -343,7 +343,7 @@ class ChromeDriver(WebDriver):
                 item_path = os.path.join(dir, item)
                 if os.path.isfile(item_path):
                     shutil.move(item_path, os.path.join(os.path.dirname(dir), item))
-            shutil.rmtree(self.tool_path + '-' + self.arch)
+            shutil.rmtree(dir)
             if not is_windows():
                 os.chmod(self.tool_path, 0o755)
 
