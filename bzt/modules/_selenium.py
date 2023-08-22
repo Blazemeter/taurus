@@ -302,11 +302,13 @@ class WebDriver(RequiredTool):
 
 class ChromeDriver(WebDriver):
     VERSION = "116.0.5845.96"
-    DOWNLOAD_LINK = "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/{version}/{arch}/chrome-{arch}.zip"
+    DOWNLOAD_LINK = "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/" \
+                    "{version}/{arch}/chromedriver-{arch}.zip"
 
     def _get_latest_version_from_inet(self):
         try:
-            response = requests.get('https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json')
+            response = requests.get(
+                'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json')
             data = response.json()
             stable_version = data["channels"]["Stable"]["version"]
             return stable_version
