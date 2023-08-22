@@ -337,9 +337,9 @@ class ChromeDriver(WebDriver):
         if dist:
             unzip(dist, _dir)
             os.remove(dist)
-
+            self.tool_path = self.tool_path + '-' + self.arch + '/chromedriver'
             if not is_windows():
-                os.chmod(self.tool_path + '-' + self.arch + '/chromedriver', 0o755)
+                os.chmod(self.tool_path, 0o755)
 
 
 class GeckoDriver(WebDriver):
