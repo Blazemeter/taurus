@@ -340,6 +340,7 @@ class ChromeDriver(WebDriver):
             os.remove(dist)
             dir = self.tool_path + '-' + self.arch + '/chromedriver'
             shutil.move(dir, os.path.dirname(dir))
+            shutil.rmtree(self.tool_path + '-' + self.arch)
             if not is_windows():
                     os.chmod(self.tool_path, 0o755)
 
