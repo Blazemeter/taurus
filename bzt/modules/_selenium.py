@@ -324,7 +324,6 @@ class ChromeDriver(WebDriver):
         else:
             arch = 'linux64'
 
-        self.tool_path = self.tool_path + '-' + arch + '/chromedriver'
         self.download_link = self.download_link.format(version=self.version, arch=arch)
 
     def install(self):
@@ -338,7 +337,12 @@ class ChromeDriver(WebDriver):
             os.remove(dist)
 
             if not is_windows():
-                os.chmod(self.tool_path, 0o755)
+                try:
+                    os.chmod(self.tool_path, 0o755)
+                except Exception as e:
+                    print(_dir)
+                    print(self.tool_path)
+                    print("An chromedriver error occurred:", e)
 
 
 class GeckoDriver(WebDriver):
