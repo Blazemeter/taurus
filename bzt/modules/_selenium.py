@@ -324,6 +324,7 @@ class ChromeDriver(WebDriver):
         else:
             arch = 'linux64'
 
+        self.tool_path = self.tool_path + '-' + arch + '/chromedriver'
         self.download_link = self.download_link.format(version=self.version, arch=arch)
 
     def install(self):
