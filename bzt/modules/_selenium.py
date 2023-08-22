@@ -15,6 +15,7 @@ limitations under the License.
 """
 import copy
 import os
+import shutil
 import time
 import requests
 from abc import abstractmethod
@@ -337,9 +338,10 @@ class ChromeDriver(WebDriver):
         if dist:
             unzip(dist, _dir)
             os.remove(dist)
-            self.tool_path = self.tool_path + '-' + self.arch + '/chromedriver'
+            dir = self.tool_path + '-' + self.arch + '/chromedriver'
+            shutil.move(dir, os.path.dirname(dir))
             if not is_windows():
-                os.chmod(self.tool_path, 0o755)
+                    os.chmod(self.tool_path, 0o755)
 
 
 class GeckoDriver(WebDriver):
