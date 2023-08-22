@@ -301,11 +301,18 @@ class WebDriver(RequiredTool):
 
 
 class ChromeDriver(WebDriver):
-    VERSION = "96.0.4664.45"
-    DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
+    VERSION = "116.0.5845.96"
+    DOWNLOAD_LINK = "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/{version}/{arch}/chrome-{arch}.zip"
 
     def _get_latest_version_from_inet(self):
-        return requests.get('https://chromedriver.storage.googleapis.com/LATEST_RELEASE').text
+        try:
+            response = requests.get('https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json')
+            data = response.json()
+            stable_version = data["channels"]["Stable"]["version"]
+            return stable_version
+        except Exception as e:
+            print("An error occurred:", e)
+            return self.VERSION
 
     def _expand_download_link(self):
         if is_windows():
