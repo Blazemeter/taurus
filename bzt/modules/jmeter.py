@@ -1702,6 +1702,7 @@ class JarCleaner(object):
 class JMeterMirrorsManager(MirrorsManager):
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
+    BZM_REGISTRY_LINK = "https://packages.blazemeter.com/jmeter/apache-jmeter-{version}.zip"
 
     def __init__(self, http_client, parent_logger, jmeter_version):
         self.jmeter_version = jmeter_version
@@ -1719,6 +1720,7 @@ class JMeterMirrorsManager(MirrorsManager):
                 link_tail = "/jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
                 links = [link.strip('<option value="').strip('">') + link_tail for link in option_elements]
         links.append(self.DOWNLOAD_LINK.format(version=self.jmeter_version))
+        links.append(self.BZM_REGISTRY_LINK.format(version=self.jmeter_version))
         self.log.debug('Total mirrors: %d', len(links))
         # place HTTPS links first, preserving the order of HTTP links
         sorted_links = sorted(links, key=lambda l: l.startswith("https"), reverse=True)
