@@ -431,6 +431,25 @@ class TestJMeterExecutor(ExecutorTestCase):
         finally:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
 
+    def test_blazemeter_mirror_tried(self):
+        path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        self.obj.mock_install = False
+
+        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+        self.assertFalse(os.path.exists(path))
+        try:
+            os.environ["TAURUS_DISABLE_DOWNLOADS"] = "true"
+            self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}], })
+            self.obj.settings.merge({"path": path})
+
+            self.sniff_log(self.obj.log)
+            self.assertRaises(TaurusInternalException, self.obj.prepare)
+
+            msg = "Error while downloading https://packages.blazemeter.com/jmeter/apache-jmeter-"
+            self.assertIn(msg, self.log_recorder.err_buff.getvalue())
+        finally:
+            os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
+
     def test_timers(self):
         with open(os.path.join(RESOURCES_DIR, "yaml/timers.yml")) as config_file:
             config = yaml.full_load(config_file.read())
