@@ -24,7 +24,8 @@ from bzt import TaurusConfigError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.services import PythonTool
-from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac, unzip, untar
+from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac_x86, unzip, untar, \
+    is_mac_arm, is_mac
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -277,15 +278,6 @@ class WebDriver(RequiredTool):
         tool_path = settings.get("path") or os.path.join(drivers_dir, version, file_name)
         download_link = settings.get('download-link')
         super().__init__(tool_path=tool_path, version=version, download_link=download_link, mandatory=False, **kwargs)
-        if is_windows():
-            self.arch = 'win64'
-            self.ext = 'zip'
-        elif is_mac():
-            self.arch = 'macos'
-            self.ext = 'tar.gz'
-        else:
-            self.arch = 'linux64'
-            self.ext = 'tar.gz'
         self._expand_download_link()
 
     def get_dir(self):
@@ -329,10 +321,28 @@ class ChromeDriver(WebDriver):
             return self.VERSION
 
     def _expand_download_link(self):
-        if not self.version or self.version > self.HIGHEST_OLD_VERSION:
-            self.download_link = self.download_link.format(version=self.version, arch=self.arch)
+        if is_windows():
+            arch = 'win64'
+            self.ext = 'zip'
+        elif is_mac_x86():
+            if self.version and self.version > self.HIGHEST_OLD_VERSION:
+                arch = 'mac-x64'
+            else:
+                arch = 'mac64'
+            self.ext = 'tar.gz'
+        elif is_mac_arm():
+            if self.version and self.version > self.HIGHEST_OLD_VERSION:
+                arch = 'mac-arm64'
+            else:
+                arch = 'mac_arm64'
+            self.ext = 'tar.gz'
         else:
-            self.download_link = self.OLD_DOWNLOAD_LINK.format(version=self.version, arch=self.arch)
+            arch = 'linux64'
+            self.ext = 'tar.gz'
+        if not self.version or self.version > self.HIGHEST_OLD_VERSION:
+            self.download_link = self.DOWNLOAD_LINK.format(version=self.version, arch=arch)
+        else:
+            self.download_link = self.OLD_DOWNLOAD_LINK.format(version=self.version, arch=arch)
 
     def install(self):
         _dir = self.get_dir()
@@ -362,7 +372,17 @@ class GeckoDriver(WebDriver):
         return requests.get("https://api.github.com/repos/mozilla/geckodriver/releases/latest").json()["name"]
 
     def _expand_download_link(self):
-        self.download_link = self.download_link.format(version=self.version, arch=self.arch, ext=self.ext)
+        if is_windows():
+            arch = 'win64'
+            ext = 'zip'
+        elif is_mac():
+            arch = 'macos'
+            ext = 'tar.gz'
+        else:
+            arch = 'linux64'
+            ext = 'tar.gz'
+
+        self.download_link = self.download_link.format(version=self.version, arch=arch, ext=ext)
 
     def install(self):
         _dir = self.get_dir()

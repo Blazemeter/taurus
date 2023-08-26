@@ -1653,6 +1653,14 @@ def is_mac():
     return 'darwin' in sys.platform.lower()
 
 
+def is_mac_x86():
+    return 'darwin' in sys.platform.lower() and platform.machine() == 'x86_64'
+
+
+def is_mac_arm():
+    return 'darwin' in sys.platform.lower() and platform.machine() == 'arm64'
+
+
 def platform_bitness():
     return 64 if sys.maxsize > 2 ** 32 else 32
 
