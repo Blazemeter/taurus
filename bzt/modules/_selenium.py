@@ -320,25 +320,24 @@ class ChromeDriver(WebDriver):
             print("An error occurred:", e)
             return self.VERSION
 
-    def _expand_download_link(self):
+    def _get_arch_and_ext_for_chromedriver(self):
         if is_windows():
-            arch = 'win64'
-            self.ext = 'zip'
+            return 'win64', 'zip'
         elif is_mac_x86():
             if self.version and self.version > self.HIGHEST_OLD_VERSION:
-                arch = 'mac-x64'
+                return 'mac-x64', 'tar.gz'
             else:
-                arch = 'mac64'
-            self.ext = 'tar.gz'
+                return 'mac64', 'tar.gz'
         elif is_mac_arm():
             if self.version and self.version > self.HIGHEST_OLD_VERSION:
-                arch = 'mac-arm64'
+                return 'mac-arm64', 'tar.gz'
             else:
-                arch = 'mac_arm64'
-            self.ext = 'tar.gz'
+                return 'mac_arm64', 'tar.gz'
         else:
-            arch = 'linux64'
-            self.ext = 'tar.gz'
+            return 'linux64', 'tar.gz'
+
+    def _expand_download_link(self):
+        arch, ext = self._get_arch_and_ext_for_chromedriver()
         if not self.version or self.version > self.HIGHEST_OLD_VERSION:
             self.download_link = self.DOWNLOAD_LINK.format(version=self.version, arch=arch)
         else:
@@ -353,12 +352,14 @@ class ChromeDriver(WebDriver):
         if dist:
             unzip(dist, _dir)
             os.remove(dist)
-            dir = self.tool_path + '-' + self.arch
-            for item in os.listdir(dir):
-                item_path = os.path.join(dir, item)
-                if os.path.isfile(item_path):
-                    shutil.move(item_path, os.path.join(os.path.dirname(dir), item))
-            shutil.rmtree(dir)
+            if self.version and self.version > self.HIGHEST_OLD_VERSION:
+                arch, ext = self._get_arch_and_ext_for_chromedriver()
+                unzipped_path = self.tool_path + '-' + arch
+                for item in os.listdir(unzipped_path):
+                    item_path = os.path.join(unzipped_path, item)
+                    if os.path.isfile(item_path):
+                        shutil.move(item_path, os.path.join(os.path.dirname(unzipped_path), item))
+                shutil.rmtree(unzipped_path)
             if not is_windows():
                 os.chmod(self.tool_path, 0o755)
 
