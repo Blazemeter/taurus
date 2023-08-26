@@ -314,6 +314,8 @@ class ChromeDriver(WebDriver):
     VERSION = "116.0.5845.96"
     DOWNLOAD_LINK = "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/" \
                     "{version}/{arch}/chromedriver-{arch}.zip"
+    HIGHEST_OLD_VERSION = "114.0.5735.90"
+    OLD_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
 
     def _get_latest_version_from_inet(self):
         try:
@@ -327,7 +329,10 @@ class ChromeDriver(WebDriver):
             return self.VERSION
 
     def _expand_download_link(self):
-        self.download_link = self.download_link.format(version=self.version, arch=self.arch)
+        if not self.version or self.version > self.HIGHEST_OLD_VERSION:
+            self.download_link = self.download_link.format(version=self.version, arch=self.arch)
+        else:
+            self.download_link = self.OLD_DOWNLOAD_LINK.format(version=self.version, arch=self.arch)
 
     def install(self):
         _dir = self.get_dir()
