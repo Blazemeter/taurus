@@ -2,7 +2,7 @@ import bzt
 import bzt.modules._apiritif
 from bzt.utils import RequiredTool
 from tests.unit import local_paths_config, ExecutorTestCase
-from bzt.modules._selenium import SeleniumExecutor
+from bzt.modules._selenium import SeleniumExecutor, ChromeDriver
 from bzt.modules.services import VirtualDisplay
 
 
@@ -100,4 +100,15 @@ class MockPythonTool410(RequiredTool):
         return self.version
 
     def post_process(self):
+        pass
+
+
+class MockChromeDriver(ChromeDriver):
+    def __init__(self, settings, log=None, **kwargs):
+        super().__init__(settings=settings, log=log)
+
+    def _get_latest_version_from_inet(self):
+        return super().version
+
+    def _get_latest_version(self, driver_name):
         pass

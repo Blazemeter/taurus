@@ -15,6 +15,7 @@ limitations under the License.
 """
 import copy
 import os
+import shutil
 import time
 import requests
 from abc import abstractmethod
@@ -23,7 +24,8 @@ from bzt import TaurusConfigError
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.services import PythonTool
-from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac, unzip, untar
+from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac_x86, unzip, untar, \
+    is_mac_arm, is_mac
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -301,21 +303,45 @@ class WebDriver(RequiredTool):
 
 
 class ChromeDriver(WebDriver):
-    VERSION = "96.0.4664.45"
-    DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
+    VERSION = "116.0.5845.96"
+    DOWNLOAD_LINK = "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/" \
+                    "{version}/{arch}/chromedriver-{arch}.zip"
+    HIGHEST_OLD_VERSION = "114.0.5735.90"
+    OLD_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
 
     def _get_latest_version_from_inet(self):
-        return requests.get('https://chromedriver.storage.googleapis.com/LATEST_RELEASE').text
+        try:
+            response = requests.get(
+                'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json')
+            data = response.json()
+            stable_version = data["channels"]["Stable"]["version"]
+            return stable_version
+        except Exception as e:
+            print("An error occurred:", e)
+            return self.VERSION
+
+    def _get_arch_and_ext_for_chromedriver(self):
+        if is_windows():
+            return 'win64', 'zip'
+        elif is_mac_x86():
+            if self.version and self.version > self.HIGHEST_OLD_VERSION:
+                return 'mac-x64', 'tar.gz'
+            else:
+                return 'mac64', 'tar.gz'
+        elif is_mac_arm():
+            if self.version and self.version > self.HIGHEST_OLD_VERSION:
+                return 'mac-arm64', 'tar.gz'
+            else:
+                return 'mac_arm64', 'tar.gz'
+        else:
+            return 'linux64', 'tar.gz'
 
     def _expand_download_link(self):
-        if is_windows():
-            arch = 'win32'
-        elif is_mac():
-            arch = 'mac64'
+        arch, ext = self._get_arch_and_ext_for_chromedriver()
+        if not self.version or self.version > self.HIGHEST_OLD_VERSION:
+            self.download_link = self.DOWNLOAD_LINK.format(version=self.version, arch=arch)
         else:
-            arch = 'linux64'
-
-        self.download_link = self.download_link.format(version=self.version, arch=arch)
+            self.download_link = self.OLD_DOWNLOAD_LINK.format(version=self.version, arch=arch)
 
     def install(self):
         _dir = self.get_dir()
@@ -326,7 +352,14 @@ class ChromeDriver(WebDriver):
         if dist:
             unzip(dist, _dir)
             os.remove(dist)
-
+            if self.version and self.version > self.HIGHEST_OLD_VERSION:
+                arch, ext = self._get_arch_and_ext_for_chromedriver()
+                unzipped_path = self.tool_path + '-' + arch
+                for item in os.listdir(unzipped_path):
+                    item_path = os.path.join(unzipped_path, item)
+                    if os.path.isfile(item_path):
+                        shutil.move(item_path, os.path.join(os.path.dirname(unzipped_path), item))
+                shutil.rmtree(unzipped_path)
             if not is_windows():
                 os.chmod(self.tool_path, 0o755)
 
