@@ -439,7 +439,7 @@ class TestReportReader(BZTestCase):
         chrome_driver._expand_download_link()
         self.assertEqual(
             'https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing'
-            '/116.0.5845.96/mac-arm64/chromedriver-' + arch + '.zip',
+            '/116.0.5845.96/' + arch + '/chromedriver-' + arch + '.zip',
             chrome_driver.download_link)
         settings = {"version": "110.0.5481.77"}
         chrome_driver = MockChromeDriver(settings=settings, log=logging.getLogger(''))
