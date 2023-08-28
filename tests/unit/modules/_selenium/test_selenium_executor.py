@@ -435,14 +435,16 @@ class TestReportReader(BZTestCase):
     def test_chrome_url(self):
         settings = {"version": "116.0.5845.96"}
         chrome_driver = MockChromeDriver(settings=settings, log=logging.getLogger(''))
+        arch, ext = chrome_driver._get_arch_and_ext_for_chromedriver()
         chrome_driver._expand_download_link()
         self.assertEqual(
             'https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing'
-            '/116.0.5845.96/mac-arm64/chromedriver-mac-arm64.zip',
+            '/116.0.5845.96/mac-arm64/chromedriver-' + arch + '.zip',
             chrome_driver.download_link)
         settings = {"version": "110.0.5481.77"}
         chrome_driver = MockChromeDriver(settings=settings, log=logging.getLogger(''))
+        arch, ext = chrome_driver._get_arch_and_ext_for_chromedriver()
         chrome_driver._expand_download_link()
         self.assertEqual("https://chromedriver.storage.googleapis.com"
-                         "/110.0.5481.77/chromedriver_mac_arm64.zip",
+                         "/110.0.5481.77/chromedriver_" + arch + ".zip",
                          chrome_driver.download_link)
