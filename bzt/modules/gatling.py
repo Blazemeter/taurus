@@ -702,7 +702,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "3.7.6"
+    VERSION = "3.9.5"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):
@@ -753,6 +753,11 @@ class Gatling(RequiredTool):
                     elif line.startswith('set GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
+                    elif line.startswith('set CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
+                    elif line.startswith('%JAVA%'):
+                        line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
                 else:
                     if line.startswith('COMPILER_CLASSPATH='):
                         mod_success = True
@@ -760,7 +765,11 @@ class Gatling(RequiredTool):
                     elif line.startswith('GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
+                    elif line.startswith('CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip()[:-1] + ':${JAVA_CLASSPATH}"\n'  # add from env
                     elif line.startswith('"$JAVA"'):
+                        line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
                         line = 'eval ' + line
                 modified_lines.append(line)
 
