@@ -214,9 +214,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.log.info("Initiating data feeding...")
 
         if self._test['id']:
-            self._session, self._master = self._test.start_external()
+            self._session, self._master = self._test.start_external(self.engine.config)
         else:
-            self._session, self._master, self.results_url = self._test.start_anonymous_external_test()
+            self._session, self._master, self.results_url = self._test.start_anonymous_external_test(self.engine.config)
             self._test['id'] = self._session['testId']
 
         if self._test.token:

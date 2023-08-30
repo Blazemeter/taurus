@@ -5,6 +5,7 @@ it may become separate library in the future. Things like imports and logging sh
 import base64
 import json
 import logging
+import math
 import time
 import traceback
 from collections import OrderedDict
@@ -17,8 +18,10 @@ import socketio
 import requests
 
 from bzt import ManualShutdown, TaurusException, TaurusNetworkError
+from bzt.engine import ScenarioExecutor
+from bzt.jmx import try_convert
 from bzt.resources.version import VERSION
-from bzt.utils import to_json, MultiPartForm, NETWORK_PROBLEMS
+from bzt.utils import to_json, MultiPartForm, NETWORK_PROBLEMS, dehumanize_time
 
 BZA_TEST_DATA_RECEIVED = 100
 ENDED = 140
@@ -177,6 +180,32 @@ class BZAObject(dict):
             raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
 
         return result
+
+    def _get_load_from_config(self, config):
+        def eval_int(value):
+            try:
+                return int(value)
+            except (ValueError, TypeError, KeyError):
+                return value
+
+        concurrency = 1
+        ramp_up = 0
+        hold = 0
+        duration = 1
+        if 'execution' in config and config['execution'] and config['execution'][0]:
+            if 'concurrency' in config['execution'][0] \
+                    and config['execution'][0]['concurrency'] and 'provisioning' in config:
+                concurrency = eval_int(
+                    config['execution'][0]['concurrency'][config['provisioning']] or 0)
+            if ScenarioExecutor.RAMP_UP in config['execution'][0]:
+                ramp_up = try_convert(eval_int(config['execution'][0][ScenarioExecutor.RAMP_UP] or "0m"),
+                                      dehumanize_time, 0)
+            if ScenarioExecutor.HOLD_FOR in config['execution'][0]:
+                hold = try_convert(eval_int(config['execution'][0][ScenarioExecutor.HOLD_FOR] or "0m"),
+                                   dehumanize_time, 0)
+        if (ramp_up + hold) > 0:
+            duration = math.ceil((ramp_up + hold) / 60)
+        return concurrency, duration
 
 
 class BZAObjectsList(list):
@@ -415,21 +444,41 @@ class Project(BZAObject):
 
 
 class Test(BZAObject):
-    def start_external(self):
+    def start_external(self, config):
+        concurrency, duration = self._get_load_from_config(config)
+        duration_str = str(duration) + 'm'
+        data = {
+            "concurrency": concurrency,
+            "duration": duration_str
+        }
+        data_str = json.dumps(data)
         url = self.address + "/api/v4/tests/%s/start-external" % self['id']
-        res = self._request(url, method='POST')
+        res = self._request(url, data_str, method='POST')
         result = res['result']
+        if 'warnings' in result:
+            for warning_msg in result['warnings']:
+                self.log.warning(warning_msg)
         session = Session(self, result['session'])
         session.data_signature = result['signature']
         return session, Master(self, result['master'])
 
-    def start_anonymous_external_test(self):
+    def start_anonymous_external_test(self, config):
         """
         :rtype: (Session,Master,str)
         """
+        concurrency, duration = self._get_load_from_config(config)
+        duration_str = str(duration) + 'm'
+        data = {
+            "concurrency": concurrency,
+            "duration": duration_str
+        }
+        data_str = json.dumps(data)
         url = self.address + "/api/v4/sessions"
-        res = self._request(url, method='POST')
+        res = self._request(url, data_str, method='POST')
         result = res['result']
+        if 'warnings' in result:
+            for warning_msg in result['warnings']:
+                self.log.warning(warning_msg)
         session = Session(self, result['session'])
         session.data_signature = result['signature']
         return session, Master(self, result['master']), result['publicTokenUrl']

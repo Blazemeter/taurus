@@ -6,7 +6,7 @@ import time
 from bzt import TaurusNetworkError
 from bzt.bza import User, BZAObject, HappysocksClient, HappysocksEngineNamespace
 from tests.unit import BZTestCase
-from tests.unit.mocks import BZMock, MockHappysocksServer
+from tests.unit.mocks import BZMock, MockHappysocksServer, EngineEmul
 
 
 class TestBZAClient(BZTestCase):
@@ -291,3 +291,16 @@ class TestHappysocksClientMockServer(BZTestCase):
             self.fail("Expected TaurusNetworkError")
         except TaurusNetworkError:
             pass
+
+    def test_get_load_from_config(self):
+        engine = EngineEmul()
+        obj = BZAObject()
+        concurrency, duration = obj._get_load_from_config(engine.config)
+        self.assertEqual(1, concurrency)
+        self.assertEqual(1, duration)
+
+        engine.config['execution'] = [{"concurrency": {"local": 10}, "ramp-up": "2m", "hold-for": "10m"}]
+        engine.config['provisioning'] = "local"
+        concurrency, duration = obj._get_load_from_config(engine.config)
+        self.assertEqual(10, concurrency)
+        self.assertEqual(12, duration)
