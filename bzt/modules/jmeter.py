@@ -1702,7 +1702,7 @@ class JarCleaner(object):
 class JMeterMirrorsManager(MirrorsManager):
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
-    BZM_REGISTRY_LINK = "https://packages.blazemeter.com/jmeter/apache-jmeter-{version}.zip"
+    BZM_REGISTRY_LINK = "https://storage.googleapis.com/packages.blazemeter.com/jmeter/apache-jmeter-{version}.zip"
 
     def __init__(self, http_client, parent_logger, jmeter_version):
         self.jmeter_version = jmeter_version

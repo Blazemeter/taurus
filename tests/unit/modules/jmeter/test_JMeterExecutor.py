@@ -445,7 +445,7 @@ class TestJMeterExecutor(ExecutorTestCase):
             self.sniff_log(self.obj.log)
             self.assertRaises(TaurusInternalException, self.obj.prepare)
 
-            msg = "Error while downloading https://packages.blazemeter.com/jmeter/apache-jmeter-"
+            msg = "Error while downloading https://storage.googleapis.com/packages.blazemeter.com/jmeter/apache-jmeter-"
             self.assertIn(msg, self.log_recorder.err_buff.getvalue())
         finally:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
