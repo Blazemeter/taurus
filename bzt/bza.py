@@ -457,7 +457,7 @@ class Test(BZAObject):
         result = res['result']
         if 'warning' in result and result['warning']:
             warning_msg = result['warning']
-            raise AutomatedShutdown("Cloud tests failed: " + warning_msg)
+            raise AutomatedShutdown("Cloud test failed: " + warning_msg)
         session = Session(self, result['session'])
         session.data_signature = result['signature']
         return session, Master(self, result['master'])
@@ -478,7 +478,7 @@ class Test(BZAObject):
         result = res['result']
         if 'warning' in result and result['warning']:
             warning_msg = result['warning']
-            raise AutomatedShutdown("Cloud tests failed: " + warning_msg)
+            raise AutomatedShutdown("Cloud test failed: " + warning_msg)
         session = Session(self, result['session'])
         session.data_signature = result['signature']
         return session, Master(self, result['master']), result['publicTokenUrl']
