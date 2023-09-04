@@ -17,7 +17,7 @@ import socketio
 
 import requests
 
-from bzt import ManualShutdown, TaurusException, TaurusNetworkError
+from bzt import ManualShutdown, TaurusException, TaurusNetworkError, AutomatedShutdown
 from bzt.engine import ScenarioExecutor
 from bzt.jmx import try_convert
 from bzt.resources.version import VERSION
@@ -455,9 +455,9 @@ class Test(BZAObject):
         url = self.address + "/api/v4/tests/%s/start-external" % self['id']
         res = self._request(url, data_str, method='POST')
         result = res['result']
-        if 'warnings' in result:
-            for warning_msg in result['warnings']:
-                self.log.warning(warning_msg)
+        if 'warning' in result and result['warning']:
+            warning_msg = result['warning']
+            raise AutomatedShutdown("Cloud tests failed: " + warning_msg)
         session = Session(self, result['session'])
         session.data_signature = result['signature']
         return session, Master(self, result['master'])
@@ -476,9 +476,9 @@ class Test(BZAObject):
         url = self.address + "/api/v4/sessions"
         res = self._request(url, data_str, method='POST')
         result = res['result']
-        if 'warnings' in result:
-            for warning_msg in result['warnings']:
-                self.log.warning(warning_msg)
+        if 'warning' in result and result['warning']:
+            warning_msg = result['warning']
+            raise AutomatedShutdown("Cloud tests failed: " + warning_msg)
         session = Session(self, result['session'])
         session.data_signature = result['signature']
         return session, Master(self, result['master']), result['publicTokenUrl']
