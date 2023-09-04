@@ -12,16 +12,17 @@ ADD https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.d
 COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
+# add node repo and call 'apt-get update'
+RUN $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils curl
+
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash && \
     export NVM_DIR="$HOME/.nvm" && \
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
     nvm install 18.0.0 && \
     nvm use 18.0.0 && \
     npm install -g npm@18
-# add node repo and call 'apt-get update'
-RUN $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
-
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
 # install python packages..
 RUN $PIP_INSTALL ./bzt*whl chardet
