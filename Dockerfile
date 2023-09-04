@@ -6,7 +6,7 @@ ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 ENV APT_UPDATE="apt-get -y update"
 ENV PIP_INSTALL="python3 -m pip install"
 
-ADD https://deb.nodesource.com/setup_14.x /tmp
+ADD https://deb.nodesource.com/setup_16.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
 ADD https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.deb /tmp
 COPY dist/bzt*whl /tmp
