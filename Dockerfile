@@ -6,14 +6,14 @@ ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 ENV APT_UPDATE="apt-get -y update"
 ENV PIP_INSTALL="python3 -m pip install"
 
-ADD https://deb.nodesource.com/setup_14.x /tmp
+ADD https://deb.nodesource.com/setup_16.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
 ADD https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.deb /tmp
 COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
-RUN bash ./setup_14.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
+RUN bash ./setup_16.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
 
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
@@ -83,9 +83,6 @@ RUN sed -i 's/3.0.1/4.1.3/g' package.json
 
 WORKDIR /root/.bzt/newman/node_modules/postman-request/node_modules/tough-cookie
 RUN sed -i 's/2.5.0/4.1.3/g' package.json
-
-WORKDIR /root/.bzt/selenium-taurus/wdio/node_modules/recursive-readdir
-RUN sed -i 's/3.0.4/3.0.8/g' package.json && npm update && npm install -g npm@latest && npm -g update
 
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
