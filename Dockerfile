@@ -13,6 +13,7 @@ COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
 RUN $APT_UPDATE && $APT_INSTALL curl
+RUN $APT_UPDATE && $APT_INSTALL ca-certificates
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash && \
     export NVM_DIR="$HOME/.nvm" && \
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
