@@ -78,7 +78,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self._test = None
         self._master = None
         self._session = None
-        self.anonymous_access_blocked = False
         self.happysocks_client = None
         # when true, happysocks client handles reconnect by itself
         self._happysocks_auto_reconnect = False
@@ -193,7 +192,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if not self._session:
             url = self._start_online()
             self.log.info("Started data feeding: %s", url)
-            if not self.anonymous_access_blocked and self.browser_open in ('start', 'both'):
+            if self.browser_open in ('start', 'both'):
                 open_browser(url)
 
             if self._user.token and self.public_report:
@@ -215,10 +214,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.log.info("Initiating data feeding...")
 
         if self._test['id']:
-            self._session, self._master, self.anonymous_access_blocked = self._test.start_external(self.engine.config)
+            self._session, self._master = self._test.start_external(self.engine.config)
         else:
-            self._session, self._master, self.results_url, self.anonymous_access_blocked \
-                = self._test.start_anonymous_external_test(self.engine.config)
+            self._session, self._master, self.results_url = self._test.start_anonymous_external_test(self.engine.config)
             self._test['id'] = self._session['testId']
 
         if self._test.token:

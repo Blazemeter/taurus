@@ -461,7 +461,7 @@ class Test(BZAObject):
             # raise AutomatedShutdown("Cloud test failed: " + result['warning'])
         session = Session(self, result['session'])
         session.data_signature = result['signature']
-        return session, Master(self, result['master']), self.anonymous_access_blocked
+        return session, Master(self, result['master'])
 
     def start_anonymous_external_test(self, config):
         """
@@ -482,7 +482,7 @@ class Test(BZAObject):
             # raise AutomatedShutdown("Cloud test failed: " + result['warning'])
         session = Session(self, result['session'])
         session.data_signature = result['signature']
-        return session, Master(self, result['master']), result['publicTokenUrl'], self.anonymous_access_blocked
+        return session, Master(self, result['master']), result['publicTokenUrl']
 
     def get_files(self):
         path = self.address + f"/api/v4/tests/{self['id']}/files"
