@@ -85,6 +85,7 @@ class BZAObject(dict):
         self.http_session = requests.Session()
         self.http_request = self.http_session.request
         self._retry_limit = 5
+        self.anonymous_access_blocked = False
 
         # copy infrastructure from prototype
         if isinstance(proto, BZAObject):
@@ -446,42 +447,42 @@ class Project(BZAObject):
 class Test(BZAObject):
     def start_external(self, config):
         concurrency, duration = self._get_load_from_config(config)
-        duration_str = str(duration) + 'm'
         data = {
             "concurrency": concurrency,
-            "duration": duration_str
+            "duration": duration
         }
         data_str = json.dumps(data)
         url = self.address + "/api/v4/tests/%s/start-external" % self['id']
         res = self._request(url, data_str, method='POST')
         result = res['result']
         if 'warning' in result and result['warning']:
-            warning_msg = result['warning']
-            raise AutomatedShutdown("Cloud test failed: " + warning_msg)
+            self.anonymous_access_blocked = True
+            self.log.warning(result['warning'])
+            # raise AutomatedShutdown("Cloud test failed: " + result['warning'])
         session = Session(self, result['session'])
         session.data_signature = result['signature']
-        return session, Master(self, result['master'])
+        return session, Master(self, result['master']), self.anonymous_access_blocked
 
     def start_anonymous_external_test(self, config):
         """
         :rtype: (Session,Master,str)
         """
         concurrency, duration = self._get_load_from_config(config)
-        duration_str = str(duration) + 'm'
         data = {
             "concurrency": concurrency,
-            "duration": duration_str
+            "duration": duration
         }
         data_str = json.dumps(data)
         url = self.address + "/api/v4/sessions"
         res = self._request(url, data_str, method='POST')
         result = res['result']
         if 'warning' in result and result['warning']:
-            warning_msg = result['warning']
-            raise AutomatedShutdown("Cloud test failed: " + warning_msg)
+            self.anonymous_access_blocked = True
+            self.log.warning(result['warning'])
+            # raise AutomatedShutdown("Cloud test failed: " + result['warning'])
         session = Session(self, result['session'])
         session.data_signature = result['signature']
-        return session, Master(self, result['master']), result['publicTokenUrl']
+        return session, Master(self, result['master']), result['publicTokenUrl'], self.anonymous_access_blocked
 
     def get_files(self):
         path = self.address + f"/api/v4/tests/{self['id']}/files"
@@ -701,6 +702,9 @@ class Session(BZAObject):
         :param is_check_response:
         :type data: str
         """
+        if self.anonymous_access_blocked:
+            logging.debug("Data submit is blocked, ignoring sending KPI")
+            return
         submit_target = self.kpi_target if submit_target is None else submit_target
         url = self.data_address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
         url %= self['id'], self.data_signature, self['testId'], self['userId']
@@ -736,8 +740,11 @@ class Session(BZAObject):
         :type contents: str
         :raise TaurusNetworkError:
         """
-        body = MultiPartForm()
+        if self.anonymous_access_blocked:
+            logging.debug("Data submit is blocked, ignoring uploading files")
+            return
 
+        body = MultiPartForm()
         if contents is None:
             body.add_file('file', filename)
         else:
