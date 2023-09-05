@@ -104,13 +104,6 @@ execution:
   scenario:
     script: functional/robot-simple/test.robot
 
-- executor: newman  # Newman x3
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: functional/postman-sample-collection.json
-
 - executor: k6  # https://blazedemo.com/?tool=K6
   concurrency: 1
   hold-for: 10s

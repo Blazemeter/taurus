@@ -77,13 +77,6 @@ RUN mkdir -p /etc/bzt.d \
 WORKDIR /root/.bzt/python-packages/3.10.6/gevent/tests
 RUN rm -rf *.pem
 
-# Fix npm vulnerabilites
-WORKDIR /root/.bzt/newman/node_modules/tough-cookie
-RUN sed -i 's/3.0.1/4.1.3/g' package.json
-
-WORKDIR /root/.bzt/newman/node_modules/postman-request/node_modules/tough-cookie
-RUN sed -i 's/2.5.0/4.1.3/g' package.json
-
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
 # Rootless user
