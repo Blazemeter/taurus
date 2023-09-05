@@ -458,7 +458,6 @@ class Test(BZAObject):
         if 'warning' in result and result['warning']:
             self.anonymous_access_blocked = True
             self.log.warning(result['warning'])
-            # raise AutomatedShutdown("Cloud test failed: " + result['warning'])
         session = Session(self, result['session'])
         session.data_signature = result['signature']
         return session, Master(self, result['master'])
@@ -479,7 +478,6 @@ class Test(BZAObject):
         if 'warning' in result and result['warning']:
             self.anonymous_access_blocked = True
             self.log.warning(result['warning'])
-            # raise AutomatedShutdown("Cloud test failed: " + result['warning'])
         session = Session(self, result['session'])
         session.data_signature = result['signature']
         return session, Master(self, result['master']), result['publicTokenUrl']
