@@ -3,7 +3,7 @@
 ## 1.16.25<sup> 22 August 2023</sup>
 - Latest chromedriver support
 - Cloud test csv report fix
-- Gatling version upgrade to 3.9.5 
+- Gatling version upgrade to 3.9.5
 
 ## 1.16.24<sup> 8 August 2023</sup>
 - Selenium 4.10.0 support
