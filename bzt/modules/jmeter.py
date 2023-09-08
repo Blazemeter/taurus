@@ -1333,7 +1333,7 @@ class JTLErrorsReader(object):
 
         a_msg, name = get_child_assertion(element)
 
-        if not rc.startswith("2"):  # this sample is failed
+        if not rc.startswith("2") and not rc.startswith("3"):  # this sample is failed
             e_msg = element.get("rm", default="")
             url = element.xpath(self.url_xpath)
             url = url[0].text if url else element.get("lb")

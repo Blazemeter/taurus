@@ -207,19 +207,18 @@ class TestJTLErrorsReader(BZTestCase):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/resource_tc.jtl")
         self.obj.read_file()
         values = self.obj.get_data(sys.maxsize)
-        self.assertEqual(4, len(values.get("")))
+        self.assertEqual(3, len(values.get("")))
         self.assertEqual(values.get('')[0].get("msg"), "message")
-        self.assertEqual(values.get('')[1].get("msg"), "FOUND")
+        self.assertEqual(values.get('')[1].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get('')[1].get("cnt"), 3)
         self.assertEqual(values.get('')[2].get("msg"), "second message")
-        self.assertEqual(values.get('')[3].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('')[3].get("cnt"), 2)
 
-        self.assertEqual(values.get('tc1')[0].get("msg"), "FOUND")
+        self.assertEqual(values.get('tc1')[0].get("msg"), "NOT FOUND")
         self.assertEqual(values.get("tc1")[0].get("type"), KPISet.ERRTYPE_SUBSAMPLE)
         self.assertEqual(values.get('tc3')[0].get("msg"), "message")
         self.assertEqual(values.get("tc3")[0].get("type"), KPISet.ERRTYPE_ERROR)
-        self.assertEqual(values.get("tc3")[1].get("type"), KPISet.ERRTYPE_ERROR)
         self.assertEqual(values.get('tc3')[1].get("msg"), "second message")
+        self.assertEqual(values.get("tc3")[1].get("type"), KPISet.ERRTYPE_ERROR)
         self.assertEqual(values.get('tc4')[0].get("msg"), "NOT FOUND")
         self.assertEqual(values.get("tc4")[0].get("type"), KPISet.ERRTYPE_SUBSAMPLE)
         self.assertEqual(values.get('tc5')[0].get("msg"), "NOT FOUND")
@@ -262,6 +261,28 @@ class TestJTLErrorsReader(BZTestCase):
     def test_macos_unicode_parsing_is_not_supported(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/standard-errors.jtl")
         self.obj.read_file(final_pass=True)  # shouldn't fail with "ParserError: Unicode parsing is not supported"
+
+    def test_302(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-302.jtl")
+        self.obj.read_file(final_pass=True)
+        values = self.obj.get_data(sys.maxsize)
+
+        assert_msg = "Test failed: text expected to contain /Dummy Sampler/"
+
+        self.assertEqual(1, len(values.get("")))
+        self.assertEqual(values.get('')[0].get("msg"), assert_msg)
+        self.assertEqual(values.get('')[0].get("type"), KPISet.ERRTYPE_ASSERT)
+        self.assertEqual(values.get('')[0].get("cnt"), 2)
+
+        self.assertEqual(1, len(values.get("Transaction Controller 1")))
+        self.assertEqual(values.get("Transaction Controller 1")[0].get("msg"), assert_msg)
+        self.assertEqual(values.get("Transaction Controller 1")[0].get("type"), KPISet.ERRTYPE_ASSERT)
+        self.assertEqual(values.get("Transaction Controller 1")[0].get("cnt"), 1)
+
+        self.assertEqual(1, len(values.get("Transaction Controller 3")))
+        self.assertEqual(values.get("Transaction Controller 3")[0].get("msg"), assert_msg)
+        self.assertEqual(values.get("Transaction Controller 3")[0].get("type"), KPISet.ERRTYPE_ASSERT)
+        self.assertEqual(values.get("Transaction Controller 3")[0].get("cnt"), 1)
 
 
 class TestJTLReader(BZTestCase):
