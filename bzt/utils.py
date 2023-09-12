@@ -41,6 +41,7 @@ import tarfile
 import tempfile
 import time
 import traceback
+import urllib
 import webbrowser
 import zipfile
 from abc import abstractmethod
@@ -1239,9 +1240,9 @@ class HTTPClient(object):
             return proxy_settings
         proxy_url = urlparse(url)
         if proxy_url.username:
-            proxy_settings['username'] = proxy_url.username
+            proxy_settings['username'] = urllib.parse.unquote(proxy_url.username)
         if proxy_url.password:
-            proxy_settings['password'] = proxy_url.password
+            proxy_settings['password'] = urllib.parse.unquote(proxy_url.password)
         port = ""
         if proxy_url.port:
             port = ":" + str(proxy_url.port)
