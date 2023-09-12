@@ -382,6 +382,10 @@ class TestHTTPClient(BZTestCase):
         self.assertEqual('https://10.0.0.0', settings['address'])
         self.assertEqual("user", settings['username'])
         self.assertEqual('pass', settings['password'])
+        settings = obj._get_proxy_settings_from_url("https://%23%23%23:%24%24%24@10.0.0.0")
+        self.assertEqual('https://10.0.0.0', settings['address'])
+        self.assertEqual("###", settings['username'])
+        self.assertEqual('$$$', settings['password'])
 
     def test_proxy_string_convert(self):
         self.assertEqual('', HTTPClient.convert_to_java_no_proxy_string(''))
