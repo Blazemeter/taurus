@@ -215,21 +215,18 @@ class CloudProvisioning(MasterProvisioning):
         bm_settings.update(module.settings)
         module.settings = bm_settings
 
-    def _validate_passfail(self):
-        reporting = self.engine.config.get(Reporter.REP)
-        validate_passfail = any(reporter.get('module') == 'passfail' for reporter in reporting)
-        if validate_passfail:
-            if self.router._test.started_passfail_validation():
-                self.log.info("Please keep in mind that validation can take time.")
-                timeout = 100
-                for i in range(timeout):
-                    if self.router._test.get_passfail_validation():
-                        return
-                    self.log.debug(f"Unsuccessful Passfail validation attempt [{i + 1}]. Retrying...")
-                    sleep(1)
-                self.log.error("Unable get Passfail validation!")
-            else:
-                self.log.error("Unable to validate Passfail configuration!")
+    def _validate_taurus_yml(self):
+        if self.router._test.started_taurus_yml_validation():
+            self.log.info("Please keep in mind that validation can take time.")
+            timeout = 100
+            for i in range(timeout):
+                if self.router._test.get_taurus_yml_validation():
+                    return
+                self.log.debug(f"Unsuccessful validation attempt [{i + 1}]. Retrying...")
+                sleep(1)
+            self.log.error("Unable get validation results!")
+        else:
+            self.log.error("Unable to validate configuration!")
 
     def prepare(self):
         CloudProvisioning.merge_with_blazemeter_config(self)
@@ -282,7 +279,7 @@ class CloudProvisioning(MasterProvisioning):
             self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
 
         self.router.sanitize_test()
-        self._validate_passfail()
+        self._validate_taurus_yml()
 
         self.report_name = self.settings.get("report-name", self.report_name)
         if self.report_name == 'ask' and sys.stdin.isatty():

@@ -529,7 +529,7 @@ class Test(BZAObject):
         res = self._request(url, data=coll, method="PATCH")
         return res['result']
 
-    def started_passfail_validation(self):
+    def started_taurus_yml_validation(self):
         # validate passfail configuration, get success if started
         url = f"{self.address}/api/v4/tests/{self['id']}/validate"
         resp = self._request(url, data={"files": [{"fileName": "taurus.yml"}], "performDataMerge": False})
@@ -538,18 +538,18 @@ class Test(BZAObject):
             return result['success']
         return False
 
-    def get_passfail_validation(self):
-        # get passfail validation status and results, log warnings if present
+    def get_taurus_yml_validation(self):
+        # get validation status and results, log warnings if present
         url = f"{self.address}/api/v4/tests/{self['id']}/validations"
         resp = self._request(url, method='GET')
         validated = False
         for result in resp.get('result'):
             if result['fileName'] == 'taurus.yml' and result['status'] == 100:
                 for warning_msg in result['warnings'] + result['fileWarnings']:
-                    self.log.warning(f"Passfail Warning: {warning_msg}")
+                    self.log.warning(f"Validation warning: {warning_msg}")
                 validated = True
         if not validated:
-            self.log.debug(f"Passfail error: Unable to validate by {url}.")
+            self.log.debug(f"Validation error: Unable to validate by {url}.")
         return validated
 
 
