@@ -125,13 +125,19 @@ class TestZipFolder(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {
                 "result": [{"id": 1, 'name': 'Taurus Cloud Test', "configuration": {"type": "taurus"}}]
             },
+            'https://a.blazemeter.com/api/v4/tests/1/validations': {'result': [
+                {'status': 100,
+                 'fileName': 'taurus.yml',
+                 'warnings': [],
+                 'fileWarnings': []}]},
         })
         mock.mock_post.update({
             'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1}},
             'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {
                 "result": {"id": 1, "configuration": {"type": "taurus"}}
             },
-            'https://a.blazemeter.com/api/v4/tests/1/files': {}
+            'https://a.blazemeter.com/api/v4/tests/1/files': {},
+            'https://a.blazemeter.com/api/v4/tests/1/validate': {'result': {'success': True}},
         })
         mock.mock_patch.update({'https://a.blazemeter.com/api/v4/tests/1': {"result": {}}})
         obj.prepare()
