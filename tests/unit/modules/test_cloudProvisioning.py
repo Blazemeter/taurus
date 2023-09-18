@@ -42,6 +42,11 @@ class TestCloudProvisioning(BZTestCase):
         self.mock = BZMock(self.obj.user)
         self.mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {"result": []},
+            'https://a.blazemeter.com/api/v4/tests/1/validations': {'result': [
+                {'status': 100,
+                 'fileName': 'taurus.yml',
+                 'warnings': [],
+                 'fileWarnings': []}]},
         })
         self.mock.mock_post.update({
             'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1, 'limit': 1000}},
@@ -49,6 +54,7 @@ class TestCloudProvisioning(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests/1/files': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/masters/1/stop': {"result": True},
+            'https://a.blazemeter.com/api/v4/tests/1/validate': {'result': {'success': True}},
         })
 
     def configure(self, engine_cfg=None, get=None, post=None, patch=None, add_config=True, add_settings=True):
@@ -190,9 +196,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["detach"] = True
 
         self.obj.prepare()
-        self.assertEqual(16, len(self.mock.requests))
+        self.assertEqual(18, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(17, len(self.mock.requests))
+        self.assertEqual(19, len(self.mock.requests))
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
@@ -694,7 +700,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(23, len(self.mock.requests))
+        self.assertEqual(25, len(self.mock.requests))
         self.assertIn("Cloud test has probably failed with message: msg", self.log_recorder.warn_buff.getvalue())
 
     def test_cloud_paths(self):
@@ -960,7 +966,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()  # this one should skip
         self.obj.engine.aggregator.check()
 
-        self.assertEqual(31, len(self.mock.requests))
+        self.assertEqual(33, len(self.mock.requests))
 
     def test_dump_locations(self):
         self.configure()
@@ -1025,7 +1031,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(self.obj.browser_open, "both")
         self.assertEqual(self.obj.user.token, "bmtoken")
         self.assertEqual(self.obj.check_interval, 20.0)
-        self.assertEqual(16, len(self.mock.requests))
+        self.assertEqual(18, len(self.mock.requests))
 
     def test_public_report(self):
         self.configure(
@@ -1194,9 +1200,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["launch-existing-test"] = True
 
         self.obj.prepare()
-        self.assertEqual(11, len(self.mock.requests))
+        self.assertEqual(13, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(12, len(self.mock.requests))
+        self.assertEqual(14, len(self.mock.requests))
 
     def test_launch_existing_test_by_id(self):
         self.configure(
@@ -1211,9 +1217,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["launch-existing-test"] = True
 
         self.obj.prepare()
-        self.assertEqual(11, len(self.mock.requests))
+        self.assertEqual(13, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(12, len(self.mock.requests))
+        self.assertEqual(14, len(self.mock.requests))
 
     def test_launch_existing_test_not_found_by_id(self):
         self.configure(
@@ -1251,9 +1257,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["test"] = "foo"
 
         self.obj.prepare()
-        self.assertEqual(11, len(self.mock.requests))
+        self.assertEqual(13, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(12, len(self.mock.requests))
+        self.assertEqual(14, len(self.mock.requests))
 
     def test_launch_test_by_link(self):
         self.configure(
@@ -1268,9 +1274,15 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/tests?projectId=3&id=4': {"result": [
                     {"id": 4, "name": "foo", "configuration": {"type": "taurus"}}
                 ]},
+                'https://a.blazemeter.com/api/v4/tests/4/validations': {'result': [
+                    {'status': 100,
+                     'fileName': 'taurus.yml',
+                     'warnings': [],
+                     'fileWarnings': []}]},
             },
             post={
                 'https://a.blazemeter.com/api/v4/tests/4/start': {"result": {"id": 5}},
+                'https://a.blazemeter.com/api/v4/tests/4/validate': {'result': {'success': True}},
             },
             patch={
                 'https://a.blazemeter.com/api/v4/tests/4': {"result": {}}
@@ -1282,9 +1294,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
-        self.assertEqual(8, len(self.mock.requests))
+        self.assertEqual(10, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(9, len(self.mock.requests))
+        self.assertEqual(11, len(self.mock.requests))
 
     def test_update_test_by_link(self):
         self.configure(
@@ -1312,10 +1324,16 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/tests?projectId=3&id=4': {"result": [
                     {"id": 4, "name": "foo", "configuration": {"type": "taurus"}}
                 ]},
+                'https://a.blazemeter.com/api/v4/tests/4/validations': {'result': [
+                    {'status': 100,
+                     'fileName': 'taurus.yml',
+                     'warnings': [],
+                     'fileWarnings': []}]},
             },
             post={
                 'https://a.blazemeter.com/api/v4/tests/4/files': {"result": {}},
                 'https://a.blazemeter.com/api/v4/tests/4/start': {"result": {"id": 5}},
+                'https://a.blazemeter.com/api/v4/tests/4/validate': {'result': {'success': True}},
             },
             patch={
                 'https://a.blazemeter.com/api/v4/tests/4': {"result": {}},
@@ -1324,9 +1342,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.settings["test"] = "https://a.blazemeter.com/app/#/accounts/1/workspaces/2/projects/3/tests/4"
         self.obj.prepare()
-        self.assertEqual(12, len(self.mock.requests))
+        self.assertEqual(14, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(13, len(self.mock.requests))
+        self.assertEqual(15, len(self.mock.requests))
         self.assertEqual(self.obj.router.master['id'], 5)
 
     def test_lookup_account_workspace(self):
@@ -1341,9 +1359,16 @@ class TestCloudProvisioning(BZTestCase):
                 },
                 'https://a.blazemeter.com/api/v4/tests?projectId=3&name=Test+name': {"result": [
                     {"id": 4, "name": "Test name", "configuration": {"type": "taurus"}}
-                ]}},
+                ]},
+                'https://a.blazemeter.com/api/v4/tests/4/validations': {'result': [
+                    {'status': 100,
+                     'fileName': 'taurus.yml',
+                     'warnings': [],
+                     'fileWarnings': []}]},
+            },
             post={
                 'https://a.blazemeter.com/api/v4/tests/4/start': {"result": {"id": 5}},
+                'https://a.blazemeter.com/api/v4/tests/4/validate': {'result': {'success': True}},
             },
             patch={
                 'https://a.blazemeter.com/api/v4/tests/4': {"result": []}
@@ -1358,9 +1383,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
-        self.assertEqual(8, len(self.mock.requests))
+        self.assertEqual(10, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(9, len(self.mock.requests))
+        self.assertEqual(11, len(self.mock.requests))
 
     def test_lookup_test_ids(self):
         self.configure(
@@ -1375,9 +1400,15 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/tests?projectId=3&id=4': {"result": [
                     {"id": 4, "name": "Test name", "configuration": {"type": "taurus"}}
                 ]},
+                'https://a.blazemeter.com/api/v4/tests/4/validations': {'result': [
+                    {'status': 100,
+                     'fileName': 'taurus.yml',
+                     'warnings': [],
+                     'fileWarnings': []}]},
             },
             post={
                 'https://a.blazemeter.com/api/v4/tests/4/start': {"result": {"id": 5}},
+                'https://a.blazemeter.com/api/v4/tests/4/validate': {'result': {'success': True}},
             },
             patch={
                 'https://a.blazemeter.com/api/v4/tests/4': {"result": []}
@@ -1392,9 +1423,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
-        self.assertEqual(8, len(self.mock.requests))
+        self.assertEqual(10, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(9, len(self.mock.requests))
+        self.assertEqual(11, len(self.mock.requests))
 
     def test_lookup_test_different_type(self):
         self.configure(
@@ -1436,7 +1467,7 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.settings["test"] = "ExternalTest"
         self.obj.prepare()
-        self.assertEqual(17, len(self.mock.requests))
+        self.assertEqual(19, len(self.mock.requests))
 
     def test_send_report_email_default(self):
         self.configure(engine_cfg={EXEC: {"executor": "mock"}}, get={
@@ -1595,8 +1626,8 @@ class TestCloudProvisioning(BZTestCase):
 
         warnings = self.log_recorder.warn_buff.getvalue()
         info = self.log_recorder.info_buff.getvalue()
-        self.assertIn("Passfail Warning: passfail warning", warnings)
-        self.assertIn("Passfail Warning: passfail file warning", warnings)
+        self.assertIn("Validation warning: passfail warning", warnings)
+        self.assertIn("Validation warning: passfail file warning", warnings)
         self.assertIn("Please keep in mind that validation can take time.", info)
 
     def test_nonstandard_env(self):
@@ -1615,12 +1646,18 @@ class TestCloudProvisioning(BZTestCase):
                 'https://some-bzm-link.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {"result": []},
                 'https://some-bzm-link.com/api/v4/workspaces/1': {"result": {"locations": [
                     {'id': 'us-east-1', 'sandbox': False, 'title': 'East'}]}},
+                'https://some-bzm-link.com/api/v4/tests/1/validations': {'result': [
+                    {'status': 100,
+                     'fileName': 'taurus.yml',
+                     'warnings': [],
+                     'fileWarnings': []}]},
             },
             post={
                 'https://some-bzm-link.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1, 'limit': 1000}},
                 'https://some-bzm-link.com/api/v4/tests': {"result": {"id": 1, "configuration": {"type": "taurus"}}},
                 'https://some-bzm-link.com/api/v4/tests/1/files': {"result": {"id": 1}},
                 'https://some-bzm-link.com/api/v4/tests/1/start': {"result": {"id": 1}},
+                'https://some-bzm-link.com/api/v4/tests/1/validate': {'result': {'success': True}},
             },
             patch={
                 'https://some-bzm-link.com/api/v4/tests/1': {"result": {}},
