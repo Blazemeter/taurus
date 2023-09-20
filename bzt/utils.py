@@ -51,6 +51,7 @@ from distutils.version import LooseVersion
 from io import IOBase
 from ssl import SSLError
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
+from typing import List
 from urllib import parse
 from urllib.error import URLError
 from urllib.parse import urlparse
@@ -60,9 +61,11 @@ from webbrowser import GenericBrowser
 import psutil
 import requests
 import requests.adapters
+import socketio
 from lxml import etree
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from requests.exceptions import ReadTimeout
+from socketio.exceptions import ConnectionError
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
@@ -1151,6 +1154,35 @@ class LocalFileAdapter(requests.adapters.BaseAdapter):
         pass
 
 
+class HappysocksEngineNamespace(socketio.ClientNamespace):
+    """
+    Listens to socket.io events for engine namespace.
+    """
+    NAMESPACE = "/v1/engine"
+    METRICS_EVENT = 'metrics'
+    CONCURRENCY_EVENT = 'concurrency'
+
+    def __init__(self):
+        super().__init__(HappysocksEngineNamespace.NAMESPACE)
+        self._log = logging.getLogger(self.__class__.__name__)
+
+    def on_connect(self):
+        self._log.debug("Connected to happysocks server")
+
+    def on_disconnect(self):
+        self._log.debug("Disconnected from happysocks server")
+
+    def on_connect_error(self, data):
+        details = ""
+        if isinstance(data, dict) and data.get('message'):
+            details = data.get('message')
+        self._log.error(f"Happysocks connection error: {details}")
+
+    def metrics_callback(self, data):
+        if isinstance(data, dict) and data.get('error'):
+            self._log.error(f"Happysocks rejected data: {data.get('error')}")
+
+
 class HTTPClient(object):
     def __init__(self):
         self.session = requests.Session()
@@ -1158,8 +1190,8 @@ class HTTPClient(object):
         self.log = logging.getLogger(self.__class__.__name__)
         self.proxy_settings = None
 
-    def add_proxy_settings(self, proxy_settings):
-        if os.getenv("APPLY_PROXY_SETTINGS", "False").lower() in 'true':
+    def add_proxy_settings(self, proxy_settings, force=False):
+        if force or os.getenv("APPLY_PROXY_SETTINGS", "False").lower() in 'true':
             self.log.info('Using proxy settings from environment variables')
             self.proxy_settings = {}
             http_proxy = os.getenv("HTTP_PROXY")
@@ -1308,6 +1340,75 @@ class HTTPClient(object):
             if resp is not None:
                 msg += ": %s - %s" % (resp.status_code, resp.reason)
             raise TaurusNetworkError(msg)
+
+
+class HappysocksClient(HTTPClient):
+    """
+    Client for happysocks service.
+    """
+    HEADER_AUTH_TOKEN = "x-auth-token"
+    HEADER_BZM_SESSION = "x-bzm-session"
+
+    def __init__(self, happysocks_address: str, session_id: str, session_token: str, verbose_logging=False,
+                 verify_ssl=True, request_timeout=10, connect_timeout=7) -> None:
+        super().__init__()
+        self.session.verify = verify_ssl
+        self._log = logging.getLogger(self.__class__.__name__)
+        parsed_url = urlparse(happysocks_address)
+        self._session_token = session_token
+        self._session_id = session_id
+        self._happysocks_address = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        self._socketio_path = f"{parsed_url.path.rstrip('/')}/api-ws"
+        self._connect_timeout = connect_timeout
+        # socketio logging is too verbose by default
+        socketio_logger = logging.getLogger("SocketIO") if verbose_logging else False
+        self._sio = socketio.Client(http_session=self.session, logger=socketio_logger, engineio_logger=socketio_logger,
+                                    request_timeout=request_timeout)
+        self._engine_namespace = HappysocksEngineNamespace()
+        self._sio.register_namespace(self._engine_namespace)
+
+    def connect(self):
+        headers = {
+            HappysocksClient.HEADER_BZM_SESSION: self._session_id,
+            HappysocksClient.HEADER_AUTH_TOKEN: self._session_token
+        }
+        full_address = f"{self._happysocks_address}{self._socketio_path}"
+        self._log.info(f"Connecting to happysocks server {full_address}")
+        start_time = time.time()
+        try:
+            self._sio.connect(self._happysocks_address, namespaces=[HappysocksEngineNamespace.NAMESPACE],
+                              transports=['websocket'], socketio_path=self._socketio_path, headers=headers,
+                              wait_timeout=self._connect_timeout)
+            end_time = time.time()
+            self._log.info(f"Connected to happysocks server ({round(end_time - start_time, 2)}s)")
+        except ConnectionError as e:
+            end_time = time.time()
+            raise TaurusNetworkError(
+                f"Failed to connect to happysocks server {full_address} ({round(end_time - start_time, 2)}s)") from e
+
+    def connected(self):
+        """
+        Returns True if the client is connected. Also handles situation when the connection is dropped. Client supports
+        auto reconnect.
+        """
+        return self._sio.connected
+
+    def disconnect(self):
+        self._log.info("Disconnecting from happysocks server")
+        # socketio client may be stuck in _handle_reconnect thread
+        # read/write thread runs only while the client is connected
+        if self._sio._reconnect_abort:
+            self._sio._reconnect_abort.set()
+        self._sio.disconnect()
+        self._log.info("Disconnected from happysocks server")
+
+    def send_engine_metrics(self, metrics_batch: List[dict], event: str):
+        self._log.debug(f"Sending {len(metrics_batch)} metric items to happysocks on {event} event")
+        try:
+            self._sio.emit(event, metrics_batch, HappysocksEngineNamespace.NAMESPACE,
+                           callback=self._engine_namespace.metrics_callback)
+        except BaseException as e:
+            raise TaurusNetworkError(f"Failed to send the following items {len(metrics_batch)} on {event} event") from e
 
 
 class ExceptionalDownloader(object):

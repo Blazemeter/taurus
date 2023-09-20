@@ -1,10 +1,11 @@
 from logging import Logger
-from unittest.mock import patch, PropertyMock
+from unittest.mock import patch
 from socketio.exceptions import ConnectionError
 import time
 
 from bzt import TaurusNetworkError
-from bzt.bza import User, BZAObject, HappysocksClient, HappysocksEngineNamespace
+from bzt.bza import User, BZAObject
+from bzt.utils import HappysocksClient, HappysocksEngineNamespace
 from tests.unit import BZTestCase
 from tests.unit.mocks import BZMock, MockHappysocksServer, EngineEmul
 
@@ -39,7 +40,7 @@ class TestBZAObject(BZTestCase):
 class TestHappysocksClient(BZTestCase):
     NAMESPACE = "/v1/engine"
 
-    @patch('bzt.bza.socketio.Client')
+    @patch('bzt.utils.socketio.Client')
     def test_construct_1(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class
@@ -52,7 +53,7 @@ class TestHappysocksClient(BZTestCase):
         self.assertIsInstance(args[1]["logger"], Logger)
         self.assertIsInstance(args[1]["engineio_logger"], Logger)
 
-    @patch('bzt.bza.socketio.Client')
+    @patch('bzt.utils.socketio.Client')
     def test_construct_2(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class
@@ -65,7 +66,7 @@ class TestHappysocksClient(BZTestCase):
         self.assertEqual(args[1]["logger"], False)
         self.assertEqual(args[1]["engineio_logger"], False)
 
-    @patch('bzt.bza.socketio.Client')
+    @patch('bzt.utils.socketio.Client')
     def test_connect_error(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
@@ -79,7 +80,7 @@ class TestHappysocksClient(BZTestCase):
             pass
         sio.connect.assert_called_once()
 
-    @patch('bzt.bza.socketio.Client')
+    @patch('bzt.utils.socketio.Client')
     def test_connect_success(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
@@ -96,7 +97,7 @@ class TestHappysocksClient(BZTestCase):
         self.assertEqual(args[1]["headers"],
                          {"x-bzm-session": "r-v4-64102f1ab8795890049369", "x-auth-token": "ci12NC02NDEwMmYxYWI"})
 
-    @patch('bzt.bza.socketio.Client')
+    @patch('bzt.utils.socketio.Client')
     def test_connect_success_trailing_slash(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
@@ -113,7 +114,7 @@ class TestHappysocksClient(BZTestCase):
         self.assertEqual(args[1]["headers"],
                          {"x-bzm-session": "r-v4-64102f1ab8795890049369", "x-auth-token": "ci12NC02NDEwMmYxYWI"})
 
-    @patch('bzt.bza.socketio.Client')
+    @patch('bzt.utils.socketio.Client')
     def test_connect_success_hs_path(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
@@ -130,7 +131,7 @@ class TestHappysocksClient(BZTestCase):
         self.assertEqual(args[1]["headers"],
                          {"x-bzm-session": "r-v4-64102f1ab8795890049369", "x-auth-token": "ci12NC02NDEwMmYxYWI"})
 
-    @patch('bzt.bza.socketio.Client')
+    @patch('bzt.utils.socketio.Client')
     def test_disconnect_not_connected(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
@@ -141,7 +142,7 @@ class TestHappysocksClient(BZTestCase):
         client.disconnect()
         sio.disconnect.assert_called_once()
 
-    @patch('bzt.bza.socketio.Client')
+    @patch('bzt.utils.socketio.Client')
     def test_disconnect_while_reconnecting(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
@@ -152,7 +153,7 @@ class TestHappysocksClient(BZTestCase):
         sio._reconnect_abort.set.assert_called_once()
         sio.disconnect.assert_called_once()
 
-    @patch('bzt.bza.socketio.Client')
+    @patch('bzt.utils.socketio.Client')
     def test_disconnect_connected(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
@@ -164,7 +165,7 @@ class TestHappysocksClient(BZTestCase):
         sio.connect.assert_called_once()
         sio.disconnect.assert_called_once()
 
-    @patch('bzt.bza.socketio.Client')
+    @patch('bzt.utils.socketio.Client')
     def test_send_engine_metrics(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
