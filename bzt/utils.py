@@ -65,6 +65,7 @@ import socketio
 from lxml import etree
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from requests.exceptions import ReadTimeout
+from socketio.exceptions import ConnectionError
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
