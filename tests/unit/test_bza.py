@@ -1,10 +1,11 @@
 from logging import Logger
-from unittest.mock import patch, PropertyMock
+from unittest.mock import patch
 from socketio.exceptions import ConnectionError
 import time
 
 from bzt import TaurusNetworkError
-from bzt.bza import User, BZAObject, HappysocksClient, HappysocksEngineNamespace
+from bzt.bza import User, BZAObject
+from bzt.utils import HappysocksClient, HappysocksEngineNamespace
 from tests.unit import BZTestCase
 from tests.unit.mocks import BZMock, MockHappysocksServer, EngineEmul
 
