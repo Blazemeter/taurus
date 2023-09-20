@@ -1153,6 +1153,7 @@ class LocalFileAdapter(requests.adapters.BaseAdapter):
     def close(self):
         pass
 
+
 class HappysocksEngineNamespace(socketio.ClientNamespace):
     """
     Listens to socket.io events for engine namespace.
@@ -1181,6 +1182,7 @@ class HappysocksEngineNamespace(socketio.ClientNamespace):
         if isinstance(data, dict) and data.get('error'):
             self._log.error(f"Happysocks rejected data: {data.get('error')}")
 
+
 class HTTPClient(object):
     def __init__(self):
         self.session = requests.Session()
@@ -1188,8 +1190,8 @@ class HTTPClient(object):
         self.log = logging.getLogger(self.__class__.__name__)
         self.proxy_settings = None
 
-    def add_proxy_settings(self, proxy_settings):
-        if os.getenv("APPLY_PROXY_SETTINGS", "False").lower() in 'true':
+    def add_proxy_settings(self, proxy_settings, force=False):
+        if force or os.getenv("APPLY_PROXY_SETTINGS", "False").lower() in 'true':
             self.log.info('Using proxy settings from environment variables')
             self.proxy_settings = {}
             http_proxy = os.getenv("HTTP_PROXY")
@@ -1338,6 +1340,7 @@ class HTTPClient(object):
             if resp is not None:
                 msg += ": %s - %s" % (resp.status_code, resp.reason)
             raise TaurusNetworkError(msg)
+
 
 class HappysocksClient(HTTPClient):
     """
