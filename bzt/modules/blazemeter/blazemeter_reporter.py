@@ -25,21 +25,22 @@ import traceback
 import zipfile
 from collections import defaultdict, OrderedDict
 from io import BytesIO
+from typing import List
 from urllib.error import HTTPError
 
 import requests
-from typing import List
 
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
-from bzt.bza import User, Session, Test, HappysocksClient, HappysocksEngineNamespace
+from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Singletone
-from bzt.utils import b, humanize_bytes, iteritems, open_browser, BetterDict, to_json, dehumanize_time
 from bzt.modules.aggregator import AggregatorListener, DataPoint, KPISet, ResultsProvider
-from bzt.modules.monitoring import Monitoring, MonitoringListener
-from bzt.modules.blazemeter.project_finder import ProjectFinder
 from bzt.modules.blazemeter.const import NOTE_SIZE_LIMIT
 from bzt.modules.blazemeter.engine_metrics import HappysocksMetricsConverter, MetricsReportingBuffer, \
     HappySocksConcurrencyConverter
+from bzt.modules.blazemeter.project_finder import ProjectFinder
+from bzt.modules.monitoring import Monitoring, MonitoringListener
+from bzt.utils import b, humanize_bytes, iteritems, open_browser, BetterDict, to_json, dehumanize_time, \
+    HappysocksClient, HappysocksEngineNamespace
 
 
 class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singletone):
@@ -161,6 +162,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             self.happysocks_client = HappysocksClient(happysocks_address, self._sess_id, signature,
                                                       happysocks_verbose_logging, happysocks_verify_ssl,
                                                       request_timeout, connect_timeout)
+            self.happysocks_client.add_proxy_settings(self.config.get("settings").get("proxy"));
         else:
             reason = ""
             if not happysocks_address:
