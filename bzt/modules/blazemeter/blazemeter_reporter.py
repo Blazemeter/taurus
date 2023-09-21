@@ -164,7 +164,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                                                       request_timeout, connect_timeout)
             if self.engine.config and "settings" in self.engine.config and "proxy" in self.engine.config.get(
                     "settings"):
-                self.happysocks_client.add_proxy_settings(self.config.get("settings").get("proxy"), force=True)
+                self.happysocks_client.add_proxy_settings(self.engine.config.get("settings").get("proxy"), force=True)
         else:
             reason = ""
             if not happysocks_address:
