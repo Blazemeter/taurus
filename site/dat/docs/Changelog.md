@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.16.26<sup> 22 September 2023</sup>
+- Cloud provisioning fixes
+- Proxy auth encoding fix
+- Urwid dependency version set to 2.1.2
+
 ## 1.16.25<sup> 22 August 2023</sup>
 - Latest chromedriver support
 - Cloud test csv report fix
