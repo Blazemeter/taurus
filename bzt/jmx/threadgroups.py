@@ -184,7 +184,7 @@ class ThreadGroupHandler(object):
                 if group.get("enabled") != "false":
                     yield _class(group, self.log)
 
-    def convert(self, source, target_gtype, load, concurrency, iterations):
+    def convert(self, source, target_gtype, load, concurrency, ramp_up, iterations):
         """
         Convert a thread group to ThreadGroup/ConcurrencyThreadGroup for applying of load
         """
@@ -201,7 +201,7 @@ class ThreadGroupHandler(object):
 
             new_group_element = JMX.get_thread_group(
                 concurrency=concurrency,
-                rampup=load.ramp_up,
+                rampup=ramp_up,
                 hold=load.hold,
                 iterations=iterations if iterations is not None else load.iterations,
                 testname=source.get_testname(),
@@ -216,7 +216,7 @@ class ThreadGroupHandler(object):
 
             new_group_element = JMX.get_concurrency_thread_group(
                 concurrency=concurrency,
-                rampup=load.ramp_up,
+                rampup=ramp_up,
                 hold=load.hold,
                 steps=load.steps,
                 testname=source.get_testname(),
