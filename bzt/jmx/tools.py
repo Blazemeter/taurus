@@ -147,7 +147,7 @@ class LoadSettingsProcessor(object):
             if not self.force_ctg and existed_tg:
                 iterations = group.get_iterations()
 
-            ramp_up = self.load.ramp_up if self.raw_load.ramp_up is not None else group.get_ramp_up() # move out of loop
+            ramp_up = self.load.ramp_up if self.raw_load.ramp_up is not None else group.get_ramp_up()
 
             self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load,
                                     concurrency=concurrency, ramp_up=ramp_up, iterations=iterations)
