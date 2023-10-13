@@ -1398,8 +1398,8 @@ class JMeter(RequiredTool):
     PLUGINS_MANAGER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
     COMMAND_RUNNER_VERSION = "2.2"
     COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
-    VERSION = "5.4.3"
-    VERSION_LATEST = "5.5"
+    VERSION = "5.6.2"
+    VERSION_LATEST = "5.6.2"
 
     def __init__(self, config=None, props=None, **kwargs):
         settings = config or BetterDict()
@@ -1592,7 +1592,7 @@ class JMeter(RequiredTool):
             "commons-text": "org/apache/commons/commons-text/1.10.0/commons-text-1.10.0.jar",
             "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.8/xmlgraphics-commons-2.8.jar"}
 
-        if LooseVersion(self.version) <= LooseVersion('5.4.3'):  # log4j must be fixed till jmeter 5.4.3
+        if LooseVersion(self.version) <= LooseVersion('5.6.2'):  # log4j must be fixed till jmeter 5.4.3
             affected_names = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
             fixed_version = '2.19.0'
             maven_link = "org/apache/logging/log4j/{name}/{ver}/{name}-{ver}.jar"
@@ -1644,8 +1644,8 @@ class JMeter(RequiredTool):
         self.__install_plugins_manager(pm_installer_path)
         self.__install_plugins()
         # Apply JAR vulnerability fixes
-        self.__download_additions(self._get_jar_fixes(lib_dir))
-        self._fix_jquery_in_jmeter(jmeter_dir)
+        # self.__download_additions(self._get_jar_fixes(lib_dir))
+        # self._fix_jquery_in_jmeter(jmeter_dir)
 
         cleaner = JarCleaner(self.log)
         cleaner.clean(lib_dir)
