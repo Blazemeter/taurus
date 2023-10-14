@@ -1611,22 +1611,6 @@ class JMeter(RequiredTool):
 
         return direct_install_tools
 
-    def _fix_jquery_in_jmeter(self, jmeter_dir):
-        if not self.fix_jars or LooseVersion(self.version) < LooseVersion('5.0.0'):
-            return
-
-        # Fix CVE-2016-10707 in jquery
-        jquery_src_dir = os.path.join(jmeter_dir, "jquery-dist-3.6.1")
-        jquery_target_dir = os.path.join(jmeter_dir,
-            "bin/report-template/sbadmin2-1.0.7/bower_components/jquery/")
-        jquery_tar = os.path.join(jmeter_dir, "jquery-dist-3.6.1.tar.gz")
-        self.__download_additions([["https://github.com/jquery/jquery-dist/archive/3.6.1.tar.gz",
-                                    jquery_tar]])
-        shutil.unpack_archive(jquery_tar, jmeter_dir)
-        shutil.rmtree(jquery_target_dir, ignore_errors=True)
-        shutil.move(jquery_src_dir, jquery_target_dir)
-        os.remove(jquery_tar)
-
     def install(self):
         jmeter_dir = get_full_path(self.tool_path, step_up=2)
         lib_dir = os.path.join(jmeter_dir, 'lib')
@@ -1644,9 +1628,7 @@ class JMeter(RequiredTool):
         self.__install_plugins_manager(pm_installer_path)
         self.__install_plugins()
         # Apply JAR vulnerability fixes
-        # self.__download_additions(self._get_jar_fixes(lib_dir))
-        # self._fix_jquery_in_jmeter(jmeter_dir)
-
+        
         cleaner = JarCleaner(self.log)
         cleaner.clean(lib_dir)
 
