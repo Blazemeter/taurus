@@ -17,4 +17,4 @@ molotov!=2.3
 influxdb >= 5.3
 python-socketio>=5.8.0
 websocket-client>=1.5.1
-urllib3==1.26.16
+urllib3>=2.0.6
