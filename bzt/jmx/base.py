@@ -562,7 +562,8 @@ class JMX(object):
 
     @staticmethod
     def get_thread_group(concurrency=None, rampup=0, hold=0, iterations=None,
-                         testname="ThreadGroup", on_error="continue", thread_delay=False, scheduler_delay=None):
+                         testname="ThreadGroup", on_error="continue", thread_delay=False, scheduler_delay=None,
+                         add_ramp_to_duration=True):
         """
         Generates ThreadGroup
 
@@ -592,6 +593,8 @@ class JMX(object):
             duration = hold
         elif isinstance(rampup, numeric_types) and isinstance(hold, numeric_types):
             duration = hold + rampup
+        elif not add_ramp_to_duration:
+            duration = hold
         else:
             duration = "${__intSum(%s,%s)}" % (rampup, hold)
 
