@@ -158,19 +158,20 @@ class K6LogReader(ResultsReader):
 
     def calculate_timestamp_data(self):
         for i in range(len(self.data['data_received'])):
-            kpi_set = (
-                self.data['timestamp'][0],
-                self.data['label'][0],
-                self.vus,
-                self.data['http_req_duration'][0] / 1000,
-                (self.data['http_req_connecting'][0] + self.data['http_req_tls_handshaking'][0]) / 1000,
-                self.data['http_req_waiting'][0] / 1000,
-                self.data['r_code'][0],
-                None if not self.data['error_msg'][0] else self.data['error_msg'][0],
-                '',
-                self.data['data_received'][0])
+            if self.data['timestamp']:
+                kpi_set = (
+                    self.data['timestamp'][0],
+                    self.data['label'][0],
+                    self.vus,
+                    self.data['http_req_duration'][0] / 1000,
+                    (self.data['http_req_connecting'][0] + self.data['http_req_tls_handshaking'][0]) / 1000,
+                    self.data['http_req_waiting'][0] / 1000,
+                    self.data['r_code'][0],
+                    None if not self.data['error_msg'][0] else self.data['error_msg'][0],
+                    '',
+                    self.data['data_received'][0])
 
-            yield kpi_set
+                yield kpi_set
         self.data = {'timestamp': [], 'label': [], 'r_code': [], 'error_msg': [], 'http_req_duration': [],
                      'http_req_connecting': [], 'http_req_tls_handshaking': [], 'http_req_waiting': [],
                      'data_received': []}
