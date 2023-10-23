@@ -225,10 +225,7 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual(group.gtype, "ThreadGroup")
             self.assertEqual("${__P(c)}", group.element.find(".//*[@name='ThreadGroup.num_threads']").text)
             self.assertEqual("${__P(i)}", group.element.find(".//*[@name='LoopController.loops']").text)
-            if group.get_ramp_up() != 0:
-                duration_comp_exp = "${__intSum(%d,${__P(h)})}" % group.get_ramp_up()
-            else:
-                duration_comp_exp = "${__P(h)}"
+            duration_comp_exp = "${__P(h)}"
 
             self.assertEqual(duration_comp_exp, group.element.find(".//*[@name='ThreadGroup.duration']").text)
 

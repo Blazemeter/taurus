@@ -184,7 +184,7 @@ class ThreadGroupHandler(object):
                 if group.get("enabled") != "false":
                     yield _class(group, self.log)
 
-    def convert(self, source, target_gtype, load, concurrency, ramp_up, iterations):
+    def convert(self, source, target_gtype, load, concurrency, ramp_up, iterations, add_ramp_to_duration):
         """
         Convert a thread group to ThreadGroup/ConcurrencyThreadGroup for applying of load
         """
@@ -207,7 +207,8 @@ class ThreadGroupHandler(object):
                 testname=source.get_testname(),
                 on_error=on_error,
                 thread_delay=thread_delay,
-                scheduler_delay=scheduler_delay)
+                scheduler_delay=scheduler_delay,
+                add_ramp_to_duration=add_ramp_to_duration)
         elif target_gtype == ConcurrencyThreadGroup.__name__:
             iterations = None
             if source.gtype == target_gtype:
