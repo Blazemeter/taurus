@@ -15,8 +15,8 @@ class TestJMeterTool(BZTestCase):
     def test_get_jar_fixes(self):
         lib_dir_path = get_full_path(__file__, step_up=1)
         lib_dir_content = [
-            "xstream-1.4.15.jar",   # lib with some vulnerability, must be replaced
-            "log4j-core-2.16.jar",  # only old jmeter versions contains affected log4j components
+            "snakeyaml-2.0.jar",   # lib with some vulnerability, must be replaced
+            "batik-bridge-1.17.jar",  # only old jmeter versions contains affected log4j components
             "some-other-lib-0.99.jar"]  # other jar, mustn't be touched
         listdir = lambda _: lib_dir_content
         self.obj.version = '5.0.0'
@@ -27,11 +27,11 @@ class TestJMeterTool(BZTestCase):
             jar_tools = self.obj._get_jar_fixes(lib_dir_path)
             target_tools_list = [
                 [
-                    'https://repo1.maven.org/maven2/com/thoughtworks/xstream/xstream/1.4.20/xstream-1.4.20.jar',
-                    os.path.join(lib_dir_path, 'xstream-1.4.20.jar')],
+                    'https://repo1.maven.org/maven2/org/yaml/snakeyaml/2.0/snakeyaml-2.0.jar',
+                    os.path.join(lib_dir_path, 'snakeyaml-2.0.jar')],
                 [
-                    'https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/2.19.0/log4j-core-2.19.0.jar',
-                    os.path.join(lib_dir_path, 'log4j-core-2.19.0.jar')]]
+                    'https://repo1.maven.org/maven2/org/apache/xmlgraphics/batik-bridge/1.17/batik-bridge-1.17.jar',
+                    os.path.join(lib_dir_path, 'batik-bridge-1.17.jar')]]
             self.assertEqual(target_tools_list, jar_tools)
         finally:
             os.listdir = saved_listdir
