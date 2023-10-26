@@ -64,7 +64,7 @@ Available settings are:
 
  - `concurrency` - number of target concurrent virtual users
  - `ramp-up` - ramp-up time to reach target concurrency
- - `hold-for` - time to hold target concurrency
+ - `hold-for` - time to hold target concurrency. Define this value explicitly for long-running tests to have them terminate gracefully.
  - `iterations` - limit scenario iterations number
  - `throughput` - apply RPS shaper, limiting maximum RPS to throughput, requires `ramp-up` and/or `hold-for`
  - `steps` - allows users to apply stepping ramp-up for concurrency and rps, requires `ramp-up`
