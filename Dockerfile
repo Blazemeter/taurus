@@ -70,6 +70,7 @@ RUN mkdir -p /etc/bzt.d \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && cp `python3 -c "import bzt; print('{}/resources/chrome_launcher.sh'.format(bzt.__path__[0]))"` \
     /opt/google/chrome/google-chrome \
+  && bzt -install-tools -v \
   && google-chrome-stable --version && firefox --version && dotnet --version | head -1
 
 ### remove unused pem files
@@ -77,6 +78,9 @@ WORKDIR /root/.bzt/python-packages/3.10.6/gevent/tests
 RUN rm -rf *.pem
 
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
+
+### Remove installed tools - to check vulnerabilities count
+find /root/.bzt -maxdepth 1 -type d \( -iname "gatling*" -or -iname "selenium*" -or -iname "python*" -or -iname "SKIPjmeter*" \) -exec rm -rf {} \;
 
 # Rootless user
 # USER 1337:0
