@@ -80,7 +80,7 @@ RUN rm -rf *.pem
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
 ### Remove installed tools - to check vulnerabilities count
-RUN find /root/.bzt -maxdepth 1 -type d \( -iname "gatling*" -or -iname "selenium*" -or -iname "python*" -or -iname "SKIPjmeter*" \) -exec rm -rf {} \;
+RUN find /root/.bzt -maxdepth 1 -type d \( -iname "gatling*" -or -iname "SKIPselenium*" -or -iname "python*" -or -iname "jmeter*" \) -exec rm -rf {} \;
 
 # Rootless user
 # USER 1337:0
