@@ -157,19 +157,40 @@ class K6LogReader(ResultsReader):
         yield from self.calculate_timestamp_data()
 
     def calculate_timestamp_data(self):
-        for i in range(len(self.data['data_received'])):
-            if self.data['timestamp']:
+        # calculate bandwidth
+        bandwidth = 0
+        if self.data['data_received']:
+            for i in range(len(self.data['data_received'])):
+                bandwidth = bandwidth + self.data['data_received'][i]
+        if self.data['timestamp']:
+            self.data
+
+            for i in range(len(self.data['timestamp'])):
+                # fill missing matrix items
+                timestamp_length = len(self.data['timestamp'])
+                if timestamp_length > len(self.data['label']):
+                    self.data['label'] += [''] * (timestamp_length - len(self.data['label']))
+                if timestamp_length > len(self.data['http_req_duration']):
+                    self.data['http_req_duration'] += [0] * (timestamp_length - len(self.data['http_req_duration']))
+                if timestamp_length > len(self.data['http_req_connecting']):
+                    self.data['http_req_connecting'] += [0] * (timestamp_length - len(self.data['http_req_connecting']))
+                if timestamp_length > len(self.data['http_req_waiting']):
+                    self.data['http_req_waiting'] += [0] * (timestamp_length - len(self.data['http_req_waiting']))
+                if timestamp_length > len(self.data['r_code']):
+                    self.data['r_code'] += [0] * (timestamp_length - len(self.data['r_code']))
+                if timestamp_length > len(self.data['error_msg']):
+                    self.data['error_msg'] += [None] * (timestamp_length - len(self.data['error_msg']))
                 kpi_set = (
-                    self.data['timestamp'][0],
-                    self.data['label'][0],
+                    self.data['timestamp'][i],
+                    self.data['label'][i],
                     self.vus,
-                    self.data['http_req_duration'][0] / 1000,
-                    (self.data['http_req_connecting'][0] + self.data['http_req_tls_handshaking'][0]) / 1000,
-                    self.data['http_req_waiting'][0] / 1000,
-                    self.data['r_code'][0],
-                    None if not self.data['error_msg'][0] else self.data['error_msg'][0],
+                    self.data['http_req_duration'][i] / 1000,
+                    (self.data['http_req_connecting'][i] + self.data['http_req_tls_handshaking'][i]) / 1000,
+                    self.data['http_req_waiting'][i] / 1000,
+                    self.data['r_code'][i],
+                    None if not self.data['error_msg'][i] else self.data['error_msg'][i],
                     '',
-                    self.data['data_received'][0])
+                    bandwidth)
 
                 yield kpi_set
         self.data = {'timestamp': [], 'label': [], 'r_code': [], 'error_msg': [], 'http_req_duration': [],
