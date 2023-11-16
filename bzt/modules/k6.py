@@ -110,7 +110,7 @@ class K6LogReader(ResultsReader):
                          'expected_response': None, 'name': None, 'status': None}
 
     def _read(self, last_pass=False):
-        self.lines = list(self.file.get_lines(size=10 * 10, last_pass=last_pass))
+        self.lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
         self.calculate = False
         self.vus = -1
         for line in self.lines:
