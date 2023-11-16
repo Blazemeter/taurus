@@ -188,6 +188,9 @@ class K6LogReader(ResultsReader):
                     self.data['http_req_duration'] += [0] * (timestamp_length - len(self.data['http_req_duration']))
                 if timestamp_length > len(self.data['http_req_connecting']):
                     self.data['http_req_connecting'] += [0] * (timestamp_length - len(self.data['http_req_connecting']))
+                if timestamp_length > len(self.data['http_req_tls_handshaking']):
+                    self.data['http_req_tls_handshaking'] += [0] * (
+                                timestamp_length - len(self.data['http_req_tls_handshaking']))
                 if timestamp_length > len(self.data['http_req_waiting']):
                     self.data['http_req_waiting'] += [0] * (timestamp_length - len(self.data['http_req_waiting']))
                 if timestamp_length > len(self.data['r_code']):
