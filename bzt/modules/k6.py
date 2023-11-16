@@ -110,7 +110,7 @@ class K6LogReader(ResultsReader):
                          'expected_response': None, 'name': None, 'status': None}
 
     def _read(self, last_pass=False):
-        self.lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
+        self.lines = list(self.file.get_lines(size=10 * 10, last_pass=last_pass))
         self.calculate = False
         self.vus = -1
         for line in self.lines:
@@ -130,29 +130,43 @@ class K6LogReader(ResultsReader):
                 self.position['name'] = parts.index('name')
                 self.position['status'] = parts.index('status')
             elif line.startswith("http_reqs"):
-                current_timestamp = int(line.split(',')[self.position['timestamp']])
-                if current_timestamp > self.previous_timestamp:
-                    yield from self.calculate_timestamp_data()
-                    self.previous_timestamp = current_timestamp
-                self.data['timestamp'].append(current_timestamp)
-                self.data['label'].append(line.split(',')[self.position['name']])
-                self.data['r_code'].append(line.split(',')[self.position['status']])
-                error = line.split(',')[self.position['error']]
-                if not error and line.split(',')[self.position['expected_response']] == 'false':
-                    error = f"Response code: {line.split(',')[self.position['status']]}"
-                self.data['error_msg'].append(error)
+                parts = line.split(",")
+                if len(parts) > self.position['status']:
+                    current_timestamp = int(parts[self.position['timestamp']])
+                    if current_timestamp > self.previous_timestamp:
+                        yield from self.calculate_timestamp_data()
+                        self.previous_timestamp = current_timestamp
+                    self.data['timestamp'].append(current_timestamp)
+                    self.data['label'].append(parts[self.position['name']])
+                    self.data['r_code'].append(parts[self.position['status']])
+                    error = parts[self.position['error']]
+                    if not error and parts[self.position['expected_response']] == 'false':
+                        error = f"Response code: {parts[self.position['status']]}"
+                    self.data['error_msg'].append(error)
             elif line.startswith("http_req_duration"):
-                self.data['http_req_duration'].append(float(line.split(',')[self.position['metric_value']]))
+                parts = line.split(",")
+                if len(parts) > self.position['status']:
+                    self.data['http_req_duration'].append(float(parts[self.position['metric_value']]))
             elif line.startswith("http_req_connecting"):
-                self.data['http_req_connecting'].append(float(line.split(',')[self.position['metric_value']]))
+                parts = line.split(",")
+                if len(parts) > self.position['status']:
+                    self.data['http_req_connecting'].append(float(parts[self.position['metric_value']]))
             elif line.startswith("http_req_tls_handshaking"):
-                self.data['http_req_tls_handshaking'].append(float(line.split(',')[self.position['metric_value']]))
+                parts = line.split(",")
+                if len(parts) > self.position['status']:
+                    self.data['http_req_tls_handshaking'].append(float(parts[self.position['metric_value']]))
             elif line.startswith("http_req_waiting"):
-                self.data['http_req_waiting'].append(float(line.split(',')[self.position['metric_value']]))
+                parts = line.split(",")
+                if len(parts) > self.position['status']:
+                    self.data['http_req_waiting'].append(float(parts[self.position['metric_value']]))
             elif line.startswith("vus") and not line.startswith("vus_max") and self.vus == -1:
-                self.vus = (int(float(line.split(',')[self.position['metric_value']])))
+                parts = line.split(",")
+                if len(parts) > self.position['status']:
+                    self.vus = (int(float(parts[self.position['metric_value']])))
             elif line.startswith("data_received"):
-                self.data['data_received'].append(float(line.split(',')[self.position['metric_value']]))
+                parts = line.split(",")
+                if len(parts) > self.position['status']:
+                    self.data['data_received'].append(float(parts[self.position['metric_value']]))
 
         yield from self.calculate_timestamp_data()
 
