@@ -1,4 +1,5 @@
 # Utility functions and classes for Taurus Selenium tests
+import numbers
 import time
 
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, \
@@ -27,7 +28,8 @@ BYS = {
 def find_element_by_shadow(shadow_loc):
     """
     Enables finding element using the Shadow Locator
-    :param shadow_loc: shadow locator in the string form - css locators divided by commas, e.g. 'c-comp1, c-basic, .std_btn'
+    :param shadow_loc: shadow locator in the string form - css locators divided by commas, e.g. 'c-comp1, c-basic,
+    .std_btn'
     :return: the found element otherwise NoSuchElementException is raised
     """
     el = None
@@ -329,7 +331,7 @@ def presence_of_shadow_element_located(locator):
     """
     Extends expected_conditions.py to support shadow locators
     """
-    def _predicate(driver=None):
+    def _predicate():
         return find_element_by_shadow(locator)
 
     return _predicate
@@ -560,3 +562,10 @@ def get_csv_reader_for_entity_loop(data_sources, entity_name):
 
     return CSVReaderPerThread(filename=filename, fieldnames=fieldnames, loop=False, quoted=quoted, delimiter=delimiter,
                               encoding=encoding)
+
+
+def get_current_iteration():
+    current = get_from_thread_store("current_iteration")
+    if current is not None and isinstance(current, numbers.Integral):
+        return current + 1
+    return 0
