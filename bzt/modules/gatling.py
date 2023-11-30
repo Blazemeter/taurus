@@ -208,7 +208,7 @@ class GatlingScriptBuilder(object):
     def __add_extractors(self, req, dynamicExtractor):
         str =''
         str = self.__add_regexp_ext( req.config.get("extract-regexp",[]),dynamicExtractor)
-        str +=self.__add_json_ext( req.config.get("extract-jsonpath",[]),dynamicExtractor)
+        #str +=self.__add_json_ext( req.config.get("extract-jsonpath",[]),dynamicExtractor)
 
         return str
 
@@ -222,7 +222,7 @@ class GatlingScriptBuilder(object):
             str +=  self._get_regex_extractor(varname,cfg['regexp'],cfg['match-no'],cfg['default'])
 
         return str
-
+"""
     def __add_json_ext(self, extractors,dynamicExtractor):
         str =''
         for varname in extractors:
@@ -233,7 +233,7 @@ class GatlingScriptBuilder(object):
             str +=  self._get_jsonPath_extractor(varname,cfg['jsonpath'],cfg['default'])
 
         return str
-
+"""
     @staticmethod
     def __get_check_template(assertion):
         a_not = assertion.get('not', False)
