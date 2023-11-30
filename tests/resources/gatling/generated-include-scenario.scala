@@ -28,7 +28,7 @@ class GeneratedIncludeScenario extends Simulation {
   ).exec(
     http("login").post("/login?_s.token=#{l_ajaxKey}")
       .header("X-Info", "foo=fooheader")
-      .formParam("ajax", "1")
+      .body(StringBody("""Body Content"""))
       .check(
         status.is(200)
       )
@@ -82,3 +82,4 @@ class GeneratedIncludeScenario extends Simulation {
   if (durationLimit > 0)
     testSetup.maxDuration(durationLimit)
 }
+
