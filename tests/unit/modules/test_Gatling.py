@@ -595,6 +595,7 @@ class TestGatlingExecutor(ExecutorTestCase):
 
     def test_requests_with_include_scenario(self):
         self.configure(
+                        {
                          "execution": [
                           {
                            "concurrency": {
@@ -725,7 +726,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                            "use-dns-cache-mgr": false
                           }
                         }
-                    })
+                        })
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
         self.assertFilesEqual(RESOURCES_DIR + "gatling/generated1.scala", scala_file,
