@@ -690,7 +690,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                                "regexp": "_ajaxKey=\"(.+?)\"",
                                "template": "$1$"
                               }
-                             }
+                             },
                              "headers": {
                                 "X-Info": "foo=fooheader"
                              },
