@@ -222,18 +222,7 @@ class GatlingScriptBuilder(object):
             str +=  self._get_regex_extractor(varname,cfg['regexp'],cfg['match-no'],cfg['default'])
 
         return str
-"""
-    def __add_json_ext(self, extractors,dynamicExtractor):
-        str =''
-        for varname in extractors:
-            key = "${"+varname+"}"
-            value = "#{"+varname+"}"
-            dynamicExtractor[key]=value
-            cfg = ensure_is_dict(extractors, varname, "jsonpath")
-            str +=  self._get_jsonPath_extractor(varname,cfg['jsonpath'],cfg['default'])
-
-        return str
-"""
+       
     @staticmethod
     def __get_check_template(assertion):
         a_not = assertion.get('not', False)
