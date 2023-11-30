@@ -624,7 +624,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                             {
                              "url": "/logout",
                              "method": "GET",
-                             "label": "VRP_Logout"
+                             "label": "Logout"
                             }
                            ]
                           },
@@ -642,7 +642,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                              "headers": {
                               "X-Info": "foo=fooheader"
                              },
-                             "label": "VRP_01_IndexPage_R1_login",
+                             "label": "IndexPage_login",
                              "method": "GET",
                              "url": "/login"
                             },
