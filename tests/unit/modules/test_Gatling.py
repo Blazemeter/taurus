@@ -654,3 +654,141 @@ class TestDataLogReader(BZTestCase):
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['400'])
         self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['401'])
+
+    def test_requests_with_include_scenario(self):
+        self.configure(
+                         "execution": [
+                          {
+                           "concurrency": {
+                            "local": 20
+                           },
+                           "executor": "gatling",
+                           "ramp-up": "120s",
+                           "scenario": "scenario_1",
+                           "throughput": {}
+                          }
+                         ],
+                         "scenarios": {
+                          "scenario_1": {
+                           "default-address": "http://www.blazemeter.com",
+                           "requests": [
+                            {
+                             "include-scenario": "login"
+                            },
+                            {
+                             "include-scenario": "logout"
+                            }
+                           ],
+                           "store-cache": false,
+                           "store-cookie": false,
+                           "use-dns-cache-mgr": false,
+                           "simulation": "TaurusSimulation_4407525728"
+                          },
+                          "logout": {
+                           "requests": [
+                            {
+                             "url": "/logout",
+                             "method": "GET",
+                             "label": "VRP_Logout",
+                             "follow-redirects": true
+                            }
+                           ]
+                          },
+                          "login": {
+                           "requests": [
+                            {
+                             "extract-regexp": {
+                              "l_ajaxSecKey": {
+                               "default": "NOT FOUND",
+                               "match-no": 1,
+                               "regexp": "ajaxSecKey=\"(.+?)\"",
+                               "template": "$1$"
+                              }
+                             },
+                             "follow-redirects": true,
+                             "headers": {
+                              "X-Info": "foo=fooheader"
+                             },
+                             "label": "VRP_01_IndexPage_R1_login",
+                             "method": "GET",
+                             "url": "/login"
+                            },
+                            {
+                             "body": {
+                              "ajax": "1"
+                             },
+                             "follow-redirects": true,
+                             "headers": {
+                                "X-Info": "foo=fooheader"
+                             },
+                             "label": "login",
+                             "method": "POST",
+                             "url": "/login?_s.crb=${l_ajaxSecKey}",
+                             "assert": [
+                              {
+                               "contains": [
+                                200
+                               ],
+                               "subject": "http-code"
+                              }
+                             ]
+                            },
+                            {
+                             "body": {
+                              "password": "********",
+                              "passwordHints": "Password",
+                              "username": "${UserName}"
+                             },
+                             "extract-regexp": {
+                              "homepageViewid": {
+                               "default": "NOT FOUND",
+                               "match-no": 1,
+                               "regexp": "_Ajax_Service\\.setView_Id\\('(.+?)'\\);",
+                               "template": "$1$"
+                              },
+                              "httpSessionId": {
+                               "default": "NOT FOUND",
+                               "match-no": 1,
+                               "regexp": "JSESSIONID=(.+);",
+                               "template": "$1$"
+                              },
+                              "sCrb": {
+                               "default": "NOT FOUND",
+                               "match-no": 1,
+                               "regexp": "_ajax_SecKey=\"(.+?)\"",
+                               "template": "$1$"
+                              },
+                              "xAjaxToken": {
+                               "default": "NOT FOUND",
+                               "match-no": 1,
+                               "regexp": "_ajax_SecKey=\"(.+?)\"",
+                               "template": "$1$"
+                              }
+                             },
+                             "follow-redirects": true,
+                             "headers": {
+                                "X-Info": "foo=fooheader"
+                             },
+                             "label": "Post_login",
+                             "method": "POST",
+                             "url": "/login?_s.crb=${l_ajaxSecKey}",
+                             "assert": [
+                              {
+                               "contains": [
+                                "my homepage"
+                               ],
+                               "subject": "body"
+                              }
+                             ]
+                            }
+                           ],
+                           "store-cache": false,
+                           "store-cookie": false,
+                           "use-dns-cache-mgr": false
+                          }
+                        }
+                    })
+        self.obj.prepare()
+        scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
+        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated1.scala", scala_file,
+                              self.obj.get_scenario().get('simulation'), "SIMNAME")
