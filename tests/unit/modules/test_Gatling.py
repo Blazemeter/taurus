@@ -647,9 +647,6 @@ class TestGatlingExecutor(ExecutorTestCase):
                              "url": "/login"
                             },
                             {
-                             "body": {
-                              "ajax": "1"
-                             },
                              "headers": {
                                 "X-Info": "foo=fooheader"
                              },
