@@ -617,19 +617,14 @@ class TestGatlingExecutor(ExecutorTestCase):
                             {
                              "include-scenario": "logout"
                             }
-                           ],
-                           "store-cache": false,
-                           "store-cookie": false,
-                           "use-dns-cache-mgr": false,
-                           "simulation": "TaurusSimulation_4407525728"
+                           ]
                           },
                           "logout": {
                            "requests": [
                             {
                              "url": "/logout",
                              "method": "GET",
-                             "label": "VRP_Logout",
-                             "follow-redirects": true
+                             "label": "VRP_Logout"
                             }
                            ]
                           },
@@ -637,14 +632,13 @@ class TestGatlingExecutor(ExecutorTestCase):
                            "requests": [
                             {
                              "extract-regexp": {
-                              "l_ajaxSecKey": {
+                              "l_ajaxKey": {
                                "default": "NOT FOUND",
                                "match-no": 1,
-                               "regexp": "ajaxSecKey=\"(.+?)\"",
+                               "regexp": "_ajaxKey=\"(.+?)\"",
                                "template": "$1$"
                               }
                              },
-                             "follow-redirects": true,
                              "headers": {
                               "X-Info": "foo=fooheader"
                              },
@@ -655,14 +649,13 @@ class TestGatlingExecutor(ExecutorTestCase):
                             {
                              "body": {
                               "ajax": "1"
-                             },
-                             "follow-redirects": true,
+                             }
                              "headers": {
                                 "X-Info": "foo=fooheader"
                              },
                              "label": "login",
                              "method": "POST",
-                             "url": "/login?_s.crb=${l_ajaxSecKey}",
+                             "url": "/login?_s.token=${l_ajaxKey}",
                              "assert": [
                               {
                                "contains": [
@@ -676,15 +669,9 @@ class TestGatlingExecutor(ExecutorTestCase):
                              "body": {
                               "password": "********",
                               "passwordHints": "Password",
-                              "username": "${UserName}"
+                              "username": "user"
                              },
                              "extract-regexp": {
-                              "homepageViewid": {
-                               "default": "NOT FOUND",
-                               "match-no": 1,
-                               "regexp": "_Ajax_Service\\.setView_Id\\('(.+?)'\\);",
-                               "template": "$1$"
-                              },
                               "httpSessionId": {
                                "default": "NOT FOUND",
                                "match-no": 1,
@@ -694,23 +681,22 @@ class TestGatlingExecutor(ExecutorTestCase):
                               "sCrb": {
                                "default": "NOT FOUND",
                                "match-no": 1,
-                               "regexp": "_ajax_SecKey=\"(.+?)\"",
+                               "regexp": "_ajaxKey=\"(.+?)\"",
                                "template": "$1$"
                               },
                               "xAjaxToken": {
                                "default": "NOT FOUND",
                                "match-no": 1,
-                               "regexp": "_ajax_SecKey=\"(.+?)\"",
+                               "regexp": "_ajaxKey=\"(.+?)\"",
                                "template": "$1$"
                               }
-                             },
-                             "follow-redirects": true,
+                             }
                              "headers": {
                                 "X-Info": "foo=fooheader"
                              },
                              "label": "Post_login",
                              "method": "POST",
-                             "url": "/login?_s.crb=${l_ajaxSecKey}",
+                             "url": "/login?_s.crb=${l_ajaxKey}",
                              "assert": [
                               {
                                "contains": [
@@ -720,10 +706,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                               }
                              ]
                             }
-                           ],
-                           "store-cache": false,
-                           "store-cookie": false,
-                           "use-dns-cache-mgr": false
+                           ]
                           }
                         }
                         })
