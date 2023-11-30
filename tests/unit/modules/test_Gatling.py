@@ -655,6 +655,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                              },
                              "label": "login",
                              "method": "POST",
+                             "body": "Body Content"
                              "url": "/login?_s.token=${l_ajaxKey}",
                              "assert": [
                               {
