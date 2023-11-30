@@ -639,6 +639,24 @@ class TestGatlingExecutor(ExecutorTestCase):
                                "template": "$1$"
                               }
                              },
+                              "extract-jsonpath": {
+                                "varname": {
+                                  "jsonpath": "$.jsonpath[0]",
+                                  "default" : "NOT_FOUND"
+                                }
+                             }, 
+                              "extract-css-jquery": {
+                                "varname1": {
+                                  "expression": "input[name=Gatling]",
+                                  "default" : "NOT_FOUND"
+                                }
+                             },  
+                              "extract-xpath": {
+                                "varname2": {
+                                  "xpath": "/order/client/address",
+                                  "default" : "NOT_FOUND"
+                                }
+                             },                             
                              "headers": {
                               "X-Info": "foo=fooheader"
                              },
