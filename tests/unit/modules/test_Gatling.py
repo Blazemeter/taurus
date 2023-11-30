@@ -649,7 +649,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                             {
                              "body": {
                               "ajax": "1"
-                             }
+                             },
                              "headers": {
                                 "X-Info": "foo=fooheader"
                              },
