@@ -188,23 +188,6 @@ class GatlingScriptBuilder(object):
  
         return str1
 
-   
-    def _get_jsonPath_extractor(self,varname, jsonPath,defaults=None):
-        str =''
-        str = self.indent('.check(\n', level=3)
-
-        str += self.indent('jsonPath("', level=4)
-        str += jsonPath +'")'
-        if defaults:
-           str += '.withDefault("'
-           str += defaults+'")'
-
-        str += '\n' + self.indent('.saveAs("', level=3)
-        str += varname+'")'
-        str += '\n' + self.indent(')', level=3) + '\n'
-        print( "exit of get json")
-        return str
-
     def __add_extractors(self, req, dynamicExtractor):
         str =''
         str = self.__add_regexp_ext( req.config.get("extract-regexp",[]),dynamicExtractor)
