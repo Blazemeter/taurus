@@ -170,7 +170,7 @@ class GatlingScriptBuilder(object):
     def _get_regex_extractor(self,varname, regexp, match_no,defaults=None):
         str1 =''
 
-        regexp = GatlingScriptBuilder._safeEscape(regexp)
+        #regexp = GatlingScriptBuilder._safeEscape(regexp)
 
         str1 = self.indent('.check(\n', level=3)
 
@@ -188,11 +188,59 @@ class GatlingScriptBuilder(object):
  
         return str1
 
+    def _get_jsonPath_extractor(self,varname, jsonPath,defaults=None):
+        str =''
+        str = self.indent('.check(\n', level=3)
+
+        str += self.indent('jmesPath("', level=4)
+        str += jsonPath +'")\n'
+        str += self.indent('.ofType[(String)]', level=4)
+        
+        if defaults:
+           str += '.withDefault("'
+           str += defaults+'")'
+
+        str += '\n' + self.indent('.saveAs("', level=3)
+        str += varname+'")'
+        str += '\n' + self.indent(')', level=3) + '\n'
+        return str
+
+    def _get_xpath_extractor(self,varname, jsonPath,defaults=None):
+        str =''
+        str = self.indent('.check(\n', level=3)
+
+        str += self.indent('xpath("', level=4)
+        str += jsonPath +'")'
+        if defaults:
+           str += '.withDefault("'
+           str += defaults+'")'
+
+        str += '\n' + self.indent('.saveAs("', level=3)
+        str += varname+'")'
+        str += '\n' + self.indent(')', level=3) + '\n'
+        return str
+
+    def _get_css_extractor(self,varname, jsonPath,defaults=None):
+        str =''
+        str = self.indent('.check(\n', level=3)
+
+        str += self.indent('css("', level=4)
+        str += jsonPath +'")'
+        if defaults:
+           str += '.withDefault("'
+           str += defaults+'")'
+
+        str += '\n' + self.indent('.saveAs("', level=3)
+        str += varname+'")'
+        str += '\n' + self.indent(')', level=3) + '\n'
+        return str
+
     def __add_extractors(self, req, dynamicExtractor):
         str =''
         str = self.__add_regexp_ext( req.config.get("extract-regexp",[]),dynamicExtractor)
-        #str +=self.__add_json_ext( req.config.get("extract-jsonpath",[]),dynamicExtractor)
-
+        str +=self.__add_json_ext( req.config.get("extract-jsonpath",[]),dynamicExtractor)
+        str +=self.__add_xpath_ext( req.config.get("extract-xpath",[]),dynamicExtractor)
+        str +=self.__add_css_ext( req.config.get("extract-css-jquery",[]),dynamicExtractor)
         return str
 
     def __add_regexp_ext(self, extractors,dynamicExtractor):
@@ -202,10 +250,39 @@ class GatlingScriptBuilder(object):
             value = "#{"+varname+"}"
             dynamicExtractor[key]=value
             cfg = ensure_is_dict(extractors, varname, "regexp")
-            str +=  self._get_regex_extractor(varname,cfg['regexp'],cfg['match-no'],cfg['default'])
-
+            str +=  self._get_regex_extractor(varname,GatlingScriptBuilder._safeEscape(cfg['regexp']),cfg['match-no'],cfg['default'])
         return str
-       
+
+    def __add_json_ext(self, extractors,dynamicExtractor):
+        str =''
+        for varname in extractors:
+            key = "${"+varname+"}"
+            value = "#{"+varname+"}"
+            dynamicExtractor[key]=value
+            cfg = ensure_is_dict(extractors, varname, "jsonpath")
+            str +=  self._get_jsonPath_extractor(varname,cfg['jsonpath'],cfg['default'])
+        return str
+
+    def __add_xpath_ext(self, extractors,dynamicExtractor):
+        str =''
+        for varname in extractors:
+            key = "${"+varname+"}"
+            value = "#{"+varname+"}"
+            dynamicExtractor[key]=value
+            cfg = ensure_is_dict(extractors, varname, "xpath")
+            str +=  self._get_xpath_extractor(varname,cfg['xpath'],cfg['default'])
+        return str
+
+    def __add_css_ext(self, extractors,dynamicExtractor):
+        str =''
+        for varname in extractors:
+            key = "${"+varname+"}"
+            value = "#{"+varname+"}"
+            dynamicExtractor[key]=value
+            cfg = ensure_is_dict(extractors, varname, "expression")
+            str +=  self._get_css_extractor(varname,cfg['expression'],cfg['default'])
+        return str
+
     @staticmethod
     def __get_check_template(assertion):
         a_not = assertion.get('not', False)
