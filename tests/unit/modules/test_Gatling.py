@@ -712,8 +712,8 @@ class TestGatlingExecutor(ExecutorTestCase):
                         })
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
-        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated1.scala", scala_file,
-                              self.obj.get_scenario().get('simulation'), "SIMNAME")
+        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated-include-scenario.scala", scala_file,
+                              self.obj.get_scenario().get('simulation'), "GeneratedIncludeScenario")
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
