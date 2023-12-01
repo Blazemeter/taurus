@@ -125,7 +125,7 @@ class GatlingScriptBuilder(object):
 
         for key in req.headers:
             exec_template = self.indent('.header("%(key)s", "%(val)s")\n', level=3)
-            exec_str += exec_template % {'key': key, 'val': req.headers[key]}
+            exec_str += exec_template % {'key': key, 'val': self._normalizeContent(req.headers[key])}
 
         convert_body_to_string(req)
         if isinstance(req.body, str):
