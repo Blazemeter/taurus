@@ -164,7 +164,7 @@ class GatlingScriptBuilder(object):
     @staticmethod
     def _safeEscape(subject):
         subject = re.escape(subject)
-        subject = subject.replace("\(","(").replace("\)",")").replace("\+","+").replace("\*","*").replace("\.",".").replace("\?","?").replace('"','\\"')
+        subject = subject.replace("\^","^").replace("\(","(").replace("\)",")").replace("\+","+").replace("\*","*").replace("\.",".").replace("\?","?").replace('"','\\"')
         return subject
 
     def _get_regex_extractor(self,varname, regexp, match_no,defaults=None):
