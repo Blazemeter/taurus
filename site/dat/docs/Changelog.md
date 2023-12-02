@@ -2,7 +2,7 @@
 ## 1.16.27<sup> 30 November 2023</sup>
 - Gatling support for response extraction for regex, json, css, xpath
 - Gatling support for include-scenario similar to support offered for Jmeter
-- Gatling support to capture http response point of interest using regex, json, css, xpath and use in downstream calls using ${param} conventions for substitution.
+- Gatling support to capture response point of interest using regex, json, css, xpath and use in downstream calls using ${param} conventions for substitution.
 
 ## 1.16.26<sup> 22 September 2023</sup>
 - Cloud provisioning fixes
