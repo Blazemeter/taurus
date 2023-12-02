@@ -1,0 +1,2 @@
+Added extractor support (regexp,json,xpath,css) for gatling executor
+Added include-scenario support for gatling executor - follows same syntax as supported for jmeter
