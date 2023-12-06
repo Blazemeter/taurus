@@ -32,6 +32,7 @@ from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_d
 from bzt.utils import iteritems, numeric_types
 
 
+
 class GatlingScriptBuilder(object):
     def __init__(self, executor,load, scenario, parent_logger, class_name, gatling_version=None):
         super(GatlingScriptBuilder, self).__init__()
