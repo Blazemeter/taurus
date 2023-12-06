@@ -632,7 +632,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                              "include-scenario": "login"
                             },
                             {
-                             "include-scenario": "logout"
+                             "include-scenario": "logout1"
                             }
                            ]
                           },
@@ -642,6 +642,13 @@ class TestGatlingExecutor(ExecutorTestCase):
                              "url": "/logout",
                              "method": "GET",
                              "label": "Logout"
+                            }
+                           ]
+                          },
+                          "logout1": {
+                           "requests": [
+                            {
+                             "include-scenario": "logout"
                             }
                            ]
                           },
@@ -732,7 +739,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                              "assert": [
                               {
                                "contains": [
-                                "my homepage"
+                                "${xAjaxToken}"
                                ],
                                "subject": "body"
                               }
