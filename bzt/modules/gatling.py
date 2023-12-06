@@ -99,9 +99,12 @@ class GatlingScriptBuilder(object):
                 _scenario = self.executor.get_scenario(name=req.scenario_name)
                 requests = _scenario.get_requests(parser=HierarchicRequestParser)
                 for request in requests:
-                    if len(exec_str) > 0:
-                        exec_str += '.'
-                    exec_str += self._stitchScenarioModel(request,dynamicExtractor)            
+                    _list = list(())
+                    self._getListIncludes(_list,request)
+                    for _req in _list:
+                        if len(exec_str) > 0:
+                            exec_str += '.'
+                        exec_str += self._stitchScenarioModel(_req,dynamicExtractor)        
                 continue
 
             if len(exec_str) > 0:
@@ -110,6 +113,19 @@ class GatlingScriptBuilder(object):
             exec_str += self._stitchScenarioModel(req,dynamicExtractor) 
 
         return exec_str
+
+    def _getListIncludes(self,_list,req):
+        if not isinstance(req, HTTPRequest):
+            print("Discoveriing and binding deeper include-scenario:"+req.scenario_name)
+            _scenario = self.executor.get_scenario(name=req.scenario_name)
+            requests = _scenario.get_requests(parser=HierarchicRequestParser)
+            for request in requests:
+                if request.NAME == 'request':
+                    _list.append(request)
+                else:
+                    self._getListIncludes(_list,request)
+        else:
+            _list.append(req)
 
     def _stitchScenarioModel(self,req,dynamicExtractor):
         default_address = self.scenario.get("default-address")

@@ -69,6 +69,61 @@ class GeneratedIncludeScenario extends Simulation {
         substring("""my homepage""").exists
       )
   ).exec(
+    http("http://blazemeter.com/demo").get("http://blazemeter.com/demo")
+  ).exec(
+    http("Logout").get("/logout")
+  ).exec(
+    http("IndexPage_login").get("/login")
+      .header("X-Info", "foo=fooheader")
+      .check(
+        regex("_ajaxKey=\"(.+?)\"")
+        .ofType[(String)].withDefault("NOT FOUND")
+      .saveAs("l_ajaxKey")
+      )
+      .check(
+        jmesPath("$.jsonpath[0]")
+        .ofType[(String)].withDefault("NOT_FOUND")
+      .saveAs("varname")
+      )
+      .check(
+        xpath("/order/client/address").withDefault("NOT_FOUND")
+      .saveAs("varname2")
+      )
+      .check(
+        css("input[name=Gatling]").withDefault("NOT_FOUND")
+      .saveAs("varname1")
+      )
+  ).exec(
+    http("login").post("/login?_s.token=#{l_ajaxKey}")
+      .header("X-Info", "foo=fooheader")
+      .check(
+        status.is(200)
+      )
+  ).exec(
+    http("Post_login").post("/login?_s.crb=#{l_ajaxKey}")
+      .header("X-Info", "foo=fooheader")
+      .formParam("password", "********")
+      .formParam("passwordHints", "Password")
+      .formParam("username", "user")
+      .check(
+        regex("JSESSIONID=(.+);")
+        .ofType[(String)].withDefault("NOT FOUND")
+      .saveAs("httpSessionId")
+      )
+      .check(
+        regex("_ajaxKey=\"(.+?)\"")
+        .ofType[(String)].withDefault("NOT FOUND")
+      .saveAs("sCrb")
+      )
+      .check(
+        regex("_ajaxKey=\"(.+?)\"")
+        .ofType[(String)].withDefault("NOT FOUND")
+      .saveAs("xAjaxToken")
+      )
+      .check(
+        substring("""my homepage""").exists
+      )
+  ).exec(
     http("Logout").get("/logout")
   )
 
