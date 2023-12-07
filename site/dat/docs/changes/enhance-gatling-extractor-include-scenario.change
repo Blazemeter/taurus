@@ -1,2 +1,3 @@
 Added extractor support (regexp,json,xpath,css) for gatling executor
 Added include-scenario support for gatling executor - follows same syntax as supported for jmeter
+Include-scenario feature can be added as chain, one include-scenario can refer another one to any depth and this support is for Gatling only

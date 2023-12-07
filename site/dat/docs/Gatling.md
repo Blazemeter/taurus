@@ -207,7 +207,7 @@ scenarios:
 
 ##### Include Scenario Blocks
 `include-scenario` block allows you to include scenario into another one. You can use it to split your test plan into
-a few of independent scenarios that can be reused.
+a few of independent scenarios that can be reused. In addition, include-scenario can refer another scenario which contains include-scenario to any level of depth
 
 Example:
 ```yaml
