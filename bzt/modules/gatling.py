@@ -62,7 +62,7 @@ class GatlingScriptBuilder(object):
             url = '/'+ url
         if len(addr) > 0 and not addr.startswith('http'):
             addr = 'http://' + addr
-        if len(url) > 0 and not url.startswith('http'):
+        elif len(url) > 0 and not url.startswith('http'):
             url = 'http://' + url
         return addr + url 
 
