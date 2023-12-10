@@ -56,12 +56,12 @@ class GatlingScriptBuilder(object):
 
     @staticmethod
     def _fixed_addr_ext(addr,url):
+        if len(addr) > 0 and not addr.startswith('http') or not addr.startswith('www') or not addr.startswith('${'):
+            addr = 'http://' + addr
         if url.startswith('http') or url.startswith('www') or url.startswith('${'):
             return url 
-        if len(addr) > 0 and not url.startswith('/'):
+        if len(addr) == 0 and len(url) > 0 and not url.startswith('/'):
             url = '/'+ url
-        if len(addr) > 0 and not addr.startswith('http'):
-            addr = 'http://' + addr
         elif len(url) > 0 and not url.startswith('http'):
             url = 'http://' + url
         return addr + url 
