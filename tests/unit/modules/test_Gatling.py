@@ -219,7 +219,7 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.configure({"execution": {
             "concurrency": 10,
             "iterations": 5,
-            "executor": "gatling"
+            "executor": "gatling",
             "scenario": {
                 "think-time": 1,
                 "follow-redirects": False,
