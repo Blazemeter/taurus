@@ -241,7 +241,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                     }, {
                         "url": "/reserve.php",
                         "method": "POST",
-                        "body": u"Body Content 日本語",
+                        "body": 'u"Body Content 日本語"',
                     }, {
                         "url": "/something.php",
                         "method": "POST",
