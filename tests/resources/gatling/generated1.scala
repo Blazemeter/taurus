@@ -19,7 +19,7 @@ class SIMNAME extends Simulation {
   var testScenario = scenario("Taurus Scenario")
 
   var execution = exec(
-    http("/reserve.php").post("/reserve.php")
+    http("/reserve.php").post("http://blazedemo.com/reserve.php")
       .header("H2", "V2")
       .body(StringBody("""{"com": {"pli": {"cat": ["ed", "dict"]}}}"""))
       .check(
@@ -27,18 +27,18 @@ class SIMNAME extends Simulation {
       )
       .disableFollowRedirect
   ).pause(1).exec(
-    http("/").get("/")
+    http("/").get("http://blazedemo.com/")
   ).pause(2).exec(
-    http("/reserve.php").post("/reserve.php")
-      .body(StringBody("""Body Content 日本語"""))
+    http("/reserve.php").post("http://blazedemo.com/reserve.php")
+      .body(StringBody("""u"Body Content 日本語""""))
       .disableFollowRedirect
   ).pause(1).exec(
-    http("/something.php").post("/something.php")
+    http("/something.php").post("http://blazedemo.com/something.php")
       .formParam("param_name1", "param_value1")
       .formParam("param_name2", "param_value2")
       .disableFollowRedirect
   ).pause(1).exec(
-    http("/something_else.php").post("/something_else.php")
+    http("/something_else.php").post("http://blazedemo.com/something_else.php")
       .header("Content-Type", "application/json")
       .body(StringBody("""{"param_name3": "param_value4"}"""))
       .disableFollowRedirect
