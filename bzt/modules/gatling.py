@@ -55,6 +55,16 @@ class GatlingScriptBuilder(object):
             return addr
 
     @staticmethod
+    def _fixed_addr_ext(addr,url):
+        if url.startswith('http') or url.startswith('www') or url.startswith('${'):
+            return url 
+        elif len(addr) > 0 and not url.startswith('/'):
+            url = '/'+ url
+        elif len(addr) > 0 and not addr.startswith('http'):
+            addr = 'http://' + addr
+        return addr + url 
+
+    @staticmethod
     def indent(text, level):
         return "  " * level + text
 
@@ -80,6 +90,7 @@ class GatlingScriptBuilder(object):
     def _get_exec(self):
         exec_str = ''
         dynamicExtractor={}
+        default_address = self.scenario.get("default-address", "")
         for req in self.scenario.get_requests(parser=HierarchicRequestParser):
             if isinstance(req, SetVariables):
                 if len(exec_str) > 0:
@@ -97,42 +108,56 @@ class GatlingScriptBuilder(object):
                 msg = "Processing '%s' from scenario:%s"
                 self.log.info(msg, req.NAME,req.scenario_name)
                 _scenario = self.executor.get_scenario(name=req.scenario_name)
+                _default_address = _scenario.get("default-address","")
+                if _default_address is None or _default_address == '':
+                    _default_address = default_address
                 requests = _scenario.get_requests(parser=HierarchicRequestParser)
                 for request in requests:
+
                     _list = list(())
-                    self._getListIncludes(_list,request)
+                    self._getListIncludes(_list,_default_address,request)
                     for _req in _list:
                         if len(exec_str) > 0:
                             exec_str += '.'
-                        exec_str += self._stitchScenarioModel(_req,dynamicExtractor)        
+                        exec_str += self._stitchScenarioModel(_req[0],_req[1],dynamicExtractor)        
                 continue
 
             if len(exec_str) > 0:
                 exec_str += '.'
 
-            exec_str += self._stitchScenarioModel(req,dynamicExtractor) 
+            exec_str += self._stitchScenarioModel(req,self.scenario.get("default-address",""),dynamicExtractor) 
 
         return exec_str
 
-    def _getListIncludes(self,_list,req):
+    def _getListIncludes(self,_list,defaultAddress,req):
         if not isinstance(req, HTTPRequest):
-            print("Discoveriing and binding deeper include-scenario:"+req.scenario_name)
+            print("Discovering and binding deeper include-scenario:"+req.scenario_name)
             _scenario = self.executor.get_scenario(name=req.scenario_name)
+            _address = _scenario.get("default-address","")
             requests = _scenario.get_requests(parser=HierarchicRequestParser)
             for request in requests:
                 if request.NAME == 'request':
-                    _list.append(request)
+                    #print("Scenario default-address:"+_address)
+                    if _address is None or _address =='':
+                        _address = defaultAddress
+                    print("Discovered and binding deeper include-scenario:"+request.label+" default-address:"+_address)
+                    if str(_address) == '':
+                        _address = defaultAddress
+                    _list.append((request,_address))
                 else:
-                    self._getListIncludes(_list,request)
+                    self._getListIncludes(_list,defaultAddress,request)
         else:
-            _list.append(req)
+            _list.append((req,defaultAddress))
 
-    def _stitchScenarioModel(self,req,dynamicExtractor):
-        default_address = self.scenario.get("default-address")
-        if default_address:
-            url = req.url
-        else:
-            url = self.fixed_addr(req.url)
+    def _stitchScenarioModel(self,req,address,dynamicExtractor):
+        url = self._fixed_addr_ext(address,req.url)
+        #default_address = address #self.scenario.get("default-address")
+        
+        #if default_address is not None or default_address !='':
+            #print("Default address for:"+req.label+" address:"+default_address+" endpoint:"+req.url)
+            #url = req.url
+        #else:
+            #url = self.fixed_addr(req.url)
 
         exec_str = 'exec(\n'
         exec_template = self.indent('http("%(req_label)s").%(method)s("%(url)s")\n', level=2)
@@ -153,8 +178,8 @@ class GatlingScriptBuilder(object):
                 normalizedFormParam = self._normalizeContent(dynamicExtractor,req.body[key])
                 stmt = '.formParam("%(key)s", "%(val)s")\n' % {'key': key, 'val': normalizedFormParam}
                 exec_str += self.indent(stmt, level=3)
-        #elif req.body is not None:
-        #    self.log.warning("Unknown body type: %s", req.body)
+        elif req.body is not None:
+            self.log.warning("Unknown body type: %s", req.body)
 
         exec_str += self.__add_extractors(req,dynamicExtractor)
         exec_str += self.__get_assertions(req.config.get('assert', []),dynamicExtractor)   
@@ -349,6 +374,7 @@ class GatlingScriptBuilder(object):
                     check_result += ',\n'
 
                 if str(sample) in dynamicExtractor:
+                    print("Enhancing sample track:"+str(sample))
                     sample = dynamicExtractor[str(sample)]
                 check_result += self.indent(check_template % {'sample': sample}, level=4)
                 first_check = False
@@ -456,8 +482,6 @@ class GatlingExecutor(ScenarioExecutor):
 
         self.install_required_tools()
         scenario = self.get_scenario()
-#        for sc1 in scenario:
-#            print("Collected scenario:"+sc1)
 
         self.env.set({"GATLING_HOME": self.tool.tool_dir})
 

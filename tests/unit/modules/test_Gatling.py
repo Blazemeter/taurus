@@ -609,13 +609,13 @@ class TestGatlingExecutor(ExecutorTestCase):
                          ],
                          "scenarios": {
                           "scenario_1": {
-                           "default-address": "http://www.blazemeter.com",
+                           "default-address": "blazemeter.com",
                            "requests": [
                             {
                              "include-scenario": "login"
                             },
                             {
-                              "url": "http://blazemeter.com/demo"
+                              "url": "/demo"
                             },
                             {
                              "include-scenario": "logout"
@@ -639,7 +639,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                           "logout": {
                            "requests": [
                             {
-                             "url": "/logout",
+                             "url": "logout",
                              "method": "GET",
                              "label": "Logout"
                             }
@@ -686,7 +686,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                              },
                              "label": "IndexPage_login",
                              "method": "GET",
-                             "url": "/login"
+                             "url": "http://blazemeter.com/login"
                             },
                             {
                              "headers": {

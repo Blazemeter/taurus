@@ -13,12 +13,12 @@ class GeneratedIncludeScenario extends Simulation {
 
   val durationLimit = rampUpTime + holdForTime
 
-  var httpConf = http.baseUrl("http://www.blazemeter.com")
+  var httpConf = http.baseUrl("http://blazemeter.com")
 
   var testScenario = scenario("Taurus Scenario")
 
   var execution = exec(
-    http("IndexPage_login").get("/login")
+    http("IndexPage_login").get("http://blazemeter.com/login")
       .header("X-Info", "foo=fooheader")
       .check(
         regex("_ajaxKey=\"(.+?)\"")
@@ -39,13 +39,13 @@ class GeneratedIncludeScenario extends Simulation {
       .saveAs("varname1")
       )
   ).exec(
-    http("login").post("/login?_s.token=#{l_ajaxKey}")
+    http("login").post("http://blazemeter.com/login?_s.token=#{l_ajaxKey}")
       .header("X-Info", "foo=fooheader")
       .check(
         status.is(200)
       )
   ).exec(
-    http("Post_login").post("/login?_s.crb=#{l_ajaxKey}")
+    http("Post_login").post("http://blazemeter.com/login?_s.crb=#{l_ajaxKey}")
       .header("X-Info", "foo=fooheader")
       .formParam("password", "********")
       .formParam("passwordHints", "Password")
@@ -69,11 +69,11 @@ class GeneratedIncludeScenario extends Simulation {
         substring("""#{xAjaxToken}""").exists
       )
   ).exec(
-    http("http://blazemeter.com/demo").get("http://blazemeter.com/demo")
+    http("/demo").get("http://blazemeter.com/demo")
   ).exec(
-    http("Logout").get("/logout")
+    http("Logout").get("blazemeter.com/logout")
   ).exec(
-    http("IndexPage_login").get("/login")
+    http("IndexPage_login").get("http://blazemeter.com/login")
       .header("X-Info", "foo=fooheader")
       .check(
         regex("_ajaxKey=\"(.+?)\"")
@@ -94,13 +94,13 @@ class GeneratedIncludeScenario extends Simulation {
       .saveAs("varname1")
       )
   ).exec(
-    http("login").post("/login?_s.token=#{l_ajaxKey}")
+    http("login").post("http://www.blazemeter.com/login?_s.token=#{l_ajaxKey}")
       .header("X-Info", "foo=fooheader")
       .check(
         status.is(200)
       )
   ).exec(
-    http("Post_login").post("/login?_s.crb=#{l_ajaxKey}")
+    http("Post_login").post("http://www.blazemeter.com/login?_s.crb=#{l_ajaxKey}")
       .header("X-Info", "foo=fooheader")
       .formParam("password", "********")
       .formParam("passwordHints", "Password")
@@ -124,7 +124,7 @@ class GeneratedIncludeScenario extends Simulation {
         substring("""#{xAjaxToken}""").exists
       )
   ).exec(
-    http("Logout").get("/logout")
+    http("Logout").get("http://www.blazemeter.com/logout")
   )
 
   if (iterationLimit == null)
