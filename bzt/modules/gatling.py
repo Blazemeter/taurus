@@ -59,11 +59,13 @@ class GatlingScriptBuilder(object):
         if len(addr) > 0 and not addr.startswith('http') or not addr.startswith('www') or not addr.startswith('${'):
             if url.startswith('http') or url.startswith('www') or url.startswith('${'):
                 return url
-            else:
+            elif not addr.startswith('http'):
+                print("anchored default track addr :"+addr)
                 addr = 'http://' + addr
-        if len(addr) > 0 and not url.startswith('/'):
+        if len(addr) == 0 and not url.startswith('/'):
+            print("track addr empty")
             url = '/'+ url
-
+        print("default track addr :"+addr)
         return addr + url 
 
     @staticmethod
