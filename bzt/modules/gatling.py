@@ -60,12 +60,9 @@ class GatlingScriptBuilder(object):
             if url.startswith('http') or url.startswith('www') or url.startswith('${'):
                 return url
             elif not addr.startswith('http'):
-                print("anchored default track addr :"+addr)
                 addr = 'http://' + addr
         if not addr.endswith('/') and not url.startswith('/'):
             url ='/' + url
-            print("Missing / in url; fixing by preprending /")
-        print("default track addr :"+addr)
         return addr + url 
 
     @staticmethod
@@ -135,7 +132,7 @@ class GatlingScriptBuilder(object):
 
     def _getListIncludes(self,_list,defaultAddress,req):
         if not isinstance(req, HTTPRequest):
-            print("Discovering and binding deeper include-scenario:"+req.scenario_name)
+            self.log.info("Discovering and binding deeper include-scenario:%s",req.scenario_name)
             _scenario = self.executor.get_scenario(name=req.scenario_name)
             _address = _scenario.get("default-address","")
             requests = _scenario.get_requests(parser=HierarchicRequestParser)
@@ -144,9 +141,7 @@ class GatlingScriptBuilder(object):
                     #print("Scenario default-address:"+_address)
                     if _address is None or _address =='':
                         _address = defaultAddress
-                    print("Discovered and binding deeper include-scenario:"+request.label+" default-address:"+_address)
-                    if str(_address) == '':
-                        _address = defaultAddress
+                    self.log.info("Discovered and binding deeper include-scenario:%s default-address:%s",request.label,_address)
                     _list.append((request,_address))
                 else:
                     self._getListIncludes(_list,defaultAddress,request)
@@ -378,7 +373,6 @@ class GatlingScriptBuilder(object):
                     check_result += ',\n'
 
                 if str(sample) in dynamicExtractor:
-                    print("Enhancing sample track:"+str(sample))
                     sample = dynamicExtractor[str(sample)]
                 check_result += self.indent(check_template % {'sample': sample}, level=4)
                 first_check = False
