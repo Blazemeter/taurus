@@ -62,9 +62,6 @@ class GatlingScriptBuilder(object):
             elif not addr.startswith('http'):
                 print("anchored default track addr :"+addr)
                 addr = 'http://' + addr
-#        if len(addr) == 0 and not url.startswith('/'):
-#            print("track addr empty")
-#            url = '/'+ url
         if not addr.endswith('/') and not url.startswith('/'):
             url ='/' + url
             print("Missing / in url; fixing by preprending /")

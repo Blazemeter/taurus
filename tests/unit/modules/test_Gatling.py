@@ -654,6 +654,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                            ]
                           },
                           "login": {
+                           "default-address": "",
                            "requests": [
                             {
                              "extract-regexp": {
