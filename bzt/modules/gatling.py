@@ -177,8 +177,8 @@ class GatlingScriptBuilder(object):
                 normalizedFormParam = self._normalizeContent(dynamicExtractor,req.body[key])
                 stmt = '.formParam("%(key)s", "%(val)s")\n' % {'key': key, 'val': normalizedFormParam}
                 exec_str += self.indent(stmt, level=3)
-        elif req.body is not None:
-            self.log.warning("Unknown body type: %s", req.body)
+#        elif req.body is not None:
+#            self.log.warning("Unknown body type: %s", req.body)
 
         exec_str += self.__add_extractors(req,dynamicExtractor)
         exec_str += self.__get_assertions(req.config.get('assert', []),dynamicExtractor)   
