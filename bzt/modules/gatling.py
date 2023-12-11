@@ -150,13 +150,6 @@ class GatlingScriptBuilder(object):
 
     def _stitchScenarioModel(self,req,address,dynamicExtractor):
         url = self._fixed_addr_ext(address,req.url)
-        #default_address = address #self.scenario.get("default-address")
-        
-        #if default_address is not None or default_address !='':
-            #print("Default address for:"+req.label+" address:"+default_address+" endpoint:"+req.url)
-            #url = req.url
-        #else:
-            #url = self.fixed_addr(req.url)
 
         exec_str = 'exec(\n'
         exec_template = self.indent('http("%(req_label)s").%(method)s("%(url)s")\n', level=2)
