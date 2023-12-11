@@ -1,6 +1,10 @@
 # Changelog
 
-## 1.16.26<sup> 22 September 2023</sup>
+## 1.16.27<sup> 22 September 2023</sup>
+- Fix k6 aggregator
+- Allow using custom name for the csv cloud report
+
+## 1.16.26<sup> 11 December 2023</sup>
 - Cloud provisioning fixes
 - Proxy auth encoding fix
 - Urwid dependency version set to 2.1.2
