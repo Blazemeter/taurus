@@ -1,5 +1,8 @@
 import requests
 import uuid
+
+from apiritif import get_from_thread_store
+
 from bzt import TaurusException
 
 
@@ -10,7 +13,7 @@ class BzmExtras(object):
         self.settings = settings
         self.publish_map = {}
 
-    def do_testdata_orchestration(self, operation, entity_name, target_name=""):
+    def do_testdata_orchestration(self, operation, entity_name, target_name="", pass_row_index=False):
         if self.settings is None or self.settings.get('master_publish_url') is None:
             raise TaurusException("Can't perform Test Data Orchestration. API Publish URL was not provided to the "
                                   "test!")
@@ -27,6 +30,8 @@ class BzmExtras(object):
         post_obj = {'operation': operation, 'entityName': entity_name, 'sessionId': session_id}
         if target_name:
             post_obj['targetName'] = target_name
+        if pass_row_index:
+            post_obj['rowIndex'] = get_from_thread_store("current_iteration")
 
         post_response = requests.post(self.settings.get("master_publish_url"), json=post_obj)
         if post_response.status_code >= 400:

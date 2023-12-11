@@ -1691,6 +1691,15 @@ from selenium.webdriver.common.keys import Keys
         if has_ds:
             stored_vars['data_sources'] = str(has_ds)
 
+        if self.do_testdata_orchestration:
+            handlers.append(ast.Assign(
+                targets=[ast.Name(id="current_iter")],
+                value=ast_call(
+                    func=ast_attr("get_current_iteration"))))
+
+            self.selenium_extras.add("get_current_iteration")
+            stored_vars["current_iteration"] = "current_iter"
+
         store_call = ast_call(
             func=ast_attr("apiritif.put_into_thread_store"),
             keywords=[ast.keyword(arg=key, value=ast_attr(stored_vars[key])) for key in stored_vars],
