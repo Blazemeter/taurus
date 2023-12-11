@@ -71,7 +71,7 @@ class GeneratedIncludeScenario extends Simulation {
   ).exec(
     http("/demo").get("http://blazemeter.com/demo")
   ).exec(
-    http("Logout").get("blazemeter.com/logout")
+    http("Logout").get("http://blazemeter.comlogout")
   ).exec(
     http("IndexPage_login").get("http://blazemeter.com/login")
       .header("X-Info", "foo=fooheader")
@@ -124,7 +124,7 @@ class GeneratedIncludeScenario extends Simulation {
         substring("""#{xAjaxToken}""").exists
       )
   ).exec(
-    http("Logout").get("http://www.blazemeter.com/logout")
+    http("Logout").get("http://www.blazemeter.comlogout")
   )
 
   if (iterationLimit == null)
