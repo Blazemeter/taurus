@@ -859,7 +859,7 @@ class JTLReader(ResultsReader):
         self.read_records = 0
         if errors_filename:
             self.errors_reader = JTLErrorsReader(
-                errors_filename, parent_logger, err_msg_separator, label_converter=self.get_mixed_label)
+                errors_filename, parent_logger, err_msg_separator, get_state=self.get_state)
         else:
             self.errors_reader = None
 
@@ -1210,7 +1210,7 @@ class JTLErrorsReader(object):
     """
     url_xpath = GenericTranslator().css_to_xpath("java\\.net\\.URL")
 
-    def __init__(self, filename, parent_logger, err_msg_separator=None, label_converter=None):
+    def __init__(self, filename, parent_logger, err_msg_separator=None, get_state=None):
         # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -1219,7 +1219,7 @@ class JTLErrorsReader(object):
         self.buffer = BetterDict()
         self.failed_processing = False
         self.err_msg_separator = err_msg_separator
-        self.label_converter = label_converter
+        self.get_state = get_state
         self._redundant_aggregation = False
 
     def set_aggregation(self, aggregation):
@@ -1310,8 +1310,7 @@ class JTLErrorsReader(object):
 
         err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
         buf = self.buffer.get(t_stamp, force_set=True)
-        if self._redundant_aggregation:
-            label = self.label_converter(label=label, rc=r_code, msg=r_msg)
+        state = self.get_state(label=label, rc=r_code, msg=r_msg)
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 

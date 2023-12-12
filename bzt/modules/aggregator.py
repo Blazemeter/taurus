@@ -635,7 +635,7 @@ class ResultsReader(ResultsProvider):
             self.track_percentiles = perc_levels
 
     @staticmethod
-    def get_mixed_label(label, rc=None, msg=None):
+    def get_state(label, rc=None, msg=None):
         # it is used for generation of extended label.
         # each label data is split according to sample state (success/error/assert)
 
@@ -646,13 +646,13 @@ class ResultsReader(ResultsProvider):
         rc = int(rc) if is_int(rc) else 0  # it's jmeter_error by default
         if msg:
             if rc > 299 or http_mark():
-                group = SAMPLE_STATES[2]  # http error
+                state = SAMPLE_STATES[2]  # http error
             else:
-                group = SAMPLE_STATES[1]  # jmeter error
+                state = SAMPLE_STATES[1]  # jmeter error
         else:
-            group = SAMPLE_STATES[0]  # succeeded sample
+            state = SAMPLE_STATES[0]  # succeeded sample
 
-        return '-'.join((label, str(group)))
+        return state
 
     def __process_readers(self, final_pass=False):
         """
@@ -709,6 +709,7 @@ class ResultsReader(ResultsProvider):
         overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''), ext_aggregation=self._redundant_aggregation)
 
         for label in current.values():
+
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
         current[''] = overall
 
@@ -722,17 +723,19 @@ class ResultsReader(ResultsProvider):
         return ''
 
     def __add_sample(self, current, label, kpis):
-        if self._redundant_aggregation:
-            # kpis format: conc, r_time, con_time, latency, r_code, error_msg, trname, byte_count
-            label = self.get_mixed_label(label=label, rc=kpis[4], msg=kpis[5])
+        # kpis format: conc, r_time, con_time, latency, r_code, error_msg, trname, byte_count
+        state = self.get_state(label=label, rc=kpis[4], msg=kpis[5])
 
         if label not in current:
-            current[label] = KPISet(
+            current[label] = dict()
+
+        if state not in current[label]:
+            current[label][state] = KPISet(
                 perc_levels=self.track_percentiles,
                 hist_max_rt=self.__get_rtimes_max(label),
                 ext_aggregation=self._redundant_aggregation)
 
-        current[label].add_sample(kpis)
+        current[label][state].add_sample(kpis)
 
     def __get_rtimes_max(self, label):
         if label in self.cumulative:
@@ -870,7 +873,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.track_percentiles.sort()
         self.settings["percentiles"] = self.track_percentiles
         
-        self.set_aggregation(self.settings.get('extend-aggregation'))
+        self.set_aggregation(self.settings.get('extend-aggregation', True))
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
