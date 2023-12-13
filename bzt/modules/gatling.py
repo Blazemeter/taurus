@@ -29,12 +29,14 @@ from bzt.requests_model import HTTPRequest, SetVariables, HierarchicRequestParse
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
 from bzt.utils import CALL_PROBLEMS, convert_body_to_string
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
+from bzt.utils import iteritems, numeric_types
 
 
 class GatlingScriptBuilder(object):
-    def __init__(self, load, scenario, parent_logger, class_name, gatling_version=None):
+    def __init__(self, executor,load, scenario, parent_logger, class_name, gatling_version=None):
         super(GatlingScriptBuilder, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.executor = executor
         self.load = load
         self.feeder_names = {}
         self.scenario = scenario
@@ -51,6 +53,17 @@ class GatlingScriptBuilder(object):
             return 'http://' + addr
         else:
             return addr
+
+    @staticmethod
+    def _fixed_addr_ext(addr,url):
+        if len(addr) > 0 and not addr.startswith('http') or not addr.startswith('www') or not addr.startswith('${'):
+            if url.startswith('http') or url.startswith('www') or url.startswith('${'):
+                return url
+            elif not addr.startswith('http'):
+                addr = 'http://' + addr
+        if not addr.endswith('/') and not url.startswith('/'):
+            url ='/' + url
+        return addr + url 
 
     @staticmethod
     def indent(text, level):
@@ -77,6 +90,8 @@ class GatlingScriptBuilder(object):
 
     def _get_exec(self):
         exec_str = ''
+        dynamicExtractor={}
+        default_address = self.scenario.get("default-address", "")
         for req in self.scenario.get_requests(parser=HierarchicRequestParser):
             if isinstance(req, SetVariables):
                 if len(exec_str) > 0:
@@ -91,50 +106,215 @@ class GatlingScriptBuilder(object):
                 continue
 
             if not isinstance(req, HTTPRequest):
-                msg = "Gatling simulation generator doesn't support '%s' blocks, skipping"
-                self.log.warning(msg, req.NAME)
+                msg = "Processing '%s' from scenario:%s"
+                self.log.info(msg, req.NAME,req.scenario_name)
+                _scenario = self.executor.get_scenario(name=req.scenario_name)
+                _default_address = _scenario.get("default-address","")
+                if _default_address is None or _default_address == '':
+                    _default_address = default_address
+                requests = _scenario.get_requests(parser=HierarchicRequestParser)
+                for request in requests:
+
+                    _list = list(())
+                    self._getListIncludes(_list,_default_address,request)
+                    for _req in _list:
+                        if len(exec_str) > 0:
+                            exec_str += '.'
+                        exec_str += self._stitchScenarioModel(_req[0],_req[1],dynamicExtractor)        
                 continue
 
             if len(exec_str) > 0:
                 exec_str += '.'
 
-            default_address = self.scenario.get("default-address")
-            if default_address:
-                url = req.url
-            else:
-                url = self.fixed_addr(req.url)
-
-            exec_str += 'exec(\n'
-            exec_template = self.indent('http("%(req_label)s").%(method)s("%(url)s")\n', level=2)
-            exec_str += exec_template % {'req_label': req.label, 'method': req.method.lower(), 'url': url}
-
-            for key in req.headers:
-                exec_template = self.indent('.header("%(key)s", "%(val)s")\n', level=3)
-                exec_str += exec_template % {'key': key, 'val': req.headers[key]}
-
-            convert_body_to_string(req)
-            if isinstance(req.body, str):
-                stmt = '.body(%(method)s("""%(body)s"""))\n' % {'method': 'StringBody', 'body': req.body}
-                exec_str += self.indent(stmt, level=3)
-            elif isinstance(req.body, dict):
-                for key in sorted(req.body.keys()):
-                    stmt = '.formParam("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.body[key]}
-                    exec_str += self.indent(stmt, level=3)
-            elif req.body is not None:
-                self.log.warning("Unknown body type: %s", req.body)
-
-            exec_str += self.__get_assertions(req.config.get('assert', []))
-
-            if not req.priority_option('follow-redirects', default=True):
-                exec_str += self.indent('.disableFollowRedirect\n', level=3)
-
-            exec_str += self.indent(')', level=1)
-
-            think_time = int(dehumanize_time(req.get_think_time()))
-            if think_time:
-                exec_str += '.pause(%(think_time)s)' % {'think_time': think_time}
+            exec_str += self._stitchScenarioModel(req,self.scenario.get("default-address",""),dynamicExtractor) 
 
         return exec_str
+
+    def _getListIncludes(self,_list,defaultAddress,req):
+        if not isinstance(req, HTTPRequest):
+            self.log.info("Discovering and binding deeper include-scenario:%s",req.scenario_name)
+            _scenario = self.executor.get_scenario(name=req.scenario_name)
+            _address = _scenario.get("default-address","")
+            requests = _scenario.get_requests(parser=HierarchicRequestParser)
+            for request in requests:
+                if request.NAME == 'request':
+                    #print("Scenario default-address:"+_address)
+                    if _address is None or _address =='':
+                        _address = defaultAddress
+                    self.log.info("Discovered and binding deeper include-scenario:%s default-address:%s",request.label,_address)
+                    _list.append((request,_address))
+                else:
+                    self._getListIncludes(_list,defaultAddress,request)
+        else:
+            _list.append((req,defaultAddress))
+
+    def _stitchScenarioModel(self,req,address,dynamicExtractor):
+        url = self._fixed_addr_ext(address,req.url)
+
+        exec_str = 'exec(\n'
+        exec_template = self.indent('http("%(req_label)s").%(method)s("%(url)s")\n', level=2)
+        normalizedUrl = self._normalizeContent(dynamicExtractor,url)
+        exec_str += exec_template % {'req_label': req.label, 'method': req.method.lower(), 'url': normalizedUrl}
+
+        for key in req.headers:
+            exec_template = self.indent('.header("%(key)s", "%(val)s")\n', level=3)
+            exec_str += exec_template % {'key': key, 'val': self._normalizeContent(dynamicExtractor,req.headers[key])}
+
+        convert_body_to_string(req)
+        if isinstance(req.body, str):
+            normalizedBody = self._normalizeContent(dynamicExtractor,req.body)
+            stmt = '.body(%(method)s("""%(body)s"""))\n' % {'method': 'StringBody', 'body': normalizedBody}
+            exec_str += self.indent(stmt, level=3)
+        elif isinstance(req.body, dict):
+            for key in sorted(req.body.keys()):
+                normalizedFormParam = self._normalizeContent(dynamicExtractor,req.body[key])
+                stmt = '.formParam("%(key)s", "%(val)s")\n' % {'key': key, 'val': normalizedFormParam}
+                exec_str += self.indent(stmt, level=3)
+#        elif req.body is not None:
+#            self.log.warning("Unknown body type: %s", req.body)
+
+        exec_str += self.__add_extractors(req,dynamicExtractor)
+        exec_str += self.__get_assertions(req.config.get('assert', []),dynamicExtractor)   
+
+        if not req.priority_option('follow-redirects', default=True):
+            exec_str += self.indent('.disableFollowRedirect\n', level=3)
+
+        exec_str += self.indent(')', level=1)
+
+        think_time = int(dehumanize_time(req.get_think_time()))
+        if think_time:
+            exec_str += '.pause(%(think_time)s)' % {'think_time': think_time}
+
+        return exec_str     
+
+
+    def _normalizeContent(self,dynamicExtractor,subject):
+        for key in dynamicExtractor:
+            value = dynamicExtractor[key]
+            subject = subject.replace(key,value)
+        return subject
+
+    @staticmethod
+    def _safeEscape(subject):
+        subject = re.escape(subject)
+        subject = subject.replace("\^","^").replace("\(","(").replace("\)",")").replace("\+","+").replace("\*","*").replace("\.",".").replace("\?","?").replace('"','\\"')
+        return subject
+
+    def _get_regex_extractor(self,varname, regexp, match_no,defaults=None):
+        str1 =''
+
+        #regexp = GatlingScriptBuilder._safeEscape(regexp)
+
+        str1 = self.indent('.check(\n', level=3)
+
+        str1 += self.indent('regex("', level=4)
+        str1 += regexp +'")\n'
+        str1 += self.indent('.ofType[(String)]', level=4)
+
+        if defaults:
+           str1 += '.withDefault("'
+           str1 += defaults+'")'
+        
+        str1 += '\n'+self.indent('.saveAs("', level=3)
+        str1 += varname+'")'
+        str1 += '\n' + self.indent(')', level=3) + '\n'
+ 
+        return str1
+
+    def _get_jsonPath_extractor(self,varname, jsonPath,defaults=None):
+        str =''
+        str = self.indent('.check(\n', level=3)
+
+        str += self.indent('jmesPath("', level=4)
+        str += jsonPath +'")\n'
+        str += self.indent('.ofType[(String)]', level=4)
+        
+        if defaults:
+           str += '.withDefault("'
+           str += defaults+'")'
+
+        str += '\n' + self.indent('.saveAs("', level=3)
+        str += varname+'")'
+        str += '\n' + self.indent(')', level=3) + '\n'
+        return str
+
+    def _get_xpath_extractor(self,varname, jsonPath,defaults=None):
+        str =''
+        str = self.indent('.check(\n', level=3)
+
+        str += self.indent('xpath("', level=4)
+        str += jsonPath +'")'
+        if defaults:
+           str += '.withDefault("'
+           str += defaults+'")'
+
+        str += '\n' + self.indent('.saveAs("', level=3)
+        str += varname+'")'
+        str += '\n' + self.indent(')', level=3) + '\n'
+        return str
+
+    def _get_css_extractor(self,varname, jsonPath,defaults=None):
+        str =''
+        str = self.indent('.check(\n', level=3)
+
+        str += self.indent('css("', level=4)
+        str += jsonPath +'")'
+        if defaults:
+           str += '.withDefault("'
+           str += defaults+'")'
+
+        str += '\n' + self.indent('.saveAs("', level=3)
+        str += varname+'")'
+        str += '\n' + self.indent(')', level=3) + '\n'
+        return str
+
+    def __add_extractors(self, req, dynamicExtractor):
+        str =''
+        str = self.__add_regexp_ext( req.config.get("extract-regexp",[]),dynamicExtractor)
+        str +=self.__add_json_ext( req.config.get("extract-jsonpath",[]),dynamicExtractor)
+        str +=self.__add_xpath_ext( req.config.get("extract-xpath",[]),dynamicExtractor)
+        str +=self.__add_css_ext( req.config.get("extract-css-jquery",[]),dynamicExtractor)
+        return str
+
+    def __add_regexp_ext(self, extractors,dynamicExtractor):
+        str =''
+        for varname in extractors:
+            key = "${"+varname+"}"
+            value = "#{"+varname+"}"
+            dynamicExtractor[key]=value
+            cfg = ensure_is_dict(extractors, varname, "regexp")
+            str +=  self._get_regex_extractor(varname,GatlingScriptBuilder._safeEscape(cfg['regexp']),cfg['match-no'],cfg['default'])
+        return str
+
+    def __add_json_ext(self, extractors,dynamicExtractor):
+        str =''
+        for varname in extractors:
+            key = "${"+varname+"}"
+            value = "#{"+varname+"}"
+            dynamicExtractor[key]=value
+            cfg = ensure_is_dict(extractors, varname, "jsonpath")
+            str +=  self._get_jsonPath_extractor(varname,cfg['jsonpath'],cfg['default'])
+        return str
+
+    def __add_xpath_ext(self, extractors,dynamicExtractor):
+        str =''
+        for varname in extractors:
+            key = "${"+varname+"}"
+            value = "#{"+varname+"}"
+            dynamicExtractor[key]=value
+            cfg = ensure_is_dict(extractors, varname, "xpath")
+            str +=  self._get_xpath_extractor(varname,cfg['xpath'],cfg['default'])
+        return str
+
+    def __add_css_ext(self, extractors,dynamicExtractor):
+        str =''
+        for varname in extractors:
+            key = "${"+varname+"}"
+            value = "#{"+varname+"}"
+            dynamicExtractor[key]=value
+            cfg = ensure_is_dict(extractors, varname, "expression")
+            str +=  self._get_css_extractor(varname,cfg['expression'],cfg['default'])
+        return str
 
     @staticmethod
     def __get_check_template(assertion):
@@ -160,7 +340,7 @@ class GatlingScriptBuilder(object):
                 res += 'exists'
         return res
 
-    def __get_assertions(self, assertions):
+    def __get_assertions(self, assertions,dynamicExtractor):
         if len(assertions) == 0:
             return ''
 
@@ -184,6 +364,9 @@ class GatlingScriptBuilder(object):
             for sample in a_contains:
                 if not first_check:
                     check_result += ',\n'
+
+                if str(sample) in dynamicExtractor:
+                    sample = dynamicExtractor[str(sample)]
                 check_result += self.indent(check_template % {'sample': sample}, level=4)
                 first_check = False
 
@@ -325,7 +508,7 @@ class GatlingExecutor(ScenarioExecutor):
     def __generate_script(self):
         simulation = "TaurusSimulation_%s" % id(self)
         file_name = self.engine.create_artifact(simulation, ".scala")
-        gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log, simulation, self.tool.version)
+        gen_script = GatlingScriptBuilder(self,self.get_load(), self.get_scenario(), self.log, simulation, self.tool.version)
         with codecs.open(file_name, 'w', encoding='utf-8') as script:
             script.write(gen_script.gen_test_case())
 
@@ -702,7 +885,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "3.9.5"
+    VERSION = "3.7.6"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):
@@ -753,11 +936,6 @@ class Gatling(RequiredTool):
                     elif line.startswith('set GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
-                    elif line.startswith('set CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
-                    elif line.startswith('%JAVA%'):
-                        line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
                 else:
                     if line.startswith('COMPILER_CLASSPATH='):
                         mod_success = True
@@ -765,11 +943,7 @@ class Gatling(RequiredTool):
                     elif line.startswith('GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
-                    elif line.startswith('CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip()[:-1] + ':${JAVA_CLASSPATH}"\n'  # add from env
                     elif line.startswith('"$JAVA"'):
-                        line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
                         line = 'eval ' + line
                 modified_lines.append(line)
 

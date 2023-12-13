@@ -148,6 +148,109 @@ scenarios:
 ```
 See more info about data-sources [here](DataSources.md).
 
+##### Extractors
+
+Extractors are the objects that attached to request to take a piece of the response and use it in following requests.
+The following types of extractors are supported:
+
+- by regular expression
+- by JSONPath expression
+- by CSS/JQuery selectors
+- by XPath query
+
+To specify extractors in shorthand form, use following configuration:
+
+```yaml
+scenarios:
+  my-req:
+    requests:
+    - url: http://blazedemo.com/
+      extract-regexp: # dictionary under it has form <var name>: <regular expression>
+        page_title: <title>(\w+)</title>  #  must have at least one capture group
+      extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
+        varname: $.jsonpath[0].expression
+    - url: http://blazedemo.com/${varname_1}/${page_title}  # that's how we use those variables
+      extract-css-jquery: # dictionary under it has form <var name>: <CSS/JQuery selector>
+        extractor1: input[name~=my_input]
+    - url: http://blazedemo.com/${varname}/${extractor1}.xml
+      extract-xpath:
+        title: /html/head/title
+```
+
+The full form for extractors is:
+
+```yaml
+scenarios:
+  my-req:
+    requests:
+    - url: http://blazedemo.com/
+      extract-regexp:
+        page_title:
+          regexp: <title>(\w+)</title>  # regular expression
+          default: NOT_FOUND  # default value to use when regexp not found
+      extract-jsonpath:
+        varname:
+          jsonpath: $.jsonpath[0]  # jsonpath expression
+          default: NOT_FOUND  # default value to use when jsonpath not found
+    - url: http://blazedemo.com/${varname}/${page_title}
+      extract-css-jquery:
+        extractor2:
+          expression: input[name=JMeter]
+    - url: http://blazedemo.com/${varname}/${extractor2}.xml
+      extract-xpath:
+        destination:
+          xpath: /order/client/address
+          default: NOT_FOUND
+    - url: http://blazedemo.com/${varname}.xml
+
+```
+
+##### Include Scenario Blocks
+`include-scenario` block allows you to include scenario into another one. You can use it to split your test plan into
+a few of independent scenarios that can be reused. In addition, include-scenario can refer another scenario which contains include-scenario to any level of depth
+
+Example:
+```yaml
+scenarios:
+  login:
+    data-sources:
+    - logins.csv
+    requests:
+    - url: http://example.com/login
+      method: POST
+      body:
+        user: ${username}
+        password: ${password}
+  logout:
+    requests:
+    - url: http://example.com/logout
+      method: POST
+  shop-session:
+    requests:
+    - include-scenario: login
+    - http://example.com/shop/items/1
+    - http://example.com/checkout
+    - include-scenario: logout
+```
+
+```yaml
+
+execution:
+- executor: gatling
+  scenario: shop-session
+
+scenarios:
+  shop-session:
+    requests:
+    - include-scenario: login
+    - http://example.com/shop/items/1
+    - http://example.com/checkout
+    - include-scenario: logout
+
+included-configs:  # it must be a list of string values
+- ./login.yml 
+```
+
 ## Configuration Options
 
  Similar to other modules there is possibility of global configuration Gatling Executor by write some lines in
