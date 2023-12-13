@@ -98,7 +98,10 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                     self.__report_percentiles(summary_kpi)
 
             if self.parameters.get("summary-labels", True):
-                self.__report_summary_labels(self.last_sec[DataPoint.CUMULATIVE])
+                if isinstance(self.engine.provisioning, CloudProvisioning):
+                    self.__report_summary_labels(self.last_sec[DataPoint.CUMULATIVE], True)
+                else:
+                    self.__report_summary_labels(self.last_sec[DataPoint.CUMULATIVE], False)
 
             if self.parameters.get("failed-labels"):
                 self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
@@ -206,7 +209,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             "\n".join(errors)
         )
 
-    def __report_summary_labels(self, cumulative):
+    def __report_summary_labels(self, cumulative, include_all_label):
         data = [("label", "status", "succ", "avg_rt", "error")]
         justify = {0: "left", 1: "center", 2: "right", 3: "right", 4: "left"}
 
@@ -214,6 +217,8 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         for sample_label in sorted_labels:
             if sample_label != "":
                 data.append(self.__get_sample_element(cumulative[sample_label], sample_label))
+            elif include_all_label:
+                data.append(self.__get_sample_element(cumulative[''], 'ALL'))
         table = AsciiTable(data)
         table.justify_columns = justify
         self.log.info("Request label stats:\n%s", table.table)
@@ -301,7 +306,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                     writer.writerow(self.__get_csv_dict(label, kpiset))
 
     def __dump_cloud_csv(self, master, filename):
-        report = master.get_csv_report()
+        report = master.get_csv_report(filename)
         self.log.info("Dumping final cloud status as CSV: %s", filename)
         with open(get_full_path(filename), 'wt') as fhd:
             writer = csv.writer(fhd)

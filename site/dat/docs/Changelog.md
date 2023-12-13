@@ -4,7 +4,11 @@
 - Gatling support for include-scenario similar to support offered for Jmeter
 - Gatling support to capture response point of interest using regex, json, css, xpath and use in downstream calls using ${param} conventions for substitution.
 
-## 1.16.26<sup> 22 September 2023</sup>
+## 1.16.27<sup> 22 September 2023</sup>
+- Fix k6 aggregator
+- Allow using custom name for the csv cloud report
+
+## 1.16.26<sup> 11 December 2023</sup>
 - Cloud provisioning fixes
 - Proxy auth encoding fix
 - Urwid dependency version set to 2.1.2
