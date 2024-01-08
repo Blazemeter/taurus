@@ -32,3 +32,6 @@ integr-artifacts*
 *.log
 examples/local*
 bzt/20*
+
+# vscode
+.vscode
