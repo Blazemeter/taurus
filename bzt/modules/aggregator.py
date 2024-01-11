@@ -190,6 +190,7 @@ class KPISet(dict):
     AVG_CONN_TIME = "avg_ct"
     PERCENTILES = "perc"
     RESP_CODES = "rc"
+    RESP_BODIES = "responseBodies"
     ERRTYPE_ERROR = 0
     ERRTYPE_ASSERT = 1
     ERRTYPE_SUBSAMPLE = 2
@@ -231,7 +232,7 @@ class KPISet(dict):
         return mycopy
 
     @staticmethod
-    def error_item_skel(error, ret_c, cnt, errtype, urls, tag):
+    def error_item_skel(error, ret_c, cnt, errtype, urls, tag, respBody):
         """
 
         :type error: str
@@ -240,6 +241,7 @@ class KPISet(dict):
         :type cnt: int
         :type errtype: int
         :type urls: collections.Counter
+        :type respBody: str
         :rtype: dict
         """
         assert isinstance(urls, collections.Counter)
@@ -250,6 +252,7 @@ class KPISet(dict):
             "rc": ret_c,
             "type": errtype,
             "urls": urls,
+            "responseBodies": [{"content": respBody, "hash": hash(respBody), "cnt": 1}]
         }
 
     def add_sample(self, sample):
