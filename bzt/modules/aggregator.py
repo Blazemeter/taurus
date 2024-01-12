@@ -22,6 +22,7 @@ import math
 import time
 from abc import abstractmethod
 from collections import Counter
+from typing import Optional, NamedTuple
 
 import fuzzyset
 from hdrpy import HdrHistogram, RecordedIterator
@@ -172,6 +173,15 @@ class RespTimesCounter(JSONConvertible):
         self.histogram.add(old)
 
 
+class ErrorResponseData(NamedTuple):
+    content: str
+    type: str
+    original_size: int
+
+    def __hash__(self):
+        return hash(self.content)
+
+
 class KPISet(dict):
     """
     Main entity in results, contains all KPIs for single label,
@@ -232,27 +242,24 @@ class KPISet(dict):
         return mycopy
 
     @staticmethod
-    def error_item_skel(error, ret_c, cnt, errtype, urls, tag, respBody):
-        """
-
-        :type error: str
-        :type ret_c: str
-        :type tag: str
-        :type cnt: int
-        :type errtype: int
-        :type urls: collections.Counter
-        :type respBody: str
-        :rtype: dict
-        """
+    def error_item_skel(
+            error: str, ret_c: str, cnt: int, err_type: int,
+            urls: Counter, tag: str, err_resp_data: Optional[ErrorResponseData]) -> dict:
         assert isinstance(urls, collections.Counter)
         return {
             "cnt": cnt,
             "msg": error,
             "tag": tag,  # just one more string qualifier
             "rc": ret_c,
-            "type": errtype,
+            "type": err_type,
             "urls": urls,
-            "responseBodies": [{"content": respBody, "hash": hash(respBody), "cnt": 1}]
+            "responseBodies": [{
+                "content": err_resp_data.content,
+                "type": err_resp_data.type,
+                "original_size": err_resp_data.original_size,
+                "hash": hash(err_resp_data),
+                "cnt": 1}
+            ]
         }
 
     def add_sample(self, sample):

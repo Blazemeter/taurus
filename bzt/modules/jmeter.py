@@ -30,6 +30,7 @@ from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from itertools import dropwhile
 from io import StringIO
+from typing import Optional
 
 from cssselect import GenericTranslator
 from lxml import etree
@@ -38,7 +39,7 @@ from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNet
 from bzt.engine import Scenario, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
-from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
+from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ErrorResponseData
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
@@ -1330,7 +1331,7 @@ class JTLErrorsReader(object):
         e_msg = ""
         url = None
         err_type = KPISet.ERRTYPE_ERROR
-        err_response_data = None
+        err_response_data: Optional[ErrorResponseData] = None
 
         a_msg, name = get_child_assertion(element)
 
@@ -1338,10 +1339,8 @@ class JTLErrorsReader(object):
             e_msg = element.get("rm", default="")
             url = element.xpath(self.url_xpath)
             url = url[0].text if url else element.get("lb")
-            children = list(element.iterchildren())
-            for child in children:
-                if child.tag == 'responseData':
-                    err_response_data = child.text
+            # TODO: response data should be collected only when a flag is set in config
+            err_response_data = self._get_response_data(element)
         elif a_msg:
             err_type = KPISet.ERRTYPE_ASSERT
         elif element.get("s") == "false":  # has failed sub element, we should look deeper...
@@ -1366,6 +1365,19 @@ class JTLErrorsReader(object):
                 msg = self.err_msg_separator + msg
 
         return msg, url, rc or def_rc, name, err_type, err_response_data
+
+    # TODO: 1MB should come from config
+    MAX_SUPPORTED_CONTENT_SIZE: int = 1024*1024
+
+    def _get_response_data(self, element) -> Optional[ErrorResponseData]:
+        for child in element.iterchildren():
+            if child.tag != 'responseData':
+                continue
+            body_type = child.get("class")
+            body_size = child.text
+            body_content = child.text[:self.MAX_SUPPORTED_CONTENT_SIZE]
+            self.log.info("Found error response body of size %d and type '%s'.", body_size, body_type)
+            return ErrorResponseData(body_content, body_type, body_size)
 
 
 class XMLJTLReader(JTLErrorsReader, ResultsReader):
