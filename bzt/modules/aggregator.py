@@ -246,6 +246,7 @@ class KPISet(dict):
             error: str, ret_c: str, cnt: int, err_type: int,
             urls: Counter, tag: str, err_resp_data: Optional[ErrorResponseData]) -> dict:
         assert isinstance(urls, collections.Counter)
+        response_bodies = KPISet._get_response_bodies(err_resp_data)
         return {
             "cnt": cnt,
             "msg": error,
@@ -253,14 +254,21 @@ class KPISet(dict):
             "rc": ret_c,
             "type": err_type,
             "urls": urls,
-            "responseBodies": [{
-                "content": err_resp_data.content,
-                "type": err_resp_data.type,
-                "original_size": err_resp_data.original_size,
-                "hash": hash(err_resp_data),
-                "cnt": 1}
-            ]
+            "responseBodies": response_bodies
         }
+
+    @staticmethod
+    def _get_response_bodies(err_resp_data: Optional[ErrorResponseData]) -> list:
+        if err_resp_data is None:
+            return []
+
+        return [{
+            "content": err_resp_data.content,
+            "type": err_resp_data.type,
+            "original_size": err_resp_data.original_size,
+            "hash": hash(err_resp_data),
+            "cnt": 1}
+        ]
 
     def add_sample(self, sample):
         """
@@ -317,11 +325,26 @@ class KPISet(dict):
             if item[selector[0]] == selector[1]:
                 item['cnt'] += value['cnt']
                 item['urls'] += value['urls']
+                KPISet._inc_resp_body(item, value)
                 found = True
                 break
 
         if not found:
             values.append(copy.deepcopy(value))
+
+    @staticmethod
+    def _inc_resp_body(item: dict, value: dict):
+        if len(value['responseBodies']) == 0:
+            return
+        value_resp_body_data = value['responseBodies'][0]
+        found = False
+        for resp_body_data in item['responseBodies']:
+            if resp_body_data['hash'] == value_resp_body_data['hash']:
+                resp_body_data['cnt'] += 1
+                found = True
+                break
+        if not found:
+            item['responseBodies'].append(value_resp_body_data)
 
     def __getitem__(self, key):
         rtimes = self.get(self.RESP_TIMES, no_recalc=True)

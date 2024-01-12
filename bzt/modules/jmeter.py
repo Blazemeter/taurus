@@ -1374,8 +1374,11 @@ class JTLErrorsReader(object):
             if child.tag != 'responseData':
                 continue
             body_type = child.get("class")
-            body_size = child.text
-            body_content = child.text[:self.MAX_SUPPORTED_CONTENT_SIZE]
+            body_size = 0
+            body_content = ''
+            if child.text is not None:
+                body_size = len(child.text)
+                body_content = child.text[:self.MAX_SUPPORTED_CONTENT_SIZE]
             self.log.info("Found error response body of size %d and type '%s'.", body_size, body_type)
             return ErrorResponseData(body_content, body_type, body_size)
 
