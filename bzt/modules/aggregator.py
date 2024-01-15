@@ -244,7 +244,7 @@ class KPISet(dict):
     @staticmethod
     def error_item_skel(
             error: str, ret_c: str, cnt: int, err_type: int,
-            urls: Counter, tag: str, err_resp_data: Optional[ErrorResponseData]) -> dict:
+            urls: Counter, tag: str, err_resp_data: Optional[ErrorResponseData] = None) -> dict:
         assert isinstance(urls, collections.Counter)
         response_bodies = KPISet._get_response_bodies(err_resp_data)
         return {
