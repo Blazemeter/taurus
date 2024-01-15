@@ -136,6 +136,47 @@ class TestJTLErrorsReader(BZTestCase):
         close_reader_file(self.obj)
         super(TestJTLErrorsReader, self).tearDown()
 
+    def test_error_responses_collection_settings(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/simple.error.jtl")
+        self.assertFalse(self.obj.collect_error_response_bodies)
+        self.assertEqual(self.obj.error_response_bodies_limit, 10)
+        self.assertEqual(self.obj.error_response_body_size_limit, 1024 * 1024)
+
+    def test_error_responses_collection_disabled(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/huge.error.response.jtl")
+        self.obj.collect_error_response_bodies = False
+
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+
+        label_data = values.get('http://blazedemo.com/not-found')
+        self.assertEqual(len(label_data), 1)
+
+        response_data = label_data[0]
+        self.assertEqual(3, response_data['cnt'])
+        self.assertEqual('404', response_data['rc'])
+        self.assertEqual(0, len(response_data['responseBodies']))
+
+    def test_error_responses_collection(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/huge.error.response.jtl")
+        self.obj.collect_error_response_bodies = True
+
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+
+        label_data = values.get('http://blazedemo.com/not-found')
+        self.assertEqual(len(label_data), 1)
+
+        response_data = label_data[0]
+        self.assertEqual(3, response_data['cnt'])
+        self.assertEqual('404', response_data['rc'])
+        self.assertEqual(1, len(response_data['responseBodies']))
+
+        error_response_data = response_data['responseBodies'][0]
+        self.assertEqual(3, error_response_data['cnt'])
+        self.assertEqual(333866, error_response_data['original_size'])
+        self.assertEqual(256 * 1024, len(error_response_data['content']))  # content was trimmed to 265K chars
+
     def test_smart_aggregation_assert(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/smart-aggregation/errors.jtl")
         self.obj.read_file()

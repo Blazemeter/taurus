@@ -1222,6 +1222,9 @@ class JTLErrorsReader(object):
         self.err_msg_separator = err_msg_separator
         self.label_converter = label_converter
         self._redundant_aggregation = False
+        self.collect_error_response_bodies = False
+        self.error_response_bodies_limit = 10
+        self.error_response_body_size_limit = 256 * 1024
 
     def set_aggregation(self, aggregation):
         self._redundant_aggregation = aggregation
@@ -1339,8 +1342,8 @@ class JTLErrorsReader(object):
             e_msg = element.get("rm", default="")
             url = element.xpath(self.url_xpath)
             url = url[0].text if url else element.get("lb")
-            # TODO: response data should be collected only when a flag is set in config
-            err_response_data = self._get_response_data(element)
+            if self.collect_error_response_bodies:
+                err_response_data = self._get_response_data(element)
         elif a_msg:
             err_type = KPISet.ERRTYPE_ASSERT
         elif element.get("s") == "false":  # has failed sub element, we should look deeper...
@@ -1366,9 +1369,6 @@ class JTLErrorsReader(object):
 
         return msg, url, rc or def_rc, name, err_type, err_response_data
 
-    # TODO: 1MB should come from config
-    MAX_SUPPORTED_CONTENT_SIZE: int = 1024*1024
-
     def _get_response_data(self, element) -> Optional[ErrorResponseData]:
         for child in element.iterchildren():
             if child.tag != 'responseData':
@@ -1378,7 +1378,7 @@ class JTLErrorsReader(object):
             body_content = ''
             if child.text is not None:
                 body_size = len(child.text)
-                body_content = child.text[:self.MAX_SUPPORTED_CONTENT_SIZE]
+                body_content = child.text[:self.error_response_body_size_limit]
             self.log.info("Found error response body of size %d and type '%s'.", body_size, body_type)
             return ErrorResponseData(body_content, body_type, body_size)
 
