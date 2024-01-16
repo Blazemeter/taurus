@@ -325,7 +325,8 @@ class KPISet(dict):
             if item[selector[0]] == selector[1]:
                 item['cnt'] += value['cnt']
                 item['urls'] += value['urls']
-                KPISet._inc_resp_body(item, value)
+                for resp_body in value['responseBodies']:
+                    KPISet._inc_resp_body(item, resp_body)
                 found = True
                 break
 
@@ -333,18 +334,15 @@ class KPISet(dict):
             values.append(copy.deepcopy(value))
 
     @staticmethod
-    def _inc_resp_body(item: dict, value: dict):
-        if len(value['responseBodies']) == 0:
-            return
-        value_resp_body_data = value['responseBodies'][0]
+    def _inc_resp_body(item: dict, resp_body: dict):
         found = False
         for resp_body_data in item['responseBodies']:
-            if resp_body_data['hash'] == value_resp_body_data['hash']:
-                resp_body_data['cnt'] += 1
+            if resp_body_data['hash'] == resp_body['hash']:
+                resp_body_data['cnt'] += resp_body['cnt']
                 found = True
                 break
         if not found:
-            item['responseBodies'].append(value_resp_body_data)
+            item['responseBodies'].append(copy.deepcopy(resp_body))
 
     def __getitem__(self, key):
         rtimes = self.get(self.RESP_TIMES, no_recalc=True)
