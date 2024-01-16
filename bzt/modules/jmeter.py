@@ -1225,6 +1225,7 @@ class JTLErrorsReader(object):
         self.collect_error_response_bodies = False
         self.error_response_bodies_limit = 10
         self.error_response_body_size_limit = 256 * 1024
+        self._collected_error_responses: dict = {}
 
     def set_aggregation(self, aggregation):
         self._redundant_aggregation = aggregation
@@ -1316,8 +1317,22 @@ class JTLErrorsReader(object):
         buf = self.buffer.get(t_stamp, force_set=True)
         if self._redundant_aggregation:
             label = self.label_converter(label=label, rc=r_code, msg=r_msg)
+
+        for resp_body in err_item['responseBodies']:
+            if self._should_not_collect_error_response(label, r_code, r_msg, resp_body['hash']):
+                err_item['responseBodies'].remove(resp_body)
+
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
+
+    def _should_not_collect_error_response(self, label: str, rc: str, msg: str, response_hash: int):
+        key = (label, rc, msg)
+        responses = self._collected_error_responses.get(key) if key in self._collected_error_responses else set()
+        if len(responses) == self.error_response_bodies_limit:
+            return True
+        responses.add(response_hash)
+        self._collected_error_responses[key] = responses
+        return False
 
     def _extract_nonstandard(self, elem):
         t_stamp = int(elem.findtext("timeStamp")) / 1000.0

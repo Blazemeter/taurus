@@ -189,24 +189,25 @@ class TestJTLErrorsReader(BZTestCase):
         self.obj.read_file()
         values = self.obj.get_data(sys.maxsize)
 
-        label_data = values.get('find')
-        self.assertEqual(len(label_data), 1)
+        for label in ['find', 'edit', 'submit']:
+            label_data = values.get(label)
+            self.assertEqual(len(label_data), 1)
 
-        response_data = label_data[0]
-        self.assertEqual(63, response_data['cnt'])
-        self.assertEqual('401', response_data['rc'])
-        self.assertEqual(63, len(response_data['responseBodies']))
+            response_data = label_data[0]
+            self.assertEqual(63, response_data['cnt'])
+            self.assertEqual('401', response_data['rc'])
+            self.assertEqual(10, len(response_data['responseBodies']))
 
-        for error_response_data in response_data['responseBodies']:
-            self.assertEqual(1, error_response_data['cnt'])
-            self.assertEqual(156, error_response_data['original_size'])
+            for error_response_data in response_data['responseBodies']:
+                self.assertEqual(1, error_response_data['cnt'])
+                self.assertEqual(156, error_response_data['original_size'])
 
         label_data = values.get('')
         self.assertEqual(len(label_data), 1)
         response_data = label_data[0]
         self.assertEqual(189, response_data['cnt'])
         self.assertEqual('401', response_data['rc'])
-        self.assertEqual(189, len(response_data['responseBodies']))
+        self.assertEqual(30, len(response_data['responseBodies']))
 
 
     def test_smart_aggregation_assert(self):
