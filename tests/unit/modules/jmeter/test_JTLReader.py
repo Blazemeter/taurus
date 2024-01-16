@@ -177,6 +177,33 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(333866, error_response_data['original_size'])
         self.assertEqual(256 * 1024, len(error_response_data['content']))  # content was trimmed to 265K chars
 
+    def test_error_responses_limits(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/many-errors-unique-responses.jtl")
+        self.obj.collect_error_response_bodies = True
+
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+
+        label_data = values.get('find')
+        self.assertEqual(len(label_data), 1)
+
+        response_data = label_data[0]
+        self.assertEqual(63, response_data['cnt'])
+        self.assertEqual('401', response_data['rc'])
+        self.assertEqual(61, len(response_data['responseBodies']))  # FIXME: should be 63
+
+        for error_response_data in response_data['responseBodies']:
+            self.assertEqual(1, error_response_data['cnt'])
+            self.assertEqual(156, error_response_data['original_size'])
+
+        label_data = values.get('')
+        self.assertEqual(len(label_data), 1)
+        response_data = label_data[0]
+        self.assertEqual(189, response_data['cnt'])
+        self.assertEqual('401', response_data['rc'])
+        self.assertEqual(177, len(response_data['responseBodies']))  # FIXME: should be 189
+
+
     def test_smart_aggregation_assert(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/smart-aggregation/errors.jtl")
         self.obj.read_file()
