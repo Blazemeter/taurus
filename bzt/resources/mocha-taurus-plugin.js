@@ -2,6 +2,8 @@ var Mocha = require("mocha"),
     fs = require("fs"),
     path = require("path");
 
+const requireCacheSnapshot = Object.assign({}, require.cache);
+
 function epoch() {
     return (new Date()).getTime() / 1000.0;
 }
@@ -162,6 +164,7 @@ function prepareMocha(config, mochaConfig) {
     // clear 'require' cache to avoid mocha's test rediscovery issues
     // TODO: fix/report?
     Object.keys(require.cache).forEach(function(key) { delete require.cache[key]; });
+    Object.assign(require.cache, requireCacheSnapshot);
 
     var engine = new Mocha(mochaConfig);
 
