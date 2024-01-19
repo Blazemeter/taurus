@@ -178,9 +178,6 @@ class ErrorResponseData(NamedTuple):
     type: str
     original_size: int
 
-    def __hash__(self):
-        return hash(self.content)
-
 
 class KPISet(dict):
     """

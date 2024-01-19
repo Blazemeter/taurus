@@ -858,11 +858,44 @@ class JTLReader(ResultsReader):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
+        self._collect_error_response_bodies = False
+        self._error_response_bodies_limit = 10
+        self._error_response_body_size_limit = 256 * 1024
         if errors_filename:
             self.errors_reader = JTLErrorsReader(
                 errors_filename, parent_logger, err_msg_separator, label_converter=self.get_mixed_label)
         else:
             self.errors_reader = None
+
+    @property
+    def collect_error_response_bodies(self):
+        return self._collect_error_response_bodies
+
+    @collect_error_response_bodies.setter
+    def collect_error_response_bodies(self, value):
+        self._collect_error_response_bodies = value
+        if self.errors_reader:
+            self.errors_reader.collect_error_response_bodies = value
+
+    @property
+    def error_response_bodies_limit(self):
+        return self._error_response_bodies_limit
+
+    @error_response_bodies_limit.setter
+    def error_response_bodies_limit(self, value):
+        self._error_response_bodies_limit = value
+        if self.errors_reader:
+            self.errors_reader.error_response_bodies_limit = value
+
+    @property
+    def error_response_body_size_limit(self):
+        return self._error_response_body_size_limit
+
+    @error_response_body_size_limit.setter
+    def error_response_body_size_limit(self, value):
+        self._error_response_body_size_limit = value
+        if self.errors_reader:
+            self.errors_reader.error_response_body_size_limit = value
 
     def set_aggregation(self, aggregation):
         super().set_aggregation(aggregation)
