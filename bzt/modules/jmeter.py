@@ -860,7 +860,7 @@ class JTLReader(ResultsReader):
         self.read_records = 0
         self._collect_error_response_bodies = False
         self._error_response_bodies_limit = 10
-        self._error_response_body_size_limit = 256 * 1024
+        self._error_response_bodies_size_limit = 256 * 1024
         if errors_filename:
             self.errors_reader = JTLErrorsReader(
                 errors_filename, parent_logger, err_msg_separator, label_converter=self.get_mixed_label)
@@ -888,14 +888,14 @@ class JTLReader(ResultsReader):
             self.errors_reader.error_response_bodies_limit = value
 
     @property
-    def error_response_body_size_limit(self):
-        return self._error_response_body_size_limit
+    def error_response_bodies_size_limit(self):
+        return self._error_response_bodies_size_limit
 
-    @error_response_body_size_limit.setter
-    def error_response_body_size_limit(self, value):
-        self._error_response_body_size_limit = value
+    @error_response_bodies_size_limit.setter
+    def error_response_bodies_size_limit(self, value):
+        self._error_response_bodies_size_limit = value
         if self.errors_reader:
-            self.errors_reader.error_response_body_size_limit = value
+            self.errors_reader.error_response_bodies_size_limit = value
 
     def set_aggregation(self, aggregation):
         super().set_aggregation(aggregation)
@@ -1257,7 +1257,7 @@ class JTLErrorsReader(object):
         self._redundant_aggregation = False
         self.collect_error_response_bodies = False
         self.error_response_bodies_limit = 10
-        self.error_response_body_size_limit = 256 * 1024
+        self.error_response_bodies_size_limit = 256 * 1024
         self._collected_error_responses: dict = {}
 
     def set_aggregation(self, aggregation):
@@ -1426,7 +1426,7 @@ class JTLErrorsReader(object):
             body_content = ''
             if child.text is not None:
                 body_size = len(child.text)
-                body_content = child.text[:self.error_response_body_size_limit]
+                body_content = child.text[:self.error_response_bodies_size_limit]
             self.log.info("Found error response body of size %d and type '%s'.", body_size, body_type)
             return ErrorResponseData(body_content, body_type, body_size)
 

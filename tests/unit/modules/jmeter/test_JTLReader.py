@@ -144,7 +144,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/simple.error.jtl")
         self.assertFalse(self.obj.collect_error_response_bodies)
         self.assertEqual(self.obj.error_response_bodies_limit, ERROR_RESPONSE_BODIES_LIMIT)
-        self.assertEqual(self.obj.error_response_body_size_limit, ERROR_RESPONSE_MAX_BODY_SIZE)
+        self.assertEqual(self.obj.error_response_bodies_size_limit, ERROR_RESPONSE_MAX_BODY_SIZE)
 
     def test_error_responses_collection_disabled(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/huge.error.response.jtl")

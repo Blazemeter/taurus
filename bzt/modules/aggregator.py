@@ -851,7 +851,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         self.collect_error_response_bodies = False
         self.error_response_bodies_limit = 10
-        self.error_response_body_size_limit = 256 * 1024
+        self.error_response_bodies_size_limit = 256 * 1024
 
     def converter(self, data):
         if data and self._redundant_aggregation:
@@ -909,7 +909,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         self.collect_error_response_bodies = self.settings.get("collect-error-response-bodies", self.collect_error_response_bodies)
         self.error_response_bodies_limit = self.settings.get("error-response-bodies-limit", self.error_response_bodies_limit)
-        self.error_response_body_size_limit = self.settings.get("error-response-bodies-size-limit", self.error_response_body_size_limit)
+        self.error_response_bodies_size_limit = self.settings.get("error-response-bodies-size-limit", self.error_response_bodies_size_limit)
 
         self.min_buffer_len = dehumanize_time(self.settings.get("min-buffer-len", self.min_buffer_len))
 
@@ -967,7 +967,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         underling.collect_error_response_bodies = self.collect_error_response_bodies
         underling.error_response_bodies_limit = self.error_response_bodies_limit
-        underling.error_response_body_size_limit = self.error_response_body_size_limit
+        underling.error_response_bodies_size_limit = self.error_response_bodies_size_limit
 
         self.underlings.append(underling)
 

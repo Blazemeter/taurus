@@ -1,0 +1,11 @@
+execution:
+- concurrency: 3
+  hold-for: 10s
+  scenario: sample
+
+scenarios:
+  sample:
+    timeout: 500ms
+    keepalive: true
+    requests:
+    - https://a.blazemeter.com/api/v4/workspaces/1787108
