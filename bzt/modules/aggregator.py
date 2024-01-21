@@ -331,7 +331,7 @@ class KPISet(dict):
             values.append(copy.deepcopy(value))
 
     @staticmethod
-    def _inc_resp_body(item: dict, resp_body: dict):
+    def _inc_resp_body(item: dict, resp_body: dict) -> None:
         found = False
         for resp_body_data in item['responseBodies']:
             if resp_body_data['hash'] == resp_body['hash']:

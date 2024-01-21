@@ -124,8 +124,8 @@ class TestFuncJTLReader(BZTestCase):
             self.assertEqual(sample.test_case, origin_string)
 
 
-ERROR_RESPONSE_MAX_BODY_SIZE: int = 256 * 1024
-ERROR_RESPONSE_BODIES_LIMIT: int = 10
+TEST_ERROR_RESPONSE_BODIES_SIZE_LIMIT: int = 256 * 1024
+TEST_ERROR_RESPONSE_BODIES_LIMIT: int = 10
 
 
 class TestJTLErrorsReader(BZTestCase):
@@ -143,8 +143,8 @@ class TestJTLErrorsReader(BZTestCase):
     def test_error_responses_collection_settings(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/simple.error.jtl")
         self.assertFalse(self.obj.collect_error_response_bodies)
-        self.assertEqual(self.obj.error_response_bodies_limit, ERROR_RESPONSE_BODIES_LIMIT)
-        self.assertEqual(self.obj.error_response_bodies_size_limit, ERROR_RESPONSE_MAX_BODY_SIZE)
+        self.assertEqual(self.obj.error_response_bodies_limit, TEST_ERROR_RESPONSE_BODIES_LIMIT)
+        self.assertEqual(self.obj.error_response_bodies_size_limit, TEST_ERROR_RESPONSE_BODIES_SIZE_LIMIT)
 
     def test_error_responses_collection_disabled(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/huge.error.response.jtl")
@@ -181,7 +181,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(333866, error_response_data['original_size'])
 
         # content is expected to be trimmed to max supported size
-        self.assertEqual(ERROR_RESPONSE_MAX_BODY_SIZE, len(error_response_data['content']))
+        self.assertEqual(TEST_ERROR_RESPONSE_BODIES_SIZE_LIMIT, len(error_response_data['content']))
 
     def test_error_responses_limits_unique(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/many-errors-unique-responses.jtl")
@@ -197,7 +197,7 @@ class TestJTLErrorsReader(BZTestCase):
             response_data = label_data[0]
             self.assertEqual(63, response_data['cnt'])
             self.assertEqual('401', response_data['rc'])
-            self.assertEqual(ERROR_RESPONSE_BODIES_LIMIT, len(response_data['responseBodies']))
+            self.assertEqual(TEST_ERROR_RESPONSE_BODIES_LIMIT, len(response_data['responseBodies']))
 
             for error_response_data in response_data['responseBodies']:
                 self.assertEqual(1, error_response_data['cnt'])
@@ -251,7 +251,7 @@ class TestJTLErrorsReader(BZTestCase):
             label_data = values.get(label)
             self.assertEqual(len(label_data), 1)
             response_data = label_data[0]
-            self.assertEqual(ERROR_RESPONSE_BODIES_LIMIT, len(response_data['responseBodies']))
+            self.assertEqual(TEST_ERROR_RESPONSE_BODIES_LIMIT, len(response_data['responseBodies']))
 
     def test_smart_aggregation_assert(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/smart-aggregation/errors.jtl")

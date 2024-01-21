@@ -48,6 +48,8 @@ from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDown
 from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, FileReader
 
+ERROR_RESPONSE_BODIES_SIZE_LIMIT: int = 256 * 1024
+ERROR_RESPONSE_BODIES_LIMIT: int = 10
 
 def get_child_assertion(element):
     """
@@ -859,8 +861,8 @@ class JTLReader(ResultsReader):
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
         self._collect_error_response_bodies = False
-        self._error_response_bodies_limit = 10
-        self._error_response_bodies_size_limit = 256 * 1024
+        self._error_response_bodies_limit = ERROR_RESPONSE_BODIES_LIMIT
+        self._error_response_bodies_size_limit = ERROR_RESPONSE_BODIES_SIZE_LIMIT
         if errors_filename:
             self.errors_reader = JTLErrorsReader(
                 errors_filename, parent_logger, err_msg_separator, label_converter=self.get_mixed_label)
@@ -1256,8 +1258,8 @@ class JTLErrorsReader(object):
         self.label_converter = label_converter
         self._redundant_aggregation = False
         self.collect_error_response_bodies = False
-        self.error_response_bodies_limit = 10
-        self.error_response_bodies_size_limit = 256 * 1024
+        self.error_response_bodies_limit = ERROR_RESPONSE_BODIES_LIMIT
+        self.error_response_bodies_size_limit = ERROR_RESPONSE_BODIES_SIZE_LIMIT
         self._collected_error_responses: dict = {}
 
     def set_aggregation(self, aggregation):
