@@ -1358,7 +1358,7 @@ class JTLErrorsReader(object):
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
-    def _should_not_collect_error_response(self, label: str, rc: str, msg: str, response_hash: int):
+    def _should_not_collect_error_response(self, label: str, rc: str, msg: str, response_hash: int) -> bool:
         key = (label, rc, msg)
         responses = self._collected_error_responses.get(key) if key in self._collected_error_responses else set()
         if len(responses) == self.error_response_bodies_limit:
