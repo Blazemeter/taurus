@@ -41,6 +41,9 @@ AGGREGATED_STATES = (
     '_'.join((SAMPLE_STATES[2], SAMPLE_STATES[1])),     # http_errors_jmeter_errors
 )
 
+ERROR_RESPONSE_BODIES_SIZE_LIMIT: int = 256 * 1024
+ERROR_RESPONSE_BODIES_LIMIT: int = 10
+
 
 class SinglePassIterator(RecordedIterator):
     """
@@ -850,8 +853,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.min_timestamp = None
 
         self.collect_error_response_bodies = False
-        self.error_response_bodies_limit = 10
-        self.error_response_bodies_size_limit = 256 * 1024
+        self.error_response_bodies_limit = ERROR_RESPONSE_BODIES_LIMIT
+        self.error_response_bodies_size_limit = ERROR_RESPONSE_BODIES_SIZE_LIMIT
 
     def converter(self, data):
         if data and self._redundant_aggregation:

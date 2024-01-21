@@ -39,7 +39,7 @@ from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNet
 from bzt.engine import Scenario, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
-from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ErrorResponseData
+from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ErrorResponseData, ERROR_RESPONSE_BODIES_SIZE_LIMIT, ERROR_RESPONSE_BODIES_LIMIT
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
@@ -48,8 +48,6 @@ from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDown
 from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, FileReader
 
-ERROR_RESPONSE_BODIES_SIZE_LIMIT: int = 256 * 1024
-ERROR_RESPONSE_BODIES_LIMIT: int = 10
 
 def get_child_assertion(element):
     """
