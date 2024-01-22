@@ -8,7 +8,9 @@ import bzt
 import bzt.modules._apiritif
 from bzt import TaurusConfigError
 from bzt.engine import Configuration, EXEC
+from bzt.modules import ConsolidatingAggregator
 from bzt.modules._selenium import SeleniumExecutor
+from bzt.modules.jmeter import JTLErrorsReader, JTLReader
 from bzt.utils import BetterDict, is_windows, get_full_path, get_uniq_name, communicate
 from tests.unit import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase, TEST_DIR, EngineEmul
 from tests.unit.modules._selenium import MockPythonTool
@@ -311,6 +313,25 @@ class TestEngine(BZTestCase):
             self.assertEqual({'class': 'bzt_plugin_dummy.dummy.DummyExecutor'}, self.obj.config['modules']['dummy'])
         finally:
             sys.path.remove(RESOURCES_DIR + "plugins")
+
+    def test_settings_propagated(self) -> None:
+        configs = [
+            RESOURCES_DIR + "yaml/jmeter-test-script.yaml",
+            RESOURCES_DIR + "yaml/error-response-bodies-config.yaml",
+        ]
+        self.obj.configure(configs, read_config_files=True)
+        self.obj.prepare()
+
+        aggregator: ConsolidatingAggregator = self.obj.aggregator
+        self.assertTrue(aggregator.collect_error_response_bodies)
+        self.assertEqual(5, aggregator.error_response_bodies_limit)
+        self.assertEqual(256, aggregator.error_response_bodies_size_limit)
+
+        jtl_reader: JTLReader = aggregator.underlings[0]
+        errors_reader: JTLErrorsReader = jtl_reader.errors_reader
+        self.assertTrue(errors_reader.collect_error_response_bodies)
+        self.assertEqual(5, errors_reader.error_response_bodies_limit)
+        self.assertEqual(256, errors_reader.error_response_bodies_size_limit)
 
 
 class TestScenarioExecutor(ExecutorTestCase):
