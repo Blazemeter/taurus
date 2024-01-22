@@ -690,7 +690,7 @@ class ResultsFromBZA(ResultsProvider):
                 error=msg,
                 ret_c=errors[msg]['rc'],
                 cnt=errors[msg]['count'],
-                errtype=KPISet.ERRTYPE_ERROR,
+                err_type=KPISet.ERRTYPE_ERROR,
                 urls=Counter(), tag=None)
             result.append(kpi_error)
         return result
