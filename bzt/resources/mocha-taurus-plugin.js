@@ -2,6 +2,8 @@ var Mocha = require("mocha"),
     fs = require("fs"),
     path = require("path");
 
+//require('debug').enable('mocha*')
+
 const requireCacheSnapshot = Object.assign({}, require.cache);
 
 function epoch() {
@@ -118,7 +120,7 @@ function usage() {
 }
 
 function parseCmdline(argv) {
-    var options = {iterations: 0, holdFor: 0};
+    var options = {iterations: 0, holdFor: 0, reuseMocha: false};
     var args = argv.slice(2);
     while (args) {
         var arg = args.shift();
@@ -138,6 +140,12 @@ function parseCmdline(argv) {
         case "--test-suite":
             options.testSuite = args.shift();
             break;
+        case "--reuse-mocha":
+            options.reuseMocha = true;
+            break
+        case "--no-reuse-mocha":
+            options.reuseMocha = false;
+            break
         case "--help":
             usage();
             process.exit(0);
@@ -167,7 +175,11 @@ function prepareMocha(config, mochaConfig) {
     Object.assign(require.cache, requireCacheSnapshot);
 
     var engine = new Mocha(mochaConfig);
+    addTestSuiteFiles(engine, config)
+    return engine;
+}
 
+function addTestSuiteFiles(engine, config) {
     var stat = fs.statSync(config.testSuite);
 
     if (stat.isFile(config.testSuite)) {
@@ -185,7 +197,6 @@ function prepareMocha(config, mochaConfig) {
         process.stderr.write("Error: --test-suite is neither file nor directory\n");
         process.exit(1);
     }
-    return engine;
 }
 
 function loopMocha(config, mochaConfig, iterations, startTime, done) {
@@ -204,7 +215,22 @@ function loopMocha(config, mochaConfig, iterations, startTime, done) {
     });
 }
 
-function runMocha() {
+async function loopMochaReuse(engine, config, iterations, startTime, done) {
+    if (iterations >= config.iterations) {
+        done();
+        return;
+    }
+    var offset = epoch() - startTime;
+    if (config.holdFor > 0 && offset > config.holdFor) {
+        done();
+        return;
+    }
+    engine.run(function () {
+        loopMochaReuse(engine, config,iterations + 1, startTime, done);
+    });
+}
+
+async function runMocha() {
     var config = parseCmdline(process.argv);
     var reportStream = fs.createWriteStream(config.reportFile || "report.ldjson");
 
@@ -232,7 +258,17 @@ function runMocha() {
         }, 100);
     };
 
-    loopMocha(config, mochaConfig, 0, epoch(), done);
+    if (config.reuseMocha) {
+        let engine = new Mocha(mochaConfig);
+        engine.addFile(config.testSuite)
+        engine.cleanReferencesAfterRun(false);
+        //engine.timeout(30000);
+        addTestSuiteFiles(engine, config)
+        await engine.loadFilesAsync();
+        await loopMochaReuse(engine, config, 0, epoch(), done);
+    } else {
+        loopMocha(config, mochaConfig, 0, epoch(), done);
+    }
 }
 
 if (require.main === module) {
