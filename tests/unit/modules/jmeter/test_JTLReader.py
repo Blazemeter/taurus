@@ -210,6 +210,29 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual('401', response_data['rc'])
         self.assertEqual(30, len(response_data['responseBodies']))
 
+    def test_error_responses_empty(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/many-errors-empty-responses.jtl")
+        self.obj.collect_error_response_bodies = True
+
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+
+        label_data = values.get('edit')
+        self.assertEqual(len(label_data), 1)
+        response_data = label_data[0]
+        self.assertEqual(14, response_data['cnt'])
+        self.assertEqual('401', response_data['rc'])
+        self.assertEqual(1, len(response_data['responseBodies']))
+        self.assertEqual(14, response_data['responseBodies'][0]['cnt'])
+
+        label_data = values.get('')
+        self.assertEqual(len(label_data), 1)
+        response_data = label_data[0]
+        self.assertEqual(42, response_data['cnt'])
+        self.assertEqual('401', response_data['rc'])
+        self.assertEqual(1, len(response_data['responseBodies']))
+        self.assertEqual(42, response_data['responseBodies'][0]['cnt'])
+
     def test_error_responses_limits_duplicates(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/many-errors-duplicated-responses.jtl")
         self.obj.collect_error_response_bodies = True
