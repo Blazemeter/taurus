@@ -135,7 +135,7 @@ class TestK6Executor(ExecutorTestCase):
         self.assertEqual(load.ramp_up, None)
         self.assertEqual(load.concurrency, 0)
         self.assertEqual(load.throughput, 0)
-        self.assertEqual(load.iterations, 1)
+        self.assertEqual(load.iterations, 0)
 
     def test_get_load_str(self):
         self.configure({EXEC: {
