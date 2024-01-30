@@ -1039,15 +1039,6 @@ class FuncJTLReader(FunctionalResultsReader):
             assertions.append({"name": name, "isFailed": failed, "errorMessage": error_message})
         return assertions
 
-    def _parse_http_headers(self, header_str):
-        headers = {}
-        for line in header_str.split("\n"):
-            clean_line = line.strip()
-            if ":" in clean_line:
-                key, value = clean_line.split(":", 1)
-                headers[key] = value
-        return headers
-
     def _parse_http_cookies(self, cookie_str):
         cookies = {}
         clean_line = cookie_str.strip()
@@ -1083,8 +1074,8 @@ class FuncJTLReader(FunctionalResultsReader):
             "threadGroup": thread_group,
 
             "assertions": self._extract_sample_assertions(sample_elem),
-            "requestHeaders": self._parse_http_headers(req_headers),
-            "responseHeaders": self._parse_http_headers(resp_headers),
+            "requestHeaders": JTLReaderUtils.parse_http_headers(req_headers),
+            "responseHeaders": JTLReaderUtils.parse_http_headers(resp_headers),
             "requestCookies": self._parse_http_cookies(req_cookies),
 
             "requestBody": sample_elem.findtext("queryString") or "",
@@ -1170,6 +1161,18 @@ class FuncJTLReader(FunctionalResultsReader):
             if failed.text == "true" or error.text == "true":
                 return assertion
         return None
+
+
+class JTLReaderUtils:
+    @staticmethod
+    def parse_http_headers(header_str):
+        headers = {}
+        for line in header_str.split("\n"):
+            clean_line = line.strip()
+            if ":" in clean_line:
+                key, value = clean_line.split(":", 1)
+                headers[key] = value
+        return headers
 
 
 class IncrementalCSVReader(object):
@@ -1418,17 +1421,31 @@ class JTLErrorsReader(object):
         return msg, url, rc or def_rc, name, err_type, err_response_data
 
     def _get_response_data(self, element) -> Optional[ErrorResponseData]:
+        content_type = self._get_response_content_type(element)
+        content, content_size = self._get_response_content(element)
+        self.log.info("Found error response body of size %d and type '%s'.", content_size, content_type)
+        if content is not None:
+            return ErrorResponseData(content, content_type, content_size)
+
+    def _get_response_content(self, element) -> (str, int):
         for child in element.iterchildren():
-            if child.tag != 'responseData':
-                continue
-            body_type = child.get("class")
-            body_size = 0
-            body_content = ''
-            if child.text is not None:
+            if child.tag == 'responseData' and child.text is not None:
                 body_size = len(child.text)
                 body_content = child.text[:self.error_response_bodies_size_limit]
-            self.log.info("Found error response body of size %d and type '%s'.", body_size, body_type)
-            return ErrorResponseData(body_content, body_type, body_size)
+                return body_content, body_size
+        return '', 0
+
+    @staticmethod
+    def _get_response_content_type(element) -> Optional[str]:
+        headers_text: Optional[str] = None
+        for child in element.iterchildren():
+            if child.tag == 'responseHeader':
+                headers_text = child.text
+                break
+
+        if headers_text is not None:
+            headers = JTLReaderUtils.parse_http_headers(headers_text)
+            return headers['Content-Type'] if 'Content-Type' in headers_text else None
 
 
 class XMLJTLReader(JTLErrorsReader, ResultsReader):
