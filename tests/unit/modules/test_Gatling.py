@@ -219,6 +219,7 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.configure({"execution": {
             "concurrency": 10,
             "iterations": 5,
+            "executor": "gatling",
             "scenario": {
                 "think-time": 1,
                 "follow-redirects": False,
@@ -240,7 +241,7 @@ class TestGatlingExecutor(ExecutorTestCase):
                     }, {
                         "url": "/reserve.php",
                         "method": "POST",
-                        "body": u"Body Content 日本語",
+                        "body": 'u"Body Content 日本語"',
                     }, {
                         "url": "/something.php",
                         "method": "POST",
@@ -593,6 +594,167 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertIn("-Dsettlevel=" + form % 'settval', self.obj.env.get("JAVA_OPTS"))
         self.assertIn("-Doverride=2", self.obj.env.get("JAVA_OPTS"))
 
+    def test_requests_with_include_scenario(self):
+        self.configure(
+                        {
+                         "execution": [
+                          {
+                           "concurrency": {
+                            "local": 20
+                           },
+                           "executor": "gatling",
+                           "ramp-up": "120s",
+                           "scenario": "scenario_1",
+                           "throughput": {}
+                          }
+                         ],
+                         "scenarios": {
+                          "scenario_1": {
+                           "default-address": "blazemeter.com",
+                           "requests": [
+                            {
+                             "include-scenario": "login"
+                            },
+                            {
+                              "url": "/demo"
+                            },
+                            {
+                             "include-scenario": "logout"
+                            },
+                            {
+                             "include-scenario": "login_logout"
+                            }
+                           ]
+                          },
+                          "login_logout": {
+                           "default-address": "http://www.blazemeter.com",
+                           "requests": [
+                            {
+                             "include-scenario": "login"
+                            },
+                            {
+                             "include-scenario": "logout1"
+                            }
+                           ]
+                          },
+                          "logout": {
+                           "requests": [
+                            {
+                             "url": "logout",
+                             "method": "GET",
+                             "label": "Logout"
+                            }
+                           ]
+                          },
+                          "logout1": {
+                           "requests": [
+                            {
+                             "include-scenario": "logout"
+                            }
+                           ]
+                          },
+                          "login": {
+                           "default-address": "",
+                           "requests": [
+                            {
+                             "extract-regexp": {
+                              "l_ajaxKey": {
+                               "default": "NOT FOUND",
+                               "match-no": 1,
+                               "regexp": "_ajaxKey=\"(.+?)\"",
+                               "template": "$1$"
+                              }
+                             },
+                              "extract-jsonpath": {
+                                "varname": {
+                                  "jsonpath": "$.jsonpath[0]",
+                                  "default" : "NOT_FOUND"
+                                }
+                             }, 
+                              "extract-css-jquery": {
+                                "varname1": {
+                                  "expression": "input[name=Gatling]",
+                                  "default" : "NOT_FOUND"
+                                }
+                             },  
+                              "extract-xpath": {
+                                "varname2": {
+                                  "xpath": "/order/client/address",
+                                  "default" : "NOT_FOUND"
+                                }
+                             },                             
+                             "headers": {
+                              "X-Info": "foo=fooheader"
+                             },
+                             "label": "IndexPage_login",
+                             "method": "GET",
+                             "url": "http://blazemeter.com/login"
+                            },
+                            {
+                             "headers": {
+                                "X-Info": "foo=fooheader"
+                             },
+                             "label": "login",
+                             "method": "POST",
+                             "url": "/login?_s.token=${l_ajaxKey}",
+                             "assert": [
+                              {
+                               "contains": [
+                                200
+                               ],
+                               "subject": "http-code"
+                              }
+                             ]
+                            },
+                            {
+                             "body": {
+                              "password": "********",
+                              "passwordHints": "Password",
+                              "username": "user"
+                             },
+                             "extract-regexp": {
+                              "httpSessionId": {
+                               "default": "NOT FOUND",
+                               "match-no": 1,
+                               "regexp": "JSESSIONID=(.+);",
+                               "template": "$1$"
+                              },
+                              "sCrb": {
+                               "default": "NOT FOUND",
+                               "match-no": 1,
+                               "regexp": "_ajaxKey=\"(.+?)\"",
+                               "template": "$1$"
+                              },
+                              "xAjaxToken": {
+                               "default": "NOT FOUND",
+                               "match-no": 1,
+                               "regexp": "_ajaxKey=\"(.+?)\"",
+                               "template": "$1$"
+                              }
+                             },
+                             "headers": {
+                                "X-Info": "foo=fooheader"
+                             },
+                             "label": "Post_login",
+                             "method": "POST",
+                             "url": "/login?_s.crb=${l_ajaxKey}",
+                             "assert": [
+                              {
+                               "contains": [
+                                "${xAjaxToken}"
+                               ],
+                               "subject": "body"
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                        }
+                        })
+        self.obj.prepare()
+        scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
+        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated-include-scenario.scala", scala_file,
+                              self.obj.get_scenario().get('simulation'), "GeneratedIncludeScenario")
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):

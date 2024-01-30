@@ -6,6 +6,7 @@ import base64
 import json
 import logging
 import math
+import os
 import time
 import traceback
 from collections import OrderedDict
@@ -651,8 +652,9 @@ class Master(BZAObject):
         url = self.address + "/api/v4/masters/%s/reports/functional/groups/%s" % (self['id'], group_id)
         return self._request(url)['result']
 
-    def get_csv_report(self):
-        url = self.address + "/api/v4/data/dump?masterId=%s" % self['id']
+    def get_csv_report(self, file_name):
+        file_name_without_extension = os.path.splitext(file_name)[0]
+        url = self.address + "/api/v4/data/dump?masterId=%s&fileName=%s" % (self['id'], file_name_without_extension)
         res = self._request(url)
         return res['result']
 

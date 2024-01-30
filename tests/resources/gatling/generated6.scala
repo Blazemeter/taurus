@@ -19,7 +19,7 @@ class SIMNAME extends Simulation {
   var testScenario = scenario("Taurus Scenario")
 
   var execution = exec(
-    http("/").get("/")
+    http("/").get("http://example.com/")
   )
 
   if (iterationLimit == null)

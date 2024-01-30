@@ -2536,6 +2536,160 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
         self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
 
+    def test_testdata_publish(self):
+        self.configure({
+            "settings": {
+                "master_publish_url": "https://tdm.blazemeter.com/api/v1/publish?signature=8UJR9hHfsdjg9032nkvx"
+            },
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "publish_sc"}],
+            "scenarios": {
+                "publish_sc": {
+                    "requests": [{
+                        "actions": [
+                            {
+                                "type": "rawCode",
+                                "param": "do_testdata_orchestration('publish', 'entity1', 'target1', True)",
+                            },
+                            {
+                                "type": "rawCode",
+                                "param": "do_testdata_orchestration('un-publish', 'entity1', 'target1')",
+                            }
+                        ]}]}}})
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_td_publish.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+    def test_loop_over_data_all(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "scenario1"}],
+            "scenarios": {
+                "scenario1": {
+                    "data-sources": [{
+                        "path": "/somewhere/cities.csv",
+                        "delimiter": ",",
+                        "quoted": False,
+                        "encoding": "utf-8",
+                        "loop": True,
+                        "variable-names": "name, country"
+                    }],
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loopOverData": "cities.csv",
+                                "variable": "city",
+                                "from": 2,
+                                "to": 5,
+                                "do": [{
+                                    "type": "go",
+                                    "param": "https://www.google.com?q=${city.name}"
+                                }]
+                            }
+                        ]}]}}})
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/loop_over_data_all.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+    def test_loop_over_data_no_indexes(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "scenario1"}],
+            "scenarios": {
+                "scenario1": {
+                    "data-sources": [{
+                        "path": "/somewhere/cities.csv",
+                        "delimiter": ",",
+                        "quoted": False,
+                        "encoding": "utf-8",
+                        "loop": True,
+                        "variable-names": "name, country"
+                    }],
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loopOverData": "cities.csv",
+                                "variable": "city",
+                                "do": [{
+                                    "type": "go",
+                                    "param": "https://www.google.com?q=${city.name}"
+                                }]
+                            }
+                        ]}]}}})
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/loop_over_data_no_indexes.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+    def test_loop_over_data_only_from_ix(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "scenario1"}],
+            "scenarios": {
+                "scenario1": {
+                    "data-sources": [{
+                        "path": "/somewhere/cities.csv",
+                        "delimiter": ",",
+                        "quoted": False,
+                        "encoding": "utf-8",
+                        "loop": True,
+                        "variable-names": "name, country"
+                    }],
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loopOverData": "cities.csv",
+                                "variable": "city",
+                                "from": 3,
+                                "do": [{
+                                    "type": "go",
+                                    "param": "https://www.google.com?q=${city.name}"
+                                }]
+                            }
+                        ]}]}}})
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/loop_over_data_only_from_ix.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
+    def test_loop_over_data_only_to_ix(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "scenario1"}],
+            "scenarios": {
+                "scenario1": {
+                    "data-sources": [{
+                        "path": "/somewhere/cities.csv",
+                        "delimiter": ",",
+                        "quoted": False,
+                        "encoding": "utf-8",
+                        "loop": True,
+                        "variable-names": "name, country"
+                    }],
+                    "requests": [{
+                        "actions": [
+                            {
+                                "loopOverData": "cities.csv",
+                                "variable": "city",
+                                "to": 100,
+                                "do": [{
+                                    "type": "go",
+                                    "param": "https://www.google.com?q=${city.name}"
+                                }]
+                            }
+                        ]}]}}})
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/loop_over_data_only_to_ix.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+
 
 class TestSelenium4Only(SeleniumTestCase):
     def obj_prepare(self):
@@ -3082,157 +3236,3 @@ class TestSelenium3Only(SeleniumTestCase):
         self.obj_prepare()
         exp_file = RESOURCES_DIR + "selenium/capabilities_options_for_remote_safari_s3.py"
         self.assertFilesEqual(exp_file, self.obj.script, python_files=True)
-
-    def test_testdata_publish(self):
-        self.configure({
-            "settings": {
-                "master_publish_url": "https://tdm.blazemeter.com/api/v1/publish?signature=8UJR9hHfsdjg9032nkvx"
-            },
-            "execution": [{
-                "executor": "apiritif",
-                "scenario": "publish_sc"}],
-            "scenarios": {
-                "publish_sc": {
-                    "requests": [{
-                        "actions": [
-                            {
-                                "type": "rawCode",
-                                "param": "do_testdata_orchestration('publish', 'entity1', 'target1')",
-                            },
-                            {
-                                "type": "rawCode",
-                                "param": "do_testdata_orchestration('un-publish', 'entity1', 'target1')",
-                            }
-                        ]}]}}})
-        self.obj.prepare()
-        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_td_publish.py"
-        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
-
-    def test_loop_over_data_all(self):
-        self.configure({
-            "execution": [{
-                "executor": "apiritif",
-                "scenario": "scenario1"}],
-            "scenarios": {
-                "scenario1": {
-                    "data-sources": [{
-                        "path": "/somewhere/cities.csv",
-                        "delimiter": ",",
-                        "quoted": False,
-                        "encoding": "utf-8",
-                        "loop": True,
-                        "variable-names": "name, country"
-                    }],
-                    "requests": [{
-                        "actions": [
-                            {
-                                "loopOverData": "cities.csv",
-                                "variable": "city",
-                                "from": 2,
-                                "to": 5,
-                                "do": [{
-                                    "type": "go",
-                                    "param": "https://www.google.com?q=${city.name}"
-                                }]
-                            }
-                        ]}]}}})
-        self.obj.prepare()
-        exp_file = RESOURCES_DIR + "selenium/loop_over_data_all.py"
-        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
-
-    def test_loop_over_data_no_indexes(self):
-        self.configure({
-            "execution": [{
-                "executor": "apiritif",
-                "scenario": "scenario1"}],
-            "scenarios": {
-                "scenario1": {
-                    "data-sources": [{
-                        "path": "/somewhere/cities.csv",
-                        "delimiter": ",",
-                        "quoted": False,
-                        "encoding": "utf-8",
-                        "loop": True,
-                        "variable-names": "name, country"
-                    }],
-                    "requests": [{
-                        "actions": [
-                            {
-                                "loopOverData": "cities.csv",
-                                "variable": "city",
-                                "do": [{
-                                    "type": "go",
-                                    "param": "https://www.google.com?q=${city.name}"
-                                }]
-                            }
-                        ]}]}}})
-        self.obj.prepare()
-        exp_file = RESOURCES_DIR + "selenium/loop_over_data_no_indexes.py"
-        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
-
-    def test_loop_over_data_only_from_ix(self):
-        self.configure({
-            "execution": [{
-                "executor": "apiritif",
-                "scenario": "scenario1"}],
-            "scenarios": {
-                "scenario1": {
-                    "data-sources": [{
-                        "path": "/somewhere/cities.csv",
-                        "delimiter": ",",
-                        "quoted": False,
-                        "encoding": "utf-8",
-                        "loop": True,
-                        "variable-names": "name, country"
-                    }],
-                    "requests": [{
-                        "actions": [
-                            {
-                                "loopOverData": "cities.csv",
-                                "variable": "city",
-                                "from": 3,
-                                "do": [{
-                                    "type": "go",
-                                    "param": "https://www.google.com?q=${city.name}"
-                                }]
-                            }
-                        ]}]}}})
-        self.obj.prepare()
-        exp_file = RESOURCES_DIR + "selenium/loop_over_data_only_from_ix.py"
-        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
-
-    def test_loop_over_data_only_to_ix(self):
-        self.configure({
-            "execution": [{
-                "executor": "apiritif",
-                "scenario": "scenario1"}],
-            "scenarios": {
-                "scenario1": {
-                    "data-sources": [{
-                        "path": "/somewhere/cities.csv",
-                        "delimiter": ",",
-                        "quoted": False,
-                        "encoding": "utf-8",
-                        "loop": True,
-                        "variable-names": "name, country"
-                    }],
-                    "requests": [{
-                        "actions": [
-                            {
-                                "loopOverData": "cities.csv",
-                                "variable": "city",
-                                "to": 100,
-                                "do": [{
-                                    "type": "go",
-                                    "param": "https://www.google.com?q=${city.name}"
-                                }]
-                            }
-                        ]}]}}})
-        self.obj.prepare()
-        exp_file = RESOURCES_DIR + "selenium/loop_over_data_only_to_ix.py"
-        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
-        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
