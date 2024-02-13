@@ -899,7 +899,7 @@ from selenium.webdriver.common.keys import Keys
             for action in actions:
                 counter = str(index).zfill(number_of_digits)
                 index += 1
-                label = self._create_action_label(parent_request.label, index_label + "_" + counter, action)
+                label = self._create_action_label(parent_request.label, index_label + "_" + counter, self._parse_action(action))
                 action_lines = self._gen_action(action)
 
                 transaction = ast.With(
@@ -2464,10 +2464,15 @@ from selenium.webdriver.common.keys import Keys
                 gen_empty_line_stmt(), set_level, gen_empty_line_stmt()]
 
     def _create_action_label(self, prefix, index_label, action):
+        if action:
+            atype, tag, param, value, selectors = action
+        else:
+            atype = tag = param = value = selectors = ""
+
         keep_special = "._-:()?/="
         replace_special = " $"
         allowed_chars = "%s%s%s%s" % (string.digits, string.ascii_letters, keep_special, replace_special)
-        label = filter_string(str(action), allowed_chars)[:40]
+        label = filter_string(atype + "_" + param, allowed_chars)[:40]
         label = re.sub("[%s]" % replace_special, '_', label)
         if index_label:
             return prefix + "_" + index_label + "_" + label
