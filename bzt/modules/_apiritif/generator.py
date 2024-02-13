@@ -688,6 +688,8 @@ from selenium.webdriver.common.keys import Keys
         else:
             atype = tag = param = value = selectors = None
 
+        wrapInTransaction = parent_request and parent_request.config.get('spar2539', False) is True
+
         action_elements = []
 
         if atype in self.EXTERNAL_HANDLER_TAGS:
@@ -753,6 +755,8 @@ from selenium.webdriver.common.keys import Keys
         elif atype == 'if':
             action_elements.append(self._gen_condition_mngr(param, action_config))
         elif atype == 'loop':
+            # loop inside actions are wrapped, not loop itself
+            wrapInTransaction = False
             action_elements.append(self._gen_loop_mngr(action_config, parent_request))
         elif atype == 'foreach':
             action_elements.append(self._gen_foreach_mngr(action_config))
@@ -764,6 +768,16 @@ from selenium.webdriver.common.keys import Keys
 
         if atype.lower() in self.ACTIONS_WITH_WAITER:
             action_elements.append(ast_call(func=ast_attr("waiter"), args=[]))
+
+        if wrapInTransaction:
+            label = self._create_action_label(parent_request.label, action)
+
+            return [ast.With(
+                context_expr=ast_call(
+                    func=ast_attr("apiritif.transaction"),
+                    args=[self._gen_expr(label)]),
+                optional_vars=None,
+                body=[ast.Expr(element) for element in action_elements])]
 
         return [ast.Expr(element) for element in action_elements]
 
