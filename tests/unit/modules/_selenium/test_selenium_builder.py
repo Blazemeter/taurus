@@ -798,7 +798,12 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                             {"answerDialog(prompt)": "myvalue"},
                             {"answerDialog(confirm)": "#Ok"},
                             {"answerDialog(alert)": "#Ok"},
-                            "echoString(${red_pill})",
+                            {
+                                "loop" : "i",
+                                "start": 1,
+                                "end": 1,
+                                "do" : ["echoString(${red_pill})"]
+                            },
                             "screenshot(screen.png)",
                             "screenshot()",
                         ],
