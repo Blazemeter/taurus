@@ -2472,7 +2472,7 @@ from selenium.webdriver.common.keys import Keys
         keep_special = "._-:()?/="
         replace_special = " $"
         allowed_chars = "%s%s%s%s" % (string.digits, string.ascii_letters, keep_special, replace_special)
-        label = filter_string(atype + "_" + param, allowed_chars)[:40]
+        label = filter_string(str(atype) + "_" + str(param), allowed_chars)[:40]
         label = re.sub("[%s]" % replace_special, '_', label)
         if index_label:
             return prefix + "_" + index_label + "_" + label
