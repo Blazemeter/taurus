@@ -2115,7 +2115,7 @@ from selenium.webdriver.common.keys import Keys
             actions = req.config.get("actions")
             self.replace_dialogs = self._is_dialog_replacement_needed(actions)
 
-            number_of_digits = int(math.log10(len(actions))) + 1
+            number_of_digits = int(math.log10(max(len(actions), 1))) + 1
 
             index = 1
             for action in actions:
