@@ -17,6 +17,7 @@ limitations under the License.
 """
 import collections
 import copy
+import hashlib
 import logging
 import math
 import time
@@ -31,7 +32,7 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.utils import iteritems, dehumanize_time, JSONConvertible, is_int
+from bzt.utils import iteritems, dehumanize_time, JSONConvertible, is_int, to_json
 
 log = logging.getLogger('aggregator')
 SAMPLE_STATES = 'success', 'jmeter_errors', 'http_errors'
@@ -181,6 +182,9 @@ class ErrorResponseData(NamedTuple):
     type: str
     original_size: int
 
+    def get_hash(self) -> str:
+        return str(hashlib.md5(to_json(self).encode()).hexdigest())
+
 
 class KPISet(dict):
     """
@@ -266,7 +270,7 @@ class KPISet(dict):
             "content": err_resp_data.content,
             "type": err_resp_data.type,
             "original_size": err_resp_data.original_size,
-            "hash": hash(err_resp_data),
+            "hash": err_resp_data.get_hash(),
             "cnt": 1}
         ]
 
