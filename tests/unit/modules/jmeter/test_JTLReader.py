@@ -276,6 +276,19 @@ class TestJTLErrorsReader(BZTestCase):
             response_data = label_data[0]
             self.assertEqual(TEST_ERROR_RESPONSE_BODIES_LIMIT, len(response_data['responseBodies']))
 
+    def test_error_response_bodies_in_assertions(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-assertions.jtl")
+        self.obj.collect_error_response_bodies = True
+        self.obj.read_file()
+
+        values = self.obj.get_data(sys.maxsize)
+
+        self.assertEqual(10, len(values))
+        aggregated_label = values.get('')
+        self.assertEqual(1, len(aggregated_label))
+        self.assertEqual(aggregated_label[0].get("msg"), "Test failed: text expected to contain /.*Robocop.*/")
+        self.assertEqual(90, len(aggregated_label[0].get("responseBodies")))
+
     def test_smart_aggregation_assert(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/smart-aggregation/errors.jtl")
         self.obj.read_file()

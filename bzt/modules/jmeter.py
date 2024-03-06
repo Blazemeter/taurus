@@ -1385,7 +1385,10 @@ class JTLErrorsReader(object):
         e_msg = ""
         url = None
         err_type = KPISet.ERRTYPE_ERROR
+
         err_response_data: Optional[ErrorResponseData] = None
+        if self.collect_error_response_bodies:
+            err_response_data = self._get_response_data(element)
 
         a_msg, name = get_child_assertion(element)
 
@@ -1393,8 +1396,6 @@ class JTLErrorsReader(object):
             e_msg = element.get("rm", default="")
             url = element.xpath(self.url_xpath)
             url = url[0].text if url else element.get("lb")
-            if self.collect_error_response_bodies:
-                err_response_data = self._get_response_data(element)
         elif a_msg:
             err_type = KPISet.ERRTYPE_ASSERT
         elif element.get("s") == "false":  # has failed sub element, we should look deeper...
