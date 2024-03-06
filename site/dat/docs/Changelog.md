@@ -1,4 +1,11 @@
 # Changelog
+
+## 1.16.29<sup> 26 February 2024</sup>
+- Allow reports inside actions instead of requests
+- Retrieve response content type from response headers
+- Collect error response bodies
+- Upgrade urllib to version 1.26.17
+
 ## 1.16.28<sup> 12 December 2023</sup>
 - Gatling support for response extraction for regex, json, css, xpath
 - Gatling support for include-scenario similar to support offered for Jmeter

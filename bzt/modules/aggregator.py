@@ -17,11 +17,13 @@ limitations under the License.
 """
 import collections
 import copy
+import hashlib
 import logging
 import math
 import time
 from abc import abstractmethod
 from collections import Counter
+from typing import Optional, NamedTuple
 
 import fuzzyset
 from hdrpy import HdrHistogram, RecordedIterator
@@ -30,7 +32,7 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.utils import iteritems, dehumanize_time, JSONConvertible, is_int
+from bzt.utils import iteritems, dehumanize_time, JSONConvertible, is_int, to_json
 
 log = logging.getLogger('aggregator')
 SAMPLE_STATES = 'success', 'jmeter_errors', 'http_errors'
@@ -39,6 +41,9 @@ AGGREGATED_STATES = (
     '_'.join((SAMPLE_STATES[0], SAMPLE_STATES[2])),     # success_http_errors
     '_'.join((SAMPLE_STATES[2], SAMPLE_STATES[1])),     # http_errors_jmeter_errors
 )
+
+ERROR_RESPONSE_BODIES_SIZE_LIMIT: int = 256 * 1024
+ERROR_RESPONSE_BODIES_LIMIT: int = 10
 
 
 class SinglePassIterator(RecordedIterator):
@@ -172,6 +177,15 @@ class RespTimesCounter(JSONConvertible):
         self.histogram.add(old)
 
 
+class ErrorResponseData(NamedTuple):
+    content: str
+    type: str
+    original_size: int
+
+    def get_hash(self) -> str:
+        return str(hashlib.md5(to_json(self).encode()).hexdigest())
+
+
 class KPISet(dict):
     """
     Main entity in results, contains all KPIs for single label,
@@ -190,6 +204,7 @@ class KPISet(dict):
     AVG_CONN_TIME = "avg_ct"
     PERCENTILES = "perc"
     RESP_CODES = "rc"
+    RESP_BODIES = "responseBodies"
     ERRTYPE_ERROR = 0
     ERRTYPE_ASSERT = 1
     ERRTYPE_SUBSAMPLE = 2
@@ -231,26 +246,33 @@ class KPISet(dict):
         return mycopy
 
     @staticmethod
-    def error_item_skel(error, ret_c, cnt, errtype, urls, tag):
-        """
-
-        :type error: str
-        :type ret_c: str
-        :type tag: str
-        :type cnt: int
-        :type errtype: int
-        :type urls: collections.Counter
-        :rtype: dict
-        """
+    def error_item_skel(
+            error: str, ret_c: str, cnt: int, err_type: int,
+            urls: Counter, tag: str, err_resp_data: Optional[ErrorResponseData] = None) -> dict:
         assert isinstance(urls, collections.Counter)
+        response_bodies = KPISet._get_response_bodies(err_resp_data)
         return {
             "cnt": cnt,
             "msg": error,
             "tag": tag,  # just one more string qualifier
             "rc": ret_c,
-            "type": errtype,
+            "type": err_type,
             "urls": urls,
+            "responseBodies": response_bodies
         }
+
+    @staticmethod
+    def _get_response_bodies(err_resp_data: Optional[ErrorResponseData]) -> list:
+        if err_resp_data is None:
+            return []
+
+        return [{
+            "content": err_resp_data.content,
+            "type": err_resp_data.type,
+            "original_size": err_resp_data.original_size,
+            "hash": err_resp_data.get_hash(),
+            "cnt": 1}
+        ]
 
     def add_sample(self, sample):
         """
@@ -307,11 +329,24 @@ class KPISet(dict):
             if item[selector[0]] == selector[1]:
                 item['cnt'] += value['cnt']
                 item['urls'] += value['urls']
+                for resp_body in value['responseBodies']:
+                    KPISet._inc_resp_body(item, resp_body)
                 found = True
                 break
 
         if not found:
             values.append(copy.deepcopy(value))
+
+    @staticmethod
+    def _inc_resp_body(item: dict, resp_body: dict) -> None:
+        found = False
+        for resp_body_data in item['responseBodies']:
+            if resp_body_data['hash'] == resp_body['hash']:
+                resp_body_data['cnt'] += resp_body['cnt']
+                found = True
+                break
+        if not found:
+            item['responseBodies'].append(copy.deepcopy(resp_body))
 
     def __getitem__(self, key):
         rtimes = self.get(self.RESP_TIMES, no_recalc=True)
@@ -821,6 +856,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self._sticky_concurrencies = {}
         self.min_timestamp = None
 
+        self.collect_error_response_bodies = False
+        self.error_response_bodies_limit = ERROR_RESPONSE_BODIES_LIMIT
+        self.error_response_bodies_size_limit = ERROR_RESPONSE_BODIES_SIZE_LIMIT
+
     def converter(self, data):
         if data and self._redundant_aggregation:
             self.__extend_reported_data(data)
@@ -875,6 +914,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
 
+        self.collect_error_response_bodies = self.settings.get("collect-error-response-bodies", self.collect_error_response_bodies)
+        self.error_response_bodies_limit = self.settings.get("error-response-bodies-limit", self.error_response_bodies_limit)
+        self.error_response_bodies_size_limit = self.settings.get("error-response-bodies-size-limit", self.error_response_bodies_size_limit)
+
         self.min_buffer_len = dehumanize_time(self.settings.get("min-buffer-len", self.min_buffer_len))
 
         max_buffer_len = self.settings.get("max-buffer-len", self.max_buffer_len)
@@ -928,6 +971,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         # share error set and label set between underlings
         underling.known_errors = self.known_errors
         underling.known_labels = self.known_labels
+
+        underling.collect_error_response_bodies = self.collect_error_response_bodies
+        underling.error_response_bodies_limit = self.error_response_bodies_limit
+        underling.error_response_bodies_size_limit = self.error_response_bodies_size_limit
 
         self.underlings.append(underling)
 
