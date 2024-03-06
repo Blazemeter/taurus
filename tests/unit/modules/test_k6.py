@@ -156,7 +156,7 @@ class TestK6Executor(ExecutorTestCase):
 
     def test_get_load_str_fail(self):
         self.configure({EXEC: {"concurrency": "2VU"}})
-        self.assertRaises(bzt.TaurusConfigError, K6Executor.get_load)
+        self.assertRaises(bzt.TaurusConfigError, self.obj.get_load)
 
 class TestK6Reader(BZTestCase):
     def test_read(self):
