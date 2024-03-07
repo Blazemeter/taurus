@@ -26,7 +26,7 @@ ENV PATH $PATH:/root/google-cloud-sdk/bin
 
 # Install gke gcloud auth plugin
 RUN /root/google-cloud-sdk/bin/gcloud components install gke-gcloud-auth-plugin
-RUN apt-get install google-cloud-sdk-gke-gcloud-auth-plugin
+RUN $APT_INSTALL google-cloud-sdk-gke-gcloud-auth-plugin
 
 # at the moment setuptools is included to python3-pip
 RUN python3 -m pip install setuptools twine pyyaml
