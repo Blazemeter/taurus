@@ -304,7 +304,7 @@ class WebDriver(RequiredTool):
 
 class ChromeDriver(WebDriver):
     VERSION = "116.0.5845.96"
-    DOWNLOAD_LINK = "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/" \
+    DOWNLOAD_LINK = "https://storage.googleapis.com/chrome-for-testing-public/" \
                     "{version}/{arch}/chromedriver-{arch}.zip"
     HIGHEST_OLD_VERSION = "114.0.5735.90"
     OLD_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
