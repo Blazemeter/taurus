@@ -438,7 +438,7 @@ class TestReportReader(BZTestCase):
         arch, ext = chrome_driver._get_arch_and_ext_for_chromedriver()
         chrome_driver._expand_download_link()
         self.assertEqual(
-            'https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing'
+            'https://storage.googleapis.com/chrome-for-testing-public'
             '/116.0.5845.96/' + arch + '/chromedriver-' + arch + '.zip',
             chrome_driver.download_link)
         settings = {"version": "110.0.5481.77"}
