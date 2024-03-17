@@ -1,4 +1,8 @@
 # Changelog
+## 1.16.30<sup> 17 March 2024</sup>
+- Gatling generated scala file is fixed to handle override in #{OVERRIDE} style instead of ${OVERRIDE}, issue is prominent with response extraction and coexisting with data feeder overrides in body/body param/url, and for consistency and compatabilty with all Executor types ${OVERRIDE} style will continue to be used in YAML/JSON scenario declartions
+- Changes will be compatabile for all currently supported Executor types, and YAML declaration will continue to reference any property or data feeder overrides with ${OVERRIDE} style
+
 ## 1.16.28<sup> 12 December 2023</sup>
 - Gatling support for response extraction for regex, json, css, xpath
 - Gatling support for include-scenario similar to support offered for Jmeter
