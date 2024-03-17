@@ -24,7 +24,7 @@ class SIMNAME extends Simulation {
   ).exec(
     _.set("foo", "bar1").set("foo2", "bar2")
   ).exec(
-    http("/${foo}/${foo2}").get("http://example.com/${foo}/${foo2}")
+    http("/#{foo}/#{foo2}").get("http://example.com/#{foo}/#{foo2}")
   ).exec(
     _.set("hanging", "loose\"'")
   )
