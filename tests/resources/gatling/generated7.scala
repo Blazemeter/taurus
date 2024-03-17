@@ -20,7 +20,7 @@ class SIMNAME extends Simulation {
   var execution = exec(
     _.set("foo", "bar")
   ).exec(
-    http("/${foo}").get("http://example.com/${foo}")
+    http("/#{foo}").get("http://example.com/#{foo}")
   ).exec(
     _.set("foo", "bar1").set("foo2", "bar2")
   ).exec(
