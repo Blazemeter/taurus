@@ -30,6 +30,7 @@ from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from itertools import dropwhile
 from io import StringIO
+from typing import Optional
 
 from cssselect import GenericTranslator
 from lxml import etree
@@ -38,7 +39,7 @@ from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNet
 from bzt.engine import Scenario, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
-from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
+from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ErrorResponseData, ERROR_RESPONSE_BODIES_SIZE_LIMIT, ERROR_RESPONSE_BODIES_LIMIT
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
@@ -857,11 +858,44 @@ class JTLReader(ResultsReader):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
+        self._collect_error_response_bodies = False
+        self._error_response_bodies_limit = ERROR_RESPONSE_BODIES_LIMIT
+        self._error_response_bodies_size_limit = ERROR_RESPONSE_BODIES_SIZE_LIMIT
         if errors_filename:
             self.errors_reader = JTLErrorsReader(
                 errors_filename, parent_logger, err_msg_separator, label_converter=self.get_mixed_label)
         else:
             self.errors_reader = None
+
+    @property
+    def collect_error_response_bodies(self):
+        return self._collect_error_response_bodies
+
+    @collect_error_response_bodies.setter
+    def collect_error_response_bodies(self, value):
+        self._collect_error_response_bodies = value
+        if self.errors_reader:
+            self.errors_reader.collect_error_response_bodies = value
+
+    @property
+    def error_response_bodies_limit(self):
+        return self._error_response_bodies_limit
+
+    @error_response_bodies_limit.setter
+    def error_response_bodies_limit(self, value):
+        self._error_response_bodies_limit = value
+        if self.errors_reader:
+            self.errors_reader.error_response_bodies_limit = value
+
+    @property
+    def error_response_bodies_size_limit(self):
+        return self._error_response_bodies_size_limit
+
+    @error_response_bodies_size_limit.setter
+    def error_response_bodies_size_limit(self, value):
+        self._error_response_bodies_size_limit = value
+        if self.errors_reader:
+            self.errors_reader.error_response_bodies_size_limit = value
 
     def set_aggregation(self, aggregation):
         super().set_aggregation(aggregation)
@@ -1005,15 +1039,6 @@ class FuncJTLReader(FunctionalResultsReader):
             assertions.append({"name": name, "isFailed": failed, "errorMessage": error_message})
         return assertions
 
-    def _parse_http_headers(self, header_str):
-        headers = {}
-        for line in header_str.split("\n"):
-            clean_line = line.strip()
-            if ":" in clean_line:
-                key, value = clean_line.split(":", 1)
-                headers[key] = value
-        return headers
-
     def _parse_http_cookies(self, cookie_str):
         cookies = {}
         clean_line = cookie_str.strip()
@@ -1049,8 +1074,8 @@ class FuncJTLReader(FunctionalResultsReader):
             "threadGroup": thread_group,
 
             "assertions": self._extract_sample_assertions(sample_elem),
-            "requestHeaders": self._parse_http_headers(req_headers),
-            "responseHeaders": self._parse_http_headers(resp_headers),
+            "requestHeaders": JTLReaderUtils.parse_http_headers(req_headers),
+            "responseHeaders": JTLReaderUtils.parse_http_headers(resp_headers),
             "requestCookies": self._parse_http_cookies(req_cookies),
 
             "requestBody": sample_elem.findtext("queryString") or "",
@@ -1138,6 +1163,18 @@ class FuncJTLReader(FunctionalResultsReader):
         return None
 
 
+class JTLReaderUtils:
+    @staticmethod
+    def parse_http_headers(header_str):
+        headers = {}
+        for line in header_str.split("\n"):
+            clean_line = line.strip()
+            if ":" in clean_line:
+                key, value = clean_line.split(":", 1)
+                headers[key] = value
+        return headers
+
+
 class IncrementalCSVReader(object):
     """
     JTL csv reader
@@ -1221,6 +1258,10 @@ class JTLErrorsReader(object):
         self.err_msg_separator = err_msg_separator
         self.label_converter = label_converter
         self._redundant_aggregation = False
+        self.collect_error_response_bodies = False
+        self.error_response_bodies_limit = ERROR_RESPONSE_BODIES_LIMIT
+        self.error_response_bodies_size_limit = ERROR_RESPONSE_BODIES_SIZE_LIMIT
+        self._collected_error_responses: dict = {}
 
     def set_aggregation(self, aggregation):
         self._redundant_aggregation = aggregation
@@ -1297,7 +1338,7 @@ class JTLErrorsReader(object):
         self._extract_common(elem, label, r_code, t_stamp, message)
 
     def _extract_common(self, elem, label, r_code, t_stamp, r_msg):
-        f_msg, f_url, f_rc, f_tag, f_type = self.find_failure(elem, r_msg, r_code)
+        f_msg, f_url, f_rc, f_tag, f_type, f_response_data = self.find_failure(elem, r_msg, r_code)
 
         if f_type == KPISet.ERRTYPE_SUBSAMPLE:
             url_counts = Counter({f_url: 1})
@@ -1308,12 +1349,26 @@ class JTLErrorsReader(object):
             else:
                 url_counts = Counter()
 
-        err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
+        err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag, f_response_data)
         buf = self.buffer.get(t_stamp, force_set=True)
         if self._redundant_aggregation:
             label = self.label_converter(label=label, rc=r_code, msg=r_msg)
+
+        for resp_body in err_item['responseBodies']:
+            if self._should_not_collect_error_response(label, r_code, r_msg, resp_body['hash']):
+                err_item['responseBodies'].remove(resp_body)
+
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
+
+    def _should_not_collect_error_response(self, label: str, rc: str, msg: str, response_hash: int) -> bool:
+        key = (label, rc, msg)
+        responses = self._collected_error_responses.get(key) if key in self._collected_error_responses else set()
+        if len(responses) == self.error_response_bodies_limit:
+            return True
+        responses.add(response_hash)
+        self._collected_error_responses[key] = responses
+        return False
 
     def _extract_nonstandard(self, elem):
         t_stamp = int(elem.findtext("timeStamp")) / 1000.0
@@ -1324,12 +1379,16 @@ class JTLErrorsReader(object):
         self._extract_common(elem, label, r_code, t_stamp, message)
 
     def find_failure(self, element, def_msg="", def_rc=None):
-        """ returns (message, url, rc, tag, err_type) """
+        """ returns (message, url, rc, tag, err_type, err_response_data) """
         rc = element.get("rc", default="")
 
         e_msg = ""
         url = None
         err_type = KPISet.ERRTYPE_ERROR
+
+        err_response_data: Optional[ErrorResponseData] = None
+        if self.collect_error_response_bodies:
+            err_response_data = self._get_response_data(element)
 
         a_msg, name = get_child_assertion(element)
 
@@ -1342,7 +1401,7 @@ class JTLErrorsReader(object):
         elif element.get("s") == "false":  # has failed sub element, we should look deeper...
             for child in element.iterchildren():
                 if child.tag in ("httpSample", "sample"):  # let's check sub samples..
-                    e_msg, url, rc, name, err_type = self.find_failure(child)
+                    e_msg, url, rc, name, err_type, err_response_data = self.find_failure(child)
                     if e_msg:
                         if err_type == KPISet.ERRTYPE_ERROR:  # replace subsample error
                             err_type = KPISet.ERRTYPE_SUBSAMPLE
@@ -1360,7 +1419,34 @@ class JTLErrorsReader(object):
             if self.err_msg_separator:  # add appropriate separator to default msg
                 msg = self.err_msg_separator + msg
 
-        return msg, url, rc or def_rc, name, err_type
+        return msg, url, rc or def_rc, name, err_type, err_response_data
+
+    def _get_response_data(self, element) -> Optional[ErrorResponseData]:
+        content_type = self._get_response_content_type(element)
+        content, content_size = self._get_response_content(element)
+        self.log.info("Found error response body of size %d and type '%s'.", content_size, content_type)
+        if content is not None:
+            return ErrorResponseData(content, content_type, content_size)
+
+    def _get_response_content(self, element) -> (str, int):
+        for child in element.iterchildren():
+            if child.tag == 'responseData' and child.text is not None:
+                body_size = len(child.text)
+                body_content = child.text[:self.error_response_bodies_size_limit]
+                return body_content, body_size
+        return '', 0
+
+    @staticmethod
+    def _get_response_content_type(element) -> Optional[str]:
+        headers_text: Optional[str] = None
+        for child in element.iterchildren():
+            if child.tag == 'responseHeader':
+                headers_text = child.text
+                break
+
+        if headers_text is not None:
+            headers = JTLReaderUtils.parse_http_headers(headers_text)
+            return headers['Content-Type'] if 'Content-Type' in headers_text else None
 
 
 class XMLJTLReader(JTLErrorsReader, ResultsReader):
@@ -1399,7 +1485,7 @@ class JMeter(RequiredTool):
     COMMAND_RUNNER_VERSION = "2.2"
     COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
     VERSION = "5.5"
-    VERSION_LATEST = "5.6.2"
+    VERSION_LATEST = "5.6.3"
 
     def __init__(self, config=None, props=None, **kwargs):
         settings = config or BetterDict()

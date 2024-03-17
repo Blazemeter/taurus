@@ -5,6 +5,18 @@
 - Gatling support to capture response point of interest using regex, json, css, xpath and use in downstream calls using ${param} conventions for substitution
 - Gatling support for multi hosts when requests are chained by capturing responses and downstreaming from one host to another hosts - typical scenario authentication for auth fulfillment server provides a valid authentication token for use as follow up request to another host
 
+## 1.16.29<sup> 26 February 2024</sup>
+- Allow reports inside actions instead of requests
+- Retrieve response content type from response headers
+- Collect error response bodies
+- Upgrade urllib to version 1.26.17
+
+## 1.16.28<sup> 12 December 2023</sup>
+- Gatling support for response extraction for regex, json, css, xpath
+- Gatling support for include-scenario similar to support offered for Jmeter
+- Gatling support to capture response point of interest using regex, json, css, xpath and use in downstream calls using ${param} conventions for substitution
+- Gatling support for multi hosts when requests are chained by capturing responses and downstreaming from one host to another hosts - typical scenario authentication for auth fulfillment server provides a valid authentication token for use as follow up request to another host
+
 ## 1.16.27<sup> 22 September 2023</sup>
 - Fix k6 aggregator
 - Allow using custom name for the csv cloud report

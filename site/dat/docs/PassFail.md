@@ -21,7 +21,7 @@ The above example use short form for criteria, its general format is the followi
 
 Explanation:
   - `subject` is the KPI that will be compared, listed below.
-  - `\[label]` is a sample label. If omitted, it is applied for overall.
+  - `\[label]` is a sample label. If omitted, it is applied for overall. If your label contains a colon (such as "https://"), use the long form described below.
   - `condition` is the comparison operator, one of `>`, `\<`, `>=`, `\<=`, `=`, `==` (same as `=`). Keep in mind that **no spaces** should surround the operator.
   - `threshold` is the value to compare with, some KPIs allow percentage thresholds.
   - `\[logic]` is the way value is aggregated within `timeframe`, see more details [below](#Timeframe-Logic).
@@ -71,7 +71,7 @@ reporting:
 
 ## Full Form of the Criteria
 
-It is conducted by Taurus automatically from short form. You can also specify it as this:
+It is derived by Taurus automatically from the short form. The full form can contain colons (such as URLs) in the label. You can manually specify it as this:
 
 ```yaml
 reporting:

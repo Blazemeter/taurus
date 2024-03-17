@@ -715,6 +715,147 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
         with open(self.obj.script) as script:
             self.assertIn("bzt.resources.selenium_extras", script.read())
 
+
+    def test_build_script_report_inside_actions(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "data-sources": [{"path": "first.csv", "loop": True}, "second.csv"],
+                    "default-address": "http://blazedemo.com",
+                    "variables": {
+                        "red_pill": "take_it",
+                        "name": "Name"
+                    },
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "report-inside-actions": True,
+                        "actions": [
+                            {"waitForByXPath(//input[@type='submit'], present)": "3.5s"},
+                            {"waitForByXPath(//input[@name='test,name'], present)": "1m20s"},
+                            "assertTitle(BlazeDemo)",
+                            "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
+                            "doubleClickByXPath(/html/body/div[3]/h2)",
+                            "contextClickByXPath(/html/body/div[3]/form/select[1])",
+                            "mouseDownByXPath(/html/body/div[3]/form/select[1])",
+                            "mouseUpByXPath(/html/body/div[3]/form/select[1]/option[6])",
+                            {"selectByName(toPort)": "London"},
+                            {"keysByCSS(body input.btn.btn-primary)": "KEY_ENTER"},
+                            {"assertValueByID(address)": "123 Beautiful st."},
+                            {"assertTextByXPath(/html/body/div[2]/form/div[1]/label)": "${name}"},
+                            {"waitForByName('toPort', visible)": "3.5s"},
+                            {"keysByName(\"toPort\")": "B"},
+                            {"typeByName(\"toPort\")": "B"},
+                            {"keysByName(\"toPort\")": u"KEY_ENTER"},
+                            {"typeByName(\"toPort\")": "KEY_ENTER"},
+                            {"typeByName(\"toPort\")": "mypassword"},
+                            "clickByXPath(//div[3]/form/select[1]//option[3])",
+                            "clickByXPath(//div[3]/form/select[2]//option[6])",
+                            "switchWindow(0)",
+                            "openWindow(some.url)",
+                            "switchWindow('win_ser_local')",
+                            "switchWindow('win_ser_1')",
+                            "switchWindow('that_window')",
+                            "closeWindow(1)",
+                            "closeWindow('win_ser_local')",
+                            "closeWindow('win_ser_1')",
+                            "closeWindow('that_window')",
+                            "submitByName(\"toPort\")",
+                            "scriptEval(\"alert('This is Sparta');\")",
+                            "scriptEval(\"{alert('This is ${red_pill}');}\")",
+                            {"rawCode": "for i in range(10):\n  if i % 2 == 0:\n    print(i)"},
+                            {"dragByID(address)": "elementByName(toPort)"},
+                            "switchFrameByName('my_frame')",
+                            "switchFrame('top_frame')",
+                            "switchFrameByXpath(//*[@id='result'])",
+                            "switchFrameByCSS(.my_class)",
+                            "switchFrameById(frame_id)",
+                            "switchFrameByIdx(1)",
+                            "switchFrame(relative=parent)",
+                            {"editContentById(editor)": "lo-la-lu"},
+                            "pauseFor(3.5s)",
+                            "clearCookies()",
+                            "clickByLinkText(destination of the week! The Beach!)",
+                            {"storeTitle()": "Title"},
+                            {"storeTextByXPath(//*[@id='basics']/h2)": "Basic"},
+                            {"storeValueByXPath(//*[@id='basics']/h1)": "World"},
+                            {"storeString(${Title} ${Basic} by ${By})": "Final"},
+                            {"storeEval(0 == false)": "var_eval"},
+                            "assertEval(10 === 2*5)",
+                            "go(http:\\blazemeter.com)",
+                            {"assertDialog(alert)": "Alert Message"},
+                            {"assertDialog(prompt)": "Enter value"},
+                            {"assertDialog(confirm)": "Are you sure?"},
+                            {"answerDialog(prompt)": "myvalue"},
+                            {"answerDialog(confirm)": "#Ok"},
+                            {"answerDialog(alert)": "#Ok"},
+                            {
+                                "loop" : "i",
+                                "start": 1,
+                                "end": 1,
+                                "do" : ["echoString(${red_pill})"]
+                            },
+                            "screenshot(screen.png)",
+                            "screenshot()",
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                },
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": {
+                        "browserName": "firefox",
+                        "version": "54.0",
+                        "platformName": "linux",
+                        "javascriptEnabled": "True",
+                        "platformVersion": "",
+                        "seleniumVersion": "",
+                        "deviceName": "",
+                        "app": ""
+                    },
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "report-inside-actions": True,
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
+                    },
+                        {
+                            "label": "empty",
+                            "report-inside-actions": True
+                        }
+                    ]
+                }
+            }
+        })
+
+        # it changes default of data-source loop parameter to 'false' (see second.csv params)
+        self.obj.engine.aggregator.is_functional = True
+
+        self.obj.prepare()
+        exp_file = RESOURCES_DIR + "selenium/generated_from_requests_report_inside_actions.py"
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(exp_file, self.obj.script, str_to_replace, "/somewhere/", python_files=True)
+        with open(self.obj.script) as script:
+            self.assertIn("bzt.resources.selenium_extras", script.read())
+
     def test_headless_default(self):
         self.configure({
             "execution": [{

@@ -1,0 +1,5 @@
+modules:
+  consolidator:
+    collect-error-response-bodies: true
+    error-response-bodies-limit: 5
+    error-response-bodies-size-limit: 256
