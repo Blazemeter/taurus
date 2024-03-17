@@ -192,7 +192,7 @@ class GatlingScriptBuilder(object):
         for key in dynamicExtractor:
             value = dynamicExtractor[key]
             subject = subject.replace(key,value)
-        return subject
+        return subject.replace('${','#{')
 
     @staticmethod
     def _safeEscape(subject):
