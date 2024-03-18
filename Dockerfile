@@ -10,6 +10,7 @@ ADD https://deb.nodesource.com/setup_16.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
 ADD https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.deb /tmp
 COPY dist/bzt*whl /tmp
+COPY dotnet.sh /tmp/dotnet.sh
 
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
@@ -25,7 +26,9 @@ RUN $PIP_INSTALL --user --upgrade pip pillow oauthlib pyjwt httplib2 numpy
 
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
-    openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung dotnet-sdk-6.0 libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
+    openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
+
+RUN bash dotnet.sh
 
 # Install rbenv and ruby-build
 SHELL ["/bin/bash", "-c"]
