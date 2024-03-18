@@ -79,8 +79,7 @@ RUN mkdir -p /etc/bzt.d \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && cp `python3 -c "import bzt; print('{}/resources/chrome_launcher.sh'.format(bzt.__path__[0]))"` \
     /opt/google/chrome/google-chrome \
-  && bzt -install-tools -v \
-  && firefox --version && dotnet --version | head -1
+  && bzt -install-tools -v | head -1
 
 ### remove unused pem files
 WORKDIR /root/.bzt/python-packages/3.10.6/gevent/tests
