@@ -1,4 +1,4 @@
-FROM ubuntu:23.04
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
@@ -14,7 +14,7 @@ COPY dotnet.sh /tmp/dotnet.sh
 
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
-RUN bash ./setup_16.x && $APT_INSTALL build-essential python3-pip python3.10 net-tools apt-utils
+RUN bash ./setup_16.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
 
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
