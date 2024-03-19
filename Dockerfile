@@ -28,6 +28,8 @@ RUN $APT_UPDATE && $APT_INSTALL \
     openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
 
 # Install .NET sdk
+# check this page for the links and hash
+# https://dotnetcli.azureedge.net/dotnet/release-metadata/6.0/releases.json
 RUN curl -fSL --output dotnet.tar.gz https://download.visualstudio.microsoft.com/download/pr/b521d7d2-108b-43d9-861a-58b2505a125a/0023553690a68328b33bc30a38f151db/dotnet-sdk-6.0.420-linux-x64.tar.gz \
     && dotnet_sha512='53d6e688d0aee8f73edf3ec8e58ed34eca0873a28f0700b71936b9d7cb351864eff8ca593db7fd77659b1710fa421d2f4137da5f98746a85125dc2a49fbffc56' \
     && echo "$dotnet_sha512 dotnet.tar.gz" | sha512sum -c - \
@@ -79,7 +81,8 @@ RUN mkdir -p /etc/bzt.d \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && cp `python3 -c "import bzt; print('{}/resources/chrome_launcher.sh'.format(bzt.__path__[0]))"` \
     /opt/google/chrome/google-chrome \
-  && bzt -install-tools -v | head -1
+  && bzt -install-tools -v \
+  && google-chrome-stable --version && firefox --version && dotnet --version | head -1
 
 ### remove unused pem files
 WORKDIR /root/.bzt/python-packages/3.10.6/gevent/tests
