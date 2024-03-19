@@ -28,8 +28,8 @@ RUN $APT_UPDATE && $APT_INSTALL \
     openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
 
 # Install .NET sdk
-RUN curl -fSL --output dotnet.tar.gz https://download.visualstudio.microsoft.com/download/pr/cf62adad-ab62-4941-b474-ed275935e7b2/358b637e181b9a76a9a70a192b951760/dotnet-sdk-6.0.420-linux-arm.tar.gz \
-    && dotnet_sha512='226a4bfeb1238178c56a7c9ff37ae21bb59765b8ee7d05b09148208bcdd3a98db78a3cbf346de70c8d20a34c777a8475c3991f3ed1bd47cf8f41e658216229c4' \
+RUN curl -fSL --output dotnet.tar.gz https://download.visualstudio.microsoft.com/download/pr/b521d7d2-108b-43d9-861a-58b2505a125a/0023553690a68328b33bc30a38f151db/dotnet-sdk-6.0.420-linux-x64.tar.gz \
+    && dotnet_sha512='53d6e688d0aee8f73edf3ec8e58ed34eca0873a28f0700b71936b9d7cb351864eff8ca593db7fd77659b1710fa421d2f4137da5f98746a85125dc2a49fbffc56' \
     && echo "$dotnet_sha512 dotnet.tar.gz" | sha512sum -c - \
     && mkdir -p /usr/share/dotnet \
     && tar -zxf dotnet.tar.gz -C /usr/share/dotnet \
