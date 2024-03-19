@@ -29,7 +29,7 @@ RUN $APT_UPDATE && $APT_INSTALL \
 
 # Install .NET sdk
 # check this page for the links and hash
-# https://dotnetcli.azureedge.net/dotnet/release-metadata/6.0/releases.json
+# https://dotnetcli.azureedge.net/dotnet/release-metadata/8.0/releases.json
 RUN curl -fSL --output dotnet.tar.gz https://download.visualstudio.microsoft.com/download/pr/14e4bb95-1b59-441e-87b9-58e9feb93426/b61087ddece464f4dc1a3d4e0f31aab3/dotnet-sdk-8.0.202-linux-x64.tar.gz \
     && dotnet_sha512='e0e790c7cc6f8129913317d326c599ff8e8ed4927d4e0adccbe55c50be5c353fe3d83043e529973ced2b302b8432c2ab31533b94ffe9c363eaa9964a7160643a' \
     && echo "$dotnet_sha512 dotnet.tar.gz" | sha512sum -c - \
