@@ -451,20 +451,20 @@ class GatlingExecutor(ScenarioExecutor):
         self.dir_prefix = "gatling-%s" % id(self)
         self.tool = None
 
-    def get_cp_from_files(self):
-        jar_files = []
-        files = self.execution.get('files', [])
-        for candidate in files:
-            candidate = self.engine.find_file(candidate)
-            if os.path.isfile(candidate) and candidate.lower().endswith('.jar'):
-                jar_files.append(candidate)
-            elif os.path.isdir(candidate):
-                for element in os.listdir(candidate):
-                    element = os.path.join(candidate, element)
-                    if os.path.isfile(element) and element.lower().endswith('.jar'):
-                        jar_files.append(element)
-
-        return jar_files
+    # def get_cp_from_files(self):
+    #     jar_files = []
+    #     files = self.execution.get('files', [])
+    #     for candidate in files:
+    #         candidate = self.engine.find_file(candidate)
+    #         if os.path.isfile(candidate) and candidate.lower().endswith('.jar'):
+    #             jar_files.append(candidate)
+    #         elif os.path.isdir(candidate):
+    #             for element in os.listdir(candidate):
+    #                 element = os.path.join(candidate, element)
+    #                 if os.path.isfile(element) and element.lower().endswith('.jar'):
+    #                     jar_files.append(element)
+    #
+    #     return jar_files
 
     def get_additional_classpath(self):
         cp = self.get_scenario().get("additional-classpath", [])
