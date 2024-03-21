@@ -3,12 +3,6 @@
 - Gatling generated scala file is fixed to handle override in #{OVERRIDE} style instead of ${OVERRIDE}, issue is prominent with response extraction and coexisting with data feeder overrides in body/body param/url, and for consistency and compatabilty with all Executor types ${OVERRIDE} style will continue to be used in YAML/JSON scenario declartions
 - Changes will be compatabile for all currently supported Executor types, and YAML declaration will continue to reference any property or data feeder overrides with ${OVERRIDE} style
 
-## 1.16.28<sup> 12 December 2023</sup>
-- Gatling support for response extraction for regex, json, css, xpath
-- Gatling support for include-scenario similar to support offered for Jmeter
-- Gatling support to capture response point of interest using regex, json, css, xpath and use in downstream calls using ${param} conventions for substitution
-- Gatling support for multi hosts when requests are chained by capturing responses and downstreaming from one host to another hosts - typical scenario authentication for auth fulfillment server provides a valid authentication token for use as follow up request to another host
-
 ## 1.16.29<sup> 26 February 2024</sup>
 - Allow reports inside actions instead of requests
 - Retrieve response content type from response headers
