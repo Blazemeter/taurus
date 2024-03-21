@@ -19,7 +19,9 @@ import codecs
 import os
 import re
 import time
+import shutil
 from collections import defaultdict
+from packaging import version
 
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario
@@ -501,6 +503,10 @@ class GatlingExecutor(ScenarioExecutor):
         self.stdout = open(self.engine.create_artifact("gatling", ".out"), "w")
         self.stderr = open(self.engine.create_artifact("gatling", ".err"), "w")
 
+        # handle jar file from script/cpath variable -> for gatling 3.8.0 and higher copy files to gatling_home/user-files/lib
+        if version.parse(self.settings.get("version")) >= version.parse("3.8.0"):
+            self._copy_dependencies()
+
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -513,6 +519,17 @@ class GatlingExecutor(ScenarioExecutor):
             script.write(gen_script.gen_test_case())
 
         return simulation, file_name
+
+    def _copy_dependencies(self):
+        #script + additional jars
+        self.log.debug("Going to copy test dependencies")
+        target_dir = os.path.join(self.tool.tool_dir, "user-files/lib")
+        self.log.debug("target dir: %s", target_dir)
+        rfiles = self.resource_files()
+        for file in rfiles:
+            self.log.info("... copy: %s", file)
+            shutil.copy(file, target_dir)
+
 
     def _get_simulation_props(self):
         props = {}
@@ -885,7 +902,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "3.7.6"
+    VERSION = "3.10.0"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):
@@ -936,6 +953,11 @@ class Gatling(RequiredTool):
                     elif line.startswith('set GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
+                    elif line.startswith('set CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
+                    elif line.startswith('%JAVA%'):
+                        line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
                 else:
                     if line.startswith('COMPILER_CLASSPATH='):
                         mod_success = True
@@ -943,7 +965,11 @@ class Gatling(RequiredTool):
                     elif line.startswith('GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
+                    elif line.startswith('CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip()[:-1] + ':${JAVA_CLASSPATH}"\n'  # add from env
                     elif line.startswith('"$JAVA"'):
+                        line = line.rstrip() + ' -rm local -rd Taurus \n'  # add mandatory parameters
                         line = 'eval ' + line
                 modified_lines.append(line)
 
