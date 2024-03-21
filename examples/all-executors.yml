@@ -135,7 +135,7 @@ execution:
 
 - executor: gatling  # Gatling
   scenario:
-    script: test.jar
+    script: gatling/test.jar
     simulation: com.test.RecordedSimulation
 
 - executor: siege  # http://localhost:8000/?tool=Siege
