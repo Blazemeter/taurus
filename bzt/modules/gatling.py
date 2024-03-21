@@ -504,7 +504,7 @@ class GatlingExecutor(ScenarioExecutor):
         self.stderr = open(self.engine.create_artifact("gatling", ".err"), "w")
 
         # handle jar file from script/cpath variable -> for gatling 3.8.0 and higher copy files to gatling_home/user-files/lib
-        if version.parse(self.settings.get("version")) >= version.parse("3.8.0"):
+        if version.parse(self.tool.version) >= version.parse("3.8.0"):
             self._copy_dependencies()
 
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
