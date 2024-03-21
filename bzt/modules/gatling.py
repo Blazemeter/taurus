@@ -528,8 +528,11 @@ class GatlingExecutor(ScenarioExecutor):
         self.log.debug("target dir: %s", target_dir)
         rfiles = self.resource_files()
         for file in rfiles:
-            self.log.info("... copy: %s", file)
-            shutil.copy(file, target_dir)
+            if os.path.exists(file):
+                self.log.debug("... gatling dependency is copied: %s", file)
+                shutil.copy(file, target_dir)
+            else:
+                self.log.warning("... gatling dependency not available: %s", file)
 
 
     def _get_simulation_props(self):
