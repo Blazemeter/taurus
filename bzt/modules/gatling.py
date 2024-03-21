@@ -22,6 +22,7 @@ import time
 import shutil
 from collections import defaultdict
 from packaging import version
+from packaging.version import InvalidVersion
 
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario
@@ -718,7 +719,7 @@ class DataLogReader(ResultsReader):
         self.partial_buffer = ""
         self.delimiter = "\t"
         self.dir_prefix = dir_prefix
-        self.guessed_gatling_version = None
+        self.gatling_version = None
         self._group_errors = defaultdict(set)
 
     def _extract_log(self, fields):
@@ -738,7 +739,7 @@ class DataLogReader(ResultsReader):
         # [7] ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}
 
         if fields[0].strip() == "USER":
-            if self.guessed_gatling_version < "3.4+":
+            if self.gatling_version < version.parse("3.4"):
                 del fields[2]  # ignore obsolete $userId
             if fields[2].strip() == "START":
                 self.concurrency += 1
@@ -765,7 +766,7 @@ class DataLogReader(ResultsReader):
             error = fields[0]
             r_code = "N/A"
         else:
-            if self.guessed_gatling_version < "3.4+":
+            if self.gatling_version < version.parse("3.4"):
                 del fields[0]  # ignore obsolete $userId
             label = fields[0]
             if ',' in label:
@@ -788,7 +789,7 @@ class DataLogReader(ResultsReader):
     def __parse_request(self, fields):
         # see LogFileDataWriter.ResponseMessageSerializer in gatling-core
 
-        if self.guessed_gatling_version < "3.4+":
+        if self.gatling_version < version.parse("3.4"):
             del fields[0]  # ignore obsolete $userId
 
         if len(fields) >= 6 and fields[5]:
@@ -829,18 +830,19 @@ class DataLogReader(ResultsReader):
         return _tmp_rc if _tmp_rc.isdigit() else 'N/A'
 
     def _guess_gatling_version(self, fields):
-        if fields and fields[-1].strip() < "3.4":
-            return "3.3.X"
-        elif fields[-1].strip() >= "3.4":
-            return "3.4+"
-        else:
-            return ""
+        try:
+            if fields:
+                return version.parse(fields[-1].strip())
+        except InvalidVersion as exc:
+            self.log.info("Gatling: failed to parse version from log: %s", exc)
+            return None
+        return None
 
     def _extract_log_data(self, fields):
-        if self.guessed_gatling_version is None:
-            self.guessed_gatling_version = self._guess_gatling_version(fields)
+        if self.gatling_version is None:
+            self.gatling_version = self._guess_gatling_version(fields)
 
-        return self._extract_log(fields) if self.guessed_gatling_version else None
+        return self._extract_log(fields) if self.gatling_version else None
 
     def _read(self, last_pass=False):
         """
