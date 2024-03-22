@@ -522,7 +522,7 @@ class GatlingExecutor(ScenarioExecutor):
         return simulation, file_name
 
     def _copy_dependencies(self):
-        #script + additional jars
+        #script + additional jars - using logic for cloud deployment
         self.log.debug("Going to copy test dependencies")
         target_dir = os.path.join(self.tool.tool_dir, "user-files/lib")
         self.log.debug("target dir: %s", target_dir)
