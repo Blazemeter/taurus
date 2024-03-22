@@ -538,6 +538,16 @@ def action_end(action):
     external_handler(driver.session_id if driver else None, BaseActionHandler.YAML_ACTION_END, action)
 
 
+def get_data_source(source):
+    filename = source.get("path")
+    fieldnames = source.get("variable-names", None)
+    quoted = source.get("quoted", None)
+    delimiter = source.get("delimiter", None)
+    encoding = source.get("encoding", None)
+
+    return filename, fieldnames, quoted, delimiter, encoding
+
+
 def get_csv_reader_for_entity_loop(data_sources, entity_name):
     filename = None
     fieldnames = None
@@ -547,14 +557,14 @@ def get_csv_reader_for_entity_loop(data_sources, entity_name):
     for idx, source in enumerate(data_sources, start=1):
         if source.get("path", "").lower().endswith(entity_name.lower() + ".csv") \
                 or source.get("path", "").lower().endswith(entity_name.lower()):
-            filename = source.get("path")
-            fieldnames = source.get("variable-names", None)
-            quoted = source.get("quoted", None)
-            delimiter = source.get("delimiter", None)
-            encoding = source.get("encoding", None)
+            filename, fieldnames, quoted, delimiter, encoding = get_data_source(source)
 
     if not filename:
-        raise TaurusException("Data entity name '{}' for 'loopOverData' not found in 'data-sources'!".format(entity_name))
+        # if there is just one CSV try to use it (case for scriptless default entity)
+        if len(data_sources) == 1:
+            filename, fieldnames, quoted, delimiter, encoding = get_data_source(data_sources[0])
+        else:
+            raise TaurusException("Data entity name '{}' for 'loopOverData' not found in 'data-sources'!".format(entity_name))
 
     # fieldnames can't be empty array otherwise the csv reader will not read the header
     if isinstance(fieldnames, list) and len(fieldnames) == 0:
