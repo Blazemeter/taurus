@@ -19,7 +19,10 @@ import codecs
 import os
 import re
 import time
+import shutil
 from collections import defaultdict
+from packaging import version
+from packaging.version import InvalidVersion
 
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario
@@ -448,20 +451,20 @@ class GatlingExecutor(ScenarioExecutor):
         self.dir_prefix = "gatling-%s" % id(self)
         self.tool = None
 
-    def get_cp_from_files(self):
-        jar_files = []
-        files = self.execution.get('files', [])
-        for candidate in files:
-            candidate = self.engine.find_file(candidate)
-            if os.path.isfile(candidate) and candidate.lower().endswith('.jar'):
-                jar_files.append(candidate)
-            elif os.path.isdir(candidate):
-                for element in os.listdir(candidate):
-                    element = os.path.join(candidate, element)
-                    if os.path.isfile(element) and element.lower().endswith('.jar'):
-                        jar_files.append(element)
-
-        return jar_files
+    # def get_cp_from_files(self):
+    #     jar_files = []
+    #     files = self.execution.get('files', [])
+    #     for candidate in files:
+    #         candidate = self.engine.find_file(candidate)
+    #         if os.path.isfile(candidate) and candidate.lower().endswith('.jar'):
+    #             jar_files.append(candidate)
+    #         elif os.path.isdir(candidate):
+    #             for element in os.listdir(candidate):
+    #                 element = os.path.join(candidate, element)
+    #                 if os.path.isfile(element) and element.lower().endswith('.jar'):
+    #                     jar_files.append(element)
+    #
+    #     return jar_files
 
     def get_additional_classpath(self):
         cp = self.get_scenario().get("additional-classpath", [])
@@ -501,6 +504,10 @@ class GatlingExecutor(ScenarioExecutor):
         self.stdout = open(self.engine.create_artifact("gatling", ".out"), "w")
         self.stderr = open(self.engine.create_artifact("gatling", ".err"), "w")
 
+        # handle jar file from script/cpath variable -> for gatling 3.8.0 and higher copy files to gatling_home/user-files/lib
+        if version.parse(self.tool.version) >= version.parse("3.8.0"):
+            self._copy_dependencies()
+
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -513,6 +520,20 @@ class GatlingExecutor(ScenarioExecutor):
             script.write(gen_script.gen_test_case())
 
         return simulation, file_name
+
+    def _copy_dependencies(self):
+        #script + additional jars - using logic for cloud deployment
+        self.log.debug("Going to copy test dependencies")
+        target_dir = os.path.join(self.tool.tool_dir, "user-files/lib")
+        self.log.debug("target dir: %s", target_dir)
+        rfiles = self.resource_files()
+        for file in rfiles:
+            if os.path.exists(file):
+                self.log.debug("... gatling dependency is copied: %s", file)
+                shutil.copy(file, target_dir)
+            else:
+                self.log.warning("... gatling dependency not available: %s", file)
+
 
     def _get_simulation_props(self):
         props = {}
@@ -701,7 +722,7 @@ class DataLogReader(ResultsReader):
         self.partial_buffer = ""
         self.delimiter = "\t"
         self.dir_prefix = dir_prefix
-        self.guessed_gatling_version = None
+        self.gatling_version = None
         self._group_errors = defaultdict(set)
 
     def _extract_log(self, fields):
@@ -721,7 +742,7 @@ class DataLogReader(ResultsReader):
         # [7] ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}
 
         if fields[0].strip() == "USER":
-            if self.guessed_gatling_version < "3.4+":
+            if self.gatling_version < version.parse("3.4"):
                 del fields[2]  # ignore obsolete $userId
             if fields[2].strip() == "START":
                 self.concurrency += 1
@@ -748,7 +769,7 @@ class DataLogReader(ResultsReader):
             error = fields[0]
             r_code = "N/A"
         else:
-            if self.guessed_gatling_version < "3.4+":
+            if self.gatling_version < version.parse("3.4"):
                 del fields[0]  # ignore obsolete $userId
             label = fields[0]
             if ',' in label:
@@ -771,7 +792,7 @@ class DataLogReader(ResultsReader):
     def __parse_request(self, fields):
         # see LogFileDataWriter.ResponseMessageSerializer in gatling-core
 
-        if self.guessed_gatling_version < "3.4+":
+        if self.gatling_version < version.parse("3.4"):
             del fields[0]  # ignore obsolete $userId
 
         if len(fields) >= 6 and fields[5]:
@@ -812,18 +833,19 @@ class DataLogReader(ResultsReader):
         return _tmp_rc if _tmp_rc.isdigit() else 'N/A'
 
     def _guess_gatling_version(self, fields):
-        if fields and fields[-1].strip() < "3.4":
-            return "3.3.X"
-        elif fields[-1].strip() >= "3.4":
-            return "3.4+"
-        else:
-            return ""
+        try:
+            if fields:
+                return version.parse(fields[-1].strip())
+        except InvalidVersion as exc:
+            self.log.info("Gatling: failed to parse version from log: %s", exc)
+            return None
+        return None
 
     def _extract_log_data(self, fields):
-        if self.guessed_gatling_version is None:
-            self.guessed_gatling_version = self._guess_gatling_version(fields)
+        if self.gatling_version is None:
+            self.gatling_version = self._guess_gatling_version(fields)
 
-        return self._extract_log(fields) if self.guessed_gatling_version else None
+        return self._extract_log(fields) if self.gatling_version else None
 
     def _read(self, last_pass=False):
         """
@@ -885,7 +907,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "3.7.6"
+    VERSION = "3.10.0"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):
@@ -936,6 +958,11 @@ class Gatling(RequiredTool):
                     elif line.startswith('set GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
+                    elif line.startswith('set CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
+                    elif line.startswith('%JAVA%'):
+                        line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
                 else:
                     if line.startswith('COMPILER_CLASSPATH='):
                         mod_success = True
@@ -943,7 +970,11 @@ class Gatling(RequiredTool):
                     elif line.startswith('GATLING_CLASSPATH='):
                         mod_success = True
                         line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
+                    elif line.startswith('CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip()[:-1] + ':${JAVA_CLASSPATH}"\n'  # add from env
                     elif line.startswith('"$JAVA"'):
+                        line = line.rstrip() + ' -rm local -rd Taurus \n'  # add mandatory parameters
                         line = 'eval ' + line
                 modified_lines.append(line)
 
