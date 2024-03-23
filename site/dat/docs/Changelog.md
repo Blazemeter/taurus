@@ -2,6 +2,7 @@
 ## 1.16.30<sup> 17 March 2024</sup>
 - Gatling generated scala file is fixed to handle override in #{OVERRIDE} style instead of ${OVERRIDE}, issue is prominent with response extraction and coexisting with data feeder overrides in body/body param/url, and for consistency and compatabilty with all Executor types ${OVERRIDE} style will continue to be used in YAML/JSON scenario declartions
 - Changes will be compatabile for all currently supported Executor types, and YAML declaration will continue to reference any property or data feeder overrides with ${OVERRIDE} style
+- Gatling support for body-file similar to what is done for Jmeter with additional enhancements for Gatling to perform dynamic ${OVERIDES} of contents in body-file payload and will coexist with body specified as param1: value1, param2:value2  ... and will take precedence if and only if  body is not specified as string json body like body: {json}
 
 ## 1.16.29<sup> 26 February 2024</sup>
 - Allow reports inside actions instead of requests
