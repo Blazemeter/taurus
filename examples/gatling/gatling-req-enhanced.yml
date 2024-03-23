@@ -1,0 +1,43 @@
+---
+execution:
+- executor: gatling
+  scenario: simple
+  concurrency: 10
+  ramp-up: 30s
+  steps: 5
+  hold-for: 2m
+  # iterations: 100
+  # throughput: 1000
+
+scenarios:
+  simple:
+    requests:
+    - http://blazedemo.com/
+  blazedemo:
+    default-address: blazedemo.com
+    headers:
+      X-Tracking: false
+      Accept: "*/*"
+    requests:
+    - url: /
+      headers:
+        Accept: text/html
+      assert:
+      - contains:
+        - ".+sometext.+"
+        subject: body
+        regexp: true
+        not: true
+    - url: /reserve.php
+      method: POST
+      body:  # generate query string based on parameters and request type
+        param1: value1
+        param2: value2
+      body-file: path/to/file.txt  # this file contents will be used as post body with ${} style parameter overrides assumed with dynamic override happening with data feeder or environment propertties
+      follow-redirects: false    #   true by default
+      think-time: 2s
+      assert:
+      - contains:
+        - 200
+        subject: http-code
+        not: true
