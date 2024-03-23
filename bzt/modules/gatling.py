@@ -166,6 +166,7 @@ class GatlingScriptBuilder(object):
             stmt = '.body(%(method)s("""%(body)s"""))\n' % {'method': 'StringBody', 'body': normalizedBody}
             exec_str += self.indent(stmt, level=3)
         else:
+# catch bucket to inject body param and optional body file payload           
             if isinstance(req.body, dict):
                 for key in sorted(req.body.keys()):
                     normalizedFormParam = self._normalizeContent(dynamicExtractor,req.body[key])
