@@ -92,8 +92,8 @@ you can modify it and use with Gatling later.
 Following features are supported: 
   - request generation
   - on scenario level: `think-time`, `default-address`, `follow-redirects`, `headers`, `store-cache`, `keepalive`, 
-  `timeout`, `retrieve-resources`, `retrieve-resources-regex`
-  - on request level: `think-time`, `body`
+  `timeout`, `retrieve-resources`, `retrieve-resources-regex`, `body-file`
+  - on request level: `think-time`, `body`, `body-file`
   - params that described in `[Load Configuration](#Load-Configuration)`.
 Some asserts can be added to request. Assert describes templates and area for search (`contains` and `subject`
 accordingly), regexp and inverse marks. You can look for particular response code in `http-code` part or for string
