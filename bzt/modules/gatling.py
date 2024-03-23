@@ -165,13 +165,15 @@ class GatlingScriptBuilder(object):
             normalizedBody = self._normalizeContent(dynamicExtractor,req.body)
             stmt = '.body(%(method)s("""%(body)s"""))\n' % {'method': 'StringBody', 'body': normalizedBody}
             exec_str += self.indent(stmt, level=3)
-        elif isinstance(req.body, dict):
-            for key in sorted(req.body.keys()):
-                normalizedFormParam = self._normalizeContent(dynamicExtractor,req.body[key])
-                stmt = '.formParam("%(key)s", "%(val)s")\n' % {'key': key, 'val': normalizedFormParam}
-                exec_str += self.indent(stmt, level=3)
-#        elif req.body is not None:
-#            self.log.warning("Unknown body type: %s", req.body)
+        else:
+            if isinstance(req.body, dict):
+                for key in sorted(req.body.keys()):
+                    normalizedFormParam = self._normalizeContent(dynamicExtractor,req.body[key])
+                    stmt = '.formParam("%(key)s", "%(val)s")\n' % {'key': key, 'val': normalizedFormParam}
+                    exec_str += self.indent(stmt, level=3)
+            elif isinstance(req.body_file, str):
+                stmt = '.body(%(method)s("""%(body)s"""))\n' % {'method': 'ElFileBody', 'body': req.body_file}
+                exec_str += self.indent(stmt, level=3)                 
 
         exec_str += self.__add_extractors(req,dynamicExtractor)
         exec_str += self.__get_assertions(req.config.get('assert', []),dynamicExtractor)   
