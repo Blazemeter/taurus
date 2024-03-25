@@ -534,7 +534,6 @@ class GatlingExecutor(ScenarioExecutor):
             else:
                 self.log.warning("... gatling dependency not available: %s", file)
 
-
     def _get_simulation_props(self):
         props = {}
         if os.path.isfile(self.script):
@@ -907,7 +906,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "3.10.0"
+    VERSION = "3.9.5"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):
