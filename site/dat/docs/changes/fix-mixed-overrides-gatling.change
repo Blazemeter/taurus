@@ -1,0 +1,2 @@
+Gatling recommends using #{PARAMETER} instead of ${PARAMETER} for overrides, YAML specification is neutral for any runtime and to ensure compatbility in generated scala #{} convention is adopted.
+Changes will handle consistency in url and body string to use #{} override in the dynamically generated scala file

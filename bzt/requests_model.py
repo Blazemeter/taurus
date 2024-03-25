@@ -138,7 +138,8 @@ class HierarchicHTTPRequest(HTTPRequest):
     def __init__(self, config, scenario, engine):
         super(HierarchicHTTPRequest, self).__init__(config, scenario, engine, pure_body_file=True)
         self.upload_files = self.config.get("upload-files", [])
-
+        self.body_file = self.config.get("body-file", None)
+       
         if self.method == "PUT" and len(self.upload_files) > 1:
             self.upload_files = self.upload_files[:1]
 
