@@ -78,6 +78,8 @@ modules:
     class: bzt.modules.services.VirtualDisplay
   external-results-loader:
     class: bzt.modules.external.ExternalResultsLoader
+  jmx-rampup:
+    class: bzt.modules.services.JmeterRampup
 
   # online services integrations
   blazemeter:

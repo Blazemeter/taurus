@@ -548,3 +548,47 @@ class VirtualDisplay(Service, Singletone):
 
     def shutdown(self):
         self.free_virtual_display()
+
+class JmeterRampup(Service, Singletone):
+    def __init__(self):
+        super(JmeterRampup, self).__init__()
+        self.env = Environment(log=self.log)
+        self.rampup_process = None
+        self.beanshell_addr = 'localhost'
+        self.beanshell_port = 9000
+        self.rampup_addr = 'localhost'
+        self.rampup_port = 6000
+        self.rampup_pass = 'some_key'
+        self.stdout = None
+        self.stderr = None
+
+    def prepare(self):
+        super(JmeterRampup, self).prepare()
+
+    def startup(self):
+        super(JmeterRampup, self).startup()
+        self.log.info('Starting Jmeter Rampup...')
+        self.stdout = open(os.path.join(self.engine.artifacts_dir, 'rampup.out'), 'wt')
+        self.stderr = open(os.path.join(self.engine.artifacts_dir, 'rampup.err'), 'wt')
+        self.rampup_process = shell_exec(['python3',
+                                          '-c',
+                                          f'from bzt.modules.pyscripts.jmxrampup import JmeterRampupProcess; '
+                                          f'jm = JmeterRampupProcess("{self.beanshell_addr}", {self.beanshell_port}, '
+                                          f'"{self.rampup_addr}", {self.rampup_port}, "{self.rampup_pass}", '
+                                          f'"{self.engine.artifacts_dir}"); jm.run()'],
+                                         stdout=self.stdout, stderr=self.stderr)
+
+    def shutdown(self):
+        if self.rampup_process:
+            self.log.debug('Stopping rampup...')
+            shutdown_process(self.rampup_process, self.log)
+        if not self.stdout.closed:
+            self.stdout.close()
+        if not self.stderr.closed:
+            self.stderr.close()
+        _file = self.stdout.name
+        if not os.stat(_file).st_size:
+            os.remove(_file)
+        _file = self.stderr.name
+        if not os.stat(_file).st_size:
+            os.remove(_file)
