@@ -549,6 +549,7 @@ class VirtualDisplay(Service, Singletone):
     def shutdown(self):
         self.free_virtual_display()
 
+
 class JmeterRampup(Service, Singletone):
     def __init__(self):
         super(JmeterRampup, self).__init__()
