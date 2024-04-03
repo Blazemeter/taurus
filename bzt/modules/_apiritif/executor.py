@@ -141,9 +141,18 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         iterations = self.get_raw_load().iterations
         if self.get_raw_load().iterations is None:
             iterations = self.__calculate_iterations(load)
-
+        iterations = self.__get_iterations_from_test_data(iterations)
+        self.log.info("Iterations set to %s", iterations)
         return self.LOAD_FMT(concurrency=load.concurrency, ramp_up=load.ramp_up, throughput=load.throughput,
                              hold=load.hold, iterations=iterations, duration=load.duration, steps=load.steps)
+
+    def __get_iterations_from_test_data(self, default_iterations):
+        data_iteration = self.engine.config.get("dependencies").get("data").get("iteration").get("repeat")
+        iterations = default_iterations
+        if data_iteration:
+            iterations = data_iteration
+            self.log.debug("Iterations limit overridden by test data setting, set to %s", iterations)
+        return iterations
 
     def __calculate_iterations(self, load):
         msg = "No iterations limit in config, choosing anything... set "
@@ -156,7 +165,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 msg += "taurus works in functional mode"
             else:
                 msg += "data-sources found"
-
         else:
             iterations = 1  # run once otherwise
             msg += "1"
