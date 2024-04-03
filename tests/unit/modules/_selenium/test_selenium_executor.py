@@ -167,17 +167,18 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.configure({
             EXEC: {
                 "executor": "apiritif",
-                "dependencies": {
-                    "data": {
-                        "iteration": {
-                            "repeat": 7
-                        }
-                    }
-                },
                 "scenario": {
                     "data-sources": ['one.csv'],
                     "requests": [
-                        "http://blazedemo.com"]}}})
+                        "http://blazedemo.com"]}},
+            "dependencies": {
+                "data": {
+                    "iteration": {
+                        "repeat": 7
+                    }
+                }
+            }
+        })
 
         self.obj.engine.aggregator.is_functional = True
         self.obj_prepare()
