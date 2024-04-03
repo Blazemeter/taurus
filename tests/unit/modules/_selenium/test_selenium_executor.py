@@ -163,10 +163,17 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
         self.assertNotIn('--iterations', self.CMD_LINE)
 
-    def test_func_ds_no_iter(self):
+    def test_iterations_from_test_data_dependencies(self):
         self.configure({
             EXEC: {
                 "executor": "apiritif",
+                "dependencies": {
+                    "data": {
+                        "iteration": {
+                            "repeat": 7
+                        }
+                    }
+                },
                 "scenario": {
                     "data-sources": ['one.csv'],
                     "requests": [
@@ -178,7 +185,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.obj.startup()
         self.obj.post_process()
 
-        self.assertNotIn('--iterations', self.CMD_LINE)
+        self.assertIn("--iterations 7", self.CMD_LINE)
 
 
 class TestSeleniumStuff(SeleniumTestCase):
