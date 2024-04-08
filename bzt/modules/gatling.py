@@ -523,7 +523,7 @@ class GatlingExecutor(ScenarioExecutor):
 
     def _copy_dependencies(self):
         #script + additional jars - using logic for cloud deployment
-        self.log.debug("Going to copy test dependencies")
+        self.log.info("Going to copy test dependencies")
         target_dir = os.path.join(self.tool.tool_dir, "user-files/lib")
         self.log.debug("target dir: %s", target_dir)
         rfiles = self.resource_files()
@@ -721,7 +721,7 @@ class DataLogReader(ResultsReader):
         self.partial_buffer = ""
         self.delimiter = "\t"
         self.dir_prefix = dir_prefix
-        self.gatling_version = None
+        self.guessed_gatling_version = None
         self._group_errors = defaultdict(set)
 
     def _extract_log(self, fields):
@@ -741,7 +741,7 @@ class DataLogReader(ResultsReader):
         # [7] ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}
 
         if fields[0].strip() == "USER":
-            if self.gatling_version < version.parse("3.4"):
+            if self.guessed_gatling_version < "3.4+":
                 del fields[2]  # ignore obsolete $userId
             if fields[2].strip() == "START":
                 self.concurrency += 1
@@ -768,7 +768,7 @@ class DataLogReader(ResultsReader):
             error = fields[0]
             r_code = "N/A"
         else:
-            if self.gatling_version < version.parse("3.4"):
+            if self.guessed_gatling_version < "3.4+":
                 del fields[0]  # ignore obsolete $userId
             label = fields[0]
             if ',' in label:
@@ -791,7 +791,7 @@ class DataLogReader(ResultsReader):
     def __parse_request(self, fields):
         # see LogFileDataWriter.ResponseMessageSerializer in gatling-core
 
-        if self.gatling_version < version.parse("3.4"):
+        if self.guessed_gatling_version < "3.4+":
             del fields[0]  # ignore obsolete $userId
 
         if len(fields) >= 6 and fields[5]:
@@ -832,19 +832,18 @@ class DataLogReader(ResultsReader):
         return _tmp_rc if _tmp_rc.isdigit() else 'N/A'
 
     def _guess_gatling_version(self, fields):
-        try:
-            if fields:
-                return version.parse(fields[-1].strip())
-        except InvalidVersion as exc:
-            self.log.info("Gatling: failed to parse version from log: %s", exc)
-            return None
-        return None
+        if fields and fields[-1].strip() < "3.4":
+            return "3.3.X"
+        elif fields[-1].strip() >= "3.4":
+            return "3.4+"
+        else:
+            return ""
 
     def _extract_log_data(self, fields):
-        if self.gatling_version is None:
-            self.gatling_version = self._guess_gatling_version(fields)
+        if self.guessed_gatling_version is None:
+            self.guessed_gatling_version = self._guess_gatling_version(fields)
 
-        return self._extract_log(fields) if self.gatling_version else None
+        return self._extract_log(fields) if self.guessed_gatling_version else None
 
     def _read(self, last_pass=False):
         """
@@ -855,6 +854,7 @@ class DataLogReader(ResultsReader):
         lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
+            self.log.debug("reading line: %s", line)
             if not line.endswith("\n"):
                 self.partial_buffer += line
                 continue
@@ -867,8 +867,10 @@ class DataLogReader(ResultsReader):
 
             data = self._extract_log_data(fields)
             if data is None:
+                self.log.debug("... no data processed!...")
                 continue
 
+            self.log.debug("processed line data: %s", data)
             t_stamp, label, r_time, con_time, latency, r_code, error = data
             bytes_count = None
             yield t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error, '', bytes_count
@@ -906,7 +908,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "3.9.5"
+    VERSION = "3.7.6"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):
