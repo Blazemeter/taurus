@@ -523,7 +523,7 @@ class GatlingExecutor(ScenarioExecutor):
 
     def _copy_dependencies(self):
         #script + additional jars - using logic for cloud deployment
-        self.log.info("Going to copy test dependencies")
+        self.log.debug("Going to copy test dependencies")
         target_dir = os.path.join(self.tool.tool_dir, "user-files/lib")
         self.log.debug("target dir: %s", target_dir)
         rfiles = self.resource_files()
@@ -908,7 +908,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "3.7.6"
+    VERSION = "3.9.5"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):
