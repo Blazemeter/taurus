@@ -4,7 +4,6 @@ import shutil
 import sys
 import time
 
-from packaging import version
 from bzt import ToolError, TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
@@ -764,7 +763,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-351')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 23)
-        self.assertEqual(obj.gatling_version, version.parse("3.5.1"))
+        self.assertEqual(obj.guessed_gatling_version, "3.4+")
         self.assertIn('request_1', list_of_values[-1][DataPoint.CUMULATIVE].keys())
 
     def test_read_asserts(self):
@@ -772,7 +771,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-1')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 3)
-        self.assertEqual(obj.gatling_version, version.parse("3.5.1"))
+        self.assertEqual(obj.guessed_gatling_version, "3.4+")
         self.assertIn('ping request', list_of_values[-1][DataPoint.CUMULATIVE].keys())
 
     def test_read_331_format(self):
@@ -780,7 +779,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-331')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 2)
-        self.assertEqual(obj.gatling_version, version.parse("3.3.1"))
+        self.assertEqual(obj.guessed_gatling_version, "3.3.X")
         self.assertIn('request_1', list_of_values[-1][DataPoint.CUMULATIVE].keys())
 
     def test_read_labels_problematic(self):
@@ -788,7 +787,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-2')  # problematic one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 1)
-        self.assertEqual(obj.gatling_version, version.parse("3.5.1"))
+        self.assertEqual(obj.guessed_gatling_version, "3.4+")
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(1, last_cumul['User-Login'][KPISet.SAMPLE_COUNT])
 
@@ -797,7 +796,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-3')  # regular one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 10)
-        self.assertEqual(obj.gatling_version, version.parse("3.5.1"))
+        self.assertEqual(obj.guessed_gatling_version, "3.4+")
         self.assertIn('http://blazedemo.com/', list_of_values[-1][DataPoint.CUMULATIVE].keys())
 
     def test_read_group(self):
@@ -805,7 +804,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-4')  # regular one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 179)
-        self.assertEqual(obj.gatling_version, version.parse("3.5.1"))
+        self.assertEqual(obj.guessed_gatling_version, "3.4+")
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(2, len(last_cumul['[empty]'][KPISet.ERRORS]))
 
@@ -814,7 +813,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-5')  # regular one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 1)
-        self.assertEqual(obj.gatling_version, version.parse("3.5.1"))
+        self.assertEqual(obj.guessed_gatling_version, "3.4+")
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['400'])
         self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['401'])
