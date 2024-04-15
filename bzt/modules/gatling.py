@@ -150,7 +150,6 @@ class GatlingScriptBuilder(object):
 
     def _stitchScenarioModel(self,req,address,dynamicExtractor):
         url = self._fixed_addr_ext(address,req.url)
-
         exec_str = 'exec(\n'
         exec_template = self.indent('http("%(req_label)s").%(method)s("%(url)s")\n', level=2)
         normalizedUrl = self._normalizeContent(dynamicExtractor,url)
@@ -160,21 +159,23 @@ class GatlingScriptBuilder(object):
             exec_template = self.indent('.header("%(key)s", "%(val)s")\n', level=3)
             exec_str += exec_template % {'key': key, 'val': self._normalizeContent(dynamicExtractor,req.headers[key])}
 
-        convert_body_to_string(req)
-        if isinstance(req.body, str):
+        if isinstance(req.body, dict):
+            for key in sorted(req.body.keys()):
+                normalizedFormParam = self._normalizeContent(dynamicExtractor,req.body[key])
+                if req.method.casefold() == 'get':
+                    stmt = '.queryParam("%(key)s", "%(val)s")\n' % {'key': key, 'val': normalizedFormParam}
+                else:    
+                    stmt = '.formParam("%(key)s", "%(val)s")\n' % {'key': key, 'val': normalizedFormParam}
+                exec_str += self.indent(stmt, level=3)
+        elif isinstance(req.body_file, str):
+            stmt = '.body(%(method)s("""%(body)s"""))\n' % {'method': 'ElFileBody', 'body': req.body_file}
+            exec_str += self.indent(stmt, level=3)   
+        elif isinstance(req.body, str):
+            convert_body_to_string(req)
             normalizedBody = self._normalizeContent(dynamicExtractor,req.body)
             stmt = '.body(%(method)s("""%(body)s"""))\n' % {'method': 'StringBody', 'body': normalizedBody}
-            exec_str += self.indent(stmt, level=3)
-        else:
-# catch bucket to inject body param and optional body file payload           
-            if isinstance(req.body, dict):
-                for key in sorted(req.body.keys()):
-                    normalizedFormParam = self._normalizeContent(dynamicExtractor,req.body[key])
-                    stmt = '.formParam("%(key)s", "%(val)s")\n' % {'key': key, 'val': normalizedFormParam}
-                    exec_str += self.indent(stmt, level=3)
-            elif isinstance(req.body_file, str):
-                stmt = '.body(%(method)s("""%(body)s"""))\n' % {'method': 'ElFileBody', 'body': req.body_file}
-                exec_str += self.indent(stmt, level=3)                 
+            exec_str += self.indent(stmt, level=3)              
+
 
         exec_str += self.__add_extractors(req,dynamicExtractor)
         exec_str += self.__get_assertions(req.config.get('assert', []),dynamicExtractor)   
@@ -194,8 +195,9 @@ class GatlingScriptBuilder(object):
     def _normalizeContent(self,dynamicExtractor,subject):
         for key in dynamicExtractor:
             value = dynamicExtractor[key]
-            subject = subject.replace(key,value)
-        return subject.replace('${','#{')
+            if type(subject) == str :
+                subject = subject.replace(key,value)
+        return subject
 
     @staticmethod
     def _safeEscape(subject):
@@ -203,26 +205,42 @@ class GatlingScriptBuilder(object):
         subject = subject.replace("\^","^").replace("\(","(").replace("\)",")").replace("\+","+").replace("\*","*").replace("\.",".").replace("\?","?").replace('"','\\"')
         return subject
 
-    def _get_regex_extractor(self,varname, regexp, match_no,defaults=None):
+    def _get_regex_extractor(self,varname, regexp, match_no,template,defaults=None):
         str1 =''
-
-        #regexp = GatlingScriptBuilder._safeEscape(regexp)
+        capturedGroups = self._prepareCaptureGroupSpec(template)
 
         str1 = self.indent('.check(\n', level=3)
 
-        str1 += self.indent('regex("', level=4)
-        str1 += regexp +'")\n'
-        str1 += self.indent('.ofType[(String)]', level=4)
+        str1 += self.indent('regex("""', level=4)
+        str1 += regexp +'""")\n'
 
+        str1 += self.indent('.ofType[('+capturedGroups+')]', level=4)
         if defaults:
            str1 += '.withDefault("'
            str1 += defaults+'")'
+        else:
+            str1 += '.optional'
         
         str1 += '\n'+self.indent('.saveAs("', level=3)
         str1 += varname+'")'
         str1 += '\n' + self.indent(')', level=3) + '\n'
  
         return str1
+
+    @staticmethod
+    def _regex_count(string, pattern):
+        return len(re.findall(pattern, string))
+
+    def _prepareCaptureGroupSpec(self,template):
+        list =[]
+        count = GatlingScriptBuilder._regex_count(template,'(\$\d\$)')
+        i=0
+        while i < count:
+            list.append('String')
+            i  +=1
+        return ','.join(list)   
+        
+
 
     def _get_jsonPath_extractor(self,varname, jsonPath,defaults=None):
         str =''
@@ -281,12 +299,15 @@ class GatlingScriptBuilder(object):
 
     def __add_regexp_ext(self, extractors,dynamicExtractor):
         str =''
+#        self.log.info("extractors  to process: %s",extractors)
         for varname in extractors:
             key = "${"+varname+"}"
             value = "#{"+varname+"}"
             dynamicExtractor[key]=value
             cfg = ensure_is_dict(extractors, varname, "regexp")
-            str +=  self._get_regex_extractor(varname,GatlingScriptBuilder._safeEscape(cfg['regexp']),cfg['match-no'],cfg['default'])
+            #str +=  self._get_regex_extractor(varname,GatlingScriptBuilder._safeEscape(cfg['regexp']),cfg['match-no'],cfg['template'],cfg['default'])
+            str +=  self._get_regex_extractor(varname,cfg['regexp'],cfg['match-no'],cfg['template'],cfg['default'])
+#        self.log.info("regexp  processed: %s",str)
         return str
 
     def __add_json_ext(self, extractors,dynamicExtractor):
