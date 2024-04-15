@@ -21,7 +21,7 @@ class GeneratedIncludeScenario extends Simulation {
     http("IndexPage_login").get("http://blazemeter.com/login")
       .header("X-Info", "foo=fooheader")
       .check(
-        regex("_ajaxKey=\"(.+?)\"")
+        regex("""_ajaxKey="(.+?)"""")
         .ofType[(String)].withDefault("NOT FOUND")
       .saveAs("l_ajaxKey")
       )
@@ -51,17 +51,17 @@ class GeneratedIncludeScenario extends Simulation {
       .formParam("passwordHints", "Password")
       .formParam("username", "user")
       .check(
-        regex("JSESSIONID=(.+);")
+        regex("""JSESSIONID=(.+);""")
         .ofType[(String)].withDefault("NOT FOUND")
       .saveAs("httpSessionId")
       )
       .check(
-        regex("_ajaxKey=\"(.+?)\"")
+        regex("""_ajaxKey="(.+?)"""")
         .ofType[(String)].withDefault("NOT FOUND")
       .saveAs("sCrb")
       )
       .check(
-        regex("_ajaxKey=\"(.+?)\"")
+        regex("""_ajaxKey="(.+?)"""")
         .ofType[(String)].withDefault("NOT FOUND")
       .saveAs("xAjaxToken")
       )
@@ -76,7 +76,7 @@ class GeneratedIncludeScenario extends Simulation {
     http("IndexPage_login").get("http://blazemeter.com/login")
       .header("X-Info", "foo=fooheader")
       .check(
-        regex("_ajaxKey=\"(.+?)\"")
+        regex("""_ajaxKey="(.+?)"""")
         .ofType[(String)].withDefault("NOT FOUND")
       .saveAs("l_ajaxKey")
       )
@@ -106,17 +106,17 @@ class GeneratedIncludeScenario extends Simulation {
       .formParam("passwordHints", "Password")
       .formParam("username", "user")
       .check(
-        regex("JSESSIONID=(.+);")
+        regex("""JSESSIONID=(.+);""")
         .ofType[(String)].withDefault("NOT FOUND")
       .saveAs("httpSessionId")
       )
       .check(
-        regex("_ajaxKey=\"(.+?)\"")
+        regex("""_ajaxKey="(.+?)"""")
         .ofType[(String)].withDefault("NOT FOUND")
       .saveAs("sCrb")
       )
       .check(
-        regex("_ajaxKey=\"(.+?)\"")
+        regex("""_ajaxKey="(.+?)"""")
         .ofType[(String)].withDefault("NOT FOUND")
       .saveAs("xAjaxToken")
       )
