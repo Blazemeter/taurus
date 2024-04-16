@@ -1,6 +1,6 @@
 # NUnit Executor
 
-This executor allows running tests written with NUnit framework. It uses .Net Core 3.1.403 with NUnit 3.11.
+This executor allows running tests written with NUnit framework. It uses .Net Core 8.0 with NUnit 4.1.0.
 
 Follow execution params are possible for NUnit Executor: `concurrency`, `iterations`, `hold-for` and `ramp-up`.
 

@@ -1485,7 +1485,7 @@ class JMeter(RequiredTool):
     COMMAND_RUNNER_VERSION = "2.2"
     COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
     VERSION = "5.5"
-    VERSION_LATEST = "5.6.3"
+    VERSION_LATEST = "5.6.2"
 
     def __init__(self, config=None, props=None, **kwargs):
         settings = config or BetterDict()
