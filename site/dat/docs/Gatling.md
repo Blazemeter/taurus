@@ -92,8 +92,8 @@ you can modify it and use with Gatling later.
 Following features are supported: 
   - request generation
   - on scenario level: `think-time`, `default-address`, `follow-redirects`, `headers`, `store-cache`, `keepalive`, 
-  `timeout`, `retrieve-resources`, `retrieve-resources-regex`
-  - on request level: `think-time`, `body`
+  `timeout`, `retrieve-resources`, `retrieve-resources-regex`, `body-file`
+  - on request level: `think-time`, `body`, `body-file`
   - params that described in `[Load Configuration](#Load-Configuration)`.
 Some asserts can be added to request. Assert describes templates and area for search (`contains` and `subject`
 accordingly), regexp and inverse marks. You can look for particular response code in `http-code` part or for string
@@ -130,7 +130,12 @@ scenarios:
         not: true     # invert condition (default: false)
         contains: # expression list for assertion (mandatory)
         - .+sometext.+  
-      body: 'Some Body Data'    # can be string or dictionary
+      body: 'Some Body Data'  # if present, will be used as body and if body file used will be ignored
+# OR with body-file specifications will take precedences and body with key valued param will be still honored
+      body:  # generate query string based on parameters and request type
+        param1: value1
+        param2: value2
+      body-file: path/to/file.txt  # this file contents will be used as post body with ${} style parameter overrides assumed with dynamic override happening with data feeder 
       follow-redirects: false    #   true by default
       headers:
         HEADER_11: VALUE_11

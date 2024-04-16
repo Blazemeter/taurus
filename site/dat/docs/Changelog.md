@@ -1,4 +1,8 @@
 # Changelog
+## 1.16.30<sup> 17 March 2024</sup>
+- Gatling support for body-file similar to what is done for Jmeter with additional enhancements for Gatling to perform dynamic ${OVERIDES} of contents in body-file payload and will coexist with body specified as param1: value1, param2:value2  ... and will take precedence if and only if  body or body param is not specified
+- Regex for Gatling enhanced to support capture groups, and # of capture groups will be determined from template attribute defined as for example $1$$2$$3$, which will end up capturing 3 groups and referenced as ${param(n)}; where n can be 0 to 2 to reflect access to 3 items
+- Gatling fixed to treat body params as queryParam for GET and formParam for POST
 
 ## 1.16.29<sup> 26 February 2024</sup>
 - Allow reports inside actions instead of requests
