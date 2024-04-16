@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.16.30<sup> 16 April 2024</sup>
+- Dependencies upgrade
+
 ## 1.16.29<sup> 26 February 2024</sup>
 - Allow reports inside actions instead of requests
 - Retrieve response content type from response headers
