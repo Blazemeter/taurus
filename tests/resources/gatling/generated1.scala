@@ -38,9 +38,10 @@ class SIMNAME extends Simulation {
       .formParam("param_name2", "param_value2")
       .disableFollowRedirect
   ).pause(1).exec(
-    http("/something_else.php").post("http://blazedemo.com/something_else.php")
+    http("/something_else.php").get("http://blazedemo.com/something_else.php")
       .header("Content-Type", "application/json")
-      .formParam("param_name3", "param_value4")
+      .queryParam("param_name4", "param_value4")
+      .queryParam("param_name5", "param_value5")  
       .disableFollowRedirect
   ).pause(1)
 
