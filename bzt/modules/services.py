@@ -30,6 +30,7 @@ from urllib.error import URLError
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.modules.javascript import NPMPackage, NPM
+from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import get_stacktrace, communicate, BetterDict, TaurusCalledProcessError, Environment
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node, CALL_PROBLEMS, exec_and_communicate
@@ -555,8 +556,6 @@ class JmeterRampup(Service, Singletone):
         super(JmeterRampup, self).__init__()
         self.env = Environment(log=self.log)
         self.rampup_process = None
-        self.beanshell_addr = 'localhost'
-        self.beanshell_port = 9000
         self.rampup_addr = 'localhost'
         self.rampup_port = 6000
         self.rampup_pass = 'some_key'
@@ -568,13 +567,35 @@ class JmeterRampup(Service, Singletone):
 
     def startup(self):
         super(JmeterRampup, self).startup()
-        self.log.info('Starting Jmeter Rampup...')
+
+        if not self.settings.get('enabled', False):
+            self.log.debug('Blazemeter dynamic concurrency control is disabled')
+            return
+
+        beanshell_ports = []
+        for executor in self.engine.provisioning.executors:
+            if not isinstance(executor, JMeterExecutor):
+                continue
+            port = executor.__getattribute__("beanshell_port")
+
+            if port is None:
+                self.log.warning("No beanshell port for executor: %s", executor)
+                continue
+            beanshell_ports.append(('localhost', port))
+
+        if len(beanshell_ports) == 0:
+            self.log.warning('No bsh ports defined in any of jmeter executor.')
+            beanshell_ports = [('localhost', 9000)]  # Default one as fallback
+
+        self.log.info(f'Starting Blazemeter dynamic concurrency control... '
+                      f'Rampup control: {self.rampup_addr}:{self.rampup_port} '
+                      f'Jmeter bsh ports: {beanshell_ports}')
         self.stdout = open(os.path.join(self.engine.artifacts_dir, 'rampup.out'), 'wt')
         self.stderr = open(os.path.join(self.engine.artifacts_dir, 'rampup.err'), 'wt')
         self.rampup_process = shell_exec(['python3',
                                           '-c',
                                           f'from bzt.modules.pyscripts.jmxrampup import JmeterRampupProcess; '
-                                          f'jm = JmeterRampupProcess("{self.beanshell_addr}", {self.beanshell_port}, '
+                                          f'jm = JmeterRampupProcess({beanshell_ports}, '
                                           f'"{self.rampup_addr}", {self.rampup_port}, "{self.rampup_pass}", '
                                           f'"{self.engine.artifacts_dir}"); jm.run()'],
                                          stdout=self.stdout, stderr=self.stderr)

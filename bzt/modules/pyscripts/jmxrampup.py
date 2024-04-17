@@ -25,9 +25,8 @@ import logging
 
 
 class JmeterRampupProcess(object):
-    def __init__(self, beanshell_addr, beanshell_port, rampup_addr, rampup_port, rampup_pass, artifacts_dir):
-        self.beanshell_addr = beanshell_addr
-        self.beanshell_port = beanshell_port
+    def __init__(self, beanshells, rampup_addr, rampup_port, rampup_pass, artifacts_dir):
+        self.beanshells = beanshells
         self.rampup_addr = rampup_addr
         self.rampup_port = rampup_port
         self.rampup_pass = rampup_pass
@@ -58,7 +57,8 @@ class JmeterRampupProcess(object):
         except socket.timeout:
             print("Timeout reading from beanshell socket")
         except BaseException:
-            logging.warning("Failed to read response from beanshell server: %s", traceback.format_exc())
+            logging.warning("Failed to read response from beanshell server %s: %s",
+                            sock_a.getpeername(), traceback.format_exc())
 
         lines = read.splitlines(True)
         result = []
@@ -89,11 +89,15 @@ class JmeterRampupProcess(object):
         return cur_con
 
     def _change_concurrency(self, desired_users):
+        for beanshell_addr, beanshell_port in self.beanshells:
+            self.__change_concurrency(desired_users, beanshell_addr, beanshell_port)
+
+    def __change_concurrency(self, desired_users, beanshell_addr, beanshell_port):
         result = ""
         socket_factory = socket.socket
         sock = socket_factory(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            sock.connect((self.beanshell_addr, self.beanshell_port + 1))
+            sock.connect((beanshell_addr, beanshell_port + 1))
             sock.settimeout(1)
             script = (f'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
                       f'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","{desired_users}");')
@@ -101,7 +105,8 @@ class JmeterRampupProcess(object):
 
             result += self._socket_recv(sock) + "\n"
         except BaseException:
-            print("Failed to send command to beanshell server: %s", traceback.format_exc())
+            print("Failed to send command to beanshell server %s:%s: %s",
+                  beanshell_addr, beanshell_port,traceback.format_exc())
         finally:
             sock.close()
         print(result)
