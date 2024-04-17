@@ -733,7 +733,6 @@ class TestGatlingExecutor(ExecutorTestCase):
                                "template": "$1$"
                               },
                               "xAjaxToken": {
-                               "default": "NOT FOUND",
                                "match-no": 1,
                                "regexp": "_ajaxKey=\"(.+?)\"",
                                "template": "$1$"
