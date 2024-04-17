@@ -251,9 +251,10 @@ class TestGatlingExecutor(ExecutorTestCase):
                     }, {
                         "url": "/something_else.php",
                         "headers": {"Content-Type": "application/json"},
-                        "method": "POST",
+                        "method": "GET",
                         "body": {
-                            "param_name3": "param_value4"}}  # simple body with content header -> json
+                            "param_name4": "param_value4",
+                            "param_name5": "param_value5"}}  # simple body with content header -> json
                 ]}}})
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
