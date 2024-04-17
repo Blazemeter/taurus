@@ -117,7 +117,7 @@ class GeneratedIncludeScenario extends Simulation {
       )
       .check(
         regex("""_ajaxKey="(.+?)"""")
-        .ofType[(String)].withDefault("NOT FOUND")
+        .ofType[(String)].optional
       .saveAs("xAjaxToken")
       )
       .check(
