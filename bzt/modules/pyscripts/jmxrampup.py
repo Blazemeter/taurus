@@ -21,7 +21,6 @@ import time
 from math import floor
 from collections import deque
 from multiprocessing.connection import Client
-import logging
 
 
 class JmeterRampupProcess(object):
@@ -38,6 +37,7 @@ class JmeterRampupProcess(object):
         while True:
             new_rampup = self._check_change_params()
             if new_rampup:
+                print(f"Got new rampup configuration: {new_rampup}")
                 res_list = self._calc_rampup(self.filename, new_rampup)
                 cur_goal = res_list.popleft()
             if cur_goal:
@@ -57,8 +57,8 @@ class JmeterRampupProcess(object):
         except socket.timeout:
             print("Timeout reading from beanshell socket")
         except BaseException:
-            logging.warning("Failed to read response from beanshell server %s: %s",
-                            sock_a.getpeername(), traceback.format_exc())
+            print("Failed to read response from beanshell server %s: %s" %
+                  (sock_a.getpeername(), traceback.format_exc()))
 
         lines = read.splitlines(True)
         result = []
@@ -105,8 +105,8 @@ class JmeterRampupProcess(object):
 
             result += self._socket_recv(sock) + "\n"
         except BaseException:
-            print("Failed to send command to beanshell server %s:%s: %s",
-                  beanshell_addr, beanshell_port,traceback.format_exc())
+            print("Failed to send command to beanshell server %s:%s: %s" %
+                  (beanshell_addr, beanshell_port,traceback.format_exc()))
         finally:
             sock.close()
         print(result)

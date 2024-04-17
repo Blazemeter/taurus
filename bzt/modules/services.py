@@ -556,14 +556,18 @@ class JmeterRampup(Service, Singletone):
         super(JmeterRampup, self).__init__()
         self.env = Environment(log=self.log)
         self.rampup_process = None
-        self.rampup_addr = 'localhost'
-        self.rampup_port = 6000
-        self.rampup_pass = 'some_key'
+        self.rampup_addr = None
+        self.rampup_port = None
+        self.rampup_pass = None
         self.stdout = None
         self.stderr = None
 
     def prepare(self):
         super(JmeterRampup, self).prepare()
+
+        self.rampup_addr = self.settings.get('rampup_addr', 'localhost')
+        self.rampup_port = self.settings.get('rampup_port', 6000)
+        self.rampup_pass = self.settings.get('rampup_pass', 'blazemeter')
 
     def startup(self):
         super(JmeterRampup, self).startup()
