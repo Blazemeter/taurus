@@ -43,6 +43,9 @@ class SIMNAME extends Simulation {
       .queryParam("param_name4", "param_value4")
       .queryParam("param_name5", "param_value5")  
       .disableFollowRedirect
+  ).pause(1).exec(
+    http("/something_else-with-file.php").post("http://blazedemo.com/something_else-with-file.php")
+    .body(ElFileBody("""../resourcesgatling/body-file.json"""))
   ).pause(1)
 
   if (iterationLimit == null)
