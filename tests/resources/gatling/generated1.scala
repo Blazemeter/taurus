@@ -45,7 +45,9 @@ class SIMNAME extends Simulation {
       .disableFollowRedirect
   ).pause(1).exec(
     http("/something_else-with-file.php").post("http://blazedemo.com/something_else-with-file.php")
-    .body(ElFileBody("""../resources/gatling/body-file.json"""))
+      .header("Content-Type", "application/json")
+      .body(ElFileBody("""../resources/gatling/body-file.json"""))
+      .disableFollowRedirect
   ).pause(1)
 
   if (iterationLimit == null)
