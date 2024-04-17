@@ -4,6 +4,9 @@
 - Regex for Gatling enhanced to support capture groups, and # of capture groups will be determined from template attribute defined as for example $1$$2$$3$, which will end up capturing 3 groups and referenced as ${param(n)}; where n can be 0 to 2 to reflect access to 3 items
 - Gatling fixed to treat body params as queryParam for GET and formParam for POST
 
+## 1.16.30<sup> 16 April 2024</sup>
+- Dependencies upgrade
+
 ## 1.16.29<sup> 26 February 2024</sup>
 - Allow reports inside actions instead of requests
 - Retrieve response content type from response headers
