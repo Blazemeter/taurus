@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace NUnitTests
 {
@@ -16,7 +17,7 @@ namespace NUnitTests
         [Test]
         public void IsFive_ExistingVariable_ReturnFive()
         {
-            Assert.AreEqual(5, _numberToTest);
+            ClassicAssert.AreEqual(5, _numberToTest);
         }
     }
 }

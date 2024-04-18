@@ -964,7 +964,8 @@ from selenium.webdriver.common.keys import Keys
             data_sources.append(ast.Dict(keys, values))
 
         entity = action_config.get("loopOverData").replace(".", "_").replace("/", "_").replace("\\", "_")\
-            .replace(":", "_")
+            .replace(":", "_").replace("-", "_")
+
 
         csv_reader = '{}_csv_reader'.format(entity)
         elements = [ast.Assign(targets=[ast.Name(id=csv_reader, ctx=ast.Store())],

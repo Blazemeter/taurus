@@ -670,19 +670,19 @@ class TestGatlingExecutor(ExecutorTestCase):
                                   "jsonpath": "$.jsonpath[0]",
                                   "default" : "NOT_FOUND"
                                 }
-                             }, 
+                             },
                               "extract-css-jquery": {
                                 "varname1": {
                                   "expression": "input[name=Gatling]",
                                   "default" : "NOT_FOUND"
                                 }
-                             },  
+                             },
                               "extract-xpath": {
                                 "varname2": {
                                   "xpath": "/order/client/address",
                                   "default" : "NOT_FOUND"
                                 }
-                             },                             
+                             },
                              "headers": {
                               "X-Info": "foo=fooheader"
                              },
@@ -755,6 +755,7 @@ class TestGatlingExecutor(ExecutorTestCase):
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
         self.assertFilesEqual(RESOURCES_DIR + "gatling/generated-include-scenario.scala", scala_file,
                               self.obj.get_scenario().get('simulation'), "GeneratedIncludeScenario")
+
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
