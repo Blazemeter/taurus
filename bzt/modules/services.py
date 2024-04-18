@@ -601,7 +601,8 @@ class JmeterRampup(Service, Singletone):
                                           f'from bzt.modules.pyscripts.jmxrampup import JmeterRampupProcess; '
                                           f'jm = JmeterRampupProcess({beanshell_ports}, '
                                           f'"{self.rampup_addr}", {self.rampup_port}, "{self.rampup_pass}", '
-                                          f'"{self.engine.artifacts_dir}"); jm.run()'],
+                                          f'"{self.engine.artifacts_dir}", {self.log.getEffectiveLevel()}); '
+                                          f'jm.run()'],
                                          stdout=self.stdout, stderr=self.stderr)
 
     def shutdown(self):

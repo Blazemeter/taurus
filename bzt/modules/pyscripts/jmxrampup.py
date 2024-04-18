@@ -15,21 +15,28 @@ limitations under the License.
 """
 
 import os
+import sys
 import socket
 import traceback
 import time
 from math import floor
 from collections import deque
+from multiprocessing import AuthenticationError
 from multiprocessing.connection import Client
+import logging
 
+logging.basicConfig(stream=sys.stdout, level=logging.WARNING,
+                    format="%(asctime)s %(levelname)s: %(message)s")
 
 class JmeterRampupProcess(object):
-    def __init__(self, beanshells, rampup_addr, rampup_port, rampup_pass, artifacts_dir):
+    def __init__(self, beanshells, rampup_addr, rampup_port, rampup_pass, artifacts_dir, log_level=logging.INFO):
         self.beanshells = beanshells
         self.rampup_addr = rampup_addr
         self.rampup_port = rampup_port
         self.rampup_pass = rampup_pass
         self.filename = os.path.join(artifacts_dir, "kpi.jtl")
+        self.log = logging.getLogger("Rampup.Process")
+        self.log.setLevel(log_level)
 
     def run(self):
         res_list = None
@@ -37,16 +44,14 @@ class JmeterRampupProcess(object):
         while True:
             new_rampup = self._check_change_params()
             if new_rampup:
-                print(f"Got new rampup configuration: {new_rampup}")
+                self.log.info(f"Got new rampup configuration: {new_rampup}")
                 res_list = self._calc_rampup(self.filename, new_rampup)
-                cur_goal = res_list.popleft()
+                cur_goal = res_list.popleft() if res_list else None
             if cur_goal:
                 if cur_goal[1] < time.time():
+                    self.log.info(f"Setting concurrency: {cur_goal}")
                     self._change_concurrency(cur_goal[0])
-                    try:
-                        cur_goal = res_list.popleft()
-                    except IndexError:
-                        cur_goal = None
+                    cur_goal = res_list.popleft() if res_list else None
             time.sleep(0.5)
 
     def _socket_recv(self, sock_a):
@@ -55,9 +60,9 @@ class JmeterRampupProcess(object):
             for _ in range(0, 1000):  # just safety valve
                 read += sock_a.recv(4096).decode()
         except socket.timeout:
-            print("Timeout reading from beanshell socket")
+            self.log.debug("Timeout reading from beanshell socket")
         except BaseException:
-            print("Failed to read response from beanshell server %s: %s" %
+            self.log.warning("Failed to read response from beanshell server %s: %s" %
                   (sock_a.getpeername(), traceback.format_exc()))
 
         lines = read.splitlines(True)
@@ -68,6 +73,8 @@ class JmeterRampupProcess(object):
 
             while line.startswith("bsh % "):
                 line = line[len("bsh % "):]
+
+            line = line.strip()
             result.append(line)
 
         return "".join(result)
@@ -84,8 +91,13 @@ class JmeterRampupProcess(object):
         try:
             cur_con = last_line.split(",")[-5]
         except IndexError:
-            print("Could not read users retry next loop")
+            self.log.warning("Could not read users retry next loop")
             cur_con = False
+        except FileNotFoundError:
+            self.log.warning(f"File {self.filename} not found. Retry next loop")
+            cur_con = False
+
+        self.log.info(f"Current concurrency: {cur_con}")
         return cur_con
 
     def _change_concurrency(self, desired_users):
@@ -105,11 +117,11 @@ class JmeterRampupProcess(object):
 
             result += self._socket_recv(sock) + "\n"
         except BaseException:
-            print("Failed to send command to beanshell server %s:%s: %s" %
-                  (beanshell_addr, beanshell_port,traceback.format_exc()))
+            self.log.warning("Failed to send command to beanshell server %s:%s: %s" %
+                  (beanshell_addr, beanshell_port, traceback.format_exc()))
         finally:
             sock.close()
-        print(result)
+        self.log.debug(f"Beanshell recv: {result}")
 
     def _check_change_params(self):
         address = (self.rampup_addr, self.rampup_port)
@@ -119,6 +131,12 @@ class JmeterRampupProcess(object):
                 return conn.recv()
         except ConnectionRefusedError:
             pass
+        except AuthenticationError:
+            self.log.fatal("Forbidden. Rampup server returns AuthenticationError.")
+            print(f"Forbidden. Rampup server returns AuthenticationError: {traceback.format_exc()}",
+                  file=sys.stderr, flush=True)
+            sys.exit(1)
+
         return None
 
     def _calc_rampup(self, file, new_rampup):
@@ -132,7 +150,12 @@ class JmeterRampupProcess(object):
         step_time = ramp_in_sec / steps
         users_pers_step = (users - int(cur_users))/steps
         cur_time = round(time.time())
+
+        prev_concurrency = int(cur_users)
         for i in range(steps):
-            users_list.append((int(cur_users) + (floor(users_pers_step*(i+1) + 0.5)), cur_time + step_time*i))
-        print(users_list)
+            concurrency = int(cur_users) + (floor(users_pers_step*(i+1) + 0.5))
+            if concurrency != prev_concurrency:
+                users_list.append((concurrency, cur_time + step_time*i))
+                prev_concurrency = concurrency
+        self.log.info(users_list)
         return users_list
