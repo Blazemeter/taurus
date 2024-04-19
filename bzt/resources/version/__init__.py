@@ -1,4 +1,4 @@
-DEV_VERSION = "DEV"
+DEV_VERSION = "0.0.1-DEV"
 
 try:
     from .version import VERSION
