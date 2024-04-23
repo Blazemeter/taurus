@@ -25,6 +25,10 @@ from multiprocessing import AuthenticationError
 from multiprocessing.connection import Client
 import logging
 
+# sys.path.append("/tmp/pydevd-pycharm/")
+# import pydevd_pycharm
+# pydevd_pycharm.settrace('host.docker.internal', port=5678, stdoutToServer=False, stderrToServer=False)
+
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING,
                     format="%(asctime)s %(levelname)s: %(message)s")
 
@@ -48,11 +52,19 @@ class JmeterRampupProcess(object):
                 res_list = self._calc_rampup(self.filename, new_rampup)
                 cur_goal = res_list.popleft() if res_list else None
             if cur_goal:
-                if cur_goal[1] < time.time():
+                if cur_goal[1] < self._now():
                     self.log.info(f"Setting concurrency: {cur_goal}")
-                    self._change_concurrency(cur_goal[0])
+                    self._change_concurrencies(cur_goal[0])
                     cur_goal = res_list.popleft() if res_list else None
+            if self._stop():
+                break
             time.sleep(0.5)
+
+    def _now(self):
+        return time.time()
+
+    def _stop(self):
+        return False
 
     def _socket_recv(self, sock_a):
         read = ""
@@ -80,19 +92,24 @@ class JmeterRampupProcess(object):
         return "".join(result)
 
     def _get_current_concurrency(self, file):
-        with open(file, 'rb') as f:
-            try:
-                f.seek(-2, os.SEEK_END)
-                while f.read(1) != b'\n':
-                    f.seek(-2, os.SEEK_CUR)
-            except OSError:
-                f.seek(0)
-            last_line = f.readline().decode()
         try:
-            cur_con = last_line.split(",")[-5]
-        except IndexError:
-            self.log.warning("Could not read users retry next loop")
-            cur_con = False
+            with open(file, 'rb') as f:
+                try:
+                    f.seek(-1, os.SEEK_END)
+                    # Find last completed line (ending with \n)
+                    while f.read(1) != b'\n':
+                        f.seek(-2, os.SEEK_CUR)
+                    f.seek(-2, os.SEEK_CUR)
+                    while f.read(1) != b'\n':
+                        f.seek(-2, os.SEEK_CUR)
+                except OSError:
+                    f.seek(0)
+                last_line = f.readline().decode()
+            try:
+                cur_con = last_line.split(",")[-5]
+            except IndexError:
+                self.log.warning("Could not read users retry next loop")
+                cur_con = False
         except FileNotFoundError:
             self.log.warning(f"File {self.filename} not found. Retry next loop")
             cur_con = False
@@ -100,11 +117,11 @@ class JmeterRampupProcess(object):
         self.log.info(f"Current concurrency: {cur_con}")
         return cur_con
 
-    def _change_concurrency(self, desired_users):
+    def _change_concurrencies(self, desired_users):
         for beanshell_addr, beanshell_port in self.beanshells:
-            self.__change_concurrency(desired_users, beanshell_addr, beanshell_port)
+            self._change_concurrency(desired_users, beanshell_addr, beanshell_port)
 
-    def __change_concurrency(self, desired_users, beanshell_addr, beanshell_port):
+    def _change_concurrency(self, desired_users, beanshell_addr, beanshell_port):
         result = ""
         socket_factory = socket.socket
         sock = socket_factory(socket.AF_INET, socket.SOCK_STREAM)
@@ -149,7 +166,7 @@ class JmeterRampupProcess(object):
 
         step_time = ramp_in_sec / steps
         users_pers_step = (users - int(cur_users))/steps
-        cur_time = round(time.time())
+        cur_time = round(self._now())
 
         prev_concurrency = int(cur_users)
         for i in range(steps):
@@ -157,5 +174,5 @@ class JmeterRampupProcess(object):
             if concurrency != prev_concurrency:
                 users_list.append((concurrency, cur_time + step_time*i))
                 prev_concurrency = concurrency
-        self.log.info(users_list)
+        self.log.info(f'Rampup plan: {users_list}')
         return users_list
