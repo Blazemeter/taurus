@@ -580,12 +580,12 @@ class JmeterRampup(Service, Singletone):
         for executor in self.engine.provisioning.executors:
             if not isinstance(executor, JMeterExecutor):
                 continue
-            port = executor.__getattribute__("beanshell_port")
-
-            if port is None:
+            try:
+                port = executor.__getattribute__("beanshell_port")
+                beanshell_ports.append(('localhost', port))
+            except AttributeError:
                 self.log.warning("No beanshell port for executor: %s", executor)
                 continue
-            beanshell_ports.append(('localhost', port))
 
         if len(beanshell_ports) == 0:
             self.log.warning('No bsh ports defined in any of jmeter executor.')
@@ -604,18 +604,20 @@ class JmeterRampup(Service, Singletone):
                                           f'"{self.engine.artifacts_dir}", {self.log.getEffectiveLevel()}); '
                                           f'jm.run()'],
                                          stdout=self.stdout, stderr=self.stderr)
+    def _close_and_remove_empty(self, fd):
+        if not fd:
+            return
+
+        if not fd.closed:
+            fd.close()
+        _file = fd.name
+        if not os.stat(_file).st_size:
+            os.remove(_file)
 
     def shutdown(self):
         if self.rampup_process:
             self.log.debug('Stopping rampup...')
             shutdown_process(self.rampup_process, self.log)
-        if not self.stdout.closed:
-            self.stdout.close()
-        if not self.stderr.closed:
-            self.stderr.close()
-        _file = self.stdout.name
-        if not os.stat(_file).st_size:
-            os.remove(_file)
-        _file = self.stderr.name
-        if not os.stat(_file).st_size:
-            os.remove(_file)
+
+        self._close_and_remove_empty(self.stdout)
+        self._close_and_remove_empty(self.stderr)
