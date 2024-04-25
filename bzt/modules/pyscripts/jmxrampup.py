@@ -25,10 +25,6 @@ from multiprocessing import AuthenticationError
 from multiprocessing.connection import Client
 import logging
 
-# sys.path.append("/tmp/pydevd-pycharm/")
-# import pydevd_pycharm
-# pydevd_pycharm.settrace('host.docker.internal', port=5678, stdoutToServer=False, stderrToServer=False)
-
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING,
                     format="%(asctime)s %(levelname)s: %(message)s")
 
