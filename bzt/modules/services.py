@@ -30,6 +30,7 @@ from urllib.error import URLError
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.modules.javascript import NPMPackage, NPM
+from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import get_stacktrace, communicate, BetterDict, TaurusCalledProcessError, Environment
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node, CALL_PROBLEMS, exec_and_communicate
@@ -548,3 +549,75 @@ class VirtualDisplay(Service, Singletone):
 
     def shutdown(self):
         self.free_virtual_display()
+
+
+class JmeterRampup(Service, Singletone):
+    def __init__(self):
+        super(JmeterRampup, self).__init__()
+        self.env = Environment(log=self.log)
+        self.rampup_process = None
+        self.rampup_addr = None
+        self.rampup_port = None
+        self.rampup_pass = None
+        self.stdout = None
+        self.stderr = None
+
+    def prepare(self):
+        super(JmeterRampup, self).prepare()
+
+        self.rampup_addr = self.settings.get('rampup_addr', 'localhost')
+        self.rampup_port = self.settings.get('rampup_port', 6000)
+        self.rampup_pass = self.settings.get('rampup_pass', 'blazemeter')
+
+    def startup(self):
+        super(JmeterRampup, self).startup()
+
+        if not self.settings.get('enabled', False):
+            self.log.debug('Blazemeter dynamic concurrency control is disabled')
+            return
+
+        beanshell_ports = []
+        for executor in self.engine.provisioning.executors:
+            if not isinstance(executor, JMeterExecutor):
+                continue
+            try:
+                port = executor.__getattribute__("beanshell_port")
+                beanshell_ports.append(('localhost', port))
+            except AttributeError:
+                self.log.warning("No beanshell port for executor: %s", executor)
+                continue
+
+        if len(beanshell_ports) == 0:
+            self.log.warning('No bsh ports defined in any of jmeter executor.')
+            beanshell_ports = [('localhost', 9000)]  # Default one as fallback
+
+        self.log.info(f'Starting Blazemeter dynamic concurrency control... '
+                      f'Rampup control: {self.rampup_addr}:{self.rampup_port} '
+                      f'Jmeter bsh ports: {beanshell_ports}')
+        self.stdout = open(os.path.join(self.engine.artifacts_dir, 'rampup.out'), 'wt')
+        self.stderr = open(os.path.join(self.engine.artifacts_dir, 'rampup.err'), 'wt')
+        self.rampup_process = shell_exec(['python3',
+                                          '-c',
+                                          f'from bzt.modules.pyscripts.jmxrampup import JmeterRampupProcess; '
+                                          f'jm = JmeterRampupProcess({beanshell_ports}, '
+                                          f'"{self.rampup_addr}", {self.rampup_port}, "{self.rampup_pass}", '
+                                          f'"{self.engine.artifacts_dir}", {self.log.getEffectiveLevel()}); '
+                                          f'jm.run()'],
+                                         stdout=self.stdout, stderr=self.stderr)
+    def _close_and_remove_empty(self, fd):
+        if not fd:
+            return
+
+        if not fd.closed:
+            fd.close()
+        _file = fd.name
+        if not os.stat(_file).st_size:
+            os.remove(_file)
+
+    def shutdown(self):
+        if self.rampup_process:
+            self.log.debug('Stopping rampup...')
+            shutdown_process(self.rampup_process, self.log)
+
+        self._close_and_remove_empty(self.stdout)
+        self._close_and_remove_empty(self.stderr)

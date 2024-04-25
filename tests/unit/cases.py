@@ -171,7 +171,7 @@ class RecordingHandler(Handler):
         """
         if record.levelno == logging.INFO:
             self.write_log(self.info_buff, record.msg, record.args)
-        elif record.levelno == logging.ERROR:
+        elif record.levelno >= logging.ERROR:
             self.write_log(self.err_buff, record.msg, record.args)
         elif record.levelno == logging.WARNING:
             self.write_log(self.warn_buff, record.msg, record.args)

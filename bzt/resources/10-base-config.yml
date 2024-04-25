@@ -79,6 +79,10 @@ modules:
   external-results-loader:
     class: bzt.modules.external.ExternalResultsLoader
 
+  jmx-rampup:
+    class: bzt.modules.services.JmeterRampup
+    enabled: false
+
   # online services integrations
   blazemeter:
     class: bzt.modules.blazemeter.BlazeMeterUploader
