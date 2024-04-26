@@ -4,7 +4,7 @@ from tests.unit import BZTestCase
 
 
 class TestThreadGroups(BZTestCase):
-    def test_functional_reader_extras(self):
+    def test_property_resolving(self):
         jmx = JMX(original="tests/resources/jmeter/torero/duration-with-env.jmx")
         tgh = ThreadGroupHandler(self.log)
         thread_groups = list(tgh.groups(jmx))
