@@ -132,8 +132,8 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
     def get_duration(self):
         hold_sel = ".//*[@name='Hold']"
 
-        hold = self._get_val("hold", hold_sel)
-        ramp_up = self.get_ramp_up()
+        hold = try_convert(self._get_val("hold", hold_sel), default=0)
+        ramp_up = try_convert(self.get_ramp_up(), default=0)
 
         # 'empty' means 0 sec, let's detect that
         p_hold = self._get_val("hold", hold_sel, raw=True)
