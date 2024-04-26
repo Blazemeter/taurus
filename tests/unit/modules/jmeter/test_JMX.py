@@ -325,7 +325,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         res_values = {}
         for group in self.get_groupset():
             res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'iter': group.get_iterations()}
-        self.assertEqual(res_values, {'TG': {'conc': 2, 'iter': 5}})
+        self.assertEqual(res_values, {'TG': {'conc': 2, 'iter': '${__P(LoopCount,5)}'}})
 
     def test_TG_iterations_from_load(self):
         """ThreadGroup:  concurrency, ramp-up, iterations"""

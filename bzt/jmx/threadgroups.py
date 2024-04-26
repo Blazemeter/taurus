@@ -1,5 +1,3 @@
-import re
-
 from bzt.jmx.base import JMX, try_convert
 
 GETTING_PARAM_ERR_MSG = "{tg}: getting of {name} is impossible ({params})"
@@ -49,61 +47,22 @@ class AbstractThreadGroup(object):
         if not selector:
             self.log.debug(GETTING_PARAM_ERR_MSG.format(tg=self.gtype, name=name, params="not implemented"))
             return default
+
         element = self.element.find(selector)
-        if element is not None:
-            val = element.text
-            raw_val = element.text
-            if val is not None:
-                # handle property func
-                if val.startswith("${__property("):
-                    raw_val = self._get_property_func_val(val)
-                # P func operates properties defined on the command line.
-                # Unlike the __property function, there is no option to save the value in a variable,
-                # and if no default value is supplied, it is assumed to be 1.
-                # here in jmeter runner we dont know about any command line properties,
-                # so use default or 1 as a fallback value
-                elif val.startswith("${__P("):
-                        raw_val = self._get_p_func_val(val)
-                # handle simple property var
-                elif val is not None and val.startswith("${") and val.endswith("}"):
-                    env_key = val[2:-1]
-                    raw_val = self._get_property_val(env_key)
-            if raw:
-                return raw_val
-
-            if raw_val:
-                if raw_val.isdigit() or raw_val[1:].isdigit():  # positive or negative number
-                    return int(raw_val)
-                else:
-                    return raw_val
-        return default
-
-    def _get_property_func_val(self, val):
-        m = re.match(r"\${__property\(([^,]*),?(.*)\)}", val)
-        if not m or len(m.groups()) == 0:
-            return val
-        prop_name = m.group(1).strip()
-        prop_val = self._get_property_val(prop_name)
-        if prop_val is not None:
-            return prop_val
+        if element is None:
+            raw_val = None
         else:
-            return None if m.group(2) == "" else m.group(2).strip()
+            raw_val = element.text
 
-    def _get_p_func_val(self, val):
-        m = re.match(r"\${__P\(([^,]*),?(.*)\)}", val)
-        if not m or len(m.groups()) == 0:
-            return val
-        # default value not specified, we cant resolve command line property, so return 1
-        if len(m.groups()) == 1:
-            return 1
-        return 1 if m.group(2) == "" else m.group(2).strip()
+        if raw:
+            return raw_val
 
-    def _get_property_val(self, prop_name):
-        prop_selector = ".//stringProp[@name='" + prop_name + "']"
-        prop_val = self.element.find(prop_selector)
-        if prop_val is not None:
-            return prop_val.text
-        return None
+        if raw_val:
+            if raw_val.isdigit() or raw_val[1:].isdigit():  # positive or negative number
+                return int(raw_val)
+            else:
+                return raw_val
+        return default
 
     def get_on_error(self):
         selector = ".//stringProp[@name='ThreadGroup.on_sample_error']"
@@ -173,8 +132,8 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
     def get_duration(self):
         hold_sel = ".//*[@name='Hold']"
 
-        hold = self._get_val("hold", hold_sel)
-        ramp_up = self.get_ramp_up()
+        hold = try_convert(self._get_val("hold", hold_sel), default=0)
+        ramp_up = try_convert(self.get_ramp_up(), default=0)
 
         # 'empty' means 0 sec, let's detect that
         p_hold = self._get_val("hold", hold_sel, raw=True)
