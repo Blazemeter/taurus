@@ -1004,7 +1004,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         ramp_up = tg.find(".//stringProp[@name='ThreadGroup.ramp_time']")
         conc = tg.find(".//stringProp[@name='ThreadGroup.num_threads']")
         delay = tg.find(".//boolProp[@name='ThreadGroup.delayedStart']")
-        self.assertEqual(conc.text, '${__P(val_c)}')  # concurrency should be saved
+        self.assertEqual(conc.text, '1')  # concurrency should be resolved as default prop value
         self.assertEqual(ramp_up.text, '2')  # will not be removed since load.ramp up is 0
 
         delay = delay is not None and delay.text == "true"

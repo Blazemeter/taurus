@@ -51,21 +51,23 @@ class AbstractThreadGroup(object):
             return default
         element = self.element.find(selector)
         if element is not None:
-            raw_val = None
             val = element.text
+            raw_val = element.text
             if val is not None:
                 # handle property func
                 if val.startswith("${__property("):
-                    raw_val = self._get_property_func_val(val, r"\${__property\(([^,]*),?(.*)\)}")
-                # handle P func
+                    raw_val = self._get_property_func_val(val)
+                # P func operates properties defined on the command line.
+                # Unlike the __property function, there is no option to save the value in a variable,
+                # and if no default value is supplied, it is assumed to be 1.
+                # here in jmeter runner we dont know about any command line properties,
+                # so use default or 1 as a fallback value
                 elif val.startswith("${__P("):
-                    raw_val = self._get_property_func_val(val, r"\${__P\(([^,]*),?(.*)\)}")
-                # handle simple env var
+                        raw_val = self._get_p_func_val(val)
+                # handle simple property var
                 elif val is not None and val.startswith("${") and val.endswith("}"):
                     env_key = val[2:-1]
                     raw_val = self._get_property_val(env_key)
-                else:
-                    raw_val = element.text
             if raw:
                 return raw_val
 
@@ -76,8 +78,8 @@ class AbstractThreadGroup(object):
                     return raw_val
         return default
 
-    def _get_property_func_val(self, val, p_regex):
-        m = re.match(p_regex, val)
+    def _get_property_func_val(self, val):
+        m = re.match(r"\${__property\(([^,]*),?(.*)\)}", val)
         if not m or len(m.groups()) == 0:
             return val
         prop_name = m.group(1).strip()
@@ -86,6 +88,15 @@ class AbstractThreadGroup(object):
             return prop_val
         else:
             return None if m.group(2) == "" else m.group(2).strip()
+
+    def _get_p_func_val(self, val):
+        m = re.match(r"\${__P\(([^,]*),?(.*)\)}", val)
+        if not m or len(m.groups()) == 0:
+            return val
+        # default value not specified, we cant resolve command line property, so return 1
+        if len(m.groups()) == 1:
+            return 1
+        return 1 if m.group(2) == "" else m.group(2).strip()
 
     def _get_property_val(self, prop_name):
         prop_selector = ".//stringProp[@name='" + prop_name + "']"
