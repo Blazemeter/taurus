@@ -1,3 +1,5 @@
+import re
+
 from bzt.jmx.base import JMX, try_convert
 
 GETTING_PARAM_ERR_MSG = "{tg}: getting of {name} is impossible ({params})"
@@ -47,22 +49,50 @@ class AbstractThreadGroup(object):
         if not selector:
             self.log.debug(GETTING_PARAM_ERR_MSG.format(tg=self.gtype, name=name, params="not implemented"))
             return default
-
         element = self.element.find(selector)
-        if element is None:
+        if element is not None:
             raw_val = None
-        else:
-            raw_val = element.text
-
-        if raw:
-            return raw_val
-
-        if raw_val:
-            if raw_val.isdigit() or raw_val[1:].isdigit():  # positive or negative number
-                return int(raw_val)
-            else:
+            val = element.text
+            if val is not None:
+                # handle property func
+                if val.startswith("${__property("):
+                    raw_val = self._get_property_func_val(val, r"\${__property\(([^,]*),?(.*)\)}")
+                # handle P func
+                elif val.startswith("${__P("):
+                    raw_val = self._get_property_func_val(val, r"\${__P\(([^,]*),?(.*)\)}")
+                # handle simple env var
+                elif val is not None and val.startswith("${") and val.endswith("}"):
+                    env_key = val[2:-1]
+                    raw_val = self._get_property_val(env_key)
+                else:
+                    raw_val = element.text
+            if raw:
                 return raw_val
+
+            if raw_val:
+                if raw_val.isdigit() or raw_val[1:].isdigit():  # positive or negative number
+                    return int(raw_val)
+                else:
+                    return raw_val
         return default
+
+    def _get_property_func_val(self, val, p_regex):
+        m = re.match(p_regex, val)
+        if not m or len(m.groups()) == 0:
+            return val
+        prop_name = m.group(1).strip()
+        prop_val = self._get_property_val(prop_name)
+        if prop_val is not None:
+            return prop_val
+        else:
+            return None if m.group(2) == "" else m.group(2).strip()
+
+    def _get_property_val(self, prop_name):
+        prop_selector = ".//stringProp[@name='" + prop_name + "']"
+        prop_val = self.element.find(prop_selector)
+        if prop_val is not None:
+            return prop_val.text
+        return None
 
     def get_on_error(self):
         selector = ".//stringProp[@name='ThreadGroup.on_sample_error']"
