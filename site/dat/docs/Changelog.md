@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.16.31<sup> 29 April 2024</sup>
+- Fixed resolution of JMX test duration, that contains user variables.
+
 ## 1.16.30<sup> 16 April 2024</sup>
 - Dependencies upgrade
 
