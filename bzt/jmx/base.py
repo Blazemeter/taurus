@@ -151,7 +151,8 @@ class JMX(object):
         """
         self.log.debug("Saving JMX to: %s", filename)
         with open(filename, "wb") as fhd:
-            self.tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
+            # SPAR-2675 don't override encoding, to UTF-8 here
+            self.tree.write(fhd, pretty_print=True, xml_declaration=True)
 
     @staticmethod
     def _flag(flag_name, bool_value):
@@ -332,7 +333,6 @@ class JMX(object):
             auth_coll.append(auth_element)
 
         return mgr
-
 
     @staticmethod
     def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None, follow_redirects=True,
