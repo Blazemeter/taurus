@@ -449,6 +449,7 @@ class GatlingExecutor(ScenarioExecutor):
         self.retcode = None
         self.simulation_started = False
         self.dir_prefix = "gatling-%s" % id(self)
+        self.group_duration_metric = None
         self.tool = None
 
     # def get_cp_from_files(self):
@@ -500,6 +501,7 @@ class GatlingExecutor(ScenarioExecutor):
                 raise TaurusConfigError(msg)
 
         self.dir_prefix = self.settings.get("dir-prefix", self.dir_prefix)
+        self.group_duration_metric = self.settings.get("group-duration-metric", self.group_duration_metric)
 
         self.stdout = open(self.engine.create_artifact("gatling", ".out"), "w")
         self.stderr = open(self.engine.create_artifact("gatling", ".err"), "w")
@@ -508,7 +510,7 @@ class GatlingExecutor(ScenarioExecutor):
         if version.parse(self.tool.version) >= version.parse("3.8.0"):
             self._copy_dependencies()
 
-        self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
+        self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix, self.group_duration_metric)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -712,7 +714,7 @@ class GatlingExecutor(ScenarioExecutor):
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
 
-    def __init__(self, basedir, parent_logger, dir_prefix):
+    def __init__(self, basedir, parent_logger, dir_prefix, group_duration_metric):
         super(DataLogReader, self).__init__()
         self.concurrency = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -721,6 +723,7 @@ class DataLogReader(ResultsReader):
         self.partial_buffer = ""
         self.delimiter = "\t"
         self.dir_prefix = dir_prefix
+        self.group_duration_metric = group_duration_metric
         self.guessed_gatling_version = None
         self._group_errors = defaultdict(set)
 
@@ -774,7 +777,13 @@ class DataLogReader(ResultsReader):
             if ',' in label:
                 return None  # skip nested groups for now
             t_stamp = int(fields[2]) / 1000.0
-            r_time = int(fields[3]) / 1000.0
+            
+            if self.group_duration_metric == True:
+                # Switch group metric from cumulated response time to group duration
+                # Similar behaviour to Gatling's own gatling.charting.useGroupDurationMetric property
+                r_time = (int(fields[2]) - int(fields[1])) / 1000.0
+            else:
+                r_time = int(fields[3]) / 1000.0
 
             if label in self._group_errors:
                 error = ';'.join(self._group_errors.pop(label))
