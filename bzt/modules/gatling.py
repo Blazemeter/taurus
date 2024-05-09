@@ -589,6 +589,8 @@ class GatlingExecutor(ScenarioExecutor):
         props['gatling.core.directory.resources'] = self.engine.artifacts_dir
         props['gatling.core.directory.results'] = self.engine.artifacts_dir
 
+        props['gatling.charting.useGroupDurationMetric'] = self.group_duration_metric
+
         props.merge(self._get_simulation_props())
         props.merge(self._get_load_props())
         props.merge(self._get_scenario_props())
