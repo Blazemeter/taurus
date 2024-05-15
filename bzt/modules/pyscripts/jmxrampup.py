@@ -160,9 +160,10 @@ class JmeterRampupProcess(object):
         steps = new_rampup["ramp_up_steps"]
 
         cur_users = self._get_current_concurrency(file)
-
-        if users == int(cur_users):
-            return None
+        try:
+            cur_users = int(cur_users)
+        except ValueError:
+            cur_users = 1
 
         users_list = deque()
         cur_time = round(self._now())
@@ -172,14 +173,15 @@ class JmeterRampupProcess(object):
             rampup = 0
             steps = 1
         if not steps:
-            steps = abs(users - int(cur_users))
+            steps = max(abs(users - cur_users), 1)
         ramp_in_sec = rampup * 60
         step_time = ramp_in_sec / steps
-        users_pers_step = (users - int(cur_users))/steps
+        users_pers_step = (users - cur_users)/steps
 
-        prev_concurrency = int(cur_users)
+        prev_concurrency = cur_users
+        users_list.append((cur_users, float(cur_time)))
         for i in range(steps + 1):
-            concurrency = int(cur_users) + (floor(users_pers_step*(i) + 0.5))
+            concurrency = cur_users + (floor(users_pers_step*(i) + 0.5))
             if concurrency != prev_concurrency:
                 users_list.append((concurrency, cur_time + step_time*i))
                 prev_concurrency = concurrency
