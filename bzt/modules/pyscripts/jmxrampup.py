@@ -179,9 +179,8 @@ class JmeterRampupProcess(object):
         users_pers_step = (users - cur_users)/steps
 
         prev_concurrency = cur_users
-        users_list.append((cur_users, float(cur_time)))
-        for i in range(steps + 1):
-            concurrency = cur_users + (floor(users_pers_step*(i) + 0.5))
+        for i in range(steps):
+            concurrency = cur_users + (floor(users_pers_step*(i+1) + 0.5))
             if concurrency != prev_concurrency:
                 users_list.append((concurrency, cur_time + step_time*i))
                 prev_concurrency = concurrency

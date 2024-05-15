@@ -40,14 +40,11 @@ class TestJmeterRampupProcess(BZTestCase):
                             rampup.run()
 
                             self.assertIn('Got new rampup configuration', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Rampup plan: deque([(1, 100000.0), (3, 100300.0), (5, 100600.0)])', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Setting concurrency: (1, 100000.0)', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Setting concurrency: (3, 100300.0)', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Setting concurrency: (5, 100600.0)', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Rampup plan: deque([(3, 100000.0), (5, 100300.0)])', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Setting concurrency: (3, 100000.0)', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Setting concurrency: (5, 100300.0)', self.log_recorder.info_buff.getvalue())
                             mock_socket.socket().connect.assert_called_with(('localhost', 9001))
                             mock_socket.socket().sendall.assert_has_calls([
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
-                                          b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","1");'),
                                 mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
                                      b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","3");'),
                                 mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
@@ -129,14 +126,11 @@ class TestJmeterRampupProcess(BZTestCase):
                             rampup.run()
 
                             self.assertIn('Got new rampup configuration', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Rampup plan: deque([(1, 100000.0), (5, 100000.0)])', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Rampup plan: deque([(5, 100000.0)])', self.log_recorder.info_buff.getvalue())
 
-                            self.assertIn('Setting concurrency: (1, 100000.0)', self.log_recorder.info_buff.getvalue())
                             self.assertIn('Setting concurrency: (5, 100000.0)', self.log_recorder.info_buff.getvalue())
                             mock_socket.socket().connect.assert_called_with(('localhost', 9001))
                             mock_socket.socket().sendall.assert_has_calls([
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
-                                          b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","1");'),
                                 mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
                                           b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","5");')
                             ])
@@ -167,16 +161,13 @@ class TestJmeterRampupProcess(BZTestCase):
                             rampup.run()
 
                             self.assertIn('Got new rampup configuration', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Rampup plan: deque([(1, 100000.0), (2, 100150.0), (3, 100300.0), (4, 100450.0), (5, 100600.0)])', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Setting concurrency: (1, 100000.0)', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Setting concurrency: (2, 100150.0)', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Setting concurrency: (3, 100300.0)', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Setting concurrency: (4, 100450.0)', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Setting concurrency: (5, 100600.0)', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Rampup plan: deque([(2, 100000.0), (3, 100150.0), (4, 100300.0), (5, 100450.0)])', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Setting concurrency: (2, 100000.0)', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Setting concurrency: (3, 100150.0)', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Setting concurrency: (4, 100300.0)', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Setting concurrency: (5, 100450.0)', self.log_recorder.info_buff.getvalue())
                             mock_socket.socket().connect.assert_called_with(('localhost', 9001))
                             mock_socket.socket().sendall.assert_has_calls([
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
-                                          b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","1");'),
                                 mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
                                           b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","2");'),
                                 mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
@@ -236,14 +227,11 @@ class TestJmeterRampupProcess(BZTestCase):
                             rampup.run()
 
                             self.assertIn('Got new rampup configuration', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Rampup plan: deque([(1, 100000.0), (3, 100300.0), (5, 100600.0)])', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Setting concurrency: (1, 100000.0)', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Setting concurrency: (3, 100300.0)', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Setting concurrency: (5, 100600.0)', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Rampup plan: deque([(3, 100000.0), (5, 100300.0)])', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Setting concurrency: (3, 100000.0)', self.log_recorder.info_buff.getvalue())
+                            self.assertIn('Setting concurrency: (5, 100300.0)', self.log_recorder.info_buff.getvalue())
                             mock_socket.socket().connect.assert_called_with(('localhost', 9001))
                             mock_socket.socket().sendall.assert_has_calls([
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
-                                          b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","1");'),
                                 mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
                                           b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","3");'),
                                 mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
