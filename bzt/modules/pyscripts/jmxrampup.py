@@ -154,19 +154,32 @@ class JmeterRampupProcess(object):
 
     def _calc_rampup(self, file, new_rampup):
         users = new_rampup["concurrency"]
+        if not users:
+            return None
         rampup = new_rampup["ramp_up_duration"]
         steps = new_rampup["ramp_up_steps"]
-        ramp_in_sec = rampup * 60
-        cur_users = self._get_current_concurrency(file)
-        users_list = deque()
 
-        step_time = ramp_in_sec / steps
-        users_pers_step = (users - int(cur_users))/steps
+        cur_users = self._get_current_concurrency(file)
+
+        if users == cur_users:
+            return None
+
+        users_list = deque()
         cur_time = round(self._now())
 
+        if not rampup:
+            # Ramp-up immediately
+            rampup = 0
+            steps = 1
+        if not steps:
+            steps = abs(users - int(cur_users))
+        ramp_in_sec = rampup * 60
+        step_time = ramp_in_sec / steps
+        users_pers_step = (users - int(cur_users))/steps
+
         prev_concurrency = int(cur_users)
-        for i in range(steps):
-            concurrency = int(cur_users) + (floor(users_pers_step*(i+1) + 0.5))
+        for i in range(steps + 1):
+            concurrency = int(cur_users) + (floor(users_pers_step*(i) + 0.5))
             if concurrency != prev_concurrency:
                 users_list.append((concurrency, cur_time + step_time*i))
                 prev_concurrency = concurrency
