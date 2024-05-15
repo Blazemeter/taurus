@@ -227,4 +227,3 @@ class TestJmeterRampupProcess(BZTestCase):
                             rampup.run()
 
                             self.assertIn('Got new rampup configuration', self.log_recorder.info_buff.getvalue())
-                            self.assertIn('Rampup plan: deque([])', self.log_recorder.info_buff.getvalue())

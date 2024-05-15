@@ -161,7 +161,7 @@ class JmeterRampupProcess(object):
 
         cur_users = self._get_current_concurrency(file)
 
-        if users == cur_users:
+        if users == int(cur_users):
             return None
 
         users_list = deque()
