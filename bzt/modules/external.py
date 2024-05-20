@@ -105,7 +105,7 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
         elif header.startswith("<?xml"):
             return XMLJTLReader(self.data_file, self.log)
         elif header.startswith("RUN\t") or "\tRUN\t" in header:
-            return GatlingLogReader(self.data_file, self.log, None)
+            return GatlingLogReader(self.data_file, self.log, None, None)
         elif "timestamp" in header.lower() and "elapsed" in header.lower():
             return JTLReader(self.data_file, self.log, self.errors_file)
         else:
