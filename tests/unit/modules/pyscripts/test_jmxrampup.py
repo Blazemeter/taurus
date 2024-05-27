@@ -181,6 +181,49 @@ class TestJmeterRampupProcess(BZTestCase):
                             self.assertIn('Beanshell recv: test1', self.log_recorder.debug_buff.getvalue())
                             self.assertIn('Beanshell recv: test2', self.log_recorder.debug_buff.getvalue())
 
+    def test_jmeter_rampup_no_steps_big_concurrency_short_duration(self):
+          rampup = JmeterRampupProcess([('localhost', 9000)],
+                                       'localhost', 6000,
+                                       'test_key', '.', logging.DEBUG)
+          rampup.log = self.log
+          self.sniff_log(rampup.log)
+
+          real_timeout = socket.timeout
+          data_to_send = {'ramp_up_duration': 1, 'ramp_up_steps': None, 'concurrency': 500}
+          with mock.patch.object(rampup, '_stop', side_effect=[False] * 3 + [True]):
+              with mock.patch.object(rampup, '_get_current_concurrency', return_value="1"):
+                  with mock.patch.object(rampup, '_now', side_effect=[100_000, 100_001, 100_021, 100_041, 100_061]):
+                      with mock.patch('bzt.modules.pyscripts.jmxrampup.Client') as mock_client:
+                          with mock.patch('bzt.modules.pyscripts.jmxrampup.socket') as mock_socket:
+                              mock_client.return_value.__enter__.return_value.recv.side_effect = [data_to_send] + [ConnectionRefusedError] * 5
+                              mock_socket.socket().recv().decode.side_effect = ["BeanShell ignored\n", "bsh % test1\n", real_timeout,
+                                                                                "BeanShell ignored\n", "bsh % test2\n",
+                                                                                "BeanShell ignored\n", "bsh % test3\n",
+                                                                                "BeanShell ignored\n", "bsh % test4\n", BaseException]
+                              mock_socket.timeout = real_timeout
+
+                              rampup.run()
+
+                              self.assertIn('Got new rampup configuration', self.log_recorder.info_buff.getvalue())
+                              self.assertIn('Setting concurrency: (10, 100000', self.log_recorder.info_buff.getvalue())
+                              self.assertIn('Setting concurrency: (176, 100020', self.log_recorder.info_buff.getvalue())
+                              self.assertIn('Setting concurrency: (342, 100040', self.log_recorder.info_buff.getvalue())
+                              self.assertIn('Setting concurrency: (500, 100059', self.log_recorder.info_buff.getvalue())
+                              mock_socket.socket().connect.assert_called_with(('localhost', 9001))
+                              mock_socket.socket().sendall.assert_has_calls([
+                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                            b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","10");'),
+                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                            b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","176");'),
+                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                            b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","342");'),
+                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                            b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","500");'),
+                              ])
+
+                              self.assertIn('Beanshell recv: test1', self.log_recorder.debug_buff.getvalue())
+                              self.assertIn('Beanshell recv: test2', self.log_recorder.debug_buff.getvalue())
+
     def test_jmeter_rampup_bad_concurrency(self):
         rampup = JmeterRampupProcess([('localhost', 9000)],
                                      'localhost', 6000,
