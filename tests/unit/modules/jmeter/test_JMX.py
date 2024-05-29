@@ -195,7 +195,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
 
         self.assertListEqual(self._get_tst_schedule(),
-                             [["0.001", "2.0", "300"], ["2.0", "2.0", "6900"]], )
+                             [["1.0", "2.0", "300"], ["2.0", "2.0", "6900"]], )
 
     def _get_tst_schedule(self):
         records = []
