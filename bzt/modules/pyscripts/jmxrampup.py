@@ -48,10 +48,14 @@ class JmeterRampupProcess(object):
                 res_list = self._calc_rampup(self.filename, new_rampup)
                 cur_goal = res_list.popleft() if res_list else None
             if cur_goal:
-                if cur_goal[1] < self._now():
-                    self.log.info(f"Setting concurrency: {cur_goal}")
-                    self._change_concurrencies(cur_goal[0])
+                now = self._now()
+                do_goal = None
+                while cur_goal and cur_goal[1] < now:
+                    do_goal = cur_goal
                     cur_goal = res_list.popleft() if res_list else None
+                if do_goal:
+                    self.log.info(f"Setting concurrency: {do_goal}")
+                    self._change_concurrencies(do_goal[0])
             if self._stop():
                 break
             time.sleep(0.5)

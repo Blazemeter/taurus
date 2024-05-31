@@ -772,7 +772,7 @@ class TestJMeterExecutor(ExecutorTestCase):
 
         val_strings = coll_elements[0].findall(".//stringProp")
 
-        self.assertEqual("0.05", val_strings[0].text)
+        self.assertEqual("1.0", val_strings[0].text)
         self.assertEqual("9.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 

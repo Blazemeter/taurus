@@ -201,8 +201,8 @@ class LoadSettingsProcessor(object):
         if self.load.ramp_up:
             if isinstance(self.load.throughput, numeric_types) and self.load.duration:
                 start_rps = self.load.throughput / float(self.load.duration)
-                start_rps = max(start_rps, 0.001)  # avoid zeroing
-                start_rps = min(start_rps, 1.0)  # avoid starting too fast
+                if start_rps < 1.0:
+                    start_rps = 1.0  # avoid zeroing
             else:
                 start_rps = 1
 
