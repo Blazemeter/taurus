@@ -124,7 +124,7 @@ class TestFuncJTLReader(BZTestCase):
             self.assertEqual(sample.test_case, origin_string)
 
 
-TEST_ERROR_RESPONSE_BODIES_SIZE_LIMIT: int = 256 * 1024
+TEST_ERROR_RESPONSE_BODIES_SIZE_LIMIT: int = 10 * 1024
 TEST_ERROR_RESPONSE_BODIES_LIMIT: int = 10
 
 
@@ -190,14 +190,14 @@ class TestJTLErrorsReader(BZTestCase):
         self.obj.read_file()
         values = self.obj.get_data(sys.maxsize)
 
-        for label in ['find', 'edit', 'submit']:
+        for label in ['find','edit', 'submit']:
             label_data = values.get(label)
             self.assertEqual(len(label_data), 1)
 
             response_data = label_data[0]
             self.assertEqual(63, response_data['cnt'])
             self.assertEqual('401', response_data['rc'])
-            self.assertEqual(TEST_ERROR_RESPONSE_BODIES_LIMIT, len(response_data['responseBodies']))
+            self.assertEqual(4 if label == 'find' else 3, len(response_data['responseBodies']))
 
             for error_response_data in response_data['responseBodies']:
                 self.assertEqual(1, error_response_data['cnt'])
@@ -208,7 +208,7 @@ class TestJTLErrorsReader(BZTestCase):
         response_data = label_data[0]
         self.assertEqual(189, response_data['cnt'])
         self.assertEqual('401', response_data['rc'])
-        self.assertEqual(30, len(response_data['responseBodies']))
+        self.assertEqual(10, len(response_data['responseBodies']))
 
     def test_error_responses_empty(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/many-errors-empty-responses.jtl")
@@ -223,7 +223,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(14, response_data['cnt'])
         self.assertEqual('401', response_data['rc'])
         self.assertEqual(1, len(response_data['responseBodies']))
-        self.assertEqual(14, response_data['responseBodies'][0]['cnt'])
+        self.assertEqual(3, response_data['responseBodies'][0]['cnt'])
 
         label_data = values.get('')
         self.assertEqual(len(label_data), 1)
@@ -231,7 +231,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(42, response_data['cnt'])
         self.assertEqual('401', response_data['rc'])
         self.assertEqual(1, len(response_data['responseBodies']))
-        self.assertEqual(42, response_data['responseBodies'][0]['cnt'])
+        self.assertEqual(10, response_data['responseBodies'][0]['cnt'])
 
     def test_error_responses_limits_duplicates(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/many-errors-duplicated-responses.jtl")
@@ -244,11 +244,11 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(len(label_data), 5)
 
         test_data = [
-            {'filter': lambda ld: ld['rc'] == '401' and ld['msg'] == 'Unauthorized', 'cnt': 139, 'resp': 21},
-            {'filter': lambda ld: ld['rc'] == '402' and ld['msg'] == 'Unauthorized 402', 'cnt': 7, 'resp': 1},
-            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'Unauthorized 403', 'cnt': 15, 'resp': 1},
-            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'NF', 'cnt': 20, 'resp': 1},
-            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'SU', 'cnt': 8, 'resp': 1},
+            {'filter': lambda ld: ld['rc'] == '401' and ld['msg'] == 'Unauthorized', 'cnt': 139, 'resp': 7},
+            {'filter': lambda ld: ld['rc'] == '402' and ld['msg'] == 'Unauthorized 402', 'cnt': 7, 'resp': 0},
+            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'Unauthorized 403', 'cnt': 15, 'resp': 0},
+            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'NF', 'cnt': 20, 'resp': 0},
+            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'SU', 'cnt': 8, 'resp': 0},
         ]
         for td in test_data:
             response_data = next(filter(td['filter'], label_data), None)
@@ -260,10 +260,10 @@ class TestJTLErrorsReader(BZTestCase):
 
         test_data = [
             {'filter': lambda ld: ld['rc'] == '401' and ld['msg'] == 'Unauthorized', 'cnt': 13, 'resp': 1},
-            {'filter': lambda ld: ld['rc'] == '402' and ld['msg'] == 'Unauthorized 402', 'cnt': 7, 'resp': 1},
-            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'Unauthorized 403', 'cnt': 15, 'resp': 1},
-            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'NF', 'cnt': 20, 'resp': 1},
-            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'SU', 'cnt': 8, 'resp': 1},
+            {'filter': lambda ld: ld['rc'] == '402' and ld['msg'] == 'Unauthorized 402', 'cnt': 7, 'resp': 0},
+            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'Unauthorized 403', 'cnt': 15, 'resp': 0},
+            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'NF', 'cnt': 20, 'resp': 0},
+            {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'SU', 'cnt': 8, 'resp': 0},
         ]
         for td in test_data:
             response_data = next(filter(td['filter'], label_data), None)
@@ -274,7 +274,7 @@ class TestJTLErrorsReader(BZTestCase):
             label_data = values.get(label)
             self.assertEqual(len(label_data), 1)
             response_data = label_data[0]
-            self.assertEqual(TEST_ERROR_RESPONSE_BODIES_LIMIT, len(response_data['responseBodies']))
+            self.assertEqual(3, len(response_data['responseBodies']))
 
     def test_error_response_bodies_in_assertions(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/error-assertions.jtl")
@@ -287,7 +287,7 @@ class TestJTLErrorsReader(BZTestCase):
         aggregated_label = values.get('')
         self.assertEqual(1, len(aggregated_label))
         self.assertEqual(aggregated_label[0].get("msg"), "Test failed: text expected to contain /.*Robocop.*/")
-        self.assertEqual(90, len(aggregated_label[0].get("responseBodies")))
+        self.assertEqual(10, len(aggregated_label[0].get("responseBodies")))
 
     def test_smart_aggregation_assert(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/smart-aggregation/errors.jtl")

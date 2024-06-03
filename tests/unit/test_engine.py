@@ -325,13 +325,13 @@ class TestEngine(BZTestCase):
         aggregator: ConsolidatingAggregator = self.obj.aggregator
         self.assertTrue(aggregator.collect_error_response_bodies)
         self.assertEqual(5, aggregator.error_response_bodies_limit)
-        self.assertEqual(256, aggregator.error_response_bodies_size_limit)
+        self.assertEqual(10, aggregator.error_response_bodies_size_limit)
 
         jtl_reader: JTLReader = aggregator.underlings[0]
         errors_reader: JTLErrorsReader = jtl_reader.errors_reader
         self.assertTrue(errors_reader.collect_error_response_bodies)
         self.assertEqual(5, errors_reader.error_response_bodies_limit)
-        self.assertEqual(256, errors_reader.error_response_bodies_size_limit)
+        self.assertEqual(10, errors_reader.error_response_bodies_size_limit)
 
 
 class TestScenarioExecutor(ExecutorTestCase):
