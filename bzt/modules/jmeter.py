@@ -1261,7 +1261,7 @@ class JTLErrorsReader(object):
         self.collect_error_response_bodies = False
         self.error_response_bodies_limit = ERROR_RESPONSE_BODIES_LIMIT
         self.error_response_bodies_size_limit = ERROR_RESPONSE_BODIES_SIZE_LIMIT
-        self._collected_error_responses: dict = {}
+        self._collected_error_responses: set = set()
 
     def set_aggregation(self, aggregation):
         self._redundant_aggregation = aggregation
@@ -1355,19 +1355,16 @@ class JTLErrorsReader(object):
             label = self.label_converter(label=label, rc=r_code, msg=r_msg)
 
         for resp_body in err_item['responseBodies']:
-            if self._should_not_collect_error_response(label, r_code, r_msg, resp_body['hash']):
+            if self._should_not_collect_error_response(resp_body['hash']):
                 err_item['responseBodies'].remove(resp_body)
 
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
-    def _should_not_collect_error_response(self, label: str, rc: str, msg: str, response_hash: int) -> bool:
-        key = (label, rc, msg)
-        responses = self._collected_error_responses.get(key) if key in self._collected_error_responses else set()
-        if len(responses) == self.error_response_bodies_limit:
+    def _should_not_collect_error_response(self, response_hash: int) -> bool:
+        if len(self._collected_error_responses) == self.error_response_bodies_limit:
             return True
-        responses.add(response_hash)
-        self._collected_error_responses[key] = responses
+        self._collected_error_responses.add(response_hash)
         return False
 
     def _extract_nonstandard(self, elem):
