@@ -1261,7 +1261,7 @@ class JTLErrorsReader(object):
         self.collect_error_response_bodies = False
         self.error_response_bodies_limit = ERROR_RESPONSE_BODIES_LIMIT
         self.error_response_bodies_size_limit = ERROR_RESPONSE_BODIES_SIZE_LIMIT
-        self._collected_error_responses: list = []
+        self._collected_error_responses: set = set()
 
     def set_aggregation(self, aggregation):
         self._redundant_aggregation = aggregation
@@ -1364,7 +1364,7 @@ class JTLErrorsReader(object):
     def _should_not_collect_error_response(self, response_hash: int) -> bool:
         if len(self._collected_error_responses) == self.error_response_bodies_limit:
             return True
-        self._collected_error_responses.append(response_hash)
+        self._collected_error_responses.add(response_hash)
         return False
 
     def _extract_nonstandard(self, elem):

@@ -223,7 +223,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(14, response_data['cnt'])
         self.assertEqual('401', response_data['rc'])
         self.assertEqual(1, len(response_data['responseBodies']))
-        self.assertEqual(3, response_data['responseBodies'][0]['cnt'])
+        self.assertEqual(14, response_data['responseBodies'][0]['cnt'])
 
         label_data = values.get('')
         self.assertEqual(len(label_data), 1)
@@ -231,7 +231,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(42, response_data['cnt'])
         self.assertEqual('401', response_data['rc'])
         self.assertEqual(1, len(response_data['responseBodies']))
-        self.assertEqual(10, response_data['responseBodies'][0]['cnt'])
+        self.assertEqual(42, response_data['responseBodies'][0]['cnt'])
 
     def test_error_responses_limits_duplicates(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/many-errors-duplicated-responses.jtl")
@@ -244,7 +244,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(len(label_data), 5)
 
         test_data = [
-            {'filter': lambda ld: ld['rc'] == '401' and ld['msg'] == 'Unauthorized', 'cnt': 139, 'resp': 7},
+            {'filter': lambda ld: ld['rc'] == '401' and ld['msg'] == 'Unauthorized', 'cnt': 139, 'resp': 10},
             {'filter': lambda ld: ld['rc'] == '402' and ld['msg'] == 'Unauthorized 402', 'cnt': 7, 'resp': 0},
             {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'Unauthorized 403', 'cnt': 15, 'resp': 0},
             {'filter': lambda ld: ld['rc'] == '403' and ld['msg'] == 'NF', 'cnt': 20, 'resp': 0},
@@ -274,7 +274,7 @@ class TestJTLErrorsReader(BZTestCase):
             label_data = values.get(label)
             self.assertEqual(len(label_data), 1)
             response_data = label_data[0]
-            self.assertEqual(3, len(response_data['responseBodies']))
+            self.assertEqual(6 if label == 'edit' else 3, len(response_data['responseBodies']))
 
     def test_error_response_bodies_in_assertions(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/error-assertions.jtl")
