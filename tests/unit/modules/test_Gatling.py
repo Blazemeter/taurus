@@ -154,10 +154,14 @@ class TestGatlingExecutor(ExecutorTestCase):
                 self.assertTrue(line.startswith('eval'))
             if line.startswith('set COMPILER_CLASSPATH='):  # win
                 self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
+            if line.startswith('set CLASSPATH'):  # win
+                self.assertTrue(line.endswith(';%JAVA_CLASSPATH%\n'))
             if line.startswith('set GATLING_CLASSPATH='):  # win
                 self.assertTrue(line.endswith(';%JAVA_CLASSPATH%\n'))
             if line.startswith('COMPILER_CLASSPATH'):  # linux
                 self.assertTrue(line.endswith('${COMPILATION_CLASSPATH}"\n'))
+            if line.startswith('CLASSPATH'):  # linux
+                self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
             if line.startswith('GATLING_CLASSPATH'):  # linux
                 self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
 
