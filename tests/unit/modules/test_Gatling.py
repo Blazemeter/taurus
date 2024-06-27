@@ -3,10 +3,11 @@ import os
 import shutil
 import sys
 import time
+from unittest import TestCase
 
 from bzt import ToolError, TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.gatling import GatlingExecutor, DataLogReader
+from bzt.modules.gatling import Gatling, GatlingExecutor, DataLogReader
 from bzt.modules.provisioning import Local
 from bzt.utils import EXE_SUFFIX, get_full_path, is_windows
 from tests.unit import ExecutorTestCase, BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
@@ -154,14 +155,10 @@ class TestGatlingExecutor(ExecutorTestCase):
                 self.assertTrue(line.startswith('eval'))
             if line.startswith('set COMPILER_CLASSPATH='):  # win
                 self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
-            if line.startswith('set CLASSPATH'):  # win
-                self.assertTrue(line.endswith(';%JAVA_CLASSPATH%\n'))
             if line.startswith('set GATLING_CLASSPATH='):  # win
                 self.assertTrue(line.endswith(';%JAVA_CLASSPATH%\n'))
             if line.startswith('COMPILER_CLASSPATH'):  # linux
                 self.assertTrue(line.endswith('${COMPILATION_CLASSPATH}"\n'))
-            if line.startswith('CLASSPATH'):  # linux
-                self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
             if line.startswith('GATLING_CLASSPATH'):  # linux
                 self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
 
@@ -821,3 +818,37 @@ class TestDataLogReader(BZTestCase):
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['400'])
         self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['401'])
+
+class TestGatling(TestCase):
+    def setUp(self):
+        super(TestGatling, self).setUp()
+        self.obj = Gatling()
+
+    def test_process_launcher_line_windows(self):
+        line, mod_success = self.obj.process_launcher_line('set COMPILER_CLASSPATH=""', True)
+        self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
+        self.assertTrue(mod_success)
+        line, mod_success = self.obj.process_launcher_line('set CLASSPATH=""', True)
+        self.assertTrue(line.endswith(';%JAVA_CLASSPATH%\n'))
+        self.assertTrue(mod_success)
+        line, mod_success = self.obj.process_launcher_line('set GATLING_CLASSPATH=""', True)
+        self.assertTrue(line.endswith(';%JAVA_CLASSPATH%\n'))
+        self.assertTrue(mod_success)
+        line, mod_success = self.obj.process_launcher_line('UNIT_TEST', True)
+        self.assertEqual(line, 'UNIT_TEST')
+        self.assertFalse(mod_success)
+
+    def test_process_launcher_line_bash(self):
+        mod_success = False
+        line, mod_success = self.obj.process_launcher_line('COMPILER_CLASSPATH=', False)
+        self.assertTrue(line.endswith('${COMPILATION_CLASSPATH}"\n'))
+        self.assertTrue(mod_success)
+        line, mod_success = self.obj.process_launcher_line('CLASSPATH=', False)
+        self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
+        self.assertTrue(mod_success)
+        line, mod_success = self.obj.process_launcher_line('GATLING_CLASSPATH=', False)
+        self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
+        self.assertTrue(mod_success)
+        line, mod_success = self.obj.process_launcher_line('UNIT_TEST', False)
+        self.assertEqual(line, 'UNIT_TEST')
+        self.assertFalse(mod_success)

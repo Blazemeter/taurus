@@ -949,34 +949,10 @@ class Gatling(RequiredTool):
     def build_launcher(self, new_name):  # legacy, for v2 only
         modified_lines = []
         mod_success = False
-
+        
         with open(self.tool_path) as fds:
             for line in fds.readlines():
-                if is_windows():
-                    if line.startswith('set COMPILER_CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'  # add from env
-                    elif line.startswith('set GATLING_CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
-                    elif line.startswith('set CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
-                    elif line.startswith('%JAVA%'):
-                        line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
-                else:
-                    if line.startswith('COMPILER_CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
-                    elif line.startswith('GATLING_CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
-                    elif line.startswith('CLASSPATH='):
-                        mod_success = True
-                        line = line.rstrip()[:-1] + ':${JAVA_CLASSPATH}"\n'  # add from env
-                    elif line.startswith('"$JAVA"'):
-                        line = line.rstrip() + ' -rm local -rd Taurus \n'  # add mandatory parameters
-                        line = 'eval ' + line
+                line, mod_success = self.process_launcher_line(line, is_windows())
                 modified_lines.append(line)
 
         if not mod_success:
@@ -989,3 +965,32 @@ class Gatling(RequiredTool):
 
         if not is_windows():
             os.chmod(self.tool_path, 0o755)
+
+    def process_launcher_line(self, line, is_windows_os):
+        mod_success = False
+        if is_windows_os:
+            if line.startswith('set COMPILER_CLASSPATH='):
+                mod_success = True
+                line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'  # add from env
+            elif line.startswith('set GATLING_CLASSPATH='):
+                mod_success = True
+                line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
+            elif line.startswith('set CLASSPATH='):
+                mod_success = True
+                line = line.rstrip() + ';%JAVA_CLASSPATH%\n'  # add from env
+            elif line.startswith('%JAVA%'):
+                line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
+        else:
+            if line.startswith('COMPILER_CLASSPATH='):
+                mod_success = True
+                line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
+            elif line.startswith('GATLING_CLASSPATH='):
+                mod_success = True
+                line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
+            elif line.startswith('CLASSPATH='):
+                mod_success = True
+                line = line.rstrip()[:-1] + ':${JAVA_CLASSPATH}"\n'  # add from env
+            elif line.startswith('"$JAVA"'):
+                line = line.rstrip() + ' -rm local -rd Taurus \n'  # add mandatory parameters
+                line = 'eval ' + line
+        return line, mod_success
