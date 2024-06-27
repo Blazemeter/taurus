@@ -952,7 +952,9 @@ class Gatling(RequiredTool):
         
         with open(self.tool_path) as fds:
             for line in fds.readlines():
-                line, mod_success = self.process_launcher_line(line, is_windows())
+                line, line_mod_success = self.process_launcher_line(line, is_windows())
+                if line_mod_success:
+                    mod_success = True
                 modified_lines.append(line)
 
         if not mod_success:
