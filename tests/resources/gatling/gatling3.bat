@@ -1,7 +1,6 @@
 @echo off
 
 set COMPILER_CLASSPATH=""
-set CLASSPATH=""
 set GATLING_CLASSPATH=""
 
 if DEFINED GATLING_HOME (
