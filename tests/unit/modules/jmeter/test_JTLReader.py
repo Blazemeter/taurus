@@ -178,6 +178,7 @@ class TestJTLErrorsReader(BZTestCase):
 
         error_response_data = response_data['responseBodies'][0]
         self.assertEqual(3, error_response_data['cnt'])
+        self.assertEqual(' text/html; charset=UTF-8', error_response_data['type'])
         self.assertEqual(333866, error_response_data['original_size'])
 
         # content is expected to be trimmed to max supported size
@@ -224,6 +225,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual('401', response_data['rc'])
         self.assertEqual(1, len(response_data['responseBodies']))
         self.assertEqual(14, response_data['responseBodies'][0]['cnt'])
+        self.assertEqual(' application/json; charset=utf-8', response_data['responseBodies'][0]['type'])
 
         label_data = values.get('')
         self.assertEqual(len(label_data), 1)
