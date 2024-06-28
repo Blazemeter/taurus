@@ -1443,7 +1443,7 @@ class JTLErrorsReader(object):
 
         if headers_text is not None:
             headers = JTLReaderUtils.parse_http_headers(headers_text)
-            return headers['Content-Type'] if 'Content-Type' in headers_text else None
+            return headers['Content-Type'] if 'Content-Type' in headers else None
 
 
 class XMLJTLReader(JTLErrorsReader, ResultsReader):
