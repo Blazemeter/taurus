@@ -135,10 +135,13 @@ class Proxy2JMX(Service, Singletone):
                     msg = 'Wrong chromedriver location: %s, look at ' % path
                     msg += 'http://gettaurus.org/docs/Proxy2JMX/#Microsoft-Windows for help'
                     self.log.warning(msg)
-                shutil.copy2(path, loader_dir)
+                try:
+                    shutil.copy2(path, loader_dir)
+                except IOError as exc:
+                    raise TaurusInternalException("Can't copy chromedriver.exe: %s" % exc)
                 break
         else:
-            self.log.warning('cromedriver.exe not found in directories described in PATH')
+            self.log.warning('chromedriver.exe not found in directories described in PATH')
             return
 
         # copy chrome-loader.exe from resources into artifacts/chrome-loader/chrome.exe
@@ -147,7 +150,7 @@ class Proxy2JMX(Service, Singletone):
         try:
             shutil.copy2(old_file, new_file)
         except IOError as exc:
-            raise TaurusInternalException("Can't copy loader: %s" % exc)
+            raise TaurusInternalException("Can't copy chrome-loader.exe: %s" % exc)
 
     def shutdown(self):
         super(Proxy2JMX, self).shutdown()

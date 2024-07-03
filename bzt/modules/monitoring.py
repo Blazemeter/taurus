@@ -810,7 +810,7 @@ class ServerAgentClient(MonitoringClient):
         except BaseException as exc:
             self.log.warning("Error during connecting to agent at %s:%s: %s", self.address, self.port, exc)
             msg = "Failed to connect to serverAgent at %s:%s" % (self.address, self.port)
-            raise TaurusNetworkError(msg)
+            raise TaurusNetworkError(msg) from exc
 
         if self.config.get("logging", False):
             self.logs_file = self.engine.create_artifact("SAlogs_{}_{}".format(self.address, self.port), ".csv")

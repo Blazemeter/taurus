@@ -1531,8 +1531,8 @@ class JMXasDict(JMX):
         self.global_objects = []
         try:
             ht_object = self.tree.find(".//hashTree").find(".//TestPlan").getnext()
-        except BaseException:
-            raise TaurusInternalException("Bad jmx format")
+        except BaseException as exc:
+            raise TaurusInternalException("Bad jmx format") from exc
         for obj in ht_object.iterchildren():
             if obj.tag != 'hashTree' and obj.tag != 'ThreadGroup':
                 self.global_objects.append(obj)

@@ -59,7 +59,7 @@ class PipInstaller(Service):
             exec_and_communicate(cmdline)
         except TaurusCalledProcessError as exc:
             self.log.debug(exc)
-            raise TaurusInternalException("pip module not found for interpreter %s" % self.interpreter)
+            raise TaurusInternalException('pip module not found for interpreter %s' % self.interpreter) from exc
 
     def _get_installed(self):
         cmdline = self.pip_cmd + ["list"]
@@ -343,7 +343,7 @@ class AndroidEmulatorLoader(Service):
             out, _ = communicate(proc)
             return out.strip() == '1'
         except BaseException as exc:
-            raise ToolError('Checking if android emulator starts is impossible: %s', exc)
+            raise ToolError('Checking if android emulator starts is impossible: %s' % exc)
 
     def shutdown(self):
         if self.emulator_process:

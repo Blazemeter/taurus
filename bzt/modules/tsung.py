@@ -253,7 +253,7 @@ class TsungConfig(object):
             self.tree = etree.ElementTree()
             self.tree.parse(filename)
             self.root = self.tree.getroot()
-        except BaseException as exc:
+        except Exception as exc:
             self.log.debug("Tsung: XML parsing error: %s", traceback.format_exc())
             raise TaurusInternalException("Tsung: XML parsing failed for file %s: %s" % (filename, exc))
 

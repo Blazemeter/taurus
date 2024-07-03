@@ -114,7 +114,7 @@ class JMX(object):
             self.tree.parse(original)
         except BaseException as exc:
             msg = "XML parsing failed for file %s: %s"
-            raise TaurusInternalException(msg % (original, exc))
+            raise TaurusInternalException(msg % (original, exc)) from exc
 
     def get(self, selector):
         """

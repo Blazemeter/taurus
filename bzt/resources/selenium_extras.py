@@ -71,9 +71,8 @@ def _find_by_css_selector(root, css_selector, raise_exception):
     except NoSuchElementException as nse:
         if raise_exception:
             if root.tag_name == "slot":
-                raise TaurusException("Shadow DOM Slots are currently not supported in Taurus execution.")
+                raise TaurusException('Shadow DOM Slots are currently not supported in Taurus execution.') from nse
             raise nse
-        pass
     return element
 
 
@@ -454,8 +453,8 @@ def switch_frame(frame_name=None):
             driver.switch_to.parent_frame()
         else:  # Use the selenium alternative
             driver.switch_to.frame(frame_name)
-    except NoSuchFrameException:
-        raise NoSuchFrameException("Invalid Frame ID: %s" % frame_name)
+    except NoSuchFrameException as exc:
+        raise NoSuchFrameException(f"Invalid Frame ID: {frame_name}") from exc
 
 
 def switch_window(window_name=None):
@@ -471,8 +470,8 @@ def switch_window(window_name=None):
                     _switch_by_win_ser(window_name)
                 else:  # Switch using window name
                     driver.switch_to.window(window_name)
-    except NoSuchWindowException:
-        raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
+    except NoSuchWindowException as exc:
+        raise NoSuchWindowException(f"Invalid Window ID: {window_name}") from exc
 
 
 def open_window(url):

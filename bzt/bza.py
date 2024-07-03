@@ -160,11 +160,11 @@ class BZAObject(dict):
             try:
                 result = json.loads(resp) if len(resp) else {}
                 if 'error' in result and result['error']:
-                    raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
+                    raise TaurusNetworkError(f"API call error {url}: {result['error']}")
                 else:
-                    raise TaurusNetworkError("API call error %s on %s: %s" % (response.status_code, url, result))
-            except ValueError:
-                raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
+                    raise TaurusNetworkError(f"API call error {response.status_code} on {url}: {result}")
+            except ValueError as exc:
+                raise TaurusNetworkError(f"Non-JSON response from API: {response.reason}") from exc
 
         if raw_result:
             return resp
@@ -173,10 +173,10 @@ class BZAObject(dict):
             result = json.loads(resp) if len(resp) else {}
         except ValueError as exc:
             self.log.debug('Response: %s', resp)
-            raise TaurusNetworkError("Non-JSON response from API: %s" % exc)
+            raise TaurusNetworkError(f"Non-JSON response from API: {exc}") from exc
 
         if 'error' in result and result['error']:
-            raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
+            raise TaurusNetworkError(f"API call error {url}: {result['error']}")
 
         return result
 

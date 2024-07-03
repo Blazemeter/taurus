@@ -238,8 +238,8 @@ def dehumanize_time(str_time):
     for value, unit in parts:
         try:
             value = float(value)
-        except ValueError:
-            raise TaurusInternalException("Unsupported float string: %r" % value)
+        except ValueError as exc:
+            raise TaurusInternalException("Unsupported float string: %r" % value) from exc
         unit = unit.lower()
         if unit == 'ms':
             result += value / 1000.0
@@ -276,8 +276,8 @@ def get_bytes_count(str_bytes):
     value, unit = parts[0]
     try:
         value = float(value)
-    except ValueError:
-        raise TaurusConfigError("Unsupported float string: %r" % value)
+    except ValueError as exc:
+        raise TaurusConfigError("Unsupported float string: %r" % value) from exc
 
     unit = unit.lower()
     if unit in ('', 'b'):
@@ -1322,10 +1322,10 @@ class HTTPClient(object):
             msg = "Unsuccessful download from %s" % url
             if resp is not None:
                 msg += ": %s - %s" % (resp.status_code, resp.reason)
-            raise TaurusNetworkError(msg)
-        except BaseException:
+            raise TaurusNetworkError(msg) from exc
+        except BaseException as exc:
             self.log.debug("File download resulted in exception: %s", traceback.format_exc())
-            raise TaurusNetworkError("Unsuccessful download from %s" % url)
+            raise TaurusNetworkError("Unsuccessful download from %s" % url) from exc
 
         return filename, headers
 
@@ -1339,7 +1339,7 @@ class HTTPClient(object):
             msg = "Request to %s failed" % url
             if resp is not None:
                 msg += ": %s - %s" % (resp.status_code, resp.reason)
-            raise TaurusNetworkError(msg)
+            raise TaurusNetworkError(msg) from exc
 
 
 class HappysocksClient(HTTPClient):
@@ -2027,7 +2027,7 @@ class SoapUIScriptConverter(object):
             self.tree.parse(path)
         except BaseException as exc:
             msg = "XML parsing failed for file %s: %s"
-            raise TaurusInternalException(msg % (path, exc))
+            raise TaurusInternalException(msg % (path, exc)) from exc
 
     def _extract_headers(self, config_elem):
         headers_settings = config_elem.find(
