@@ -169,7 +169,7 @@ class Configuration(BetterDict):
                 raise
             except InvalidTaurusConfiguration:
                 raise
-            except BaseException as exc:
+            except Exception as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 
             if callback is not None:
@@ -183,8 +183,8 @@ class Configuration(BetterDict):
                 if doc is None:
                     continue
                 if not isinstance(doc, dict):
-                    raise InvalidTaurusConfiguration("Configuration %s is invalid" % config_file)
-                configs.append(doc)
+                    raise InvalidTaurusConfiguration('Configuration %s in invalid' % config_file) from yaml_load_exc
+            configs.extend(yaml_documents)
         except KeyboardInterrupt:
             raise
         except BaseException as yaml_load_exc:
@@ -193,10 +193,10 @@ class Configuration(BetterDict):
                 self.log.debug("Reading %s as JSON", config_file)
                 config_value = json.loads(contents)
                 if not isinstance(config_value, dict):
-                    raise InvalidTaurusConfiguration("Configuration %s in invalid" % config_file)
+                    raise InvalidTaurusConfiguration('Configuration %s in invalid' % config_file) from yaml_load_exc
                 configs.append(config_value)
             else:
-                raise
+                raise InvalidTaurusConfiguration('Configuration %s in invalid' % config_file) from yaml_load_exc
 
     def set_dump_file(self, filename):
         """

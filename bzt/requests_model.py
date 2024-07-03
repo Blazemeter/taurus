@@ -291,7 +291,7 @@ class RequestParser(object):
 
     def _parse_requests(self, raw_requests):
         requests = []
-        for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
+        for key in range(len(raw_requests)):
             req = ensure_is_dict(raw_requests, key, "url")
             if not self.require_url and "url" not in req:
                 req["url"] = None
@@ -299,7 +299,7 @@ class RequestParser(object):
                 requests.append(self._parse_request(req))
             except BaseException as exc:
                 logging.debug("%s\n%s" % (exc, traceback.format_exc()))
-                raise TaurusConfigError("Wrong request:\n %s" % req)
+                raise TaurusConfigError("Wrong request:\n %s" % req) from exc
         return requests
 
     def _parse_request(self, req):

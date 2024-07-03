@@ -592,8 +592,8 @@ class XUnitFileWriter(object):
             self.log.info("Writing JUnit XML report into: %s", fname)
             with open(get_full_path(fname), 'wb') as _fds:
                 etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
-        except BaseException:
-            raise TaurusInternalException("Cannot create file %s" % fname)
+        except BaseException as exc:
+            raise TaurusInternalException('Cannot create file %s' % fname) from exc
 
     def report_test_suite(self, suite_name):
         """

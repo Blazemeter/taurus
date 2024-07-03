@@ -454,7 +454,7 @@ class ScenarioExecutor(EngineModule, HavingInstallableTools):
         try:
             process = self.engine.start_subprocess(args=args, **kwargs)
         except OSError as exc:
-            raise ToolError("Failed to start %s: %s (%s)" % (self.__class__.__name__, exc, args))
+            raise ToolError(f"Failed to start {self.__class__.__name__}: {exc} ({args})")
         return process
 
     def get_error_diagnostics(self):

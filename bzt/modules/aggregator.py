@@ -908,7 +908,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.track_percentiles = list(set(self.track_percentiles))
         self.track_percentiles.sort()
         self.settings["percentiles"] = self.track_percentiles
-        
+    
         self.set_aggregation(self.settings.get('extend-aggregation'))
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
@@ -932,7 +932,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         count = len(self.track_percentiles)
         if count == 1:
             self.buffer_scale_idx = str(float(self.track_percentiles[0]))
-        if count > 1:
+        elif count > 1:
             percentile = self.settings.get("buffer-scale-choice", 0.5)
             percentiles = [i / (count - 1.0) for i in range(count)]
             distances = [abs(percentile - percentiles[i]) for i in range(count)]

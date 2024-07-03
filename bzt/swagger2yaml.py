@@ -81,14 +81,14 @@ class Swagger(object):
             self.log.debug("Loading Swagger spec as YAML")
             self.swagger = yaml_ordered_load(content, yaml.SafeLoader)
             self.log.info("Loaded Swagger spec %s", swagger_spec_fd)
-        except BaseException as exc:
+        except (yaml.YAMLError, ValueError) as exc:
             self.log.debug("Can't parse Swagger spec as YAML")
             try:
                 self.log.debug("Loading Swagger spec as JSON")
                 self.swagger = json.loads(content)
                 self.log.info("Loaded Swagger spec %s", swagger_spec_fd)
-            except BaseException:
-                raise TaurusConfigError("Error when parsing Swagger file '%s': %s" % (swagger_spec_fd, exc))
+            except json.JSONDecodeError as json_exc:
+                raise TaurusConfigError("Error when parsing Swagger file '%s': %s" % (swagger_spec_fd, json_exc)) from exc
 
     def _validate_swagger_version(self):
         swagger_version = self.swagger.get("swagger", self.swagger.get("openapi"))

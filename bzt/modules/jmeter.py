@@ -1554,8 +1554,7 @@ class JMeter(RequiredTool):
         except CALL_PROBLEMS as exc:
             msg = "JMeter check failed: %s" % exc
             if os.path.exists(self.tool_path):
-                raise ToolError(msg)
-
+                raise ToolError(msg) from exc
             self.log.debug(msg)
             return False
         finally:
@@ -1620,7 +1619,7 @@ class JMeter(RequiredTool):
                     raise
                 except BaseException as exc:
                     self.log.debug("Error details: %s", traceback.format_exc())
-                    raise TaurusNetworkError("Error while downloading %s: %s" % (_file, exc))
+                    raise TaurusNetworkError('Error while downloading %s: %s' % (_file, exc))
 
     def __install_plugins_manager(self, pm_installer_path):
         installer = "org.jmeterplugins.repository.PluginManagerCMDInstaller"
@@ -1629,7 +1628,7 @@ class JMeter(RequiredTool):
         try:
             out, err = self.call(cmd_line)
         except CALL_PROBLEMS as exc:
-            raise ToolError("Failed to install PluginsManager: %s" % exc)
+            raise ToolError('Failed to install PluginsManager') from exc
 
         self.log.debug("Install PluginsManager: %s / %s", out, err)
 
@@ -1643,7 +1642,7 @@ class JMeter(RequiredTool):
         try:
             out, err = self.call(cmd_line)
         except CALL_PROBLEMS as exc:
-            raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
+            raise ToolError('Failed to install plugins %s: %s' % (plugin_str, exc))
 
         self.log.debug("Install plugins: %s / %s", out, err)
 
