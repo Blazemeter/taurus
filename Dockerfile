@@ -57,7 +57,7 @@ RUN update-alternatives --install /usr/local/bin/rspec rspec /usr/local/rbenv/sh
 
 # firefox repo - do not use snap
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap
-RUN add-apt-repository ppa:mozillateam/ppa
+RUN add-apt-repository ppa:mozillateam/ppa -y
 RUN $APT_UPDATE && $APT_INSTALL firefox
 
 # set en_US.UTF-8 as default locale
