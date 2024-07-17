@@ -18,10 +18,10 @@ RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.10-dev
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
 # install python packages..
-RUN $PIP_INSTALL --user ./bzt*whl chardet
+RUN $PIP_INSTALL ./bzt*whl chardet
 
 # Fix vulnerabilities / outdated versions
-RUN $PIP_INSTALL --user --upgrade pip pillow oauthlib pyjwt httplib2 numpy fonttools wheel
+RUN $PIP_INSTALL --upgrade pip pillow oauthlib pyjwt httplib2 numpy fonttools wheel
 
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
