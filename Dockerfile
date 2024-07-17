@@ -21,7 +21,7 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 RUN $PIP_INSTALL ./bzt*whl chardet
 
 # Fix vulnerabilities / outdated versions
-RUN $PIP_INSTALL --user --upgrade pip pillow oauthlib pyjwt httplib2 numpy fonttools
+RUN $PIP_INSTALL --user --upgrade pip pillow oauthlib pyjwt httplib2 numpy fonttools wheel
 
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
@@ -57,7 +57,7 @@ RUN update-alternatives --install /usr/local/bin/rspec rspec /usr/local/rbenv/sh
 
 # firefox repo - do not use snap
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap
-RUN add-apt-repository ppa:mozillateam/firefox-next -y
+RUN add-apt-repository ppa:mozillateam/ppa -y
 RUN $APT_UPDATE && $APT_INSTALL firefox
 
 # set en_US.UTF-8 as default locale
