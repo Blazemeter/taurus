@@ -18,7 +18,7 @@ RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.10-dev
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
 # Fix vulnerabilities / outdated versions
-RUN $PIP_INSTALL --upgrade pip setuptools oauthlib pyjwt httplib2 numpy fonttools wheel mpmath sympy
+RUN $PIP_INSTALL --upgrade pip oauthlib pyjwt httplib2 numpy fonttools wheel mpmath sympy
 
 # install python packages..
 RUN $PIP_INSTALL ./bzt*whl chardet
@@ -102,7 +102,7 @@ RUN apt-get remove -y software-properties-common && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
 
 ### remove unused pem files
-WORKDIR /root/.bzt/python-packages/3.10.6/gevent/tests
+WORKDIR /root/.bzt/python-packages/3.10.12/gevent/tests
 RUN rm -rf *.pem
 
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && mkdir /bzt-configs /tmp/artifacts

@@ -21,3 +21,4 @@ urllib3==1.26.17
 mpmath>=1.3.0
 sympy>=1.13.0
 unicodecsv>=0.14.1
+setuptools==70.3.0
