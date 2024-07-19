@@ -103,6 +103,7 @@ RUN apt-get purge -y software-properties-common \
 ### remove unused pem files
 WORKDIR /root/.bzt/python-packages/3.10.12/gevent/tests
 RUN rm -rf *.pem
+RUN rm -rf *.key
 
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
