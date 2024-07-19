@@ -12,13 +12,13 @@ ADD https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.d
 COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
-# add node repo and call 'apt-get update'
+# add node repo and call 'apt-get update
 RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
 
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
 # Fix vulnerabilities / outdated versions
-RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 numpy fonttools wheel packaging
+RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 numpy fonttools wheel
 
 # install python packages..
 RUN $PIP_INSTALL ./bzt*whl chardet
@@ -106,8 +106,8 @@ RUN rm -rf *.pem
 
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
-# remove pip global dependencies
-RUN rm -rf /usr/lib/python3/dist-packages
+# Remove .egg-info directories to clean up
+RUN find $(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())") -name '*.egg-info' -exec rm -rf {} +
 
 # Rootless user
 # USER 1337:0
