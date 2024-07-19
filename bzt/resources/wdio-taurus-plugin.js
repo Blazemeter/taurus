@@ -1,5 +1,5 @@
 var fs = require("fs");
-var Launcher = require("@wdio/cli").default;
+var Launcher = require("@wdio/cli");
 
 function epoch() {
     return (new Date()).getTime() / 1000.0;
