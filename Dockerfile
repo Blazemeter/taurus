@@ -96,7 +96,7 @@ RUN ls -ll /usr/lib/python3/dist-packages
 RUN ls -ll /usr/local/lib/python3.10/dist-packages
 
 # Remove software-properties-common (used to install firefox from ppa) to fix vulnerabilities and clean up
-RUN apt-get remove -y software-properties-common && \
+RUN apt-get purge -y software-properties-common && \
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
