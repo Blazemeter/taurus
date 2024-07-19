@@ -1,5 +1,5 @@
 const fs = require("fs");
-const { Launcher } = await import('@wdio/cli');
+const {Launcher} = require('@wdio/cli');
 
 function epoch() {
     return (new Date()).getTime() / 1000.0;
