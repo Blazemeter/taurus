@@ -23,15 +23,9 @@ RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 numpy fonttools wh
 # install python packages..
 RUN $PIP_INSTALL ./bzt*whl chardet
 
-RUN ls -ll /usr/lib/python3/dist-packages
-RUN ls -ll /usr/local/lib/python3.10/dist-packages
-
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
     openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
-
-RUN ls -ll /usr/lib/python3/dist-packages
-RUN ls -ll /usr/local/lib/python3.10/dist-packages
 
 # Install .NET sdk
 # check this page for the links and hash
@@ -81,8 +75,6 @@ RUN $APT_INSTALL gpg-agent \
   && $APT_UPDATE \
   && $APT_INSTALL k6
 
-RUN ls -ll /usr/lib/python3/dist-packages
-RUN ls -ll /usr/local/lib/python3.10/dist-packages
 # auto installable tools
 RUN mkdir -p /etc/bzt.d \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
@@ -91,9 +83,6 @@ RUN mkdir -p /etc/bzt.d \
     /opt/google/chrome/google-chrome \
   && bzt -install-tools -v \
   && google-chrome-stable --version && firefox --version && dotnet --version | head -1
-
-RUN ls -ll /usr/lib/python3/dist-packages
-RUN ls -ll /usr/local/lib/python3.10/dist-packages
 
 # Remove software-properties-common (used to install firefox from ppa) to fix vulnerabilities and clean up
 RUN apt-get purge -y software-properties-common \
