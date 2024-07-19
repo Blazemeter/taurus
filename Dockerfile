@@ -108,7 +108,7 @@ RUN rm -rf *.key
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
 # Remove .egg-info directories to clean up
-RUN find $(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())") -name '*.egg-info' -exec rm -rf {} +
+RUN find $(python3 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())") -name '*.egg-info' -exec rm -rf {} +
 
 # Rootless user
 # USER 1337:0
