@@ -18,7 +18,7 @@ RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.10-dev
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
 # Fix vulnerabilities / outdated versions
-RUN $PIP_INSTALL --upgrade pip setuptools oauthlib pyjwt httplib2 numpy fonttools wheel mpmath sympy
+RUN $PIP_INSTALL --upgrade pip setuptools==70.3.0 oauthlib pyjwt httplib2 numpy fonttools wheel mpmath sympy
 
 # install python packages..
 RUN $PIP_INSTALL ./bzt*whl chardet
@@ -95,7 +95,7 @@ RUN mkdir -p /etc/bzt.d \
 RUN ls -ll /usr/lib/python3/dist-packages
 RUN ls -ll /usr/local/lib/python3.10/dist-packages
 
-# Remove software-properties-common to fix vulnerabilities and clean up
+# Remove software-properties-common (used to install firefox from ppa) to fix vulnerabilities and clean up
 RUN apt-get remove -y software-properties-common && \
     apt-get autoremove -y && \
     apt-get clean && \
@@ -105,7 +105,7 @@ RUN apt-get remove -y software-properties-common && \
 WORKDIR /root/.bzt/python-packages/3.10.6/gevent/tests
 RUN rm -rf *.pem
 
-RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
+RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && mkdir /bzt-configs /tmp/artifacts
 
 # Rootless user
 # USER 1337:0
