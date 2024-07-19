@@ -84,6 +84,9 @@ RUN mkdir -p /etc/bzt.d \
   && bzt -install-tools -v \
   && google-chrome-stable --version && firefox --version && dotnet --version | head -1
 
+#update node ws package
+RUN npm install -g ws
+
 # Remove software-properties-common (used to install firefox from ppa) to fix vulnerabilities and clean up
 RUN apt-get purge -y software-properties-common \
     && apt-get autoremove -y \
