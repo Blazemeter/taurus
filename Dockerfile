@@ -106,6 +106,9 @@ RUN rm -rf *.pem
 
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
+# remove pip global dependencies
+RUN rm -rf /usr/lib/python3/dist-packages
+
 # Rootless user
 # USER 1337:0
 WORKDIR /bzt-configs
