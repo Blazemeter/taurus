@@ -43,6 +43,8 @@ if not is_windows():
 
 
 class PipInstaller(Service):
+
+
     def __init__(self, packages=None, temp_flag=True):
         super(PipInstaller, self).__init__()
         self.packages = packages or []
@@ -52,6 +54,11 @@ class PipInstaller(Service):
         self.target_dir = None
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
+        library_name = 'setuptools'
+        library_version = '70.3.0'
+        with open('/tmp/bzt_constraints.txt', 'w') as file:
+            file.write(f'{library_name}=={library_version}\n')
+
 
     def _check_pip(self):
         cmdline = self.pip_cmd + ["--version"]
@@ -140,7 +147,7 @@ class PipInstaller(Service):
         if not self.packages:
             self.log.debug("Nothing to install")
             return
-        cmdline = self.pip_cmd + ["install", "-t", self.target_dir, "--no-deps"]
+        cmdline = self.pip_cmd + ["install", "-t", self.target_dir, "-c", "/tmp/bzt_constraints.txt"]
         for package in self.packages:
             version = self.versions.get(package, None)
             cmdline += [f"{package}=={version}"] if version else [package]
