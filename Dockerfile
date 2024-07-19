@@ -96,16 +96,15 @@ RUN ls -ll /usr/lib/python3/dist-packages
 RUN ls -ll /usr/local/lib/python3.10/dist-packages
 
 # Remove software-properties-common (used to install firefox from ppa) to fix vulnerabilities and clean up
-RUN apt-get purge -y software-properties-common && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+RUN apt-get purge -y software-properties-common \
+    && apt-get autoremove -y \
+    && apt-get clean
 
 ### remove unused pem files
 WORKDIR /root/.bzt/python-packages/3.10.12/gevent/tests
 RUN rm -rf *.pem
 
-RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && mkdir /bzt-configs /tmp/artifacts
+RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
 
 # Rootless user
 # USER 1337:0
