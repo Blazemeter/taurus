@@ -140,7 +140,7 @@ class PipInstaller(Service):
         if not self.packages:
             self.log.debug("Nothing to install")
             return
-        cmdline = self.pip_cmd + ["install", "-t", self.target_dir, "--upgrade", "--upgrade-strategy", "only-if-needed"]
+        cmdline = self.pip_cmd + ["install", "-t", self.target_dir, "--no-deps"]
         for package in self.packages:
             version = self.versions.get(package, None)
             cmdline += [f"{package}=={version}"] if version else [package]
