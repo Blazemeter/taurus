@@ -31,7 +31,7 @@ from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalExce
 from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.modules.javascript import NPMPackage, NPM
 from bzt.modules.jmeter import JMeterExecutor
-from bzt.utils import get_stacktrace, communicate, BetterDict, TaurusCalledProcessError, Environment, BZT_DIR
+from bzt.utils import get_stacktrace, communicate, BetterDict, TaurusCalledProcessError, Environment
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node, CALL_PROBLEMS, exec_and_communicate
 
@@ -43,7 +43,9 @@ if not is_windows():
 
 
 class PipInstaller(Service):
-    CONSTRAINTS_DIR = os.path.join(os.path.abspath(os.path.join(BZT_DIR, os.pardir)), "constraints.txt")
+    pip_constraints = {
+        'setuptools': '65.5.0'
+    }
 
     def __init__(self, packages=None, temp_flag=True):
         super(PipInstaller, self).__init__()
@@ -54,6 +56,10 @@ class PipInstaller(Service):
         self.target_dir = None
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
+        with open('/tmp/bzt_constraints.txt', 'w') as file:
+            for key, value in self.pip_constraints.items():
+                file.write(f'{key}=={value}\n')
+
 
     def _check_pip(self):
         cmdline = self.pip_cmd + ["--version"]
@@ -142,7 +148,7 @@ class PipInstaller(Service):
         if not self.packages:
             self.log.debug("Nothing to install")
             return
-        cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
+        cmdline = self.pip_cmd + ["install", "-t", self.target_dir, "-c", "/tmp/bzt_constraints.txt"]
         for package in self.packages:
             version = self.versions.get(package, None)
             cmdline += [f"{package}=={version}"] if version else [package]
@@ -606,7 +612,6 @@ class JmeterRampup(Service, Singletone):
                                           f'"{self.engine.artifacts_dir}", {self.log.getEffectiveLevel()}); '
                                           f'jm.run()'],
                                          stdout=self.stdout, stderr=self.stderr)
-
     def _close_and_remove_empty(self, fd):
         if not fd:
             return

@@ -18,3 +18,6 @@ influxdb >= 5.3
 python-socketio>=5.8.0
 websocket-client>=1.5.1
 urllib3==1.26.17
+# Set setuptools to 65.5.0 until this issue will be resolved https://github.com/pypa/setuptools/issues/4496
+# 65.5.0 is last version that supports python 3.7.0
+setuptools==65.5.0

@@ -1,3 +1,0 @@
-# This file contains list of pip packages, that should not be upgraded.
-# See install func from PipInstaller
-# setuptools==70.3.0
