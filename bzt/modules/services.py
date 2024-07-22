@@ -19,6 +19,7 @@ limitations under the License.
 import copy
 import json
 import os
+import tempfile
 import time
 import zipfile
 import sys
@@ -47,6 +48,8 @@ class PipInstaller(Service):
         'setuptools': '65.5.0'
     }
 
+    pip_constraints_file = None
+
     def __init__(self, packages=None, temp_flag=True):
         super(PipInstaller, self).__init__()
         self.packages = packages or []
@@ -56,10 +59,10 @@ class PipInstaller(Service):
         self.target_dir = None
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
-        with open('/tmp/bzt_constraints.txt', 'w') as file:
+        if not self.pip_constraints_file:
+            pip_constraints_file = tempfile.NamedTemporaryFile(delete=False, mode='w', newline='', suffix='.txt')
             for key, value in self.pip_constraints.items():
-                file.write(f'{key}=={value}\n')
-
+                pip_constraints_file.write(f'{key}=={value}\n')
 
     def _check_pip(self):
         cmdline = self.pip_cmd + ["--version"]
@@ -148,7 +151,7 @@ class PipInstaller(Service):
         if not self.packages:
             self.log.debug("Nothing to install")
             return
-        cmdline = self.pip_cmd + ["install", "-t", self.target_dir, "-c", "/tmp/bzt_constraints.txt"]
+        cmdline = self.pip_cmd + ["install", "-t", self.target_dir, "-c", self.pip_constraints_file.name]
         for package in self.packages:
             version = self.versions.get(package, None)
             cmdline += [f"{package}=={version}"] if version else [package]
@@ -612,6 +615,7 @@ class JmeterRampup(Service, Singletone):
                                           f'"{self.engine.artifacts_dir}", {self.log.getEffectiveLevel()}); '
                                           f'jm.run()'],
                                          stdout=self.stdout, stderr=self.stderr)
+
     def _close_and_remove_empty(self, fd):
         if not fd:
             return
