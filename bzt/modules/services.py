@@ -43,7 +43,7 @@ if not is_windows():
 
 
 class PipInstaller(Service):
-    CONSTRAINTS_DIR = os.path.join(BZT_DIR, "constraints.txt")
+    CONSTRAINTS_DIR = os.path.join(os.path.abspath(os.path.join(BZT_DIR, os.pardir)), "constraints.txt")
 
     def __init__(self, packages=None, temp_flag=True):
         super(PipInstaller, self).__init__()
