@@ -61,8 +61,9 @@ class PipInstaller(Service):
         self.pip_cmd = [self.interpreter, "-m", "pip"]
         if not self.pip_constraints_file:
             self.pip_constraints_file = tempfile.NamedTemporaryFile(delete=False, mode='w', newline='', suffix='.txt')
-            for key, value in self.pip_constraints.items():
-                self.pip_constraints_file.write(f'{key}=={value}\n')
+            with open(self.pip_constraints_file.name, 'w') as f:
+                for key, value in self.pip_constraints.items():
+                    f.write(f'{key}=={value}\n')
 
     def _check_pip(self):
         cmdline = self.pip_cmd + ["--version"]
