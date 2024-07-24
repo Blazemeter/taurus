@@ -237,23 +237,23 @@ class NPMPackage(RequiredTool):
 
 
 class Mocha(NPMPackage):
-    PACKAGE_NAME = "mocha@10.1.0"
+    PACKAGE_NAME = "mocha@10.6.0"
 
 
 class JSSeleniumWebdriver(NPMPackage):
-    PACKAGE_NAME = "selenium-webdriver@4.4.0"
+    PACKAGE_NAME = "selenium-webdriver@4.23.0"
 
 class WDIO(NPMPackage):
-    PACKAGE_NAME = "@wdio/cli@7.20.9"
+    PACKAGE_NAME = "@wdio/cli@7.36.0"
 
 class WDIORunner(NPMPackage):
-    PACKAGE_NAME = "@wdio/local-runner@7.20.9"
+    PACKAGE_NAME = "@wdio/local-runner@7.36.0"
 
 class WDIOReporter(NPMPackage):
-    PACKAGE_NAME = "@wdio/reporter@7.20.7"
+    PACKAGE_NAME = "@wdio/reporter@7.33.0"
 
 class WDIOMochaPlugin(NPMPackage):
-    PACKAGE_NAME = "@wdio/mocha-framework@7.20.7"
+    PACKAGE_NAME = "@wdio/mocha-framework@7.33.0"
 
 
 class TaurusMochaPlugin(RequiredTool):
