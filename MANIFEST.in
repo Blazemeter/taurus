@@ -1,5 +1,0 @@
-include LICENSE
-include NOTICE
-include requirements.txt
-include bzt/bzt-configs.json
-recursive-include bzt/resources *
