@@ -123,7 +123,7 @@ class RTEProtocolHandler(ProtocolHandler):
                 text = _input[key]
 
             elif re.match(r'\(.+?\)', key):
-                label = re.findall("\((.+?)\)", key)[0]
+                label = re.findall(r"\((.+?)\)", key)[0]
                 text = _input[key]
         return row, col, label, text, tabs
 

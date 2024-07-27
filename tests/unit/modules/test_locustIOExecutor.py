@@ -246,7 +246,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
                         "body": {'var1': 'val1'},
                         "assert": [{
                             'subject': 'body',
-                            'contains': '\w+l1e'}]}]}}})
+                            'contains': r'\w+l1e'}]}]}}})
         self.obj_prepare()
         self.assertFilesEqual(RESOURCES_DIR + "locust/generated_from_requests.py", self.obj.script)
         self.obj.post_process()

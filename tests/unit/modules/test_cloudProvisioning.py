@@ -2094,10 +2094,10 @@ class MasterFromLog(Master):
         return self._extract("GET https://a.blazemeter.com/api/v4/data/kpis")
 
     def get_aggregate_report(self):
-        return self._extract("GET https://a.blazemeter.com/api/v4/masters/\d+/reports/aggregatereport/data")
+        return self._extract(r"GET https://a.blazemeter.com/api/v4/masters/\d+/reports/aggregatereport/data")
 
     def get_errors(self):
-        tpl = "GET https://a.blazemeter.com/api/v4/masters/\d+/reports/errorsreport/data?noDataError=false"
+        tpl = r"GET https://a.blazemeter.com/api/v4/masters/\d+/reports/errorsreport/data?noDataError=false"
         return self._extract(tpl)
 
 

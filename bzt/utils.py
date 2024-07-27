@@ -175,9 +175,9 @@ def parse_java_version(versions):
         version = versions[0]
 
         if LooseVersion(version) > LooseVersion("6"):  # start of openjdk naming
-            major = re.findall("^([\d]*)", version)
+            major = re.findall(r"^([\d]*)", version)
         else:
-            major = re.findall("\.([\d]*)", version)
+            major = re.findall(r"\.([\d]*)", version)
 
         if major:
             return major[0]
@@ -1550,7 +1550,7 @@ class JavaVM(RequiredTool):
         super(JavaVM, self).__init__(installable=False, tool_path="java", **kwargs)
 
     def _get_version(self, output):
-        versions = re.findall("version\ \"([_\d\.]*)", output)
+        versions = re.findall(r"version\ \"([_\d\.]*)", output)
         version = parse_java_version(versions)
 
         if not version:
@@ -2014,7 +2014,7 @@ def get_assembled_value(configs, key, protect=False):
 
 def parse_think_time(think_time, full=False):
     distributions = ["uniform", "gaussian", "poisson"]
-    format_str = "^(%s)\(([\wd.]+)[,\s]+([\wd.]+)\)$"
+    format_str = r"^(%s)\(([\wd.]+)[,\s]+([\wd.]+)\)$"
     expr = re.compile(format_str % '|'.join(distributions), re.IGNORECASE)
     res = expr.match(str(think_time))
 

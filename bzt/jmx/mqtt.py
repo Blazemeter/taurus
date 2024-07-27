@@ -5,7 +5,7 @@ from bzt.utils import dehumanize_time, BetterDict
 from lxml import etree
 
 
-COUNT_CHECK_CONTENT = """
+COUNT_CHECK_CONTENT = r"""
 String resp_message = prev.getResponseMessage();
 int target_count_min = %s
 def match = (resp_message =~ /Received (\d+) of message./);
