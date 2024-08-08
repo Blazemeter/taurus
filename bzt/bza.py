@@ -414,19 +414,34 @@ class Project(BZAObject):
         if ident is not None:
             params["id"] = ident
 
-        res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
+        limit = 10
+        skip = 0
+        total = None
+
         tests = BZAObjectsList()
-        for item in res['result']:
-            if ident is not None and item['id'] != ident:
-                continue
+        found = False
+        while total is None or skip < total:
+            params["limit"] = limit
+            params["skip"] = skip
+            res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
+            total = res.get("total", 0)
+            for item in res['result']:
+                if ident is not None and item['id'] != ident:
+                    continue
 
-            if name is not None and item['name'] != name:
-                continue
+                if name is not None and item['name'] != name:
+                    continue
 
-            if test_type is not None and item['configuration']['type'] != test_type:
-                continue
+                if test_type is not None and item['configuration']['type'] != test_type:
+                    continue
 
-            tests.append(Test(self, item))
+                tests.append(Test(self, item))
+                if ident is not None:
+                    found = True
+                break
+            if found:
+               break
+            skip += limit
         return tests
 
     def create_test(self, name, configuration):
