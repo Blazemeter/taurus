@@ -390,18 +390,18 @@ class BZMock(object):
             'https://a.blazemeter.com/api/v4/user': {'id': 1,
                                                      'defaultProject': {'id': 1, 'accountId': 1, 'workspaceId': 1}},
             'https://a.blazemeter.com/api/v4/accounts': {"result": [{'id': 1, 'owner': {'id': 1}}]},
-            'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
+            'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100&skip=0': {
                 "result": [{'id': 1, 'enabled': True}]},
-            'https://a.blazemeter.com/api/v4/workspaces?accountId=2&enabled=true&limit=100': {
+            'https://a.blazemeter.com/api/v4/workspaces?accountId=2&enabled=true&limit=100&skip=0': {
                 "result": [{'id': 2, 'enabled': True}]},
-            'https://a.blazemeter.com/api/v4/workspaces?accountId=3&enabled=true&limit=100': {
+            'https://a.blazemeter.com/api/v4/workspaces?accountId=3&enabled=true&limit=100&skip=0': {
                 "result": [{'id': 3, 'enabled': True}]},
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=1000': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=1000': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=3&limit=1000': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=myproject': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=100&skip=0': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=100&skip=0': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=3&limit=100&skip=0': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=myproject&limit=100&skip=0': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name&limit=100&skip=0': {"result": []},
             'https://a.blazemeter.com/api/v4/tests/1/files': {"result": []},
             'https://a.blazemeter.com/api/v4/workspaces/1': {"result": {"locations": locs}},
         }

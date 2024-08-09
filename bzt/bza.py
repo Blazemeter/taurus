@@ -297,23 +297,45 @@ class User(BZAObject):
 class Account(BZAObject):
     def workspaces(self, ident=None, name=None):
         """
-        :rtype: BZAObjectsList[Workspace]
-        """
-        params = {"accountId": self['id'], 'enabled': 'true', 'limit': 100}
-        params = OrderedDict(sorted(params.items(), key=lambda t: t[0]))
-        res = self._request(self.address + '/api/v4/workspaces?' + urlencode(params))
+                :rtype: BZAObjectsList[Workspace]
+                """
+        # Initialize parameters
+        params = {"accountId": self['id'], 'enabled': 'true'}
+        # Pagination settings
+        limit = 100
+        skip = 0
+        total = None
+        # List to store the results
         workspaces = []
-        for wksp in res['result']:
-            if not wksp['enabled']:
-                continue
+        # Pagination loop
+        while total is None or skip < total:
+            params.update({"limit": limit, "skip": skip})
 
-            if name is not None and wksp['name'] != name:
-                continue
+            try:
+                # Make the API request
+                response = self._request(f"{self.address}/api/v4/workspaces?{urlencode(params)}")
+            except requests.RequestException as e:
+                print(f"Failed to fetch workspaces: {e}")
+                break
 
-            if ident is not None and wksp['id'] != ident:
-                continue
+            # Extract results and total count
+            total = response.get("total", 0)
+            results = response.get('result', [])
 
-            workspaces.append(Workspace(self, wksp))
+            # Filter and add workspaces
+            filtered_workspaces = (
+                wksp for wksp in results
+                if wksp['enabled'] and
+                   (name is None or wksp['name'] == name) and
+                   (ident is None or wksp['id'] == ident)
+            )
+
+            for wksp in filtered_workspaces:
+                workspaces.append(Workspace(self, wksp))
+                if ident:
+                    return BZAObjectsList(workspaces)  # Return early if specific ID is found
+
+            skip += limit
 
         return BZAObjectsList(workspaces)
 
@@ -321,28 +343,51 @@ class Account(BZAObject):
 class Workspace(BZAObject):
     def projects(self, name=None, ident=None):
         """
-        :rtype: BZAObjectsList[Project]
-        """
-        params = OrderedDict()
-        params.update({"workspaceId": self['id']})
+                :rtype: BZAObjectsList[Project]
+                """
+        # Initialize parameters
+        params = {"workspaceId": self['id']}
 
         if name:
-            params.update({"name": name})
+            params["name"] = name
 
-        if ident:
-            params.update({"limit": 1000})
+        # Pagination settings
+        limit = 100
+        skip = 0
+        total = None
 
-        res = self._request(self.address + '/api/v4/projects?' + urlencode(params))
-
+        # List to store projects
         projects = BZAObjectsList()
-        for item in res['result']:
-            if name is not None and item['name'] != name:
-                continue
 
-            if ident is not None and item['id'] != ident:
-                continue
+        # Pagination loop
+        while total is None or skip < total:
+            params.update({"limit": limit, "skip": skip})
 
-            projects.append(Project(self, item))
+            try:
+                # Make the API request
+                response = self._request(f"{self.address}/api/v4/projects?{urlencode(params)}")
+            except requests.RequestException as e:
+                print(f"Failed to fetch projects: {e}")
+                break
+
+            # Extract results and total count
+            total = response.get("total", 0)
+            results = response.get('result', [])
+
+            # Filter and add projects
+            filtered_projects = (
+                item for item in results
+                if (name is None or item['name'] == name) and
+                   (ident is None or item['id'] == ident)
+            )
+
+            for item in filtered_projects:
+                projects.append(Project(self, item))
+                if ident:
+                    return BZAObjectsList(projects)  # Return early if specific ID is found
+
+            skip += limit
+
         return BZAObjectsList(projects)
 
     def locations(self, include_private=False):
@@ -367,25 +412,51 @@ class Workspace(BZAObject):
         """
         :rtype: BZAObjectsList[Test]
         """
-        params = OrderedDict({"workspaceId": self['id']})
-        if name is not None:
+
+        params = {"workspaceId": self['id']}
+        if name:
             params["name"] = name
-        if ident is not None:
+        if ident:
             params["id"] = ident
 
-        res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
+        # Pagination settings
+        limit = 100
+        skip = 0
+        total = None
+
+        # List to store tests
         tests = BZAObjectsList()
-        for item in res['result']:
-            if ident is not None and item['id'] != ident:
-                continue
 
-            if name and item['name'] != name:
-                continue
+        # Pagination loop
+        while total is None or skip < total:
+            params.update({"limit": limit, "skip": skip})
 
-            if test_type and item['configuration']['type'] != test_type:
-                continue
+            try:
+                # Make the API request
+                response = self._request(f"{self.address}/api/v4/tests?{urlencode(params)}")
+            except requests.RequestException as e:
+                print(f"Failed to fetch tests: {e}")
+                break
 
-            tests.append(Test(self, item))
+            # Extract results and total count
+            total = response.get("total", 0)
+            results = response.get('result', [])
+
+            # Filter and add tests
+            filtered_tests = (
+                item for item in results
+                if (ident is None or item['id'] == ident) and
+                   (name is None or item['name'] == name) and
+                   (test_type is None or item['configuration']['type'] == test_type)
+            )
+
+            for item in filtered_tests:
+                tests.append(Test(self, item))
+                if ident:
+                    return tests  # Return early if specific ID is found
+
+            skip += limit
+
         return tests
 
     def create_project(self, proj_name):
@@ -408,40 +479,48 @@ class Project(BZAObject):
         """
         :rtype: BZAObjectsList[Test]
         """
-        params = OrderedDict({"projectId": self['id']})
-        if name is not None:
+        # Initialize parameters
+        params = {"projectId": self['id']}
+        if name:
             params["name"] = name
-        if ident is not None:
+        if ident:
             params["id"] = ident
 
+        # Pagination settings
         limit = 10
         skip = 0
         total = None
 
         tests = BZAObjectsList()
-        found = False
+
+        # Pagination loop
         while total is None or skip < total:
-            params["limit"] = limit
-            params["skip"] = skip
-            res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
-            total = res.get("total", 0)
-            for item in res['result']:
-                if ident is not None and item['id'] != ident:
-                    continue
-
-                if name is not None and item['name'] != name:
-                    continue
-
-                if test_type is not None and item['configuration']['type'] != test_type:
-                    continue
-
-                tests.append(Test(self, item))
-                if ident is not None:
-                    found = True
+            params.update({"limit": limit, "skip": skip})
+            try:
+                # Make the API request
+                response = self._request(f"{self.address}/api/v4/tests?{urlencode(params)}")
+            except requests.RequestException as e:
+                print(f"Failed to fetch tests: {e}")
                 break
-            if found:
-               break
+
+            # Extract results and total count
+            total = response.get("total", 0)
+            results = response.get('result', [])
+
+            # Filter and add tests
+            filtered_results = (
+                item for item in results
+                if (ident is None or item['id'] == ident) and
+                   (name is None or item['name'] == name) and
+                   (test_type is None or item['configuration']['type'] == test_type)
+            )
+            for item in filtered_results:
+                tests.append(Test(self, item))
+                if ident:
+                    return tests  # Return early if specific ID is found
+
             skip += limit
+
         return tests
 
     def create_test(self, name, configuration):
