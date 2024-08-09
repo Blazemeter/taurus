@@ -1421,7 +1421,6 @@ class JTLErrorsReader(object):
     def _get_response_data(self, element) -> Optional[ErrorResponseData]:
         content_type = self._get_response_content_type(element)
         content, content_size = self._get_response_content(element)
-        self.log.info("Found error response body of size %d and type '%s'.", content_size, content_type)
         if content is not None:
             return ErrorResponseData(content, content_type, content_size)
 
