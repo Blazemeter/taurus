@@ -22,8 +22,8 @@ class TestBlazeMeterUploader(BZTestCase):
     def test_some_errors(self):
         mock = BZMock()
         mock.mock_get.update({
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test&limit=10&skip=0': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name&limit=10&skip=0': {"result": []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test&limit=100&skip=0': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name&limit=100&skip=0': {"result": []},
             'https://a.blazemeter.com/api/v4/sessions/1': {"result": {'id': 1, "note": "somenote"}},
             'https://a.blazemeter.com/api/v4/masters/1': {"result": {'id': 1, "note": "somenote"}},
         })
@@ -135,8 +135,8 @@ class TestBlazeMeterUploader(BZTestCase):
         mock = BZMock()
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {"result": []},
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test&limit=10&skip=0': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name&limit=10&skip=0': {"result": []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test&limit=100&skip=0': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name&limit=100&skip=0': {"result": []},
         })
         mock.mock_post.update({
             'https://a.blazemeter.com/api/v4/projects': {"result": {
@@ -346,7 +346,7 @@ class TestBlazeMeterUploader(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {'result': [
                 {'id': 1, 'name': 'Taurus Test', 'configuration': {"type": 'external'}}
             ]},
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test&limit=10&skip=0': {'result': []}
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test&limit=100&skip=0': {'result': []}
         })
 
         mock.mock_post.update({
@@ -390,7 +390,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj = BlazeMeterUploader()
         mock = BZMock(obj._user)
         mock.mock_get.update({
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test&limit=10&skip=0': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test&limit=100&skip=0': {'result': []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=100&skip=0': {'result': [
                 {'id': 1, 'name': 'Proj name'}
             ]}
@@ -412,7 +412,7 @@ class TestBlazeMeterUploader(BZTestCase):
     def test_excluded_cumulative(self):
         mock = BZMock()
         mock.mock_get.update({
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test&limit=10&skip=0': {"result": []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test&limit=100&skip=0': {"result": []},
         })
         mock.mock_post.update({
             'https://a.blazemeter.com/api/v4/projects': {"result": {'id': 1}},

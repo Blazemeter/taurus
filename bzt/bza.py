@@ -487,7 +487,7 @@ class Project(BZAObject):
             params["id"] = ident
 
         # Pagination settings
-        limit = 10
+        limit = 100
         skip = 0
         total = None
 

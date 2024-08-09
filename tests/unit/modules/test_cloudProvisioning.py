@@ -41,7 +41,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.browser_open = False
         self.mock = BZMock(self.obj.user)
         self.mock.mock_get.update({
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=10&skip=0': {"result": []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {"result": []},
             'https://a.blazemeter.com/api/v4/tests/1/validations': {'result': [
                 {'status': 100,
                  'fileName': 'taurus.yml',
@@ -504,7 +504,7 @@ class TestCloudProvisioning(BZTestCase):
                 {'result': []},
                 {'result': [{'id': 1}]}
             ],
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=10&skip=0': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {'result': []},
         })
         self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
@@ -525,7 +525,7 @@ class TestCloudProvisioning(BZTestCase):
         )
         self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
-        self.assertEquals('https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=10&skip=0',
+        self.assertEquals('https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0',
                           self.mock.requests[7]['url'])
 
     def test_reuse_project_id(self):
@@ -536,7 +536,7 @@ class TestCloudProvisioning(BZTestCase):
             get={
                 "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=100&skip=0": {
                     "result": [{"id": 1, "name": "myproject", 'workspaceId': 1}]},
-                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=10&skip=0': {
+                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {
                     "result": [{"id": 1, "name": "Taurus Cloud Test", 'configuration': {'type': 'taurus'}}]
                 }
             },
@@ -1076,7 +1076,7 @@ class TestCloudProvisioning(BZTestCase):
                 {'result': []},
                 {'result': [{'id': 1}]}
             ],
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=10&skip=0': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {'result': []},
         }, post={
             'https://a.blazemeter.com/api/v4/tests/1/start?functionalExecution=true': {'result': {'id': 'mid'}}
         })
@@ -1112,7 +1112,7 @@ class TestCloudProvisioning(BZTestCase):
                     {'result': []},
                     {'result': [{'id': 1}]}
                 ],
-                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=10&skip=0': {'result': []},
+                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {'result': []},
             }, post={
                 'https://a.blazemeter.com/api/v4/tests/1/start?functionalExecution=true': {'result': {'id': 'mid'}}
             })
@@ -1148,7 +1148,7 @@ class TestCloudProvisioning(BZTestCase):
                     {'result': []},
                     {'result': [{'id': 1}]}
                 ],
-                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=10&skip=0': {'result': []},
+                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {'result': []},
             }, post={
                 'https://a.blazemeter.com/api/v4/tests/1/start?functionalExecution=true': {'result': {'id': 'mid'}}
             })
@@ -1172,7 +1172,7 @@ class TestCloudProvisioning(BZTestCase):
                 {'result': []},
                 {'result': [{'id': 1}]}
             ],
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=10&skip=0': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {'result': []},
             'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1, "progress": 100}},
             'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
             'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"functionalSummary": func_summary}},
@@ -1190,7 +1190,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_launch_existing_test(self):
         self.configure(
             get={
-                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=foo&limit=10&skip=0': {"result": [
+                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=foo&limit=100&skip=0': {"result": [
                     {"id": 1, "name": "foo", "configuration": {"type": "taurus"}}
                 ]},
             }
@@ -1207,7 +1207,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_launch_existing_test_by_id(self):
         self.configure(
             get={
-                'https://a.blazemeter.com/api/v4/tests?projectId=1&id=1&limit=10&skip=0': {"result": [
+                'https://a.blazemeter.com/api/v4/tests?projectId=1&id=1&limit=100&skip=0': {"result": [
                     {"id": 1, "name": "foo", "configuration": {"type": "taurus"}}
                 ]},
             }
@@ -1224,7 +1224,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_launch_existing_test_not_found_by_id(self):
         self.configure(
             get={
-                'https://a.blazemeter.com/api/v4/tests?projectId=1&id=1&limit=10&skip=0': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?projectId=1&id=1&limit=100&skip=0': {"result": []},
             }
         )
 
@@ -1236,7 +1236,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_launch_existing_test_not_found(self):
         self.configure(
             get={
-                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=foo&limit=10&skip=0': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=foo&limit=100&skip=0': {"result": []},
             }
         )
 
@@ -1248,7 +1248,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_launch_existing_test_non_taurus(self):
         self.configure(
             get={
-                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=foo&limit=10&skip=0': {"result": [
+                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=foo&limit=100&skip=0': {"result": [
                     {"id": 1, "name": "foo", "configuration": {"type": "jmeter"}}
                 ]},
             }
@@ -1271,7 +1271,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=100&skip=0': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
-                'https://a.blazemeter.com/api/v4/tests?projectId=3&id=4&limit=10&skip=0': {"result": [
+                'https://a.blazemeter.com/api/v4/tests?projectId=3&id=4&limit=100&skip=0': {"result": [
                     {"id": 4, "name": "foo", "configuration": {"type": "taurus"}}
                 ]},
                 'https://a.blazemeter.com/api/v4/tests/4/validations': {'result': [
@@ -1321,7 +1321,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=100&skip=0': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
-                'https://a.blazemeter.com/api/v4/tests?projectId=3&id=4&limit=10&skip=0': {"result": [
+                'https://a.blazemeter.com/api/v4/tests?projectId=3&id=4&limit=100&skip=0': {"result": [
                     {"id": 4, "name": "foo", "configuration": {"type": "taurus"}}
                 ]},
                 'https://a.blazemeter.com/api/v4/tests/4/validations': {'result': [
@@ -1357,7 +1357,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/projects?workspaceId=2&name=Project+name&limit=100&skip=0': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
-                'https://a.blazemeter.com/api/v4/tests?projectId=3&name=Test+name&limit=10&skip=0': {"result": [
+                'https://a.blazemeter.com/api/v4/tests?projectId=3&name=Test+name&limit=100&skip=0': {"result": [
                     {"id": 4, "name": "Test name", "configuration": {"type": "taurus"}}
                 ]},
                 'https://a.blazemeter.com/api/v4/tests/4/validations': {'result': [
@@ -1397,7 +1397,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=100&skip=0': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
-                'https://a.blazemeter.com/api/v4/tests?projectId=3&id=4&limit=10&skip=0': {"result": [
+                'https://a.blazemeter.com/api/v4/tests?projectId=3&id=4&limit=100&skip=0': {"result": [
                     {"id": 4, "name": "Test name", "configuration": {"type": "taurus"}}
                 ]},
                 'https://a.blazemeter.com/api/v4/tests/4/validations': {'result': [
@@ -1453,7 +1453,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
-                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=ExternalTest&limit=10&skip=0': {"result": [
+                'https://a.blazemeter.com/api/v4/tests?projectId=1&name=ExternalTest&limit=100&skip=0': {"result": [
                     {"id": 4, "name": "ExternalTest", "configuration": {"type": "external"}},
                 ]},
             },
@@ -1478,7 +1478,7 @@ class TestCloudProvisioning(BZTestCase):
                 {'result': []},
                 {'result': [{'id': 1}]}
             ],
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=10&skip=0': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {'result': []},
         }, post={
             'https://a.blazemeter.com/api/v4/tests/1/start': {'result': {'id': 'mid'}}
         })
@@ -1500,7 +1500,7 @@ class TestCloudProvisioning(BZTestCase):
                 {'result': []},
                 {'result': [{'id': 1}]}
             ],
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=10&skip=0': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {'result': []},
         }, post={
             'https://a.blazemeter.com/api/v4/tests/1/start': {'result': {'id': 'mid'}}
         })
@@ -1643,7 +1643,7 @@ class TestCloudProvisioning(BZTestCase):
                                                           'defaultProject': {'id': 1, 'accountId': 1,
                                                                              'workspaceId': 1}},
                 'https://some-bzm-link.com/api/v4/projects?workspaceId=1&limit=100&skip=0': {"result": []},
-                'https://some-bzm-link.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=10&skip=0': {"result": []},
+                'https://some-bzm-link.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {"result": []},
                 'https://some-bzm-link.com/api/v4/workspaces/1': {"result": {"locations": [
                     {'id': 'us-east-1', 'sandbox': False, 'title': 'East'}]}},
                 'https://some-bzm-link.com/api/v4/tests/1/validations': {'result': [
