@@ -1261,7 +1261,7 @@ class JTLErrorsReader(object):
         self.collect_error_response_bodies = False
         self.error_response_bodies_limit = ERROR_RESPONSE_BODIES_LIMIT
         self.error_response_bodies_size_limit = ERROR_RESPONSE_BODIES_SIZE_LIMIT
-        self._collected_error_responses: dict = {}
+        self._collected_error_responses: set = set()
 
     def set_aggregation(self, aggregation):
         self._redundant_aggregation = aggregation
@@ -1355,19 +1355,16 @@ class JTLErrorsReader(object):
             label = self.label_converter(label=label, rc=r_code, msg=r_msg)
 
         for resp_body in err_item['responseBodies']:
-            if self._should_not_collect_error_response(label, r_code, r_msg, resp_body['hash']):
+            if self._should_not_collect_error_response(resp_body['hash']):
                 err_item['responseBodies'].remove(resp_body)
 
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
-    def _should_not_collect_error_response(self, label: str, rc: str, msg: str, response_hash: int) -> bool:
-        key = (label, rc, msg)
-        responses = self._collected_error_responses.get(key) if key in self._collected_error_responses else set()
-        if len(responses) == self.error_response_bodies_limit:
+    def _should_not_collect_error_response(self, response_hash: int) -> bool:
+        if len(self._collected_error_responses) == self.error_response_bodies_limit:
             return True
-        responses.add(response_hash)
-        self._collected_error_responses[key] = responses
+        self._collected_error_responses.add(response_hash)
         return False
 
     def _extract_nonstandard(self, elem):
@@ -1385,7 +1382,10 @@ class JTLErrorsReader(object):
         e_msg = ""
         url = None
         err_type = KPISet.ERRTYPE_ERROR
+
         err_response_data: Optional[ErrorResponseData] = None
+        if self.collect_error_response_bodies:
+            err_response_data = self._get_response_data(element)
 
         a_msg, name = get_child_assertion(element)
 
@@ -1393,8 +1393,6 @@ class JTLErrorsReader(object):
             e_msg = element.get("rm", default="")
             url = element.xpath(self.url_xpath)
             url = url[0].text if url else element.get("lb")
-            if self.collect_error_response_bodies:
-                err_response_data = self._get_response_data(element)
         elif a_msg:
             err_type = KPISet.ERRTYPE_ASSERT
         elif element.get("s") == "false":  # has failed sub element, we should look deeper...
@@ -1423,7 +1421,6 @@ class JTLErrorsReader(object):
     def _get_response_data(self, element) -> Optional[ErrorResponseData]:
         content_type = self._get_response_content_type(element)
         content, content_size = self._get_response_content(element)
-        self.log.info("Found error response body of size %d and type '%s'.", content_size, content_type)
         if content is not None:
             return ErrorResponseData(content, content_type, content_size)
 
@@ -1445,7 +1442,7 @@ class JTLErrorsReader(object):
 
         if headers_text is not None:
             headers = JTLReaderUtils.parse_http_headers(headers_text)
-            return headers['Content-Type'] if 'Content-Type' in headers_text else None
+            return headers['Content-Type'] if 'Content-Type' in headers else None
 
 
 class XMLJTLReader(JTLErrorsReader, ResultsReader):
@@ -1479,12 +1476,12 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
-    PLUGINS_MANAGER_VERSION = "1.7"
+    PLUGINS_MANAGER_VERSION = "1.10"
     PLUGINS_MANAGER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
-    COMMAND_RUNNER_VERSION = "2.2"
+    COMMAND_RUNNER_VERSION = "2.3"
     COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
     VERSION = "5.5"
-    VERSION_LATEST = "5.6.3"
+    VERSION_LATEST = "5.6.2"
 
     def __init__(self, config=None, props=None, **kwargs):
         settings = config or BetterDict()

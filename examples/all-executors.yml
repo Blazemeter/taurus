@@ -133,6 +133,11 @@ execution:
       - url: http://localhost:8000/
         label: Gatling
 
+- executor: gatling  # Gatling
+  scenario:
+    script: gatling/test11.jar
+    simulation: com.test.RecordedSimulation
+
 - executor: siege  # http://localhost:8000/?tool=Siege
   concurrency: 1
   hold-for: 10s
@@ -178,3 +183,26 @@ execution:
   scenario:
     requests:
       - url: http://localhost:8000/?tool=Apiritif
+
+- executor: nunit  # IsFive_ExistingVariable_ReturnFive - 10 samples
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/dotnet/NUnitTests.dll
+
+- executor: xunit  # IsFive_ExistingVariable_ReturnFive - 10 more samples
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/dotnet/XUnitTests.dll
+
+modules:
+  gatling:
+    version: 3.9.5
+    properties:
+      gatling.data.file.bufferSize: 512 # output buffer size, 256 bytes by default
+      your_variable: 1024
+    additional-classpath:
+      - test.jar

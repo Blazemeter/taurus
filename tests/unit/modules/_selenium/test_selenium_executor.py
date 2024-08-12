@@ -163,14 +163,22 @@ class TestSeleniumExecutor(SeleniumTestCase):
 
         self.assertNotIn('--iterations', self.CMD_LINE)
 
-    def test_func_ds_no_iter(self):
+    def test_iterations_from_test_data_dependencies(self):
         self.configure({
             EXEC: {
                 "executor": "apiritif",
                 "scenario": {
                     "data-sources": ['one.csv'],
                     "requests": [
-                        "http://blazedemo.com"]}}})
+                        "http://blazedemo.com"]}},
+            "dependencies": {
+                "data": {
+                    "iteration": {
+                        "repeat": 7
+                    }
+                }
+            }
+        })
 
         self.obj.engine.aggregator.is_functional = True
         self.obj_prepare()
@@ -178,7 +186,7 @@ class TestSeleniumExecutor(SeleniumTestCase):
         self.obj.startup()
         self.obj.post_process()
 
-        self.assertNotIn('--iterations', self.CMD_LINE)
+        self.assertIn("--iterations 7", self.CMD_LINE)
 
 
 class TestSeleniumStuff(SeleniumTestCase):
@@ -438,7 +446,7 @@ class TestReportReader(BZTestCase):
         arch, ext = chrome_driver._get_arch_and_ext_for_chromedriver()
         chrome_driver._expand_download_link()
         self.assertEqual(
-            'https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing'
+            'https://storage.googleapis.com/chrome-for-testing-public'
             '/116.0.5845.96/' + arch + '/chromedriver-' + arch + '.zip',
             chrome_driver.download_link)
         settings = {"version": "110.0.5481.77"}

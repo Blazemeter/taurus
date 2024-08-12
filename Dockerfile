@@ -4,28 +4,39 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 ENV APT_UPDATE="apt-get -y update"
-ENV PIP_INSTALL="python3 -m pip install"
+ENV PIP_INSTALL="python3 -m pip install --no-cache-dir"
 
-ADD https://deb.nodesource.com/setup_16.x /tmp
+ADD https://deb.nodesource.com/setup_18.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
 ADD https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.deb /tmp
 COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
-RUN bash ./setup_16.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
+RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
 
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+
+# Fix vulnerabilities / outdated versions
+RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 numpy fonttools wheel
 
 # install python packages..
 RUN $PIP_INSTALL ./bzt*whl chardet
 
-# Fix vulnerabilities / outdated versions
-RUN $PIP_INSTALL --user --upgrade pip pillow oauthlib pyjwt httplib2 numpy
-
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
-    openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung dotnet-sdk-6.0 libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
+    openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
+
+# Install .NET sdk
+# check this page for the links and hash
+# https://dotnetcli.azureedge.net/dotnet/release-metadata/8.0/releases.json
+RUN curl -fSL --output dotnet.tar.gz https://download.visualstudio.microsoft.com/download/pr/60218cc4-13eb-41d5-aa0b-5fd5a3fb03b8/6c42bee7c3651b1317b709a27a741362/dotnet-sdk-8.0.303-linux-x64.tar.gz \
+    && dotnet_sha512='814ff07ccdfc8160c4a24adfda6c815e7feace88c59722f827a5a27041719067538754911fc15cb46978e16566fe0938695891723d182055190e876131faedda' \
+    && echo "$dotnet_sha512 dotnet.tar.gz" | sha512sum -c - \
+    && mkdir -p /usr/share/dotnet \
+    && tar -zxf dotnet.tar.gz -C /usr/share/dotnet \
+    && rm dotnet.tar.gz \
+    && ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Install rbenv and ruby-build
 SHELL ["/bin/bash", "-c"]
@@ -46,7 +57,7 @@ RUN update-alternatives --install /usr/local/bin/rspec rspec /usr/local/rbenv/sh
 
 # firefox repo - do not use snap
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap
-RUN add-apt-repository ppa:mozillateam/ppa
+RUN add-apt-repository ppa:mozillateam/ppa -y
 RUN $APT_UPDATE && $APT_INSTALL firefox
 
 # set en_US.UTF-8 as default locale
@@ -73,11 +84,20 @@ RUN mkdir -p /etc/bzt.d \
   && bzt -install-tools -v \
   && google-chrome-stable --version && firefox --version && dotnet --version | head -1
 
+# Remove software-properties-common (used to install firefox from ppa) to fix vulnerabilities and clean up
+RUN apt-get purge -y software-properties-common \
+    && apt-get autoremove -y \
+    && apt-get clean
+
 ### remove unused pem files
-WORKDIR /root/.bzt/python-packages/3.10.6/gevent/tests
+WORKDIR /root/.bzt/python-packages/3.10.12/gevent/tests
 RUN rm -rf *.pem
+RUN rm -rf *.key
 
 RUN rm -rf /usr/share/javascript/jquery && rm -rf /usr/share/javascript/jquery-ui && rm -rf /tmp/* && mkdir /bzt-configs /tmp/artifacts
+
+# Remove .egg-info directories to clean up
+RUN find $(python3 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())") -name '*.egg-info' -exec rm -rf {} +
 
 # Rootless user
 # USER 1337:0

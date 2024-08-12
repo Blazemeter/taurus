@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.16.33<sup> 12 August 2024</sup>
+- Fixed response haeaders extractor
+- Fixed pagination in blazemeter api client
+- Vulnerability fixes
+
+## 1.16.32<sup> 25 June 2024</sup>
+- Java helpers updated to 1.10 (Added support for JUnit's DisplayName annotation)
+- Upgrade node to 18
+- Limits error response bodies collection to 10 per test
+- Modified RPS value to avoid 0.001 to reduce timeouts.
+- Consume all passed ramp-up plan steps and execute last of them
+- Properly handled cases where duration or steps are none
+- Fixed ramp-up to start at the end of the increase interval, not the beginning
+- Added coverage improvements
+- Reverted changes that set concurrency at the end of the interval to match BlazeMeter UI
+- Added the pyscripts module to the Taurus package
+- Removed Newman executor from doc index
+
+## 1.16.31<sup> 29 April 2024</sup>
+- Fixed resolution of JMX test duration, that contains user variables.
+
+## 1.16.30<sup> 16 April 2024</sup>
+- Dependencies upgrade
+
 ## 1.16.29<sup> 26 February 2024</sup>
 - Allow reports inside actions instead of requests
 - Retrieve response content type from response headers

@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 import zipfile
+from io import StringIO
 from os.path import join
 
 import bzt.modules.services
@@ -12,11 +13,14 @@ from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules._locustio import LocustIOExecutor
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.javascript import NPM
-from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller, PythonTool
+from bzt.modules.jmeter import JMeterExecutor
+from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader, PipInstaller, PythonTool, JmeterRampup
 from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node, is_windows
 from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
 from tests.unit.mocks import ModuleMock, BZMock
 from tests.unit.modules._selenium import MockPythonTool
+
+from unittest import mock
 
 
 class TestPipInstaller(BZTestCase):
@@ -122,7 +126,7 @@ class TestZipFolder(BZTestCase):
         obj.settings["token"] = "FakeToken"
         mock = BZMock(obj.user)
         mock.mock_get.update({
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {
                 "result": [{"id": 1, 'name': 'Taurus Cloud Test', "configuration": {"type": "taurus"}}]
             },
             'https://a.blazemeter.com/api/v4/tests/1/validations': {'result': [
@@ -133,7 +137,7 @@ class TestZipFolder(BZTestCase):
         })
         mock.mock_post.update({
             'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1}},
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {
                 "result": {"id": 1, "configuration": {"type": "taurus"}}
             },
             'https://a.blazemeter.com/api/v4/tests/1/files': {},
@@ -374,3 +378,96 @@ class TestAppiumLoader(BZTestCase):
         os.chmod(join(dest_dir, 'appium' + EXE_SUFFIX), 0o755)
         shutil.copy2(join(src_dir, 'appium.py'), dest_dir)
         self.appium.settings['path'] = join(dest_dir, 'appium' + EXE_SUFFIX)
+
+class TestJmeterRampup(BZTestCase):
+    def setUp(self):
+        super(TestJmeterRampup, self).setUp()
+        self.engine = EngineEmul()
+        self.engine.config.merge({'services': {'jmx-rampup': {}}})
+        self.log = logging.getLogger('')
+        self.captured_logger = None
+
+        self.jmeter_rampup = JmeterRampup()
+        self.jmeter_rampup.engine = self.engine
+        self.jmeter_rampup.settings = self.engine.config['services']['jmx-rampup']
+
+    def tearDown(self):
+        pass
+
+    def test_jmeter_rampup_disabled(self):
+        self.sniff_log()
+
+        self.jmeter_rampup.settings['enabled'] = False
+        self.jmeter_rampup.prepare()
+        with mock.patch('bzt.modules.services.shell_exec') as m:
+            self.jmeter_rampup.startup()
+            m.assert_not_called()
+        self.jmeter_rampup.shutdown()
+        self.jmeter_rampup.post_process()
+
+        self.assertIn('Blazemeter dynamic concurrency control is disabled',
+                      self.log_recorder.debug_buff.getvalue())
+        self.assertNotIn('Starting Blazemeter dynamic concurrency control...',
+                         self.log_recorder.info_buff.getvalue())
+        self.assertNotIn('Stopping rampup...', self.log_recorder.debug_buff.getvalue())
+
+    def test_jmeter_rampup_enabled(self):
+        self.sniff_log()
+
+        self.jmeter_rampup.settings['enabled'] = True
+        self.jmeter_rampup.prepare()
+        with mock.patch('bzt.modules.services.shell_exec') as m:
+            self.jmeter_rampup.startup()
+            m.assert_called()
+        self.jmeter_rampup.shutdown()
+        self.jmeter_rampup.post_process()
+
+        self.assertNotIn('Blazemeter dynamic concurrency control is disabled',
+                      self.log_recorder.debug_buff.getvalue())
+        self.assertIn('Starting Blazemeter dynamic concurrency control...',
+                         self.log_recorder.info_buff.getvalue())
+        self.assertIn('Stopping rampup...', self.log_recorder.debug_buff.getvalue())
+
+    def test_jmeter_rampup_benshell_ports(self):
+        self.sniff_log()
+
+        self.jmeter_rampup.settings['enabled'] = True
+        with mock.patch('bzt.modules.services.shell_exec') as m:
+            self.jmeter_rampup.startup()
+            m.assert_called()
+
+        self.assertNotIn('Blazemeter dynamic concurrency control is disabled',
+                         self.log_recorder.debug_buff.getvalue())
+        self.assertIn('Starting Blazemeter dynamic concurrency control...',
+                      self.log_recorder.info_buff.getvalue())
+        self.assertIn("Jmeter bsh ports: [('localhost', 9000)]", self.log_recorder.info_buff.getvalue())
+
+        # set jmeter executors to extract beanshell ports from
+        executors = self.engine.provisioning.executors
+        try:
+            jmxExecutor = JMeterExecutor()
+            jmxExecutor.__setattr__("beanshell_port", 9876)
+            self.engine.provisioning.executors.append(jmxExecutor)
+
+            jmxExecutor = JMeterExecutor()
+            jmxExecutor.__setattr__("beanshell_port", 9999)
+            self.engine.provisioning.executors.append(jmxExecutor)
+
+            jmxExecutor = JMeterExecutor()
+            self.engine.provisioning.executors.append(jmxExecutor)
+
+            self.engine.provisioning.executors.append(None)
+
+            self.log_recorder.debug_buff = StringIO()
+            self.log_recorder.info_buff = StringIO()
+
+            with mock.patch('bzt.modules.services.shell_exec') as m:
+                self.jmeter_rampup.startup()
+                m.assert_called()
+
+            self.assertIn('Starting Blazemeter dynamic concurrency control...',
+                          self.log_recorder.info_buff.getvalue())
+            self.assertIn("Jmeter bsh ports: [('localhost', 9876), ('localhost', 9999)]",
+                          self.log_recorder.info_buff.getvalue())
+        finally:
+            self.engine.provisioning.executors = executors

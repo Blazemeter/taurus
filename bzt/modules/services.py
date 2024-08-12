@@ -19,6 +19,7 @@ limitations under the License.
 import copy
 import json
 import os
+import tempfile
 import time
 import zipfile
 import sys
@@ -30,6 +31,7 @@ from urllib.error import URLError
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.modules.javascript import NPMPackage, NPM
+from bzt.modules.jmeter import JMeterExecutor
 from bzt.utils import get_stacktrace, communicate, BetterDict, TaurusCalledProcessError, Environment
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node, CALL_PROBLEMS, exec_and_communicate
@@ -42,6 +44,12 @@ if not is_windows():
 
 
 class PipInstaller(Service):
+    pip_constraints = {
+        'setuptools': '65.5.0'
+    }
+
+    pip_constraints_file = None
+
     def __init__(self, packages=None, temp_flag=True):
         super(PipInstaller, self).__init__()
         self.packages = packages or []
@@ -51,6 +59,11 @@ class PipInstaller(Service):
         self.target_dir = None
         self.interpreter = sys.executable
         self.pip_cmd = [self.interpreter, "-m", "pip"]
+        if not self.pip_constraints_file:
+            self.pip_constraints_file = tempfile.NamedTemporaryFile(delete=False, mode='w', newline='', suffix='.txt')
+            with open(self.pip_constraints_file.name, 'w') as f:
+                for key, value in self.pip_constraints.items():
+                    f.write(f'{key}=={value}\n')
 
     def _check_pip(self):
         cmdline = self.pip_cmd + ["--version"]
@@ -139,7 +152,7 @@ class PipInstaller(Service):
         if not self.packages:
             self.log.debug("Nothing to install")
             return
-        cmdline = self.pip_cmd + ["install", "-t", self.target_dir]
+        cmdline = self.pip_cmd + ["install", "-t", self.target_dir, "-c", self.pip_constraints_file.name]
         for package in self.packages:
             version = self.versions.get(package, None)
             cmdline += [f"{package}=={version}"] if version else [package]
@@ -548,3 +561,76 @@ class VirtualDisplay(Service, Singletone):
 
     def shutdown(self):
         self.free_virtual_display()
+
+
+class JmeterRampup(Service, Singletone):
+    def __init__(self):
+        super(JmeterRampup, self).__init__()
+        self.env = Environment(log=self.log)
+        self.rampup_process = None
+        self.rampup_addr = None
+        self.rampup_port = None
+        self.rampup_pass = None
+        self.stdout = None
+        self.stderr = None
+
+    def prepare(self):
+        super(JmeterRampup, self).prepare()
+
+        self.rampup_addr = self.settings.get('rampup_addr', 'localhost')
+        self.rampup_port = self.settings.get('rampup_port', 6000)
+        self.rampup_pass = self.settings.get('rampup_pass', 'blazemeter')
+
+    def startup(self):
+        super(JmeterRampup, self).startup()
+
+        if not self.settings.get('enabled', False):
+            self.log.debug('Blazemeter dynamic concurrency control is disabled')
+            return
+
+        beanshell_ports = []
+        for executor in self.engine.provisioning.executors:
+            if not isinstance(executor, JMeterExecutor):
+                continue
+            try:
+                port = executor.__getattribute__("beanshell_port")
+                beanshell_ports.append(('localhost', port))
+            except AttributeError:
+                self.log.warning("No beanshell port for executor: %s", executor)
+                continue
+
+        if len(beanshell_ports) == 0:
+            self.log.warning('No bsh ports defined in any of jmeter executor.')
+            beanshell_ports = [('localhost', 9000)]  # Default one as fallback
+
+        self.log.info(f'Starting Blazemeter dynamic concurrency control... '
+                      f'Rampup control: {self.rampup_addr}:{self.rampup_port} '
+                      f'Jmeter bsh ports: {beanshell_ports}')
+        self.stdout = open(os.path.join(self.engine.artifacts_dir, 'rampup.out'), 'wt')
+        self.stderr = open(os.path.join(self.engine.artifacts_dir, 'rampup.err'), 'wt')
+        self.rampup_process = shell_exec(['python3',
+                                          '-c',
+                                          f'from bzt.modules.pyscripts.jmxrampup import JmeterRampupProcess; '
+                                          f'jm = JmeterRampupProcess({beanshell_ports}, '
+                                          f'"{self.rampup_addr}", {self.rampup_port}, "{self.rampup_pass}", '
+                                          f'"{self.engine.artifacts_dir}", {self.log.getEffectiveLevel()}); '
+                                          f'jm.run()'],
+                                         stdout=self.stdout, stderr=self.stderr)
+
+    def _close_and_remove_empty(self, fd):
+        if not fd:
+            return
+
+        if not fd.closed:
+            fd.close()
+        _file = fd.name
+        if not os.stat(_file).st_size:
+            os.remove(_file)
+
+    def shutdown(self):
+        if self.rampup_process:
+            self.log.debug('Stopping rampup...')
+            shutdown_process(self.rampup_process, self.log)
+
+        self._close_and_remove_empty(self.stdout)
+        self._close_and_remove_empty(self.stderr)

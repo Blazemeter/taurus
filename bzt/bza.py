@@ -297,53 +297,90 @@ class User(BZAObject):
 class Account(BZAObject):
     def workspaces(self, ident=None, name=None):
         """
-        :rtype: BZAObjectsList[Workspace]
-        """
-        params = {"accountId": self['id'], 'enabled': 'true', 'limit': 100}
-        params = OrderedDict(sorted(params.items(), key=lambda t: t[0]))
-        res = self._request(self.address + '/api/v4/workspaces?' + urlencode(params))
+                :rtype: BZAObjectsList[Workspace]
+                """
+        # Initialize parameters
+        if ident:
+            return self.workspace(name=name, ident=ident)
+        params = {"accountId": self['id'], 'enabled': 'true'}
+        # Pagination settings
+        limit = 100
+        skip = 0
+        total = None
+        # List to store the results
         workspaces = []
-        for wksp in res['result']:
-            if not wksp['enabled']:
-                continue
+        # Pagination loop
+        while total is None or skip < total:
+            params.update({"limit": limit, "skip": skip})
+            response = self._request(f"{self.address}/api/v4/workspaces?{urlencode(params)}")
+            # Extract results and total count
+            total = response.get("total", 0)
+            results = response.get('result', [])
 
-            if name is not None and wksp['name'] != name:
-                continue
+            # Filter and add workspaces
+            for workspace in results:
+                if workspace['enabled'] and (name is None or workspace['name'] == name):
+                    workspaces.append(Workspace(self, workspace))
 
-            if ident is not None and wksp['id'] != ident:
-                continue
-
-            workspaces.append(Workspace(self, wksp))
+            skip += limit
 
         return BZAObjectsList(workspaces)
 
+    def workspace(self, name=None, ident=None):
+        workspaces = BZAObjectsList()
+        response = self._request(f"{self.address}/api/v4/workspaces/{ident}")
+        result = response.get('result', None)
+        if result and (name is None or result['name'] == name):
+            workspaces.append(Workspace(self, result))
+        return workspaces
 
 class Workspace(BZAObject):
     def projects(self, name=None, ident=None):
         """
-        :rtype: BZAObjectsList[Project]
-        """
-        params = OrderedDict()
-        params.update({"workspaceId": self['id']})
+                :rtype: BZAObjectsList[Project]
+                """
+        if ident:
+            return self.project(name=name, ident=ident)
+        # Initialize parameters
+        params = {"workspaceId": self['id']}
 
         if name:
-            params.update({"name": name})
+            params["name"] = name
 
-        if ident:
-            params.update({"limit": 1000})
+        # Pagination settings
+        limit = 100
+        skip = 0
+        total = None
 
-        res = self._request(self.address + '/api/v4/projects?' + urlencode(params))
-
+        # List to store projects
         projects = BZAObjectsList()
-        for item in res['result']:
-            if name is not None and item['name'] != name:
-                continue
 
-            if ident is not None and item['id'] != ident:
-                continue
+        # Pagination loop
+        while total is None or skip < total:
+            params.update({"limit": limit, "skip": skip})
 
-            projects.append(Project(self, item))
+            response = self._request(f"{self.address}/api/v4/projects?{urlencode(params)}")
+            # Extract results and total count
+            total = response.get("total", 0)
+            results = response.get('result', [])
+
+            # Filter and add projects
+            for item in results:
+                if name is None or item['name'] == name:
+                    projects.append(Project(self, item))
+
+            skip += limit
+
         return BZAObjectsList(projects)
+
+    def project(self, name=None, ident=None):
+        projects = BZAObjectsList()
+        response = self._request(f"{self.address}/api/v4/projects/{ident}")
+        result = response.get('result', None)
+        if result and (name is None or result['name'] == name) \
+                and result['workspaceId'] == self['id']:
+            projects.append(Project(self, result))
+        return projects
 
     def locations(self, include_private=False):
         if 'locations' not in self:
@@ -367,25 +404,46 @@ class Workspace(BZAObject):
         """
         :rtype: BZAObjectsList[Test]
         """
-        params = OrderedDict({"workspaceId": self['id']})
-        if name is not None:
+        if ident:
+            return self.test(name=name, ident=ident, test_type=test_type)
+        params = {"workspaceId": self['id']}
+        if name:
             params["name"] = name
-        if ident is not None:
-            params["id"] = ident
 
-        res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
+        # Pagination settings
+        limit = 100
+        skip = 0
+        total = None
+
+        # List to store tests
         tests = BZAObjectsList()
-        for item in res['result']:
-            if ident is not None and item['id'] != ident:
-                continue
 
-            if name and item['name'] != name:
-                continue
+        # Pagination loop
+        while total is None or skip < total:
+            params.update({"limit": limit, "skip": skip})
+            response = self._request(f"{self.address}/api/v4/tests?{urlencode(params)}")
+            # Extract results and total count
+            total = response.get("total", 0)
+            results = response.get('result', [])
 
-            if test_type and item['configuration']['type'] != test_type:
-                continue
+            # Filter and add tests
+            for item in results:
+                if (name is None or item['name'] == name) and (
+                        test_type is None or item['configuration']['type'] == test_type):
+                    tests.append(Test(self, item))
 
-            tests.append(Test(self, item))
+            skip += limit
+
+        return tests
+
+    def test(self, name=None, ident=None, test_type=None):
+        response = self._request(f"{self.address}/api/v4/tests/{ident}")
+        result = response.get('result', None)
+
+        tests = BZAObjectsList()
+        if result and (name is None or result['name'] == name) \
+                and (test_type is None or result['configuration']['type'] == test_type):
+            tests.append(Test(self, result))
         return tests
 
     def create_project(self, proj_name):
@@ -408,26 +466,48 @@ class Project(BZAObject):
         """
         :rtype: BZAObjectsList[Test]
         """
-        params = OrderedDict({"projectId": self['id']})
-        if name is not None:
+        # Initialize parameters
+        if ident:
+            return self.test(name=name, ident=ident, test_type=test_type)
+        params = {"projectId": self['id']}
+        if name:
             params["name"] = name
-        if ident is not None:
-            params["id"] = ident
 
-        res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
+        # Pagination settings
+        limit = 100
+        skip = 0
+        total = None
+
         tests = BZAObjectsList()
-        for item in res['result']:
-            if ident is not None and item['id'] != ident:
-                continue
+        # Pagination loop
+        while total is None or skip < total:
+            params.update({"limit": limit, "skip": skip})
+            response = self._request(f"{self.address}/api/v4/tests?{urlencode(params)}")
+            # Extract results and total count
+            total = response.get("total", 0)
+            results = response.get('result', [])
 
-            if name is not None and item['name'] != name:
-                continue
+            # Filter and add tests
+            for item in results:
+                if (name is None or item['name'] == name) and (
+                        test_type is None or item['configuration']['type'] == test_type):
+                    tests.append(Test(self, item))
 
-            if test_type is not None and item['configuration']['type'] != test_type:
-                continue
+            skip += limit
 
-            tests.append(Test(self, item))
         return tests
+
+    def test(self, name=None, ident=None, test_type=None):
+        response = self._request(f"{self.address}/api/v4/tests/{ident}")
+        result = response.get('result', None)
+
+        tests = BZAObjectsList()
+        if result and (name is None or result['name'] == name) \
+                and (test_type is None or result['configuration']['type'] == test_type)\
+                and (result.get('projectId') == self['id']):
+            tests.append(Test(self, result))
+        return tests
+
 
     def create_test(self, name, configuration):
         """
