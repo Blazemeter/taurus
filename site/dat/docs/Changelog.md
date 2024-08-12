@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.16.33<sup> 12 August 2024</sup>
+- Fixed response haeaders extractor
+- Fixed pagination in blazemeter api client
+- Vulnerability fixes
+
 ## 1.16.32<sup> 25 June 2024</sup>
 - Java helpers updated to 1.10 (Added support for JUnit's DisplayName annotation)
 - Upgrade node to 18
