@@ -345,6 +345,8 @@ class Workspace(BZAObject):
         """
                 :rtype: BZAObjectsList[Project]
                 """
+        if ident:
+            return self.project(name=name, ident=ident)
         # Initialize parameters
         params = {"workspaceId": self['id']}
 
@@ -375,20 +377,26 @@ class Workspace(BZAObject):
             results = response.get('result', [])
 
             # Filter and add projects
-            filtered_projects = (
-                item for item in results
-                if (name is None or item['name'] == name) and
-                   (ident is None or item['id'] == ident)
-            )
-
-            for item in filtered_projects:
-                projects.append(Project(self, item))
-                if ident:
-                    return BZAObjectsList(projects)  # Return early if specific ID is found
+            for item in results:
+                if name is None or item['name'] == name:
+                    projects.append(Project(self, item))
 
             skip += limit
 
         return BZAObjectsList(projects)
+
+    def project(self, name=None, ident=None):
+        projects = BZAObjectsList()
+        try:
+            response = self._request(f"{self.address}/api/v4/projects/{ident}")
+        except requests.RequestException as e:
+            print(f"Failed to fetch projects: {e}")
+
+        result = response.get('result', None)
+        if result and (name is None or result['name'] == name) \
+                and result['workspaceId'] == self['id']:
+            projects.append(Project(self, result))
+        return projects
 
     def locations(self, include_private=False):
         if 'locations' not in self:
@@ -412,12 +420,11 @@ class Workspace(BZAObject):
         """
         :rtype: BZAObjectsList[Test]
         """
-
+        if ident:
+            return self.test(name=name, ident=ident, test_type=test_type)
         params = {"workspaceId": self['id']}
         if name:
             params["name"] = name
-        if ident:
-            params["id"] = ident
 
         # Pagination settings
         limit = 100
@@ -443,20 +450,26 @@ class Workspace(BZAObject):
             results = response.get('result', [])
 
             # Filter and add tests
-            filtered_tests = (
-                item for item in results
-                if (ident is None or item['id'] == ident) and
-                   (name is None or item['name'] == name) and
-                   (test_type is None or item['configuration']['type'] == test_type)
-            )
-
-            for item in filtered_tests:
-                tests.append(Test(self, item))
-                if ident:
-                    return tests  # Return early if specific ID is found
+            for item in results:
+                if (name is None or item['name'] == name) and (
+                        test_type is None or item['configuration']['type'] == test_type):
+                    tests.append(Test(self, item))
 
             skip += limit
 
+        return tests
+
+    def test(self, name=None, ident=None, test_type=None):
+        tests = BZAObjectsList()
+        try:
+            response = self._request(f"{self.address}/api/v4/tests/{ident}")
+        except requests.RequestException as e:
+            print(f"Failed to fetch tests: {e}")
+
+        result = response.get('result', None)
+        if result and (name is None or result['name'] == name) \
+                and (test_type is None or result['configuration']['type'] == test_type):
+            tests.append(Test(self, result))
         return tests
 
     def create_project(self, proj_name):
@@ -480,11 +493,11 @@ class Project(BZAObject):
         :rtype: BZAObjectsList[Test]
         """
         # Initialize parameters
+        if ident:
+            return self.test(name=name, ident=ident, test_type=test_type)
         params = {"projectId": self['id']}
         if name:
             params["name"] = name
-        if ident:
-            params["id"] = ident
 
         # Pagination settings
         limit = 100
@@ -508,20 +521,29 @@ class Project(BZAObject):
             results = response.get('result', [])
 
             # Filter and add tests
-            filtered_results = (
-                item for item in results
-                if (ident is None or item['id'] == ident) and
-                   (name is None or item['name'] == name) and
-                   (test_type is None or item['configuration']['type'] == test_type)
-            )
-            for item in filtered_results:
-                tests.append(Test(self, item))
-                if ident:
-                    return tests  # Return early if specific ID is found
+            for item in results:
+                if (name is None or item['name'] == name) and (
+                        test_type is None or item['configuration']['type'] == test_type):
+                    tests.append(Test(self, item))
 
             skip += limit
 
         return tests
+
+    def test(self, name=None, ident=None, test_type=None):
+        tests = BZAObjectsList()
+        try:
+            response = self._request(f"{self.address}/api/v4/tests/{ident}")
+        except requests.RequestException as e:
+            print(f"Failed to fetch tests: {e}")
+
+        result = response.get('result', None)
+        if result and (name is None or result['name'] == name) \
+                and (test_type is None or result['configuration']['type'] == test_type)\
+                and (result.get('projectId') == self['id']):
+            tests.append(Test(self, result))
+        return tests
+
 
     def create_test(self, name, configuration):
         """
