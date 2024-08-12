@@ -310,14 +310,7 @@ class Account(BZAObject):
         # Pagination loop
         while total is None or skip < total:
             params.update({"limit": limit, "skip": skip})
-
-            try:
-                # Make the API request
-                response = self._request(f"{self.address}/api/v4/workspaces?{urlencode(params)}")
-            except requests.RequestException as e:
-                print(f"Failed to fetch workspaces: {e}")
-                break
-
+            response = self._request(f"{self.address}/api/v4/workspaces?{urlencode(params)}")
             # Extract results and total count
             total = response.get("total", 0)
             results = response.get('result', [])
@@ -365,13 +358,7 @@ class Workspace(BZAObject):
         while total is None or skip < total:
             params.update({"limit": limit, "skip": skip})
 
-            try:
-                # Make the API request
-                response = self._request(f"{self.address}/api/v4/projects?{urlencode(params)}")
-            except requests.RequestException as e:
-                print(f"Failed to fetch projects: {e}")
-                break
-
+            response = self._request(f"{self.address}/api/v4/projects?{urlencode(params)}")
             # Extract results and total count
             total = response.get("total", 0)
             results = response.get('result', [])
@@ -387,11 +374,7 @@ class Workspace(BZAObject):
 
     def project(self, name=None, ident=None):
         projects = BZAObjectsList()
-        try:
-            response = self._request(f"{self.address}/api/v4/projects/{ident}")
-        except requests.RequestException as e:
-            print(f"Failed to fetch projects: {e}")
-
+        response = self._request(f"{self.address}/api/v4/projects/{ident}")
         result = response.get('result', None)
         if result and (name is None or result['name'] == name) \
                 and result['workspaceId'] == self['id']:
@@ -437,14 +420,7 @@ class Workspace(BZAObject):
         # Pagination loop
         while total is None or skip < total:
             params.update({"limit": limit, "skip": skip})
-
-            try:
-                # Make the API request
-                response = self._request(f"{self.address}/api/v4/tests?{urlencode(params)}")
-            except requests.RequestException as e:
-                print(f"Failed to fetch tests: {e}")
-                break
-
+            response = self._request(f"{self.address}/api/v4/tests?{urlencode(params)}")
             # Extract results and total count
             total = response.get("total", 0)
             results = response.get('result', [])
@@ -460,13 +436,10 @@ class Workspace(BZAObject):
         return tests
 
     def test(self, name=None, ident=None, test_type=None):
-        tests = BZAObjectsList()
-        try:
-            response = self._request(f"{self.address}/api/v4/tests/{ident}")
-        except requests.RequestException as e:
-            print(f"Failed to fetch tests: {e}")
-
+        response = self._request(f"{self.address}/api/v4/tests/{ident}")
         result = response.get('result', None)
+
+        tests = BZAObjectsList()
         if result and (name is None or result['name'] == name) \
                 and (test_type is None or result['configuration']['type'] == test_type):
             tests.append(Test(self, result))
@@ -505,17 +478,10 @@ class Project(BZAObject):
         total = None
 
         tests = BZAObjectsList()
-
         # Pagination loop
         while total is None or skip < total:
             params.update({"limit": limit, "skip": skip})
-            try:
-                # Make the API request
-                response = self._request(f"{self.address}/api/v4/tests?{urlencode(params)}")
-            except requests.RequestException as e:
-                print(f"Failed to fetch tests: {e}")
-                break
-
+            response = self._request(f"{self.address}/api/v4/tests?{urlencode(params)}")
             # Extract results and total count
             total = response.get("total", 0)
             results = response.get('result', [])
@@ -531,13 +497,10 @@ class Project(BZAObject):
         return tests
 
     def test(self, name=None, ident=None, test_type=None):
-        tests = BZAObjectsList()
-        try:
-            response = self._request(f"{self.address}/api/v4/tests/{ident}")
-        except requests.RequestException as e:
-            print(f"Failed to fetch tests: {e}")
-
+        response = self._request(f"{self.address}/api/v4/tests/{ident}")
         result = response.get('result', None)
+
+        tests = BZAObjectsList()
         if result and (name is None or result['name'] == name) \
                 and (test_type is None or result['configuration']['type'] == test_type)\
                 and (result.get('projectId') == self['id']):
