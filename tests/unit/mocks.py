@@ -406,7 +406,7 @@ class BZMock(object):
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=myproject&limit=100&skip=0': {"result": []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name&limit=100&skip=0': {"result": []},
             'https://a.blazemeter.com/api/v4/tests/1/files': {"result": []},
-            'https://a.blazemeter.com/api/v4/workspaces/1': {"result": {"locations": locs}},
+            'https://a.blazemeter.com/api/v4/workspaces/1': {"result": {"id": 1, "locations": locs, "enabled": True}},
         }
 
         self.mock_post = {}

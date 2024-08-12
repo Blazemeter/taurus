@@ -601,7 +601,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={EXEC: {"executor": "mock"}},
             get={
-                'https://a.blazemeter.com/api/v4/workspaces/1': {"result": {"locations": locs}},
+                'https://a.blazemeter.com/api/v4/workspaces/1': {"result": {"id": 1, "locations": locs}},
             }
         )
         self.obj.user.token = "key"
@@ -1268,6 +1268,8 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100&skip=0': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
+                'https://a.blazemeter.com/api/v4/workspaces/2': {"result": {"id": 2,
+                                                                 "enabled": True}},
                 'https://a.blazemeter.com/api/v4/projects/3': {
                     "result": {"id": 3, "name": "Project name", "workspaceId": 2}
                 },
@@ -1397,6 +1399,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100&skip=0': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
+                'https://a.blazemeter.com/api/v4/workspaces/2': {"result": {"id": 2, "enabled": True}},
                 'https://a.blazemeter.com/api/v4/projects/3': {
                     "result": {"id": 3, "name": "Project name", "workspaceId": 2}
                 },
@@ -1647,7 +1650,7 @@ class TestCloudProvisioning(BZTestCase):
                                                                              'workspaceId': 1}},
                 'https://some-bzm-link.com/api/v4/projects/1': {"result": []},
                 'https://some-bzm-link.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test&limit=100&skip=0': {"result": []},
-                'https://some-bzm-link.com/api/v4/workspaces/1': {"result": {"locations": [
+                'https://some-bzm-link.com/api/v4/workspaces/1': {"result": {"id": 1, "locations": [
                     {'id': 'us-east-1', 'sandbox': False, 'title': 'East'}]}},
                 'https://some-bzm-link.com/api/v4/tests/1/validations': {'result': [
                     {'status': 100,

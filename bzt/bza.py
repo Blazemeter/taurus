@@ -300,6 +300,8 @@ class Account(BZAObject):
                 :rtype: BZAObjectsList[Workspace]
                 """
         # Initialize parameters
+        if ident:
+            return self.workspace(name=name, ident=ident)
         params = {"accountId": self['id'], 'enabled': 'true'}
         # Pagination settings
         limit = 100
@@ -316,22 +318,21 @@ class Account(BZAObject):
             results = response.get('result', [])
 
             # Filter and add workspaces
-            filtered_workspaces = (
-                wksp for wksp in results
-                if wksp['enabled'] and
-                   (name is None or wksp['name'] == name) and
-                   (ident is None or wksp['id'] == ident)
-            )
-
-            for wksp in filtered_workspaces:
-                workspaces.append(Workspace(self, wksp))
-                if ident:
-                    return BZAObjectsList(workspaces)  # Return early if specific ID is found
+            for workspace in results:
+                if workspace['enabled'] and (name is None or workspace['name'] == name):
+                    workspaces.append(Workspace(self, workspace))
 
             skip += limit
 
         return BZAObjectsList(workspaces)
 
+    def workspace(self, name=None, ident=None):
+        workspaces = BZAObjectsList()
+        response = self._request(f"{self.address}/api/v4/workspaces/{ident}")
+        result = response.get('result', None)
+        if result and (name is None or result['name'] == name):
+            workspaces.append(Workspace(self, result))
+        return workspaces
 
 class Workspace(BZAObject):
     def projects(self, name=None, ident=None):
