@@ -279,7 +279,9 @@ class CloudProvisioning(MasterProvisioning):
             self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
 
         self.router.sanitize_test()
-        self._validate_taurus_yml()
+
+        if not self.launch_existing_test:
+            self._validate_taurus_yml()
 
         self.report_name = self.settings.get("report-name", self.report_name)
         if self.report_name == 'ask' and sys.stdin.isatty():
