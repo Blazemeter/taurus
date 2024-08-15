@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.16.34<sup> 15 August 2024</sup>
+- Fixed the execution of existing cloud tests
+- Fixed the execution of TestNG Selenium tests
+
 ## 1.16.33<sup> 12 August 2024</sup>
 - Fixed response haeaders extractor
 - Fixed pagination in blazemeter api client
