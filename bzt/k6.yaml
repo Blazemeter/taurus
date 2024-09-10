@@ -1,0 +1,15 @@
+execution:
+- executor: k6
+  concurrency: 250
+  iterations: 0
+  hold-for: 10m  # execution duration
+  ramp-up: 15
+  scenario: k6
+scenarios:
+  k6:
+    script: blaze.js  # has to be a valid K6 script
+
+#TODO remove multi-stage-ramp-up, use native ramp-up steps
+#modules:
+#  k6:
+#    multi-stage-ramp-up: "10s:5,10s:10,10s:0"

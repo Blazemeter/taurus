@@ -17,7 +17,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.modules import ScenarioExecutor
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
-from bzt.utils import RequiredTool, CALL_PROBLEMS, FileReader, shutdown_process
+from bzt.utils import RequiredTool, CALL_PROBLEMS, FileReader, shutdown_process, dehumanize_time
 
 
 class K6Executor(ScenarioExecutor):
@@ -46,19 +46,79 @@ class K6Executor(ScenarioExecutor):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
+    def add_ramp_up(self, durations):
+        stages = []
+
+        # Iterate over each tuple to create a stage object
+        for duration, target in durations:
+            stage = {
+                "duration": f"{duration}s",
+                "target": target
+            }
+            # Append stage to the list
+            stages.append(stage)
+
+        # Convert stages list to JavaScript array string
+        stages_js = ',\n'.join(
+            f'{{ duration: \'{stage["duration"]}\', target: {stage["target"]} }}' for stage in stages)
+
+        # Generate the final JavaScript options string
+        ramp_up_settings = f'''export const options = {{
+             stages: [
+                 {stages_js}
+             ],
+         }};'''
+
+        # Read the JS file
+        with open(self.script, 'r') as file:
+            content = file.read()
+            modified_content = content + '\n' + ramp_up_settings
+
+        # Write the modified content back to the file
+        with open(self.script, 'w') as file:
+            file.write(modified_content)
+
+    @staticmethod
+    def parse_duration_string(duration_str):
+        duration_list = []
+        pairs = duration_str.split(',')
+        for pair in pairs:
+            key, value = pair.split(':')
+            duration_list.append((dehumanize_time(key or 0), int(value)))
+        return duration_list
+
+    @staticmethod
+    def get_ramp_up_total_duration(durations):
+        total_duration = 0
+        for key, value in durations:
+            total_duration += key
+        return total_duration
+
     def startup(self):
         cmdline = [self.k6.tool_name, "run", "--out", f"csv={self.kpi_file}"]
 
         load = self.get_load()
-        if load.concurrency:
-            cmdline += ['--vus', str(load.concurrency)]
-
-        if load.hold:
-            cmdline += ['--duration', str(int(load.hold)) + "s"]
-
-        if load.iterations:
-            iterations = load.iterations * load.concurrency if load.concurrency else load.iterations
-            cmdline += ['--iterations', str(iterations)]
+        ramp_up = None
+        if load.ramp_up:
+            ramp_up = str(load.ramp_up) + "s:" + str(load.concurrency)
+        # TODO remove multi-stage-ramp-up, use native ramp-up steps, its only for a prototype
+        ramp_up = self.settings.get("multi-stage-ramp-up", default=ramp_up)
+        if ramp_up:
+            ramp_up_stages = self.parse_duration_string(ramp_up)
+            ramp_up_duration = self.get_ramp_up_total_duration(ramp_up_stages)
+            # ramp up to the required concurrency
+            ramp_up_stages.append((0, load.concurrency))
+            # hold for the required duration
+            ramp_up_stages.append(((int(load.hold) - ramp_up_duration), load.concurrency))
+            self.add_ramp_up(ramp_up_stages)
+        else:
+            if load.concurrency:
+                cmdline += ['--vus', str(load.concurrency)]
+            if load.hold:
+                cmdline += ['--duration', str(int(load.hold)) + "s"]
+            if load.iterations:
+                iterations = load.iterations * load.concurrency if load.concurrency else load.iterations
+                cmdline += ['--iterations', str(iterations)]
 
         user_cmd = self.settings.get("cmdline")
         if user_cmd:
