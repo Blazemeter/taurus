@@ -45,7 +45,7 @@ sudo python3 -m pip install --upgrade bzt
 ```
 
 Alternatively, you can install using virtualenv, and you won't need sudo privileges for Taurus. 
-Please see [virtualenv](https://virtualenv.pypa.io/en/stable/installation/) instructions for setting up 
+Please see [virtualenv](https://virtualenv.pypa.io/en/latest/installation.html) instructions for setting up 
 your Python virtual environments, if you haven't done so already.
 
 Then, to install Taurus, type:
@@ -96,7 +96,7 @@ pip3 install --upgrade bzt
 
 Preparation steps:
 
-1. Get Python 3.7+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
+1. Get Python 3.7+ from [http://www.python.org/downloads](https://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
 2. Get the latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
 3. Get the latest [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16) and install it.
 

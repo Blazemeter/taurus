@@ -10,7 +10,7 @@ _By: Yuri Bushnev, May 2017_
 
 Taurus is an open source automation framework that provides the ability to create test performance scripts from scratch or use existing scripts, and to configure run options. These options include many features that help execute and analyze script results.
 
-The main idea behind the Taurus framework is that the script creation/configuration language is more user-friendly than options provided by other testing tools. Taurus, with its YAML-based syntax or JSON languages, helps to generate scripts in [Apache JMeter™](http://jmeter.apache.org/), [Gatling](http://gatling.io/) and additional tools.
+The main idea behind the Taurus framework is that the script creation/configuration language is more user-friendly than options provided by other testing tools. Taurus, with its YAML-based syntax or JSON languages, helps to generate scripts in [Apache JMeter™](https://jmeter.apache.org/), [Gatling](http://gatling.io/) and additional tools.
 
 There are also many additional advantages: 
 - Very clear human-readable scenarios 
@@ -46,7 +46,7 @@ scenarios:
       url: http://www.blazedemo.com/
 ```
 
-As you can see, Taurus script files are human-readable. In the provided example we simulate simple get requests to _**blazedemo.com**_ from 20 different users for 1 minute. Ramp-up means the onboarding time for all users, and the hold-for parameter means that the target load is held for 1 minute. Taurus uses [JMeter](http://www.blazemeter.com/jmeter-load-testing?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo) as a default test executor, but you can choose different [executors](/docs/ExecutionSettings/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo): [Selenium](/docs/Selenium/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo), [Gatling](/docs/Gatling/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo), [Locust](/docs/Locust/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo), etc.
+As you can see, Taurus script files are human-readable. In the provided example we simulate simple get requests to _**blazedemo.com**_ from 20 different users for 1 minute. Ramp-up means the onboarding time for all users, and the hold-for parameter means that the target load is held for 1 minute. Taurus uses [JMeter](https://www.blazemeter.com/jmeter-load-testing?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo) as a default test executor, but you can choose different [executors](/docs/ExecutionSettings/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo): [Selenium](/docs/Selenium/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo), [Gatling](/docs/Gatling/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo), [Locust](/docs/Locust/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo), etc.
 
 To run that script using Taurus execute the following command:
 
@@ -124,7 +124,7 @@ To do so and to see your tests results, change the command in the “Script body
 bzt /{path_to_yml_script}/script1.yml -report
 ```
 
-The “-report” command runs a [BlazeMeter](http://a.blazemeter.com/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo) reporter. It uploads your test to the BlazeMeter app, which contains everything you need to get as much as possible from your performance metrics. It’s a sufficient reporting functionality that feeds results to the server, so you don’t need to provide any additional configuration. The report link is received in the console text. This link is automatically opened in the browser, and you will see the web application with your test execution:
+The “-report” command runs a [BlazeMeter](https://a.blazemeter.com/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo) reporter. It uploads your test to the BlazeMeter app, which contains everything you need to get as much as possible from your performance metrics. It’s a sufficient reporting functionality that feeds results to the server, so you don’t need to provide any additional configuration. The report link is received in the console text. This link is automatically opened in the browser, and you will see the web application with your test execution:
 
 ![](bamboo10.png)
 

@@ -24,7 +24,7 @@
 
     <url link="support" menu="1" title="Support Forum" accept="1"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted"
-         base="http://groups.google.com/forum/#!forum/codename-taurus"/>
+         base="https://github.com/Blazemeter/taurus/issues"/>
 
     <url link="Changelog" menu="1" title="Changelog" accept="1"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="/docs/Changelog/"

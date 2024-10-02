@@ -2,7 +2,7 @@
 
 _By: Yuri Bushnev, June 2017_
 
-Taurus is an open source framework for performance tests automation. It can be used to run scripts from scratch as well as allows running tests from other open source tools. These include [JMeter](http://jmeter.apache.org/), [Gatling](http://gatling.io/), [Selenium](http://www.seleniumhq.org/) or [Locust](http://locust.io/). 
+Taurus is an open source framework for performance tests automation. It can be used to run scripts from scratch as well as allows running tests from other open source tools. These include [JMeter](https://jmeter.apache.org/), [Gatling](https://gatling.io/), [Selenium](https://www.seleniumhq.org/) or [Locust](https://locust.io/). 
 
 Taurus simplifies use of existing automation tools and provides a user-friendly and convenient "wrapper". One of Taurus's main strengths is that it can be integrated with any [continuous integration](https://www.blazemeter.com/jenkins?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-teamcity) servers in just a few steps. Using CI servers helps us automate test execution and avoid the routine actions if running our scripts again and again. 
 

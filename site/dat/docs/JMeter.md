@@ -1,6 +1,6 @@
 # JMeter Executor
 
-This executor type is used by default, it uses [Apache JMeter](http://jmeter.apache.org/) as underlying tool.
+This executor type is used by default, it uses [Apache JMeter](https://jmeter.apache.org/) as underlying tool.
 
 ## JMeter Location & Auto-Installation
 

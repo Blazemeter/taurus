@@ -4,9 +4,9 @@ _Author: Yulia Shepeleva_
 
 Load testing web applications has become common practice, with open-source [Apache JMeter](https://www.blazemeter.com/jmeter-load-testing?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium) being the most popular load testing tool. JMeter works with different protocols, including HTTP. However, due to its nature, JMeter is not able to perform all browser-supported actions, and it also doesn't execute the javascript found in the HTML page. Therefore, we need a tool that can operate on a user interface level of a real browser window.
 
-The solution is [Selenium WebDriver](https://www.blazemeter.com/blog/how-automate-testing-using-selenium-webdriver-jenkins-and-allure?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium). However, Selenium's technology requires you write the script in one of the supported programing languages, and this might be difficult for users without a technical background. The solution is to use Selenium with [Taurus DSL](http://gettaurus.org/docs/Selenium/?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium), which provides a simplification for user web page level scripting, with the concept of 'simple UI actions'.
+The solution is [Selenium WebDriver](https://www.blazemeter.com/blog/how-automate-testing-using-selenium-webdriver-jenkins-and-allure?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium). However, Selenium's technology requires you write the script in one of the supported programing languages, and this might be difficult for users without a technical background. The solution is to use Selenium with [Taurus DSL](https://gettaurus.org/docs/Selenium/?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium), which provides a simplification for user web page level scripting, with the concept of 'simple UI actions'.
 
-Taurus uses simple configuration files in [YAML](http://gettaurus.org/docs/YAMLTutorial/?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium) format. Through them, Taurus takes the list of user interface actions, translates them into program code that uses Selenium and also executes the generated script.
+Taurus uses simple configuration files in [YAML](https://gettaurus.org/docs/YAMLTutorial/?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium) format. Through them, Taurus takes the list of user interface actions, translates them into program code that uses Selenium and also executes the generated script.
 
 In this article we will demonstrate how to build a simple YAML script, which describes actions performed by a user on a web page. Then, we will reuse this scenario for load testing.
 
@@ -15,9 +15,9 @@ In this article we will demonstrate how to build a simple YAML script, which des
 Let's create a simple script for one page in the Chrome browser in YAML. 
 
 What we need to begin to work: 
- 1. [Download and install Taurus](http://gettaurus.org/install/Installation/?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium)
+ 1. [Download and install Taurus](https://gettaurus.org/install/Installation/?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium)
  1. Download and install the latest version of Chrome 
- 1. Download [ChromeDriver](https://sites.google.com/a/chromium.org/chromedriver/) 
+ 1. Download [ChromeDriver](https://developer.chrome.com/docs/chromedriver/downloads) 
  1. Include the ChromeDriver location in your PATH environment variable 
  1. Create a simple YAML script:
 
@@ -50,7 +50,7 @@ The Taurus Console displays the execution of this one test:
 
 ![](sel-act1.png)
 
-The results of the test are displayed in the console the by default. If you want to see the testing process in detail you can look it up in the [artifacts directory](../docs/ArtifactsDir.md). The artifacts directory is created in the same folder where the script was launched from. If you want your artifact directory to be created in another location, you can change the artifact directory route. Look [here](http://gettaurus.org/docs/ConfigSyntax/#Top-Level-Settings?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium) for more information about how this can be done.
+The results of the test are displayed in the console the by default. If you want to see the testing process in detail you can look it up in the [artifacts directory](../docs/ArtifactsDir.md). The artifacts directory is created in the same folder where the script was launched from. If you want your artifact directory to be created in another location, you can change the artifact directory route. For more information about how this can be done, see [Taurus Configuration Syntax](https://gettaurus.org/docs/ConfigSyntax/#Top-Level-Settings?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium).
 
 The name of the folder is created according to the format `%Y-%m-%d\_%H-%M-%S.%f`. This folder stores some files that interest us:
  - `test\_requests.py` - the Selenium test generated in Python
@@ -216,9 +216,9 @@ Run by typing `bzt -cloud  load_page.yml`
 
 ![](sel-act8.png)
 
-Now we have a load script that is loaded by default in the local environment. The Concurrency Option will work in the [Blazemeter Cloud](https://a.blazemeter.com/app/sign-up?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium). To get instructions on how to adjust settings of execution in the cloud, please, see [here](http://gettaurus.org/docs/Cloud/?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium). [BlazeMeter](http://info.blazemeter.com/request-demo-4?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium) also enables you to view [rich reports](https://www.blazemeter.com/blog/understanding-your-reports-part-4-how-read-your-load-testing-reports-blazemeter?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium) that analyze KPIs and monitor system health.
+Now we have a load script that is loaded by default in the local environment. The Concurrency Option will work in the [Blazemeter Cloud](https://a.blazemeter.com/app/sign-up?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium). To get instructions on how to adjust settings of execution in the cloud, see [Cloud Provisioning](https://gettaurus.org/docs/Cloud/?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium). [BlazeMeter](https://www.blazemeter.com/product-demos?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium) also enables you to view [rich reports](https://help.blazemeter.com/docs/guide/performance-kpis-purpose.html?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium) that analyze KPIs and monitor system health.
 
 
-Congratulations! You can now write and run webpage load scripts by using an expression of actions through your YAML file. Taurus can also be [integrated with Jenkins](http://gettaurus.org/kb/Jenkins/?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium), for continuous integration purposes.
+Congratulations! You can now write and run webpage load scripts by using an expression of actions through your YAML file. Taurus can also be [integrated with Jenkins](https://gettaurus.org/kb/Jenkins/?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium), for continuous integration purposes.
 
-To get a BlazeMeter demo, [click here](http://info.blazemeter.com/request-demo-4?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium).
+[Sign up for a BlazeMeter demo here!](https://www.blazemeter.com/product-demos?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium).

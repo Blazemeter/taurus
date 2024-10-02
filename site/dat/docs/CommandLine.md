@@ -26,7 +26,7 @@ Note that per-user config will not be copied into artifact directories, so those
 
 There is special shorthand for JMeter JMX test plans: if a config filename ends with `.jmx`, an execution for JMeter with existing script will be generated. This allows using Taurus just like `bzt test1.jmx test2.jmx`.
 
-A helper tool to validate YAML: [http://wiki.ess3.net/yaml/](http://wiki.ess3.net/yaml/) 
+A helper tool to validate YAML: [https://wiki.ess3.net/yaml/](https://wiki.ess3.net/yaml/) 
 
 ## Command-Line Options Override
  

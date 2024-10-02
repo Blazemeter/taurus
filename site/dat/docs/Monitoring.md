@@ -3,7 +3,7 @@
 A frequent task for tests is to monitor target server's health. Monitoring service is built
 to collect data from those remote servers. At this time the following sources are supported:
  - local health stats, enabled by default
- - [ServerAgent](http://jmeter-plugins.org/wiki/PerfMonAgent/) — technology that is used by JMeter users for long time and
+ - [ServerAgent](https://jmeter-plugins.org/wiki/PerfMonAgent/) — technology that is used by JMeter users for long time and
  - [Graphite](https://graphite.readthedocs.org/en/latest/)
 
 ## Local Monitoring Stats
@@ -48,10 +48,10 @@ screen height :)
 
 ## ServerAgent
 
-[ServerAgent](http://jmeter-plugins.org/wiki/PerfMonAgent/) is a small Java application that
+[ServerAgent](https://jmeter-plugins.org/wiki/PerfMonAgent/) is a small Java application that
 collects server health stats and makes them accessible through network connection. To use it,
 you need to install and launch ServerAgent on each of your target servers and then specify
-[metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item.
+[metrics](https://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item.
 You can also define, whether you need logs for ServerAgent via `logging` option.
 For example: 
 ```yaml

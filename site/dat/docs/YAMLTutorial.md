@@ -151,7 +151,7 @@ When reading multi-document YAML, Taurus will treat multiple documents as multip
 
 There's a number of tools you can use to help you to locate and fix syntactical errors in your YAML document.
 
-1. You can use online [services](http://yamltojson.com/) to convert it to JSON to check the structure (can be useful if you don’t have much experience with indentation-based languages)
+1. You can use online [services](https://yamltojson.com/) to convert it to JSON to check the structure (can be useful if you don’t have much experience with indentation-based languages)
 2. You can use [yamllint](https://github.com/adrienverge/yamllint) to see if there are any errors or issues with your document
 
 
@@ -174,9 +174,9 @@ parsing errors. Just use spaces.
 
 ## Additional YAML resources
 
-1. [Online YAML Parser](http://yaml-online-parser.appspot.com/) can be used to analyze YAML documents
-1. [Jesse Noller's article](http://jessenoller.com/blog/2009/04/13/yaml-aint-markup-language-completely-different) is a good introduction to YAML syntax
+1. [Online YAML Parser](https://yaml-online-parser.appspot.com/) can be used to analyze YAML documents
+1. [Jesse Noller's article](https://jessenoller.com/blog/2009/04/13/yaml-aint-markup-language-completely-different) is a good introduction to YAML syntax
 1. [Wikipedia](https://en.wikipedia.org/wiki/YAML) has a really good and comprehensive description of all major YAML features
 1. Short, but very concise [YAML Tutorial](https://docs.saltstack.com/en/latest/topics/yaml/) by SaltStack
 1. [yamllint](https://github.com/adrienverge/yamllint) is a linter for YAML files, which checks for many common mistakes and cosmetic issues
-1. [YAML Lint](http://www.yamllint.com/) is another online YAML checker
+1. [YAML Lint](https://www.yamllint.com/) is another online YAML checker
