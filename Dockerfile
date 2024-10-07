@@ -49,7 +49,7 @@ RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh
 RUN chmod +x /etc/profile.d/rbenv.sh
 RUN source /etc/profile.d/rbenv.sh \
     && rbenv install 3.3.3 && rbenv global 3.3.3 && rbenv rehash \
-    && gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup
+    && gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date rexml && gem cleanup
 
 RUN update-alternatives --install /usr/local/bin/ruby ruby /usr/local/rbenv/shims/ruby 1
 RUN update-alternatives --install /usr/local/bin/gem gem /usr/local/rbenv/shims/gem 1
