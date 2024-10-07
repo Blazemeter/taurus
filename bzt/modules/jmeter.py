@@ -227,12 +227,16 @@ class JMeterExecutor(ScenarioExecutor):
 
         self.original_jmx = self.get_script_path()
         self.log.debug("Getting Jmeter version.")
-        if os.getenv('TAURUS_JMETER_DISABLE_AUTO_DETECT', 'False') == 'True':
+        config_version = self.settings.get("version", JMeter.VERSION, force_set=True)
+        if config_version == "latest":
+            self.settings["version"] = JMeter.VERSION_LATEST
+        elif config_version == "stable":
+            self.settings["version"] = JMeter.VERSION
+        elif os.getenv('TAURUS_JMETER_DISABLE_AUTO_DETECT', 'False') == 'True':
             self.log.debug("Autodetect version is disabled.")
             # autodetection NOT active -> use STABLE if auto,
             # xyz if STABLE|LATEST
             # STABLE otherwise
-            config_version = self.settings.get("version", JMeter.VERSION, force_set=True)
             if config_version in [JMeter.VERSION, JMeter.VERSION_LATEST]:
                 self.settings["version"] = config_version
             else:
@@ -240,9 +244,14 @@ class JMeterExecutor(ScenarioExecutor):
         else:
             # autodetection IS active (original default behavior)
             self.log.debug("Autodetect version is enabled")
-            if self.settings.get("version", JMeter.VERSION, force_set=True) == "auto":
+            if config_version == "auto":
                 self.settings["version"] = self._get_tool_version(self.original_jmx)
-        self.log.debug("JMeter version: %s", self.settings["version"])
+
+        if self.settings["version"] != config_version:
+            self.log.info("Using JMeter version: %s (configured version: %s)",
+                          self.settings["version"], config_version)
+        else:
+            self.log.debug("JMeter version: %s", self.settings["version"])
 
         if not self.original_jmx:
             if self.get_scenario().get("requests"):
