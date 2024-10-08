@@ -177,6 +177,6 @@ parsing errors. Just use spaces.
 1. [Online YAML Parser](https://yaml-online-parser.appspot.com/) can be used to analyze YAML documents
 1. [Jesse Noller's article](https://jessenoller.com/blog/2009/04/13/yaml-aint-markup-language-completely-different) is a good introduction to YAML syntax
 1. [Wikipedia](https://en.wikipedia.org/wiki/YAML) has a really good and comprehensive description of all major YAML features
-1. Short, but very concise [YAML Tutorial](https://docs.saltstack.com/en/latest/topics/yaml/) by SaltStack
+1. Short, but very concise [YAML Tutorial](https://docs.saltproject.io/en/latest/topics/yaml/) by SaltProject
 1. [yamllint](https://github.com/adrienverge/yamllint) is a linter for YAML files, which checks for many common mistakes and cosmetic issues
 1. [YAML Lint](https://www.yamllint.com/) is another online YAML checker

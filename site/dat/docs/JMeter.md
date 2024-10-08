@@ -818,7 +818,7 @@ This example will set initial value of `${foo}` to be "BAR", but after first ite
 changed to "BAZ".
 
 #### HTTP Authorization
-See [RFC2617](https://tools.ietf.org/html/rfc2617) for http authorization details
+See [RFC2617](https://datatracker.ietf.org/doc/html/rfc2617) for http authorization details
 
 You can use three follow forms for such purposes:
 ```yaml

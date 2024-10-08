@@ -2,7 +2,7 @@
 
 _By: Yuri Bushnev, June 2017_
 
-Taurus is an open source framework for performance tests automation. It can be used to run scripts from scratch as well as allows running tests from other open source tools. These include [JMeter](https://jmeter.apache.org/), [Gatling](https://gatling.io/), [Selenium](https://www.seleniumhq.org/) or [Locust](https://locust.io/). 
+Taurus is an open source framework for performance tests automation. It can be used to run scripts from scratch as well as allows running tests from other open source tools. These include [JMeter](https://jmeter.apache.org/), [Gatling](https://gatling.io/), [Selenium](https://www.selenium.dev/) or [Locust](https://locust.io/). 
 
 Taurus simplifies use of existing automation tools and provides a user-friendly and convenient "wrapper". One of Taurus's main strengths is that it can be integrated with any [continuous integration](https://www.blazemeter.com/jenkins?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-teamcity) servers in just a few steps. Using CI servers helps us automate test execution and avoid the routine actions if running our scripts again and again. 
 
@@ -27,7 +27,7 @@ scenarios:
 Taurus scripts can be written using JSON or YAML formats. As you can see, it is human-readable.
  
  You don’t need to be a genius to find out that this current script performs:
-  - URL requests to [http://blazedemo.com/](http://blazedemo.com/) web page 
+  - URL requests to [https://blazedemo.com/](https://blazedemo.com/) web page 
   - with 100 users 
   - during 1 minute 
   - while users are onboard during the first 40 seconds. 
@@ -56,7 +56,7 @@ TeamCity is one of the most popular [continuous integration](https://www.blazeme
 
 The main advantage of this continuous integration server is that it provides great usability out-of-the-box. It also has a user-friendly interface which makes it easy to use, even for someone new to continuous integration solutions.
 
-Let’s assume that you already have TeamCity integration server. If no, you can find straight forward installation steps on JetBrains [official website](https://confluence.jetbrains.com/display/TCD10/Installation).
+Let’s assume that you already have TeamCity integration server. If no, you can find straight forward installation steps on JetBrains [official website](https://www.jetbrains.com/help/teamcity/2017.1/installation.html?Installation).
 
 First, we should create a new project.
 
@@ -72,7 +72,7 @@ After the project has been created you will be redirected to the main project pa
 
 ![](teamcity4.png)
 
-The ‘Create Build Configuration’ page looks exactly the same as ‘Create Project’. We need to define name, build configuration id and include an optional description:
+The ‘Create Build Configuration’ page looks exactly the same as ‘Create Project’. We need to define name, build configuration id, and include an optional description:
 
 ![](teamcity5.png)
 
@@ -113,7 +113,7 @@ execution:
 scenarios:
   Open-BlazeDemo:
     requests:
-      - url: http://blazedemo.com/
+      - url: https://blazedemo.com/
 reporting:
 - module: blazemeter
   report-name: TeamCity test report

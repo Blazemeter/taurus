@@ -35,7 +35,7 @@ scenarios:
     - url: http://blazedemo.com
 ```
 
-This script, which is a simple GET request, will be performed as a Selenium test in Chrome. It will load the first page of our demo site [http://blazedemo.com](http://blazedemo.com?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium).
+This script, which is a simple GET request, will be performed as a Selenium test in Chrome. It will load the first page of our demo site [https://blazedemo.com](https://blazedemo.com?utm_source=taurus&utm_medium=KB&utm_campaign=TaurusSelenium).
 
 `timeout` - global scenario timeout for connecting, receiving results, 30 seconds by default, notice we changed it to 10s.
 `think-time` - global scenario delay between each request

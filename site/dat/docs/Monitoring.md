@@ -1,28 +1,28 @@
 # Resource Monitoring Service
 
-A frequent task for tests is to monitor target server's health. Monitoring service is built
-to collect data from those remote servers. At this time the following sources are supported:
+A frequent task for tests is to monitor a target server's health. The monitoring service 
+collects data from those remote servers. The following sources are supported:
  - local health stats, enabled by default
- - [ServerAgent](https://jmeter-plugins.org/wiki/PerfMonAgent/) — technology that is used by JMeter users for long time and
  - [Graphite](https://graphite.readthedocs.org/en/latest/)
-
+ - [ServerAgent](https://jmeter-plugins.org/wiki/PerfMonAgent/) (deprecated)
+ 
 ## Local Monitoring Stats
 
-This service collects local health stats from computer running Taurus. It is enabled by default.
+This service collects local health stats from the computer running Taurus. It is enabled by default.
 
 Following metrics are collected locally: 
-- `cpu` - total CPU usage %
-- `mem` - total RAM usage %
+- `cpu` - total CPU usage in percent
+- `mem` - total RAM usage in percent
 - `bytes-sent`/`bytes-recv` - network transfer rate 
 - `disk-read`/`disk-write` - disk I/O rate
-- `disk-space` - % disk space used for artifacts storage
-- `engine-loop` - Taurus "check loop" utilization, values higher than 1.0 means you should increase `settings.check-interval`
+- `disk-space` - Percentage of disk space used for artifacts storage
+- `engine-loop` - Uses Taurus "check loop". Values higher than 1.0 indicate that you should increase `settings.check-interval`
 - `conn-all` - quantity of network connections
 
 If you want to use only your metrics, please look into 
-[merging rules](https://gettaurus.org/docs/ConfigSyntax/#Multiple-Files-Merging-Rules). For example, if you want to see
-only specific metrics, use `~` like in the example below. You can also define, whether you need logs for local
-monitoring via `logging` option.
+[merging rules](https://gettaurus.org/docs/ConfigSyntax/#Multiple-Files-Merging-Rules). 
+For example, if you want to see only specific metrics, use `~` like in the example below. 
+You can also define whether you need logs for local monitoring by using the `logging` option.
 
 ```yaml
 services:
@@ -38,36 +38,13 @@ services:
 
 ## Sidebar Widget
 
-Once you have resource monitoring enabled, you'll be presented with small sidebar widget that
-informs you on latest data from monitoring agents:
+Once you have resource monitoring enabled, you'll be presented with a small sidebar widget that
+informs you about the latest data from your monitoring agents:
 
 ![Monitoring screen](monitoring-widget.png)
 
-The widget will possibly not display all the metrics for the long list, that's the limitation of
-screen height :)
-
-## ServerAgent
-
-[ServerAgent](https://jmeter-plugins.org/wiki/PerfMonAgent/) is a small Java application that
-collects server health stats and makes them accessible through network connection. To use it,
-you need to install and launch ServerAgent on each of your target servers and then specify
-[metrics](https://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item.
-You can also define, whether you need logs for ServerAgent via `logging` option.
-For example: 
-```yaml
-services:
-- module: monitoring
-  server-agent:
-  - address: 192.168.0.1:4444
-    label: target-server  # if you specify label, it will be used in reports instead of ip:port
-    interval: 3s    # polling interval
-    logging: True # those logs will be saved to "SAlogs_192.168.0.1_4444.csv" in the artifacts dir
-    metrics:
-    - cpu
-    - disks
-    - memory
-
-```
+The widget will possibly not display all the metrics for a very long list, that's a limitation of
+screen height. :)
 
 ## Graphite 
 
@@ -93,4 +70,27 @@ services:
     metrics:
     - production.hardware.cpuUsage
     - groupByNode(myserv_comp_org.cpu.?.cpu.*.value, 4, 'avg')
+```
+
+## ServerAgent (deprecated)
+
+[ServerAgent](https://github.com/undera/perfmon-agent) was a small Java application that
+collected server health stats and made them accessible through network connection. To use it,
+you need to install and launch ServerAgent on each of your target servers and then specify
+[metrics](https://github.com/undera/perfmon-agent) to collect under `services` item.
+You can also define, whether you need logs for ServerAgent via `logging` option.
+For example: 
+```yaml
+services:
+- module: monitoring
+  server-agent:
+  - address: 192.168.0.1:4444
+    label: target-server  # if you specify label, it will be used in reports instead of ip:port
+    interval: 3s    # polling interval
+    logging: True # those logs will be saved to "SAlogs_192.168.0.1_4444.csv" in the artifacts dir
+    metrics:
+    - cpu
+    - disks
+    - memory
+
 ```

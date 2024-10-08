@@ -11,7 +11,7 @@ Jenkins usually runs under a default user called ‘Jenkins’. Since Taurus cre
 Therefore, as a second step change the Jenkins default user. Here’s how:
 - Linux: [https://blog.manula.org/2013/03/running-jenkins-under-different-user-in.html](https://blog.manula.org/2013/03/running-jenkins-under-different-user-in.html)
 - Mac: [https://stackoverflow.com/questions/24092295/change-the-jenkins-default-user-user-name-on-mac](https://stackoverflow.com/questions/24092295/change-the-jenkins-default-user-user-name-on-mac)
-- Windows: [https://antagonisticpleiotropy.blogspot.fi/2012/08/running-jenkins-in-windows-with-regular.html](https://antagonisticpleiotropy.blogspot.fi/2012/08/running-jenkins-in-windows-with-regular.html)
+- Windows: [https://antagonisticpleiotropy.blogspot.com/2012/08/running-jenkins-in-windows-with-regular.html](https://antagonisticpleiotropy.blogspot.com/2012/08/running-jenkins-in-windows-with-regular.html)
 
 Third, install the [Jenkins Plot Plugin](https://plugins.jenkins.io/plot/). It will be useful for comparing your basic performance metrics for the last builds. To install the plugin go to the ‘Manage Jenkins’ section and open the ‘Manage Plugins’ menu entry. Then, go to the ‘Available’ tab and find ‘Plot Plugin’ in the list below. 
 

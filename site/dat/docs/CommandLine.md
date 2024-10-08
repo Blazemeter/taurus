@@ -109,7 +109,7 @@ target URL as a command-line argument.
 bzt http://blazedemo.com/
 ```
 
-This command will launch a quick test targeting [http://blazedemo.com/](http://blazedemo.com/). You can combine
+This command will launch a quick test targeting [https://blazedemo.com/](https://blazedemo.com/). You can combine
 it with other CLI options and aliases, such as `-report`, `-cloud` and others.
 
 ## Artifacts

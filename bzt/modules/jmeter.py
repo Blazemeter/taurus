@@ -1248,7 +1248,7 @@ class JTLErrorsReader(object):
     url_xpath = GenericTranslator().css_to_xpath("java\\.net\\.URL")
 
     def __init__(self, filename, parent_logger, err_msg_separator=None, label_converter=None):
-        # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
+        # https://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
