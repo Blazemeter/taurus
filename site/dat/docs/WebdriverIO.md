@@ -1,6 +1,6 @@
 # WebdriverIO Executor
 
-`wdio` executor allows you to run [WebdriverIO](http://webdriver.io/) -based test suites.
+`wdio` executor allows you to run [WebdriverIO](https://webdriver.io/) -based test suites.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
 will be exceeded.

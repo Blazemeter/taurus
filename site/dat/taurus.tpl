@@ -137,14 +137,15 @@
             <span class="logo"><a href="/"><img src="/img/codename-taurus.png" alt="Codename: Taurus"/></a></span>
             <span class="purpose">Automation-friendly framework for Continuous Testing</span>
             <div class="pull-right clearfix" style="line-height: 100%">
-                <a href="https://pypi.python.org/pypi/bzt"><img src='https://img.shields.io/pypi/v/bzt.svg'
-                                                                title='We are ready to be installed'/></a><br/>
-                <a href="https://codecov.io/github/Blazemeter/taurus"><img
+                <a href="https://pypi.org/project/bzt/"><img 
+				            src='https://img.shields.io/pypi/v/bzt.svg'
+                            title='We are ready to be installed'/></a><br/>
+                <a href="https://app.codecov.io/github/Blazemeter/taurus"><img
                             src='https://codecov.io/github/Blazemeter/taurus/coverage.svg'
                             title='We care about quality'/></a><br/>
                 <a href="https://github.com/Blazemeter/taurus/stargazers"><img
                             src='https://img.shields.io/github/stars/Blazemeter/taurus.svg?style=flat&label=github%20stars'
-                            title='Community likes it'/></a><br/>
+                            title='The Community likes us'/></a><br/>
             </div>
         </div>
     </div>
@@ -180,11 +181,11 @@
 <footer>
     <div class="container">
         <span>
-         &copy; 2014-{"Y"|date} <a href="http://blazemeter.com"><img src="/img/blazemeter-mini.png"
+         &copy; 2014-{"Y"|date} <a href="https://blazemeter.com"><img src="/img/blazemeter-mini.png"
                                                                      alt="BlazeMeter Inc."/></a>
         </span>
         <span>
-        Licensed under <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache 2.0 License</a>
+        Licensed under <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache 2.0 License</a>
         </span>
         <span style="float: right"><a href="/bzt-usage-stats/">Usage Statistics</a></span>
     </div>
