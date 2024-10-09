@@ -78,10 +78,50 @@ class TestJMeterExecutor(ExecutorTestCase):
         #version will be stable
         self.assertEqual(self.obj.settings["version"], JMeter.VERSION)
 
+    def test_version_autodetect_on_stable_fallback(self):
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/disable_autodetect.yml").read()))
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.settings.merge({"version-type": "stable"})
+        os.environ["TAURUS_JMETER_DISABLE_AUTO_DETECT"] = "True"
+        self.obj.prepare()
+        #version will be stable
+        self.assertEqual(self.obj.settings["version"], JMeter.VERSION)
+
+    def test_version_autodetect_on2_latest_fallback(self):
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/disable_autodetect.yml").read()))
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
+        self.obj.settings.merge({"version": "2.2"})
+        self.obj.settings.merge({"version-type": "latest"})
+        os.environ["TAURUS_JMETER_DISABLE_AUTO_DETECT"] = "True"
+        self.obj.prepare()
+        #version will be latest
+        self.assertEqual(self.obj.settings["version"], JMeter.VERSION_LATEST)
+
     def test_version_autodetect_off(self):
         self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/disable_autodetect.yml").read()))
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
         self.obj.settings.merge({"version": "auto"})
+        os.environ["TAURUS_JMETER_DISABLE_AUTO_DETECT"] = "False"
+        self.obj.prepare()
+        # version will be autodetected from jmx
+        self.assertEqual(self.obj.settings["version"], "5.0")
+
+    def test_version_autodetect_off2(self):
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/disable_autodetect.yml").read()))
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.settings.merge({"version-type": "stable"})
+        os.environ["TAURUS_JMETER_DISABLE_AUTO_DETECT"] = "False"
+        self.obj.prepare()
+        # version will be autodetected from jmx
+        self.assertEqual(self.obj.settings["version"], "5.0")
+
+    def test_version_autodetect_off3(self):
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/disable_autodetect.yml").read()))
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.settings.merge({"version-type": "latest"})
         os.environ["TAURUS_JMETER_DISABLE_AUTO_DETECT"] = "False"
         self.obj.prepare()
         # version will be autodetected from jmx
@@ -94,6 +134,25 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.prepare()
         # original behaviour,  version will be autodetected from jmx
         self.assertEqual(self.obj.settings["version"], "5.0")
+
+    def test_version_autodetect_missing2(self):
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/disable_autodetect.yml").read()))
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.settings.merge({"version-type": "stable"})
+        self.obj.prepare()
+        # original behaviour,  version will be autodetected from jmx
+        self.assertEqual(self.obj.settings["version"], "5.0")
+
+    def test_version_autodetect_missing3(self):
+        self.configure(yaml.full_load(open(RESOURCES_DIR + "yaml/disable_autodetect.yml").read()))
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.settings.merge({"version-type": "latest"})
+        self.obj.prepare()
+        # original behaviour,  version will be autodetected from jmx
+        self.assertEqual(self.obj.settings["version"], "5.0")
+
 
     def test_jmx(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
@@ -2451,6 +2510,26 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.prepare()
         self.assertEqual(JMeter.VERSION, self.obj.tool.version)
 
+    def test_detect_ver_empty_stable_fallback(self):
+        self.configure({"execution": {
+            'scenario': {
+                "requests": [
+                    "http://example.com/"]}}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.settings.merge({"version-type": "stable"})
+        self.obj.prepare()
+        self.assertEqual(JMeter.VERSION, self.obj.tool.version)
+
+    def test_detect_ver_empty_latest_fallback(self):
+        self.configure({"execution": {
+            'scenario': {
+                "requests": [
+                    "http://example.com/"]}}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.settings.merge({"version-type": "latest"})
+        self.obj.prepare()
+        self.assertEqual(JMeter.VERSION_LATEST, self.obj.tool.version)
+
     def test_detect_ver_wrong(self):
         self.obj.execution.merge({
             'scenario': {
@@ -2459,11 +2538,38 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.prepare()
         self.assertEqual(JMeter.VERSION, self.obj.tool.version)
 
+    def test_detect_ver_wrong_stable_fallback(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.settings.merge({"version-type": "stable"})
+        self.obj.prepare()
+        self.assertEqual(JMeter.VERSION, self.obj.tool.version)
+
+    def test_detect_ver_wrong_latest_fallback(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.settings.merge({"version-type": "latest"})
+        self.obj.prepare()
+        self.assertEqual(JMeter.VERSION_LATEST, self.obj.tool.version)
+
     def test_detect_single_version(self):
         self.obj.execution.merge({
             'scenario': {
                 "script": RESOURCES_DIR + "/jmeter/jmx/dummy_plan.jmx"}})
         self.obj.settings.merge({"version": "auto"})
+        self.obj.prepare()
+        self.assertEqual("2.8.20130705", self.obj.tool.version)
+
+    def test_detect_single_version_latest_fallback(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/dummy_plan.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.settings.merge({"version-type": "latest"})
         self.obj.prepare()
         self.assertEqual("2.8.20130705", self.obj.tool.version)
 
@@ -2475,12 +2581,37 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.prepare()
         self.assertEqual("2.13", self.obj.tool.version)
 
+    def test_detect_ver_2_13_latest_fallback(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.settings.merge({"version-type": "latest"})
+        self.obj.prepare()
+        self.assertEqual("2.13", self.obj.tool.version)
+
     def test_no_detect_2_13(self):
         self.obj.execution.merge({
             'scenario': {
                 "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
         self.obj.prepare()
         self.assertEqual(JMeter.VERSION, self.obj.tool.version)
+
+    def test_no_detect_2_13_stable_fallback(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
+        self.obj.settings.merge({"version-type": "stable"})
+        self.obj.prepare()
+        self.assertEqual(JMeter.VERSION, self.obj.tool.version)
+
+    def test_no_detect_2_13_latest_fallback(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
+        self.obj.settings.merge({"version-type": "latest"})
+        self.obj.prepare()
+        self.assertEqual(JMeter.VERSION_LATEST, self.obj.tool.version)
 
     def test_jsr223_block(self):
         script = RESOURCES_DIR + "/jmeter/jsr223_script.js"
