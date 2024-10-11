@@ -1,6 +1,6 @@
 # Postman (Newman) Executor
 
-Executor type `newman` allows running [Postman collections](https://www.getpostman.com/docs/postman/collections/creating_collections). It is mostly useful for functional testing. Internally, [Newman](https://github.com/postmanlabs/newman) utility is used to run tests, providing 100% Postman compatibility.
+Executor type `newman` allows running [Postman collections](https://learning.postman.com/docs/getting-started/first-steps/creating-the-first-collection/). It is mostly useful for functional testing. Internally, [Newman](https://github.com/postmanlabs/newman) utility is used to run tests, providing 100% Postman compatibility.
 
 Simplest example to run a Postman collection:
 ```yaml

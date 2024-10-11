@@ -26,7 +26,7 @@ Note that per-user config will not be copied into artifact directories, so those
 
 There is special shorthand for JMeter JMX test plans: if a config filename ends with `.jmx`, an execution for JMeter with existing script will be generated. This allows using Taurus just like `bzt test1.jmx test2.jmx`.
 
-A helper tool to validate YAML: [http://wiki.ess3.net/yaml/](http://wiki.ess3.net/yaml/) 
+A helper tool to validate YAML: [https://wiki.ess3.net/yaml/](https://wiki.ess3.net/yaml/) 
 
 ## Command-Line Options Override
  
@@ -109,7 +109,7 @@ target URL as a command-line argument.
 bzt http://blazedemo.com/
 ```
 
-This command will launch a quick test targeting [http://blazedemo.com/](http://blazedemo.com/). You can combine
+This command will launch a quick test targeting [https://blazedemo.com/](https://blazedemo.com/). You can combine
 it with other CLI options and aliases, such as `-report`, `-cloud` and others.
 
 ## Artifacts

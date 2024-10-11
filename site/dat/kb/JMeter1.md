@@ -1,5 +1,4 @@
-# Solving JMeter Test Execution Problem
-
+# Solving JMeter Test Execution Problems
 
 If you’re using JMeter to set up and execute your load tests on a regular basis, you’re no doubt aware of the dual importance and inconvenience of reporting with this tool.
 
@@ -26,7 +25,7 @@ Let’s say you run a JMeter script with a number of requests to a page, you exe
 
 Without real-time feedback, it’s very hard to tell if you should stop the test. You could be running a test for three hours with invalid requests, and you won’t know it - which is obviously a huge waste of time and resources. 
 
-Of course, you can add some graphs and tables into your JMeter test plan, so you have some information to view. By using [JMeter plugins](http://jmeter-plugins.org/), you can add KPIs like transactions per second, active threads over time, percentiles etc. However, there are a number of drawbacks to this approach:
+Of course, you can add some graphs and tables into your JMeter test plan, so you have some information to view. By using [JMeter plugins](https://jmeter-plugins.org/), you can add KPIs like transactions per second, active threads over time, percentiles etc. However, there are a number of drawbacks to this approach:
 
 1. <b>It takes a lot of time.</b> As there’s no ‘default’ reporting UI in JMeter, you’ll need to set it up from scratch _every single time_ you create a test plan. 
 1. <b>You don’t have one simple place to look.</b> Even if you’ve set up all the individual reporting components like tables and graphs, you’ll need to jump from plugin to plugin to see if there are any errors, where the errors are etc. AND you can’t do any of this when you’re in non-UI mode (which is where you should be when running a load test in JMeter). The more KPIs you want to see, the more confusing this all becomes.
@@ -34,7 +33,7 @@ Of course, you can add some graphs and tables into your JMeter test plan, so you
 
 ## How to Get Test Visualization and Analysis While Using JMeter
 
-The open source tool [Taurus](http://gettaurus.org) solves the conflict raised at the beginning of this post. Taurus allows you to execute a JMeter script in non-UI mode through the bzt command, and automatically gives you information on how your test is doing through its UI. 
+The open source tool [Taurus](https://gettaurus.org) solves the conflict raised at the beginning of this post. Taurus allows you to execute a JMeter script in non-UI mode through the bzt command, and automatically gives you information on how your test is doing through its UI. 
 
 
 Taurus’ default dashboard shows you key information like:
@@ -49,18 +48,7 @@ You can view all of these results in real time while running your test in JMeter
 
 ![Console Screen](../docs/console.png)
 
-## Running Post Test Analysis
-
-Taurus also automatically saves reports in JMeter’s results files for further analysis. Once you’ve completed your test, you can then: 
-
-
-1. Upload the files in the JMeter UI for advanced analysis after the test
-1. Upload to [BlazeMeter Sense](http://sense.blazemeter.com/) test results’ storage to view interactive reports, and calculate statistics.
-1. There are also several more [reporting](/docs/Reporting.md) options to integrate with Jenkins
-
 ----
 
 So there is a simple solution to the seemingly impossible quandary posed by JMeter when it comes to reporting. With JMeter alone, you are stuck between your need to view real-time reports in the UI and the tool’s incompatibility with this requirement.  The open source tool Taurus resolves this problem by allowing you to execute your JMeter script in non-UI mode and presenting you with real-time reports on its UI. 
-More Information?
 
-If you have any questions or comments about any of the points raised in this article, please share them on our [support forums](/support/). 

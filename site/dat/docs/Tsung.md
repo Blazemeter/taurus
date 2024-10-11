@@ -2,7 +2,7 @@
 
 ## About
 
-[Tsung](http://tsung.erlang-projects.org/) is an open-source multi-protocol distributed load testing tool.
+[Tsung](https://tsung.erlang-projects.org/) is an open-source multi-protocol distributed load testing tool.
 The purpose of Tsung is to simulate users in order to test the scalability and performance of IP based client/server
 applications. You can use it to do load and stress testing of your servers.
 
@@ -10,11 +10,11 @@ Taurus supports only Tsung version 1.5.1 and higher.
 
 ## Tsung Installation
 
-To install Tsung, see official [Tsung Installation](http://tsung.erlang-projects.org/user_manual/installation.html) docs.
+To install Tsung, see official [Tsung Installation](https://tsung.erlang-projects.org/user_manual/installation.html) docs.
 
 ### Mac OS X
 
-On Mac OS X you can install Tsung with [Homebrew](http://brew.sh/):
+On Mac OS X you can install Tsung with [Homebrew](https://brew.sh/):
 ```bash
 $ brew install tsung
 ```
