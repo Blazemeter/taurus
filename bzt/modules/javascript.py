@@ -113,7 +113,7 @@ class WebdriverIOExecutor(JavaScriptExecutor):
     def prepare(self):
         super(WebdriverIOExecutor, self).prepare()
         self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
-
+        # todo: NODE_PATH doesn't work for ems modules -> try to create symlink instead of env variable ...
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to executor %s" % self)
@@ -207,13 +207,15 @@ class NPMPackage(RequiredTool):
     def check_if_installed(self):
         cmdline = [self.node.tool_path, "-e"]
         ok_msg = "%s is installed" % self.package_name
-        cmdline.append("require('%s'); console.log('%s');" % (self.package_name, ok_msg))
 
-        self.log.debug("%s check cmdline: %s", self.package_name, cmdline)
+        command = [ "node", "--input-type=module", "-e",
+                    "import('%s').then(() => { console.log('%s'); process.exit(0); }).catch(() => process.exit(1));" % (self.package_name, ok_msg)]
+
+        self.log.debug("%s check cmdline: %s", self.package_name, command)
         self.log.debug("NODE_PATH for check: %s", self.env.get("NODE_PATH"))
 
         try:
-            out, _ = self.call(cmdline)
+            out, _ = self.call(command)
             return ok_msg in out
         except CALL_PROBLEMS as exc:
             self.log.debug("%s check failed: %s", self.package_name, exc)
@@ -244,16 +246,20 @@ class JSSeleniumWebdriver(NPMPackage):
     PACKAGE_NAME = "selenium-webdriver@4.23.0"
 
 class WDIO(NPMPackage):
-    PACKAGE_NAME = "@wdio/cli@7.36.0"
+    #PACKAGE_NAME = "@wdio/cli@7.36.0"
+    PACKAGE_NAME = "@wdio/cli@9.2.1"
 
 class WDIORunner(NPMPackage):
-    PACKAGE_NAME = "@wdio/local-runner@7.36.0"
+    #PACKAGE_NAME = "@wdio/local-runner@7.36.0"
+    PACKAGE_NAME = "@wdio/local-runner@9.2.1"
 
 class WDIOReporter(NPMPackage):
-    PACKAGE_NAME = "@wdio/reporter@7.33.0"
+    #PACKAGE_NAME = "@wdio/reporter@7.33.0"
+    PACKAGE_NAME = "@wdio/reporter@9.1.3"
 
 class WDIOMochaPlugin(NPMPackage):
-    PACKAGE_NAME = "@wdio/mocha-framework@7.33.0"
+    #PACKAGE_NAME = "@wdio/mocha-framework@7.33.0"
+    PACKAGE_NAME = "@wdio/mocha-framework@9.1.3"
 
 
 class TaurusMochaPlugin(RequiredTool):
@@ -264,7 +270,7 @@ class TaurusMochaPlugin(RequiredTool):
 
 class TaurusWDIOPlugin(RequiredTool):
     def __init__(self, **kwargs):
-        tool_path = os.path.join(RESOURCES_DIR, "wdio-taurus-plugin.js")
+        tool_path = os.path.join(RESOURCES_DIR, "wdio-taurus-plugin.mjs")
         super(TaurusWDIOPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
 
