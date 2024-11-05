@@ -46,7 +46,7 @@ if not is_windows():
 class PipInstaller(Service):
     pip_constraints = {
         'setuptools': '65.5.0',
-        'flask-cors': '4.0.1'
+        'flask-cors': '4.0.2'
     }
 
     pip_constraints_file = None
