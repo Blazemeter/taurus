@@ -85,6 +85,5 @@ This file contains the pre test actions in the “prepare” and “startup” s
  
 This YAML code will run JMeter (as this is the default executor) but you can specify the other executors under the “execution” section and use the same configuration file for different executors.
 
-As always if you have any questions or comments, please message us on our [project forum](/support/).
  
  

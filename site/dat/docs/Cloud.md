@@ -1,6 +1,6 @@
 # Cloud Provisioning
 
-The default mode for taurus is to use `local` provisioning, which means all the tools will be started on local machine. This is not much scalable, so there is a way to delegate actual tool execution into [BlazeMeter cloud](http://blazemeter.com/). Even free accounts can execute cloud tests, according to BlazeMeter's free-tier plan.
+The default mode for taurus is to use `local` provisioning, which means all the tools will be started on local machine. This is not much scalable, so there is a way to delegate actual tool execution into [BlazeMeter cloud](https://blazemeter.com/). Even free accounts can execute cloud tests, according to BlazeMeter's free-tier plan.
 
 It is done by setting `cloud` provisioning like this:
 
@@ -79,7 +79,7 @@ modules:
 
 Accounts, Workspaces and Projects are BlazeMeter's features that help to exactly specify the access rights and support
 shared access to tests and BM features. You can learn more about Workspaces and Projects from BlazeMeter docs, e.g.
-an article [Workspaces and Projects](https://guide.blazemeter.com/hc/en-us/articles/213685389-Workspaces-and-Projects-Workspaces-and-Projects).
+an article [Workspaces and Projects](https://help.blazemeter.com/docs/guide/administration-workspaces-and-projects.html).
 
 With Taurus, it is possible to specify both names and identifiers for all entities listed.
 
@@ -326,4 +326,4 @@ Please note that for `cloud` provisioning actual Taurus execution will be done o
   * you should not use `-report` commmand-line option or `blazemeter` reporter, all reports will be collected automatically by BlazeMeter
   * only following config sections are passed into cloud: `scenarios`, `execution`, `services`
   * `shellexec` module has `artifacts-dir` set as `default-cwd`
-  * cloud workers execute Taurus under isolated [virtualenv](https://virtualenv.readthedocs.org/en/latest/)
+  * cloud workers execute Taurus under isolated [virtualenv](https://virtualenv.pypa.io/en/latest/user_guide.html)
