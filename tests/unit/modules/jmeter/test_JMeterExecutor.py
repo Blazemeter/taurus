@@ -174,7 +174,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
         selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
-        selector += '>stringProp[name=ThreadGroup\.num_threads]'
+        selector += r'>stringProp[name=ThreadGroup\.num_threads]'
         thr = jmx.get(selector)
         self.assertEqual(4, len(thr))  # tg with concurrency=0 must be disabled
         self.assertEqual('20', thr[0].text)  # 2 -> 20
@@ -197,7 +197,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
         selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
-        selector += '>stringProp[name=ThreadGroup\.num_threads]'
+        selector += r'>stringProp[name=ThreadGroup\.num_threads]'
         thr = jmx.get(selector)
         self.assertEquals('420', thr[0].text)
         self.assertEquals('631', thr[1].text)
