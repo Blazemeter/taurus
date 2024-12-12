@@ -89,6 +89,7 @@ function runWDIO() {
   var startTime = epoch();
 
   function loopWDIO(code) {
+    wdio = new Launcher(configFile, opts);
     config.iterations -= 1;
     if (config.iterations === 0) {
       done(0);

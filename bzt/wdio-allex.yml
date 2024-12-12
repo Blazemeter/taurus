@@ -15,6 +15,6 @@ execution:
 - executor: wdio  # WDIO test
   concurrency: 1
   hold-for: 10s
-  iterations: 1
+  iterations: 2
   scenario:
     script: wdio.conf.js
