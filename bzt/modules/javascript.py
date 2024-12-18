@@ -129,17 +129,18 @@ class WebdriverIOExecutor(JavaScriptExecutor):
         self.wdio = self._get_tool(WDIO, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
         self.wdio_reporter = self._get_tool(WDIOReporter, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
         self.wdio_runner = self._get_tool(WDIORunner, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.wdio_taurus_plugin = self._get_tool(TaurusWDIOPlugin)
+        self.wdio_taurus_plugin = self._get_tool(TaurusWDIOPlugin, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
+        self.node_tsx_module = self._get_tool(NodeTSXModule, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
 
         wdio_mocha_plugin = self._get_tool(
             WDIOMochaPlugin, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
 
-        tools = [tcl_lib, self.node, self.npm, self.wdio, self.wdio_taurus_plugin, self.wdio_reporter, self.wdio_runner, wdio_mocha_plugin]
+        tools = [tcl_lib, self.node, self.npm, self.wdio, self.wdio_taurus_plugin, self.wdio_reporter, self.wdio_runner, wdio_mocha_plugin, self.node_tsx_module]
 
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
-        return [self.node.tool_path, self.wdio_taurus_plugin.tool_path] + list(args)
+        return [self.node.tool_path, '@taurus/wdio-taurus-plugin'] + list(args)
 
     def startup(self):
         script_dir = get_full_path(self.script, step_up=1)
@@ -158,7 +159,9 @@ class WebdriverIOExecutor(JavaScriptExecutor):
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
 
-        self.process = self._execute(cmdline, cwd=script_dir)
+        cmdline += ['--cwd', script_dir]
+
+        self.process = self._execute(cmdline, cwd=self.tools_dir + "/node_modules")
 
 
 class NPM(RequiredTool):
@@ -214,8 +217,14 @@ class NPMPackage(RequiredTool):
         self.log.debug("%s check cmdline: %s", self.package_name, command)
         self.log.debug("NODE_PATH for check: %s", self.env.get("NODE_PATH"))
 
+        # NODE_PATH doesn't work for ems modules - look if symlink/node_modules are present,
+        # if not, change dir to tool node_modules
+        process_cwd = None
+        if not os.path.exists("./node_modules"):
+            process_cwd = os.path.join(self.tools_dir, "node_modules")
+
         try:
-            out, _ = self.call(command)
+            out, _ = self.call(command, cwd=process_cwd)
             return ok_msg in out
         except CALL_PROBLEMS as exc:
             self.log.debug("%s check failed: %s", self.package_name, exc)
@@ -229,6 +238,28 @@ class NPMPackage(RequiredTool):
 
         try:
             out, err = self.call(cmdline)
+        except CALL_PROBLEMS as exc:
+            self.log.debug("%s install failed: %s", self.package_name, exc)
+            return
+
+        self.log.debug("%s install stdout: %s", self.tool_name, out)
+        if err:
+            self.log.warning("%s install stderr: %s", self.tool_name, err)
+
+class NPMLocalPackage(NPMPackage):
+    PACKAGE_LOCAL_PATH = ""
+    def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
+        super(NPMLocalPackage, self).__init__(tools_dir, node_tool, npm_tool, **kwargs)
+
+        self.package_local_path = self.PACKAGE_LOCAL_PATH
+        if not os.path.isabs(self.package_local_path):
+            self.package_local_path = os.path.normpath(os.path.join(RESOURCES_DIR, self.package_local_path))
+
+    def install(self):
+        cmdline = [self.npm.tool_path, 'install', ".", '--prefix', self.tools_dir]
+
+        try:
+            out, err = self.call(cmdline, cwd=self.package_local_path)
         except CALL_PROBLEMS as exc:
             self.log.debug("%s install failed: %s", self.package_name, exc)
             return
@@ -258,21 +289,19 @@ class WDIOReporter(NPMPackage):
     PACKAGE_NAME = "@wdio/reporter@9.1.3"
 
 class WDIOMochaPlugin(NPMPackage):
-    #PACKAGE_NAME = "@wdio/mocha-framework@7.33.0"
     PACKAGE_NAME = "@wdio/mocha-framework@9.1.3"
 
+class NodeTSXModule(NPMPackage):
+    PACKAGE_NAME = "tsx@4.19.2"
+
+class TaurusWDIOPlugin(NPMLocalPackage):
+    PACKAGE_NAME = "@taurus/wdio-taurus-plugin@1.0.0"
+    PACKAGE_LOCAL_PATH = "./wdio-taurus-plugin"
 
 class TaurusMochaPlugin(RequiredTool):
     def __init__(self, **kwargs):
         tool_path = os.path.join(RESOURCES_DIR, "mocha-taurus-plugin.js")
         super(TaurusMochaPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
-
-
-class TaurusWDIOPlugin(RequiredTool):
-    def __init__(self, **kwargs):
-        tool_path = os.path.join(RESOURCES_DIR, "wdio-taurus-plugin.mjs")
-        super(TaurusWDIOPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
-
 
 class TaurusNewmanPlugin(RequiredTool):
     def __init__(self, **kwargs):

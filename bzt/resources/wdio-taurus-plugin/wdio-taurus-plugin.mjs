@@ -1,7 +1,7 @@
 import { Launcher } from "@wdio/cli";
 
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, isAbsolute, join, normalize } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -23,7 +23,7 @@ function usage() {
 }
 
 function parseCmdline(argv) {
-  var options = {iterations: 0, holdFor: 0, wdioConfig: "wdio.conf.js", reportFile: "report.ldjson"};
+  var options = {iterations: 0, holdFor: 0, wdioConfig: "wdio.conf.js", reportFile: "report.ldjson", cwd: "."};
   var args = argv.slice(2);
   while (args) {
     var arg = args.shift();
@@ -31,6 +31,9 @@ function parseCmdline(argv) {
       break;
     }
     switch (arg) {
+      case "--cwd":
+        options.cwd = args.shift();
+        break;
       case "--report-file":
         options.reportFile = args.shift();
         break;
@@ -68,9 +71,16 @@ function parseCmdline(argv) {
 function runWDIO() {
   var config = parseCmdline(process.argv);
 
+
+  if (config.cwd) {
+    if (!isAbsolute(config.wdioConfig)) {
+      config.wdioConfig = normalize(join(config.cwd, config.wdioConfig));
+    }
+  }
+
   var configFile = config.wdioConfig;
   var opts = {
-    reporters: [[__dirname + '/wdio-custom-reporter.mjs', {
+    reporters: [['@taurus/wdio-taurus-plugin/wdio-custom-reporter.mjs', {
       reportFile: config.reportFile,
     }]],
   };
@@ -110,3 +120,4 @@ function runWDIO() {
 if (import.meta.url === new URL('', import.meta.url).href) {
   runWDIO();
 }
+

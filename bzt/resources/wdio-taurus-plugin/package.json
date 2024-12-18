@@ -1,5 +1,5 @@
 {
-  "name": "wdio-taurus-plugin",
+  "name": "@taurus/wdio-taurus-plugin",
   "version": "1.0.0",
   "description": "",
   "main": "wdio-taurus-plugin.mjs",
