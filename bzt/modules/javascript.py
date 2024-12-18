@@ -256,7 +256,7 @@ class NPMLocalPackage(NPMPackage):
             self.package_local_path = os.path.normpath(os.path.join(RESOURCES_DIR, self.package_local_path))
 
     def install(self):
-        cmdline = [self.npm.tool_path, 'install', ".", '--prefix', self.tools_dir]
+        cmdline = [self.npm.tool_path, 'install', ".", '--install-links', '--prefix', self.tools_dir]
 
         try:
             out, err = self.call(cmdline, cwd=self.package_local_path)
