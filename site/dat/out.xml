@@ -14,7 +14,7 @@
          class="PWE\Modules\SimpleWiki\SimpleWiki" wiki_dir="kb" img_path_prepend="/dat/kb/img/"
     />
 
-    <url link="docs/Index/" accept="1" menu="1" title="User Manual" files_base="."
+    <url link="docs" accept="1" menu="1" title="User Manual" files_base="."
          class="PWE\Modules\SimpleWiki\SimpleWiki" wiki_dir="docs" img_path_prepend="/dat/docs/img/"
     />
 
@@ -26,7 +26,7 @@
          class="PWE\Modules\RedirectAccepted\RedirectAccepted"
          base="https://github.com/Blazemeter/taurus/issues"/>
 
-    <url link="docs/Changelog" menu="1" title="Changelog" accept="1"
+    <url link="Changelog" menu="1" title="Changelog" accept="1"
          class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="/docs/Changelog/"
      />
 
