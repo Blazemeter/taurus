@@ -55,7 +55,7 @@ settings:
 ```
 
 You may contribute your efforts in supporting requests-scenarios for your favorite tool by discussing this on 
-[project forum](https://groups.google.com/forum/#!forum/codename-taurus).
+[GitHub Issues](https://github.com/Blazemeter/taurus/issues).
 
 ## Load Profile
 
