@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.16.36<sup> 9 Januar 2025</sup>
+- Website update, fixed broken links
+- Gatling sh script fix
+- Vulnerability fixes
+- Fix selenium webdriver.log
+
 ## 1.16.35<sup> 29 October 2024</sup>
 - Upgrade to jmeter 5.6.3
 - Upgrade to ruby 3.3.3
