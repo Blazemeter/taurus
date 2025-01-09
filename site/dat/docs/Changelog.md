@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.16.35<sup> 29 October 2024</sup>
+- Upgrade to jmeter 5.6.3
+- Upgrade to ruby 3.3.3
+
 ## 1.16.34<sup> 15 August 2024</sup>
 - Fixed the execution of existing cloud tests
 - Fixed the execution of TestNG Selenium tests
