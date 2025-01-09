@@ -1,6 +1,9 @@
 # Changelog
 
-## 1.16.36<sup> 9 Januar 2025</sup>
+## 1.16.37<sup> 9 January 2025</sup>
+- Website update, fixed broken links
+
+## 1.16.36<sup> 9 January 2025</sup>
 - Website update, fixed broken links
 - Gatling sh script fix
 - Vulnerability fixes
