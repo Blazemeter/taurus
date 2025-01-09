@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.16.38<sup> 9 January 2025</sup>
+- Website update, fixed broken links
+
 ## 1.16.37<sup> 9 January 2025</sup>
 - Website update, fixed broken links
 
