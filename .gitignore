@@ -32,3 +32,4 @@ integr-artifacts*
 *.log
 examples/local*
 bzt/20*
+bzt/runtest/**
