@@ -41,7 +41,7 @@ export default class CustomReporter extends WDIOReporter {
   }
 
   onRunnerStart() {
-    this.reportStream = fs.createWriteStream(this.reportFile);
+    this.reportStream = fs.createWriteStream(this.reportFile, {flags: 'a'});
   }
 
   reportStatusLine(lastTest) {
