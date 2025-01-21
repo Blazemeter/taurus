@@ -162,7 +162,7 @@ Add [command-line arguments](https://peter.sh/experiments/chromium-command-line-
 - `experimental-options`: dict  
 Add a dictionary of experimental options. Option is only available in Chrome.  
 - `preferences`: dict  
-Add a [dictionary of preferences](http://kb.mozillazine.org/index.php?title=Category:Preferences&until=Browser.urlbar.restrict.typed). Option is only available in Firefox.
+Add a [dictionary of preferences](https://kb.mozillazine.org/index.php?title=Category:Preferences&until=Browser.urlbar.restrict.typed). Option is only available in Firefox.
 
 ```yaml
 execution:
@@ -196,7 +196,7 @@ modules:
 
 ## Appium
 
-[Appium](http://appium.io) is a tool for testing native mobile applications.
+[Appium](https://appium.io) is a tool for testing native mobile applications.
 Taurus supports only Python scripts for Appium in Selenium executor. Additionally, you can use Taurus services to run
 [Appium server](Services.md#Appium-Loader) and [Android emulator](Services.md#Android-Emulator-Loader).
 Here is a typical example of usage:

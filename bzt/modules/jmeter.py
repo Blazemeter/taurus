@@ -190,7 +190,7 @@ class JMeterExecutor(ScenarioExecutor):
                              iterations=iterations, duration=duration, steps=steps)
 
     @staticmethod
-    def _get_tool_version(jmx_file):
+    def _get_tool_version(jmx_file, default_version):
         jmx = JMX(jmx_file)
         selector = 'jmeterTestPlan'
         test_plan = jmx.get(selector)[0]
@@ -205,9 +205,9 @@ class JMeterExecutor(ScenarioExecutor):
             dash_index = ver.find("-")
             if dash_index != -1:
                 # not supported version like: 2.12-SNAPSHOT.20150128
-                return JMeter.VERSION
+                return default_version
             return ver
-        return JMeter.VERSION
+        return default_version
 
     def prepare(self):
         """
@@ -227,22 +227,33 @@ class JMeterExecutor(ScenarioExecutor):
 
         self.original_jmx = self.get_script_path()
         self.log.debug("Getting Jmeter version.")
+        # STABLE is default version for unknown/not present version
+        # if LATEST is not selected as default by version-type
+        default_version =  JMeter.VERSION_LATEST \
+            if self.settings.get("version-type","stable") == 'latest' \
+            else JMeter.VERSION
+        config_version = self.settings.get("version", default_version, force_set=True)
         if os.getenv('TAURUS_JMETER_DISABLE_AUTO_DETECT', 'False') == 'True':
             self.log.debug("Autodetect version is disabled.")
-            # autodetection NOT active -> use STABLE if auto,
+            # autodetection NOT active -> use default_version if auto,
             # xyz if STABLE|LATEST
-            # STABLE otherwise
-            config_version = self.settings.get("version", JMeter.VERSION, force_set=True)
+            # default_version otherwise
             if config_version in [JMeter.VERSION, JMeter.VERSION_LATEST]:
                 self.settings["version"] = config_version
             else:
-                self.settings["version"] = JMeter.VERSION
+                self.settings["version"] = default_version
         else:
             # autodetection IS active (original default behavior)
             self.log.debug("Autodetect version is enabled")
-            if self.settings.get("version", JMeter.VERSION, force_set=True) == "auto":
-                self.settings["version"] = self._get_tool_version(self.original_jmx)
-        self.log.debug("JMeter version: %s", self.settings["version"])
+            if config_version == "auto":
+                self.settings["version"] = self._get_tool_version(self.original_jmx, default_version)
+
+        if self.settings["version"] != config_version:
+            self.log.info("Using JMeter version: %s (configured version: %s, version-type: %s)",
+                          self.settings["version"], config_version,
+                          self.settings.get("version-type", "stable"))
+        else:
+            self.log.debug("JMeter version: %s", self.settings["version"])
 
         if not self.original_jmx:
             if self.get_scenario().get("requests"):
@@ -1248,7 +1259,7 @@ class JTLErrorsReader(object):
     url_xpath = GenericTranslator().css_to_xpath("java\\.net\\.URL")
 
     def __init__(self, filename, parent_logger, err_msg_separator=None, label_converter=None):
-        # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
+        # https://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
@@ -1481,13 +1492,18 @@ class JMeter(RequiredTool):
     COMMAND_RUNNER_VERSION = "2.3"
     COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
     VERSION = "5.5"
-    VERSION_LATEST = "5.6.2"
+    VERSION_LATEST = "5.6.3"
 
     def __init__(self, config=None, props=None, **kwargs):
         settings = config or BetterDict()
         props = props or BetterDict()
 
-        version = settings.get("version", JMeter.VERSION)
+        # STABLE is default version for unknown/not present version
+        # if LATEST is not selected as default by version-type
+        default_version =  JMeter.VERSION_LATEST \
+            if settings.get("version-type","stable") == 'latest' \
+            else JMeter.VERSION
+        version = settings.get("version", default_version)
         jmeter_path = settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
         jmeter_path = get_full_path(jmeter_path).format(version=version)
 

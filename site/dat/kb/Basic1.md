@@ -136,4 +136,4 @@ Continuous Delivery is becoming the ‘new normal’, especially for SaaS compan
 Within Jenkins, you can use the “Execute shell” section in the project configuration to run your Taurus test and make this a part of your continuous delivery cycle.
 
 
-As always if you have any questions or comments just leave a message on the [project forums](/support/). 
+As always if you have any questions or comments just leave a message on [GitHub Issues](https://github.com/Blazemeter/taurus/issues). 

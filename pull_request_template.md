@@ -1,4 +1,4 @@
-Each PR must conform to [Developer's Guide](http://gettaurus.org/docs/DeveloperGuide/#Rules-for-Contributing).
+Each PR must conform to [Developer's Guide](https://gettaurus.org/docs/DeveloperGuide/#Rules-for-Contributing).
 
 Quick checklist:
 - [ ] Description of PR explains the context of change

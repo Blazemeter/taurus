@@ -3,7 +3,7 @@
 Like it always happens with tools that focused on _executing_ tests, they are unable to provide
 sufficient reporting functionality. As professional user, you need some centralized storage to
 be able to access test results in convenient and interactive way, compare different executions,
-see trends over time and collaborate with your colleagues. [BlazeMeter.com](http://blazemeter.com)
+see trends over time and collaborate with your colleagues. [BlazeMeter.com](https://blazemeter.com)
 offers such service, it has both commercial and free of charge versions.
 
 ![BlazeMeter Report](blazemeter-rsz.png)
@@ -17,7 +17,7 @@ system browser, see `browser-open` option for more tuning.
 
 The official policy for BlazeMeter reports uploaded from Taurus, is that anonymous reports are
 kept for 7 days and if you're using your own account, then reports are kept according to the
-retention policy of your account. For details see BlazeMeter service [website](https://blazemeter.com/). 
+retention policy of your account. For details see the [BlazeMeter service website](https://blazemeter.com/). 
 
 ## Personalized Usage
 

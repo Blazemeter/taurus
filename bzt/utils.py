@@ -1884,7 +1884,7 @@ def str_representer(dumper, data):
 
 
 def humanize_bytes(byteval):
-    # from http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size/
+    # from https://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size/
     #   25613067#25613067
     _suffixes = [' ', 'K', 'M', 'G', 'T', 'P']
 

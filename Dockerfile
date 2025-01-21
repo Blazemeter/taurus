@@ -30,8 +30,8 @@ RUN $APT_UPDATE && $APT_INSTALL \
 # Install .NET sdk
 # check this page for the links and hash
 # https://dotnetcli.azureedge.net/dotnet/release-metadata/8.0/releases.json
-RUN curl -fSL --output dotnet.tar.gz https://download.visualstudio.microsoft.com/download/pr/60218cc4-13eb-41d5-aa0b-5fd5a3fb03b8/6c42bee7c3651b1317b709a27a741362/dotnet-sdk-8.0.303-linux-x64.tar.gz \
-    && dotnet_sha512='814ff07ccdfc8160c4a24adfda6c815e7feace88c59722f827a5a27041719067538754911fc15cb46978e16566fe0938695891723d182055190e876131faedda' \
+RUN curl -fSL --output dotnet.tar.gz https://download.visualstudio.microsoft.com/download/pr/ca6cd525-677e-4d3a-b66c-11348a6f920a/ec395f498f89d0ca4d67d903892af82d/dotnet-sdk-8.0.403-linux-x64.tar.gz \
+    && dotnet_sha512='7aa03678228b174f51c4535f18348cdf7a5d35e243b1f8cb28a4a30e402e47567d06df63c8f6da4bdc3c7e898f54f4acc08d9952bfa49d3f220d0353253ac3e9' \
     && echo "$dotnet_sha512 dotnet.tar.gz" | sha512sum -c - \
     && mkdir -p /usr/share/dotnet \
     && tar -zxf dotnet.tar.gz -C /usr/share/dotnet \
@@ -48,8 +48,8 @@ RUN echo 'export PATH="$RBENV_ROOT/bin:$PATH"' >> /etc/profile.d/rbenv.sh
 RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh
 RUN chmod +x /etc/profile.d/rbenv.sh
 RUN source /etc/profile.d/rbenv.sh \
-    && rbenv install 3.2.2 && rbenv global 3.2.2 && rbenv rehash \
-    && gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date && gem cleanup
+    && rbenv install 3.3.3 && rbenv global 3.3.3 && rbenv rehash \
+    && gem install rspec rake selenium-webdriver cgi:0.3.5 && gem update bundler date rexml && gem cleanup
 
 RUN update-alternatives --install /usr/local/bin/ruby ruby /usr/local/rbenv/shims/ruby 1
 RUN update-alternatives --install /usr/local/bin/gem gem /usr/local/rbenv/shims/gem 1
