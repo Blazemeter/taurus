@@ -61,7 +61,7 @@ class TestK6Executor(ExecutorTestCase):
                 "executor": "k6"
             },
         })
-        self.assertIn(f"--out csv={self.obj.kpi_file}", self.CMD_LINE)
+        self.assertNotIn(f"--out csv={self.obj.kpi_file}", self.CMD_LINE)
 
     def test_concurrency(self):
         self.simple_run({
