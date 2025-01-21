@@ -16,8 +16,8 @@ Overview of steps:
 
 There is good example of minimal custom executor code here: [examples/custom](https://github.com/Blazemeter/taurus/tree/master/examples/custom).
 
-Also, feel free to ask your questions at Taurus [support channel](https://groups.google.com/forum/#!forum/codename-taurus)
-or to open a pull request at GitHub.
+Also, feel free to ask your questions at Taurus [GitHub Issues](https://github.com/Blazemeter/taurus/issues)
+or to open a pull request.
 
 
 ## Step 1 - Creating a Runner

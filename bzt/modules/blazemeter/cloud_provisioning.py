@@ -278,8 +278,8 @@ class CloudProvisioning(MasterProvisioning):
             del_files = self.settings.get("delete-test-files", True)
             self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
 
-        self.router.sanitize_test()
-        self._validate_taurus_yml()
+            self.router.sanitize_test()
+            self._validate_taurus_yml()
 
         self.report_name = self.settings.get("report-name", self.report_name)
         if self.report_name == 'ask' and sys.stdin.isatty():

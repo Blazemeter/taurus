@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.16.38<sup> 9 January 2025</sup>
+- Website update, fixed broken links
+
+## 1.16.37<sup> 9 January 2025</sup>
+- Website update, fixed broken links
+
+## 1.16.36<sup> 9 January 2025</sup>
+- Website update, fixed broken links
+- Gatling sh script fix
+- Vulnerability fixes
+- Fix selenium webdriver.log
+
+## 1.16.35<sup> 29 October 2024</sup>
+- Upgrade to jmeter 5.6.3
+- Upgrade to ruby 3.3.3
+
+## 1.16.34<sup> 15 August 2024</sup>
+- Fixed the execution of existing cloud tests
+- Fixed the execution of TestNG Selenium tests
+
 ## 1.16.33<sup> 12 August 2024</sup>
 - Fixed response haeaders extractor
 - Fixed pagination in blazemeter api client

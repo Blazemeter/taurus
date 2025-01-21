@@ -1200,9 +1200,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["launch-existing-test"] = True
 
         self.obj.prepare()
-        self.assertEqual(13, len(self.mock.requests))
+        self.assertEqual(9, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(14, len(self.mock.requests))
+        self.assertEqual(10, len(self.mock.requests))
 
     def test_launch_existing_test_by_id(self):
         self.configure(
@@ -1217,9 +1217,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["launch-existing-test"] = True
 
         self.obj.prepare()
-        self.assertEqual(13, len(self.mock.requests))
+        self.assertEqual(9, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(14, len(self.mock.requests))
+        self.assertEqual(10, len(self.mock.requests))
 
     def test_launch_existing_test_not_found_by_id(self):
         self.configure(
@@ -1257,9 +1257,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["test"] = "foo"
 
         self.obj.prepare()
-        self.assertEqual(13, len(self.mock.requests))
+        self.assertEqual(9, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(14, len(self.mock.requests))
+        self.assertEqual(10, len(self.mock.requests))
 
     def test_launch_test_by_link(self):
         self.configure(
@@ -1296,9 +1296,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
-        self.assertEqual(10, len(self.mock.requests))
+        self.assertEqual(6, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(11, len(self.mock.requests))
+        self.assertEqual(7, len(self.mock.requests))
 
     def test_update_test_by_link(self):
         self.configure(
@@ -1388,9 +1388,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
-        self.assertEqual(10, len(self.mock.requests))
+        self.assertEqual(6, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(11, len(self.mock.requests))
+        self.assertEqual(7, len(self.mock.requests))
 
     def test_lookup_test_ids(self):
         self.configure(
@@ -1429,9 +1429,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
-        self.assertEqual(10, len(self.mock.requests))
+        self.assertEqual(6, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(11, len(self.mock.requests))
+        self.assertEqual(7, len(self.mock.requests))
 
     def test_lookup_test_different_type(self):
         self.configure(

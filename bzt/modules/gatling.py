@@ -962,6 +962,9 @@ class Gatling(RequiredTool):
                     elif line.startswith('set CLASSPATH='):
                         mod_success = True
                         line = line.rstrip()[:-1] + '${JAVA_CLASSPATH}"\n'  # add from env
+                    elif line.startswith('JAVA_OPTS'):
+                        mod_success = True
+                        line = re.sub(r'\$\{.*?\}', '', line)[:-2] + ' ${JAVA_OPTS}"\n'
                     elif line.startswith('%JAVA%'):
                         line = line.rstrip() + ' -rm local -rd Taurus\n'  # add mandatory parameters
                 else:
@@ -974,6 +977,9 @@ class Gatling(RequiredTool):
                     elif line.startswith('CLASSPATH='):
                         mod_success = True
                         line = line.rstrip()[:-1] + ':${JAVA_CLASSPATH}"\n'  # add from env
+                    elif line.startswith('JAVA_OPTS'):
+                        mod_success = True
+                        line = re.sub(r'\$\{.*?\}', '', line)[:-2] + ' ${JAVA_OPTS}"\n'
                     elif line.startswith('"$JAVA"'):
                         line = line.rstrip() + ' -rm local -rd Taurus \n'  # add mandatory parameters
                         line = 'eval ' + line

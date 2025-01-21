@@ -857,7 +857,7 @@ Typing actions are the following:
 - `typeByX(X\_name): "text\_to\_type"` clears `X` value and then types text.
 - `typeSecretByXX\_name): "secret"` hides the secret value in the action logging  
 - `submitByX(X\_name)`
-- `keysByX(X\_name): value` sends keystrokes to `X`. `value` can be formed like this: `KEY\_ENTER`. See docs for it [here](http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys).
+- `keysByX(X\_name): value` sends keystrokes to `X`. `value` can be formed like this: `KEY\_ENTER`. See also [Selenium with Python > WebDriver API > Special Keys](https://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys).
 
 `X` here is for one of [locators](#Locators).
 
@@ -1066,7 +1066,7 @@ Note: The capabilities are a way in which the remote service filters and selects
   - acceptInsecureCerts
   - platformName — commonly used for mobile devices
 
-Full capabilities list is [here](https://www.selenium.dev/documentation/webdriver/capabilities/).
+For the full capabilities list, see [Selenium WebDriver Browser Options](https://www.selenium.dev/documentation/webdriver/drivers/options/).
 
 Note: Currently it is possible to perform basic tests in mobile browsers using the available actions commands, in the future more commands related to mobile will be incorporated to allow a better interactivity.
 
