@@ -1,0 +1,1 @@
+Added own get_load method to k6.py so iterations is defaulted to 0 if not specified in the Taurus scenario.
