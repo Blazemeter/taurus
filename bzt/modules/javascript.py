@@ -38,6 +38,10 @@ class JavaScriptExecutor(SubprocessedExecutor):
     def get_launch_cmdline(self, *args):
         pass
 
+    @abstractmethod
+    def get_launch_cwd(self, *args):
+        pass
+
 
 class MochaTester(JavaScriptExecutor):
     """
@@ -93,7 +97,7 @@ class MochaTester(JavaScriptExecutor):
         if load.hold:
             mocha_cmdline += ['--hold-for', str(load.hold)]
 
-        self.process = self._execute(mocha_cmdline)
+        self.process = self._execute(mocha_cmdline, cwd=self.get_launch_cwd())
 
 
 class WebdriverIOExecutor(JavaScriptExecutor):
@@ -142,6 +146,9 @@ class WebdriverIOExecutor(JavaScriptExecutor):
     def get_launch_cmdline(self, *args):
         return [self.node.tool_path, '@taurus/wdio-taurus-plugin'] + list(args)
 
+    def get_launch_cwd(self, *args):
+        return self.tools_dir + "/node_modules"
+
     def startup(self):
         script_dir = get_full_path(self.script, step_up=1)
         script_file = os.path.basename(self.script)
@@ -161,7 +168,7 @@ class WebdriverIOExecutor(JavaScriptExecutor):
 
         cmdline += ['--cwd', script_dir]
 
-        self.process = self._execute(cmdline, cwd=self.tools_dir + "/node_modules")
+        self.process = self._execute(cmdline, cwd=self.get_launch_cwd())
 
 
 class NPM(RequiredTool):
