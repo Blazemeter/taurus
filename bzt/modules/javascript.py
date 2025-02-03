@@ -106,14 +106,14 @@ class WebdriverIOExecutor(JavaScriptExecutor):
 
     def __init__(self):
         super(WebdriverIOExecutor, self).__init__()
-        self.tools_dir = "~/.bzt/selenium-taurus/wdio"
+        self.tools_dir = "~/.bzt/selenium-taurus/wdio-mjs"
         self.wdio = None
         self.wdio_taurus_plugin = None
 
     def prepare(self):
         super(WebdriverIOExecutor, self).prepare()
         self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
-        # todo: NODE_PATH doesn't work for ems modules -> try to create symlink instead of env variable ...
+        # todo: NODE_PATH doesn't work for ems modules -> we will change pwd so execytor sees tools node_modules...
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to executor %s" % self)
