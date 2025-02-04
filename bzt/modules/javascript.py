@@ -117,7 +117,7 @@ class WebdriverIOExecutor(JavaScriptExecutor):
     def prepare(self):
         super(WebdriverIOExecutor, self).prepare()
         self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
-        # todo: NODE_PATH doesn't work for ems modules -> we will change pwd so execytor sees tools node_modules...
+        # todo: NODE_PATH doesn't work for ems modules -> we will change pwd so executor sees tools node_modules...
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to executor %s" % self)
@@ -202,6 +202,7 @@ class NPMPackage(RequiredTool):
     def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
         super(NPMPackage, self).__init__(**kwargs)
         self.package_name = self.PACKAGE_NAME
+        self.is_module_package = False
         if self.package_name.startswith("@"):
             package_name_split = self.package_name.split("@")
             self.package_name = '@{}'.format(package_name_split[1])
@@ -215,23 +216,26 @@ class NPMPackage(RequiredTool):
         self.npm = npm_tool
 
     def check_if_installed(self):
-        cmdline = [self.node.tool_path, "-e"]
         ok_msg = "%s is installed" % self.package_name
-
-        command = [ "node", "--input-type=module", "-e",
-                    "import('%s').then(() => { console.log('%s'); process.exit(0); }).catch(() => process.exit(1));" % (self.package_name, ok_msg)]
-
-        self.log.debug("%s check cmdline: %s", self.package_name, command)
-        self.log.debug("NODE_PATH for check: %s", self.env.get("NODE_PATH"))
 
         # NODE_PATH doesn't work for ems modules - look if symlink/node_modules are present,
         # if not, change dir to tool node_modules
         process_cwd = None
-        if not os.path.exists("./node_modules"):
-            process_cwd = os.path.join(self.tools_dir, "node_modules")
+        if not self.is_module_package:
+            cmdline = [self.node.tool_path, "-e",
+                       "require('%s'); console.log('%s');" % (self.package_name, ok_msg)]
+            self.log.debug("NODE_PATH for check: %s", self.env.get("NODE_PATH"))
+        else:
+            cmdline = [ self.node.tool_path, "--input-type=module", "-e",
+                        "import('%s').then(() => { console.log('%s'); process.exit(0); }).catch(() => process.exit(1));" % (self.package_name, ok_msg)]
+            if not os.path.exists("./node_modules"):
+                process_cwd = os.path.join(self.tools_dir, "node_modules")
+            self.log.debug("cwd for check: %s", "." if process_cwd is None else process_cwd)
+
+        self.log.debug("%s check cmdline: %s", self.package_name, cmdline)
 
         try:
-            out, _ = self.call(command, cwd=process_cwd)
+            out, _ = self.call(cmdline, cwd=process_cwd)
             return ok_msg in out
         except CALL_PROBLEMS as exc:
             self.log.debug("%s check failed: %s", self.package_name, exc)
@@ -253,11 +257,18 @@ class NPMPackage(RequiredTool):
         if err:
             self.log.warning("%s install stderr: %s", self.tool_name, err)
 
-class NPMLocalPackage(NPMPackage):
+class NPMModulePackage(NPMPackage):
+    def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
+        super(NPMModulePackage, self).__init__(tools_dir, node_tool, npm_tool, **kwargs)
+        self.is_module_package = True
+
+
+class NPMLocalModulePackage(NPMPackage):
     PACKAGE_LOCAL_PATH = ""
     def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
-        super(NPMLocalPackage, self).__init__(tools_dir, node_tool, npm_tool, **kwargs)
+        super(NPMLocalModulePackage, self).__init__(tools_dir, node_tool, npm_tool, **kwargs)
 
+        self.is_module_package = True
         self.package_local_path = self.PACKAGE_LOCAL_PATH
         if not os.path.isabs(self.package_local_path):
             self.package_local_path = os.path.normpath(os.path.join(RESOURCES_DIR, self.package_local_path))
@@ -283,25 +294,22 @@ class Mocha(NPMPackage):
 class JSSeleniumWebdriver(NPMPackage):
     PACKAGE_NAME = "selenium-webdriver@4.23.0"
 
-class WDIO(NPMPackage):
-    #PACKAGE_NAME = "@wdio/cli@7.36.0"
+class WDIO(NPMModulePackage):
     PACKAGE_NAME = "@wdio/cli@9.2.1"
 
-class WDIORunner(NPMPackage):
-    #PACKAGE_NAME = "@wdio/local-runner@7.36.0"
+class WDIORunner(NPMModulePackage):
     PACKAGE_NAME = "@wdio/local-runner@9.2.1"
 
-class WDIOReporter(NPMPackage):
-    #PACKAGE_NAME = "@wdio/reporter@7.33.0"
+class WDIOReporter(NPMModulePackage):
     PACKAGE_NAME = "@wdio/reporter@9.1.3"
 
-class WDIOMochaPlugin(NPMPackage):
+class WDIOMochaPlugin(NPMModulePackage):
     PACKAGE_NAME = "@wdio/mocha-framework@9.1.3"
 
-class NodeTSXModule(NPMPackage):
+class NodeTSXModule(NPMModulePackage):
     PACKAGE_NAME = "tsx@4.19.2"
 
-class TaurusWDIOPlugin(NPMLocalPackage):
+class TaurusWDIOPlugin(NPMLocalModulePackage):
     PACKAGE_NAME = "@taurus/wdio-taurus-plugin@1.0.0"
     PACKAGE_LOCAL_PATH = "./wdio-taurus-plugin"
 
