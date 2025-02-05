@@ -117,7 +117,7 @@ class WebdriverIOExecutor(JavaScriptExecutor):
     def prepare(self):
         super(WebdriverIOExecutor, self).prepare()
         self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
-        # todo: NODE_PATH doesn't work for ems modules -> we will change pwd so executor sees tools node_modules...
+        # NODE_PATH doesn't work for ems modules -> we will change pwd so executor sees tools node_modules...
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to executor %s" % self)
