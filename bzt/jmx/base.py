@@ -114,12 +114,13 @@ class JMX(object):
             self.tree.parse(original)
         except BaseException as exc:
             if isinstance(exc, etree.XMLSyntaxError) and "huge text node" in str(exc):
-                self.log.info("XML parsing failed due to huge text node, retrying with allowed huge text nodes")
+                self.log.warning("XML parsing failed due to huge text node, retrying with allowed huge text nodes")
                 try:
                     # Retry with allowed huge text nodes
                     return self.tree.parse(original, parser=etree.XMLParser(huge_tree=True))
                 except BaseException as exc2:
-                    pass # proceed to raising original exception
+                    msg = "XML parsing (with huge_tree) failed for file %s: %s"
+                    raise TaurusInternalException(msg % (original, exc))
             msg = "XML parsing failed for file %s: %s"
             raise TaurusInternalException(msg % (original, exc))
 
