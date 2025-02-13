@@ -1,4 +1,6 @@
 # coding=utf-8
+import io
+
 from . import MockJMeterExecutor
 from bzt.engine import Provisioning
 from bzt.utils import BetterDict
@@ -563,3 +565,64 @@ class TestJMX(BZTestCase):
                                     label="label", method="method", timeout=0, body={}, keepalive=True)
         self.assertEqual("/Xhtml;jsessionid=XXXX:XXXX?JacadaApplicationName=XXXX",
                          res.find(".//stringProp[@name='HTTPSampler.path']").text)
+
+    def test_huge_jmx(self):
+        prefix = """<?xml version="1.0" encoding="UTF-8"?>
+        <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.5">
+          <hashTree>
+            <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="AAAAA" enabled="true">
+              <stringProp name="TestPlan.comments"></stringProp>
+              <boolProp name="TestPlan.functional_mode">false</boolProp>
+              <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+              <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+              <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+                <collectionProp name="Arguments.arguments">
+                  <elementProp name="BBBB" elementType="Argument">
+                    <stringProp name="Argument.name">BBBB</stringProp>
+                    <stringProp name="Argument.value">
+        """
+        suffix = """</stringProp>
+                            <stringProp name="Argument.metadata">=</stringProp>
+                          </elementProp>
+                        </collectionProp>
+                      </elementProp>
+                      <stringProp name="TestPlan.user_define_classpath"></stringProp>
+                    </TestPlan>
+                    <hashTree/>
+                  </hashTree>
+                </jmeterTestPlan>        
+                """
+
+        jmxfile = io.BytesIO()
+        jmxfile.write(prefix.encode('utf-8'))
+        for i in range(1, 30):
+            for i in range(1, 1024):
+                jmxfile.write("A".encode('utf-8') * 1024)
+                jmxfile.write("\n".encode('utf-8'))
+        jmxfile.write(suffix.encode('utf-8'))
+        jmxfile.seek(0)
+
+        self.sniff_log()
+        obj = JMX(original=jmxfile)
+        self.assertTrue("huge text node" in self.log_recorder.warn_buff.getvalue())
+
+        self.log_recorder.warn_buff.truncate(0)
+
+        # huge with syntax error
+        jmxfile = io.BytesIO()
+        jmxfile.write(prefix.encode('utf-8'))
+        for i in range(1, 30):
+            for i in range(1, 1024):
+                jmxfile.write("A".encode('utf-8') * 1024)
+                jmxfile.write("\n".encode('utf-8'))
+        jmxfile.write("</aaa>".encode('utf-8'))
+        jmxfile.write(suffix.encode('utf-8'))
+        jmxfile.seek(0)
+
+        try:
+            obj = JMX(original=jmxfile)
+            self.assertTrue(False, "Exception not raised")
+        except BaseException as exc:
+            self.assertTrue("huge text node" in self.log_recorder.warn_buff.getvalue())
+            self.assertTrue("XML parsing (with huge_tree) failed" in str(exc))
+
