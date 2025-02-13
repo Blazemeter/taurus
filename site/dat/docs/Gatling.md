@@ -254,8 +254,8 @@ included-configs:  # it must be a list of string values
 
 ## Configuration Options
 
-Similar to other modules, you can define a global configuration for the Gatling Executor by writing some lines in
- `gatling` section of the modules setting. 
+Similar to other modules, you can define a global configuration for the Gatling Executor 
+by writing certain lines in the `gatling` section of the modules setting. 
  
  The following options are supported:
  - `path`: Path to the Gatling executable. In case no Gatling executable is found, it will be automatically downloaded and installed into the `path` location. By default, `~/.bzt/gatling-taurus/{version}/bin/gatling.sh`.
