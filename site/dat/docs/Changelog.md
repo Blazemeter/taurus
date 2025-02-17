@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.16.39<sup> 17 February 2025</sup>
+- JMX parser enhancement
+- Cloud documentation changes
+- Update WDIO to 9.x and jinja2 to 3.1.5
+
 ## 1.16.38<sup> 9 January 2025</sup>
 - Website update, fixed broken links
 
