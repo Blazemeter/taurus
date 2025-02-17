@@ -12,7 +12,7 @@ pyvirtualdisplay; sys_platform != 'win32'
 pyyaml
 requests>=2.18.1
 urwid==2.1.2
-terminaltables>=3.1.0
+terminaltables3>=4.0.0
 molotov!=2.3
 influxdb >= 5.3
 python-socketio>=5.8.0
