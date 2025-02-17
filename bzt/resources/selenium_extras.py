@@ -1,6 +1,7 @@
 # Utility functions and classes for Taurus Selenium tests
 import numbers
 import time
+import logging
 
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, \
     external_handler, CSVReaderPerThread
@@ -24,6 +25,7 @@ BYS = {
     'linktext': By.LINK_TEXT
 }
 
+log = logging.getLogger('SeleniumExtras')
 
 def find_element_by_shadow(shadow_loc):
     """
@@ -103,28 +105,36 @@ def get_locator(locators, parent_el=None, ignore_implicit_wait=False, raise_exce
     for locator in locators:
         locator_type = list(locator.keys())[0]
         locator_value = locator[locator_type]
+        log.info('Locator being examined: %s=%s @ %s' % (locator_type, locator_value, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
         if not first_locator:
             first_locator = (BYS[locator_type.lower()], locator_value)
         else:
             # set implicit wait to 0 get the result instantly for the other locators
             driver.implicitly_wait(0)
         if parent_el:
+            log.info('Locating from parent element: %s=%s @ %s' % (locator_type, locator_value, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
             elements = parent_el.find_elements(BYS[locator_type.lower()], locator_value)
         else:
+            log.info('Using the driver: %s=%s @ %s' % (locator_type, locator_value, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
             elements = driver.find_elements(BYS[locator_type.lower()], locator_value)
+        log.info('Elements found: %s @ %s' % (elements, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
         if len(elements) > 0:
             locator = (BYS[locator_type.lower()], locator_value)
             break
     else:
+        log.info('This got called @ %s' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         if raise_exception:
             driver.implicitly_wait(timeout)
             msg = "Element not found: (%s, %s)" % first_locator
             raise NoSuchElementException(msg)
         else:
+            log.info('First Locator %s @ %s' %(first_locator, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
             locator = first_locator
 
+    log.info('Before: Implicit wait @ %s' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
     # restore the implicit wait value
     driver.implicitly_wait(timeout)
+    log.info('After: Implicit wait @ %s' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
     return locator
 
 
