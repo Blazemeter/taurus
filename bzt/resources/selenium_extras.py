@@ -1,7 +1,7 @@
 # Utility functions and classes for Taurus Selenium tests
 import numbers
 import time
-
+import logging
 from apiritif import get_transaction_handlers, set_transaction_handlers, get_from_thread_store, get_iteration, \
     external_handler, CSVReaderPerThread
 
@@ -24,6 +24,7 @@ BYS = {
     'linktext': By.LINK_TEXT
 }
 
+log = logging.getLogger(__name__)
 
 def find_element_by_shadow(shadow_loc):
     """
@@ -172,7 +173,10 @@ def add_flow_markers():
 
 
 def _send_marker(stage, params):
-    _get_driver().execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
+    try:
+        _get_driver().execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
+    except Exception as exc:
+        log.error("Failed to send flow marker: %s %s due to %s", stage, params, exc)
 
 
 def _send_start_flow_marker(*args, **kwargs):  # for apiritif. remove when compatibiltiy code in
