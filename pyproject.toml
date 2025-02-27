@@ -1,0 +1,42 @@
+[project]
+name = "bzt"
+description = "Taurus Tool for Continuous Testing"
+readme = "README.md"
+authors = [{ name = "Andrey Pokhilko", email = "andrey@blazemeter.com" }]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Testing :: Traffic Generation",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+]
+requires-python = ">=3.6" # should be '>=3.7', but let's keep it for obsolete configuration
+license = { text = "Apache 2.0" }
+dynamic = ["dependencies", "version"]
+
+[project.urls]
+Homepage = "http://gettaurus.org/"
+Downloads = "http://gettaurus.org/docs/DeveloperGuide/#Python-Egg-Snapshots"
+
+[project.scripts]
+bzt = "bzt.cli:main"
+jmx2yaml = "bzt.jmx2yaml:main"
+soapui2yaml = "bzt.soapui2yaml:main"
+swagger2yaml = "bzt.swagger2yaml:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "bzt.resources.version.VERSION" }
+dependencies = { file = "requirements.txt" }
+
+[tool.setuptools.packages.find]
+include = ["bzt*"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
