@@ -20,7 +20,7 @@ import numbers
 import re
 import string
 from collections import OrderedDict
-from distutils.version import LooseVersion
+from packaging.version import Version
 from urllib import parse
 
 import astunparse
@@ -104,8 +104,8 @@ class ApiritifScriptGenerator(object):
 
     EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach', 'loopOverData'])
 
-    SELENIUM_413_VERSION = LooseVersion('4.1.3')
-    SELENIUM_491_VERSION = LooseVersion('4.9.1')
+    SELENIUM_413_VERSION = Version('4.1.3')
+    SELENIUM_491_VERSION = Version('4.9.1')
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
 
@@ -1105,21 +1105,21 @@ from selenium.webdriver.common.keys import Keys
 
         browser = self._check_platform()
         body = [self._get_options(browser)]
-        if browser == 'chrome' and LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
+        if browser == 'chrome' and Version(self.selenium_version) > self.SELENIUM_491_VERSION:
             service = self._get_service(browser)
             if service:
                 body.extend(self._get_service(browser))
 
         if browser == 'firefox':
-            if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
+            if Version(self.selenium_version) > self.SELENIUM_491_VERSION:
                 body.extend(self._get_firefox_profile_v410() + [self._get_firefox_webdriver_4_10()])
-            elif LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
+            elif Version(self.selenium_version) > self.SELENIUM_413_VERSION:
                 body.extend(self._get_firefox_profile_v414() + [self._get_firefox_webdriver()])
             else:
                 body.extend(self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
         elif browser == 'chrome':
-            if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
+            if Version(self.selenium_version) > self.SELENIUM_413_VERSION:
                 body.extend(self._get_chrome_profile_v414() + [self._get_chrome_webdriver()])
             else:
                 body.extend(self._get_chrome_profile() + [self._get_chrome_webdriver()])
@@ -1129,7 +1129,7 @@ from selenium.webdriver.common.keys import Keys
 
         elif browser == 'remote':
             if self.selenium_version.startswith("4"):
-                if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
+                if Version(self.selenium_version) > self.SELENIUM_413_VERSION:
                     remote_profile = self._get_remote_profile_v414() + [self._get_remote_webdriver()]
                 else:
                     remote_profile = self._get_remote_profile() + [self._get_remote_webdriver()]
@@ -1411,7 +1411,7 @@ from selenium.webdriver.common.keys import Keys
     def _get_chrome_webdriver(self):
 
         log_keyword = ast.keyword(arg="service_log_path", value=ast.Str(self.wdlog, kind=""))
-        if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
+        if Version(self.selenium_version) > self.SELENIUM_491_VERSION:
             log_keyword = ast.keyword(arg="service", value=ast.Name(id="service"))
 
         return ast.Assign(
@@ -1594,7 +1594,7 @@ from selenium.webdriver.common.keys import Keys
 
             imports.append(ast.parse(self.IMPORTS % source).body)
             browser = self._check_platform()
-            if browser == "chrome" and LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
+            if browser == "chrome" and Version(self.selenium_version) > self.SELENIUM_491_VERSION:
                 imports.append(
                     ast.ImportFrom(
                         module="selenium.webdriver.chrome.service",

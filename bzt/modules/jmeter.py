@@ -27,7 +27,7 @@ import tempfile
 import time
 import traceback
 from collections import Counter, namedtuple
-from distutils.version import LooseVersion
+from packaging.version import Version
 from itertools import dropwhile
 from io import StringIO
 from typing import Optional
@@ -270,7 +270,7 @@ class JMeterExecutor(ScenarioExecutor):
 
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
-            version = LooseVersion(self.tool.version)
+            version = Version(self.tool.version)
             major = version.version[0]
             if major == 2:
                 flags["bytes"] = True
@@ -535,9 +535,9 @@ class JMeterExecutor(ScenarioExecutor):
         self.__add_listener(log_lst, jmx)
 
     def __add_result_writers(self, jmx):
-        version = LooseVersion(self.tool.version)
+        version = Version(self.tool.version)
         csv_flags = self.settings.get('csv-jtl-flags')
-        if version < LooseVersion("2.13"):
+        if version < Version("2.13"):
             csv_flags['^connectTime'] = False
 
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
@@ -590,8 +590,8 @@ class JMeterExecutor(ScenarioExecutor):
         self.__add_result_listeners(jmx)
         if not is_jmx_generated:
             self.__force_tran_parent_sample(jmx)
-            version = LooseVersion(self.tool.version)
-            if version >= LooseVersion("3.2"):
+            version = Version(self.tool.version)
+            if version >= Version("3.2"):
                 self.__force_hc4_cookie_handler(jmx)
         self.__fill_empty_delimiters(jmx)
 
@@ -1672,7 +1672,7 @@ class JMeter(RequiredTool):
     def _get_jar_fixes(self, lib_dir):
         direct_install_tools = []
 
-        if not self.fix_jars or LooseVersion(self.version) < LooseVersion('5.0.0'):
+        if not self.fix_jars or Version(self.version) < Version('5.0.0'):
             return direct_install_tools
 
         # these jars should be replaced with newer version in order to fix some vulnerabilities
@@ -1692,7 +1692,7 @@ class JMeter(RequiredTool):
             "xalan-2.7.2": "xalan/xalan/2.7.3/xalan-2.7.3.jar"
         }
 
-        if LooseVersion(self.version) <= LooseVersion('5.4.3'):  # log4j must be fixed till jmeter 5.4.3
+        if Version(self.version) <= Version('5.4.3'):  # log4j must be fixed till jmeter 5.4.3
             affected_names = ["log4j-core", "log4j-api", "log4j-slf4j-impl", "log4j-1.2-api"]
             fixed_version = '2.19.0'
             maven_link = "org/apache/logging/log4j/{name}/{ver}/{name}-{ver}.jar"
@@ -1712,7 +1712,7 @@ class JMeter(RequiredTool):
         return direct_install_tools
 
     def _fix_jquery_in_jmeter(self, jmeter_dir):
-        if not self.fix_jars or LooseVersion(self.version) < LooseVersion('5.0.0'):
+        if not self.fix_jars or Version(self.version) < Version('5.0.0'):
             return
 
         # Fix CVE-2016-10707 in jquery
@@ -1790,7 +1790,7 @@ class JarCleaner(object):
         for jar_lib_obj in jar_libs:
             similar_packages = [lib for lib in jar_libs if lib.lib_name == jar_lib_obj.lib_name]
             if len(similar_packages) > 1:
-                right_version = max(similar_packages, key=lambda l: LooseVersion(l.version))
+                right_version = max(similar_packages, key=lambda l: Version(l.version))
                 similar_packages.remove(right_version)
                 duplicated_libraries.update(similar_packages)
 

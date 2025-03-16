@@ -13,9 +13,13 @@ COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
-RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
+#RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
+#RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+RUN bash ./setup_18.x && $APT_INSTALL build-essential pyenv net-tools apt-utils
+RUN pyenv install 3.13.0 && pyenv global 3.13.0
+RUN python -m ensurepip --upgrade && python -m pip install --upgrade pip && \
+    apt install -y python3.13-dev
 
 # Fix vulnerabilities / outdated versions
 RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 numpy fonttools wheel
