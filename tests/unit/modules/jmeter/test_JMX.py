@@ -349,6 +349,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ThreadGroup")
+            self.assertEqual("false", group.element.find(".//*[@name='ThreadGroup.same_user_on_next_iteration']").text)
             self.assertEqual("10", group.element.find(".//*[@name='LoopController.loops']").text)
 
     def test_duration_loops_bug(self):
