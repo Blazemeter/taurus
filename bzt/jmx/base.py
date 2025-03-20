@@ -571,7 +571,7 @@ class JMX(object):
     @staticmethod
     def get_thread_group(concurrency=None, rampup=0, hold=0, iterations=None,
                          testname="ThreadGroup", on_error="continue", thread_delay=False, scheduler_delay=None,
-                         add_ramp_to_duration=True):
+                         add_ramp_to_duration=True, same_user=True):
         """
         Generates ThreadGroup
 
@@ -582,6 +582,7 @@ class JMX(object):
             ThreadGroup.duration (rampup + hold): int
             LoopController.loops (iterations): int
             ThreadGroup.delayedStart: boolean
+            ThreadGroup.same_user_on_next_iteration: boolean
         :return: etree element, ThreadGroup
         """
         rampup = cond_int(rampup or 0)
@@ -638,6 +639,7 @@ class JMX(object):
         trg.append(JMX._string_prop("ThreadGroup.end_time", ""))
         trg.append(JMX._bool_prop("ThreadGroup.scheduler", scheduler))
         trg.append(JMX._string_prop("ThreadGroup.duration", duration))
+        trg.append(JMX._bool_prop("ThreadGroup.same_user_on_next_iteration", same_user))
 
         if scheduler_delay:
             trg.append(JMX._string_prop("ThreadGroup.delay", scheduler_delay))
@@ -740,7 +742,7 @@ class JMX(object):
 
     @staticmethod
     def get_concurrency_thread_group(concurrency=None, rampup=0, hold=0, steps=None, on_error="continue",
-                                     testname="ConcurrencyThreadGroup", iterations=""):
+                                     testname="ConcurrencyThreadGroup", iterations="", same_user=True):
         """
         Generates ConcurrencyThreadGroup
 
@@ -782,6 +784,7 @@ class JMX(object):
         concurrency_thread_group.append(JMX._string_prop("LogFilename", ""))
         concurrency_thread_group.append(JMX._string_prop("Iterations", iterations or ""))
         concurrency_thread_group.append(JMX._string_prop("Unit", "S"))
+        concurrency_thread_group.append(JMX._bool_prop("same_user_on_next_iteration", same_user))
 
         return concurrency_thread_group
 
