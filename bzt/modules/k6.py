@@ -47,7 +47,13 @@ class K6Executor(ScenarioExecutor):
             self.engine.aggregator.add_underling(self.reader)
 
     def startup(self):
-        cmdline = [self.k6.tool_name, "run"] #, "--out", f"csv={self.kpi_file}"]
+
+        modifs = self.get_scenario().get('modifications')
+
+        if 'disable' in modifs:
+            cmdline = [self.k6.tool_name, "run"] #, "--out", f"csv={self.kpi_file}"]
+        else:
+            cmdline = [self.k6.tool_name, "run", "--out", f"csv={self.kpi_file}"]
 
         load = self.get_load()
         if load.concurrency:
