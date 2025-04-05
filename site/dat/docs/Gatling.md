@@ -260,6 +260,7 @@ included-configs:  # it must be a list of string values
  - `download-link`: Link to download Gatling from. By default: `https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip`
  -  `version`: Gatling version, `3.1.2` by default
  -  `dir-prefix`: Gatling report prefix, `gatling-%s` by default. Used by taurus to find gatling reports. If you use Gatling property `gatling.core.outputDirectoryBaseName`, you may use also this setting.
+ - `group-response-time`: Group response time metric, `cumulated` (default) or `duration`. If you use Gatling property `charting.charting.useGroupDurationMetric`, you may use also this setting.
  - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling
  documentation) and sending your own variables into Scala program:
 
