@@ -6,7 +6,7 @@ from os.path import exists
 import bzt
 
 from bzt import ToolError
-from bzt.modules.javascript import NPMPackage, WebdriverIOExecutor, JavaScriptExecutor, Mocha, JSSeleniumWebdriver
+from bzt.modules.javascript import NPMPackage, WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
 from bzt.utils import get_full_path, EXE_SUFFIX
 
 from tests.unit import RESOURCES_DIR, BZTestCase, EngineEmul
@@ -233,3 +233,38 @@ class TestNPMPackageNameParser(BZTestCase):
         self.assertEqual(self.npmPackageScopedFormat.version, '9.0.0')
 
 
+class TestNewmanExecutor(BZTestCase):
+    RUNNER_STUB = RESOURCES_DIR + "newman/newman" + EXE_SUFFIX
+
+    def full_run(self, config):
+        self.obj = NewmanExecutor()
+        self.obj.engine = EngineEmul()
+        self.obj.engine.config.merge(config)
+        execution = config["execution"][0] if isinstance(config["execution"], list) else config["execution"]
+        self.obj.execution.merge(execution)
+
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
+
+        self.obj.node.tool_path = self.RUNNER_STUB
+
+        self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
+
+    def test_flow(self):
+        self.full_run({"execution": {"scenario": {
+            "script": RESOURCES_DIR + 'functional/postman.json',
+            "globals": {"a": 123},
+        }}})
+        self.assertTrue(os.path.exists(self.obj.report_file))
+        with open(self.obj.report_file) as fds:
+            samples = [json.loads(line) for line in fds.readlines()]
+        self.assertEqual(1, len(samples))
+        sample = samples[0]
+        self.assertEqual(sample["status"], "PASSED")
+        self.assertEqual(sample["test_case"], "should load")
