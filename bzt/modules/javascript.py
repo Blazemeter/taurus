@@ -171,6 +171,99 @@ class WebdriverIOExecutor(JavaScriptExecutor):
         self.process = self._execute(cmdline, cwd=self.get_launch_cwd())
 
 
+class NewmanExecutor(JavaScriptExecutor):
+    """
+    Newman-based test runner
+
+    :type newman: Newman
+    """
+
+    def __init__(self):
+        super(NewmanExecutor, self).__init__()
+        self.tools_dir = "~/.bzt/newman"
+        self.newman = None
+
+    def prepare(self):
+        super(NewmanExecutor, self).prepare()
+        self.env.add_path({"NODE_PATH": RESOURCES_DIR})
+
+        self.script = self.get_script_path()
+        if not self.script:
+            raise TaurusConfigError("Script not passed to executor %s" % self)
+
+        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
+        self.install_required_tools()
+        self.reporting_setup(suffix='.ldjson')
+
+    def install_required_tools(self):
+        tcl_lib = self._get_tool(TclLibrary)
+        self.node = self._get_tool(Node)
+        self.npm = self._get_tool(NPM)
+        self.newman = self._get_tool(Newman, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
+        taurus_newman_plugin = self._get_tool(TaurusNewmanPlugin)
+
+        tools = [tcl_lib, self.node, self.npm, self.newman, taurus_newman_plugin]
+
+        self._check_tools(tools)
+
+    def get_launch_cmdline(self, *args):
+        return [self.node.tool_path, self.newman.tool_path] + list(args)
+
+    def startup(self):
+        script_dir = get_full_path(self.script, step_up=1)
+        script_file = os.path.basename(self.script)
+        cmdline = self.get_launch_cmdline(
+            "run",
+            script_file,
+            "--reporters", "taurus",
+            "--reporter-taurus-filename", self.report_file,
+            "--suppress-exit-code", "--insecure",
+        )
+
+        scenario = self.get_scenario()
+        timeout = scenario.get('timeout', None)
+        if timeout is not None:
+            cmdline += ["--timeout-request", str(int(dehumanize_time(timeout) * 1000))]
+
+        think = scenario.get_think_time()
+        if think is not None:
+            cmdline += ["--delay-request", str(int(dehumanize_time(think) * 1000))]
+
+        cmdline += self._dump_vars("globals")
+        cmdline += self._dump_vars("environment")
+
+        load = self.get_load()
+        if load.iterations:
+            cmdline += ['--iteration-count', str(load.iterations)]
+
+        self.process = self._execute(cmdline, cwd=script_dir)
+
+    def _dump_vars(self, key):
+        cmdline = []
+        vals = self.get_scenario().get(key)
+        if isinstance(vals, str):
+            cmdline += ["--%s" % key, vals]
+        else:
+            data = {"values": []}
+
+            if isinstance(vals, list):
+                data['values'] = vals
+            else:
+                for varname, val in iteritems(vals):
+                    data["values"] = {
+                        "key": varname,
+                        "value": val,
+                        "type": "any",
+                        "enabled": True
+                    }
+
+            fname = self.engine.create_artifact(key, ".json")
+            with open(fname, "wt") as fds:
+                fds.write(to_json(data))
+            cmdline += ["--%s" % key, fname]
+        return cmdline
+
+
 class NPM(RequiredTool):
     def __init__(self, **kwargs):
         super(NPM, self).__init__(installable=False, **kwargs)
@@ -312,6 +405,14 @@ class NodeTSXModule(NPMModulePackage):
 class TaurusWDIOPlugin(NPMLocalModulePackage):
     PACKAGE_NAME = "@taurus/wdio-taurus-plugin@1.0.0"
     PACKAGE_LOCAL_PATH = "./wdio-taurus-plugin"
+
+class Newman(NPMPackage):
+    PACKAGE_NAME = "newman"
+
+    def __init__(self, tools_dir="", **kwargs):
+        tool_path = "%s/node_modules/%s/bin/newman.js" % (tools_dir, self.PACKAGE_NAME)
+        super(Newman, self).__init__(tool_path=tool_path, tools_dir=tools_dir, **kwargs)
+
 
 class TaurusMochaPlugin(RequiredTool):
     def __init__(self, **kwargs):

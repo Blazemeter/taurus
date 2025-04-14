@@ -33,6 +33,7 @@ class TaurusReporter {
             name: this.itemName(args.item),
             passed: true,
             assertions: [],
+            exceptions: [],
             startTime: epoch()
         };
         if (err) {
@@ -59,6 +60,16 @@ class TaurusReporter {
             isFailed: (err) ? true : false,
             error: args.error
         });
+        if (err) {
+            this.currItem.passed = false;
+        }
+    }
+
+    exception(err, args) {
+        this.currItem.exceptions.push({
+            message: args.error.name + ": " + args.error.message,
+            error: args.error
+        })
         if (err) {
             this.currItem.passed = false;
         }
@@ -113,6 +124,23 @@ class TaurusReporter {
         return assertions;
     }
 
+    extractExceptions(item, sample) {
+        var exceptions = [];
+        for (var i = 0; i < item.exceptions.length; i++) {
+            var exception = item.exceptions[i];
+            /*eslint-disable camelcase */
+            if (!sample.error_msg) {
+                sample.error_msg = exception.message
+                sample.error_trace = null;
+            }
+            /*eslint-enable camelcase */
+            exceptions.push({
+                errorMessage: exception.message
+            });
+        }
+        return exceptions;
+    }
+
     reportItem(item) {
         /*eslint-disable camelcase */
         var sample = {
@@ -126,6 +154,7 @@ class TaurusReporter {
         };
         /*eslint-enable camelcase */
         var assertions = this.extractAssertions(item, sample);
+        var exceptions = this.extractExceptions(item, sample);
         if (item.response) {
             var requestHeaders = item.request.headers.toObject(false, true);
             var responseHeaders = item.response.headers.toObject(false, true);
@@ -144,6 +173,7 @@ class TaurusReporter {
                 responseHeaders,
                 requestCookies,
                 assertions,
+                exceptions,
 
                 // TODO
                 requestBody: "",
@@ -159,10 +189,13 @@ class TaurusReporter {
 
         // Calculate status from assertions
         const assertionFailed = sample.assertions.some((ast) => ast.isFailed);
-        sample.status = item.passed && !assertionFailed ? "PASSED" : "FAILED";
+        const exceptionOccurred = exceptions && exceptions.length > 0;
+        sample.status = item.passed && !assertionFailed && !exceptionOccurred ? "PASSED" : "FAILED";
 
-        if (!item.passed || assertionFailed) {
-            const msg = item.assertions.filter((a) => a.isFailed).map((a) => a.name).join(", ");
+        if (!item.passed || assertionFailed || exceptionOccurred) {
+            const msg = (item.assertions.filter((a) => a.isFailed).map((a) => a.name))
+                .concat(item.exceptions.map((e) => e.message))
+                .join(", ");
             const responseCode = (item.response && item.response.responseCode) || "-";
             const reason = (item.response && item.response.reason()) || "-";
             const details = (`Response code: ${responseCode}, reason: ${reason}`);

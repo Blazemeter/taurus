@@ -19,6 +19,7 @@
     1. [Mocha Executor](Mocha.md)
     1. [Molotov Executor](Molotov.md)
     1. [NUnit Executor](NUnit.md)
+    1. [Postman/Newman Executor](Postman.md)
     1. [PyTest Executor](PyTest.md)
     1. [Robot Executor](Robot.md)
     1. [RSpec Executor](RSpec.md)
