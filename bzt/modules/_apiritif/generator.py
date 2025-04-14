@@ -1895,7 +1895,7 @@ from selenium.webdriver.common.keys import Keys
             decorator_list=[])
 
     def _gen_expr(self, value):
-        return self.expr_compiler.gen_expr(value)
+        return self.expr_compiler.gen_expr(value, self.test_mode)
 
     @staticmethod
     def _escape_js_blocks(value):  # escapes plain { with {{

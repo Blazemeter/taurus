@@ -16,6 +16,7 @@ limitations under the License.
 
 import ast
 import re
+import os
 from abc import abstractmethod
 
 from bzt.utils import iteritems
@@ -186,6 +187,22 @@ class UuidFunction(JMeterFunction):
         )
 
 
+# class PropertyFunction:
+#     def __init__(self, compiler):
+#         self.compiler = compiler
+
+#     def to_python(self, args):
+#         if not args:
+#             return None
+#         var_name = str(args[0])
+#         default_value = str(args[1]) if len(args) > 1 else None
+
+#         value = os.environ.get(var_name, default_value)
+#         if value is None:
+#             return None
+
+#         return ast.Str(s=value, kind="")
+
 
 class JMeterExprCompiler(object):
     def __init__(self, parent_log):
@@ -218,7 +235,7 @@ class JMeterExprCompiler(object):
                 ctx=ctx
             )
 
-    def gen_expr(self, value):
+    def gen_expr(self, value, test_mode=None):
         if isinstance(value, bool):
             return ast.Name(id="True" if value else "False", ctx=ast.Load())
         elif isinstance(value, (int, float)):
@@ -232,7 +249,7 @@ class JMeterExprCompiler(object):
                 if item:
                     if item.startswith("${") and item.endswith("}"):
                         value = value.replace(item, "{}")
-                        compiled = self.translate_jmeter_expr(item[2:-1])
+                        compiled = self.translate_jmeter_expr(item[2:-1], test_mode)
                         format_args.append(compiled)
             if format_args:
                 if len(format_args) == 1 and value == "{}":
@@ -262,7 +279,7 @@ class JMeterExprCompiler(object):
         else:
             return value
 
-    def translate_jmeter_expr(self, expr):
+    def translate_jmeter_expr(self, expr, test_mode=None):
         """
         Translates JMeter expression into Apiritif-based Python expression.
         :type expr: str
@@ -296,6 +313,10 @@ class JMeterExprCompiler(object):
                 args = [arg.strip() for arg in re.split(args_re, arguments)]
 
             if varname not in functions:  # unknown function
+                # if test_mode == "selenium" and varname == "__P":
+                #     self.log.info("Translating using property function for selenium")
+                #     functions[varname] = PropertyFunction
+                # else:
                 return ast.Name(id=varname, ctx=ast.Load())
 
             self.log.debug("Translating function %s with arguments %s", varname, arguments)
