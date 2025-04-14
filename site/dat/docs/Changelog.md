@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.16.40<sup> 14 April 2025</sup>
+- Newman executor re-added
+- Newman executor fails test on newman exceptions
+- Added support for _same user on next iteration_ in jmx
+
 ## 1.16.39<sup> 17 February 2025</sup>
 - JMX parser enhancement
 - Cloud documentation changes
