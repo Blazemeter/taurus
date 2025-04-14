@@ -27,7 +27,7 @@ from time import sleep
 from urllib.error import URLError
 
 import requests
-from terminaltables import SingleTable, AsciiTable
+from terminaltables3 import SingleTable, AsciiTable
 from urwid import Pile, Text
 
 from bzt import AutomatedShutdown, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
