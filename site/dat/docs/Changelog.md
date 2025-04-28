@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.16.40<sup> 28 April 2025</sup>
+- Urwid dependency updated to 2.6.16
+
 ## 1.16.40<sup> 14 April 2025</sup>
 - Newman executor re-added
 - Newman executor fails test on newman exceptions
