@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 ENV APT_UPDATE="apt-get -y update"
-ENV PIP_INSTALL="python3 -m pip install --no-cache-dir"
+ENV PIP_INSTALL="python3 -m pip install --no-cache-dir --break-system-packages "
 
 ADD https://deb.nodesource.com/setup_18.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
@@ -13,9 +13,9 @@ COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
 # add node repo and call 'apt-get update'
-RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
+RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.12-dev net-tools apt-utils
 
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
 # Fix vulnerabilities / outdated versions
 RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 numpy fonttools wheel
