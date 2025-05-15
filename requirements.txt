@@ -11,7 +11,7 @@ psutil>=5.6.6
 pyvirtualdisplay; sys_platform != 'win32'
 pyyaml
 requests>=2.18.1
-urwid==2.6.16
+urwid==2.6.15
 terminaltables>=3.1.0
 molotov!=2.3
 influxdb >= 5.3
