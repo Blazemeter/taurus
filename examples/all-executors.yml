@@ -3,7 +3,7 @@ services:
 - virtual-display
 - module: shellexec
   prepare: 
-  - command: python3 -m http.server 8000
+  - command: python3 -m http.server --bind localhost 8000
     background: true
   - command: sleep 900 && exit 1  # this will make it interrupt in case it hangs
     background: true
@@ -153,14 +153,14 @@ execution:
     script: gatling/test11.jar
     simulation: com.test.RecordedSimulation
 
-#- executor: siege  # http://localhost:8000/?tool=Siege
-#  concurrency: 1
-#  hold-for: 10s
-#  iterations: 10
-#  scenario:
-#    requests:
-#      - url: http://localhost:8000/?tool=Siege
-#        label: siege
+- executor: siege  # http://localhost:8000/?tool=Siege
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/?tool=Siege
+        label: siege
 
 - executor: locust  # /?tool=Locust
   concurrency: 1
