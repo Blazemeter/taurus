@@ -173,10 +173,14 @@ def add_flow_markers():
 
 
 def _send_marker(stage, params):
-    try:
-        _get_driver().execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
-    except Exception as exc:
-        log.error("Failed to send flow marker: %s %s due to %s", stage, params, exc)
+    for attempt in range(3):
+        try:
+            _get_driver().execute_script("/* FLOW_MARKER test-case-%s */" % stage, params)
+            return
+        except Exception as exc:
+            log.error(f"Failed to send flow marker: {stage} {params} due to {exc}. Retrying... attempt = {attempt + 1}")
+            time.sleep(1)
+    log.error(f"Failed to send flow marker: {stage} {params} due to {exc} after 3 attempts.")
 
 
 def _send_start_flow_marker(*args, **kwargs):  # for apiritif. remove when compatibiltiy code in
