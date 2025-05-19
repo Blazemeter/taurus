@@ -100,7 +100,7 @@ class ApiritifScriptGenerator(object):
                         ])
 
     ACTIONS_WITH_WAITER = ['go', 'click', 'doubleclick', 'contextclick', 'drag', 'select', 'type', 'typeSecret',
-                           'script']
+                           'script', 'waitFor']
 
     EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach', 'loopOverData'])
 
