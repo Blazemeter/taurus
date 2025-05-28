@@ -2,7 +2,7 @@
 
 Before Taurus and after Python installation, check if you have the following modules installed:
 ```
-pip install --upgrade wheel setuptools Cython
+pip install --upgrade wheel setuptools
 ```
 
 The simplest Taurus installation uses the `pip` package manager:
@@ -30,7 +30,7 @@ At the moment, this feature can't be installed from PyPi and is available from t
 
 ## Linux
 
-First verify that you have installed Python 3.7+ and Java. 
+First verify that you have installed Python 3.9+ and Java. 
 
 To install Taurus on Linux, follow these steps:
 
@@ -76,12 +76,7 @@ If your brew auto update is switched off, manage it manually.
 NOTE: There is an issue with brew installation connected with numpy. 
 In order to avoid this problem, we suggest installing Taurus using the `pip` tool.
 
-To install Taurus with `pip`, you need the command line developers tools and Python 3.7+ installed.
-Then install `Cython`, if it is not yet installed, using the following command:
-```
-pip3 install Cython
-```
-
+To install Taurus with `pip`, you need the command line developers tools and Python 3.9+ installed.
 Then just install bzt:
 ```
 pip3 install bzt
@@ -97,7 +92,7 @@ pip3 install --upgrade bzt
 
 Preparation steps:
 
-1. Get Python 3.7+ from [https://www.python.org/downloads](https://www.python.org/downloads) and install it. Enable the "Add python.exe to Path" checkbox.
+1. Get Python 3.9+ from [https://www.python.org/downloads](https://www.python.org/downloads) and install it. Enable the "Add python.exe to Path" checkbox.
 2. Get the latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
 3. Get the latest [Microsoft Visual C++](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&channel=Release) and install it. Verify that the 'Desktop Development with C++' box is checked during installation. 
 
