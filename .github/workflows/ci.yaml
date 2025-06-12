@@ -14,11 +14,11 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install -y python-tk python3-tk xvfb x11-utils
+        run: sudo apt-get update && sudo apt-get install -y python3-tk xvfb x11-utils
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.10
+          python-version: 3.11
           architecture: "x64"
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
