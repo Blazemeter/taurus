@@ -42,4 +42,4 @@ jobs:
           python tests/resources/httpserver/start.py &
           coverage run --source=bzt -m nose2 -s tests/unit -v
           coverage report -m
-          codecov
+          codecov --token=${{ secrets.CODECOV_TOKEN }}
