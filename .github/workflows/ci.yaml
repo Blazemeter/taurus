@@ -1,4 +1,5 @@
 name: CI
+
 on:
   push:
   pull_request:
@@ -17,7 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.11
+          python-version: 3.10
           architecture: "x64"
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -25,15 +26,20 @@ jobs:
           ruby-version: '3.2'
       - name: Install RSpec
         run: gem install rspec
+
       - name: Install pip dependencies
         run: pip install --timeout 1000 -r requirements.txt -r tests/ci/requirements.txt
+
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 640x480x16 &
           echo "DISPLAY=:99.0" >> $GITHUB_ENV
+          ps aux | grep Xvfb
+          xdpyinfo -display :99
+
       - name: Run tests
         run: |
           python tests/resources/httpserver/start.py &
-          coverage run --source=bzt -m nose2 -s tests unit.modules.test_GUIScreen -v
+          coverage run --source=bzt -m nose2 -s tests/unit -v
           coverage report -m
           codecov
