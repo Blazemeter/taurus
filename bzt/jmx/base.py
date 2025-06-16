@@ -627,7 +627,8 @@ class JMX(object):
                              name="ThreadGroup.main_controller",
                              elementType="LoopController",
                              guiclass="LoopControlPanel",
-                             testclass="LoopController")
+                             testclass="LoopController",
+                             testname="Loop Controller")
 
         # 'true' causes endless execution of TG in non-gui mode
         loop.append(JMX._bool_prop("LoopController.continue_forever", False))
