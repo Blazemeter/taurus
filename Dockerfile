@@ -14,7 +14,7 @@ COPY dist/bzt*whl /tmp
 WORKDIR /tmp
 
 # add PPA for python 3.1
-RUN add-apt-repository ppa:deadsnakes/ppa
+RUN $APT_UPDATE && $APT_INSTALL software-properties-common gpg-agent && add-apt-repository ppa:deadsnakes/ppa
 # add node repo and call 'apt-get update'
 RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.13-dev net-tools apt-utils
 
