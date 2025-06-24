@@ -22,8 +22,8 @@ RUN bash ./setup_18.x && $APT_INSTALL make build-essential net-tools apt-utils l
     libsqlite3-dev wget curl llvm libncurses-dev xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git
 
 # pyenv install python
-ENV PYENV_ROOT /root/.pyenv
-ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+ENV PYENV_ROOT=/root/.pyenv
+ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:/root/.pyenv/versions/$PYTHON_VERSION/bin:$PATH
 RUN chmod +x ./pyenv.run && ./pyenv.run && pyenv update && pyenv install $PYTHON_VERSION && pyenv global $PYTHON_VERSION && pyenv rehash && python3 --version
 
 # Fix vulnerabilities / outdated versions
