@@ -6,19 +6,25 @@ ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 ENV APT_UPDATE="apt-get -y update"
 ENV PIP_INSTALL="python3 -m pip install --no-cache-dir"
 
+ENV PYTHON_VERSION 3.13-dev
+
 ADD https://deb.nodesource.com/setup_18.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
 ADD https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.deb /tmp
+ADD https://pyenv.run /tmp/pyenv.run
 COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
+SHELL ["/bin/bash", "-c"]
 
-# add PPA for python 3.1
-RUN $APT_UPDATE && $APT_INSTALL software-properties-common gpg-agent && add-apt-repository ppa:deadsnakes/ppa
-# add node repo and call 'apt-get update'
-RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.13-dev net-tools apt-utils
+# add node repo and call 'apt-get update' and prepare dependencies for python pyenv build
+RUN bash ./setup_18.x && $APT_INSTALL make build-essential net-tools apt-utils libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+    libsqlite3-dev wget curl llvm libncurses-dev xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git
 
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1
+# pyenv install python
+ENV PYENV_ROOT /root/.pyenv
+ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+RUN chmod +x ./pyenv.run && ./pyenv.run && pyenv update && pyenv install $PYTHON_VERSION && pyenv global $PYTHON_VERSION && pyenv rehash && python3 --version
 
 # Fix vulnerabilities / outdated versions
 RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 numpy fonttools wheel
@@ -42,7 +48,6 @@ RUN curl -fSL --output dotnet.tar.gz https://download.visualstudio.microsoft.com
     && ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Install rbenv and ruby-build
-SHELL ["/bin/bash", "-c"]
 RUN git clone https://github.com/sstephenson/rbenv.git /usr/local/rbenv
 RUN git clone https://github.com/sstephenson/ruby-build.git /usr/local/rbenv/plugins/ruby-build
 RUN echo '# rbenv setup' > /etc/profile.d/rbenv.sh
