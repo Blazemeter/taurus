@@ -15,8 +15,6 @@ WORKDIR /tmp
 # add node repo and call 'apt-get update'
 RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
 
-RUN npm install -g cross-spawn@7.0.5
-
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
 # Fix vulnerabilities / outdated versions
@@ -28,6 +26,13 @@ RUN $PIP_INSTALL ./bzt*whl chardet
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
     openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
+
+# Verify Node.js and npm installation
+RUN node -v && npm -v || \
+    ($APT_UPDATE && $APT_INSTALL npm)
+
+# Install cross-spawn globally
+RUN npm install -g cross-spawn@7.0.5
 
 # Install .NET sdk
 # check this page for the links and hash
