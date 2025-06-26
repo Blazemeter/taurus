@@ -15,6 +15,8 @@ WORKDIR /tmp
 # add node repo and call 'apt-get update'
 RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
 
+RUN npm install -g cross-spawn@7.0.5
+
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
 # Fix vulnerabilities / outdated versions
