@@ -19,15 +19,15 @@ SHELL ["/bin/bash", "-c"]
 
 # add node repo and call 'apt-get update' and prepare dependencies for python pyenv build
 RUN bash ./setup_18.x && $APT_INSTALL make build-essential net-tools apt-utils libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
-    libsqlite3-dev wget curl llvm libncurses-dev xz-utils tk-dev libffi-dev liblzma-dev python3-openssl git
+    libsqlite3-dev wget curl llvm libncurses-dev xz-utils tk-dev libffi-dev liblzma-dev git
 
 # pyenv install python
-ENV PYENV_ROOT=/root/.pyenv
-ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:/root/.pyenv/versions/$PYTHON_VERSION/bin:$PATH
-RUN chmod +x ./pyenv.run && ./pyenv.run && pyenv update && pyenv install $PYTHON_VERSION && pyenv global $PYTHON_VERSION && pyenv rehash && python3 --version
+ENV PYENV_ROOT=/shared/.pyenv
+ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:/$PYENV_ROOT/versions/$PYTHON_VERSION/bin:$PATH
+RUN chmod +x ./pyenv.run && ./pyenv.run && pyenv update && pyenv install $PYTHON_VERSION && pyenv global $PYTHON_VERSION && pyenv rehash
 
 # Fix vulnerabilities / outdated versions
-RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 numpy fonttools wheel
+RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 "numpy==1.26.4" fonttools wheel "setuptools==79.0.1"
 
 # install python packages..
 RUN $PIP_INSTALL ./bzt*whl chardet
