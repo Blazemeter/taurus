@@ -27,6 +27,10 @@ RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
     openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
 
+# Verify Node.js and npm installation
+RUN node -v && npm -v || \
+    ($APT_UPDATE && $APT_INSTALL npm)
+
 # Install cross-spawn globally
 RUN npm uninstall -g cross-spawn && npm install -g cross-spawn@7.0.5
 
