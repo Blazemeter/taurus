@@ -27,6 +27,15 @@ RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
     openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
 
+#  force npm to use cross-spawn@7.0.5, this block can be removed when new version of nodejs uses cross-spawn@7.0.5
+RUN npm_root=$(npm root -g) \
+ && npm pack cross-spawn@7.0.5 -q \
+ && mkdir -p "$npm_root/npm/node_modules/cross-spawn" \
+ && tar -xzf cross-spawn-7.0.5.tgz \
+       --strip-components=1 \
+       -C "$npm_root/npm/node_modules/cross-spawn" \
+ && rm cross-spawn-7.0.5.tgz \
+
 # Install .NET sdk
 # check this page for the links and hash
 # https://dotnetcli.azureedge.net/dotnet/release-metadata/8.0/releases.json
