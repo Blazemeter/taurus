@@ -34,7 +34,7 @@ RUN npm_root=$(npm root -g) \
  && tar -xzf cross-spawn-7.0.5.tgz \
        --strip-components=1 \
        -C "$npm_root/npm/node_modules/cross-spawn" \
- && rm cross-spawn-7.0.5.tgz \
+ && rm cross-spawn-7.0.5.tgz
 
 # Install .NET sdk
 # check this page for the links and hash
