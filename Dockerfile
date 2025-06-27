@@ -29,8 +29,12 @@ RUN $APT_UPDATE && $APT_INSTALL \
 
 #  force npm to use cross-spawn@7.0.5
 RUN npm_root=$(npm root -g) \
- && cd "$npm_root/npm" \
- && npm install cross-spawn@7.0.5 --no-save
+ && npm pack cross-spawn@7.0.5 -q \
+ && mkdir -p "$npm_root/npm/node_modules/cross-spawn" \
+ && tar -xzf cross-spawn-7.0.5.tgz \
+       --strip-components=1 \
+       -C "$npm_root/npm/node_modules/cross-spawn" \
+ && rm cross-spawn-7.0.5.tgz
 
 # Install .NET sdk
 # check this page for the links and hash
