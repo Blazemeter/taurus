@@ -27,11 +27,10 @@ RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
     openjdk-11-jdk xvfb siege apache2-utils git make nodejs locales tsung libtool libssl-dev libyaml-dev libxml2-dev libxslt-dev
 
-# Verify Node.js and npm installation
-RUN node -v && npm -v || ($APT_UPDATE && $APT_INSTALL npm)
-
-# Install cross-spawn@7.0.5 to fix the CVE-2024-21538 issue
-RUN npm uninstall -g cross-spawn && npm install -g cross-spawn@7.0.5
+#  force npm to use cross-spawn@7.0.5
+RUN npm_root=$(npm root -g) \
+ && cd "$npm_root/npm" \
+ && npm install cross-spawn@7.0.5 --no-save
 
 # Install .NET sdk
 # check this page for the links and hash
