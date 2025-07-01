@@ -22,15 +22,27 @@ RUN bash ./setup_18.x && $APT_INSTALL make build-essential net-tools apt-utils l
     libsqlite3-dev wget curl llvm libncurses-dev xz-utils tk-dev libffi-dev liblzma-dev git
 
 # pyenv install python
-ENV PYENV_ROOT=/shared/.pyenv
-ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:/$PYENV_ROOT/versions/$PYTHON_VERSION/bin:$PATH
-RUN chmod +x ./pyenv.run && ./pyenv.run && pyenv update && pyenv install $PYTHON_VERSION && pyenv global $PYTHON_VERSION && pyenv rehash
+RUN echo '# pyenv setup' > /etc/profile.d/pyenv.sh
+RUN echo 'export PYENV_ROOT=/shared/.pyenv' >> /etc/profile.d/pyenv.sh
+RUN echo 'export PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PYENV_ROOT/versions/'$PYTHON_VERSION'/bin:$PATH' >> /etc/profile.d/pyenv.sh
+RUN echo 'eval "$(pyenv init -)"' >> /etc/profile.d/pyenv.sh
+RUN chmod +x /etc/profile.d/pyenv.sh
+RUN source /etc/profile.d/pyenv.sh && \
+    chmod +x ./pyenv.run && \
+    ./pyenv.run && pyenv update && pyenv install $PYTHON_VERSION && pyenv global $PYTHON_VERSION && pyenv rehash && \
+    update-alternatives --install /usr/bin/python python $PYENV_ROOT/shims/python3 0 && \
+    update-alternatives --install /usr/bin/python3 python3 $PYENV_ROOT/shims/python3 0 && \
+    update-alternatives --install /usr/local/bin/python python $PYENV_ROOT/shims/python3 0 && \
+    update-alternatives --install /usr/local/bin/python3 python3 $PYENV_ROOT/shims/python3 0 && \
+    update-alternatives --install /usr/local/bin/pip pip $PYENV_ROOT/shims/pip3 0 && \
+    update-alternatives --install /usr/local/bin/pip3 pip3 $PYENV_ROOT/shims/pip3 0
 
 # Fix vulnerabilities / outdated versions
 RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 "numpy==1.26.4" fonttools wheel "setuptools==79.0.1"
 
 # install python packages..
 RUN $PIP_INSTALL ./bzt*whl chardet
+ENV PATH=/shared/.pyenv/versions/$PYTHON_VERSION/bin:$PATH
 
 RUN $APT_UPDATE && $APT_INSTALL \
     unzip software-properties-common apt-transport-https \
