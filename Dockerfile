@@ -24,15 +24,16 @@ RUN bash ./setup_18.x && $APT_INSTALL make build-essential net-tools apt-utils l
 # pyenv install python
 ENV PYENV_ROOT=/shared/.pyenv
 ENV PYTHONUSERBASE="$PYENV_ROOT/versions/$PYTHON_VERSION"
-ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PYENV_ROOT/versions/'$PYTHON_VERSION'/bin:$PATH
+ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PYENV_ROOT/versions/$PYTHON_VERSION/bin:$PATH
 
 RUN echo '# pyenv setup' > /etc/profile.d/pyenv.sh
-RUN echo 'export PYENV_ROOT=/shared/.pyenv' >> /etc/profile.d/pyenv.sh
-RUN echo 'export PYTHONUSERBASE="$PYENV_ROOT/versions/$PYTHON_VERSION"' >> /etc/profile.d/pyenv.sh
-RUN echo 'export PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PYENV_ROOT/versions/'$PYTHON_VERSION'/bin:$PATH' >> /etc/profile.d/pyenv.sh
+RUN echo 'export PYENV_ROOT="'$PYENV_ROOT'"' >> /etc/profile.d/pyenv.sh
+RUN echo 'export PYTHONUSERBASE="'$PYTHONUSERBASE'"' >> /etc/profile.d/pyenv.sh
+RUN echo 'export PATH="'$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PYENV_ROOT/versions/$PYTHON_VERSION/bin':$PATH"' >> /etc/profile.d/pyenv.sh
 RUN echo 'eval "$(pyenv init -)"' >> /etc/profile.d/pyenv.sh
 RUN chmod +x /etc/profile.d/pyenv.sh
 RUN chmod +x ./pyenv.run && \
+    source /etc/profile.d/pyenv.sh && \
     ./pyenv.run && pyenv update && pyenv install $PYTHON_VERSION && pyenv global $PYTHON_VERSION && pyenv rehash && \
     update-alternatives --install /usr/bin/python python $PYENV_ROOT/shims/python3 0 && \
     update-alternatives --install /usr/bin/python3 python3 $PYENV_ROOT/shims/python3 0 && \
