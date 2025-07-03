@@ -773,10 +773,11 @@ from selenium.webdriver.common.keys import Keys
             label = self._create_action_label(parent_request.label, index_label, action)
 
             return [ast.With(
-                context_expr=ast_call(
-                    func=ast_attr("apiritif.transaction"),
-                    args=[self._gen_expr(label)]),
-                optional_vars=None,
+                items=[ast.withitem(
+                    context_expr=ast_call(
+                        func=ast_attr("apiritif.transaction"),
+                        args=[self._gen_expr(label)]),
+                    optional_vars=None)],
                 body=[ast.Expr(element) for element in action_elements])]
 
         return [ast.Expr(element) for element in action_elements]
@@ -903,10 +904,11 @@ from selenium.webdriver.common.keys import Keys
                 action_lines = self._gen_action(action)
 
                 transaction = ast.With(
-                    context_expr=ast_call(
-                        func=ast_attr("apiritif.transaction"),
-                        args=[self._gen_expr(label)]),
-                    optional_vars=None,
+                    items=[ast.withitem(
+                        context_expr=ast_call(
+                            func=ast_attr("apiritif.transaction"),
+                            args=[self._gen_expr(label)]),
+                        optional_vars=None)],
                     body=[action_lines])
 
                 body.append([transaction])
@@ -2041,10 +2043,11 @@ from selenium.webdriver.common.keys import Keys
                 body.append(self._gen_http_request(request))
 
         transaction = ast.With(
-            context_expr=ast_call(
-                func=ast_attr(transaction_class),
-                args=[self._gen_expr(trans_conf.label)]),
-            optional_vars=None,
+            items=[ast.withitem(
+                    context_expr=ast_call(
+                        func=ast_attr(transaction_class),
+                        args=[self._gen_expr(trans_conf.label)]),
+                    optional_vars=None)],
             body=body)
 
         return transaction
