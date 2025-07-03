@@ -19,25 +19,25 @@ reporting:
 # all of functional-style executors
 ---
 execution:
-#- executor: selenium  # Selenium Firefox
-#  concurrency: 1
-#  hold-for: 10s
-#  iterations: 10
-#  scenario:
-#    browser: Firefox
-#    requests:
-#      - url: http://localhost:8000/
-#        label: Selenium Firefox
+- executor: selenium  # Selenium Firefox
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    browser: Firefox
+    requests:
+      - url: http://localhost:8000/
+        label: Selenium Firefox
 
-#- executor: selenium  # Selenium Chrome
-#  concurrency: 1
-#  hold-for: 10s
-#  iterations: 10
-#  scenario:
-#    browser: Chrome
-#    requests:
-#      - url: http://localhost:8000/
-#        label: Selenium Chrome
+- executor: selenium  # Selenium Chrome
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    browser: Chrome
+    requests:
+      - url: http://localhost:8000/
+        label: Selenium Chrome
 
 - executor: selenium  # Selenium_TestNG
   concurrency: 1
@@ -84,12 +84,12 @@ execution:
   scenario:
     script: functional/mocha_example.js
 
-#- executor: apiritif  # test_Apiritif
-#  concurrency: 1
-#  hold-for: 10s
-#  iterations: 10
-#  scenario:
-#    script: functional/test_nose.py
+- executor: apiritif  # test_Apiritif
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: functional/test_nose.py
 
 - executor: pytest  # test_Pytest x2
   concurrency: 1
@@ -192,12 +192,12 @@ execution:
   scenario:
     script: molotov/blazedemo.py
 
-#- executor: apiritif  # http://localhost:8000/?tool=Apiritif
-#  concurrency: 1
-#  hold-for: 10s
-#  scenario:
-#    requests:
-#      - url: http://localhost:8000/?tool=Apiritif
+- executor: apiritif  # http://localhost:8000/?tool=Apiritif
+  concurrency: 1
+  hold-for: 10s
+  scenario:
+    requests:
+      - url: http://localhost:8000/?tool=Apiritif
 
 - executor: nunit  # IsFive_ExistingVariable_ReturnFive - 10 samples
   concurrency: 1
