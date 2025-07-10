@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.16.43<sup> 10 July 2025</sup>
+- Urllib3 version update
+
 ## 1.16.42<sup> 14 May 2025</sup>
 - Small fix in handling of huge xmls
 
