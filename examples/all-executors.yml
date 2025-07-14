@@ -48,6 +48,7 @@ execution:
     script: selenium/testng/selenium-testng.jar
 
 ---
+execution:
 - executor: selenium  # Selenium Mocha
   concurrency: 1
   hold-for: 10s
