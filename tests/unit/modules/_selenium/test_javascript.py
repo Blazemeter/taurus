@@ -6,7 +6,7 @@ from os.path import exists
 import bzt
 
 from bzt import ToolError
-from bzt.modules.javascript import NPMPackage, WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
+from bzt.modules.javascript import NPMPackage, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
 from bzt.utils import get_full_path, EXE_SUFFIX
 
 from tests.unit import RESOURCES_DIR, BZTestCase, EngineEmul
@@ -123,92 +123,6 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
                 'iterations': 3,
                 'scenario': {'script': RESOURCES_DIR + 'selenium/js-mocha'},
                 'executor': 'selenium'
-            },
-        })
-        self.assertIn("--iterations 3", self.CMD_LINE)
-
-
-class TestWebdriverIOExecutor(SeleniumTestCase):
-    RUNNER_STUB = RESOURCES_DIR + "selenium/js-wdio/wdio" + EXE_SUFFIX
-    CMD_LINE = None
-
-    def start_subprocess(self, args, **kwargs):
-        self.CMD_LINE = ' '.join(args)
-
-    def test_prepare(self):
-        self.obj.execution.merge({
-            "runner": "wdio",
-            "scenario": {
-                "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js"
-            }
-        })
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
-            self.obj.prepare()
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
-        self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
-
-    def prepare(self, config):
-        self.configure(config)
-
-        tmp_eac = bzt.utils.exec_and_communicate
-        try:
-            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
-            self.obj.prepare()
-        except ToolError as exc:
-            self.fail("ToolError:" % exc)
-        finally:
-            bzt.utils.exec_and_communicate = tmp_eac
-        self.assertIsInstance(self.obj.runner, JavaScriptExecutor)
-
-    def full_run(self, config):
-        self.prepare(config)
-        self.obj.runner.get_launch_cmdline = lambda *args: [TestWebdriverIOExecutor.RUNNER_STUB] + list(args)
-        self.obj.runner.get_launch_cwd = lambda *args: None
-        self.obj.startup()
-        while not self.obj.check():
-            time.sleep(self.obj.engine.check_interval)
-        self.obj.shutdown()
-        self.obj.post_process()
-
-    def simple_run(self, config):
-        self.prepare(config)
-        self.obj.engine.start_subprocess = self.start_subprocess
-        self.obj.startup()
-        self.obj.post_process()
-
-    def test_full(self):
-        self.full_run({
-            'execution': {
-                "runner": "wdio",
-                "scenario": {
-                    "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js",
-                }
-            },
-        })
-        self.assertTrue(exists(self.obj.runner.report_file))
-        with open(self.obj.runner.report_file) as fds:
-            lines = fds.readlines()
-        self.assertEqual(len(lines), 1)
-
-    def test_hold(self):
-        self.simple_run({
-            'execution': {
-                'hold-for': '5s',
-                'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
-                'runner': 'wdio'
-            },
-        })
-        self.assertIn("--hold-for 5.0", self.CMD_LINE)
-
-    def test_iterations(self):
-        self.simple_run({
-            'execution': {
-                'iterations': 3,
-                'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
-                'runner': 'wdio'
             },
         })
         self.assertIn("--iterations 3", self.CMD_LINE)
