@@ -43,7 +43,6 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [Mocha](Mocha.md), executor type `mocha`
   - [NUnit](NUnit.md), executor type `nunit`
   - [xUnit](XUnit.md), executor type `xunit`
-  - [WebdriverIO](WebdriverIO.md), executor type `wdio`
   - [Robot](Robot.md), executor type `robot`
   - [Postman/Newman](Postman.md), executor type `newman`
   - [K6](K6.md), executor type `k6`
