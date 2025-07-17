@@ -23,7 +23,7 @@ def ast_call(func, args=None, keywords=None):
     args = args or []
     if isinstance(func, str):
         func = ast.Name(id=func)
-    return ast.Call(func=func, args=args, starargs=None, kwargs=None, keywords=keywords or [])
+    return ast.Call(func=func, args=args, keywords=keywords or [])
 
 
 def gen_empty_line_stmt():
@@ -45,7 +45,6 @@ def gen_try_except(try_body, exception_body=None, final_body=None):
     return ast.Try(
         body=try_body,
         handlers=handlers,
-        type_ignores=[],
         orelse=None,
         finalbody=final_body,
     )
@@ -58,7 +57,7 @@ def gen_raise():
 def gen_subscript(var_name, index):
     """ Generates code like variable[1]  """
     return ast.Expr(value=ast.Subscript(value=ast.Name(id=var_name, ctx=ast.Load()),
-                                        slice=ast.Index(value=ast.Num(n=index, kind="")), ctx=ast.Load()))
+                                        slice=ast.Index(value=ast.Constant(value=index, kind="")), ctx=ast.Load()))
 
 
 def gen_store(name, value):

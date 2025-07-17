@@ -6,19 +6,44 @@ ENV APT_INSTALL="apt-get -y install --no-install-recommends"
 ENV APT_UPDATE="apt-get -y update"
 ENV PIP_INSTALL="python3 -m pip install --no-cache-dir"
 
+ENV PYTHON_VERSION 3.13-dev
+
 ADD https://deb.nodesource.com/setup_18.x /tmp
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
 ADD https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.deb /tmp
+ADD https://pyenv.run /tmp/pyenv.run
 COPY dist/bzt*whl /tmp
 
 WORKDIR /tmp
-# add node repo and call 'apt-get update'
-RUN bash ./setup_18.x && $APT_INSTALL build-essential python3-pip python3.10-dev net-tools apt-utils
+SHELL ["/bin/bash", "-c"]
 
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+# add node repo and call 'apt-get update' and prepare dependencies for python pyenv build
+RUN bash ./setup_18.x && $APT_INSTALL make build-essential net-tools apt-utils libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+    libsqlite3-dev wget curl llvm libncurses-dev xz-utils tk-dev libffi-dev liblzma-dev git
+
+# pyenv install python
+ENV PYENV_ROOT=/shared/.pyenv
+ENV PYTHONUSERBASE="$PYENV_ROOT/versions/$PYTHON_VERSION"
+ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PYENV_ROOT/versions/$PYTHON_VERSION/bin:$PATH
+
+RUN echo '# pyenv setup' > /etc/profile.d/pyenv.sh
+RUN echo 'export PYENV_ROOT="'$PYENV_ROOT'"' >> /etc/profile.d/pyenv.sh
+RUN echo 'export PYTHONUSERBASE="'$PYTHONUSERBASE'"' >> /etc/profile.d/pyenv.sh
+RUN echo 'export PATH="'$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PYENV_ROOT/versions/$PYTHON_VERSION/bin':$PATH"' >> /etc/profile.d/pyenv.sh
+RUN echo 'eval "$(pyenv init -)"' >> /etc/profile.d/pyenv.sh
+RUN chmod +x /etc/profile.d/pyenv.sh
+RUN chmod +x ./pyenv.run && \
+    source /etc/profile.d/pyenv.sh && \
+    ./pyenv.run && pyenv update && pyenv install $PYTHON_VERSION && pyenv global $PYTHON_VERSION && pyenv rehash && \
+    update-alternatives --install /usr/bin/python python $PYENV_ROOT/shims/python3 0 && \
+    update-alternatives --install /usr/bin/python3 python3 $PYENV_ROOT/shims/python3 0 && \
+    update-alternatives --install /usr/local/bin/python python $PYENV_ROOT/shims/python3 0 && \
+    update-alternatives --install /usr/local/bin/python3 python3 $PYENV_ROOT/shims/python3 0 && \
+    update-alternatives --install /usr/local/bin/pip pip $PYENV_ROOT/shims/pip3 0 && \
+    update-alternatives --install /usr/local/bin/pip3 pip3 $PYENV_ROOT/shims/pip3 0
 
 # Fix vulnerabilities / outdated versions
-RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 numpy fonttools wheel
+RUN $PIP_INSTALL --user --upgrade pip oauthlib pyjwt httplib2 "numpy==1.26.4" fonttools wheel "setuptools==79.0.1"
 
 # install python packages..
 RUN $PIP_INSTALL ./bzt*whl chardet
@@ -48,7 +73,6 @@ RUN curl -fSL --output dotnet.tar.gz https://download.visualstudio.microsoft.com
     && ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Install rbenv and ruby-build
-SHELL ["/bin/bash", "-c"]
 RUN git clone https://github.com/sstephenson/rbenv.git /usr/local/rbenv
 RUN git clone https://github.com/sstephenson/ruby-build.git /usr/local/rbenv/plugins/ruby-build
 RUN echo '# rbenv setup' > /etc/profile.d/rbenv.sh
