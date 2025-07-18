@@ -760,7 +760,7 @@ class TestGatlingExecutor(ExecutorTestCase):
 class TestDataLogReader(BZTestCase):
     def test_read(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-351')
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-351', "cumulated")
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 23)
         self.assertEqual(obj.guessed_gatling_version, "3.4+")
@@ -768,7 +768,7 @@ class TestDataLogReader(BZTestCase):
 
     def test_read_asserts(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-1')
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-1', "cumulated")
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 3)
         self.assertEqual(obj.guessed_gatling_version, "3.4+")
@@ -776,7 +776,7 @@ class TestDataLogReader(BZTestCase):
 
     def test_read_331_format(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-331')
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-331', "cumulated")
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 2)
         self.assertEqual(obj.guessed_gatling_version, "3.3.X")
@@ -784,7 +784,7 @@ class TestDataLogReader(BZTestCase):
 
     def test_read_labels_problematic(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-2')  # problematic one
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-2', "cumulated")  # problematic one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 1)
         self.assertEqual(obj.guessed_gatling_version, "3.4+")
@@ -793,7 +793,7 @@ class TestDataLogReader(BZTestCase):
 
     def test_read_labels_regular(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-3')  # regular one
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-3', "cumulated")  # regular one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 10)
         self.assertEqual(obj.guessed_gatling_version, "3.4+")
@@ -801,16 +801,34 @@ class TestDataLogReader(BZTestCase):
 
     def test_read_group(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-4')  # regular one
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-4', "cumulated")  # regular one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 179)
         self.assertEqual(obj.guessed_gatling_version, "3.4+")
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(2, len(last_cumul['[empty]'][KPISet.ERRORS]))
 
+    def test_read_group_response_cucumated(self):
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-6', "cumulated")  # reading group response time set to cumulated response time (default)
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 9)
+        self.assertEqual(obj.guessed_gatling_version, "3.4+")
+        last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
+        self.assertEqual(0.6474, last_cumul['Pagination'][KPISet.AVG_RESP_TIME])
+
+    def test_read_group_response_duration(self):
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-6', "duration")  # reading group response time set to total duration
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 9)
+        self.assertEqual(obj.guessed_gatling_version, "3.4+")
+        last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
+        self.assertEqual(5.0408, last_cumul['Pagination'][KPISet.AVG_RESP_TIME])
+
     def test_read_rc_asserts(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-5')  # regular one
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-5', "cumulated")  # regular one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 1)
         self.assertEqual(obj.guessed_gatling_version, "3.4+")
