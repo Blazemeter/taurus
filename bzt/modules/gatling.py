@@ -22,6 +22,7 @@ import time
 import shutil
 from collections import defaultdict
 from packaging import version
+from packaging.version import Version
 from packaging.version import InvalidVersion
 
 from bzt import TaurusConfigError, ToolError
@@ -832,16 +833,17 @@ class DataLogReader(ResultsReader):
         return _tmp_rc if _tmp_rc.isdigit() else 'N/A'
 
     def _guess_gatling_version(self, fields):
-        if fields and fields[-1].strip() < "3.4":
+        if Version(fields[-1].strip()) < Version("3.4"):
             return "3.3.X"
-        elif fields[-1].strip() >= "3.4":
+        elif Version(fields[-1].strip()) >= Version("3.4"):
             return "3.4+"
         else:
             return ""
 
     def _extract_log_data(self, fields):
         if self.guessed_gatling_version is None:
-            self.guessed_gatling_version = self._guess_gatling_version(fields)
+            if fields and fields[0] == 'RUN':
+                self.guessed_gatling_version = self._guess_gatling_version(fields)
 
         return self._extract_log(fields) if self.guessed_gatling_version else None
 
