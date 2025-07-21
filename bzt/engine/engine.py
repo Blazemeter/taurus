@@ -28,7 +28,7 @@ import threading
 import time
 import traceback
 import uuid
-from distutils.version import LooseVersion
+from packaging.version import Version
 from urllib import parse
 
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
@@ -748,7 +748,7 @@ class Engine(object):
         else:
             self.log.debug(f'Taurus updates info: "{data}"')
 
-            mine = LooseVersion(VERSION)
+            mine = Version(VERSION)
             if (mine < latest) or needs_upgrade:
                 msg = "There is newer version of Taurus %s available, consider upgrading. " \
                     "What's new: http://gettaurus.org/docs/Changelog/"

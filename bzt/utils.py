@@ -47,7 +47,7 @@ import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
-from distutils.version import LooseVersion
+from packaging.version import Version
 from io import IOBase
 from ssl import SSLError
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
@@ -174,7 +174,7 @@ def parse_java_version(versions):
     if versions:
         version = versions[0]
 
-        if LooseVersion(version) > LooseVersion("6"):  # start of openjdk naming
+        if Version(version) > Version("6"):  # start of openjdk naming
             major = re.findall("^([\d]*)", version)
         else:
             major = re.findall("\.([\d]*)", version)

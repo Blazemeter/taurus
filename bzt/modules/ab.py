@@ -19,7 +19,7 @@ limitations under the License.
 import logging
 import re
 from math import ceil
-from distutils.version import LooseVersion
+from packaging.version import Version
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
@@ -93,7 +93,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor):
         args += ['-d']  # do not print 'Processed *00 requests' every 100 requests or so
         args += ['-r']  # do not crash on socket level errors
 
-        if self.tool.version and LooseVersion(self.tool.version) >= LooseVersion("2.4.7"):
+        if self.tool.version and Version(self.tool.version) >= Version("2.4.7"):
             args += ['-l']  # accept variable-len responses
 
         args += ['-g', str(self._tsv_file)]  # dump stats to TSV file
