@@ -20,7 +20,7 @@ pipeline {
                 script {
                     initJenkinsGlobal()
                     tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
-                    isRelease = !tagName.isEmpty()
+                    isRelease = true
                     IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
                     IMAGE_TAG = IMAGE_TAG.toLowerCase()
                     imageName = "blazemeter/taurus"
