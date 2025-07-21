@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.16.45<sup> 21 July 2025</sup>
+- Python has been upgraded to version 3.13.0
 - Remove support for RSpec and WDIO
 
 ## 1.16.44<sup> 11 July 2025</sup>
