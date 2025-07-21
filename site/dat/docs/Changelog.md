@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.16.45<sup> 21 July 2025</sup>
+- Remove support for RSpec and WDIO
+
 ## 1.16.44<sup> 11 July 2025</sup>
 - Urllib3 version update to 2.5.0
 - 
