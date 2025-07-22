@@ -98,6 +98,9 @@ RUN apt-get update && \
         libyaml-dev \
         libxml2-dev \
         libxslt-dev \
+        # vulnerable libraries \
+        libexpat1=2.6.1-2ubuntu0.3 \
+        libexpat1-dev=2.6.1-2ubuntu0.3 \
         # Load testing tools
         siege \
         apache2-utils \
@@ -119,8 +122,15 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 # ================================
 FROM system-deps AS runtimes
 
-RUN curl -sSL https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb -o packages-microsoft-prod.deb && \
-    dpkg -i packages-microsoft-prod.deb
+# Install .NET SDK
+RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.412/dotnet-sdk-8.0.412-linux-x64.tar.gz" && \
+    DOTNET_SHA512="48062e12222224845cb3f922d991c78c064a1dd056e4b1c892b606e24a27c1f5413dc42221cdcf4225dcb61e3ee025d2a77159006687009130335ac515f59304" && \
+    curl -fSL --output dotnet.tar.gz "${DOTNET_URL}" && \
+    echo "${DOTNET_SHA512} dotnet.tar.gz" | sha512sum -c - && \
+    mkdir -p /usr/share/dotnet && \
+    tar -zxf dotnet.tar.gz -C /usr/share/dotnet && \
+    rm dotnet.tar.gz && \
+    ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet \
 
 # Install Ruby & OpenJDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -128,8 +138,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zlib1g-dev \
     libreadline-dev \
     openjdk-11-jdk && \
-    dotnet-sdk-8.0 && \
-    rm packages-microsoft-prod.deb && \
     rm -rf /var/lib/apt/lists/*
 
 # ================================
@@ -182,7 +190,7 @@ RUN bzt -install-tools -v
 # Verify installations
 RUN google-chrome-stable --version && \
     firefox --version && \
-    dotnet --version | head -1 && \
+    dotnet --info && \
     node --version && \
     python3 --version && \
     ruby --version
