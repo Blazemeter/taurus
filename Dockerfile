@@ -74,15 +74,18 @@ RUN curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg | \
     tee /etc/apt/keyrings/packages.mozilla.org.asc > /dev/null
 
 # Verify the fingerprint (optional step)
+# Verify the fingerprint
 RUN gpg -n -q --import --import-options import-show /etc/apt/keyrings/packages.mozilla.org.asc | \
     awk '/pub/{getline; gsub(/^ +| +$/,""); \
     if($0 == "35BAA0B33E9EB396F59CA838C0BA5CE6DC6315A3") \
     print "\nThe key fingerprint matches ("$0").\n"; \
     else \
-    print "\nVerification failed: the fingerprint ("$0") does not match the expected one.\n"}' \
+    print "\nVerification failed: the fingerprint ("$0") does not match the expected one.\n"}'
+
 # Add Mozilla APT repository
 RUN echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" \
     | tee /etc/apt/sources.list.d/mozilla.list > /dev/null
+
 
 # Configure APT to prioritize Mozilla repository
 RUN echo 'Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000' \
