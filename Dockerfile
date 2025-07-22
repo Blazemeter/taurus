@@ -21,8 +21,8 @@ ENV PATH="/usr/local/rbenv/bin:/usr/local/rbenv/shims:${PATH}"
 ENV RBENV_ROOT=/usr/local/rbenv
 
 # Create non-root user early
-RUN groupadd -g 1337 bzt && \
-    useradd -u 1337 -g bzt -m -s /bin/bash bzt
+#RUN groupadd -g 1337 bzt && \
+#    useradd -u 1337 -g bzt -m -s /bin/bash bzt
 
 # ================================
 # Stage 1: System Dependencies
@@ -175,8 +175,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 
 # Create BZT configuration directory and artifacts directory
-RUN mkdir -p /etc/bzt.d /bzt-configs /tmp/artifacts && \
-    chown -R bzt:bzt /bzt-configs /tmp/artifacts
+RUN mkdir -p /etc/bzt.d /bzt-configs /tmp/artifacts
+# RUN chown -R bzt:bzt /bzt-configs /tmp/artifacts
 
 # Configure BZT
 RUN echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json && \
@@ -216,10 +216,10 @@ RUN find "$(python3 -c "from distutils.sysconfig import get_python_lib; print(ge
          -name '*.egg-info' -exec rm -rf {} + 2>/dev/null || true
 
 # Set proper permissions
-RUN chown -R bzt:bzt /bzt-configs /tmp/artifacts
+# RUN chown -R bzt:bzt /bzt-configs /tmp/artifacts
 
 # Switch to non-root user
-USER bzt:bzt
+# USER bzt:bzt
 
 # Set working directory
 WORKDIR /bzt-configs
