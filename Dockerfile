@@ -130,7 +130,11 @@ RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.412/dotnet-sd
     mkdir -p /usr/share/dotnet && \
     tar -zxf dotnet.tar.gz -C /usr/share/dotnet && \
     rm dotnet.tar.gz && \
-    ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
+    ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet \
+
+#Fix dotnet false positives
+RUN sed -i 's/17\.3\.4/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-watch/8.0.412-servicing.25320.8/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json
+RUN sed -i 's/17\.7\.2/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json
 
 # Install rbenv and Ruby
 ARG RUBY_VERSION=3.4.5
