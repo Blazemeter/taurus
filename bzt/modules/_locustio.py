@@ -199,6 +199,7 @@ class LocustIOExecutor(ScenarioExecutor):
 
 
 class Locust(PythonTool):
+    VERSION = "2.37.14"
     PACKAGES = ["locust"]
 
 
