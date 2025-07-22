@@ -150,7 +150,7 @@ RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
 
 # Set up Ruby alternatives
 RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/ruby 1 && \
-    update-alternatives --install /usr/local/bin/gem gem ${RBENV_ROOT}/shims/gem 1 &&
+    update-alternatives --install /usr/local/bin/gem gem ${RBENV_ROOT}/shims/gem 1
 
 # Install OpenJDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
