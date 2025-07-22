@@ -49,13 +49,6 @@ execution:
 
 ---
 execution:
-- executor: selenium  # Selenium Ruby
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: selenium/rspec_example.rb
-
 - executor: selenium  # Selenium Mocha
   concurrency: 1
   hold-for: 10s
@@ -69,13 +62,6 @@ execution:
   iterations: 10
   scenario:
     script: functional/JUnitTest.java
-
-- executor: rspec  # Ruby test
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: functional/rspec_example.rb
 
 - executor: mocha  # Mocha
   concurrency: 1
@@ -97,13 +83,6 @@ execution:
   iterations: 10
   scenario:
     script: selenium/pytest_example.py
-
-- executor: wdio  # WDIO test
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: functional/wdio.conf.js
 
 - executor: robot  # Robot x5
   concurrency: 1
@@ -159,7 +138,7 @@ execution:
   iterations: 10
   scenario:
     requests:
-      - url: http://localhost:8000/?tool=Siege
+      - url: http://127.0.0.1:8000/?tool=Siege
         label: siege
 
 - executor: locust  # /?tool=Locust

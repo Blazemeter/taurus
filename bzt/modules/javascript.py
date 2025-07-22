@@ -100,77 +100,6 @@ class MochaTester(JavaScriptExecutor):
         self.process = self._execute(mocha_cmdline, cwd=self.get_launch_cwd())
 
 
-class WebdriverIOExecutor(JavaScriptExecutor):
-    """
-    WebdriverIO-based test runner
-
-    :type wdio: WDIO
-    :type wdio_taurus_plugin: TaurusWDIOPlugin
-    """
-
-    def __init__(self):
-        super(WebdriverIOExecutor, self).__init__()
-        self.tools_dir = "~/.bzt/selenium-taurus/wdio-mjs"
-        self.wdio = None
-        self.wdio_taurus_plugin = None
-
-    def prepare(self):
-        super(WebdriverIOExecutor, self).prepare()
-        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
-        # NODE_PATH doesn't work for ems modules -> we will change pwd so executor sees tools node_modules...
-        self.script = self.get_script_path()
-        if not self.script:
-            raise TaurusConfigError("Script not passed to executor %s" % self)
-
-        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
-        self.install_required_tools()
-        self.reporting_setup(suffix='.ldjson')
-
-    def install_required_tools(self):
-        tcl_lib = self._get_tool(TclLibrary)
-        self.node = self._get_tool(Node)
-        self.npm = self._get_tool(NPM)
-        self.wdio = self._get_tool(WDIO, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.wdio_reporter = self._get_tool(WDIOReporter, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.wdio_runner = self._get_tool(WDIORunner, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.wdio_taurus_plugin = self._get_tool(TaurusWDIOPlugin, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.node_tsx_module = self._get_tool(NodeTSXModule, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-
-        wdio_mocha_plugin = self._get_tool(
-            WDIOMochaPlugin, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-
-        tools = [tcl_lib, self.node, self.npm, self.wdio, self.wdio_taurus_plugin, self.wdio_reporter, self.wdio_runner, wdio_mocha_plugin, self.node_tsx_module]
-
-        self._check_tools(tools)
-
-    def get_launch_cmdline(self, *args):
-        return [self.node.tool_path, '@taurus/wdio-taurus-plugin'] + list(args)
-
-    def get_launch_cwd(self, *args):
-        return self.tools_dir + "/node_modules"
-
-    def startup(self):
-        script_dir = get_full_path(self.script, step_up=1)
-        script_file = os.path.basename(self.script)
-        cmdline = self.get_launch_cmdline(
-            "--report-file",
-            self.report_file,
-            "--wdio-config",
-            script_file,
-        )
-
-        load = self.get_load()
-        if load.iterations:
-            cmdline += ['--iterations', str(load.iterations)]
-
-        if load.hold:
-            cmdline += ['--hold-for', str(load.hold)]
-
-        cmdline += ['--cwd', script_dir]
-
-        self.process = self._execute(cmdline, cwd=self.get_launch_cwd())
-
-
 class NewmanExecutor(JavaScriptExecutor):
     """
     Newman-based test runner
@@ -387,24 +316,8 @@ class Mocha(NPMPackage):
 class JSSeleniumWebdriver(NPMPackage):
     PACKAGE_NAME = "selenium-webdriver@4.23.0"
 
-class WDIO(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/cli@9.2.1"
-
-class WDIORunner(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/local-runner@9.2.1"
-
-class WDIOReporter(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/reporter@9.1.3"
-
-class WDIOMochaPlugin(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/mocha-framework@9.1.3"
-
 class NodeTSXModule(NPMModulePackage):
     PACKAGE_NAME = "tsx@4.19.2"
-
-class TaurusWDIOPlugin(NPMLocalModulePackage):
-    PACKAGE_NAME = "@taurus/wdio-taurus-plugin@1.0.0"
-    PACKAGE_LOCAL_PATH = "./wdio-taurus-plugin"
 
 class Newman(NPMPackage):
     PACKAGE_NAME = "newman"

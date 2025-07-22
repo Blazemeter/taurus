@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.16.45<sup> 21 July 2025</sup>
+- Python has been upgraded to version 3.13.0
+- Remove support for RSpec and WDIO
+
+## 1.16.44<sup> 11 July 2025</sup>
+- Urllib3 version update to 2.5.0
+- 
+## 1.16.43<sup> 10 July 2025</sup>
+- Urllib3 version update to 2.4.0
+
+## 1.16.42<sup> 14 May 2025</sup>
+- Small fix in handling of huge xmls
+
 ## 1.16.41<sup> 28 April 2025</sup>
 - Urwid dependency updated to 2.6.16
 

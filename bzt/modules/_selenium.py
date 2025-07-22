@@ -40,7 +40,7 @@ class SeleniumExecutor(ReportableExecutor):
     :type runner: bzt.modules.SubprocessedExecutor
     """
 
-    SUPPORTED_RUNNERS = ["apiritif", "junit", "testng", "rspec", "mocha", "nunit", "xunit", "pytest", "wdio", "robot"]
+    SUPPORTED_RUNNERS = ["apiritif", "junit", "testng", "mocha", "nunit", "xunit", "pytest", "robot"]
     SELENIUM_TOOLS_DIR = "~/.bzt/selenium-taurus/tools"
 
     def __init__(self):

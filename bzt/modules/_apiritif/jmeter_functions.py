@@ -53,9 +53,7 @@ class RandomFunction(JMeterFunction):
                 ctx=ast.Load(),
             ),
             args=[self.compiler.gen_expr(int(args["min"])), self.compiler.gen_expr(int(args["max"]))],
-            keywords=[],
-            starargs=None,
-            kwargs=None
+            keywords=[]
         )
 
 
@@ -79,9 +77,7 @@ class RandomStringFunction(JMeterFunction):
                 ctx=ast.Load(),
             ),
             args=arguments,
-            keywords=[],
-            starargs=None,
-            kwargs=None
+            keywords=[]
         )
 
 
@@ -100,9 +96,7 @@ class Base64DecodeFunction(JMeterFunction):
                 ctx=ast.Load(),
             ),
             args=[self.compiler.gen_expr(args["text"])],
-            keywords=[],
-            starargs=None,
-            kwargs=None
+            keywords=[]
         )
 
 
@@ -121,9 +115,7 @@ class Base64EncodeFunction(JMeterFunction):
                 ctx=ast.Load(),
             ),
             args=[self.compiler.gen_expr(args["text"])],
-            keywords=[],
-            starargs=None,
-            kwargs=None
+            keywords=[]
         )
 
 
@@ -142,9 +134,7 @@ class TimeFunction(JMeterFunction):
                 ctx=ast.Load(),
             ),
             args=arguments,
-            keywords=[],
-            starargs=None,
-            kwargs=None
+            keywords=[]
         )
 
 
@@ -162,9 +152,7 @@ class UrlEncodeFunction(JMeterFunction):
                 ctx=ast.Load(),
             ),
             args=[self.compiler.gen_expr(args["chars"])],
-            keywords=[],
-            starargs=None,
-            kwargs=None
+            keywords=[]
         )
 
 
@@ -180,9 +168,7 @@ class UuidFunction(JMeterFunction):
                 ctx=ast.Load(),
             ),
             args=[],
-            keywords=[],
-            starargs=None,
-            kwargs=None
+            keywords=[]
         )
 
 
@@ -201,20 +187,20 @@ class JMeterExprCompiler(object):
             ixs = varname.split(".")
             subs = ast.Subscript(
                 value=ast.Name(id="self.vars", ctx=ast.Load()),
-                slice=ast.Index(value=ast.Str(s=ixs[0], kind="")),
+                slice=ast.Index(value=ast.Constant(value=ixs[0], kind="")),
                 ctx=ctx
             )
             for i in range(1, len(ixs)):
                 subs = ast.Subscript(
                     value=subs,
-                    slice=ast.Index(value=ast.Str(s=ixs[i], kind="")),
+                    slice=ast.Index(value=ast.Constant(value=ixs[i], kind="")),
                     ctx=ctx
                 )
             return subs
         else:
             return ast.Subscript(
                 value=ast.Name(id="self.vars", ctx=ast.Load()),
-                slice=ast.Index(value=ast.Str(s=varname, kind="")),
+                slice=ast.Index(value=ast.Constant(value=varname, kind="")),
                 ctx=ctx
             )
 
@@ -222,7 +208,7 @@ class JMeterExprCompiler(object):
         if isinstance(value, bool):
             return ast.Name(id="True" if value else "False", ctx=ast.Load())
         elif isinstance(value, (int, float)):
-            return ast.Num(n=value, kind="")
+            return ast.Constant(value=value, kind="")
         elif isinstance(value, str):
             # if is has interpolation - break it into either a `"".format(args)` form or a Name node
             # otherwise - it's a string literal
@@ -240,12 +226,12 @@ class JMeterExprCompiler(object):
                 else:
                     result = ast_call(
                         func=ast.Attribute(
-                            value=ast.Str(s=value, kind=""),
+                            value=ast.Constant(value=value, kind=""),
                             attr='format',
                             ctx=ast.Load()),
                         args=format_args)
             else:
-                result = ast.Str(s=value, kind="")
+                result = ast.Constant(value=value, kind="")
             return result
         elif isinstance(value, type(None)):
             return ast.Name(id="None", ctx=ast.Load())

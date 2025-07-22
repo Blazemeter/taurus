@@ -182,8 +182,12 @@ class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
         rate_prop.text = str(rate)
 
 
+class OpenModelThreadGroup(AbstractDynamicThreadGroup):
+    XPATH = r'jmeterTestPlan>hashTree>hashTree>OpenModelThreadGroup'
+
+
 class ThreadGroupHandler(object):
-    CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup, ArrivalsThreadGroup]
+    CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup, ArrivalsThreadGroup, OpenModelThreadGroup]
 
     def __init__(self, logger):
         self.log = logger.getChild(self.__class__.__name__)
