@@ -132,9 +132,28 @@ RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.412/dotnet-sd
     rm dotnet.tar.gz && \
     ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
-# Install Ruby & OpenJDK
+# Install rbenv and Ruby
+ARG RUBY_VERSION=3.4.5
+
+RUN git clone --depth 1 https://github.com/rbenv/rbenv.git ${RBENV_ROOT} && \
+    git clone --depth 1 https://github.com/rbenv/ruby-build.git ${RBENV_ROOT}/plugins/ruby-build && \
+    echo 'export RBENV_ROOT=/usr/local/rbenv' >> /etc/profile.d/rbenv.sh && \
+    echo 'export PATH="$RBENV_ROOT/bin:$PATH"' >> /etc/profile.d/rbenv.sh && \
+    echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh && \
+    chmod +x /etc/profile.d/rbenv.sh
+
+# Install Ruby
+RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
+    rbenv install ${RUBY_VERSION} && \
+    rbenv global ${RUBY_VERSION} && \
+    rbenv rehash
+
+# Set up Ruby alternatives
+RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/ruby 1 && \
+    update-alternatives --install /usr/local/bin/gem gem ${RBENV_ROOT}/shims/gem 1 &&
+
+# Install OpenJDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ruby-full \
     zlib1g-dev \
     libreadline-dev \
     openjdk-11-jdk && \
