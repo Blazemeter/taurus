@@ -59,9 +59,8 @@ RUN apt-get update && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-# Add Google Chrome repository
-RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg && \
-    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list
+# Download Chrome package
+ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
 
 # Add Firefox PPA (avoid snap)
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap && \
@@ -102,14 +101,15 @@ RUN apt-get update && \
         libxslt-dev \
         # Java
         openjdk-11-jdk \
-        # Web testing tools
-        google-chrome-stable \
-        firefox \
         # Load testing tools
         siege \
         apache2-utils \
         tsung \
-        k6 && \
+        k6  \
+        # Web testing tools
+        firefox \
+        ./google-chrome-stable_current_amd64.deb && \
+    mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome && \
     rm -rf /var/lib/apt/lists/*
 
 # Set up Python alternatives
