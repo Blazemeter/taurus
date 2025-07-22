@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.16.45<sup> 21 July 2025</sup>
+- Python has been upgraded to version 3.13.0
+- Remove support for RSpec and WDIO
+
+## 1.16.44<sup> 11 July 2025</sup>
+- Urllib3 version update to 2.5.0
+- 
+## 1.16.43<sup> 10 July 2025</sup>
+- Urllib3 version update to 2.4.0
+
+## 1.16.42<sup> 14 May 2025</sup>
+- Small fix in handling of huge xmls
+
+## 1.16.41<sup> 28 April 2025</sup>
+- Urwid dependency updated to 2.6.16
+
+## 1.16.40<sup> 14 April 2025</sup>
+- Newman executor re-added
+- Newman executor fails test on newman exceptions
+- Added support for _same user on next iteration_ in jmx
+
+## 1.16.39<sup> 17 February 2025</sup>
+- JMX parser enhancement
+- Cloud documentation changes
+- Update WDIO to 9.x and jinja2 to 3.1.5
+
 ## 1.16.38<sup> 9 January 2025</sup>
 - Website update, fixed broken links
 

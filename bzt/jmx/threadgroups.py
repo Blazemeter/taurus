@@ -68,6 +68,9 @@ class AbstractThreadGroup(object):
         selector = ".//stringProp[@name='ThreadGroup.on_sample_error']"
         return self._get_val("on-error", selector, raw=True)
 
+    def get_same_user_iter(self):
+        return False
+
 
 class ThreadGroup(AbstractThreadGroup):
     XPATH = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
@@ -106,6 +109,10 @@ class ThreadGroup(AbstractThreadGroup):
         delay_sel = ".//*[@name='ThreadGroup.delay']"
         return self._get_val("delay", delay_sel, raw=True)
 
+    def get_same_user_iter(self):
+        sui_sel = ".//*[@name='ThreadGroup.same_user_on_next_iteration']"
+        value = self._get_val("same user on next iteration", sui_sel, default="true")
+        return value == "true"
 
 class SteppingThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup'
@@ -159,6 +166,12 @@ class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):
         concurrency_prop = self.element.find(self.CONCURRENCY_SEL)
         concurrency_prop.text = str(concurrency)
 
+    def get_same_user_iter(self):
+        sui_sel = ".//*[@name='ThreadGroup.same_user_on_next_iteration']"
+        value = self._get_val("same user on next iteration", sui_sel, default="true")
+        return value == "true"
+
+
 
 class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.arrivals\.ArrivalsThreadGroup'
@@ -169,8 +182,12 @@ class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
         rate_prop.text = str(rate)
 
 
+class OpenModelThreadGroup(AbstractDynamicThreadGroup):
+    XPATH = r'jmeterTestPlan>hashTree>hashTree>OpenModelThreadGroup'
+
+
 class ThreadGroupHandler(object):
-    CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup, ArrivalsThreadGroup]
+    CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup, ArrivalsThreadGroup, OpenModelThreadGroup]
 
     def __init__(self, logger):
         self.log = logger.getChild(self.__class__.__name__)
@@ -192,12 +209,16 @@ class ThreadGroupHandler(object):
         self.log.debug(msg, source.gtype, source.get_testname(), target_gtype)
         on_error = source.get_on_error()
 
+        same_user = None
         if target_gtype == ThreadGroup.__name__:
             thread_delay = None
             scheduler_delay = None
+
             if source.gtype == target_gtype:
                 thread_delay = source.get_thread_delay()
                 scheduler_delay = source.get_scheduler_delay()
+
+            same_user = source.get_same_user_iter()
 
             new_group_element = JMX.get_thread_group(
                 concurrency=concurrency,
@@ -208,12 +229,15 @@ class ThreadGroupHandler(object):
                 on_error=on_error,
                 thread_delay=thread_delay,
                 scheduler_delay=scheduler_delay,
-                add_ramp_to_duration=add_ramp_to_duration)
+                add_ramp_to_duration=add_ramp_to_duration,
+                same_user=same_user)
         elif target_gtype == ConcurrencyThreadGroup.__name__:
             iterations = None
             if source.gtype == target_gtype:
                 iterations = source.get_iterations(raw=True)
+
             iterations = iterations or ""
+            same_user = source.get_same_user_iter()
 
             new_group_element = JMX.get_concurrency_thread_group(
                 concurrency=concurrency,
@@ -222,7 +246,8 @@ class ThreadGroupHandler(object):
                 steps=load.steps,
                 testname=source.get_testname(),
                 on_error=on_error,
-                iterations=iterations)
+                iterations=iterations,
+                same_user=same_user)
         else:
             self.log.warning('Unsupported preferred thread group: %s', target_gtype)
             return

@@ -30,8 +30,6 @@ modules:
     class: bzt.modules.java.JUnitTester
   testng:
     class: bzt.modules.java.TestNGTester
-  rspec:
-    class: bzt.modules.ruby.RSpecTester
   mocha:
     class: bzt.modules.javascript.MochaTester
   nunit:
@@ -40,10 +38,10 @@ modules:
     class: bzt.modules.csharp.XUnitExecutor
   pytest:
     class: bzt.modules._pytest.PyTestExecutor
-  wdio:
-    class: bzt.modules.javascript.WebdriverIOExecutor
   robot:
     class: bzt.modules.robot.RobotExecutor
+  newman:
+    class: bzt.modules.javascript.NewmanExecutor
   apiritif:
     class: bzt.modules._apiritif.ApiritifNoseExecutor
 
