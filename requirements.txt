@@ -19,4 +19,4 @@ python-socketio>=5.13.0
 h11>=0.16.0
 websocket-client>=1.8.0
 urllib3==2.5.0
-setuptools==80.9.0
+setuptools==79.0.1

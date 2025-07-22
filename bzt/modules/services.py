@@ -45,7 +45,7 @@ if not is_windows():
 
 class PipInstaller(Service):
     pip_constraints = {
-        'setuptools': '80.9.1',
+        'setuptools': '79.0.1',
         'gevent': '24.10.1'
     }
 
