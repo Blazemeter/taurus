@@ -108,7 +108,7 @@ RUN apt-get update && \
         k6  \
         # Web testing tools
         firefox \
-        ./google-chrome-stable_current_amd64.deb && \
+        /tmp/google-chrome-stable_current_amd64.deb && \
     mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome && \
     rm -rf /var/lib/apt/lists/*
 
