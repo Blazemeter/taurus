@@ -45,7 +45,8 @@ if not is_windows():
 
 class PipInstaller(Service):
     pip_constraints = {
-        'setuptools': '80.9.1'
+        'setuptools': '80.9.1',
+        'zope.event': '5.1.1'
     }
 
     pip_constraints_file = None

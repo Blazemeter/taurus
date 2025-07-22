@@ -152,8 +152,7 @@ COPY dist/bzt*.whl /tmp/
 RUN python3 -m pip install --no-cache-dir --upgrade --break-system-packages --ignore-installed \
         pip \
         setuptools \
-        wheel \
-        zope.event
+        wheel
 
 # Install BZT package
 RUN python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed /tmp/bzt*.whl chardet
