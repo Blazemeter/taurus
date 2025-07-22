@@ -36,6 +36,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 # Update package lists and install essential packages including dirmngr for GPG
 RUN apt-get update && \
+    apt-get install -y --no-install-recommends locales && \
     locale-gen "en_US.UTF-8" && \
     update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 && \
     apt-get install -y --no-install-recommends \
