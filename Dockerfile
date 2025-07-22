@@ -94,7 +94,6 @@ RUN apt-get update && \
         xvfb \
         # SSL and security
         libssl-dev \
-        ca-certificates \
         # Development libraries
         libyaml-dev \
         libxml2-dev \
@@ -208,8 +207,9 @@ RUN apt-get remove -y \
            /usr/share/doc
 
 # Remove security-sensitive files
-RUN find /root/.bzt -name "*.pem" -delete 2>/dev/null || true && \
-    find /root/.bzt -name "*.key" -delete 2>/dev/null || true
+WORKDIR /root/.bzt/python-packages/3.12.3/gevent/tests
+RUN rm -rf *.pem
+RUN rm -rf *.key
 
 # Remove egg-info directories
 RUN find "$(python3 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")" \
