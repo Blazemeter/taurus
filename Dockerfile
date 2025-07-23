@@ -280,6 +280,39 @@ RUN curl -sSL https://repo1.maven.org/maven2/net/minidev/accessors-smart/2.4.9/a
     else \
         rm /tmp/accessors-smart-2.4.9.jar; \
     fi
+# fix batik
+RUN set -e && \
+    BASE_URL="https://repo1.maven.org/maven2/org/apache/xmlgraphics" && \
+    TARGET_DIR="/root/.bzt/jmeter-taurus/5.5/lib" && \
+    for module in \
+      batik-anim \
+      batik-awt-util \
+      batik-bridge \
+      batik-codec \
+      batik-constants \
+      batik-css \
+      batik-dom \
+      batik-ext \
+      batik-gvt \
+      batik-i18n \
+      batik-parser \
+      batik-script \
+      batik-shared-resources \
+      batik-svg-dom \
+      batik-svggen \
+      batik-transcoder \
+      batik-util \
+      batik-xml; do \
+        old_jar="${TARGET_DIR}/${module}-1.14.jar"; \
+        new_jar="${module}-1.17.jar"; \
+        curl -sSL "${BASE_URL}/${module}/1.17/${new_jar}" -o "/tmp/${new_jar}" && \
+        if [ -f "${old_jar}" ]; then \
+            rm "${old_jar}" && \
+            mv "/tmp/${new_jar}" "${TARGET_DIR}/${new_jar}"; \
+        else \
+            rm "/tmp/${new_jar}"; \
+        fi; \
+    done
 
 # Remove security-sensitive files
 WORKDIR /root/.bzt/python-packages/3.12.3/gevent/tests
