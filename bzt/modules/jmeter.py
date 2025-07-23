@@ -1817,7 +1817,7 @@ class JMeterMirrorsManager(MirrorsManager):
             select_element = select_search_pattern.findall(self.page_source)
             if select_element:
                 option_elements = option_search_pattern.findall(select_element[0])
-                link_tail = "/jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
+                link_tail = "jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
                 links = [link.strip('<option value="').strip('">') + link_tail for link in option_elements]
         links.append(self.DOWNLOAD_LINK.format(version=self.jmeter_version))
         links.append(self.BZM_REGISTRY_LINK.format(version=self.jmeter_version))
