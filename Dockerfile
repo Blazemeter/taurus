@@ -254,6 +254,10 @@ RUN apt-get remove -y \
            /usr/share/man \
            /usr/share/doc
 
+# update dotnet metadata
+RUN sed -i 's/17\.3\.4/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-watch/8.0.412-servicing.25320.8/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json
+RUN sed -i 's/17\.7\.2/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json
+
 # Remove security-sensitive files
 WORKDIR /root/.bzt/python-packages/3.12.3/gevent/tests
 RUN rm -rf *.pem
