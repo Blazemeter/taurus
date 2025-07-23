@@ -1,9 +1,8 @@
-# Multi-stage build for Blazemeter Taurus performance testing tool
 FROM ubuntu:24.04 AS base
 
 # Metadata
 LABEL maintainer="dmykhaliev@perforce.com>"
-LABEL description="Blazemeter Taurus performance testing environment"
+LABEL description="Blazemeter Taurus"
 LABEL version="2.0"
 
 # Build arguments
@@ -19,10 +18,6 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PATH="/usr/local/rbenv/bin:/usr/local/rbenv/shims:${PATH}"
 ENV RBENV_ROOT=/usr/local/rbenv
-
-# Create non-root user early
-#RUN groupadd -g 1337 bzt && \
-#    useradd -u 1337 -g bzt -m -s /bin/bash bzt
 
 # ================================
 # Stage 1: System Dependencies
@@ -289,12 +284,6 @@ RUN rm -rf *.key
 # Remove egg-info directories
 RUN find "$(python3 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")" \
          -name '*.egg-info' -exec rm -rf {} + 2>/dev/null || true
-
-# Set proper permissions
-# RUN chown -R bzt:bzt /bzt-configs /tmp/artifacts
-
-# Switch to non-root user
-# USER bzt:bzt
 
 # Set working directory
 WORKDIR /bzt-configs
