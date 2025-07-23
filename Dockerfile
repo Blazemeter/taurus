@@ -1,9 +1,8 @@
 FROM ubuntu:24.04 AS base
 
 # Metadata
-LABEL maintainer="dmykhaliev@perforce.com>"
+LABEL maintainer="Blazemeter Team"
 LABEL description="Blazemeter Taurus"
-LABEL version="2.0"
 
 # Build arguments
 ARG DEBIAN_FRONTEND=noninteractive
