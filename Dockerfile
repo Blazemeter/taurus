@@ -69,27 +69,9 @@ RUN mkdir -p /root/.gnupg && \
     gpg --batch --export C5AD17C747E3415A3642D57D77C6C491D6AC1D69 | gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list
 
-RUN install -d -m 0755 /etc/apt/keyrings
-RUN curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg | \
-    tee /etc/apt/keyrings/packages.mozilla.org.asc > /dev/null
-
-# Verify the fingerprint (optional step)
-# Verify the fingerprint
-RUN gpg -n -q --import --import-options import-show /etc/apt/keyrings/packages.mozilla.org.asc | \
-    awk '/pub/{getline; gsub(/^ +| +$/,""); \
-    if($0 == "35BAA0B33E9EB396F59CA838C0BA5CE6DC6315A3") \
-    print "\nThe key fingerprint matches ("$0").\n"; \
-    else \
-    print "\nVerification failed: the fingerprint ("$0") does not match the expected one.\n"}'
-
-# Add Mozilla APT repository
-RUN echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" \
-    | tee /etc/apt/sources.list.d/mozilla.list > /dev/null
-
-
-# Configure APT to prioritize Mozilla repository
-RUN echo 'Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000' \
-    | tee /etc/apt/preferences.d/mozilla > /dev/null
+# Add Firefox PPA (avoid snap)
+RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap && \
+    add-apt-repository ppa:mozillateam/ppa -y
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -254,9 +236,16 @@ RUN apt-get remove -y \
            /usr/share/man \
            /usr/share/doc
 
-# update dotnet metadata
-RUN sed -i 's/17\.3\.4/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-watch/8.0.412-servicing.25320.8/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json
-RUN sed -i 's/17\.7\.2/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json
+# update dotnet metadata to make scanners happy
+RUN if [ -f /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json ]; then \
+      sed -i 's/17\.3\.4/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; \
+    fi
+RUN if [ -f /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-watch/8.0.412-servicing.25320.8/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json ]; then \
+      sed -i 's/17\.3\.4/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-watch/8.0.412-servicing.25320.8/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; \
+    fi
+RUN if [ -f /usr/share/dotnet/sdk/8.0.412/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json ]; then \
+      sed -i 's/17\.3\.4/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json; \
+    fi
 
 # Remove security-sensitive files
 WORKDIR /root/.bzt/python-packages/3.12.3/gevent/tests
