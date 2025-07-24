@@ -85,7 +85,16 @@ RUN apt-get update && \
         unzip \
         net-tools \
         apt-utils \
+        fonts-liberation \
         xvfb \
+        libnss3 \
+        libxss1 \
+        libappindicator3-1 \
+        libatk-bridge2.0-0 \
+        libgtk-3-0 \
+        libx11-xcb1 \
+        libxcb-dri3-0 \
+        libgbm1 \
         # SSL and security
         libssl-dev \
         # Development libraries
