@@ -39,14 +39,6 @@ execution:
       - url: http://localhost:8000/
         label: Selenium Chrome
 
-- executor: selenium  # Selenium_TestNG
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  runner: testng
-  scenario:
-    script: selenium/testng/selenium-testng.jar
-
 ---
 execution:
 - executor: selenium  # Selenium Mocha

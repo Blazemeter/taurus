@@ -2,9 +2,9 @@
 
 pipeline {
     agent {
-        docker {
-            label 'generalNodes'
-            image 'us.gcr.io/verdant-bulwark-278/jenkins-docker-agent:taurus-agent-2'
+        dockerfile {
+            label 'google'
+            filename 'tests/ci/Dockerfile'
             args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
