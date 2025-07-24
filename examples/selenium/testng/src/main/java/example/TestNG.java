@@ -24,6 +24,7 @@ public class TestNG {
 
         ChromeDriverService service = new ChromeDriverService.Builder()
             .usingDriverExecutable(new File(System.getProperty("webdriver.chrome.driver")))
+            .withLogFile(new File("/tmp/artifacts/chromedriver.log"))
             .build();
 
         driver = new ChromeDriver(service, options);
