@@ -12,11 +12,8 @@ pipeline {
         timestamps()
     }
     environment {
-        REPOSITORY = "us.gcr.io/verdant-bulwark-278"
-        REPOSITORY_PUBLIC = "gcr.io/verdant-bulwark-278"
-        NAME = "taurus"
-        TAG = "${branch_name.toLowerCase()}-${BUILD_NUMBER}"
-        IMAGE = "${REPOSITORY}/${NAME}:${TAG}"
+        TAG = "${BRANCH_NAME.toLowerCase()}-${BUILD_NUMBER}"
+        IMAGE = "us.gcr.io/verdant-bulwark-278/taurus:${TAG}"
     }
 
     parameters{
