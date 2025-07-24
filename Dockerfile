@@ -95,6 +95,14 @@ RUN apt-get update && \
         libx11-xcb1 \
         libxcb-dri3-0 \
         libgbm1 \
+        libgconf-2-4 \
+        libappindicator1 \
+        libasound2 \
+        libdrm2 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxrandr2 \
+        libxkbcommon0 \
         # SSL and security
         libssl-dev \
         # Development libraries
