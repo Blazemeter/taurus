@@ -12,8 +12,7 @@ pipeline {
         timestamps()
     }
     environment {
-        TAG = "${BRANCH_NAME.toLowerCase()}-${BUILD_NUMBER}"
-        IMAGE = "us.gcr.io/verdant-bulwark-278/taurus:${TAG}"
+        IMAGE = "us.gcr.io/verdant-bulwark-278/taurus:main-${BUILD_NUMBER}"
     }
 
     parameters{
