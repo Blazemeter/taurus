@@ -11,10 +11,6 @@ pipeline {
     options {
         timestamps()
     }
-    environment {
-        IMAGE = "us.gcr.io/verdant-bulwark-278/taurus:main-${BUILD_NUMBER}"
-    }
-
     parameters{
         booleanParam(name: 'PERFORM_PRISMA_SCAN', defaultValue: true, description: 'Perform a Prisma scan for the local image')
     }
@@ -67,7 +63,7 @@ pipeline {
         stage("Integration Tests") {
             steps {
                 sh """
-                   docker run -v ${WORKSPACE}:/bzt-configs -v ${WORKSPACE}/integr-artifacts:/tmp/artifacts ${IMAGE} -sequential examples/all-executors.yml
+                   docker run -v ${WORKSPACE}:/bzt-configs -v ${WORKSPACE}/integr-artifacts:/tmp/artifacts ${JOB_NAME.toLowerCase()} -sequential examples/all-executors.yml
                    """
             }
         }
