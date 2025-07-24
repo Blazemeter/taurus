@@ -63,10 +63,12 @@ pipeline {
         stage("Integration Tests") {
             steps {
                 sh """
-                   docker run -v `pwd`:/bzt-configs -v `pwd`/integr-artifacts:/tmp/artifacts ${JOB_NAME.toLowerCase()} -sequential examples/all-executors.yml
+                   docker run -v ${WORKSPACE}:/bzt-configs -v ${WORKSPACE}/integr-artifacts:/tmp/artifacts ${JOB_NAME.toLowerCase()} -sequential examples/all-executors.yml
                    """
+                archiveArtifacts artifacts: "integr-artifacts/**", allowEmptyArchive: true
             }
         }
+
         stage("Deploy an artifact to PyPi") {
             when { expression { isRelease } }
             steps {
@@ -105,7 +107,7 @@ pipeline {
     post {
         always {
             smartSlackNotification(channel: "bm-taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
-            cleanWs()
+//            cleanWs()
         }
     }
 }
