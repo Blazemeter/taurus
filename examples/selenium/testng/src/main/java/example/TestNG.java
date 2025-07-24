@@ -14,6 +14,7 @@ public class TestNG {
     @BeforeClass
     public void setUp() {
         ChromeOptions options = new ChromeOptions();
+        options.setBinary("/usr/bin/google-chrome");
         options.addArguments("--headless=chrome");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
