@@ -41,12 +41,12 @@ execution:
 
 ---
 execution:
-- executor: selenium  # Selenium Mocha
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: selenium/mocha_example.js
+#- executor: selenium  # Selenium Mocha
+#  concurrency: 1
+#  hold-for: 10s
+#  iterations: 10
+#  scenario:
+#    script: selenium/mocha_example.js
 
 - executor: junit  # JUnit_test
   concurrency: 1
@@ -55,12 +55,12 @@ execution:
   scenario:
     script: functional/JUnitTest.java
 
-- executor: mocha  # Mocha
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: functional/mocha_example.js
+#- executor: mocha  # Mocha
+#  concurrency: 1
+#  hold-for: 10s
+#  iterations: 10
+#  scenario:
+#    script: functional/mocha_example.js
 
 - executor: apiritif  # test_Apiritif
   concurrency: 1
