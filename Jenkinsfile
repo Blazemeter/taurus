@@ -75,6 +75,7 @@ pipeline {
                }
             }
         }
+/*
         stage("Docker Image Push") {
             steps {
                 withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
@@ -82,6 +83,7 @@ pipeline {
                 }
             }
         }
+*/
         stage("Deploy site") {
             when { expression { isRelease } }
             steps {
