@@ -76,7 +76,7 @@ class BZAObject(dict):
 
         self.address = "https://a.blazemeter.com"
         self.data_address = "https://data.blazemeter.com"
-        self.timeout = 30
+        self.timeout = os.environ.get("READ_TIMEOUT", 30)
         self.logger_limit = 256
         self.token = None
         self.log = logging.getLogger(self.__class__.__name__)
