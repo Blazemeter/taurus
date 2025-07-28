@@ -17,7 +17,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PATH="/usr/local/rbenv/bin:/usr/local/rbenv/shims:${PATH}"
 ENV RBENV_ROOT=/usr/local/rbenv
-
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 # ================================
 # Stage 1: System Dependencies
 # ================================
@@ -168,13 +168,13 @@ FROM runtimes AS python-deps
 COPY dist/bzt*.whl /tmp/
 
 # Upgrade pip and core packaging tools
-RUN python3 -m pip install --no-cache-dir --upgrade --break-system-packages --ignore-installed \
+RUN python3 -m pip install --no-cache-dir --upgrade --ignore-installed \
         pip \
         setuptools \
         wheel
 
 # Install BZT package
-RUN python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed /tmp/bzt*.whl chardet
+RUN python3 -m pip install --no-cache-dir --ignore-installed /tmp/bzt*.whl chardet
 
 # ================================
 # Stage 4: Browser Setup
