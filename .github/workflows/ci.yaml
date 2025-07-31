@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install -y python3-tk xvfb x11-utils
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+          architecture: "x64"
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+      - name: Install RSpec
+        run: gem install rspec
+
+      - name: Install pip dependencies
+        run: pip install --timeout 1000 -r requirements.txt -r tests/ci/requirements.txt
+
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 640x480x16 &
+          echo "DISPLAY=:99.0" >> $GITHUB_ENV
+          sleep 10
+          ps aux | grep Xvfb
+          xdpyinfo -display :99
+
+      - name: Run tests
+        run: |
+          python tests/resources/httpserver/start.py &
+          coverage run --source=bzt -m nose2 -s tests/unit -v
+          coverage report -m
+          codecov --token=${{ secrets.CODECOV_TOKEN }}

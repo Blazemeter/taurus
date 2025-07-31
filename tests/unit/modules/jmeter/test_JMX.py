@@ -352,6 +352,19 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual("false", group.element.find(".//*[@name='ThreadGroup.same_user_on_next_iteration']").text)
             self.assertEqual("10", group.element.find(".//*[@name='LoopController.loops']").text)
 
+    def test_ultimate_TG(self):
+        """ThreadGroup:  concurrency, ramp-up, iterations"""
+        self.configure(load={'concurrency': 76, 'steps': 5, 'throughput': 20},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/ultimateGroupTest.jmx',
+                       settings={'force-ctg': True})
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because keep-iterations is True
+        self.obj.modify(self.jmx)
+        for group in self.get_groupset():
+            self.assertEqual(group.gtype, "ThreadGroup")
+            self.assertEqual("false", group.element.find(".//*[@name='ThreadGroup.same_user_on_next_iteration']").text)
+            self.assertEqual("1", group.element.find(".//*[@name='LoopController.loops']").text)
+
+
     def test_duration_loops_bug(self):
         self.configure(load={"concurrency": 10, "ramp-up": 15, "hold-for": "2m"},
                        jmx_file=RESOURCES_DIR + "/jmeter/jmx/http.jmx",

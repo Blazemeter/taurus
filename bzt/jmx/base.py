@@ -113,7 +113,8 @@ class JMX(object):
             self.tree = etree.ElementTree()
             self.tree.parse(original)
         except BaseException as exc:
-            if isinstance(exc, etree.XMLSyntaxError) and "huge text node" in str(exc):
+            exc_str = str(exc)
+            if isinstance(exc, etree.XMLSyntaxError) and ("huge text node" in exc_str or "XML_PARSE_HUGE" in exc_str):
                 self.log.warning("XML parsing failed due to huge text node, retrying with allowed huge text nodes")
                 try:
                     # Retry with allowed huge text nodes
@@ -626,7 +627,8 @@ class JMX(object):
                              name="ThreadGroup.main_controller",
                              elementType="LoopController",
                              guiclass="LoopControlPanel",
-                             testclass="LoopController")
+                             testclass="LoopController",
+                             testname="Loop Controller")
 
         # 'true' causes endless execution of TG in non-gui mode
         loop.append(JMX._bool_prop("LoopController.continue_forever", False))

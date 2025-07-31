@@ -68,6 +68,9 @@ class AbstractThreadGroup(object):
         selector = ".//stringProp[@name='ThreadGroup.on_sample_error']"
         return self._get_val("on-error", selector, raw=True)
 
+    def get_same_user_iter(self):
+        return False
+
 
 class ThreadGroup(AbstractThreadGroup):
     XPATH = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
@@ -179,8 +182,12 @@ class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
         rate_prop.text = str(rate)
 
 
+class OpenModelThreadGroup(AbstractDynamicThreadGroup):
+    XPATH = r'jmeterTestPlan>hashTree>hashTree>OpenModelThreadGroup'
+
+
 class ThreadGroupHandler(object):
-    CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup, ArrivalsThreadGroup]
+    CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup, ArrivalsThreadGroup, OpenModelThreadGroup]
 
     def __init__(self, logger):
         self.log = logger.getChild(self.__class__.__name__)
@@ -210,7 +217,8 @@ class ThreadGroupHandler(object):
             if source.gtype == target_gtype:
                 thread_delay = source.get_thread_delay()
                 scheduler_delay = source.get_scheduler_delay()
-                same_user = source.get_same_user_iter()
+
+            same_user = source.get_same_user_iter()
 
             new_group_element = JMX.get_thread_group(
                 concurrency=concurrency,
@@ -227,6 +235,7 @@ class ThreadGroupHandler(object):
             iterations = None
             if source.gtype == target_gtype:
                 iterations = source.get_iterations(raw=True)
+
             iterations = iterations or ""
             same_user = source.get_same_user_iter()
 

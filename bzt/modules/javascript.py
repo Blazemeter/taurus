@@ -100,24 +100,22 @@ class MochaTester(JavaScriptExecutor):
         self.process = self._execute(mocha_cmdline, cwd=self.get_launch_cwd())
 
 
-class WebdriverIOExecutor(JavaScriptExecutor):
+class NewmanExecutor(JavaScriptExecutor):
     """
-    WebdriverIO-based test runner
+    Newman-based test runner
 
-    :type wdio: WDIO
-    :type wdio_taurus_plugin: TaurusWDIOPlugin
+    :type newman: Newman
     """
 
     def __init__(self):
-        super(WebdriverIOExecutor, self).__init__()
-        self.tools_dir = "~/.bzt/selenium-taurus/wdio-mjs"
-        self.wdio = None
-        self.wdio_taurus_plugin = None
+        super(NewmanExecutor, self).__init__()
+        self.tools_dir = "~/.bzt/newman"
+        self.newman = None
 
     def prepare(self):
-        super(WebdriverIOExecutor, self).prepare()
-        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
-        # NODE_PATH doesn't work for ems modules -> we will change pwd so executor sees tools node_modules...
+        super(NewmanExecutor, self).prepare()
+        self.env.add_path({"NODE_PATH": RESOURCES_DIR})
+
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to executor %s" % self)
@@ -130,45 +128,69 @@ class WebdriverIOExecutor(JavaScriptExecutor):
         tcl_lib = self._get_tool(TclLibrary)
         self.node = self._get_tool(Node)
         self.npm = self._get_tool(NPM)
-        self.wdio = self._get_tool(WDIO, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.wdio_reporter = self._get_tool(WDIOReporter, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.wdio_runner = self._get_tool(WDIORunner, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.wdio_taurus_plugin = self._get_tool(TaurusWDIOPlugin, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.node_tsx_module = self._get_tool(NodeTSXModule, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
+        self.newman = self._get_tool(Newman, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
+        taurus_newman_plugin = self._get_tool(TaurusNewmanPlugin)
 
-        wdio_mocha_plugin = self._get_tool(
-            WDIOMochaPlugin, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-
-        tools = [tcl_lib, self.node, self.npm, self.wdio, self.wdio_taurus_plugin, self.wdio_reporter, self.wdio_runner, wdio_mocha_plugin, self.node_tsx_module]
+        tools = [tcl_lib, self.node, self.npm, self.newman, taurus_newman_plugin]
 
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
-        return [self.node.tool_path, '@taurus/wdio-taurus-plugin'] + list(args)
-
-    def get_launch_cwd(self, *args):
-        return self.tools_dir + "/node_modules"
+        return [self.node.tool_path, self.newman.tool_path] + list(args)
 
     def startup(self):
         script_dir = get_full_path(self.script, step_up=1)
         script_file = os.path.basename(self.script)
         cmdline = self.get_launch_cmdline(
-            "--report-file",
-            self.report_file,
-            "--wdio-config",
+            "run",
             script_file,
+            "--reporters", "taurus",
+            "--reporter-taurus-filename", self.report_file,
+            "--suppress-exit-code", "--insecure",
         )
+
+        scenario = self.get_scenario()
+        timeout = scenario.get('timeout', None)
+        if timeout is not None:
+            cmdline += ["--timeout-request", str(int(dehumanize_time(timeout) * 1000))]
+
+        think = scenario.get_think_time()
+        if think is not None:
+            cmdline += ["--delay-request", str(int(dehumanize_time(think) * 1000))]
+
+        cmdline += self._dump_vars("globals")
+        cmdline += self._dump_vars("environment")
 
         load = self.get_load()
         if load.iterations:
-            cmdline += ['--iterations', str(load.iterations)]
+            cmdline += ['--iteration-count', str(load.iterations)]
 
-        if load.hold:
-            cmdline += ['--hold-for', str(load.hold)]
+        self.process = self._execute(cmdline, cwd=script_dir)
 
-        cmdline += ['--cwd', script_dir]
+    def _dump_vars(self, key):
+        cmdline = []
+        vals = self.get_scenario().get(key)
+        if isinstance(vals, str):
+            cmdline += ["--%s" % key, vals]
+        else:
+            data = {"values": []}
 
-        self.process = self._execute(cmdline, cwd=self.get_launch_cwd())
+            if isinstance(vals, list):
+                data['values'] = vals
+            else:
+                for varname, val in iteritems(vals):
+                    data["values"] = {
+                        "key": varname,
+                        "value": val,
+                        "type": "any",
+                        "enabled": True
+                    }
+
+            fname = self.engine.create_artifact(key, ".json")
+            with open(fname, "wt") as fds:
+                fds.write(to_json(data))
+            cmdline += ["--%s" % key, fname]
+        return cmdline
 
 
 class NPM(RequiredTool):
@@ -294,24 +316,16 @@ class Mocha(NPMPackage):
 class JSSeleniumWebdriver(NPMPackage):
     PACKAGE_NAME = "selenium-webdriver@4.23.0"
 
-class WDIO(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/cli@9.2.1"
-
-class WDIORunner(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/local-runner@9.2.1"
-
-class WDIOReporter(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/reporter@9.1.3"
-
-class WDIOMochaPlugin(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/mocha-framework@9.1.3"
-
 class NodeTSXModule(NPMModulePackage):
     PACKAGE_NAME = "tsx@4.19.2"
 
-class TaurusWDIOPlugin(NPMLocalModulePackage):
-    PACKAGE_NAME = "@taurus/wdio-taurus-plugin@1.0.0"
-    PACKAGE_LOCAL_PATH = "./wdio-taurus-plugin"
+class Newman(NPMPackage):
+    PACKAGE_NAME = "newman"
+
+    def __init__(self, tools_dir="", **kwargs):
+        tool_path = "%s/node_modules/%s/bin/newman.js" % (tools_dir, self.PACKAGE_NAME)
+        super(Newman, self).__init__(tool_path=tool_path, tools_dir=tools_dir, **kwargs)
+
 
 class TaurusMochaPlugin(RequiredTool):
     def __init__(self, **kwargs):
