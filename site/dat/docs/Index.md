@@ -27,6 +27,7 @@
     1. [TestNG Executor](TestNG.md)
     1. [Tsung Executor](Tsung.md)
     1. [xUnit Executor](XUnit.md)
+    1. [Playwright Executor](Playwright.md)
  1. [Cloud Provisioned Test Execution](Cloud.md)
  1. [Pass/Fail Criteria](PassFail.md)
  1. [Generating Test Reports](Reporting.md)

@@ -43,6 +43,74 @@ class JavaScriptExecutor(SubprocessedExecutor):
         pass
 
 
+class PlaywrightTester(JavaScriptExecutor):
+
+    """
+    Playwright tests runner
+    """
+    def __init__(self):
+        super(PlaywrightTester, self).__init__()
+
+    def prepare(self):
+        self.tools_dir = self.get_launch_cwd()
+        super(PlaywrightTester, self).prepare()
+
+        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
+        self.script = self.get_script_path()
+        if not self.script:
+            raise TaurusConfigError("Script not passed to runner %s" % self)
+
+        self.install_required_tools()
+        self.reporting_setup(suffix='.ldjson')
+
+    def install_required_tools(self):
+        tcl_lib = self._get_tool(TclLibrary)
+        self.node = self._get_tool(Node)
+        self.npm = self._get_tool(NPM)
+
+        node_npx_module = self._get_tool(NodeNPXModule, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
+        playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.get_launch_cwd())
+
+        npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.get_launch_cwd())
+
+        tools = [tcl_lib, self.node, self.npm, node_npx_module, npm_all_packages, playwright]
+        self._check_tools(tools)
+
+    def get_launch_cmdline(self, *args):
+        return "npx playwright test " + ' '.join(args[0])
+
+    def get_launch_cwd(self, *args):
+        return self.get_script_path()
+
+    def startup(self):
+        config = self.get_scenario().engine.config
+        env = config["settings"]["env"]
+        if "BASE_URL" in env:
+            self.env.set({"BASE_URL": env["BASE_URL"]})
+        if isinstance(config["execution"], dict):
+            concurrency = config["execution"].get("concurrency", 1)
+            iterations = config["execution"].get("iterations", 1)
+        else:
+            concurrency = config["execution"][0].get("concurrency", 1)
+            iterations = config["execution"][0].get("iterations", 1)
+
+        reporter = self.get_scenario().data.get("reporter") or "json"
+
+        options = ["--reporter " + reporter,
+                   "--output " + self.engine.artifacts_dir + "/test-output",
+                   "--workers " + str(concurrency),
+                   "--repeat-each " + str(iterations)]
+
+        if "browser" in self.get_scenario().data:
+            options.append("--project " + self.get_scenario().data["browser"])
+        if "test" in self.get_scenario().data:
+            options.append("-g '" + self.get_scenario().data["test"] + "'")
+
+        cmd_line = self.get_launch_cmdline(options)
+
+        self.process = self._execute(cmd_line, cwd=self.get_launch_cwd())
+
+
 class MochaTester(JavaScriptExecutor):
     """
     Mocha tests runner
@@ -218,6 +286,29 @@ class NPM(RequiredTool):
         return False
 
 
+class PLAYWRIGHT(RequiredTool):
+    def __init__(self, tools_dir, **kwargs):
+        super(PLAYWRIGHT, self).__init__(installable=True, **kwargs)
+        self.tools_dir = tools_dir
+
+    def check_if_installed(self):
+        # currently there seems to be no reliable way to find out whether all Playwright requirements are installed
+        return False
+
+    def install(self):
+        cmdline = ["npx", "playwright", "install"]
+
+        try:
+            out, err = self.call(cmdline,cwd=self.tools_dir)
+        except CALL_PROBLEMS as exc:
+            self.log.debug("%s install failed: %s", "package", exc)
+            return
+
+        self.log.debug("%s install stdout: %s", self.tool_name, out)
+        if err:
+            self.log.warning("%s install stderr: %s", self.tool_name, err)
+
+
 class NPMPackage(RequiredTool):
     PACKAGE_NAME = ""
 
@@ -309,6 +400,24 @@ class NPMLocalModulePackage(NPMPackage):
             self.log.warning("%s install stderr: %s", self.tool_name, err)
 
 
+class NPMModuleInstaller(NPMLocalModulePackage):
+    def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
+        super(NPMModuleInstaller, self).__init__(tools_dir, node_tool, npm_tool, **kwargs)
+        self.package_local_path = tools_dir
+    #
+    # def install(self):
+    #     cmdline = [self.npm.tool_path, 'install', ".", '--install-links', '--prefix', self.tools_dir]
+    #     try:
+    #         out, err = self.call(cmdline, cwd=self.tools_dir)
+    #     except CALL_PROBLEMS as exc:
+    #         self.log.debug("%s install failed: %s", "npm i", exc)
+    #         return
+    #
+    #     self.log.debug("%s install stdout: %s", "npm i", out)
+    #     if err:
+    #         self.log.warning("%s install stderr: %s", "npm i", err)
+
+
 class Mocha(NPMPackage):
     PACKAGE_NAME = "mocha@10.6.0"
 
@@ -325,6 +434,9 @@ class Newman(NPMPackage):
     def __init__(self, tools_dir="", **kwargs):
         tool_path = "%s/node_modules/%s/bin/newman.js" % (tools_dir, self.PACKAGE_NAME)
         super(Newman, self).__init__(tool_path=tool_path, tools_dir=tools_dir, **kwargs)
+
+class NodeNPXModule(NPMModulePackage):
+    PACKAGE_NAME = "npx@11.4.2"
 
 
 class TaurusMochaPlugin(RequiredTool):
