@@ -182,3 +182,74 @@ class TestNewmanExecutor(BZTestCase):
         sample = samples[0]
         self.assertEqual(sample["status"], "PASSED")
         self.assertEqual(sample["test_case"], "should load")
+class TestPlaywrightExecutor(SeleniumTestCase):
+    RUNNER_STUB = RESOURCES_DIR + "playwright/playwright" + EXE_SUFFIX
+    CMD_LINE = None
+
+    def start_subprocess(self, args, **kwargs):
+        self.CMD_LINE = ''.join(args)
+
+    def prepare(self, config):
+        self.obj.engine.config.merge(config)
+        self.obj.execution = self.obj.engine.config['execution']
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
+
+    def full_run(self, config):
+        self.prepare(config)
+        self.obj.runner.get_launch_cmdline = lambda *args: [TestPlaywrightExecutor.RUNNER_STUB] + args[0]
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+
+    def simple_run(self, config):
+        self.prepare(config)
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.obj.post_process()
+
+    def test_playwright_full(self):
+        self.full_run({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 10,
+                "scenario": {
+                    "script": RESOURCES_DIR + "playwright"
+                }
+            }
+        })
+        self.assertTrue(exists(self.obj.runner.report_file))
+
+    def test_command_line(self):
+        self.simple_run({
+            'execution': {
+                'iterations': 3,
+                'concurrency': 10,
+                'settings': {
+                    'env': {
+                        'BASE_URL': 'https://blazedemo.com/'
+                    }
+                },
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'browser': 'firefox',
+                    'test': 'has title',
+                    'reporter': 'list'
+
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertIn("npx playwright test", self.CMD_LINE)
+        self.assertIn("--repeat-each 3", self.CMD_LINE)
+        self.assertIn("--reporter list", self.CMD_LINE)
+        self.assertIn("--workers 10", self.CMD_LINE)
+        self.assertIn("-project firefox", self.CMD_LINE)
+        self.assertIn("-g 'has title'", self.CMD_LINE)
+
