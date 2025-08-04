@@ -1678,7 +1678,10 @@ class JMeter(RequiredTool):
         # these jars should be replaced with newer version in order to fix some vulnerabilities
         # component name and download link in https://repo1.maven.org/maven2/
         affected_components = {
-            "snakeyaml": "org/yaml/snakeyaml/2.0/snakeyaml-2.0.jar"
+            # Needs to be <1.4.18 for old Jmeters https://stackoverflow.com/questions/30812293/com-thoughtworks-xstream-security-forbiddenclassexception
+            "jsoup": "org/jsoup/jsoup/1.21.1/jsoup-1.21.1.jar",
+            "snakeyaml": "org/yaml/snakeyaml/2.0/snakeyaml-2.0.jar",
+            "okhttp": "com/squareup/okhttp3/okhttp/4.10.0/okhttp-4.10.0.jar"
         }
 
         if LooseVersion(self.version) <= LooseVersion('5.4.3'):  # log4j must be fixed till jmeter 5.4.3
