@@ -251,40 +251,6 @@ RUN if [ -f /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-watch/8.0.412-servi
 RUN if [ -f /usr/share/dotnet/sdk/8.0.412/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json ]; then \
       sed -i 's/17\.7\.2/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json; \
     fi
-# update gatling logback 1.12.12 with 1.2.13 for fixing vulns \
-# Replace logback-classic
-RUN curl -sSL https://repo1.maven.org/maven2/ch/qos/logback/logback-classic/1.2.13/logback-classic-1.2.13.jar -o /tmp/logback-classic-1.2.13.jar && \
-    if [ -f /root/.bzt/gatling-taurus/3.9.5/lib/logback-classic-1.2.12.jar ]; then \
-        rm /root/.bzt/gatling-taurus/3.9.5/lib/logback-classic-1.2.12.jar && \
-        mv /tmp/logback-classic-1.2.13.jar /root/.bzt/gatling-taurus/3.9.5/lib/logback-classic-1.2.13.jar; \
-    else \
-        rm /tmp/logback-classic-1.2.13.jar; \
-    fi
-
-# Replace logback-core
-RUN curl -sSL https://repo1.maven.org/maven2/ch/qos/logback/logback-core/1.2.13/logback-core-1.2.13.jar -o /tmp/logback-core-1.2.13.jar && \
-    if [ -f /root/.bzt/gatling-taurus/3.9.5/lib/logback-core-1.2.12.jar ]; then \
-        rm /root/.bzt/gatling-taurus/3.9.5/lib/logback-core-1.2.12.jar && \
-        mv /tmp/logback-core-1.2.13.jar /root/.bzt/gatling-taurus/3.9.5/lib/logback-core-1.2.13.jar; \
-    else \
-        rm /tmp/logback-core-1.2.13.jar; \
-    fi
-
-#Replace json-smart
-RUN curl -sSL https://repo1.maven.org/maven2/net/minidev/json-smart/2.4.9/json-smart-2.4.9.jar -o /tmp/json-smart-2.4.9.jar && \
-    if [ -f /root/.bzt/jmeter-taurus/5.5/lib/json-smart-2.4.8.jar ]; then \
-        rm /root/.bzt/jmeter-taurus/5.5/lib/json-smart-2.4.8.jar && \
-        mv /tmp/json-smart-2.4.9.jar /root/.bzt/jmeter-taurus/5.5/lib/json-smart-2.4.9.jar; \
-    else \
-        rm /tmp/json-smart-2.4.9.jar; \
-    fi
-RUN curl -sSL https://repo1.maven.org/maven2/net/minidev/accessors-smart/2.4.9/accessors-smart-2.4.9.jar -o /tmp/accessors-smart-2.4.9.jar && \
-    if [ -f /root/.bzt/jmeter-taurus/5.5/lib/accessors-smart-2.4.8.jar ]; then \
-        rm /root/.bzt/jmeter-taurus/5.5/lib/accessors-smart-2.4.8.jar && \
-        mv /tmp/accessors-smart-2.4.9.jar /root/.bzt/jmeter-taurus/5.5/lib/accessors-smart-2.4.9.jar; \
-    else \
-        rm /tmp/accessors-smart-2.4.9.jar; \
-    fi
 
 # Remove security-sensitive files
 WORKDIR /root/.bzt/python-packages/3.12.3/gevent/tests
