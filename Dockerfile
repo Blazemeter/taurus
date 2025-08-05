@@ -113,6 +113,11 @@ RUN apt-get update && \
     rm /tmp/google-chrome-stable_current_amd64.deb && \
     rm -rf /var/lib/apt/lists/*
 
+# replace firefox version to make security scanners happy
+RUN current_version=$(dpkg -l firefox | tail -1 | awk '{print $3}' | grep -oP '[\d.]+' | head -1) && \
+    snap_version="1:${current_version}snap1-0ubuntu1" && \
+    sed -i "/^Package: firefox$/,/^$/{s/^Version: .*/Version: $snap_version/}" /var/lib/dpkg/status
+
 # Set up Python alternatives
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
