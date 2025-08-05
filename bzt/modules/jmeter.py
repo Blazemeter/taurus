@@ -1681,7 +1681,8 @@ class JMeter(RequiredTool):
             # Needs to be <1.4.18 for old Jmeters https://stackoverflow.com/questions/30812293/com-thoughtworks-xstream-security-forbiddenclassexception
             "jsoup": "org/jsoup/jsoup/1.21.1/jsoup-1.21.1.jar",
             "snakeyaml": "org/yaml/snakeyaml/2.0/snakeyaml-2.0.jar",
-            "okhttp": "com/squareup/okhttp3/okhttp/4.10.0/okhttp-4.10.0.jar"
+            "okhttp": "com/squareup/okhttp3/okhttp/4.10.0/okhttp-4.10.0.jar",
+            "commons-text": "org/apache/commons/commons-text/1.14.0/commons-text-1.14.0.jar",
         }
 
         if LooseVersion(self.version) <= LooseVersion('5.4.3'):  # log4j must be fixed till jmeter 5.4.3
