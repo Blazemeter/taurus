@@ -1108,11 +1108,13 @@ from selenium.webdriver.common.keys import Keys
         browser = self._check_platform()
         body = [self._get_options(browser)]
         if browser == 'chrome' and LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
+            body.extend(self._gen_remote_patch_ast())
             service = self._get_service(browser)
             if service:
                 body.extend(self._get_service(browser))
 
         if browser == 'firefox':
+            body.extend(self._gen_remote_patch_ast())
             if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
                 body.extend(self._get_firefox_profile_v410() + [self._get_firefox_webdriver_4_10()])
             elif LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
@@ -1121,15 +1123,18 @@ from selenium.webdriver.common.keys import Keys
                 body.extend(self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
         elif browser == 'chrome':
+            body.extend(self._gen_remote_patch_ast())
             if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
                 body.extend(self._get_chrome_profile_v414() + [self._get_chrome_webdriver()])
             else:
                 body.extend(self._get_chrome_profile() + [self._get_chrome_webdriver()])
 
         elif browser == 'edge':
+            body.extend(self._gen_remote_patch_ast())
             body.extend([self._get_edge_webdriver()])
 
         elif browser == 'remote':
+            body.extend(self._gen_remote_patch_ast())
             if self.selenium_version.startswith("4"):
                 if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
                     remote_profile = self._get_remote_profile_v414() + [self._get_remote_webdriver()]
@@ -2433,6 +2438,164 @@ from selenium.webdriver.common.keys import Keys
         mod.col_offset = 0
         mod = ast.fix_missing_locations(mod)
         return mod
+
+    def _gen_remote_patch_ast(self):
+        import_ast = [
+            ast.ImportFrom(
+                module='selenium.webdriver.remote.remote_connection',
+                names=[ast.alias(name='RemoteConnection', asname=None)],
+                level=0
+            ),
+            ast.Import(names=[ast.alias(name='copy', asname=None)]),
+        ]
+
+        assign_original = ast.Assign(
+            targets=[ast.Name(id='_original_execute', ctx=ast.Store())],
+            value=ast_attr('RemoteConnection.execute')
+        )
+
+        func_def = ast.FunctionDef(
+            name='execute_with_retries',
+            args=ast.arguments(
+                posonlyargs=[],
+                args=[
+                    ast.arg(arg='self'),
+                    ast.arg(arg='command'),
+                    ast.arg(arg='params', annotation=None, type_comment=None)
+                ],
+                vararg=None,
+                kwonlyargs=[],
+                kw_defaults=[],
+                defaults=[ast.Constant(value=None)]
+            ),
+            body=[
+                ast.Assign(
+                    targets=[ast.Name(id='params_copy', ctx=ast.Store())],
+                    value=ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Name(id='copy', ctx=ast.Load()),
+                            attr='deepcopy',
+                            ctx=ast.Load()
+                        ),
+                        args=[ast.Name(id='params', ctx=ast.Load())],
+                        keywords=[]
+                    )
+                ),
+                ast.Assign(
+                    targets=[ast.Name(id='retries', ctx=ast.Store())],
+                    value=ast.Constant(value=3)
+                ),
+                ast.Assign(
+                    targets=[ast.Name(id='delay', ctx=ast.Store())],
+                    value=ast.Constant(value=2)
+                ),
+                ast.Assign(
+                    targets=[ast.Name(id='last_exc', ctx=ast.Store())],
+                    value=ast.Constant(value=None)
+                ),
+                ast.For(
+                    target=ast.Name(id='attempt', ctx=ast.Store()),
+                    iter=ast.Call(func=ast.Name(id='range', ctx=ast.Load()), args=[ast.Name(id='retries', ctx=ast.Load())], keywords=[]),
+                    body=[
+                        ast.Try(
+                            body=[
+                                ast.If(
+                                    test=ast.Compare(
+                                        left=ast.Name(id='params', ctx=ast.Load()),
+                                        ops=[ast.NotEq()],
+                                        comparators=[ast.Name(id='params_copy', ctx=ast.Load())]
+                                    ),
+                                    body=[
+                                        ast.Return(
+                                            value=ast.Call(
+                                                func=ast.Name(id='_original_execute', ctx=ast.Load()),
+                                                args=[
+                                                    ast.Name(id='self', ctx=ast.Load()),
+                                                    ast.Name(id='command', ctx=ast.Load()),
+                                                    ast.Name(id='params_copy', ctx=ast.Load())
+                                                ],
+                                                keywords=[]
+                                            )
+                                        )
+                                    ],
+                                    orelse=[
+                                        ast.Return(
+                                            value=ast.Call(
+                                                func=ast.Name(id='_original_execute', ctx=ast.Load()),
+                                                args=[
+                                                    ast.Name(id='self', ctx=ast.Load()),
+                                                    ast.Name(id='command', ctx=ast.Load()),
+                                                    ast.Name(id='params', ctx=ast.Load())
+                                                ],
+                                                keywords=[]
+                                            )
+                                        )
+                                    ]
+                                )
+                            ],
+                            handlers=[
+                                ast.ExceptHandler(
+                                    type=ast.Name(id='Exception', ctx=ast.Load()),
+                                    name='e',
+                                    body=[
+                                        ast.Assign(
+                                            targets=[ast.Name(id='last_exc', ctx=ast.Store())],
+                                            value=ast.Name(id='e', ctx=ast.Load())
+                                        ),
+                                        ast.Expr(
+                                            value=ast.Call(
+                                                func=ast.Name(id='print', ctx=ast.Load()),
+                                                args=[
+                                                    ast.JoinedStr(values=[
+                                                        ast.Constant(value='[Retry] RemoteConnection.execute failed on attempt '),
+                                                        ast.FormattedValue(
+                                                            value=ast.BinOp(
+                                                                left=ast.Name(id='attempt', ctx=ast.Load()),
+                                                                op=ast.Add(),
+                                                                right=ast.Constant(value=1)
+                                                            ),
+                                                            conversion=-1
+                                                        ),
+                                                        ast.Constant(value=': '),
+                                                        ast.FormattedValue(
+                                                            value=ast.Name(id='e', ctx=ast.Load()),
+                                                            conversion=-1
+                                                        )
+                                                    ])
+                                                ],
+                                                keywords=[]
+                                            )
+                                        ),
+                                        ast.Expr(
+                                            value=ast.Call(
+                                                func=ast.Name(id='sleep', ctx=ast.Load()),
+                                                args=[ast.Name(id='delay', ctx=ast.Load())],
+                                                keywords=[]
+                                            )
+                                        )
+                                    ]
+                                )
+                            ],
+                            orelse=[],
+                            finalbody=[]
+                        )
+                    ],
+                    orelse=[]
+                ),
+                ast.Raise(
+                    exc=ast.Name(id='last_exc', ctx=ast.Load()),
+                    cause=None
+                )
+            ],
+            decorator_list=[]
+        )
+
+        assign_patch = ast.Assign(
+            targets=[ast.Attribute(value=ast.Name(id='RemoteConnection', ctx=ast.Load()), attr='execute', ctx=ast.Store())],
+            value=ast.Name(id='execute_with_retries', ctx=ast.Load())
+        )
+
+        return import_ast + [assign_original, func_def, assign_patch]
 
     def build_source_code(self):
         self.tree = self._build_tree()
