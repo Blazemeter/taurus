@@ -16,7 +16,7 @@ limitations under the License.
 
 import re
 import sys
-
+import time
 from bzt import TaurusConfigError
 from bzt.engine import SETTINGS
 from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSamplesReader
@@ -59,6 +59,27 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         reader.engine = self.engine
         return reader
 
+    # def _patch_remote_connection(self):
+    #     self.log.error("calling _patch_remote_connection")
+    #     if getattr(Selenium, "_patched", False):
+    #         return
+    #     Selenium._patched = True
+
+    #     self.log.error("calling _patch_remote_connection 2")
+    #     from selenium.webdriver.remote.remote_connection import RemoteConnection
+    #     original_execute = RemoteConnection.execute
+
+    #     def patched_execute(self, command, params=None):
+    #         try:
+    #             return original_execute(self, command, params)
+    #         except Exception as e:
+    #             self.log.error("Retrying Selenium command '%s' due to exception: %s", command, e)
+    #             time.sleep(1)
+    #             return original_execute(self, command, params)
+
+    #     self.log.error("Patching RemoteConnection.execute to support retry on failure")
+    #     RemoteConnection.execute = patched_execute
+
     def prepare(self):
         super(ApiritifNoseExecutor, self).prepare()
         self.install_required_tools()
@@ -69,6 +90,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             self.selenium = self._get_tool(Selenium, engine=self.engine, settings=self.settings)
             if not self.selenium.check_if_installed():
                 self.selenium.install()
+
+            # self._patch_remote_connection()
 
         if not self.script:
             if "requests" in self.get_scenario():

@@ -18,6 +18,7 @@ import os
 import shutil
 import time
 import requests
+import logging
 from abc import abstractmethod
 
 from bzt import TaurusConfigError
@@ -225,8 +226,38 @@ class SeleniumExecutor(ReportableExecutor):
         return diagnostics
 
 
+log = logging.getLogger(__name__)
+
+
 class Selenium(PythonTool):
     PACKAGES = ["selenium"]
+    # _patched = False
+
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     log.error("calling __init__")
+    #     self._patch_remote_connection()
+
+    # def _patch_remote_connection(self):
+    #     log.error("calling _patch_remote_connection")
+    #     if Selenium._patched:
+    #         return
+    #     Selenium._patched = True
+
+    #     log.error("calling _patch_remote_connection 2")
+    #     from selenium.webdriver.remote.remote_connection import RemoteConnection
+    #     original_execute = RemoteConnection.execute
+
+    #     def patched_execute(self, command, params=None):
+    #         try:
+    #             return original_execute(self, command, params)
+    #         except Exception as e:
+    #             log.error("Retrying Selenium command '%s' due to exception: %s", command, e)
+    #             time.sleep(1)
+    #             return original_execute(self, command, params)
+
+    #     log.error("Patching RemoteConnection.execute to support retry on failure")
+    #     RemoteConnection.execute = patched_execute
 
 
 class WebDriver(RequiredTool):

@@ -208,8 +208,11 @@ def _send_exit_flow_marker(*args, **kwargs):  # for apiritif. remove when compat
     action_handlers, driver = get_from_thread_store(['action_handlers', 'driver'])
     values = get_from_thread_store(labels)
     params = dict(zip(labels, values))
-
+    log.error("################## action_handlers: %s", action_handlers)
+    log.error("################## values: %s", values)
+    log.error("################## Handling params: %s", params)
     for handler in action_handlers:
+        log.error("Handler class: %s, handler details: %s", handler.__class__.__name__, vars(handler))
         handler.handle(driver.session_id, BaseActionHandler.TEST_CASE_STOP, params)
     _send_marker(stage, params)
 
