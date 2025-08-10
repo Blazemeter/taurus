@@ -46,22 +46,17 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
             response = requests.post(self.bridge_command_url, json=data)
             self.python_path = response.json()['output'].split('\n')[0].replace("\\", "/")
             self.report_file = "/tmp/external/RemotePyTestExecutor.ldjson"
-        else:
-            self.bridge_command_url = ""
-            self.bridge_upload_url = ""
-        bridge_path = os.environ.get("WINDOWS_BRIDGE_PATH", "")
-        if bridge_path:
-            bridge_path = bridge_path.replace('\\', '/')
-            self.external_folder_path = bridge_path
-        else:
-            self.external_folder_path = ""
+            bridge_path = os.environ.get("WINDOWS_BRIDGE_PATH", "")
+            if bridge_path:
+                bridge_path = bridge_path.replace('\\', '/')
+                self.external_folder_path = bridge_path
+            else:
+                self.external_folder_path = ""
 
-        self.report_remote_path = self.external_folder_path + '/' + os.path.basename(self.report_file)
-        self.runner_pid = 0
-        self._tailer = FileReader('', file_opener=lambda _: None, parent_logger=self.log)
-        self._additional_args = []
-        self.pytest = None
-
+            self.report_remote_path = self.external_folder_path + '/' + os.path.basename(self.report_file)
+            self.runner_pid = 0
+            self._tailer = FileReader('', file_opener=lambda _: None, parent_logger=self.log)
+            self._additional_args = []
 
     def prepare(self):
         super(RemotePyTestExecutor, self).prepare()
@@ -77,20 +72,16 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
         if self.report_file:
             self.reporting_remote_setup(self.report_file)
 
-
     def __is_verbose(self):
         engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
         executor_verbose = self.settings.get("verbose", engine_verbose)
         return executor_verbose
 
-
     def install_required_tools(self):
         """
         we need installed nose plugin
         """
-        self.pytest = self._get_tool(PyTest, engine=self.engine, settings=self.settings)
-        self._check_tools([self.pytest, self._get_tool(TaurusRemotePytestRunner, tool_path=self.runner_path)])
-
+        pass
 
     def get_load(self):
         raw_concurrency = str(self.get_raw_load().concurrency).lower()
@@ -98,7 +89,6 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
             prov_type = self.engine.config.get(Provisioning.PROV)
             self.execution.get(ScenarioExecutor.CONCURR)[prov_type] = -1
         return super().get_load()
-
 
     def startup(self):
         """
@@ -145,7 +135,6 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
         response = requests.post(self.bridge_command_url, json=data)
         self.runner_pid = response.json().get('pid')
 
-
     def check(self):
         self.__log_lines()
         if self.runner_pid != 0:
@@ -162,12 +151,9 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
                 return False
         return True
 
-
     def post_process(self):
-        self.pytest.post_process()
         super(RemotePyTestExecutor, self).post_process()
         self.__log_lines()
-
 
     def __log_lines(self):
         lines = []
