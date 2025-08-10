@@ -48,10 +48,7 @@ class RemotePyTestExecutor(SubprocessedExecutor):
         bridge_path = os.environ.get("WINDOWS_BRIDGE_PATH", "")
         if bridge_path:
             bridge_path = bridge_path.replace('\\', '/')
-            if bridge_path.endswith('/'):
-                self.external_folder_path = bridge_path + 'external'
-            else:
-                self.external_folder_path = bridge_path + '/external'
+            self.external_folder_path = bridge_path
         else:
             self.external_folder_path = ""
 
