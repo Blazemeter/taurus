@@ -46,7 +46,7 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
             response = requests.post(self.bridge_command_url, json=data)
             self.python_path = response.json()['output'].split('\n')[0].replace("\\", "/")
             self.report_file = "/tmp/external/RemotePyTestExecutor.ldjson"
-            bridge_path = os.environ.get("WINDOWS_BRIDGE_PATH", "")
+            bridge_path = os.environ.get("WINDOWS_BRIDGE_TEST_PATH", "")
             if bridge_path:
                 bridge_path = bridge_path.replace('\\', '/')
                 self.external_folder_path = bridge_path
