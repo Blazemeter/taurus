@@ -37,7 +37,7 @@ modules:
   xunit:
     class: bzt.modules.csharp.XUnitExecutor
   pytest:
-    class: bzt.modules._pytest.PyTestExecutor
+    class: bzt.modules._remote_pytest.RemotePyTestExecutor
   robot:
     class: bzt.modules.robot.RobotExecutor
   newman:
