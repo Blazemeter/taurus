@@ -36,11 +36,16 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
         super(RemotePyTestExecutor, self).__init__()
         self.runner_path = os.path.join(RESOURCES_DIR, "pytest_runner.py")
         bridge_url = os.environ.get("WINDOWS_BRIDGE_URL", "")
-        self.report_file = "/tmp/external/RemotePyTestExecutor.ldjson"
         # Safely build URLs only if bridge_url is not empty
         if bridge_url:
             self.bridge_command_url = bridge_url.rstrip("/") + "/command"
             self.bridge_upload_url = bridge_url.rstrip("/") + "/upload?path="
+            data = {
+                "command": "where python"
+            }
+            response = requests.post(self.bridge_command_url, json=data)
+            self.python_path = response.json()['output'].split('\n')[0].replace("\\", "/")
+            self.report_file = "/tmp/external/RemotePyTestExecutor.ldjson"
         else:
             self.bridge_command_url = ""
             self.bridge_upload_url = ""
@@ -53,13 +58,6 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
 
         self.report_remote_path = self.external_folder_path + '/' + os.path.basename(self.report_file)
         self.runner_pid = 0
-        data = {
-            "command": "where python"
-        }
-        response = requests.post(self.bridge_command_url, json=data)
-        self.python_path = response.json()['output'].split('\n')[0].replace("\\", "/")
-        if not self.python_path:
-            raise TaurusConfigError("Failed to get python path from remote bridge")
         self._tailer = FileReader('', file_opener=lambda _: None, parent_logger=self.log)
         self._additional_args = []
         self.pytest = None
@@ -76,8 +74,8 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
         if "additional-args" in scenario:
             argv = scenario.get("additional-args")
             self._additional_args = shlex.split(argv)
-
-        self.reporting_remote_setup(self.report_file)
+        if self.report_file:
+            self.reporting_remote_setup(self.report_file)
 
 
     def __is_verbose(self):
