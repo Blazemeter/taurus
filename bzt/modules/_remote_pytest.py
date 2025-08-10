@@ -17,21 +17,20 @@ import multiprocessing
 import os
 import re
 import shlex
-import sys
 from urllib.parse import quote
 
 import requests
 
 from bzt import TaurusConfigError
 from bzt.engine import SETTINGS, Provisioning
-from bzt.modules import SubprocessedExecutor, ScenarioExecutor
+from bzt.modules import ScenarioExecutor, RemoteProcessedExecutor
 from bzt.modules.services import PythonTool
 from bzt.utils import FileReader, RESOURCES_DIR, RequiredTool
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 
-class RemotePyTestExecutor(SubprocessedExecutor):
+class RemotePyTestExecutor(RemoteProcessedExecutor):
 
     def __init__(self):
         super(RemotePyTestExecutor, self).__init__()
@@ -92,7 +91,7 @@ class RemotePyTestExecutor(SubprocessedExecutor):
         we need installed nose plugin
         """
         self.pytest = self._get_tool(PyTest, engine=self.engine, settings=self.settings)
-        self._check_tools([self.pytest, self._get_tool(TaurusPytestRunner, tool_path=self.runner_path)])
+        self._check_tools([self.pytest, self._get_tool(TaurusRemotePytestRunner, tool_path=self.runner_path)])
 
 
     def get_load(self):
@@ -147,8 +146,6 @@ class RemotePyTestExecutor(SubprocessedExecutor):
         }
         response = requests.post(self.bridge_command_url, json=data)
         self.runner_pid = response.json().get('pid')
-        if self.__is_verbose():
-            self._tailer = FileReader(filename=self.stdout.name, parent_logger=self.log)
 
 
     def check(self):
@@ -188,6 +185,6 @@ class PyTest(PythonTool):
     PACKAGES = ["pytest", "pytest-xdist", "apiritif"]
 
 
-class TaurusPytestRunner(RequiredTool):
+class TaurusRemotePytestRunner(RequiredTool):
     def __init__(self, tool_path, **kwargs):
-        super(TaurusPytestRunner, self).__init__(tool_path=tool_path, installable=False, **kwargs)
+        super(TaurusRemotePytestRunner, self).__init__(tool_path=tool_path, installable=False, **kwargs)

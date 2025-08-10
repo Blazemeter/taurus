@@ -85,6 +85,7 @@ class ReportableExecutor(ScenarioExecutor):
         if isinstance(self.engine.aggregator, (ConsolidatingAggregator, FunctionalAggregator)):
             self.engine.aggregator.add_underling(self.reader)
 
+
 class TransactionListener(object):
     @abc.abstractmethod
     def transaction_started(self, sender, label, start_time):
@@ -181,6 +182,57 @@ class SubprocessedExecutor(ReportableExecutor, TransactionProvider):
                 if contents:
                     diagnostics.append(class_name + " STDERR:\n" + contents)
         return diagnostics
+
+    def get_widget(self):
+        """
+        Add progress widget to console screen sidebar
+
+        :rtype: ExecutorWidget
+        """
+        if not self.widget:
+            label = ("%s" % self).split('/')
+            self.widget = ExecutorWidget(self, f"{label[0].title()}: {label[1]}")
+        return self.widget
+
+
+class RemoteProcessedExecutor(ReportableExecutor, TransactionProvider):
+    """
+    Class for subprocessed executors
+
+    All executors must implement the following interface.
+    """
+
+    def __init__(self):
+        super(RemoteProcessedExecutor, self).__init__()
+        TransactionProvider.__init__(self)
+        self.script = None
+        self.process = None
+        self.widget = None
+
+    def prepare(self):
+        super(RemoteProcessedExecutor, self).prepare()
+
+    def resource_files(self):
+        script = self.get_script_path()
+        if script:
+            return [script]
+        else:
+            return []
+
+    def check(self):
+        pass
+
+    def shutdown(self):
+        shutdown_process(self.process, self.log)
+
+    def _check_tools(self, tools):
+        pass
+
+    def has_results(self):
+        return bool(self.reader) and bool(self.reader.read_records)
+
+    def get_error_diagnostics(self):
+        pass
 
     def get_widget(self):
         """
