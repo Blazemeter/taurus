@@ -66,6 +66,24 @@ class ReportableExecutor(ScenarioExecutor):
         if isinstance(self.engine.aggregator, (ConsolidatingAggregator, FunctionalAggregator)):
             self.engine.aggregator.add_underling(self.reader)
 
+    def reporting_remote_setup(self, report_file):
+        if not self.reported:
+            self.log.debug("Skipping reporting setup for executor %s", self)
+            return
+
+        self.report_file = report_file.replace(os.path.sep, '/')
+
+        if self.engine.is_functional_mode():
+            self.reader = self.create_func_reader(self.report_file)
+        else:
+            self.reader = self.create_load_reader(self.report_file)
+
+        if not self.register_reader:
+            self.log.debug("Skipping reader registration for executor %s", self)
+            return
+
+        if isinstance(self.engine.aggregator, (ConsolidatingAggregator, FunctionalAggregator)):
+            self.engine.aggregator.add_underling(self.reader)
 
 class TransactionListener(object):
     @abc.abstractmethod
