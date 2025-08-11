@@ -90,6 +90,7 @@ class ReportableExecutor(ScenarioExecutor):
             return
 
         if isinstance(self.engine.aggregator, (ConsolidatingAggregator, FunctionalAggregator)):
+            self.log.info("Adding %s reader to aggregator", self.reader.__class__.__name__)
             self.engine.aggregator.add_underling(self.reader)
 
 
