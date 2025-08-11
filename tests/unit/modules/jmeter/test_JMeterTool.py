@@ -15,9 +15,9 @@ class TestJMeterTool(BZTestCase):
     def test_get_jar_fixes(self):
         lib_dir_path = get_full_path(__file__, step_up=1)
         lib_dir_content = [
-            "xstream-1.4.15.jar",   # lib with some vulnerability, must be replaced
-            "log4j-core-2.16.jar",  # only old jmeter versions contains affected log4j components
-            "some-other-lib-0.99.jar"]  # other jar, mustn't be touched
+            "commons-text-1.14.0.jar",  # lib with some vulnerability, must be replaced
+            "commons-lang3-3.18.0.jar",  # lib with some vulnerability, must be replaced
+        ]  # other jar, mustn't be touched
         listdir = lambda _: lib_dir_content
         self.obj.version = '5.0.0'
 
@@ -27,11 +27,11 @@ class TestJMeterTool(BZTestCase):
             jar_tools = self.obj._get_jar_fixes(lib_dir_path)
             target_tools_list = [
                 [
-                    'https://repo1.maven.org/maven2/com/thoughtworks/xstream/xstream/1.4.20/xstream-1.4.20.jar',
-                    os.path.join(lib_dir_path, 'xstream-1.4.20.jar')],
+                    'https://repo1.maven.org/maven2/org/apache/commons/commons-text/1.14.0/commons-text-1.14.0.jar',
+                    os.path.join(lib_dir_path, 'commons-text-1.14.0.jar')],
                 [
-                    'https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/2.19.0/log4j-core-2.19.0.jar',
-                    os.path.join(lib_dir_path, 'log4j-core-2.19.0.jar')]]
+                    'https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar',
+                    os.path.join(lib_dir_path, 'commons-lang3-3.18.0.jar')]]
             self.assertEqual(target_tools_list, jar_tools)
         finally:
             os.listdir = saved_listdir
@@ -39,7 +39,7 @@ class TestJMeterTool(BZTestCase):
     def test_get_jar_fixes2(self):
         lib_dir_path = get_full_path(__file__, step_up=1)
         lib_dir_content = [
-            "xstream-1.4.15.jar",   # lib with some vulnerability, must be replaced
+            "xstream-1.4.15.jar",  # lib with some vulnerability, must be replaced
             "log4j-core-2.16.jar",  # only old jmeter versions contains affected log4j components
             "some-other-lib-0.99.jar"]  # other jar, mustn't be touched
         listdir = lambda _: lib_dir_content
@@ -53,8 +53,6 @@ class TestJMeterTool(BZTestCase):
             self.assertEqual(target_tools_list, jar_tools)
         finally:
             os.listdir = saved_listdir
-
-
 
     def test_additional_jvm_props(self):
         self.obj.tool_path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
