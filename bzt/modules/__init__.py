@@ -22,7 +22,8 @@ from bzt import ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import ExecutorWidget
-from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
+from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader, LinuxFuncSamplesReader, \
+    LinuxLoadSamplesReader
 from bzt.utils import shutdown_process
 
 
@@ -36,8 +37,14 @@ class ReportableExecutor(ScenarioExecutor):
     def create_func_reader(self, report_file):
         return FuncSamplesReader(report_file, self.engine, self.log)
 
+    def create_linux_func_reader(self, report_file):
+        return LinuxFuncSamplesReader(report_file, self.engine, self.log)
+
     def create_load_reader(self, report_file):
         return LoadSamplesReader(report_file, self.log)
+
+    def create_linux_load_reader(self, report_file):
+        return LinuxLoadSamplesReader(report_file, self.log)
 
     def reporting_setup(self, prefix=None, suffix=None):
         if not self.reported:
@@ -74,9 +81,9 @@ class ReportableExecutor(ScenarioExecutor):
         self.report_file = report_file.replace(os.path.sep, '/')
 
         if self.engine.is_functional_mode():
-            self.reader = self.create_func_reader(self.report_file)
+            self.reader = self.create_linux_func_reader(self.report_file)
         else:
-            self.reader = self.create_load_reader(self.report_file)
+            self.reader = self.create_linux_load_reader(self.report_file)
 
         if not self.register_reader:
             self.log.debug("Skipping reader registration for executor %s", self)
