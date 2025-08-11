@@ -957,6 +957,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         :type underling: ResultsProvider
         """
+        self.log.info("Adding underlying: %s", underling.__class__.__name__)
         underling.track_percentiles = self.track_percentiles
         underling.ignored_labels = self.ignored_labels
         underling.min_buffer_len = self.min_buffer_len

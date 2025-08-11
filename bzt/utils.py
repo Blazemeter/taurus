@@ -748,9 +748,9 @@ class LinuxFileReader(object):
         self.offset = 0
 
     def is_ready(self):
-        # Use test command to check if file exists and is readable
-        result = subprocess.run(['test', '-r', self.filename], capture_output=True)
-        return result.returncode == 0
+        exists_and_readable = os.access(self.filename, os.R_OK)
+        self.parent_logger.info("File checked %s: readable=%s", self.filename, exists_and_readable)
+        return exists_and_readable
 
     def get_lines(self, size=-1, last_pass=False):
         if not self.is_ready():
@@ -770,9 +770,10 @@ class LinuxFileReader(object):
                 cmd = ['dd', f'if={self.filename}', 'bs=1', f'skip={skip_bytes}', f'count={size}', 'status=none']
 
         try:
+            self.parent_logger.info("Command: %s", cmd)
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             content = result.stdout
-
+            self.parent_logger.info("Result: %s", content)
             if not content:
                 return
 
