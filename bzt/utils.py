@@ -740,6 +740,60 @@ class FileReader(object):
             self.fds.close()
 
 
+class LinuxFileReader(object):
+
+    def __init__(self, filename, parent_logger=None):
+        self.filename = filename
+        self.parent_logger = parent_logger
+        self.offset = 0
+
+    def is_ready(self):
+        # Use test command to check if file exists and is readable
+        result = subprocess.run(['test', '-r', self.filename], capture_output=True)
+        return result.returncode == 0
+
+    def get_lines(self, size=-1, last_pass=False):
+        if not self.is_ready():
+            return
+
+        if last_pass:
+            # Read from current offset to end of file
+            cmd = ['tail', '-c', f'+{self.offset + 1}', self.filename]
+        else:
+            # Read specific chunk size from offset
+            if size == -1:
+                # Read from offset to end
+                cmd = ['tail', '-c', f'+{self.offset + 1}', self.filename]
+            else:
+                # Read chunk using dd command
+                skip_bytes = self.offset
+                cmd = ['dd', f'if={self.filename}', 'bs=1', f'skip={skip_bytes}', f'count={size}', 'status=none']
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            content = result.stdout
+
+            if not content:
+                return
+
+            # Split into lines and yield each one
+            lines = content.splitlines(keepends=True)
+
+            for line in lines:
+                line_bytes = len(line.encode('utf-8'))
+                self.offset += line_bytes
+                yield self._decode(line, last_pass)
+
+        except subprocess.CalledProcessError as e:
+            if self.parent_logger:
+                self.parent_logger.error(f"Error reading file with command {' '.join(cmd)}: {e}")
+            return
+
+    def _decode(self, line, last_pass=False):
+        # Simple decode - just return the line as is since we're already handling text
+        return line
+
+
 def ensure_is_dict(container, key, sub_key):
     """
     Ensure that dict item is dict, convert if needed
@@ -1903,6 +1957,24 @@ class LDJSONReader(object):
         self.file = FileReader(filename=filename,
                                file_opener=lambda f: open(f, 'rb'),
                                parent_logger=self.log)
+        self.partial_buffer = ""
+
+    def read(self, last_pass=False):
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
+
+        for line in lines:
+            if not last_pass and not line.endswith("\n"):
+                self.partial_buffer += line
+                continue
+            line = "%s%s" % (self.partial_buffer, line)
+            self.partial_buffer = ""
+            yield json.loads(line)
+
+
+class LinuxLDJSONReader(object):
+    def __init__(self, filename, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.file = LinuxFileReader(filename=filename, parent_logger=self.log)
         self.partial_buffer = ""
 
     def read(self, last_pass=False):
