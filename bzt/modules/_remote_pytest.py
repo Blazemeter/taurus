@@ -70,6 +70,7 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
             argv = scenario.get("additional-args")
             self._additional_args = shlex.split(argv)
         if self.report_file:
+            print("running remote setup for report file: %s" % self.report_file)
             self.reporting_remote_setup(self.report_file)
 
     def __is_verbose(self):
