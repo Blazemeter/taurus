@@ -1683,6 +1683,7 @@ class JMeter(RequiredTool):
             "snakeyaml": "org/yaml/snakeyaml/2.0/snakeyaml-2.0.jar",
             "okhttp": "com/squareup/okhttp3/okhttp/4.10.0/okhttp-4.10.0.jar",
             "commons-text": "org/apache/commons/commons-text/1.14.0/commons-text-1.14.0.jar",
+            "commons-lang3": "org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar",
         }
 
         if LooseVersion(self.version) <= LooseVersion('5.4.3'):  # log4j must be fixed till jmeter 5.4.3
