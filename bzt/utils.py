@@ -770,10 +770,9 @@ class LinuxFileReader(object):
                 cmd = ['dd', f'if={self.filename}', 'bs=1', f'skip={skip_bytes}', f'count={size}', 'status=none']
 
         try:
-            self.parent_logger.info("Command: %s", cmd)
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             content = result.stdout
-            self.parent_logger.info("Result: %s", content)
+
             if not content:
                 return
 
