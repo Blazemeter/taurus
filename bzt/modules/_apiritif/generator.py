@@ -1108,7 +1108,6 @@ from selenium.webdriver.common.keys import Keys
         browser = self._check_platform()
         body = [self._get_options(browser)]
         if browser == 'chrome' and LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
-            body.extend(self._gen_remote_patch_ast())
             service = self._get_service(browser)
             if service:
                 body.extend(self._get_service(browser))
