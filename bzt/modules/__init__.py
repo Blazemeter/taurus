@@ -81,16 +81,15 @@ class ReportableExecutor(ScenarioExecutor):
         self.report_file = report_file.replace(os.path.sep, '/')
 
         if self.engine.is_functional_mode():
-            self.reader = self.create_linux_func_reader(self.report_file)
+            self.reader = self.create_func_reader(self.report_file)
         else:
-            self.reader = self.create_linux_load_reader(self.report_file)
+            self.reader = self.create_load_reader(self.report_file)
 
         if not self.register_reader:
             self.log.debug("Skipping reader registration for executor %s", self)
             return
 
         if isinstance(self.engine.aggregator, (ConsolidatingAggregator, FunctionalAggregator)):
-            self.log.info("Adding %s reader to aggregator", self.reader.__class__.__name__)
             self.engine.aggregator.add_underling(self.reader)
 
 

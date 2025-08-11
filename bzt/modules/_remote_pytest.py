@@ -70,7 +70,6 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
             argv = scenario.get("additional-args")
             self._additional_args = shlex.split(argv)
         if self.report_file:
-            print("running remote setup for report file: %s" % self.report_file)
             self.reporting_remote_setup(self.report_file)
 
     def __is_verbose(self):
@@ -137,7 +136,6 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
         self.runner_pid = response.json().get('pid')
 
     def check(self):
-        self.__log_lines()
         if self.runner_pid != 0:
             data = {
                 "command": 'tasklist /FI "PID eq ' + str(self.runner_pid) + '"'
@@ -154,16 +152,6 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
 
     def post_process(self):
         super(RemotePyTestExecutor, self).post_process()
-        self.__log_lines()
-
-    def __log_lines(self):
-        lines = []
-        for line in self._tailer.get_lines():
-            if not IGNORED_LINE.match(line):
-                lines.append(line)
-
-        if lines:
-            self.log.info("\n".join(lines))
 
 
 class PyTest(PythonTool):
