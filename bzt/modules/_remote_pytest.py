@@ -41,7 +41,8 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
             self.bridge_command_url = bridge_url.rstrip("/") + "/command"
             self.bridge_upload_url = bridge_url.rstrip("/") + "/upload?path="
             data = {
-                "command": "where python"
+                "command": "where python",
+                "waitForCompletion": True
             }
             response = requests.post(self.bridge_command_url, json=data)
             self.python_path = response.json()['output'].split('\n')[0].replace("\\", "/")
@@ -138,7 +139,8 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
     def check(self):
         if self.runner_pid != 0:
             data = {
-                "command": 'tasklist /FI "PID eq ' + str(self.runner_pid) + '"'
+                "command": 'tasklist /FI "PID eq ' + str(self.runner_pid) + '"',
+                "waitForCompletion": True
             }
             response = requests.post(self.bridge_command_url, json=data)
             if response.status_code != 200:
