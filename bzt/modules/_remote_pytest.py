@@ -17,6 +17,8 @@ import multiprocessing
 import os
 import re
 import shlex
+import subprocess
+import sys
 from urllib.parse import quote
 
 import requests
@@ -135,6 +137,18 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
         }
         response = requests.post(self.bridge_command_url, json=data)
         self.runner_pid = response.json().get('pid')
+        # start polling for the result
+        executable = self.settings.get("interpreter", sys.executable)
+        cmd = [
+            executable,
+            "/tmp/bridge_file_puller.py",
+            self.bridge_url,
+            str(1024 * 1024),
+            self.external_folder_path + '/RemotePyTestExecutor.ldjson',
+            '/tmp/external/RemotePyTestExecutor.ldjson'
+        ]
+        # Detach child process using setsid (Linux/Unix)
+        subprocess.Popen(cmd, start_new_session=True, close_fds=True)
 
     def check(self):
         if self.runner_pid != 0:
