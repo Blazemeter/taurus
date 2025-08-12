@@ -73,7 +73,7 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
             argv = scenario.get("additional-args")
             self._additional_args = shlex.split(argv)
         if self.report_file:
-            self.reporting_remote_setup(self.report_file)
+            self.reporting_setup(self.report_file)
 
     def __is_verbose(self):
         engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
@@ -144,8 +144,8 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
             "/tmp/bridge_file_puller.py",
             self.bridge_url,
             str(1024 * 1024),
-            self.external_folder_path + '/RemotePyTestExecutor.ldjson',
-            '/tmp/external/RemotePyTestExecutor.ldjson'
+            self.report_remote_path.replace('/', '\\'),
+            '/tmp/artifacts/RemotePyTestExecutor.ldjson'
         ]
         # Detach child process using setsid (Linux/Unix)
         subprocess.Popen(cmd, start_new_session=True, close_fds=True)
