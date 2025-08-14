@@ -19,47 +19,23 @@ import re
 import shlex
 import subprocess
 import sys
-from urllib.parse import quote
-
-import requests
 
 from bzt import TaurusConfigError
 from bzt.engine import SETTINGS, Provisioning
-from bzt.modules import ScenarioExecutor, RemoteProcessedExecutor
+from bzt.modules import ScenarioExecutor, RemoteExecutor
 from bzt.modules.services import PythonTool
-from bzt.utils import FileReader, RESOURCES_DIR, RequiredTool
+from bzt.utils import RESOURCES_DIR, RequiredTool
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 
-class RemotePyTestExecutor(RemoteProcessedExecutor):
+class RemotePyTestExecutor(RemoteExecutor):
 
     def __init__(self):
         super(RemotePyTestExecutor, self).__init__()
         self.runner_path = os.path.join(RESOURCES_DIR, "pytest_runner.py")
-        bridge_url = os.environ.get("WINDOWS_BRIDGE_URL", "")
-        # Safely build URLs only if bridge_url is not empty
-        if bridge_url:
-            self.bridge_command_url = bridge_url.rstrip("/") + "/command"
-            self.bridge_upload_url = bridge_url.rstrip("/") + "/upload?path="
-            data = {
-                "command": "where python",
-                "waitForCompletion": True
-            }
-            response = requests.post(self.bridge_command_url, json=data)
-            self.python_path = response.json()['output'].split('\n')[0].replace("\\", "/")
-            self.report_file = "/tmp/external/RemotePyTestExecutor.ldjson"
-            bridge_path = os.environ.get("WINDOWS_BRIDGE_TEST_PATH", "")
-            if bridge_path:
-                bridge_path = bridge_path.replace('\\', '/')
-                self.external_folder_path = bridge_path
-            else:
-                self.external_folder_path = ""
-
-            self.report_remote_path = self.external_folder_path + '/' + os.path.basename(self.report_file)
-            self.runner_pid = 0
-            self._tailer = FileReader('', file_opener=lambda _: None, parent_logger=self.log)
-            self._additional_args = []
+        self.runner_pid = 0
+        self._additional_args = []
 
     def prepare(self):
         super(RemotePyTestExecutor, self).prepare()
@@ -72,8 +48,8 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
         if "additional-args" in scenario:
             argv = scenario.get("additional-args")
             self._additional_args = shlex.split(argv)
-        if self.report_file:
-            self.reporting_setup(self.report_file)
+        self.remote_report_path = self.remote_artifacts_path + '/RemotePyTestExecutor.ldjson'
+        self.reporting_setup(suffix=".ldjson")
 
     def __is_verbose(self):
         engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
@@ -97,22 +73,11 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
         """
         run python tests
         """
-        # upload runner file
-        with open(self.runner_path, "rb") as f:
-            filename = os.path.basename(self.runner_path)
-            runner_remote_path = self.external_folder_path + '/' + filename
-            files = {"file": (filename, f, "text/plain")}
-            encoded_runner_path = quote(runner_remote_path)
-            requests.post(self.bridge_upload_url + encoded_runner_path, files=files)
-        # upload test file
-        with open(self.script, "rb") as f:
-            filename = os.path.basename(self.script)
-            files = {"file": (filename, f, "text/plain")}
-            remote_test_path = self.external_folder_path + '/' + filename
-            encoded_test_path = quote(remote_test_path)
-            requests.post(self.bridge_upload_url + encoded_test_path, files=files)
-
-        cmdline = [self.python_path, runner_remote_path, '--report-file', self.report_remote_path]
+        runner_remote_path = self.remote_artifacts_path + '/' + "pytest_runner.py"
+        self.upload_file(self.runner_path, runner_remote_path)
+        remote_test_path = self.remote_artifacts_path + '/' + os.path.basename(self.script)
+        self.upload_file(self.script, remote_test_path)
+        cmdline = ['python', runner_remote_path, '--report-file', self.remote_report_path]
         load = self.get_load()
         if load.iterations:
             cmdline += ['-i', str(load.iterations)]
@@ -132,19 +97,15 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
 
         cmdline += self._additional_args
         cmdline += [remote_test_path]
-        data = {
-            "command": ' '.join(cmdline).replace("/", "\\")
-        }
-        response = requests.post(self.bridge_command_url, json=data)
-        self.runner_pid = response.json().get('pid')
-        # start polling for the result
+        self.runner_pid = self.command(' '.join(cmdline).replace("/", "\\"), wait_for_completion=False,
+                                       workingDir=self.remote_artifacts_path).get('pid')
         executable = self.settings.get("interpreter", sys.executable)
         cmd = [
             executable,
             "/tmp/bridge_file_puller.py",
-            self.bridge_url,
+            self.file_url,
             str(1024 * 1024),
-            self.report_remote_path.replace('/', '\\'),
+            self.remote_report_path.replace('/', '\\'),
             '/tmp/artifacts/RemotePyTestExecutor.ldjson'
         ]
         # Detach child process using setsid (Linux/Unix)
@@ -152,15 +113,8 @@ class RemotePyTestExecutor(RemoteProcessedExecutor):
 
     def check(self):
         if self.runner_pid != 0:
-            data = {
-                "command": 'tasklist /FI "PID eq ' + str(self.runner_pid) + '"',
-                "waitForCompletion": True
-            }
-            response = requests.post(self.bridge_command_url, json=data)
-            if response.status_code != 200:
-                self.log.error("Failed to check remote pytest process status")
-                return False
-            if str(self.runner_pid) not in response.json().get('output'):
+            if str(self.runner_pid) not in self.command('tasklist /FI "PID eq ' + str(self.runner_pid) + '"').get(
+                    'output'):
                 return True
             else:
                 return False
