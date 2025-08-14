@@ -7,7 +7,7 @@ modules:
   gatling:
     class: bzt.modules.gatling.GatlingExecutor
   jmeter:
-    class: bzt.modules.jmeter.JMeterExecutor
+    class: bzt.modules.jmeter.RemoteJmeterExecutor
     protocol-handlers:
       http: bzt.jmx.http.HTTPProtocolHandler
       mqtt: bzt.jmx.mqtt.MQTTProtocolHandler

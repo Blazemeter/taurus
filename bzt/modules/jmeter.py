@@ -23,6 +23,8 @@ import os
 import re
 import shutil
 import socket
+import subprocess
+import sys
 import tempfile
 import time
 import traceback
@@ -39,7 +41,9 @@ from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNet
 from bzt.engine import Scenario, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
-from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ErrorResponseData, ERROR_RESPONSE_BODIES_SIZE_LIMIT, ERROR_RESPONSE_BODIES_LIMIT
+from bzt.modules import RemoteExecutor
+from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ErrorResponseData, \
+    ERROR_RESPONSE_BODIES_SIZE_LIMIT, ERROR_RESPONSE_BODIES_LIMIT
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
@@ -229,8 +233,8 @@ class JMeterExecutor(ScenarioExecutor):
         self.log.debug("Getting Jmeter version.")
         # STABLE is default version for unknown/not present version
         # if LATEST is not selected as default by version-type
-        default_version =  JMeter.VERSION_LATEST \
-            if self.settings.get("version-type","stable") == 'latest' \
+        default_version = JMeter.VERSION_LATEST \
+            if self.settings.get("version-type", "stable") == 'latest' \
             else JMeter.VERSION
         config_version = self.settings.get("version", default_version, force_set=True)
         if os.getenv('TAURUS_JMETER_DISABLE_AUTO_DETECT', 'False') == 'True':
@@ -518,7 +522,7 @@ class JMeterExecutor(ScenarioExecutor):
                 delimiter.text = ','
 
     @staticmethod
-    def __add_listener(lst, jmx):
+    def add_listener(lst, jmx):
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, lst)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
@@ -526,15 +530,15 @@ class JMeterExecutor(ScenarioExecutor):
         if self.engine.is_functional_mode():
             self.__add_trace_writer(jmx)
         else:
-            self.__add_result_writers(jmx)
+            self.add_result_writers(jmx)
 
     def __add_trace_writer(self, jmx):
         self.log_jtl = self.engine.create_artifact("trace", ".jtl")
         flags = self.settings.get('xml-jtl-flags')
         log_lst = jmx.new_xml_listener(self.log_jtl, True, flags)
-        self.__add_listener(log_lst, jmx)
+        self.add_listener(log_lst, jmx)
 
-    def __add_result_writers(self, jmx):
+    def add_result_writers(self, jmx):
         version = LooseVersion(self.tool.version)
         csv_flags = self.settings.get('csv-jtl-flags')
         if version < LooseVersion("2.13"):
@@ -542,7 +546,7 @@ class JMeterExecutor(ScenarioExecutor):
 
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
         kpi_lst = jmx.new_kpi_listener(self.kpi_jtl, csv_flags)
-        self.__add_listener(kpi_lst, jmx)
+        self.add_listener(kpi_lst, jmx)
 
         verbose = self.engine.config.get(SETTINGS).get("verbose", False)
         jtl_log_level = self.execution.get('write-xml-jtl', "full" if verbose else 'error')
@@ -552,11 +556,11 @@ class JMeterExecutor(ScenarioExecutor):
         if jtl_log_level == 'error':
             self.log_jtl = self.engine.create_artifact("error", ".jtl")
             log_lst = jmx.new_xml_listener(self.log_jtl, False, xml_flags)
-            self.__add_listener(log_lst, jmx)
+            self.add_listener(log_lst, jmx)
         elif jtl_log_level == 'full':
             self.log_jtl = self.engine.create_artifact("trace", ".jtl")
             log_lst = jmx.new_xml_listener(self.log_jtl, True, xml_flags)
-            self.__add_listener(log_lst, jmx)
+            self.add_listener(log_lst, jmx)
 
     def __force_tran_parent_sample(self, jmx):
         scenario = self.get_scenario()
@@ -1500,8 +1504,8 @@ class JMeter(RequiredTool):
 
         # STABLE is default version for unknown/not present version
         # if LATEST is not selected as default by version-type
-        default_version =  JMeter.VERSION_LATEST \
-            if settings.get("version-type","stable") == 'latest' \
+        default_version = JMeter.VERSION_LATEST \
+            if settings.get("version-type", "stable") == 'latest' \
             else JMeter.VERSION
         version = settings.get("version", default_version)
         jmeter_path = settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
@@ -1712,7 +1716,7 @@ class JMeter(RequiredTool):
         # Fix CVE-2016-10707 in jquery
         jquery_src_dir = os.path.join(jmeter_dir, "jquery-dist-3.6.1")
         jquery_target_dir = os.path.join(jmeter_dir,
-            "bin/report-template/sbadmin2-1.0.7/bower_components/jquery/")
+                                         "bin/report-template/sbadmin2-1.0.7/bower_components/jquery/")
         jquery_tar = os.path.join(jmeter_dir, "jquery-dist-3.6.1.tar.gz")
         self.__download_additions([["https://github.com/jquery/jquery-dist/archive/3.6.1.tar.gz",
                                     jquery_tar]])
@@ -1819,3 +1823,115 @@ class JMeterMirrorsManager(MirrorsManager):
         # place HTTPS links first, preserving the order of HTTP links
         sorted_links = sorted(links, key=lambda l: l.startswith("https"), reverse=True)
         return sorted_links
+
+
+class RemoteJmeterExecutor(JMeterExecutor):
+    def __init__(self):
+        super(RemoteJmeterExecutor, self).__init__()
+        self.remote_executor = RemoteExecutor()
+        self.runner_pid = 0
+
+    def prepare(self):
+        self.remote_executor.prepare()
+        super().prepare()
+    def startup(self):
+        """
+        Should start JMeter as fast as possible.
+        """
+        # upload modified jmx
+        modified_jmx_remote_path = self.remote_executor.remote_artifacts_path + '/' + os.path.basename(self.modified_jmx)
+        self.remote_executor.upload_file(self.modified_jmx, modified_jmx_remote_path)
+        # upload properties_file
+        properties_file_remote_path = self.remote_executor.remote_artifacts_path + '/' + os.path.basename(self.properties_file)
+        self.remote_executor.upload_file(self.properties_file, properties_file_remote_path)
+        # jmeter log remote path
+        jmeter_log_remote_path = self.remote_executor.remote_artifacts_path + '/jmeter.log'
+        cmdline = ['jmeter', "-t", modified_jmx_remote_path, "-j", jmeter_log_remote_path, "-q",
+                   properties_file_remote_path]
+        if not self.settings.get("gui", False):
+            cmdline += ["-n"]
+
+        if self.distributed_servers:
+            cmdline += ["-G", self.properties_file]
+
+        if self.sys_properties_file:
+            # upload sys properties_file
+            sys_properties_file_remote_path = self.remote_executor.remote_artifacts_path + '/' + os.path.basename(self.sys_properties_file)
+            self.remote_executor.upload_file(self.sys_properties_file, sys_properties_file_remote_path)
+            cmdline += ["-S", self.sys_properties_file]
+        if self.distributed_servers and not self.settings.get("gui", False):
+            cmdline += ['-R%s' % ','.join(self.distributed_servers)]
+
+        # fix for JMeter 4.0 bug where jmeter.bat requires JMETER_HOME to be set
+        if is_windows() and self.tool.version == "4.0" and not self.env.get("JMETER_HOME"):
+            tool_dir = self.tool.tool_path
+            if os.path.isfile(self.tool.tool_path):
+                tool_dir = get_full_path(self.tool.tool_path, step_up=2)
+            self.env.set({"JMETER_HOME": tool_dir})
+
+        user_cmd = self.settings.get("cmdline")
+        if user_cmd:
+            cmdline += user_cmd.split(" ")
+        self.runner_pid = self.remote_executor.command(' '.join(cmdline).replace("/", "\\"), wait_for_completion=False,
+                                       workingDir=self.remote_executor.remote_artifacts_path, use_shell=True).get('pid')
+        executable = self.settings.get("interpreter", sys.executable)
+        # pull kpi,jtl
+        cmd = [
+            executable,
+            "/tmp/bridge_file_puller.py",
+            self.remote_executor.file_url,
+            str(1024 * 1024),
+            self.remote_kpi_path.replace('/', '\\'),
+            '/tmp/artifacts/kpi.jtl'
+        ]
+        subprocess.Popen(cmd, start_new_session=True, close_fds=True)
+        # pull error.jtl
+        cmd = [
+            executable,
+            "/tmp/bridge_file_puller.py",
+            self.remote_executor.file_url,
+            str(1024 * 1024),
+            self.remote_error_path.replace('/', '\\'),
+            '/tmp/artifacts/error.jtl'
+        ]
+        # Detach child process using setsid (Linux/Unix)
+        subprocess.Popen(cmd, start_new_session=True, close_fds=True)
+
+    def check(self):
+        if self.runner_pid != 0:
+            if str(self.runner_pid) not in self.remote_executor.command('tasklist /FI "PID eq ' + str(self.runner_pid) + '"').get(
+                    'output'):
+                return True
+            else:
+                return False
+        return True
+
+    def install_required_tools(self):
+        self.tool = self._get_tool(JMeter, config=self.settings, props=self.properties)
+
+    def add_result_writers(self, jmx):
+        self.remote_kpi_path = self.remote_executor.remote_artifacts_path + '/kpi.jtl'
+        self.remote_error_path = self.remote_executor.remote_artifacts_path + '/error.jtl'
+        self.remote_trace_path = self.remote_executor.remote_artifacts_path + '/trace.jtl'
+        version = LooseVersion(self.tool.version)
+        csv_flags = self.settings.get('csv-jtl-flags')
+        if version < LooseVersion("2.13"):
+            csv_flags['^connectTime'] = False
+        self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
+        kpi_lst = jmx.new_kpi_listener(self.remote_kpi_path, csv_flags)
+        self.add_listener(kpi_lst, jmx)
+
+        verbose = self.engine.config.get(SETTINGS).get("verbose", False)
+        jtl_log_level = self.execution.get('write-xml-jtl', "full" if verbose else 'error')
+
+        xml_flags = self.settings.get('xml-jtl-flags')
+
+        if jtl_log_level == 'error':
+            self.log_jtl = self.engine.create_artifact("error", ".jtl")
+            log_lst = jmx.new_xml_listener(self.remote_error_path, False, xml_flags)
+            self.add_listener(log_lst, jmx)
+        elif jtl_log_level == 'full':
+            self.log_jtl = self.engine.create_artifact("trace", ".jtl")
+            log_lst = jmx.new_xml_listener(self.remote_trace_path, True, xml_flags)
+            self.add_listener(log_lst, jmx)
+
