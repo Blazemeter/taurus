@@ -104,7 +104,7 @@ test('has title', async ({ page }) => {
 
 ```
 
-You can also find an example of complete Playwright-based test suite and Taurus config to run it with
-in [examples/selenium/playwright](https://github.com/Blazemeter/taurus/tree/master/examples/selenium/playright)
+You can also find an example of the complete Playwright-based test suite and Taurus config to run it with
+in [examples/playwright](https://github.com/Blazemeter/taurus/tree/master/examples/playrwright)
 folder of Taurus's repo.
 
