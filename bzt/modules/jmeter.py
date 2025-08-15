@@ -1834,15 +1834,18 @@ class RemoteJmeterExecutor(JMeterExecutor):
     def prepare(self):
         self.remote_executor.prepare()
         super().prepare()
+
     def startup(self):
         """
         Should start JMeter as fast as possible.
         """
         # upload modified jmx
-        modified_jmx_remote_path = self.remote_executor.remote_artifacts_path + '/' + os.path.basename(self.modified_jmx)
+        modified_jmx_remote_path = self.remote_executor.remote_artifacts_path + '/' + os.path.basename(
+            self.modified_jmx)
         self.remote_executor.upload_file(self.modified_jmx, modified_jmx_remote_path)
         # upload properties_file
-        properties_file_remote_path = self.remote_executor.remote_artifacts_path + '/' + os.path.basename(self.properties_file)
+        properties_file_remote_path = self.remote_executor.remote_artifacts_path + '/' + os.path.basename(
+            self.properties_file)
         self.remote_executor.upload_file(self.properties_file, properties_file_remote_path)
         # jmeter log remote path
         jmeter_log_remote_path = self.remote_executor.remote_artifacts_path + '/jmeter.log'
@@ -1856,7 +1859,8 @@ class RemoteJmeterExecutor(JMeterExecutor):
 
         if self.sys_properties_file:
             # upload sys properties_file
-            sys_properties_file_remote_path = self.remote_executor.remote_artifacts_path + '/' + os.path.basename(self.sys_properties_file)
+            sys_properties_file_remote_path = self.remote_executor.remote_artifacts_path + '/' + os.path.basename(
+                self.sys_properties_file)
             self.remote_executor.upload_file(self.sys_properties_file, sys_properties_file_remote_path)
             cmdline += ["-S", self.sys_properties_file]
         if self.distributed_servers and not self.settings.get("gui", False):
@@ -1872,8 +1876,10 @@ class RemoteJmeterExecutor(JMeterExecutor):
         user_cmd = self.settings.get("cmdline")
         if user_cmd:
             cmdline += user_cmd.split(" ")
-        self.runner_pid = self.remote_executor.command(' '.join(cmdline).replace("/", "\\"), wait_for_completion=False,
-                                       workingDir=self.remote_executor.remote_artifacts_path, use_shell=True).get('pid')
+        self.remote_executor.runner_pid \
+            = self.remote_executor.command(' '.join(cmdline).replace("/", "\\"), wait_for_completion=False,
+                                           workingDir=self.remote_executor.remote_artifacts_path,
+                                           use_shell=True).get('pid')
         executable = self.settings.get("interpreter", sys.executable)
         # pull kpi,jtl
         cmd = [
@@ -1898,13 +1904,10 @@ class RemoteJmeterExecutor(JMeterExecutor):
         subprocess.Popen(cmd, start_new_session=True, close_fds=True)
 
     def check(self):
-        if self.runner_pid != 0:
-            if str(self.runner_pid) not in self.remote_executor.command('tasklist /FI "PID eq ' + str(self.runner_pid) + '"').get(
-                    'output'):
-                return True
-            else:
-                return False
-        return True
+        return self.remote_executor.check()
+
+    def shutdown(self):
+        self.remote_executor.shutdown()
 
     def install_required_tools(self):
         self.tool = self._get_tool(JMeter, config=self.settings, props=self.properties)
@@ -1934,4 +1937,3 @@ class RemoteJmeterExecutor(JMeterExecutor):
             self.log_jtl = self.engine.create_artifact("trace", ".jtl")
             log_lst = jmx.new_xml_listener(self.remote_trace_path, True, xml_flags)
             self.add_listener(log_lst, jmx)
-

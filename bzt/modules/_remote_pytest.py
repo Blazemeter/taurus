@@ -34,7 +34,6 @@ class RemotePyTestExecutor(RemoteExecutor):
     def __init__(self):
         super(RemotePyTestExecutor, self).__init__()
         self.runner_path = os.path.join(RESOURCES_DIR, "pytest_runner.py")
-        self.runner_pid = 0
         self._additional_args = []
 
     def prepare(self):
@@ -110,15 +109,6 @@ class RemotePyTestExecutor(RemoteExecutor):
         ]
         # Detach child process using setsid (Linux/Unix)
         subprocess.Popen(cmd, start_new_session=True, close_fds=True)
-
-    def check(self):
-        if self.runner_pid != 0:
-            if str(self.runner_pid) not in self.command('tasklist /FI "PID eq ' + str(self.runner_pid) + '"').get(
-                    'output'):
-                return True
-            else:
-                return False
-        return True
 
     def post_process(self):
         super(RemotePyTestExecutor, self).post_process()

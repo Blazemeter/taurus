@@ -219,6 +219,7 @@ class RemoteExecutor(ReportableExecutor, TransactionProvider):
         self.script = None
         self.process = None
         self.widget = None
+        self.runner_pid = 0
 
     def prepare(self):
         self.bridge_url = self.settings.get("bridge-url", os.environ.get("BRIDGE_URL", None))
@@ -246,6 +247,19 @@ class RemoteExecutor(ReportableExecutor, TransactionProvider):
         self.command('mkdir -p "%s"' % self.remote_artifacts_path, wait_for_completion=True, use_shell=True)
         self.log.info('Remote artifacts path created')
         super(RemoteExecutor, self).prepare()
+
+    def check(self):
+        if self.runner_pid != 0:
+            if str(self.runner_pid) not in self.command('tasklist /FI "PID eq ' + str(self.runner_pid) + '"').get(
+                    'output'):
+                return True
+            else:
+                return False
+        return True
+
+    def shutdown(self):
+        self.log.info("Terminating remote process with PID %s", self.runner_pid)
+        self.command('taskkill /PID ' + str(self.runner_pid) + ' /F')
 
     def command(self, command, wait_for_completion=True, use_shell=False, workingDir=None):
         """
