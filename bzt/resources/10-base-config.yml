@@ -27,7 +27,7 @@ modules:
   selenium:
     class: bzt.modules._selenium.SeleniumExecutor
   junit:
-    class: bzt.modules.java.JUnitTester
+    class: bzt.modules.java.RemoteJUnitTester
   testng:
     class: bzt.modules.java.TestNGTester
   mocha:
