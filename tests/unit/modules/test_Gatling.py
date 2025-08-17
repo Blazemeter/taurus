@@ -782,6 +782,24 @@ class TestDataLogReader(BZTestCase):
         self.assertEqual(obj.guessed_gatling_version, "3.3.X")
         self.assertIn('request_1', list_of_values[-1][DataPoint.CUMULATIVE].keys())
 
+    def test_guess_version_33x(self):
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-331')
+        list(obj.datapoints(True))
+        self.assertEqual(obj.guessed_gatling_version, "3.3.X")
+
+    def test_guess_version_34x(self):
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-351')
+        list(obj.datapoints(True))
+        self.assertEqual(obj.guessed_gatling_version, "3.4+")
+
+    def test_guess_version_310x(self):
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-3105')
+        list(obj.datapoints(True))
+        self.assertEqual(obj.guessed_gatling_version, "3.4+")
+
     def test_read_labels_problematic(self):
         log_path = RESOURCES_DIR + "gatling/"
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-2')  # problematic one
