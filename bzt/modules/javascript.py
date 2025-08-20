@@ -80,7 +80,10 @@ class PlaywrightTester(JavaScriptExecutor):
         return "npx playwright test " + ' '.join(args[0])
 
     def get_launch_cwd(self, *args):
-        return self.get_script_path()
+        script_path = self.get_script_path()
+        if os.path.isfile(script_path):
+            script_path = os.path.dirname(script_path)
+        return script_path
 
     def startup(self):
         config = self.get_scenario().engine.config
@@ -404,18 +407,6 @@ class NPMModuleInstaller(NPMLocalModulePackage):
     def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
         super(NPMModuleInstaller, self).__init__(tools_dir, node_tool, npm_tool, **kwargs)
         self.package_local_path = tools_dir
-    #
-    # def install(self):
-    #     cmdline = [self.npm.tool_path, 'install', ".", '--install-links', '--prefix', self.tools_dir]
-    #     try:
-    #         out, err = self.call(cmdline, cwd=self.tools_dir)
-    #     except CALL_PROBLEMS as exc:
-    #         self.log.debug("%s install failed: %s", "npm i", exc)
-    #         return
-    #
-    #     self.log.debug("%s install stdout: %s", "npm i", out)
-    #     if err:
-    #         self.log.warning("%s install stderr: %s", "npm i", err)
 
 
 class Mocha(NPMPackage):
