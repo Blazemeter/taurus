@@ -153,6 +153,8 @@ class SeleniumExecutor(ReportableExecutor):
             script_type = 'mocha'
         elif '.dll' in file_types or '.exe' in file_types:
             script_type = 'nunit'
+        elif '.ts' in file_types:
+            script_type = 'playwright'
         else:
             if os.path.isfile(script_name):
                 message = "Unsupported script type: %r" % script_name
