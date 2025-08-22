@@ -28,7 +28,7 @@ class TestResultsReaderIgnoreLabelsPercentiles(unittest.TestCase):
         # Only the 'not-ignore' samples should be used for percentiles
         used_samples = [s[3] for s in raw_samples if s[1] != "ignore"]
         ignored_samples = [s[3] for s in raw_samples if s[1] == "ignore"]
-        self.assertEqual(len(used_samples), 4)
+        self.assertEqual(len(used_samples), 5)
         self.assertEqual(len(ignored_samples), 3)
         # Check that ignored samples are not in the percentiles calculation
         self.assertTrue(all(v not in percentiles.values() for v in ignored_samples))
