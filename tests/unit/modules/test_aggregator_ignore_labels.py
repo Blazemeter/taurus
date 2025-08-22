@@ -11,13 +11,16 @@ class TestResultsReaderIgnoreLabelsPercentiles(unittest.TestCase):
 
     def test_percentiles_exclude_ignored_labels(self):
         # t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
-        samples = [
+        raw_samples = [
             (1, "ignore", 1, 10, 1, 1, 200, None, '', 0),
             (1, "not-ignore", 1, 100, 1, 1, 200, None, '', 0),
             (1, "not-ignore", 1, 200, 1, 1, 200, None, '', 0),
         ]
+        # Only pass the 8 expected fields to add_sample (skip t_stamp and label)
+        samples = [s[2:] for s in raw_samples]
         datapoint = DataPoint(1, self.reader.track_percentiles)
-        self.reader._ResultsReader__aggregate_current(datapoint, samples)
+        # Patch __aggregate_current to use our sliced samples
+        self.reader._ResultsReader__aggregate_current(datapoint, [(s[0], s[1]) + tuple(s[2:]) for s in raw_samples])
         overall = datapoint[DataPoint.CURRENT]['']
         # Only the two 'not-ignore' samples should be used for percentiles
         percentiles = overall[KPISet.PERCENTILES]
