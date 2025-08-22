@@ -739,6 +739,10 @@ class ResultsReader(ResultsProvider):
             if self.generalize_labels:
                 base_label = self._generalize_label(str(base_label))
 
+            # Skip ignored labels
+            if any([base_label.startswith(ignore) for ignore in self.ignored_labels]):
+                continue
+
             self.__add_sample(current, base_label, sample[1:])
 
         # Exclude ignored labels from percentile calculation for the overall KPISet
