@@ -11,10 +11,11 @@ class TestResultsReaderIgnoreLabelsPercentiles(unittest.TestCase):
 
     def test_percentiles_exclude_ignored_labels(self):
         # t_stamp, label, conc, r_time, con_time, latency, r_code, error, trname, byte_count
+        # Only 8 elements per sample: t_stamp, label, conc, r_time, con_time, latency, r_code, error
         samples = [
-            (1, "ignore", 1, 10, 1, 1, 200, None, '', 0),
-            (1, "not-ignore", 1, 100, 1, 1, 200, None, '', 0),
-            (1, "not-ignore", 1, 200, 1, 1, 200, None, '', 0),
+            (1, "ignore", 1, 10, 1, 1, 200, None),
+            (1, "not-ignore", 1, 100, 1, 1, 200, None),
+            (1, "not-ignore", 1, 200, 1, 1, 200, None),
         ]
         datapoint = DataPoint(1, self.reader.track_percentiles)
         self.reader._ResultsReader__aggregate_current(datapoint, samples)
