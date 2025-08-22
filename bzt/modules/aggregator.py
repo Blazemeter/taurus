@@ -737,7 +737,7 @@ class ResultsReader(ResultsProvider):
                 base_label = '[empty]'
 
             if self.generalize_labels:
-                base_label = self._generalize_label(base_label)
+                base_label = self._generalize_label(str(base_label))
 
             self.__add_sample(current, base_label, sample[1:])
 
