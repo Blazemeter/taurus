@@ -81,6 +81,48 @@ class TestGatlingExecutor(ExecutorTestCase):
                 "additional-classpath": ["tests/resources/gatling/fake.jar"]}})
         self.assertRaises(ToolError, self.obj.prepare)
 
+    def test_mvn_based_gatling(self):
+        jars = ['tests/resources/gatling/simulations.jar', 'tests/resources/selenium/junit/another_dummy.jar']
+        self.obj.execution.merge({
+            'files': [
+                jars[0]],
+            'scenario': {
+                "script": RESOURCES_DIR + "gatling/test11.jar",
+                "additional-classpath": [jars[1]],
+                "simulation": "mytest.BasicSimulation"}})
+
+        path = os.path.abspath(RESOURCES_DIR + "gatling/gatling3" + EXE_SUFFIX)
+        self.obj.settings.merge({"path": path, "version": "3.14.3"})
+
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.shutdown()
+        #todo: validate test results
+
+
+        # modified_launcher = self.obj.tool.tool_path
+        # with open(modified_launcher) as modified:
+        #     modified_lines = modified.readlines()
+        #
+        # for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
+        #     self.assertNotIn(jars[0], self.obj.env.get(var))
+        #     self.assertIn(jars[1], self.obj.env.get(var))
+        #
+        # for line in modified_lines:
+        #     if not is_windows() and '"$JAVA"' in line and not line.startswith("bash"):
+        #         self.assertTrue(line.startswith('eval'))
+        #     if line.startswith('set COMPILER_CLASSPATH='):  # win
+        #         self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
+        #     if line.startswith('set GATLING_CLASSPATH='):  # win
+        #         self.assertTrue(line.endswith(';%JAVA_CLASSPATH%\n'))
+        #     if line.startswith('COMPILER_CLASSPATH'):  # linux
+        #         self.assertTrue(line.endswith('${COMPILATION_CLASSPATH}"\n'))
+        #     if line.startswith('GATLING_CLASSPATH'):  # linux
+        #         self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
+
+
+
+
     def test_additional_classpath(self):
         jars = ("gatling", "simulations.jar"), ("gatling", "deps.jar")
         jars = list(os.path.join(RESOURCES_DIR, *jar) for jar in jars)
@@ -761,6 +803,7 @@ class TestDataLogReader(BZTestCase):
     def test_read(self):
         log_path = RESOURCES_DIR + "gatling/"
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-351')
+        # obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-7')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 23)
         self.assertEqual(obj.guessed_gatling_version, "3.4+")
@@ -817,3 +860,10 @@ class TestDataLogReader(BZTestCase):
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['400'])
         self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['401'])
+
+    def test_read_binary_log(self):
+        # failing because of the missing name -> it's not initialized correctly
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-6')
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 3)

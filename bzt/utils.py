@@ -711,6 +711,17 @@ class FileReader(object):
                 self.offset += len(line)
                 yield self._decode(line, last_pass)
 
+    def get_lines_with_decoder(self, binary_decoder, last_pass=True):
+        if self.is_ready():
+            if last_pass:
+                size = -1
+            self.fds.seek(self.offset)
+            # read a object from binary file -> convert to line like it was previous text file
+            # also the size (number of bytes) needs to be part of the object, so the offset can be updated!!!
+            for line_data, dsize in binary_decoder.read_log_object(self.fds):
+                self.offset += dsize  # update offset with size of the object
+                yield line_data
+
     def get_line(self):
         line = ""
         if self.is_ready():
