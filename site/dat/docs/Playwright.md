@@ -7,10 +7,9 @@ concurrent users (aka workers in Playwright) can be specified using `concurrency
 You may specify `BASE_URL` in `settings` section to be pass to your test as an environment variable.
 
 It is possible to override the browser settings from your Playwright test configuration by using the `browser` option, e.g.,
-you may enter `chromium`, `firefox`, `webkit`.
+you may enter one of these: `chromium`, `firefox`, `webkit`.
 
-A single test from the suite may be selected to be executed using the `test` field. Currently as the reporting options
-you may pick up from all the reporters supported by Playwright natively, i.e. `json`, `dot`, `line` or `list`.
+A single test from the suite may be selected to be executed using the `test` field.
 
 ## Usage
 ```yaml
@@ -26,10 +25,9 @@ settings:
 
 scenarios:
     playwright_test:
-        script: ../playwright-test/ # points to your Playwright project with Playwright config file
+        script: example.spec.ts # points to the file with tests
         browser: firefox
         test: has title # can be omitted to run all tests
-        reporter: json # dot, line, list
 ```
 
 ## Playwright project
@@ -47,7 +45,7 @@ import { defineConfig, devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  testDir: './tests',
+  testDir: '.',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -57,7 +55,7 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'line',
+  reporter: 'json',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */

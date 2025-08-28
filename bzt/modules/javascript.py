@@ -13,12 +13,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import json
 import os
 from abc import abstractmethod
+from datetime import datetime
 
 from bzt import TaurusConfigError
 from bzt.modules import SubprocessedExecutor
-from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR
+from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
+from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR, FileReader
 from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time, iteritems
 
 
@@ -59,9 +62,11 @@ class PlaywrightTester(JavaScriptExecutor):
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to runner %s" % self)
+        self.reader = PlaywrightLogReader(self.engine.artifacts_dir + "/playwright.out", self.log)
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.engine.aggregator.add_underling(self.reader)
 
         self.install_required_tools()
-        self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
         tcl_lib = self._get_tool(TclLibrary)
@@ -77,7 +82,7 @@ class PlaywrightTester(JavaScriptExecutor):
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
-        return "npx playwright test " + ' '.join(args[0])
+        return "npx playwright test " + self.get_script_path() + ' ' + ' '.join(args[0])
 
     def get_launch_cwd(self, *args):
         script_path = self.get_script_path()
@@ -97,7 +102,10 @@ class PlaywrightTester(JavaScriptExecutor):
             concurrency = config["execution"][0].get("concurrency", 1)
             iterations = config["execution"][0].get("iterations", 1)
 
-        reporter = self.get_scenario().data.get("reporter") or "json"
+        if isinstance(concurrency, dict):
+            concurrency = concurrency.get("local", 1)
+
+        reporter = "json"
 
         options = ["--reporter " + reporter,
                    "--output " + self.engine.artifacts_dir + "/test-output",
@@ -105,13 +113,54 @@ class PlaywrightTester(JavaScriptExecutor):
                    "--repeat-each " + str(iterations)]
 
         if "browser" in self.get_scenario().data:
-            options.append("--project " + self.get_scenario().data["browser"])
+            options.append("--project=" + self.get_scenario().data["browser"])
         if "test" in self.get_scenario().data:
             options.append("-g '" + self.get_scenario().data["test"] + "'")
 
         cmd_line = self.get_launch_cmdline(options)
-
+        self.log.info("Launching Playwright: '%s'", cmd_line)
         self.process = self._execute(cmd_line, cwd=self.get_launch_cwd())
+
+    def has_results(self):
+        return True
+
+
+class PlaywrightLogReader(ResultsReader):
+
+    def __init__(self, filename, parent_logger):
+        super(PlaywrightLogReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.filename = filename
+        self.has_reported = False
+
+    def _read(self, final_pass=False):
+        if final_pass:
+            if self.has_reported:
+               yield None
+            self.file = FileReader(filename=self.filename, parent_logger=self.log)
+            self.lines = list(self.file.get_lines(last_pass=final_pass))
+            content = json.loads("\n".join(self.lines))
+            concurrency = content.get("config", {}).get("metadata", {}).get("actualWorkers")
+
+            suites = content.get("suites", [])
+            for suite in suites:
+                specs = suite.get("specs", [])
+                for spec in specs:
+                    label = spec.get("title", "unknown")
+                    tests = spec.get("tests", [])
+                    for test in tests:
+                        results = test.get("results", [])
+                        if len(results) > 0:
+                            start_time = results[0].get("startTime")
+                            timestamp = datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()
+                            duration = results[0].get("duration", 0) / 1000
+                            errors = None
+                            errs = results[0].get("errors")
+                            if len(errs) > 0:
+                                errors = ", ".join(errs)
+                            yield timestamp, label, concurrency, duration, None, None, None, errors, None, None
+                self.has_reported = True
+        pass
 
 
 class MochaTester(JavaScriptExecutor):
@@ -299,7 +348,7 @@ class PLAYWRIGHT(RequiredTool):
         return False
 
     def install(self):
-        cmdline = ["npx", "playwright", "install"]
+        cmdline = ["npx", "playwright", "install", "--with-deps"]
 
         try:
             out, err = self.call(cmdline,cwd=self.tools_dir)

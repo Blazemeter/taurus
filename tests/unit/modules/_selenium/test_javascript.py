@@ -182,6 +182,8 @@ class TestNewmanExecutor(BZTestCase):
         sample = samples[0]
         self.assertEqual(sample["status"], "PASSED")
         self.assertEqual(sample["test_case"], "should load")
+
+
 class TestPlaywrightExecutor(SeleniumTestCase):
     RUNNER_STUB = RESOURCES_DIR + "playwright/playwright" + EXE_SUFFIX
     CMD_LINE = None
@@ -239,17 +241,14 @@ class TestPlaywrightExecutor(SeleniumTestCase):
                 'scenario': {
                     "script": RESOURCES_DIR + "playwright",
                     'browser': 'firefox',
-                    'test': 'has title',
-                    'reporter': 'list'
-
+                    'test': 'has title'
                 },
                 'executor': 'playwright',
             },
         })
         self.assertIn("npx playwright test", self.CMD_LINE)
         self.assertIn("--repeat-each 3", self.CMD_LINE)
-        self.assertIn("--reporter list", self.CMD_LINE)
         self.assertIn("--workers 10", self.CMD_LINE)
-        self.assertIn("-project firefox", self.CMD_LINE)
+        self.assertIn("-project=firefox", self.CMD_LINE)
         self.assertIn("-g 'has title'", self.CMD_LINE)
 
