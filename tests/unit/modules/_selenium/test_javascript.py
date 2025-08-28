@@ -6,7 +6,8 @@ from os.path import exists
 import bzt
 
 from bzt import ToolError
-from bzt.modules.javascript import NPMPackage, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
+from bzt.modules.javascript import NPMPackage, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver, \
+    PlaywrightTester
 from bzt.utils import get_full_path, EXE_SUFFIX
 
 from tests.unit import RESOURCES_DIR, BZTestCase, EngineEmul
@@ -226,7 +227,8 @@ class TestPlaywrightExecutor(SeleniumTestCase):
                 }
             }
         })
-        self.assertTrue(exists(self.obj.runner.report_file))
+        self.assertEquals(self.obj.runner.execution["executor"], "playwright")
+        self.assertEquals(self.obj.runner.engine.modules['playwright'], PlaywrightTester)
 
     def test_command_line(self):
         self.simple_run({
