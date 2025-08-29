@@ -969,7 +969,7 @@ class Gatling(RequiredTool):
         if self.is_mvn_gatling():
             return self.check_if_installed_mvn()
         else:
-            return self.check_if_installed()
+            return self.check_if_installed_old()
 
     def check_if_installed_mvn(self):
         self.log.debug("Trying Gatling (mvn)...")
@@ -992,13 +992,16 @@ class Gatling(RequiredTool):
         return True
 
     def install(self):
-        dest = get_full_path(self.tool_path, step_up=2)
+        dest = get_full_path(self.tool_path, step_up=1 if self.is_mvn_gatling() else 2)
         self.log.info("Will install %s into %s", self.tool_name, dest)
         gatling_dist = self._download(use_link=True)
         self.log.info("Unzipping %s", gatling_dist)
         unzip(gatling_dist, dest, 'gatling-charts-highcharts-bundle-' + self.version)
         os.remove(gatling_dist)
-        os.chmod(get_full_path(self.tool_path), 0o755)
+        if self.is_mvn_gatling():
+            os.chmod(get_full_path(self.tool_dir + os.sep + "mvnw"), 0o755)
+        else:
+            os.chmod(get_full_path(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
