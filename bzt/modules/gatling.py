@@ -477,11 +477,6 @@ class GatlingExecutor(ScenarioExecutor):
             self.env.add_path({"JAVA_CLASSPATH": element})
             self.env.add_path({"COMPILATION_CLASSPATH": element})
 
-        new_name = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
-        self.log.debug("Building Gatling launcher: %s", new_name)
-        self.tool.build_launcher(new_name, scenario, cpath, self.engine.artifacts_dir)
-
-        #todo: check where the generated script is stored -> needs to be in the src in case of mvn based gatling
         self.script = self.get_script_path()
         if not self.script:
             if "requests" in scenario:
@@ -490,6 +485,12 @@ class GatlingExecutor(ScenarioExecutor):
                 msg = "There must be a script file or requests for its generation "
                 msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
                 raise TaurusConfigError(msg)
+        #todo: check where the generated script is stored -> needs to be in the src in case of mvn based gatling
+        #here we have self.script - either from config or generated, if it's scala file, needs to be copied to src dir for newer gatling
+
+        new_name = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
+        self.log.debug("Building Gatling launcher: %s", new_name)
+        self.tool.build_launcher(new_name, scenario, cpath, self.engine.artifacts_dir, self.script.endswith('scala'))
 
         self.dir_prefix = self.settings.get("dir-prefix", self.dir_prefix)
 
@@ -530,6 +531,14 @@ class GatlingExecutor(ScenarioExecutor):
                 shutil.copy(file, target_dir)
             else:
                 self.log.warning("... gatling dependency not available: %s", file)
+        # copy scala file in case it was generated from yml config or included as a script
+        if self.script.endswith(".scala"):
+            if self.tool.is_mvn_gatling():
+                scala_target_dir = os.path.join(self.tool.tool_dir, "src", "test", "scala")
+            else:
+                scala_target_dir = os.path.join(self.tool.tool_dir, "user-files/simulations")
+            os.makedirs(scala_target_dir, exist_ok=True)
+            shutil.copy(self.script, scala_target_dir)
 
     def _get_simulation_props(self):
         props = {}
@@ -1006,17 +1015,17 @@ class Gatling(RequiredTool):
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
-    def build_launcher(self, new_name, scenario, cpath, log_folder):
+    def build_launcher(self, new_name, scenario, cpath, log_folder, needs_scala_plugin=False):
         if self.is_mvn_gatling():
             self.build_mvn_launcher(new_name, scenario.get('simulation', None), log_folder)
             files = list(cpath)
             if scenario.data.get('script', "").endswith(".jar"):
                 files.append(scenario.data.get('script', None))
-            self.patch_mvn_config(files)
+            self.patch_mvn_config(files, needs_scala_plugin)
         else:
             self.build_launcher_sh(new_name)
 
-    def patch_mvn_config(self, additional_jars):
+    def patch_mvn_config(self, additional_jars, needs_scala_plugin):
         """
         Patch the Maven config file to use the correct simulation class
         """
@@ -1034,6 +1043,10 @@ class Gatling(RequiredTool):
         root = tree.getroot()
 
         ns = {'m': 'http://maven.apache.org/POM/4.0.0'}
+        # ns = {'m': root.tag.split('}')[0].strip('{')} #otestovat dynamicke ziskavani namespacu
+
+        if needs_scala_plugin:
+            self._add_scala_plugin(root, ns)
 
         dependencies = root.find('m:dependencies', ns)
         if dependencies is None:
@@ -1055,6 +1068,51 @@ class Gatling(RequiredTool):
             dependencies.append(dependency)
 
         tree.write(self.tool_dir +os.sep + "pom.xml", encoding='utf-8', xml_declaration=True)
+
+
+    def _add_scala_plugin(self, root, ns):
+        build = root.find("m:build", ns)
+        if build is None:
+            build = ET.SubElement(root, "build")
+
+        plugins = build.find("m:plugins", ns)
+        if plugins is None:
+            plugins = ET.SubElement(build, "plugins")
+
+        exists = any(
+            (p.find("m:artifactId", ns) is not None and p.find("m:artifactId", ns).text == "scala-maven-plugin")
+            for p in plugins.findall("m:plugin", ns)
+        )
+
+        if not exists:
+            plugin = ET.SubElement(plugins, "plugin")
+
+            gid = ET.SubElement(plugin, "groupId")
+            gid.text = "net.alchim31.maven"
+
+            aid = ET.SubElement(plugin, "artifactId")
+            aid.text = "scala-maven-plugin"
+
+            ver = ET.SubElement(plugin, "version")
+            ver.text = "4.8.1"
+
+            executions = ET.SubElement(plugin, 'executions')
+            execution = ET.SubElement(executions, 'execution')
+
+            goals = ET.SubElement(execution, 'goals')
+            goal = ET.SubElement(goals, 'goal')
+            goal.text = "testCompile"
+
+            configuration = ET.SubElement(execution, 'configuration')
+
+            jvm_args = ET.SubElement(configuration, 'jvmArgs')
+            jvm_arg = ET.SubElement(jvm_args, 'jvmArg')
+            jvm_arg.text = "-Xss100M"
+
+            args = ET.SubElement(configuration, 'args')
+            for arg_value in ["-deprecation", "-feature", "-unchecked", "-language:implicitConversions", "-language:postfixOps"]:
+                arg = ET.SubElement(args, 'arg')
+                arg.text = arg_value
 
 
     def build_mvn_launcher(self, new_name, simulation_class, log_folder):
