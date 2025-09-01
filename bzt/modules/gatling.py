@@ -779,7 +779,7 @@ class DataLogReader(ResultsReader):
             error = fields[0]
             r_code = "N/A"
         else:
-            if self.guessed_gatling_version < "3.4+":
+            if self.compare_versions(self.guessed_gatling_version, "3.4") < 0:
                 del fields[0]  # ignore obsolete $userId
             label = fields[0]
             if ',' in label:
@@ -1229,7 +1229,7 @@ class BinaryLogReader(object):
 
     def read_groups(self, file):
         count = self.read_int(file)
-        return [self.read_string(file) for _ in range(count)]
+        return [self.read_cached_string(file) for _ in range(count)]
 
     @staticmethod
     def with_bytes_read(parse_func):
@@ -1302,22 +1302,32 @@ class BinaryLogReader(object):
 
     @with_bytes_read
     def parse_group_message(self, f):
+        group_hierarchy = self.read_groups(f)
+        start_ts = self.read_int(f) + self.run_start_time
+        end_ts = self.read_int(f) + self.run_start_time
+        cumulated_response_time = self.read_int(f)
+        status = self.read_boolean(f)
 
-        result = {
-            # update based on gatling sources
+        return {
+            "type": "Group",
+            "groupHierarchy": group_hierarchy,
+            "start": start_ts,
+            "end": end_ts,
+            "cumulatedResponseTime": cumulated_response_time,
+            "status": "OK" if status else "KO",
+            "duration": end_ts - start_ts,
         }
-
-        return result
 
     @with_bytes_read
-    def parse_error_message(self, binary_data):
-        buf = BytesIO(binary_data)
+    def parse_error_message(self, f):
+        message = self.read_cached_string(f)
+        timestamp = self.read_int(f) + self.run_start_time
 
-        result = {
+        return {
             # update based on gatling sources
+            "message": message,
+            "timestamp": timestamp
         }
-
-        return result
 
     def read_log_object(self, file):
         """
@@ -1330,7 +1340,7 @@ class BinaryLogReader(object):
         while True: #TODO make this finite ... for example by counting the size, once it reach the limit, it will stop reading files
             header = file.read(1)
             if not header:
-                break # EOF
+                return # EOF
             record_type = header[0]
             if record_type == 0:
                 data, size = self.parse_run_message(file)  # read the length of the object
@@ -1352,11 +1362,10 @@ class BinaryLogReader(object):
                 yield f"USER\t {data['scenario']} \t {status} \t {data["timestamp"]} \t {data["timestamp"]} \n", size
             elif record_type == 3:
                 data, size =  self.parse_group_message(file)
-                yield "GROUP	User-Login,Auth-POST	1522402818661	1522402820260	1279	OK\n", size
-                # return "Group\t", size
+                yield f"GROUP\t{','.join(data['groupHierarchy'])}\t{data['start']}\t{data['end']}\t{data['cumulatedResponseTime']}\t{data['status']}\n", size
             elif record_type == 4:
                 data, size = self.parse_error_message(file)
-                yield "Error\n", size
+                yield f"Error\t{data['message']}\t{data['timestamp']}\n", size
             else:
                 raise ValueError(f"Unknown record header: {record_type}")
 

@@ -864,6 +864,13 @@ class TestDataLogReader(BZTestCase):
     def test_read_binary_log(self):
         # failing because of the missing name -> it's not initialized correctly
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-6')
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-6', binary_log=True)
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 3)
+
+    def test_read_binary_groups_log(self):
+        # failing because of the missing name -> it's not initialized correctly
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-8', binary_log=True)
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 6)

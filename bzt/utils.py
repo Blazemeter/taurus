@@ -720,6 +720,7 @@ class FileReader(object):
             # also the size (number of bytes) needs to be part of the object, so the offset can be updated!!!
             for line_data, dsize in binary_decoder.read_log_object(self.fds):
                 self.offset += dsize  # update offset with size of the object
+                self.log.info(" **** --- **** Read %s bytes from binary log file, data: %s", dsize, line_data)
                 yield line_data
 
     def get_line(self):
