@@ -711,17 +711,28 @@ class FileReader(object):
                 self.offset += len(line)
                 yield self._decode(line, last_pass)
 
-    def get_lines_with_decoder(self, binary_decoder, last_pass=True):
+    def get_lines_with_decoder(self, binary_decoder, last_pass=False):
         if self.is_ready():
             if last_pass:
-                size = -1
+                buffer = -1
+            else:
+                buffer = 1000
             self.fds.seek(self.offset)
+            counter = 0
             # read a object from binary file -> convert to line like it was previous text file
             # also the size (number of bytes) needs to be part of the object, so the offset can be updated!!!
-            for line_data, dsize in binary_decoder.read_log_object(self.fds):
-                self.offset += dsize  # update offset with size of the object
-                self.log.info(" **** --- **** Read %s bytes from binary log file, data: %s", dsize, line_data)
-                yield line_data
+            try:
+                for line_data, dsize in binary_decoder.read_log_object(self.fds, buffer):
+                    self.offset += dsize  # update offset with size of the object
+                    self.log.debug("Read %s bytes from binary log file, data: %s, offset: %s", dsize, line_data, self.offset)
+                    counter += 1
+                    yield line_data
+            except Exception as exc:
+                # During testing, it was observed that log file didn't contain a full object
+                # so the decoder failed, but it should not break the whole process.
+                # Wait for the next pass, when the object is complete
+                self.log.debug("Exception in binary log reader: %s", exc)
+                return # return to the caller; interrupting generator, will wait for the next batch
 
     def get_line(self):
         line = ""

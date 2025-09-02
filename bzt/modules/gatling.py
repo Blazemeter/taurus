@@ -485,8 +485,6 @@ class GatlingExecutor(ScenarioExecutor):
                 msg = "There must be a script file or requests for its generation "
                 msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
                 raise TaurusConfigError(msg)
-        #todo: check where the generated script is stored -> needs to be in the src in case of mvn based gatling
-        #here we have self.script - either from config or generated, if it's scala file, needs to be copied to src dir for newer gatling
 
         new_name = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
         self.log.debug("Building Gatling launcher: %s", new_name)
@@ -883,8 +881,7 @@ class DataLogReader(ResultsReader):
         :param last_pass:
         """
         if self.binary_log:
-            #todo: use cache to limit reading? why
-            lines = self.file.get_lines_with_decoder(self.binary_log_decoder)
+            lines = self.file.get_lines_with_decoder(self.binary_log_decoder, last_pass=last_pass)
         else:
             lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
@@ -1206,7 +1203,7 @@ class BinaryLogReader(object):
         coder = struct.unpack("B", file.read(1))[0]
 
         if coder == 0:
-            # Java "LATIN1" / Gatling use UTF-8 safe ?? todo: doublecheck and retest
+            # Java "LATIN1" / Gatling use UTF-8 safe
             return data.decode("latin-1")
         elif coder == 1:
             # Java "UTF16"
@@ -1329,35 +1326,30 @@ class BinaryLogReader(object):
             "timestamp": timestamp
         }
 
-    def read_log_object(self, file):
+    def read_log_object(self, file, buffer):
         """
         Read binary log file
         :param file: file object
+        :param buffer: int, max number of records to read
         :return: string, int
         """
-
-        # infinite only for testing the provided log file
-        while True: #TODO make this finite ... for example by counting the size, once it reach the limit, it will stop reading files
+        counter = 0
+        while True:
+            if 0 < buffer < (counter := counter + 1):
+                return None
             header = file.read(1)
             if not header:
-                return # EOF
+                return None # EOF
             record_type = header[0]
             if record_type == 0:
-                data, size = self.parse_run_message(file)  # read the length of the object
-                # 'RUN	LogReplay		gatling-139646781467600	1549361913283	 	3.5.1'
-                # returning the message in string format and the data size
+                data, size = self.parse_run_message(file)
                 yield f"Run\t {data['simulationClassName']} \t {data['runDescription']} \t\t {data['gatlingVersion']} \n", size
             elif record_type == 1:
                 data, size = self.parse_request_message(file)
                 gh = ",".join(data["groupHierarchy"])
-                # message format: "REQUEST		g1_newUser	1549412010142	1549412010235	OK\n", size
-                # for the previous version the original parser is working with req_hierarchy, not sure if this is the same or no ... need to recheck/retest TODO
                 yield f"REQUEST\t{gh}\t{data["name"]}\t{data["start"]}\t{data["end"]}\t{data["status"]}\t{data["message"]}\n", size
             elif record_type == 2:
                 data, size = self.parse_user_message(file)
-                # return "User\t", size
-                # row template: USER scenario_name START/STOP timestamp timestamp
-                # yield "USER	All	START	1549411935145	1549411935145\n", size
                 status = "START" if data["start"] else "END"
                 yield f"USER\t {data['scenario']} \t {status} \t {data["timestamp"]} \t {data["timestamp"]} \n", size
             elif record_type == 3:
