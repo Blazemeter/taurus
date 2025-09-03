@@ -842,6 +842,10 @@ class DataLogReader(ResultsReader):
 
     def _guess_gatling_version(self, fields):
         curr_version = fields[-1].strip()
+        try:
+            version.parse(curr_version)
+        except Exception:
+            return None
         if self.compare_versions(curr_version, "3.4") < 0:
             return "3.3"
         elif self.compare_versions(curr_version, "3.10") < 0:
