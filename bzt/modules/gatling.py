@@ -1112,16 +1112,37 @@ class Gatling(RequiredTool):
     def build_mvn_launcher(self, new_name, simulation_class, log_folder):
         self.tool_path = new_name
 
-        #generate script to run mvn gatling plugin to run the test
-        run_line = f"./mvnw gatling:test -Dgatling.simulationClass={simulation_class} -Dgatling.resultsFolder={log_folder} $JAVA_OPTS"
+        if is_windows():
+            # Windows .bat
+            run_line = (
+                f"mvnw.cmd gatling:test "
+                f"-Dgatling.simulationClass={simulation_class} "
+                f"-Dgatling.resultsFolder={log_folder} %JAVA_OPTS%"
+            )
+            content = (
+                "@echo off\n"
+                f"cd {self.tool_dir}\n"
+                f"{run_line}\n"
+            )
+        else:
+            # Unix .sh
+            run_line = (
+                f"./mvnw gatling:test "
+                f"-Dgatling.simulationClass={simulation_class} "
+                f"-Dgatling.resultsFolder={log_folder} $JAVA_OPTS"
+            )
+            content = (
+                "#!/bin/bash\n"
+                f"cd {self.tool_dir}\n"
+                f"{run_line}\n"
+            )
 
-        with open(self.tool_path, 'w') as modified:
-            modified.write("#!/bin/bash\n")
-            modified.write(f"cd {self.tool_dir}\n")
-            modified.writelines(run_line + '\n')
+            with open(self.tool_path, 'w') as modified:
+                modified.write(content)
 
-        if not is_windows():
-            os.chmod(self.tool_path, 0o755)
+            if not is_windows():
+                os.chmod(self.tool_path, 0o755)
+
 
     def build_launcher_sh(self, new_name):  # legacy, for v2 only
         modified_lines = []
