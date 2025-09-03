@@ -36,7 +36,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import ExecutorWidget
 from bzt.requests_model import HTTPRequest, SetVariables, HierarchicRequestParser
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
-from bzt.utils import convert_body_to_string
+from bzt.utils import CALL_PROBLEMS, convert_body_to_string
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
