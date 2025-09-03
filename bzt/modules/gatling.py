@@ -1347,11 +1347,11 @@ class BinaryLogReader(object):
             elif record_type == 1:
                 data, size = self.parse_request_message(file)
                 gh = ",".join(data["groupHierarchy"])
-                yield f"REQUEST\t{gh}\t{data["name"]}\t{data["start"]}\t{data["end"]}\t{data["status"]}\t{data["message"]}\n", size
+                yield f"REQUEST\t{gh}\t{data['name']}\t{data['start']}\t{data['end']}\t{data['status']}\t{data['message']}\n", size
             elif record_type == 2:
                 data, size = self.parse_user_message(file)
-                status = "START" if data["start"] else "END"
-                yield f"USER\t {data['scenario']} \t {status} \t {data["timestamp"]} \t {data["timestamp"]} \n", size
+                status = "START" if data['start'] else "END"
+                yield f"USER\t {data['scenario']} \t {status} \t {data['timestamp']} \t {data['timestamp']} \n", size
             elif record_type == 3:
                 data, size =  self.parse_group_message(file)
                 yield f"GROUP\t{','.join(data['groupHierarchy'])}\t{data['start']}\t{data['end']}\t{data['cumulatedResponseTime']}\t{data['status']}\n", size
