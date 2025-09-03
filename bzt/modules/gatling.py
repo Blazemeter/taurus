@@ -587,7 +587,7 @@ class GatlingExecutor(ScenarioExecutor):
         props.merge(self.settings.get('properties'))
         props.merge(self.get_scenario().get("properties"))
 
-        props['gatling.core.outputDirectoryBaseName'] = self.dir_prefix #this one is no used in mvn gatling
+        props['gatling.core.outputDirectoryBaseName'] = self.dir_prefix #this one is not used in mvn gatling
         props['gatling.core.directory.resources'] = self.engine.artifacts_dir
         props['gatling.core.directory.results'] = self.engine.artifacts_dir
 
@@ -850,17 +850,10 @@ class DataLogReader(ResultsReader):
             return "3.3"
         elif self.compare_versions(curr_version, "3.10") < 0:
             return "3.4"
-        elif self.compare_versions(curr_version, "3.11") > 0:
+        elif self.compare_versions(curr_version, "3.11") >= 0:
             return "3.11"
         else:
             return ""
-
-        # if fields and fields[-1].strip() < "3.4":
-        #     return "3.3.X"
-        # elif fields[-1].strip() >= "3.4":
-        #     return "3.4+"
-        # else:
-        #     return ""
 
     def compare_versions(self, v1, v2):
         parsed1, parsed2 = version.parse(v1), version.parse(v2)
@@ -1191,7 +1184,7 @@ class BinaryLogReader(object):
         self.run_start_time = None
 
     def read_int(self, file):
-        return struct.unpack('>i', file.read(4))[0] #chyba cteni
+        return struct.unpack('>i', file.read(4))[0]
 
     def read_long(self, file):
         return struct.unpack('>q', file.read(8))[0]
