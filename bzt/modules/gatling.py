@@ -1115,7 +1115,7 @@ class Gatling(RequiredTool):
         if is_windows():
             # Windows .bat
             run_line = (
-                f"mvnw.cmd gatling:test "
+                f"call mvnw.cmd gatling:test "
                 f"-Dgatling.simulationClass={simulation_class} "
                 f"-Dgatling.resultsFolder={log_folder} %JAVA_OPTS%"
             )

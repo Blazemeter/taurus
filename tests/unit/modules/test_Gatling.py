@@ -81,6 +81,18 @@ class TestGatlingExecutor(ExecutorTestCase):
                 "additional-classpath": ["tests/resources/gatling/fake.jar"]}})
         self.assertRaises(ToolError, self.obj.prepare)
 
+    def test_mvn_based_gatling_scala(self):
+        jars = ['tests/resources/gatling/simulations.jar', 'tests/resources/selenium/junit/another_dummy.jar']
+        self.obj.execution.merge({
+            "scenario": {
+                "script": RESOURCES_DIR + "gatling/SimpleSimulation.scala",
+                "additional-classpath": [jars[0]]}})
+
+        path = os.path.abspath(RESOURCES_DIR + "gatling/gatling3" + EXE_SUFFIX)
+        self.obj.settings.merge({"path": path, "version": "3.14.3"})
+
+        self.obj.prepare()
+
     def test_mvn_based_gatling(self):
         jars = ['tests/resources/gatling/simulations.jar', 'tests/resources/selenium/junit/another_dummy.jar']
         self.obj.execution.merge({
@@ -97,31 +109,29 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.prepare()
         self.obj.startup()
         self.obj.shutdown()
-        #todo: validate test results
 
+        if is_windows():
+            expected_lines = [
+                "@echo off\r\n",
+                f"cd {self.obj.tool.tool_dir}\r\n",
+                f"call mvnw.cmd gatling:test -Dgatling.simulationClass=mytest.BasicSimulation -Dgatling.resultsFolder={self.engine.artifacts_dir} %JAVA_OPTS%\r\n"
+            ]
+        else:
+            expected_lines = [
+                "#!/bin/bash\n",
+                f"cd {self.obj.tool.tool_dir}\n",
+                f"./mvnw gatling:test -Dgatling.simulationClass=mytest.BasicSimulation -Dgatling.resultsFolder={self.engine.artifacts_dir} $JAVA_OPTS\n"
+            ]
 
-        # modified_launcher = self.obj.tool.tool_path
-        # with open(modified_launcher) as modified:
-        #     modified_lines = modified.readlines()
-        #
-        # for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
-        #     self.assertNotIn(jars[0], self.obj.env.get(var))
-        #     self.assertIn(jars[1], self.obj.env.get(var))
-        #
-        # for line in modified_lines:
-        #     if not is_windows() and '"$JAVA"' in line and not line.startswith("bash"):
-        #         self.assertTrue(line.startswith('eval'))
-        #     if line.startswith('set COMPILER_CLASSPATH='):  # win
-        #         self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
-        #     if line.startswith('set GATLING_CLASSPATH='):  # win
-        #         self.assertTrue(line.endswith(';%JAVA_CLASSPATH%\n'))
-        #     if line.startswith('COMPILER_CLASSPATH'):  # linux
-        #         self.assertTrue(line.endswith('${COMPILATION_CLASSPATH}"\n'))
-        #     if line.startswith('GATLING_CLASSPATH'):  # linux
-        #         self.assertTrue(line.endswith('${JAVA_CLASSPATH}"\n'))
+        modified_launcher = self.obj.tool.tool_path
+        with open(modified_launcher) as modified:
+            modified_lines = modified.readlines()
 
-
-
+        assert modified_lines == expected_lines, (
+            f"Launcher script content mismatch!\n"
+            f"Expected:\n{expected_lines}\n"
+            f"Got:\n{modified_lines}"
+        )
 
     def test_additional_classpath(self):
         jars = ("gatling", "simulations.jar"), ("gatling", "deps.jar")
