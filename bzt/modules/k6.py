@@ -60,6 +60,9 @@ class K6Executor(ScenarioExecutor):
             iterations = load.iterations * load.concurrency if load.concurrency else load.iterations
             cmdline += ['--iterations', str(iterations)]
 
+        if load.ramp_up:
+            cmdline += ['--stage', str(int(load.ramp_up)) + "s:" + str(load.concurrency or 1)]
+
         user_cmd = self.settings.get("cmdline")
         if user_cmd:
             cmdline += user_cmd.split(" ")
