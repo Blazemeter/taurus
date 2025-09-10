@@ -54,6 +54,11 @@ class PlaywrightTester(JavaScriptExecutor):
     def __init__(self):
         super(PlaywrightTester, self).__init__()
 
+    def get_script_path(self, required=False, scenario=None):
+        if not self.execution:
+            return "~/.bzt/playwright"
+        return super(PlaywrightTester, self).get_script_path(required, scenario)
+
     def prepare(self):
         self.tools_dir = self.get_launch_cwd()
         super(PlaywrightTester, self).prepare()
