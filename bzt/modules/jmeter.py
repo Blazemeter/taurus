@@ -1679,17 +1679,11 @@ class JMeter(RequiredTool):
         # component name and download link in https://repo1.maven.org/maven2/
         affected_components = {
             # Needs to be <1.4.18 for old Jmeters https://stackoverflow.com/questions/30812293/com-thoughtworks-xstream-security-forbiddenclassexception
-            "xstream": "com/thoughtworks/xstream/xstream/1.4.20/xstream-1.4.20.jar",
-            "jackson-annotations": "com/fasterxml/jackson/core/jackson-annotations/2.15.0/jackson-annotations-2.15.0.jar",
-            "jackson-core": "com/fasterxml/jackson/core/jackson-core/2.15.0/jackson-core-2.15.0.jar",
-            "jackson-databind": "com/fasterxml/jackson/core/jackson-databind/2.15.0/jackson-databind-2.15.0.jar",
-            "json-smart": "net/minidev/json-smart/2.4.8/json-smart-2.4.8.jar",
-            "jsoup": "org/jsoup/jsoup/1.15.3/jsoup-1.15.3.jar",
+            "jsoup": "org/jsoup/jsoup/1.21.1/jsoup-1.21.1.jar",
             "snakeyaml": "org/yaml/snakeyaml/2.0/snakeyaml-2.0.jar",
             "okhttp": "com/squareup/okhttp3/okhttp/4.10.0/okhttp-4.10.0.jar",
-            "commons-text": "org/apache/commons/commons-text/1.10.0/commons-text-1.10.0.jar",
-            "xmlgraphics-commons": "org/apache/xmlgraphics/xmlgraphics-commons/2.8/xmlgraphics-commons-2.8.jar",
-            "xalan-2.7.2": "xalan/xalan/2.7.3/xalan-2.7.3.jar"
+            "commons-text": "org/apache/commons/commons-text/1.14.0/commons-text-1.14.0.jar",
+            "commons-lang3": "org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar",
         }
 
         if LooseVersion(self.version) <= LooseVersion('5.4.3'):  # log4j must be fixed till jmeter 5.4.3
@@ -1817,7 +1811,7 @@ class JMeterMirrorsManager(MirrorsManager):
             select_element = select_search_pattern.findall(self.page_source)
             if select_element:
                 option_elements = option_search_pattern.findall(select_element[0])
-                link_tail = "/jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
+                link_tail = "jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
                 links = [link.strip('<option value="').strip('">') + link_tail for link in option_elements]
         links.append(self.DOWNLOAD_LINK.format(version=self.jmeter_version))
         links.append(self.BZM_REGISTRY_LINK.format(version=self.jmeter_version))

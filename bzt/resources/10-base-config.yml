@@ -44,6 +44,8 @@ modules:
     class: bzt.modules.javascript.NewmanExecutor
   apiritif:
     class: bzt.modules._apiritif.ApiritifNoseExecutor
+  playwright:
+    class: bzt.modules.javascript.PlaywrightTester
 
   # service & infra modules
   local:

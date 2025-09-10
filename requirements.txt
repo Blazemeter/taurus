@@ -1,22 +1,22 @@
-astunparse>=1.6.0
+astunparse>=1.6.3
 colorama; sys_platform == 'win32'
 colorlog
 cssselect
 Cython; python_version >= '3.9'
 fuzzyset2
 hdrpy>=0.3.3
-lxml>=4.6.2
+lxml>=6.0.0
 progressbar33
-psutil>=5.6.6
+psutil>=7.0.0
 pyvirtualdisplay; sys_platform != 'win32'
 pyyaml
-requests>=2.18.1
-urwid==2.6.16
-terminaltables>=3.1.0
-molotov!=2.3
-influxdb >= 5.3
-python-socketio>=5.8.0
+requests>=2.32.4
+urwid>=3.0.2
+terminaltables3>=4.0.0
+molotov>=2.6
+influxdb >= 5.3.2
+python-socketio>=5.13.0
 h11>=0.16.0
-websocket-client>=1.5.1
+websocket-client>=1.8.0
 urllib3==2.5.0
 setuptools==79.0.1

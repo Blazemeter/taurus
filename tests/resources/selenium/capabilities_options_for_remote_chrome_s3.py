@@ -37,6 +37,27 @@ class TestLocScRemote(unittest.TestCase):
         options.add_argument('two')
         options.add_experimental_option('key1', 'value1')
         options.add_experimental_option('key2', {'key22': 'value22'})
+        from selenium.webdriver.remote.remote_connection import RemoteConnection
+        import copy
+        _original_execute = RemoteConnection.execute
+
+        def execute_with_retries(self, command, params=None):
+            params_copy = copy.deepcopy(params)
+            retries = 3
+            delay = 2
+            last_exc = None
+            for attempt in range(retries):
+                try:
+                    if (params != params_copy):
+                        return _original_execute(self, command, params_copy)
+                    else:
+                        return _original_execute(self, command, params)
+                except Exception as e:
+                    last_exc = e
+                    print(f'[Retry] RemoteConnection.execute failed on attempt {(attempt + 1)}: {e}')
+                    sleep(delay)
+            raise last_exc
+        RemoteConnection.execute = execute_with_retries
         self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub',
                                        desired_capabilities={'browserName': 'chrome', 'cap1': 'val1', 'cap2': 'val2'},
                                        options=options)
