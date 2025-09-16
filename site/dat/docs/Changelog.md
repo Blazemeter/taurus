@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.16.46<sup> 16 September 2025</sup>
+- K6 executor updated to 0.45.0
+- Playwright executor added
+- Support for latest Gatling 
+- Dependency fixes (commons-lang3, commons-text, selenium, chromedriver, testng)
+- Migrated to Ubuntu 24.04 and upgraded dependencies
+- Removed custom vulnerability fixes for jmeter and gatling
+
 ## 1.16.45<sup> 21 July 2025</sup>
 - Python has been upgraded to version 3.13.0
 - Remove support for RSpec and WDIO
