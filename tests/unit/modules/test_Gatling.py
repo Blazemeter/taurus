@@ -81,6 +81,58 @@ class TestGatlingExecutor(ExecutorTestCase):
                 "additional-classpath": ["tests/resources/gatling/fake.jar"]}})
         self.assertRaises(ToolError, self.obj.prepare)
 
+    def test_mvn_based_gatling_scala(self):
+        jars = ['tests/resources/gatling/simulations.jar', 'tests/resources/selenium/junit/another_dummy.jar']
+        self.obj.execution.merge({
+            "scenario": {
+                "script": RESOURCES_DIR + "gatling/SimpleSimulation.scala",
+                "additional-classpath": [jars[0]]}})
+
+        path = os.path.abspath(RESOURCES_DIR + "gatling/gatling3" + EXE_SUFFIX)
+        self.obj.settings.merge({"path": path, "version": "3.14.3"})
+
+        self.obj.prepare()
+
+    def test_mvn_based_gatling(self):
+        jars = ['tests/resources/gatling/simulations.jar', 'tests/resources/selenium/junit/another_dummy.jar']
+        self.obj.execution.merge({
+            'files': [
+                jars[0]],
+            'scenario': {
+                "script": RESOURCES_DIR + "gatling/test11.jar",
+                "additional-classpath": [jars[1]],
+                "simulation": "mytest.BasicSimulation"}})
+
+        path = os.path.abspath(RESOURCES_DIR + "gatling/gatling3" + EXE_SUFFIX)
+        self.obj.settings.merge({"path": path, "version": "3.14.3"})
+
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.shutdown()
+
+        if is_windows():
+            expected_lines = [
+                "@echo off\r\n",
+                f"cd {self.obj.tool.tool_dir}\r\n",
+                f"call mvnw.cmd gatling:test -Dgatling.simulationClass=mytest.BasicSimulation -Dgatling.resultsFolder={self.engine.artifacts_dir} %JAVA_OPTS%\r\n"
+            ]
+        else:
+            expected_lines = [
+                "#!/bin/bash\n",
+                f"cd {self.obj.tool.tool_dir}\n",
+                f"./mvnw gatling:test -Dgatling.simulationClass=mytest.BasicSimulation -Dgatling.resultsFolder={self.engine.artifacts_dir} $JAVA_OPTS\n"
+            ]
+
+        modified_launcher = self.obj.tool.tool_path
+        with open(modified_launcher) as modified:
+            modified_lines = modified.readlines()
+
+        assert modified_lines == expected_lines, (
+            f"Launcher script content mismatch!\n"
+            f"Expected:\n{expected_lines}\n"
+            f"Got:\n{modified_lines}"
+        )
+
     def test_additional_classpath(self):
         jars = ("gatling", "simulations.jar"), ("gatling", "deps.jar")
         jars = list(os.path.join(RESOURCES_DIR, *jar) for jar in jars)
@@ -761,9 +813,10 @@ class TestDataLogReader(BZTestCase):
     def test_read(self):
         log_path = RESOURCES_DIR + "gatling/"
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-351')
+        # obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-7')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 23)
-        self.assertEqual(obj.guessed_gatling_version, "3.4+")
+        self.assertEqual(obj.guessed_gatling_version, "3.4")
         self.assertIn('request_1', list_of_values[-1][DataPoint.CUMULATIVE].keys())
 
     def test_read_asserts(self):
@@ -771,7 +824,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-1')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 3)
-        self.assertEqual(obj.guessed_gatling_version, "3.4+")
+        self.assertEqual(obj.guessed_gatling_version, "3.4")
         self.assertIn('ping request', list_of_values[-1][DataPoint.CUMULATIVE].keys())
 
     def test_read_331_format(self):
@@ -779,7 +832,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-331')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 2)
-        self.assertEqual(obj.guessed_gatling_version, "3.3.X")
+        self.assertEqual(obj.guessed_gatling_version, "3.3")
         self.assertIn('request_1', list_of_values[-1][DataPoint.CUMULATIVE].keys())
 
     def test_read_labels_problematic(self):
@@ -787,7 +840,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-2')  # problematic one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 1)
-        self.assertEqual(obj.guessed_gatling_version, "3.4+")
+        self.assertEqual(obj.guessed_gatling_version, "3.4")
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(1, last_cumul['User-Login'][KPISet.SAMPLE_COUNT])
 
@@ -796,7 +849,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-3')  # regular one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 10)
-        self.assertEqual(obj.guessed_gatling_version, "3.4+")
+        self.assertEqual(obj.guessed_gatling_version, "3.4")
         self.assertIn('http://blazedemo.com/', list_of_values[-1][DataPoint.CUMULATIVE].keys())
 
     def test_read_group(self):
@@ -804,7 +857,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-4')  # regular one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 179)
-        self.assertEqual(obj.guessed_gatling_version, "3.4+")
+        self.assertEqual(obj.guessed_gatling_version, "3.4")
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(2, len(last_cumul['[empty]'][KPISet.ERRORS]))
 
@@ -813,7 +866,21 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-5')  # regular one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 1)
-        self.assertEqual(obj.guessed_gatling_version, "3.4+")
+        self.assertEqual(obj.guessed_gatling_version, "3.4")
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['400'])
         self.assertEqual(1, last_cumul[''][KPISet.RESP_CODES]['401'])
+
+    def test_read_binary_log(self):
+        # failing because of the missing name -> it's not initialized correctly
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-6', binary_log=True)
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 3)
+
+    def test_read_binary_groups_log(self):
+        # failing because of the missing name -> it's not initialized correctly
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-8', binary_log=True)
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 6)

@@ -92,6 +92,22 @@ class TestK6Executor(ExecutorTestCase):
         })
         self.assertIn("--iterations 100", self.CMD_LINE)
 
+    def test_ramp_up(self):
+        self.simple_run({
+            "execution": {
+                "ramp-up": "60s",
+                "hold-for": "180s",
+                "concurrency": "10",
+                "scenario": {"script": K6_SCRIPT},
+                "executor": "k6"
+            },
+        })
+        self.assertIn("--stage 60s:10", self.CMD_LINE)
+        self.assertIn("--stage 120s:10", self.CMD_LINE)
+        self.assertNotIn("--iterations", self.CMD_LINE)
+        self.assertNotIn("--duration", self.CMD_LINE)
+        self.assertNotIn("--vu", self.CMD_LINE)
+
     def test_iterations_multiplied(self):
         self.simple_run({
             "execution": {

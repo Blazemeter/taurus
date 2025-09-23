@@ -18,11 +18,17 @@ limitations under the License.
 import codecs
 import os
 import re
-import time
 import shutil
+import struct
+import time
+import xml.etree.ElementTree as ET
 from collections import defaultdict
+from functools import wraps
+from io import BytesIO
+from typing import Any
+from pathlib import Path
+
 from packaging import version
-from packaging.version import InvalidVersion
 
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario
@@ -32,7 +38,6 @@ from bzt.requests_model import HTTPRequest, SetVariables, HierarchicRequestParse
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
 from bzt.utils import CALL_PROBLEMS, convert_body_to_string
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
-from bzt.utils import iteritems, numeric_types
 
 
 class GatlingScriptBuilder(object):
@@ -451,20 +456,6 @@ class GatlingExecutor(ScenarioExecutor):
         self.dir_prefix = "gatling-%s" % id(self)
         self.tool = None
 
-    # def get_cp_from_files(self):
-    #     jar_files = []
-    #     files = self.execution.get('files', [])
-    #     for candidate in files:
-    #         candidate = self.engine.find_file(candidate)
-    #         if os.path.isfile(candidate) and candidate.lower().endswith('.jar'):
-    #             jar_files.append(candidate)
-    #         elif os.path.isdir(candidate):
-    #             for element in os.listdir(candidate):
-    #                 element = os.path.join(candidate, element)
-    #                 if os.path.isfile(element) and element.lower().endswith('.jar'):
-    #                     jar_files.append(element)
-    #
-    #     return jar_files
 
     def get_additional_classpath(self):
         cp = self.get_scenario().get("additional-classpath", [])
@@ -486,10 +477,6 @@ class GatlingExecutor(ScenarioExecutor):
             self.env.add_path({"JAVA_CLASSPATH": element})
             self.env.add_path({"COMPILATION_CLASSPATH": element})
 
-        new_name = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
-        self.log.debug("Building Gatling launcher: %s", new_name)
-        self.tool.build_launcher(new_name)
-
         self.script = self.get_script_path()
         if not self.script:
             if "requests" in scenario:
@@ -498,6 +485,10 @@ class GatlingExecutor(ScenarioExecutor):
                 msg = "There must be a script file or requests for its generation "
                 msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
                 raise TaurusConfigError(msg)
+
+        new_name = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
+        self.log.debug("Building Gatling launcher: %s", new_name)
+        self.tool.build_launcher(new_name, scenario, cpath, self.engine.artifacts_dir, self.script.endswith('scala'))
 
         self.dir_prefix = self.settings.get("dir-prefix", self.dir_prefix)
 
@@ -508,7 +499,7 @@ class GatlingExecutor(ScenarioExecutor):
         if version.parse(self.tool.version) >= version.parse("3.8.0"):
             self._copy_dependencies()
 
-        self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
+        self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix, binary_log=self.tool.is_mvn_gatling())
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -524,7 +515,12 @@ class GatlingExecutor(ScenarioExecutor):
     def _copy_dependencies(self):
         #script + additional jars - using logic for cloud deployment
         self.log.debug("Going to copy test dependencies")
-        target_dir = os.path.join(self.tool.tool_dir, "user-files/lib")
+        if self.tool.is_mvn_gatling():
+            target_dir = os.path.join(self.tool.tool_dir, "lib")
+            os.makedirs(target_dir, exist_ok=True)
+        else:
+            target_dir = os.path.join(self.tool.tool_dir, "user-files/lib")
+
         self.log.debug("target dir: %s", target_dir)
         rfiles = self.resource_files()
         for file in rfiles:
@@ -533,6 +529,14 @@ class GatlingExecutor(ScenarioExecutor):
                 shutil.copy(file, target_dir)
             else:
                 self.log.warning("... gatling dependency not available: %s", file)
+        # copy scala file in case it was generated from yml config or included as a script
+        if self.script.endswith(".scala"):
+            if self.tool.is_mvn_gatling():
+                scala_target_dir = os.path.join(self.tool.tool_dir, "src", "test", "scala")
+            else:
+                scala_target_dir = os.path.join(self.tool.tool_dir, "user-files/simulations")
+            os.makedirs(scala_target_dir, exist_ok=True)
+            shutil.copy(self.script, scala_target_dir)
 
     def _get_simulation_props(self):
         props = {}
@@ -583,7 +587,7 @@ class GatlingExecutor(ScenarioExecutor):
         props.merge(self.settings.get('properties'))
         props.merge(self.get_scenario().get("properties"))
 
-        props['gatling.core.outputDirectoryBaseName'] = self.dir_prefix
+        props['gatling.core.outputDirectoryBaseName'] = self.dir_prefix #this one is not used in mvn gatling
         props['gatling.core.directory.resources'] = self.engine.artifacts_dir
         props['gatling.core.directory.results'] = self.engine.artifacts_dir
 
@@ -712,12 +716,15 @@ class GatlingExecutor(ScenarioExecutor):
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
 
-    def __init__(self, basedir, parent_logger, dir_prefix):
+    def __init__(self, basedir, parent_logger, dir_prefix, binary_log=False):
         super(DataLogReader, self).__init__()
         self.concurrency = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.basedir = basedir
         self.file = FileReader(file_opener=self.open_fds, parent_logger=self.log)
+        self.binary_log = binary_log
+        if self.binary_log:
+            self.binary_log_decoder = BinaryLogReader()
         self.partial_buffer = ""
         self.delimiter = "\t"
         self.dir_prefix = dir_prefix
@@ -741,8 +748,10 @@ class DataLogReader(ResultsReader):
         # [7] ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}
 
         if fields[0].strip() == "USER":
-            if self.guessed_gatling_version < "3.4+":
-                del fields[2]  # ignore obsolete $userId
+            if self.compare_versions(self.guessed_gatling_version, "3.4") < 0:
+                del fields[2] # ignore obsolete $userId
+            # if self.guessed_gatling_version < "3.4+":
+            #     del fields[2]  # ignore obsolete $userId
             if fields[2].strip() == "START":
                 self.concurrency += 1
             elif fields[2].strip() == "END":
@@ -768,7 +777,7 @@ class DataLogReader(ResultsReader):
             error = fields[0]
             r_code = "N/A"
         else:
-            if self.guessed_gatling_version < "3.4+":
+            if self.compare_versions(self.guessed_gatling_version, "3.4") < 0:
                 del fields[0]  # ignore obsolete $userId
             label = fields[0]
             if ',' in label:
@@ -791,7 +800,7 @@ class DataLogReader(ResultsReader):
     def __parse_request(self, fields):
         # see LogFileDataWriter.ResponseMessageSerializer in gatling-core
 
-        if self.guessed_gatling_version < "3.4+":
+        if self.compare_versions(self.guessed_gatling_version,"3.4") < 0:
             del fields[0]  # ignore obsolete $userId
 
         if len(fields) >= 6 and fields[5]:
@@ -832,12 +841,29 @@ class DataLogReader(ResultsReader):
         return _tmp_rc if _tmp_rc.isdigit() else 'N/A'
 
     def _guess_gatling_version(self, fields):
-        if fields and fields[-1].strip() < "3.4":
-            return "3.3.X"
-        elif fields[-1].strip() >= "3.4":
-            return "3.4+"
+        curr_version = fields[-1].strip()
+        try:
+            version.parse(curr_version)
+        except Exception:
+            return None
+        if self.compare_versions(curr_version, "3.4") < 0:
+            return "3.3"
+        elif self.compare_versions(curr_version, "3.10") < 0:
+            return "3.4"
+        elif self.compare_versions(curr_version, "3.11") >= 0:
+            return "3.11"
         else:
             return ""
+
+    def compare_versions(self, v1, v2):
+        parsed1, parsed2 = version.parse(v1), version.parse(v2)
+        if parsed1 < parsed2:
+            return -1
+        elif parsed1 > parsed2:
+            return 1
+        else:
+            return 0
+
 
     def _extract_log_data(self, fields):
         if self.guessed_gatling_version is None:
@@ -851,9 +877,13 @@ class DataLogReader(ResultsReader):
 
         :param last_pass:
         """
-        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
+        if self.binary_log:
+            lines = self.file.get_lines_with_decoder(self.binary_log_decoder, last_pass=last_pass)
+        else:
+            lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
+            #split here, binary decoder could return directly the extracted_log_data??
             self.log.debug("reading line: %s", line)
             if not line.endswith("\n"):
                 self.partial_buffer += line
@@ -886,6 +916,11 @@ class DataLogReader(ResultsReader):
                 if prog.match(fname):
                     filename = os.path.join(self.basedir, fname, "simulation.log")
                     break
+            # find simulation.log everywhere in case of binary log
+            if not filename and self.binary_log:
+                logfiles = [str(f) for f in Path(self.basedir).rglob("simulation.log")]
+                if logfiles:
+                    filename = logfiles[0]
 
             if not filename or not os.path.isfile(filename):
                 self.log.debug('simulation.log not found')
@@ -910,18 +945,43 @@ class Gatling(RequiredTool):
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
     VERSION = "3.9.5"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
+    LOCAL_PATH_MVN = "~/.bzt/gatling-taurus/{version}/gatling{suffix}"
+    LOCAL_PATH_MVN_POM = "~/.bzt/gatling-taurus/{version}/pom.xml"
 
     def __init__(self, config=None, **kwargs):
         settings = config or {}
         version = settings.get("version", self.VERSION)
-        def_path = self.LOCAL_PATH.format(version=version, suffix=EXE_SUFFIX)
+        if self.is_mvn_gatling(version):
+            def_path = self.LOCAL_PATH_MVN.format(version=version, suffix=EXE_SUFFIX)
+            level = 1
+        else:
+            def_path = self.LOCAL_PATH.format(version=version, suffix=EXE_SUFFIX)
+            level = 2
         gatling_path = get_full_path(settings.get("path", def_path))
         download_link = settings.get("download-link", self.DOWNLOAD_LINK).format(version=version)
         super(Gatling, self).__init__(tool_path=gatling_path, download_link=download_link, version=version, **kwargs)
 
-        self.tool_dir = get_full_path(self.tool_path, step_up=2)
+        self.tool_dir = get_full_path(self.tool_path, step_up=level)
+
+    def is_mvn_gatling(self, ver=None):
+        #from version 3.11.0 gatling is available as maven plugin only
+        ver_str = ver if ver is not None else self.version
+        return version.parse(ver_str) >= version.parse("3.11.0")
 
     def check_if_installed(self):
+        if self.is_mvn_gatling():
+            return self.check_if_installed_mvn()
+        else:
+            return self.check_if_installed_old()
+
+    def check_if_installed_mvn(self):
+        self.log.debug("Trying Gatling (mvn)...")
+        if os.path.exists(self.tool_dir + os.sep + "mvnw"):
+            return True
+        self.log.debug("File not exists: %s", self.tool_dir + os.sep + "pom.xml")
+        return False
+
+    def check_if_installed_old(self):
         self.log.debug("Trying Gatling...")
         try:
             out, err = self.call([self.tool_path, '--help'])
@@ -935,18 +995,156 @@ class Gatling(RequiredTool):
         return True
 
     def install(self):
-        dest = get_full_path(self.tool_path, step_up=2)
+        dest = get_full_path(self.tool_path, step_up=1 if self.is_mvn_gatling() else 2)
         self.log.info("Will install %s into %s", self.tool_name, dest)
         gatling_dist = self._download(use_link=True)
         self.log.info("Unzipping %s", gatling_dist)
         unzip(gatling_dist, dest, 'gatling-charts-highcharts-bundle-' + self.version)
         os.remove(gatling_dist)
-        os.chmod(get_full_path(self.tool_path), 0o755)
+        if self.is_mvn_gatling():
+            os.chmod(get_full_path(self.tool_dir + os.sep + "mvnw"), 0o755)
+        else:
+            os.chmod(get_full_path(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
-    def build_launcher(self, new_name):  # legacy, for v2 only
+    def build_launcher(self, new_name, scenario, cpath, log_folder, needs_scala_plugin=False):
+        if self.is_mvn_gatling():
+            self.build_mvn_launcher(new_name, scenario.get('simulation', None), log_folder)
+            files = list(cpath)
+            if scenario.data.get('script', "").endswith(".jar"):
+                files.append(scenario.data.get('script', None))
+            self.patch_mvn_config(files, needs_scala_plugin)
+        else:
+            self.build_launcher_sh(new_name)
+
+    def patch_mvn_config(self, additional_jars, needs_scala_plugin):
+        """
+        Patch the Maven config file to use the correct simulation class
+        """
+
+        # 1) check if pom_bacup.xml exists -> if not create it as copy of original pom.xml
+        if not os.path.exists(self.tool_dir + os.sep + "pom_backup.xml"):
+            shutil.copy(self.tool_dir + os.sep + "pom.xml", self.tool_dir + os.sep + "pom_backup.xml")
+        # 2) delete original pom.xml
+        os.remove(self.tool_dir + os.sep + "pom.xml")
+        # 3) create new pom.xml from backup with added dependency
+        shutil.copy(self.tool_dir + os.sep + "pom_backup.xml", self.tool_dir + os.sep + "pom.xml")
+
+        ET.register_namespace('', "http://maven.apache.org/POM/4.0.0")
+        tree = ET.parse(self.tool_dir + os.sep + "pom_backup.xml")
+        root = tree.getroot()
+
+        ns = {'m': 'http://maven.apache.org/POM/4.0.0'}
+        # ns = {'m': root.tag.split('}')[0].strip('{')} #otestovat dynamicke ziskavani namespacu
+
+        if needs_scala_plugin:
+            self._add_scala_plugin(root, ns)
+
+        dependencies = root.find('m:dependencies', ns)
+        if dependencies is None:
+            dependencies = ET.SubElement(root, '{http://maven.apache.org/POM/4.0.0}dependencies')
+
+        #put dependency for each additional jar in classpath
+        for jar_path in additional_jars:
+            dependency = ET.Element('{http://maven.apache.org/POM/4.0.0}dependency')
+            gid = ET.SubElement(dependency, '{http://maven.apache.org/POM/4.0.0}groupId')
+            gid.text = "generated.groupId"
+            aid = ET.SubElement(dependency, '{http://maven.apache.org/POM/4.0.0}artifactId')
+            aid.text = "generated.artifactId"
+            ver = ET.SubElement(dependency, '{http://maven.apache.org/POM/4.0.0}version')
+            ver.text = "1.0"
+            scope = ET.SubElement(dependency, '{http://maven.apache.org/POM/4.0.0}scope')
+            scope.text = 'system'
+            system_path = ET.SubElement(dependency, '{http://maven.apache.org/POM/4.0.0}systemPath')
+            system_path.text = self.tool_dir + os.sep + "lib" + os.sep + os.path.basename(jar_path)
+            dependencies.append(dependency)
+
+        tree.write(self.tool_dir +os.sep + "pom.xml", encoding='utf-8', xml_declaration=True)
+
+
+    def _add_scala_plugin(self, root, ns):
+        build = root.find("m:build", ns)
+        if build is None:
+            build = ET.SubElement(root, "build")
+
+        plugins = build.find("m:plugins", ns)
+        if plugins is None:
+            plugins = ET.SubElement(build, "plugins")
+
+        exists = any(
+            (p.find("m:artifactId", ns) is not None and p.find("m:artifactId", ns).text == "scala-maven-plugin")
+            for p in plugins.findall("m:plugin", ns)
+        )
+
+        if not exists:
+            plugin = ET.SubElement(plugins, "plugin")
+
+            gid = ET.SubElement(plugin, "groupId")
+            gid.text = "net.alchim31.maven"
+
+            aid = ET.SubElement(plugin, "artifactId")
+            aid.text = "scala-maven-plugin"
+
+            ver = ET.SubElement(plugin, "version")
+            ver.text = "4.8.1"
+
+            executions = ET.SubElement(plugin, 'executions')
+            execution = ET.SubElement(executions, 'execution')
+
+            goals = ET.SubElement(execution, 'goals')
+            goal = ET.SubElement(goals, 'goal')
+            goal.text = "testCompile"
+
+            configuration = ET.SubElement(execution, 'configuration')
+
+            jvm_args = ET.SubElement(configuration, 'jvmArgs')
+            jvm_arg = ET.SubElement(jvm_args, 'jvmArg')
+            jvm_arg.text = "-Xss100M"
+
+            args = ET.SubElement(configuration, 'args')
+            for arg_value in ["-deprecation", "-feature", "-unchecked", "-language:implicitConversions", "-language:postfixOps"]:
+                arg = ET.SubElement(args, 'arg')
+                arg.text = arg_value
+
+
+    def build_mvn_launcher(self, new_name, simulation_class, log_folder):
+        self.tool_path = new_name
+
+        if is_windows():
+            # Windows .bat
+            run_line = (
+                f"call mvnw.cmd gatling:test "
+                f"-Dgatling.simulationClass={simulation_class} "
+                f"-Dgatling.resultsFolder={log_folder} %JAVA_OPTS%"
+            )
+            content = (
+                "@echo off\n"
+                f"cd {self.tool_dir}\n"
+                f"{run_line}\n"
+            )
+        else:
+            # Unix .sh
+            run_line = (
+                f"./mvnw gatling:test "
+                f"-Dgatling.simulationClass={simulation_class} "
+                f"-Dgatling.resultsFolder={log_folder} $JAVA_OPTS"
+            )
+            content = (
+                "#!/bin/bash\n"
+                f"cd {self.tool_dir}\n"
+                f"{run_line}\n"
+            )
+
+            with open(self.tool_path, 'w') as modified:
+                modified.write(content)
+
+            if not is_windows():
+                os.chmod(self.tool_path, 0o755)
+
+
+    def build_launcher_sh(self, new_name):  # legacy, for v2 only
         modified_lines = []
         mod_success = False
 
@@ -995,3 +1193,190 @@ class Gatling(RequiredTool):
 
         if not is_windows():
             os.chmod(self.tool_path, 0o755)
+
+
+class BinaryLogReader(object):
+
+
+    def __init__(self):
+        self.scenarios = []
+        self.test = True
+        self.string_cache = {}
+        self.run_start_time = None
+
+    def read_int(self, file):
+        return struct.unpack('>i', file.read(4))[0]
+
+    def read_long(self, file):
+        return struct.unpack('>q', file.read(8))[0]
+
+    def read_boolean(self, file):
+        return struct.unpack(">?", file.read(1))[0]
+
+    def read_string(self, file):
+        length = self.read_int(file)
+        if length == 0:
+            return ""
+        data = file.read(length)
+        coder = struct.unpack("B", file.read(1))[0]
+
+        if coder == 0:
+            # Java "LATIN1" / Gatling use UTF-8 safe
+            return data.decode("latin-1")
+        elif coder == 1:
+            # Java "UTF16"
+            return data.decode("utf-16-be")
+        else:
+            raise ValueError(f"Unknown coder value: {coder}")
+
+    def read_cached_string(self, file):
+        idx = self.read_int(file)
+        if idx >= 0:
+            s = self.read_string(file)
+            self.string_cache[idx] = s
+            return s
+        else:
+            return self.string_cache[-idx]
+
+    def read_byte_buffer(self, file):
+        length = self.read_int(file)
+        return file.read(length)  # not parsing content (it's Pickle)
+
+    def read_groups(self, file):
+        count = self.read_int(file)
+        return [self.read_cached_string(file) for _ in range(count)]
+
+    @staticmethod
+    def with_bytes_read(parse_func):
+        @wraps(parse_func)
+        def wrapper(self, f, *args, **kwargs):
+            start = f.tell()
+            obj = parse_func(self, f, *args, **kwargs)
+            end = f.tell()
+            return obj, (end - start + 1)  # +1 for the record type byte
+        return wrapper
+
+
+    @with_bytes_read
+    def parse_run_message(self, f):
+        run = {"gatlingVersion": self.read_string(f),
+               "simulationClassName": self.read_string(f),
+               "start": self.read_long(f),
+               "runDescription": self.read_string(f)}
+        self.run_start_time = run["start"]
+
+        # scenario
+        scenario_count = self.read_int(f)
+        scenarios = []
+        for _ in range(scenario_count):
+            scenarios.append(self.read_string(f))
+        run["scenarios"] = scenarios
+        self.scenarios = scenarios
+
+        # assertions
+        assertion_count = self.read_int(f)
+        assertions = []
+        for _ in range(assertion_count):
+            assertions.append(self.read_byte_buffer(f))
+        run["assertions_raw"] = assertions
+        return run
+
+    @with_bytes_read
+    def parse_user_message(self, f):
+
+        scenario = self.scenarios[self.read_int(f)]
+        start = self.read_boolean(f)  # start
+        timestamp = self.read_int(f) + self.run_start_time  #offset + run_start
+
+        result = {
+            'scenario': scenario,
+            'start': start,  # boolean
+            'timestamp': timestamp
+        }
+
+        return result
+
+    @with_bytes_read
+    def parse_request_message(self, f) -> dict[str, Any]:
+        group_hierarchy = self.read_groups(f)
+        name = self.read_cached_string(f)
+        start_ts = self.read_int(f) + self.run_start_time
+        end_ts = self.read_int(f) + self.run_start_time
+        status = self.read_boolean(f)
+        message = self.read_cached_string(f)
+
+        return {
+            "type": "Response",
+            "groupHierarchy": group_hierarchy,
+            "name": name,
+            "start": start_ts,
+            "end": end_ts,
+            "status": "OK" if status else "KO",
+            "message": message,
+        }
+
+    @with_bytes_read
+    def parse_group_message(self, f):
+        group_hierarchy = self.read_groups(f)
+        start_ts = self.read_int(f) + self.run_start_time
+        end_ts = self.read_int(f) + self.run_start_time
+        cumulated_response_time = self.read_int(f)
+        status = self.read_boolean(f)
+
+        return {
+            "type": "Group",
+            "groupHierarchy": group_hierarchy,
+            "start": start_ts,
+            "end": end_ts,
+            "cumulatedResponseTime": cumulated_response_time,
+            "status": "OK" if status else "KO",
+            "duration": end_ts - start_ts,
+        }
+
+    @with_bytes_read
+    def parse_error_message(self, f):
+        message = self.read_cached_string(f)
+        timestamp = self.read_int(f) + self.run_start_time
+
+        return {
+            # update based on gatling sources
+            "message": message,
+            "timestamp": timestamp
+        }
+
+    def read_log_object(self, file, buffer):
+        """
+        Read binary log file
+        :param file: file object
+        :param buffer: int, max number of records to read
+        :return: string, int
+        """
+        counter = 0
+        while True:
+            if 0 < buffer < (counter := counter + 1):
+                return None
+            header = file.read(1)
+            if not header:
+                return None # EOF
+            record_type = header[0]
+            if record_type == 0:
+                data, size = self.parse_run_message(file)
+                yield f"Run\t {data['simulationClassName']} \t {data['runDescription']} \t\t {data['gatlingVersion']} \n", size
+            elif record_type == 1:
+                data, size = self.parse_request_message(file)
+                gh = ",".join(data["groupHierarchy"])
+                yield f"REQUEST\t{gh}\t{data['name']}\t{data['start']}\t{data['end']}\t{data['status']}\t{data['message']}\n", size
+            elif record_type == 2:
+                data, size = self.parse_user_message(file)
+                status = "START" if data['start'] else "END"
+                yield f"USER\t {data['scenario']} \t {status} \t {data['timestamp']} \t {data['timestamp']} \n", size
+            elif record_type == 3:
+                data, size =  self.parse_group_message(file)
+                yield f"GROUP\t{','.join(data['groupHierarchy'])}\t{data['start']}\t{data['end']}\t{data['cumulatedResponseTime']}\t{data['status']}\n", size
+            elif record_type == 4:
+                data, size = self.parse_error_message(file)
+                yield f"Error\t{data['message']}\t{data['timestamp']}\n", size
+            else:
+                raise ValueError(f"Unknown record header: {record_type}")
+
+
