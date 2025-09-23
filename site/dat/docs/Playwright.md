@@ -1,15 +1,16 @@
 # Playwright Executor
+
 Allows running tests written in TypeScript based on Playwright.
 
-Taurus can loop test suite execution in a loop until desired number of `iterations` will complete. Also number of
-concurrent users (aka workers in Playwright) can be specified using `concurrency`. 
+Taurus can repeat test suite execution in a loop until the desired number of `iterations` has completed. 
+Specify the number of concurrent users (known as workers in Playwright) using the `concurrency` option. 
 
-You may specify `BASE_URL` in `settings` section to be pass to your test as an environment variable.
+Optionally, specify the `BASE_URL` in the `settings` section to be passed to your test as an environment variable.
 
-It is possible to override the browser settings from your Playwright test configuration by using the `browser` option, e.g.,
-you may enter one of these: `chromium`, `firefox`, `webkit`.
+It is possible to override the browser settings from your Playwright test configuration by using the `browser` option, for example,
+enter one of these: `chromium`, `firefox`, `webkit`.
 
-A single test from the suite may be selected to be executed using the `test` field.
+To select a single test from the suite  to be executed, use the `test` field.
 
 ## Usage
 ```yaml
@@ -25,19 +26,20 @@ settings:
 
 scenarios:
     playwright_test:
-        script: example.spec.ts # points to the file with tests
+        script: example.spec.ts # points to the TypeScript file with tests
         browser: firefox
-        test: has title # can be omitted to run all tests
+        test: has title # Omit the test name to run all tests. Here, "has title" is the name of the test.
 ```
 
 ## Playwright project
 
-Your project will need to consist of at least these files:
-* package.json - lists the dependencies of the project, these are then installed automatically when executing it using the Taurus Playwright executor
+Your project must consist of at least these files:
+* package.json - lists the dependencies of the project, these are then installed automatically when executing the test using the Taurus Playwright executor
 * playwright.config.ts - Playwright configuration file
 * actual file or files with tests, see example below
 
-Example of Playwright configuration file:
+The following code snippet is an example of a Playwright configuration file:
+
 ```javascript
 import { defineConfig, devices } from '@playwright/test';
 
@@ -89,7 +91,8 @@ export default defineConfig({
 ```
 
 
-Basic example of Playwright test:
+The following code snippet is an example of a basic Playwright test "has title" that tests whether a web page title contains a substring:
+
 ```javascript
 import { test, expect } from '@playwright/test';
 
@@ -102,7 +105,7 @@ test('has title', async ({ page }) => {
 
 ```
 
-You can also find an example of the complete Playwright-based test suite and Taurus config to run it with
-in [examples/playwright](https://github.com/Blazemeter/taurus/tree/master/examples/playrwright)
+You can also find an example of a complete Playwright-based test suite, and the Taurus config to run it with,
+in the [examples/playwright](https://github.com/Blazemeter/taurus/tree/master/examples/playrwright)
 folder of Taurus's repo.
 
