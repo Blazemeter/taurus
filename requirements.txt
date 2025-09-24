@@ -2,7 +2,6 @@ astunparse>=1.6.3
 colorama; sys_platform == 'win32'
 colorlog
 cssselect
-Cython; python_version >= '3.9'
 fuzzyset2
 hdrpy>=0.3.3
 lxml>=6.0.0
@@ -19,4 +18,3 @@ python-socketio>=5.13.0
 h11>=0.16.0
 websocket-client>=1.8.0
 urllib3==2.5.0
-setuptools==79.0.1

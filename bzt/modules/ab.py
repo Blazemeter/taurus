@@ -208,7 +208,7 @@ class ApacheBenchmark(RequiredTool):
         super(ApacheBenchmark, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def _get_version(self, output):
-        version = re.findall("Version\s(\S+)\s", output)
+        version = re.findall(r"Version\s(\S+)\s", output)
         if not version:
             self.log.warning("%s tool version parsing error: %s", self.tool_name, output)
         else:
