@@ -13,12 +13,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import json
 import os
 from abc import abstractmethod
+from datetime import datetime
 
 from bzt import TaurusConfigError
 from bzt.modules import SubprocessedExecutor
-from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR
+from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
+from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR, FileReader
 from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time, iteritems
 
 
@@ -40,6 +43,128 @@ class JavaScriptExecutor(SubprocessedExecutor):
 
     @abstractmethod
     def get_launch_cwd(self, *args):
+        pass
+
+
+class PlaywrightTester(JavaScriptExecutor):
+
+    """
+    Playwright tests runner
+    """
+    def __init__(self):
+        super(PlaywrightTester, self).__init__()
+
+    def get_script_path(self, required=False, scenario=None):
+        if not self.execution:
+            return "~/.bzt/playwright"
+        return super(PlaywrightTester, self).get_script_path(required, scenario)
+
+    def prepare(self):
+        self.tools_dir = self.get_launch_cwd()
+        super(PlaywrightTester, self).prepare()
+
+        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
+        self.script = self.get_script_path()
+        if not self.script:
+            raise TaurusConfigError("Script not passed to runner %s" % self)
+        self.reader = PlaywrightLogReader(self.engine.artifacts_dir + "/playwright.out", self.log)
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.engine.aggregator.add_underling(self.reader)
+
+        self.install_required_tools()
+
+    def install_required_tools(self):
+        tcl_lib = self._get_tool(TclLibrary)
+        self.node = self._get_tool(Node)
+        self.npm = self._get_tool(NPM)
+
+        node_npx_module = self._get_tool(NodeNPXModule, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
+        playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.get_launch_cwd())
+
+        npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.get_launch_cwd())
+
+        tools = [tcl_lib, self.node, self.npm, node_npx_module, npm_all_packages, playwright]
+        self._check_tools(tools)
+
+    def get_launch_cmdline(self, *args):
+        return "npx playwright test " + self.get_script_path() + ' ' + ' '.join(args[0])
+
+    def get_launch_cwd(self, *args):
+        script_path = self.get_script_path()
+        if os.path.isfile(script_path):
+            script_path = os.path.dirname(script_path)
+        return script_path
+
+    def startup(self):
+        config = self.get_scenario().engine.config
+        env = config["settings"]["env"]
+        if "BASE_URL" in env:
+            self.env.set({"BASE_URL": env["BASE_URL"]})
+        if isinstance(config["execution"], dict):
+            concurrency = config["execution"].get("concurrency", 1)
+            iterations = config["execution"].get("iterations", 1)
+        else:
+            concurrency = config["execution"][0].get("concurrency", 1)
+            iterations = config["execution"][0].get("iterations", 1)
+
+        if isinstance(concurrency, dict):
+            concurrency = concurrency.get("local", 1)
+
+        reporter = "json"
+
+        options = ["--reporter " + reporter,
+                   "--output " + self.engine.artifacts_dir + "/test-output",
+                   "--workers " + str(concurrency),
+                   "--repeat-each " + str(iterations)]
+
+        if "browser" in self.get_scenario().data:
+            options.append("--project=" + self.get_scenario().data["browser"])
+        if "test" in self.get_scenario().data:
+            options.append("-g '" + self.get_scenario().data["test"] + "'")
+
+        cmd_line = self.get_launch_cmdline(options)
+        self.log.info("Launching Playwright: '%s'", cmd_line)
+        self.process = self._execute(cmd_line, cwd=self.get_launch_cwd())
+
+    def has_results(self):
+        return True
+
+
+class PlaywrightLogReader(ResultsReader):
+
+    def __init__(self, filename, parent_logger):
+        super(PlaywrightLogReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.filename = filename
+        self.has_reported = False
+
+    def _read(self, final_pass=False):
+        if final_pass:
+            if self.has_reported:
+               yield None
+            self.file = FileReader(filename=self.filename, parent_logger=self.log)
+            self.lines = list(self.file.get_lines(last_pass=final_pass))
+            content = json.loads("\n".join(self.lines))
+            concurrency = content.get("config", {}).get("metadata", {}).get("actualWorkers")
+
+            suites = content.get("suites", [])
+            for suite in suites:
+                specs = suite.get("specs", [])
+                for spec in specs:
+                    label = spec.get("title", "unknown")
+                    tests = spec.get("tests", [])
+                    for test in tests:
+                        results = test.get("results", [])
+                        if len(results) > 0:
+                            start_time = results[0].get("startTime")
+                            timestamp = datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()
+                            duration = results[0].get("duration", 0) / 1000
+                            errors = None
+                            errs = results[0].get("errors")
+                            if len(errs) > 0:
+                                errors = ", ".join(errs)
+                            yield timestamp, label, concurrency, duration, None, None, None, errors, None, None
+                self.has_reported = True
         pass
 
 
@@ -218,6 +343,29 @@ class NPM(RequiredTool):
         return False
 
 
+class PLAYWRIGHT(RequiredTool):
+    def __init__(self, tools_dir, **kwargs):
+        super(PLAYWRIGHT, self).__init__(installable=True, **kwargs)
+        self.tools_dir = tools_dir
+
+    def check_if_installed(self):
+        # currently there seems to be no reliable way to find out whether all Playwright requirements are installed
+        return False
+
+    def install(self):
+        cmdline = ["npx", "playwright", "install", "--with-deps"]
+
+        try:
+            out, err = self.call(cmdline,cwd=self.tools_dir)
+        except CALL_PROBLEMS as exc:
+            self.log.debug("%s install failed: %s", "package", exc)
+            return
+
+        self.log.debug("%s install stdout: %s", self.tool_name, out)
+        if err:
+            self.log.warning("%s install stderr: %s", self.tool_name, err)
+
+
 class NPMPackage(RequiredTool):
     PACKAGE_NAME = ""
 
@@ -309,6 +457,12 @@ class NPMLocalModulePackage(NPMPackage):
             self.log.warning("%s install stderr: %s", self.tool_name, err)
 
 
+class NPMModuleInstaller(NPMLocalModulePackage):
+    def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
+        super(NPMModuleInstaller, self).__init__(tools_dir, node_tool, npm_tool, **kwargs)
+        self.package_local_path = tools_dir
+
+
 class Mocha(NPMPackage):
     PACKAGE_NAME = "mocha@10.6.0"
 
@@ -325,6 +479,9 @@ class Newman(NPMPackage):
     def __init__(self, tools_dir="", **kwargs):
         tool_path = "%s/node_modules/%s/bin/newman.js" % (tools_dir, self.PACKAGE_NAME)
         super(Newman, self).__init__(tool_path=tool_path, tools_dir=tools_dir, **kwargs)
+
+class NodeNPXModule(NPMModulePackage):
+    PACKAGE_NAME = "npx@11.4.2"
 
 
 class TaurusMochaPlugin(RequiredTool):

@@ -56,15 +56,24 @@ class K6Executor(ScenarioExecutor):
             cmdline = [self.k6.tool_name, "run", "--out", f"csv={self.kpi_file}"]
 
         load = self.get_load()
-        if load.concurrency:
-            cmdline += ['--vus', str(load.concurrency)]
+        #using stages with duration/iteration is not allowed
+        if load.ramp_up:
+            cmdline += ['--stage', str(int(load.ramp_up)) + "s:" + str(load.concurrency or 1)]
+            if load.hold:
+                cmdline += ['--stage', str(int(load.hold) - int(load.ramp_up)) + "s:" + str(load.concurrency or 1)]
+        else:
+            if load.concurrency:
+                cmdline += ['--vus', str(load.concurrency)]
 
-        if load.hold:
-            cmdline += ['--duration', str(int(load.hold)) + "s"]
+            if load.hold:
+                cmdline += ['--duration', str(int(load.hold)) + "s"]
+                if load.iterations:
+                    self.log.warning("K6 doesn't support iterations with duration, ignoring iterations")
+            elif load.iterations:
+                iterations = load.iterations * load.concurrency if load.concurrency else load.iterations
+                cmdline += ['--iterations', str(iterations)]
 
-        if load.iterations:
-            iterations = load.iterations * load.concurrency if load.concurrency else load.iterations
-            cmdline += ['--iterations', str(iterations)]
+        cmdline += ['--no-usage-report']
 
         user_cmd = self.settings.get("cmdline")
         if user_cmd:

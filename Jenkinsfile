@@ -3,7 +3,7 @@
 pipeline {
     agent {
         docker {
-            label 'generalNodes'
+            label 'blazect-google-agent2'
             image 'us.gcr.io/verdant-bulwark-278/jenkins-docker-agent:taurus-agent-2'
             args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
         }
