@@ -469,6 +469,7 @@ class GatlingExecutor(ScenarioExecutor):
         scenario = self.get_scenario()
 
         self.env.set({"GATLING_HOME": self.tool.tool_dir})
+        self.env.set({"MVN_OPTS": self.settings.get("mvn-opts", "")})
 
         cpath = self.get_additional_classpath()
         self.log.debug("Classpath for Gatling: %s", cpath)
@@ -1127,7 +1128,7 @@ class Gatling(RequiredTool):
         else:
             # Unix .sh
             run_line = (
-                f"./mvnw gatling:test "
+                f"eval ./mvnw gatling:test "
                 f"-Dgatling.simulationClass={simulation_class} "
                 f"-Dgatling.resultsFolder={log_folder} $JAVA_OPTS"
             )
