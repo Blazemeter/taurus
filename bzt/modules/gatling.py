@@ -1127,7 +1127,7 @@ class Gatling(RequiredTool):
         else:
             # Unix .sh
             run_line = (
-                f"./mvnw gatling:test "
+                f"eval ./mvnw gatling:test "
                 f"-Dgatling.simulationClass={simulation_class} "
                 f"-Dgatling.resultsFolder={log_folder} $JAVA_OPTS"
             )
