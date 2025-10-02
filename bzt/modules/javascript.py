@@ -115,7 +115,7 @@ class PlaywrightTester(JavaScriptExecutor):
         options = ["--reporter " + reporter,
                    "--output " + self.engine.artifacts_dir + "/test-output",
                    "--workers " + str(concurrency),
-                   "--repeat-each " + str(iterations)]
+                   "--repeat-each " + str(concurrency*iterations)]
 
         if "browser" in self.get_scenario().data:
             options.append("--project=" + self.get_scenario().data["browser"])
@@ -163,7 +163,7 @@ class PlaywrightLogReader(ResultsReader):
                             errs = results[0].get("errors")
                             if len(errs) > 0:
                                 errors = ", ".join(errs)
-                            yield timestamp, label, concurrency, duration, None, None, None, errors, None, None
+                            yield timestamp, label, concurrency, duration, None, duration, duration, errors, None, None
                 self.has_reported = True
         pass
 
@@ -353,15 +353,22 @@ class PLAYWRIGHT(RequiredTool):
         return False
 
     def install(self):
-        cmdline = ["npx", "playwright", "install", "--with-deps"]
+        cmd_line = ["npx", "playwright", "install"]
+        self.install_cmd(cmd_line + ["--with-deps"])
+        self.install_cmd(cmd_line)
+        self.install_cmd(cmd_line + ["chromium"])
+        self.install_cmd(cmd_line + ["firefox"])
+        self.install_cmd(cmd_line + ["webkit"])
 
+    def install_cmd(self, cmdline):
+        self.log.debug("Installing Playwright: %s", cmdline)
         try:
             out, err = self.call(cmdline,cwd=self.tools_dir)
         except CALL_PROBLEMS as exc:
-            self.log.debug("%s install failed: %s", "package", exc)
+            self.log.warning("'%s' install failed: %s", cmdline, exc)
             return
-
-        self.log.debug("%s install stdout: %s", self.tool_name, out)
+        if out:
+            self.log.debug("%s install stdout: %s", self.tool_name, out)
         if err:
             self.log.warning("%s install stderr: %s", self.tool_name, err)
 
