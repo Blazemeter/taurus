@@ -469,7 +469,6 @@ class GatlingExecutor(ScenarioExecutor):
         scenario = self.get_scenario()
 
         self.env.set({"GATLING_HOME": self.tool.tool_dir})
-        self.env.set({"MVN_OPTS": self.settings.get("mvn-opts", "")})
 
         cpath = self.get_additional_classpath()
         self.log.debug("Classpath for Gatling: %s", cpath)
