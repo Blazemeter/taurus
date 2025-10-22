@@ -242,15 +242,18 @@ RUN apt-get remove -y \
            /usr/share/doc
 
 # update dotnet metadata to make scanners happy
-#RUN if [ -f /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json ]; then \
-#      sed -i 's/17\.3\.4/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; \
-#    fi
-#RUN if [ -f /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-watch/8.0.412-servicing.25320.8/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json ]; then \
-#      sed -i 's/17\.3\.4/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-watch/8.0.412-servicing.25320.8/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; \
-#    fi
-#RUN if [ -f /usr/share/dotnet/sdk/8.0.412/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json ]; then \
-#      sed -i 's/17\.7\.2/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json; \
-#    fi
+RUN if [ -f  /usr/share/dotnet/sdk/8.0.415/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json ]; then \
+      sed -i 's/17\.7\.2/17.14.28/g'  /usr/share/dotnet/sdk/8.0.415/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json; \
+    fi
+RUN if [ -f /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json ]; then \
+      sed -i 's/17\.3\.4/17.14.28/g' /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; \
+    fi \
+RUN if [ -f /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-watch/8.0.415-servicing.25475.18/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json ]; then \
+      sed -i 's/17\.3\.4/17.14.28/g' /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-watch/8.0.415-servicing.25475.18/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; \
+    fi
+RUN if [ -f /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-format/dotnet-format.deps.json ]; then \
+      sed -i 's/17\.11\.31/17.14.28/g' /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-format/dotnet-format.deps.json; \
+    fi
 
 # Remove security-sensitive files
 WORKDIR /root/.bzt/python-packages/3.12.3/gevent/tests
