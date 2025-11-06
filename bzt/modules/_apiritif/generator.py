@@ -32,6 +32,8 @@ from bzt.requests_model import IncludeScenarioBlock, SetUpBlock, TearDownBlock
 from bzt.utils import iteritems, dehumanize_time, ensure_is_dict, BetterDict
 from .ast_helpers import ast_attr, ast_call, gen_empty_line_stmt, gen_store, gen_subscript, gen_try_except, gen_raise
 from .jmeter_functions import JMeterExprCompiler
+import os
+from urllib.parse import urlparse
 
 
 def normalize_class_name(text):
@@ -1103,16 +1105,19 @@ from selenium.webdriver.common.keys import Keys
         return dehumanize_time(self.scenario.get("timeout", "30s"))
 
     def _gen_webdriver(self):
-        self.log.debug("Generating setUp test method")
+        self.log.error("Generating setUp test method")
 
         browser = self._check_platform()
+        self.log.error(f"DEV DEV DEV: Browser selected: {browser}")
         body = [self._get_options(browser)]
+        browserName = self.capabilities.get("browserName", "").lower()
         if browser == 'chrome' and LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
             service = self._get_service(browser)
             if service:
                 body.extend(self._get_service(browser))
 
         if browser == 'firefox':
+            self.log.error("DEV DEV DEV: firefox")
             body.extend(self._gen_remote_patch_ast())
             if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
                 body.extend(self._get_firefox_profile_v410() + [self._get_firefox_webdriver_4_10()])
@@ -1122,6 +1127,42 @@ from selenium.webdriver.common.keys import Keys
                 body.extend(self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
         elif browser == 'chrome':
+            self.log.error("DEV DEV DEV: chrome")
+            browser_version_str = self.capabilities.get('browserVersion', 'default')
+            self.log.error(f"DEV DEV DEV: browser version type: {type(browser_version_str)}")
+            self.log.error(f"DEV DEV DEV: browser version: {browser_version_str}")
+            browser_version_num = 136
+            if browser_version_str == 'default':
+                browser_version_num = 136  # treat default as latest Chrome (136+)
+            else:
+                try:
+                    browser_version_num = int(browser_version_str.split('.')[0])
+                except Exception as e:
+                    self.log.error(f"DEV DEV DEV: Exception: {e}")
+                    browser_version_num = 136
+
+            proxy_user = None
+            proxy_pass = None
+            if browser_version_num >= 136:
+                proxy_info = self._get_proxy_info()
+                self.log.error(f"DEV DEV DEV: proxy_info: {proxy_info}")
+                proxy_user = proxy_info.get("username") if proxy_info else None
+                proxy_pass = proxy_info.get("password") if proxy_info else None
+
+            if proxy_user and proxy_pass:
+                self.log.error("DEV DEV DEV: Adding Extension..")
+                extension_dir = self._create_proxy_auth_extension(proxy_user, proxy_pass)
+                self.log.error(f"DEV DEV DEV: extension_dir: {extension_dir}")
+                if extension_dir:
+                    body.extend([
+                        ast.Assign(
+                            targets=[ast.Name(id='extension_dir', ctx=ast.Store())],
+                            value=ast.Constant(value=extension_dir, kind=None)
+                        )
+                    ])
+                    body.extend([
+                        self._get_chrome_load_extension_ast('extension_dir')
+                    ])
             body.extend(self._gen_remote_patch_ast())
             if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
                 body.extend(self._get_chrome_profile_v414() + [self._get_chrome_webdriver()])
@@ -1133,6 +1174,43 @@ from selenium.webdriver.common.keys import Keys
             body.extend([self._get_edge_webdriver()])
 
         elif browser == 'remote':
+            self.log.error("DEV DEV DEV: remote")
+            if browserName == 'chrome':
+                browser_version_str = self.capabilities.get('browserVersion', 'default')
+                self.log.error(f"DEV DEV DEV: In Remote browser version type: {type(browser_version_str)}")
+                self.log.error(f"DEV DEV DEV: In Remote  browser version: {browser_version_str}")
+                browser_version_num = 136
+                if browser_version_str == 'default':
+                    browser_version_num = 136  # treat default as latest Chrome (136+)
+                else:
+                    try:
+                        browser_version_num = int(browser_version_str.split('.')[0])
+                    except Exception as e:
+                        self.log.error(f"DEV DEV DEV: In Remote Exception: {e}")
+                        browser_version_num = 136
+
+                proxy_user = None
+                proxy_pass = None
+                if browser_version_num >= 136:
+                    proxy_info = self._get_proxy_info()
+                    self.log.error(f"DEV DEV DEV: In Remote  proxy_info: {proxy_info}")
+                    proxy_user = proxy_info.get("username") if proxy_info else None
+                    proxy_pass = proxy_info.get("password") if proxy_info else None
+
+                if proxy_user and proxy_pass:
+                    self.log.error("DEV DEV DEV: In Remote  Adding Extension..")
+                    extension_dir = self._create_proxy_auth_extension(proxy_user, proxy_pass)
+                    self.log.error(f"DEV DEV DEV: In Remote  extension_dir: {extension_dir}")
+                    if extension_dir:
+                        body.extend([
+                            ast.Assign(
+                                targets=[ast.Name(id='extension_dir', ctx=ast.Store())],
+                                value=ast.Constant(value=extension_dir, kind=None)
+                            )
+                        ])
+                        body.extend([
+                            self._get_chrome_load_extension_ast('extension_dir')
+                        ])
             body.extend(self._gen_remote_patch_ast())
             if self.selenium_version.startswith("4"):
                 if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
@@ -1144,6 +1222,7 @@ from selenium.webdriver.common.keys import Keys
             body.append(remote_profile)
 
         else:
+            self.log.error("DEV DEV DEV: Else")
             body.append(ast.Assign(
                 targets=[ast_attr("self.driver")],
                 value=ast_call(
@@ -1153,6 +1232,44 @@ from selenium.webdriver.common.keys import Keys
         body.extend(self._get_extra_mngrs())
 
         return body
+
+    def _get_proxy_info(self):
+        proxy = os.getenv('HTTP_PROXY') or os.getenv('http_proxy')
+        if not proxy:
+            return None
+
+        parsed = urlparse(proxy)
+        proxy_info = {
+            'host': parsed.hostname,
+            'port': parsed.port
+        }
+        if parsed.username:
+            proxy_info['username'] = parsed.username
+        if parsed.password:
+            proxy_info['password'] = parsed.password
+        return proxy_info
+
+    def _get_chrome_load_extension_ast(self, extension_dir_var='extension_dir'):
+        return ast.Expr(
+            value=ast.Call(
+                func=ast.Attribute(
+                    value=ast.Name(id='options', ctx=ast.Load()),
+                    attr='add_argument',
+                    ctx=ast.Load()
+                ),
+                args=[
+                    ast.JoinedStr(values=[
+                        ast.Constant(value="--load-extension=", kind=None),
+                        ast.FormattedValue(
+                            value=ast.Name(id=extension_dir_var, ctx=ast.Load()),
+                            conversion=-1,
+                            format_spec=None
+                        )
+                    ])
+                ],
+                keywords=[]
+            )
+        )
 
     def _wrap_with_try_except(self, web_driver_cmds):
         body = [ast.Assign(targets=[ast_attr("self.driver")], value=ast_attr("None")),
@@ -2437,6 +2554,45 @@ from selenium.webdriver.common.keys import Keys
         mod.col_offset = 0
         mod = ast.fix_missing_locations(mod)
         return mod
+
+    def _create_proxy_auth_extension(self, username, password, extension_dir="proxy_auth_extension"):
+        import os
+        if not os.path.exists(extension_dir):
+            os.makedirs(extension_dir)
+        manifest_json = """
+        {
+            "manifest_version": 2,
+            "name": "Proxy Auth Extension",
+            "version": "1.0",
+            "permissions": [
+                "webRequest",
+                "webRequestBlocking",
+                "<all_urls>"
+            ],
+            "background": {
+                "scripts": ["background.js"]
+            }
+        }
+        """
+        background_js = f"""
+        chrome.webRequest.onAuthRequired.addListener(
+            function(details) {{
+                return {{
+                    authCredentials: {{
+                        username: "{username}",
+                        password: "{password}"
+                    }}
+                }};
+            }},
+            {{urls: ["<all_urls>"]}},
+            ["blocking"]
+        );
+        """
+        with open(os.path.join(extension_dir, "manifest.json"), "w") as f:
+            f.write(manifest_json)
+        with open(os.path.join(extension_dir, "background.js"), "w") as f:
+            f.write(background_js)
+        return extension_dir
 
     def _gen_remote_patch_ast(self):
         import_ast = [
