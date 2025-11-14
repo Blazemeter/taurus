@@ -20,6 +20,7 @@ pipeline {
             steps {
                 script {
                     initJenkinsGlobal()
+                    sh "git config --global --add safe.directory /home/jenkins/agent/workspace/taurus-community-master"
                     tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
                     isRelease = !tagName.isEmpty()
                     IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
