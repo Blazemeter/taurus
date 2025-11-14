@@ -1,11 +1,11 @@
 @Library("jenkins_library") _
-
 pipeline {
     agent {
-        docker {
-            label 'generalNodes'
-            image 'us.gcr.io/verdant-bulwark-278/jenkins-docker-agent:taurus-agent-2'
-            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+        kubernetes {
+            yaml agentYaml(image: 'us.gcr.io/verdant-bulwark-278/jenkins-docker-agent:taurus-agent-2')
+            defaultContainer 'jenkins-docker-agent'
+            workspaceVolume dynamicPVC(accessModes: 'ReadWriteOnce', requestsSize: "5Gi", storageClassName: "standard-rwo")
+            retries 2
         }
     }
     options {
