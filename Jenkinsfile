@@ -1,12 +1,11 @@
 @Library("jenkins_library") _
-clearWorkspaceAsRoot()
+
 pipeline {
     agent {
-        kubernetes {
-            yaml agentYaml(image: 'us.gcr.io/verdant-bulwark-278/jenkins-docker-agent:taurus-agent-2')
-            defaultContainer 'jenkins-docker-agent'
-            workspaceVolume dynamicPVC(accessModes: 'ReadWriteOnce', requestsSize: "5Gi", storageClassName: "standard-rwo")
-            retries 2
+        docker {
+            label 'blazect-google-agent2'
+            image 'us.gcr.io/verdant-bulwark-278/jenkins-docker-agent:taurus-agent-2'
+            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
     options {
@@ -20,7 +19,6 @@ pipeline {
             steps {
                 script {
                     initJenkinsGlobal()
-                    sh "git config --global --add safe.directory /home/jenkins/agent/workspace/taurus-community-master"
                     tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
                     isRelease = !tagName.isEmpty()
                     IMAGE_TAG = env.JOB_NAME + "." + env.BUILD_NUMBER
