@@ -21,7 +21,7 @@ import re
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.utils import ensure_is_dict, dehumanize_time, BetterDict, parse_think_time
 
-VARIABLE_PATTERN = re.compile("\${.+\}")
+VARIABLE_PATTERN = re.compile(r"\${.+\}")
 
 
 def has_variable_pattern(val):

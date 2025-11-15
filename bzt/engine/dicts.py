@@ -271,7 +271,7 @@ class Configuration(BetterDict):
                 container[key] = str(container[key])
 
     def _replace_tabs(self, lines, fname):
-        has_tab_indents = re.compile("^( *)(\t+)( *\S*)")
+        has_tab_indents = re.compile(r"^( *)(\t+)( *\S*)")
         res = ""
         for num, line in enumerate(lines):
             replaced = has_tab_indents.sub(r"\1" + (" " * self.tab_replacement_spaces) + r"\3", line)

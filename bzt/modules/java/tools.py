@@ -53,7 +53,7 @@ class JavaC(RequiredTool):
         super(JavaC, self).__init__(tool_path="javac", installable=False, **kwargs)
 
     def _get_version(self, output):
-        versions = re.findall("javac\ ([\d\._]*)", output)
+        versions = re.findall(r"javac\ ([\d\._]*)", output)
         version = parse_java_version(versions)
 
         if not version:

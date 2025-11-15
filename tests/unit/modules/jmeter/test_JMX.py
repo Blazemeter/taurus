@@ -201,7 +201,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
     def _get_tst_schedule(self):
         records = []
-        shaper_elements = self.jmx.get("kg\.apc\.jmeter\.timers\.VariableThroughputTimer")
+        shaper_elements = self.jmx.get(r"kg\.apc\.jmeter\.timers\.VariableThroughputTimer")
         self.assertEqual(1, len(shaper_elements))
 
         shaper_collection = shaper_elements[0].find(".//collectionProp[@name='load_profile']")

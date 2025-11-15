@@ -17,7 +17,7 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
     :type reader: bzt.modules.aggregator.ResultsReader
     """
     AB_HEADER = "starttime\tseconds\tctime\tdtime\tttime\twait"
-    PBENCH_FORMAT = re.compile("^[0-9]+\.[0-9]{3}\t[^\t]*\t([0-9]+\t){9}[0-9]+$")
+    PBENCH_FORMAT = re.compile(r"^[0-9]+\.[0-9]{3}\t[^\t]*\t([0-9]+\t){9}[0-9]+$")
 
     def __init__(self):
         super(ExternalResultsLoader, self).__init__()

@@ -9,10 +9,11 @@ branches:
 os: linux
 
 python:
-- "3.7"
-- "3.8"
 - "3.9"
 - "3.10"
+- "3.11"
+- "3.12"
+- "3.13"
 
 env:
   global:
@@ -47,7 +48,6 @@ install:
   fi
 - gem install rspec
 - $PIP_INSTALL --upgrade pip
-- if [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$TRAVIS_PYTHON_VERSION" = "3.9" ]; then $PIP_INSTALL Cython; fi
 - $PIP_INSTALL -r requirements.txt -r tests/ci/requirements.txt
 
 before_script:
