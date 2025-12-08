@@ -1,7 +1,7 @@
+# pragma: no cover
 import unittest
 from unittest.mock import MagicMock, patch
 from bzt.bza import Test
-# pragma: no cover
 class TestUploadFilesCount(unittest.TestCase):
     @patch('bzt.bza.MultiPartForm')
     def test_uploads_all_files(self, MockMultiPartForm):
