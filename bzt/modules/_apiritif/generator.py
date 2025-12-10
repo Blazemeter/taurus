@@ -191,6 +191,8 @@ from selenium.webdriver.common.keys import Keys
         return selector
 
     def _parse_string_action(self, name, param):
+        self.log.info(f"DEV DEV DEV: in parse_string_action, name: {name}")
+        self.log.info(f"DEV DEV DEV: in parse_string_action, param: {param}")
         tags = "|".join(self.BY_TAGS + self.COMMON_TAGS)
         all_actions = self.ACTIONS + "|" + "|".join((self.DEPRECATED_LOG_TAG, self.EXECUTION_BLOCKS))
         expr = re.compile(r"^(%s)(%s)?(\(([\S\s]*)\))?$" % (all_actions, tags), re.IGNORECASE)
@@ -234,11 +236,18 @@ from selenium.webdriver.common.keys import Keys
         elif atype in ['answerdialog', 'assertdialog']:
             param, value = value, param
 
+        self.log.info(f"DEV DEV DEV: Final parse_string_action, atype: {atype}")
+        self.log.info(f"DEV DEV DEV: Final parse_string_action, tag: {tag}")
+        self.log.info(f"DEV DEV DEV: Final parse_string_action, value: {value}")
+        self.log.info(f"DEV DEV DEV: Final parse_string_action, param: {param}")
+        self.log.info(f"DEV DEV DEV: Final parse_string_action, selectors: {selectors}")
         return atype, tag, param, value, selectors, None
 
     def _parse_dict_action(self, action_config):
         name = action_config["type"]
         actionId = action_config.get("actionId")
+        self.log.info(f"DEV DEV DEV: in _parse_dict_action, action_config: {action_config}")
+        self.log.info(f"DEV DEV DEV: in _parse_dict_action, actionId: {actionId}")
         selectors = []
         if action_config.get("locators"):
             selectors = action_config.get("locators")
@@ -260,7 +269,11 @@ from selenium.webdriver.common.keys import Keys
         all_actions = self.ACTIONS + "|" + "|".join(self.EXTERNAL_HANDLER_TAGS)
         expr = re.compile("^(%s)(%s)?$" % (all_actions, tags), re.IGNORECASE)
         action_params = self._parse_action_params(expr, name)
-
+        self.log.info(f"DEV DEV DEV: Final _parse_dict_action, action_params: {action_params}")
+        self.log.info(f"DEV DEV DEV: Final _parse_dict_action, param: {param}")
+        self.log.info(f"DEV DEV DEV: Final _parse_dict_action, value: {value}")
+        self.log.info(f"DEV DEV DEV: Final _parse_dict_action, selectors: {selectors}")
+        self.log.info(f"DEV DEV DEV: Final _parse_dict_action, actionId: {actionId}")
         return action_params[0], action_params[1], param, value, selectors, actionId
 
     @staticmethod
@@ -268,11 +281,14 @@ from selenium.webdriver.common.keys import Keys
         return [{"byelement": config.get("element")}]
 
     def _parse_action(self, action_config):
+        self.log.info(f"DEV DEV DEV: In _parse_action, action_config: {action_config}")
+        self.log.info(f"DEV DEV DEV: In _parse_action, type action_config: {type(action_config)}")
         if isinstance(action_config, str):
             name = action_config
             param = None
         elif isinstance(action_config, dict):
             if action_config.get("type"):
+                self.log.info("DEV DEV DEV: In _parse_action, if action_config")
                 return self._parse_dict_action(action_config)
             block = self._get_execution_block(action_config)
             if len(block) == 1:
@@ -282,6 +298,8 @@ from selenium.webdriver.common.keys import Keys
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
+        self.log.info(f"DEV DEV DEV: final _parse_action, name: {name}")
+        self.log.info(f"DEV DEV DEV: final _parse_action, param: {param}")
         return self._parse_string_action(name, param)
 
     def _get_execution_block(self, action_config):
@@ -683,7 +701,9 @@ from selenium.webdriver.common.keys import Keys
         return elements
 
     def _gen_action(self, action_config, parent_request=None, index_label=""):
+        self.log.info(f"DEV DEV DEV: In _gen_action, action_config: {action_config}")
         action = self._parse_action(action_config)
+        self.log.info(f"DEV DEV DEV: In _gen_action, action: {action}")
         if action:
             atype, tag, param, value, selectors, actionId = action
         else:
@@ -694,6 +714,10 @@ from selenium.webdriver.common.keys import Keys
         action_elements = []
 
         if atype in self.EXTERNAL_HANDLER_TAGS:
+            self.log.info(f"DEV DEV DEV: In _gen_action, param 1: {param}")
+            if actionId and isinstance(param, dict):
+                param['actionId'] = actionId
+                self.log.info(f"DEV DEV DEV: In _gen_action, param 2: {param}")
             action_elements.append(ast_call(
                 func=ast_attr(atype),
                 args=[self._gen_expr(self._gen_expr(param))]
@@ -2193,32 +2217,46 @@ from selenium.webdriver.common.keys import Keys
         return param
 
     def _gen_action_start(self, action):
+        self.log.info(f"DEV DEV DEV: In _gen_action_start, action: {action}")
         atype, tag, param, value, selectors, actionId = self._parse_action(action)
+        self.log.info(f"DEV DEV DEV: In _gen_action_start, atype: {atype}")
+        self.log.info(f"DEV DEV DEV: In _gen_action_start, tag: {tag}")
+        self.log.info(f"DEV DEV DEV: In _gen_action_start, param: {param}")
+        self.log.info(f"DEV DEV DEV: In _gen_action_start, value: {value}")
+        self.log.info(f"DEV DEV DEV: In _gen_action_start, actionId: {actionId}")
+        self.log.info(f"DEV DEV DEV: In _gen_action_start, selectors: {selectors}")
         return self._gen_action({
             'type': self.EXTERNAL_HANDLER_START,
             'value': None,
+            'actionId': actionId,
             'param': {
                 'type': atype,
                 'tag': tag,
                 'param': ApiritifScriptGenerator._get_param_for_action_log(atype, param),
                 'value': value,
                 'selectors': selectors,
-                'actionId': actionId
             },
         })
 
     def _gen_action_end(self, action):
+        self.log.info(f"DEV DEV DEV: In _gen_action_end, action: {action}")
         atype, tag, param, value, selectors, actionId = self._parse_action(action)
+        self.log.info(f"DEV DEV DEV: In _gen_action_end, atype: {atype}")
+        self.log.info(f"DEV DEV DEV: In _gen_action_end, tag: {tag}")
+        self.log.info(f"DEV DEV DEV: In _gen_action_end, param: {param}")
+        self.log.info(f"DEV DEV DEV: In _gen_action_end, value: {value}")
+        self.log.info(f"DEV DEV DEV: In _gen_action_end, actionId: {actionId}")
+        self.log.info(f"DEV DEV DEV: In _gen_action_end, selectors: {selectors}")
         return self._gen_action({
             'type': self.EXTERNAL_HANDLER_END,
             'value': None,
+            'actionId': actionId,
             'param': {
                 'type': atype,
                 'tag': tag,
                 'param': ApiritifScriptGenerator._get_param_for_action_log(atype, param),
                 'value': value,
                 'selectors': selectors,
-                'actionId': actionId
             },
         })
 
