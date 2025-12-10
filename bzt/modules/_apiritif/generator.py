@@ -234,10 +234,11 @@ from selenium.webdriver.common.keys import Keys
         elif atype in ['answerdialog', 'assertdialog']:
             param, value = value, param
 
-        return atype, tag, param, value, selectors
+        return atype, tag, param, value, selectors, None
 
     def _parse_dict_action(self, action_config):
         name = action_config["type"]
+        actionId = action_config.get("actionId")
         selectors = []
         if action_config.get("locators"):
             selectors = action_config.get("locators")
@@ -260,7 +261,7 @@ from selenium.webdriver.common.keys import Keys
         expr = re.compile("^(%s)(%s)?$" % (all_actions, tags), re.IGNORECASE)
         action_params = self._parse_action_params(expr, name)
 
-        return action_params[0], action_params[1], param, value, selectors
+        return action_params[0], action_params[1], param, value, selectors, actionId
 
     @staticmethod
     def _gen_selector_byelement(config):
@@ -684,9 +685,9 @@ from selenium.webdriver.common.keys import Keys
     def _gen_action(self, action_config, parent_request=None, index_label=""):
         action = self._parse_action(action_config)
         if action:
-            atype, tag, param, value, selectors = action
+            atype, tag, param, value, selectors, actionId = action
         else:
-            atype = tag = param = value = selectors = None
+            atype = tag = param = value = selectors = actionId = None
 
         wrapInTransaction = self._is_report_inside_actions(parent_request)
 
@@ -2192,7 +2193,7 @@ from selenium.webdriver.common.keys import Keys
         return param
 
     def _gen_action_start(self, action):
-        atype, tag, param, value, selectors = self._parse_action(action)
+        atype, tag, param, value, selectors, actionId = self._parse_action(action)
         return self._gen_action({
             'type': self.EXTERNAL_HANDLER_START,
             'value': None,
@@ -2202,11 +2203,12 @@ from selenium.webdriver.common.keys import Keys
                 'param': ApiritifScriptGenerator._get_param_for_action_log(atype, param),
                 'value': value,
                 'selectors': selectors,
+                'actionId': actionId
             },
         })
 
     def _gen_action_end(self, action):
-        atype, tag, param, value, selectors = self._parse_action(action)
+        atype, tag, param, value, selectors, actionId = self._parse_action(action)
         return self._gen_action({
             'type': self.EXTERNAL_HANDLER_END,
             'value': None,
@@ -2216,6 +2218,7 @@ from selenium.webdriver.common.keys import Keys
                 'param': ApiritifScriptGenerator._get_param_for_action_log(atype, param),
                 'value': value,
                 'selectors': selectors,
+                'actionId': actionId
             },
         })
 
@@ -2624,9 +2627,9 @@ from selenium.webdriver.common.keys import Keys
 
     def _create_action_label(self, prefix, index_label, action):
         if action:
-            atype, tag, param, value, selectors = action
+            atype, tag, param, value, selectors, actionId = action
         else:
-            atype = tag = param = value = selectors = ""
+            atype = tag = param = value = selectors = actionId = ""
 
         keep_special = "._-:()?/="
         replace_special = " $"
