@@ -27,7 +27,7 @@ class TestSample(unittest.TestCase):
 
     def setUp(self):
         self.driver = None
-        action_start({'param': {}, 'type': 'new_session', 'value': None})
+        action_start({'actionId': None, 'param': {}, 'type': 'new_session', 'value': None})
         try:
             self.vars = {}
             timeout = 30.0

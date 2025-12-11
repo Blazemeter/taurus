@@ -26,7 +26,7 @@ class TestSample(unittest.TestCase):
 
     def setUp(self):
         self.driver = None
-        action_start({'param': {}, 'type': 'new_session', 'value': None})
+        action_start({'actionId': None, 'param': {}, 'type': 'new_session', 'value': None})
         try:
             self.vars = {}
             timeout = 30.0
@@ -62,10 +62,10 @@ class TestSample(unittest.TestCase):
                                            scenario_name='sample')
         except Exception:
             (ex_type, ex, tb) = sys.exc_info()
-            action_end({'message': str(traceback.format_exception(ex_type, ex, tb)), 'param': {}, 'type': 'new_session'})
+            action_end({'actionId': None, 'message': str(traceback.format_exception(ex_type, ex, tb)), 'param': {}, 'type': 'new_session'})
             apiritif.log.error(str(traceback.format_exception(ex_type, ex, tb)))
             raise
-        action_end({'param': {}, 'type': 'new_session'})
+        action_end({'actionId': None, 'param': {}, 'type': 'new_session'})
 
 
     def _1_Test(self):

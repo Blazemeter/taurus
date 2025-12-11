@@ -714,13 +714,15 @@ from selenium.webdriver.common.keys import Keys
         action_elements = []
 
         if atype in self.EXTERNAL_HANDLER_TAGS:
-            self.log.info(f"DEV DEV DEV: In _gen_action, param 1: {param}")
-            if actionId and isinstance(param, dict):
-                param['actionId'] = actionId
-                self.log.info(f"DEV DEV DEV: In _gen_action, param 2: {param}")
+            self.log.info(f"DEV DEV DEV: In _gen_action, atype: {atype}")
+            self.log.info(f"DEV DEV DEV: In _gen_action, param: {param}")
+            self.log.info(f"DEV DEV DEV: In _gen_action, actionId: {actionId}")
+            args = self._gen_expr(self._gen_expr(param))
+            if isinstance(args, dict):
+                args['actionId'] = actionId
             action_elements.append(ast_call(
                 func=ast_attr(atype),
-                args=[self._gen_expr(self._gen_expr(param))]
+                args=[args]
             ))
         elif atype == self.DEPRECATED_LOG_TAG:
             self.log.warning("'log' is deprecated. It will be removed in the next release.")
