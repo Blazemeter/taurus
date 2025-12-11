@@ -592,15 +592,28 @@ class Test(BZAObject):
     def upload_files(self, taurus_config, resource_files):
         self.log.debug("Uploading files into the test: %s", resource_files)
         url = '%s/api/v4/tests/%s/files' % (self.address, self['id'])
+        chunk_size = 50
+        failed_files = []
 
-        body = MultiPartForm()
-        body.add_file_as_string('script', 'taurus.yml', taurus_config)
+        for chunk_idx in range(0, len(resource_files), chunk_size):
+            chunk = resource_files[chunk_idx:chunk_idx + chunk_size]
+            body = MultiPartForm()
+            if chunk_idx == 0:
+                body.add_file_as_string('script', 'taurus.yml', taurus_config)
+            for idx, rfile in enumerate(chunk):
+                body.add_file(f'files[{idx}]', rfile)
+            hdr = {"Content-Type": str(body.get_content_type())}
+            try:
+                self._request(url, body.form_as_bytes(), headers=hdr)
+            except Exception as e:
+                self.log.error(f"Error uploading chunk {chunk_idx}: {e}")
+                failed_files.extend(chunk)
 
-        for idx, rfile in enumerate(resource_files):
-            body.add_file('files[{}]'.format(idx), rfile)
-
-        hdr = {"Content-Type": str(body.get_content_type())}
-        self._request(url, body.form_as_bytes(), headers=hdr)
+        if failed_files:
+            error_msg = f"Failed to upload files: {failed_files}"
+            self.log.error(error_msg)
+            return error_msg
+        return None
 
     def update_props(self, coll):
         url = self.address + "/api/v4/tests/%s" % self['id']
