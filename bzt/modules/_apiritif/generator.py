@@ -240,6 +240,9 @@ from selenium.webdriver.common.keys import Keys
 
     def _parse_dict_action(self, action_config):
         name = action_config["type"]
+        # actionId is an optional unique identifier for this action, used to track or reference
+        # the action in the generated code and logs. It is passed through multiple layers of the
+        # code generation process to maintain traceability of actions.
         actionId = action_config.get("actionId")
         selectors = []
         if action_config.get("locators"):
@@ -696,7 +699,9 @@ from selenium.webdriver.common.keys import Keys
         action_elements = []
 
         if atype in self.EXTERNAL_HANDLER_TAGS:
-            # Add actionId for external handlers
+            # Add actionId to the param dict so it is passed through to the generated action_start/action_end
+            # function calls. Exclude actions of type 'new_session' because they do not have actionId in their
+            # source definition.
             if actionId and isinstance(param, dict) and 'type' in param and param.get('type') != 'new_session':
                 param['actionId'] = actionId
 
