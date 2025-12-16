@@ -27,7 +27,7 @@ class TestSample(unittest.TestCase):
 
     def setUp(self):
         self.driver = None
-        action_start({'actionId': None, 'param': {}, 'type': 'new_session', 'value': None})
+        action_start({'param': {}, 'type': 'new_session', 'value': None})
         try:
             self.vars = {}
             timeout = 30.0
@@ -72,13 +72,13 @@ class TestSample(unittest.TestCase):
 
     def _1_Test(self):
         with apiritif.smart_transaction('Test'):
-            action_start({'actionId': None, 'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
+            action_start({'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
             self.driver.get('http://blazedemo.com/')
 
             waiter()
-            action_end({'actionId': None, 'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
-            action_start({'actionId': None, 'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
-            action_end({'actionId': None, 'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
+            action_end({'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
+            action_start({'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
+            action_end({'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
 
     def test_sample(self):
         self._1_Test()

@@ -26,7 +26,7 @@ class TestSample(unittest.TestCase):
 
     def setUp(self):
         self.driver = None
-        action_start({'actionId': None, 'param': {}, 'type': 'new_session', 'value': None})
+        action_start({'param': {}, 'type': 'new_session', 'value': None})
         try:
             self.vars = {}
             timeout = 30.0
@@ -62,21 +62,21 @@ class TestSample(unittest.TestCase):
                                            scenario_name='sample')
         except Exception:
             (ex_type, ex, tb) = sys.exc_info()
-            action_end({'actionId': None, 'message': str(traceback.format_exception(ex_type, ex, tb)), 'param': {}, 'type': 'new_session'})
+            action_end({'message': str(traceback.format_exception(ex_type, ex, tb)), 'param': {}, 'type': 'new_session'})
             apiritif.log.error(str(traceback.format_exception(ex_type, ex, tb)))
             raise
-        action_end({'actionId': None, 'param': {}, 'type': 'new_session'})
+        action_end({'param': {}, 'type': 'new_session'})
 
 
     def _1_Test(self):
         with apiritif.smart_transaction('Test'):
-            action_start({'actionId': None, 'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
+            action_start({'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
             self.driver.get('http://blazedemo.com/')
 
             waiter()
-            action_end({'actionId': None, 'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
-            action_start({'actionId': None, 'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
-            action_end({'actionId': None, 'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
+            action_end({'param': 'http://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
+            action_start({'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
+            action_end({'param': 'leaving blazedemo', 'selectors': [], 'tag': '', 'type': 'log', 'value': None})
 
     def test_sample(self):
         self._1_Test()

@@ -26,7 +26,7 @@ class TestBlazedemoTestSelenium(unittest.TestCase):
 
     def setUp(self):
         self.driver = None
-        action_start({'actionId': None, 'param': {}, 'type': 'new_session', 'value': None})
+        action_start({'param': {}, 'type': 'new_session', 'value': None})
         try:
             self.vars = {}
             
@@ -69,18 +69,18 @@ class TestBlazedemoTestSelenium(unittest.TestCase):
 
     def _1_open_blazedemo(self):
         with apiritif.smart_transaction('open blazedemo'):
-            action_start({'actionId': None, 'param': 'https://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
+            action_start({'param': 'https://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
             self.driver.get('https://blazedemo.com/')
 
-            action_end({'actionId': None, 'param': 'https://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
+            action_end({'param': 'https://blazedemo.com/', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
 
     def _2_justgo(self):
         with apiritif.smart_transaction('just_go'):
-            action_start({'actionId': None, 'param': 'https//blazemeter.com', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
+            action_start({'param': 'https//blazemeter.com', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
             self.driver.get('https//blazemeter.com')
             
             waiter()
-            action_end({'actionId': None, 'param': 'https//blazemeter.com', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
+            action_end({'param': 'https//blazemeter.com', 'selectors': [], 'tag': '', 'type': 'go', 'value': None})
 
     def test_blazedemotest_Selenium(self):
         self._1_open_blazedemo()
