@@ -1,0 +1,5 @@
+level1: true
+included-configs:
+- included-level2.yml
+- included-level2.yml
+- included-level2.yml
