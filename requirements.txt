@@ -18,5 +18,5 @@ influxdb >= 5.3.2
 python-socketio>=5.13.0
 h11>=0.16.0
 websocket-client>=1.8.0
-urllib3==2.5.0
+urllib3==2.6.3
 setuptools==79.0.1
