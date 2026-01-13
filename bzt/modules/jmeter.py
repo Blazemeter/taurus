@@ -1487,7 +1487,7 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
-    PLUGINS_MANAGER_VERSION = "1.10"
+    PLUGINS_MANAGER_VERSION = "1.11"
     PLUGINS_MANAGER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
     COMMAND_RUNNER_VERSION = "2.3"
     COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
