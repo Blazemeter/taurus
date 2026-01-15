@@ -51,6 +51,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash -
 # Install Node.js
 RUN apt-get update && \
     apt-get install -y nodejs && \
+    npm i -g npm && \
     rm -rf /var/lib/apt/lists/*
 
 # Download Chrome package
