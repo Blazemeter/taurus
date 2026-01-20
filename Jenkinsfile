@@ -69,21 +69,21 @@ pipeline {
             }
         }
 
-        stage("Deploy an artifact to PyPi") {
-            when { expression { isRelease } }
-            steps {
-                withCredentials([string(credentialsId: 'pypi-api-token', variable: 'TOKEN')]) {
-                   sh "python3 -m twine upload -u __token__ -p ${TOKEN} dist/*"
-               }
-            }
-        }
-        stage("Docker Image Push") {
-            steps {
-                withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
-                    sh "docker image push --all-tags ${imageName}"
-                }
-            }
-        }
+        // stage("Deploy an artifact to PyPi") {
+        //     when { expression { isRelease } }
+        //     steps {
+        //         withCredentials([string(credentialsId: 'pypi-api-token', variable: 'TOKEN')]) {
+        //            sh "python3 -m twine upload -u __token__ -p ${TOKEN} dist/*"
+        //        }
+        //     }
+        // }
+        // stage("Docker Image Push") {
+        //     steps {
+        //         withDockerRegistry([ credentialsId: "dockerhub-access", url: "" ]) {
+        //             sh "docker image push --all-tags ${imageName}"
+        //         }
+        //     }
+        // }
         stage("Deploy site") {
             when { expression { isRelease } }
             steps {
