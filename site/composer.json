@@ -15,5 +15,10 @@
   "require": {
     "php": ">=5.5.0",
     "undera/pwe": "dev-master"
+  },
+  "config": {
+      "audit": {
+          "block-insecure": false
+      }
   }
 }

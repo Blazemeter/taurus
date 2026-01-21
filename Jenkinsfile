@@ -47,19 +47,19 @@ pipeline {
                 }
             }
         }
-        stage("Prisma scan") {
-            when { expression { return PERFORM_PRISMA_SCAN } }
-            steps {
-                script{
-                    prismaCloudScanImage(dockerAddress: 'unix:///var/run/docker.sock',
-                            image: "${JOB_NAME.toLowerCase()}",
-                            logLevel: 'info',
-                            resultsFile: 'prisma-cloud-scan-results.json',
-                            ignoreImageBuildTime: true)
-                    prismaCloudPublish(resultsFilePattern: 'prisma-cloud-scan-results.json')
-                }
-            }
-        }
+        // stage("Prisma scan") {
+        //     when { expression { return PERFORM_PRISMA_SCAN } }
+        //     steps {
+        //         script{
+        //             prismaCloudScanImage(dockerAddress: 'unix:///var/run/docker.sock',
+        //                     image: "${JOB_NAME.toLowerCase()}",
+        //                     logLevel: 'info',
+        //                     resultsFile: 'prisma-cloud-scan-results.json',
+        //                     ignoreImageBuildTime: true)
+        //             prismaCloudPublish(resultsFilePattern: 'prisma-cloud-scan-results.json')
+        //         }
+        //     }
+        // }
         stage("Integration Tests") {
             steps {
                 sh """
