@@ -1,43 +1,15 @@
-import EC from 'eight-colors';
-import { appendFile } from 'node:fs/promises';
+const EC = require('eight-colors');
+const fs = require('fs');
 
-import type {
-  FullConfig, FullResult, Reporter, Suite, TestCase, TestResult, TestError,
-  TestStep
-} from '@playwright/test/reporter';
-import { worker } from 'node:cluster';
-
-// Augment Playwright reporter types to allow attaching custom data to TestCase
-declare module '@playwright/test/reporter' {
-  interface TestCase {
-    timestamps?: number[];
-    logs?: string[];
-  }
-}
-
-async function appendLineToFile(file: string, line: string) {
+async function appendLineToFile(file, line) {
   try {
-    await appendFile(file, line, 'utf8');
+    await fs.appendFileSync(file, line, 'utf8');
   } catch (error) {
     console.error('Error appending data to file:', error);
   }
 }
 
-class TaurusReporter implements Reporter {
-  private timestampStart: number;
-  private lastStatTimestamp: number;
-  private tick_time_id?: NodeJS.Timeout;
-  private testMap: Map<string, TestCase>;
-  private config?: FullConfig<{}, {}>;
-  private root?: Suite;
-  private lastTest?: TestCase;
-  private options: {
-    outputFile?: string,
-    maxDuration?: number,
-    tickTime?: number,
-    statTime?: number,
-    verbose?: boolean,
-  };
+class TaurusReporter {
 
   constructor(userOptions = {}) {
     this.timestampStart = this.lastStatTimestamp = Date.now();
@@ -55,7 +27,7 @@ class TaurusReporter implements Reporter {
     this.tickStart(this.options.maxDuration || -1);
   }
 
-  tickStart(maxDuration: number) {
+  tickStart(maxDuration) {
     this.tick_time_id = setTimeout(async () => {
       const duration = Date.now() - this.timestampStart;
       if (maxDuration > 0 && duration > maxDuration) {
@@ -84,24 +56,24 @@ class TaurusReporter implements Reporter {
     return true;
   }
 
-  getTest(testId: string): TestCase | undefined {
+  getTest(testId) {
     return this.testMap.get(testId);
   }
 
-  addTestLog(test?: TestCase, log?: string | Buffer) {
+  addTestLog(test, log) {
     if (test && test.logs) {
       // log could be Buffer
       test.logs.push(`${log}`);
     }
   }
 
-  onBegin(config: FullConfig, suite: Suite) {
+  onBegin(config, suite) {
     this.config = config;
     this.root = suite;
-    console.log(`Starting the run with ${suite.allTests().length} tests`);
+    console.log(`Starting the run with ${suite.allTests().length} tests.`);
   }
 
-  onTestBegin(test: TestCase, result: TestResult) {
+  onTestBegin(test, result) {
     // For logs when no test is running
     this.lastTest = test;
 
@@ -121,7 +93,7 @@ class TaurusReporter implements Reporter {
     }
   }
 
-  onTestEnd(test: TestCase, result: TestResult) {
+  onTestEnd(test, result) {
 
     if (this.options.verbose === true) {
       console.log(`Finished test ${test.title}: ${result.status} in ${result.duration}ms`);
@@ -146,7 +118,8 @@ class TaurusReporter implements Reporter {
       "byte_count": null,
     };
     if (this.options.outputFile) {
-      appendLineToFile(this.options.outputFile, JSON.stringify(line) + '\n');
+      // TODO: configure outputFile to be full path with artifacts dir
+      appendLineToFile(test.parent.project()?.outputDir + "/../" + this.options.outputFile, JSON.stringify(line) + '\n');
     }
     if (this.options.verbose === true) {
       console.log(`Test result: ${JSON.stringify(line)}`);
@@ -154,26 +127,26 @@ class TaurusReporter implements Reporter {
   }
 
 
-  onStdErr(chunk: string | Buffer, test: void | TestCase, result: void | TestResult): void {
+  onStdErr(chunk, test, result) {
     // Note that output may happen when no test is running, in which case this will be void.
     this.addTestLog(test || this.lastTest, EC.red(`${chunk}`));
     console.log(EC.red(`${chunk}`));
   }
 
-  onStdOut(chunk: string | Buffer, test: void | TestCase, result: void | TestResult) {
+  onStdOut(chunk, test, result) {
     // Note that output may happen when no test is running, in which case this will be void.
     this.addTestLog(test || this.lastTest, `${chunk}`);
     console.log(`${chunk}`);
   }
 
   // Called on some global error, for example unhandled exception in the worker process.
-  onError(error: TestError) {
+  onError(error) {
     // add the error to test logs
     this.addTestLog(this.lastTest, EC.red(error.message || "Unknown Error"));
     console.log(EC.red(error.message || "Unknown Error"));
   }
 
-  async onEnd(result: FullResult): Promise<void> {
+  async onEnd(result) {
     this.tickStop();
     const allTests = this.root ? this.root.allTests() : [];
     const expected = allTests.filter(t => t.outcome() === 'expected').length;
@@ -187,4 +160,4 @@ class TaurusReporter implements Reporter {
   }
 }
 
-export default TaurusReporter;
+module.exports = TaurusReporter;

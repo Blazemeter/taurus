@@ -108,7 +108,7 @@ class PlaywrightTester(JavaScriptExecutor):
 
         node_npx_module = self._get_tool(NodeNPXModule, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
         playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.get_launch_cwd())
-        playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.get_launch_cwd())
+        playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
 
         npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.get_launch_cwd())
 
@@ -139,7 +139,7 @@ class PlaywrightTester(JavaScriptExecutor):
         if isinstance(concurrency, dict):
             concurrency = concurrency.get("local", 1)
 
-        reporter = "TaurusReporter"
+        reporter = "@taurus/playwright-custom-reporter"
 
         options = ["--reporter " + reporter,
                    "--output " + self.engine.artifacts_dir + "/test-output",
