@@ -46,6 +46,34 @@ class JavaScriptExecutor(SubprocessedExecutor):
         pass
 
 
+class IncrementalLineReader(object):
+    """
+    Line reader (e.g. jsonl)
+    """
+
+    def __init__(self, parent_logger, filename):
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.partial_buffer = ""
+        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.read_speed = 1024 * 1024
+
+    def read(self, last_pass=False):
+        """
+        read data from file
+        yield one complete row (ending with \n)
+        :type last_pass: bool
+        """
+        lines = self.file.get_lines(size=self.read_speed, last_pass=last_pass)
+
+        for line in lines:
+            if not line.endswith("\n"):
+                self.partial_buffer += line
+                continue
+
+            line = "%s%s" % (self.partial_buffer, line)
+            self.partial_buffer = ""
+            yield line
+
 class PlaywrightTester(JavaScriptExecutor):
 
     """
@@ -67,7 +95,7 @@ class PlaywrightTester(JavaScriptExecutor):
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to runner %s" % self)
-        self.reader = PlaywrightLogReader(self.engine.artifacts_dir + "/playwright.out", self.log)
+        self.reader = PlaywrightLogReader(self.engine.artifacts_dir + "/taurus-playwright-reporter.jsonl", self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -80,10 +108,11 @@ class PlaywrightTester(JavaScriptExecutor):
 
         node_npx_module = self._get_tool(NodeNPXModule, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
         playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.get_launch_cwd())
+        playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.get_launch_cwd())
 
         npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.get_launch_cwd())
 
-        tools = [tcl_lib, self.node, self.npm, node_npx_module, npm_all_packages, playwright]
+        tools = [tcl_lib, self.node, self.npm, node_npx_module, npm_all_packages, playwright, playwright_reporter]
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
@@ -110,7 +139,7 @@ class PlaywrightTester(JavaScriptExecutor):
         if isinstance(concurrency, dict):
             concurrency = concurrency.get("local", 1)
 
-        reporter = "json"
+        reporter = "TaurusReporter"
 
         options = ["--reporter " + reporter,
                    "--output " + self.engine.artifacts_dir + "/test-output",
@@ -136,36 +165,17 @@ class PlaywrightLogReader(ResultsReader):
         super(PlaywrightLogReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.filename = filename
-        self.has_reported = False
+        self.jsonl_reader = IncrementalLineReader(self.log, filename)
 
     def _read(self, final_pass=False):
-        if final_pass:
-            if self.has_reported:
-               yield None
-            self.file = FileReader(filename=self.filename, parent_logger=self.log)
-            self.lines = list(self.file.get_lines(last_pass=final_pass))
-            content = json.loads("\n".join(self.lines))
-            concurrency = content.get("config", {}).get("metadata", {}).get("actualWorkers")
-
-            suites = content.get("suites", [])
-            for suite in suites:
-                specs = suite.get("specs", [])
-                for spec in specs:
-                    label = spec.get("title", "unknown")
-                    tests = spec.get("tests", [])
-                    for test in tests:
-                        results = test.get("results", [])
-                        if len(results) > 0:
-                            start_time = results[0].get("startTime")
-                            timestamp = datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()
-                            duration = results[0].get("duration", 0) / 1000
-                            errors = None
-                            errs = results[0].get("errors")
-                            if len(errs) > 0:
-                                errors = ", ".join(errs)
-                            yield timestamp, label, concurrency, duration, None, duration, duration, errors, None, None
-                self.has_reported = True
-        pass
+        for line in self.jsonl_reader.read(last_pass):
+            content = json.loads(line)
+            # Maybe runDetails is not got to add as trname (it has title of test, worker, repetition and browser platform)
+            yield content.get("timestamp"), content.get("label"), content.get("concurency"), \
+                content.get("duration"), content.get("connectTime", None), content.get("latency",  None), \
+                0, content.get("error", None), \
+                content.get("runDetails", None), \
+                content.get("byte_count", 0)
 
 
 class MochaTester(JavaScriptExecutor):
@@ -342,6 +352,9 @@ class NPM(RequiredTool):
 
         return False
 
+class PlaywrightCustomReporter(NPMLocalModulePackage):
+    PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.0"
+    PACKAGE_LOCAL_PATH = "./playwright-custom-reporter"
 
 class PLAYWRIGHT(RequiredTool):
     def __init__(self, tools_dir, **kwargs):
