@@ -168,7 +168,7 @@ class PlaywrightLogReader(ResultsReader):
         self.jsonl_reader = IncrementalLineReader(self.log, filename)
 
     def _read(self, final_pass=False):
-        for line in self.jsonl_reader.read(last_pass):
+        for line in self.jsonl_reader.read(final_pass):
             content = json.loads(line)
             # Maybe runDetails is not got to add as trname (it has title of test, worker, repetition and browser platform)
             yield content.get("timestamp"), content.get("label"), content.get("concurency"), \
@@ -352,39 +352,6 @@ class NPM(RequiredTool):
 
         return False
 
-class PlaywrightCustomReporter(NPMLocalModulePackage):
-    PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.0"
-    PACKAGE_LOCAL_PATH = "./playwright-custom-reporter"
-
-class PLAYWRIGHT(RequiredTool):
-    def __init__(self, tools_dir, **kwargs):
-        super(PLAYWRIGHT, self).__init__(installable=True, **kwargs)
-        self.tools_dir = tools_dir
-
-    def check_if_installed(self):
-        # currently there seems to be no reliable way to find out whether all Playwright requirements are installed
-        return False
-
-    def install(self):
-        cmd_line = ["npx", "playwright", "install"]
-        self.install_cmd(cmd_line + ["--with-deps"])
-        self.install_cmd(cmd_line)
-        self.install_cmd(cmd_line + ["chromium"])
-        self.install_cmd(cmd_line + ["firefox"])
-        self.install_cmd(cmd_line + ["webkit"])
-
-    def install_cmd(self, cmdline):
-        self.log.debug("Installing Playwright: %s", cmdline)
-        try:
-            out, err = self.call(cmdline,cwd=self.tools_dir)
-        except CALL_PROBLEMS as exc:
-            self.log.warning("'%s' install failed: %s", cmdline, exc)
-            return
-        if out:
-            self.log.debug("%s install stdout: %s", self.tool_name, out)
-        if err:
-            self.log.warning("%s install stderr: %s", self.tool_name, err)
-
 
 class NPMPackage(RequiredTool):
     PACKAGE_NAME = ""
@@ -513,3 +480,36 @@ class TaurusNewmanPlugin(RequiredTool):
     def __init__(self, **kwargs):
         tool_path = os.path.join(RESOURCES_DIR, "newman-reporter-taurus.js")
         super(TaurusNewmanPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
+
+class PlaywrightCustomReporter(NPMLocalModulePackage):
+    PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.0"
+    PACKAGE_LOCAL_PATH = "./playwright-custom-reporter"
+
+class PLAYWRIGHT(RequiredTool):
+    def __init__(self, tools_dir, **kwargs):
+        super(PLAYWRIGHT, self).__init__(installable=True, **kwargs)
+        self.tools_dir = tools_dir
+
+    def check_if_installed(self):
+        # currently there seems to be no reliable way to find out whether all Playwright requirements are installed
+        return False
+
+    def install(self):
+        cmd_line = ["npx", "playwright", "install"]
+        self.install_cmd(cmd_line + ["--with-deps"])
+        self.install_cmd(cmd_line)
+        self.install_cmd(cmd_line + ["chromium"])
+        self.install_cmd(cmd_line + ["firefox"])
+        self.install_cmd(cmd_line + ["webkit"])
+
+    def install_cmd(self, cmdline):
+        self.log.debug("Installing Playwright: %s", cmdline)
+        try:
+            out, err = self.call(cmdline,cwd=self.tools_dir)
+        except CALL_PROBLEMS as exc:
+            self.log.warning("'%s' install failed: %s", cmdline, exc)
+            return
+        if out:
+            self.log.debug("%s install stdout: %s", self.tool_name, out)
+        if err:
+            self.log.warning("%s install stderr: %s", self.tool_name, err)
