@@ -167,15 +167,23 @@ class PlaywrightLogReader(ResultsReader):
         self.filename = filename
         self.jsonl_reader = IncrementalLineReader(self.log, filename)
 
+    def _safe_ms_to_s(self, t):
+        if t:
+            return t / 1000.0
+        return t
+
     def _read(self, final_pass=False):
         for line in self.jsonl_reader.read(final_pass):
             content = json.loads(line)
-            # Maybe runDetails is not got to add as trname (it has title of test, worker, repetition and browser platform)
-            yield content.get("timestamp"), content.get("label"), content.get("concurency"), \
-                content.get("duration"), content.get("connectTime", None), content.get("latency",  None), \
-                0, content.get("error", None), \
-                content.get("runDetails", None), \
-                content.get("byte_count", 0)
+            # runDetails: title of test, worker, repetition and browser platform
+            yield (content.get("timestamp"), content.get("label"), content.get("concurency"),
+                   self._safe_ms_to_s(content.get("duration")),
+                   self._safe_ms_to_s(content.get("connectTime", None)),
+                   self._safe_ms_to_s(content.get("latency",  None)),
+                   0,
+                   content.get("error", None),
+                   content.get("runDetails", None),
+                   content.get("byte_count", 0))
 
 
 class MochaTester(JavaScriptExecutor):
