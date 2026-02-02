@@ -9,58 +9,63 @@ import math
 import os
 import time
 import traceback
-from collections import OrderedDict
 from functools import wraps
+from ssl import SSLError
+from urllib.error import URLError
 from urllib.parse import urlencode
 
 import requests
+from requests import ReadTimeout
 
-from bzt import ManualShutdown, TaurusException, TaurusNetworkError
+from bzt import ManualShutdown, TaurusException, TaurusNetworkError, RetriableCloudError
 from bzt.engine import ScenarioExecutor
 from bzt.jmx import try_convert
 from bzt.resources.version import VERSION
-from bzt.utils import to_json, MultiPartForm, NETWORK_PROBLEMS, dehumanize_time
+from bzt.utils import to_json, MultiPartForm, dehumanize_time
 
 BZA_TEST_DATA_RECEIVED = 100
 ENDED = 140
 PERMANENT_ERROR_CODES = [500]
+CLOUD_NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, RetriableCloudError)
 
 
-def send_with_retry(method):
+def call_with_retry(method):
+    """
+    Decorator for retrying API calls with exponential backoff.
+
+    Features:
+    - Exponential backoff: delay = min(initial_delay * (2 ^ attempt), max_delay)
+    - Max delay capped at self.timeout
+    - Infinite retries with increasing delays
+    - Logs retry attempts with current delay
+
+    Example:
+        @call_with_retry
+        def some_api_call(self):
+            return self.http_request(...)
+    """
+
     @wraps(method)
     def _impl(self, *args, **kwargs):
-        try:
-            method(self, *args, **kwargs)
-        except (IOError, TaurusNetworkError):
-            error_msg = f"Error sending data: {traceback.format_exc()}"
+        attempt = 0
+        base_delay = self.retry_delay if hasattr(self, 'retry_delay') else 1
+        max_delay = self.timeout if hasattr(self, 'timeout') else 30
 
-            if any(f"API call error {code}" in error_msg for code in PERMANENT_ERROR_CODES):
-                self.log.error(error_msg)
-                return
-
-            self.log.debug(error_msg)
-            self.log.warning("Failed to send data, will retry in %s sec...", self.timeout)
-            try:
-                time.sleep(self.timeout)
-                method(self, *args, **kwargs)
-                self.log.info("Succeeded with retry")
-            except NETWORK_PROBLEMS:
-                self.log.error("Fatal error sending data: %s", traceback.format_exc())
-                self.log.warning("Will skip failed data and continue running")
-
-    return _impl
-
-
-def get_with_retry(method):
-    @wraps(method)
-    def _impl(self, *args, **kwargs):
         while True:
             try:
+                if attempt > 0:
+                    # Exponential backoff: 1s, 2s, 4s, 8s, 16s, ... up to max_delay
+                    delay = min(base_delay * (2 ** attempt), max_delay)
+                    self.log.warning(
+                        "Failed to make request, will retry in %s sec... (attempt %d)",
+                        delay, attempt + 1
+                    )
+                    time.sleep(delay)
+
                 return method(self, *args, **kwargs)
-            except NETWORK_PROBLEMS:
+            except CLOUD_NETWORK_PROBLEMS:
                 self.log.debug("Error making request: %s", traceback.format_exc())
-                self.log.warning("Failed to make request, will retry in %s sec...", self.timeout)
-                time.sleep(self.timeout)
+                attempt += 1
 
     return _impl
 
@@ -77,6 +82,7 @@ class BZAObject(dict):
         self.address = "https://a.blazemeter.com"
         self.data_address = "https://data.blazemeter.com"
         self.timeout = 30
+        self.retry_delay = 1
         self.logger_limit = 256
         self.token = None
         self.log = logging.getLogger(self.__class__.__name__)
@@ -95,13 +101,18 @@ class BZAObject(dict):
                     continue
                 self.__setattr__(attr, proto.__getattribute__(attr))
 
+    @call_with_retry
     def _request(self, url, data=None, headers=None, method=None, raw_result=False, retry=True):
         """
-        :param url: str
-        :type data: Union[dict,str]
-        :param headers: dict
-        :param method: str
-        :return: dict
+        Make HTTP request with improved retry logic and error handling.
+
+        :param url: str - URL to request
+        :type data: Union[dict,str] - Request body
+        :param headers: dict - HTTP headers
+        :param method: str - HTTP method (GET, POST, PATCH, etc)
+        :param raw_result: bool - if True, return raw response without JSON parsing
+        :param retry: bool - if True, retry on timeout
+        :return: dict or str
         """
         if not headers:
             headers = {}
@@ -137,45 +148,61 @@ class BZAObject(dict):
 
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
 
-        retry_limit = self._retry_limit
-
+        # ===== RETRY LOOP FOR TIMEOUT ERRORS =====
         while True:
             try:
                 response = self.http_request(
                     method=log_method, url=url, data=data, headers=headers, timeout=self.timeout)
-            except requests.ReadTimeout:
-                if retry and retry_limit:
-                    retry_limit -= 1
-                    self.log.warning("ReadTimeout: %s. Retry..." % url)
-                    continue
-                raise
+            except (requests.ReadTimeout, TaurusNetworkError):
+                raise RetriableCloudError("ReadTimeout error on %s" % url)
             break
 
+        # ===== DECODE RESPONSE =====
         resp = response.content
         if not isinstance(resp, str):
             resp = resp.decode()
 
         self.log.debug("Response [%s]: %s", response.status_code, resp[:self.logger_limit] if resp else None)
-        if response.status_code >= 400:
-            try:
-                result = json.loads(resp) if len(resp) else {}
-                if 'error' in result and result['error']:
-                    raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
-                else:
-                    raise TaurusNetworkError("API call error %s on %s: %s" % (response.status_code, url, result))
-            except ValueError:
-                raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
 
+        # ===== HANDLE HTTP ERROR RESPONSES (4xx, 5xx) =====
+        if response.status_code >= 400:
+            # Determine if error is retriable
+            is_retriable = response.status_code >= 500 or response.status_code == 429
+            error_class = RetriableCloudError if is_retriable else TaurusNetworkError
+
+            # Try to parse error response
+            try:
+                result = json.loads(resp) if resp else {}
+            except ValueError:
+                result = {}
+
+            # Extract error message
+            if isinstance(result, dict) and 'error' in result and result['error']:
+                error_detail = result['error']
+            elif isinstance(result, dict) and result:
+                error_detail = str(result)
+            else:
+                error_detail = response.reason or "Unknown error"
+
+            # Raise appropriate exception with detailed message
+            raise error_class(
+                "API call error on %s (HTTP %s): %s" % (url, response.status_code, error_detail)
+            )
+
+        # ===== RETURN RAW RESPONSE IF REQUESTED =====
         if raw_result:
             return resp
 
+        # ===== PARSE SUCCESSFUL RESPONSE =====
         try:
-            result = json.loads(resp) if len(resp) else {}
+            result = json.loads(resp) if resp else {}
         except ValueError as exc:
             self.log.debug('Response: %s', resp)
             raise TaurusNetworkError("Non-JSON response from API: %s" % exc)
 
-        if 'error' in result and result['error']:
+        # ===== FINAL CHECK FOR ERROR IN RESPONSE BODY =====
+        # Some APIs return 200 but with error in body
+        if isinstance(result, dict) and 'error' in result and result['error']:
             raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
 
         return result
@@ -667,7 +694,6 @@ class Master(BZAObject):
         res = self._request(url, data, method='PATCH')
         self.update(res['result'])
 
-    @get_with_retry
     def get_status(self):
         sess = self._request(self.address + '/api/v4/masters/%s/status' % self['id'])
         return sess['result']
@@ -783,7 +809,6 @@ class Session(BZAObject):
         data = {"signature": self.data_signature, "testId": self['testId'], "sessionId": self['id']}
         self._request(url, data)
 
-    @send_with_retry
     def send_kpi_data(self, data, is_check_response=True, submit_target=None):
         """
         Sends online data
@@ -821,7 +846,6 @@ class Session(BZAObject):
             self.notify_monitoring_file(file_name)
             self.monitoring_upload_notified = True
 
-    @send_with_retry
     def upload_file(self, filename, contents=None):
         """
         Upload single artifact
