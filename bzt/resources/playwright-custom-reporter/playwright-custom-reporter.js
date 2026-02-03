@@ -21,8 +21,23 @@ class TaurusReporter {
       tickTime: 1000,
       statTime: 15000,
       verbose: false,
+      consoleLog: true,
     };
-    this.options = { ...defaultOptions, ...userOptions };
+    this.options = {...defaultOptions, ...userOptions};
+
+    // ENV overrides of options from configuration file (and defaults)
+    if (typeof process.env.TAURUS_PWREPORT_DIR !== 'undefined') {
+      this.options.outputFile = process.env.TAURUS_PWREPORT_DIR + '/' + 'taurus-playwright-reporter.jsonl';
+    }
+    if (typeof process.env.TAURUS_PWREPORT_VERBOSE !== 'undefined') {
+      this.options.verbose = process.env.TAURUS_PWREPORT_VERBOSE;
+    }
+    if (typeof process.env.TAURUS_PWREPORT_STDOUT !== 'undefined') {
+      this.options.consoleLog = process.env.TAURUS_PWREPORT_STDOUT;
+    }
+    if (typeof process.env.TAURUS_PWREPORT_DURATION !== 'undefined') {
+      this.options.maxDuration = parseInt(process.env.TAURUS_PWREPORT_DURATION);
+    }
 
     this.tickStart(this.options.maxDuration || -1);
   }
@@ -31,7 +46,9 @@ class TaurusReporter {
     this.tick_time_id = setTimeout(async () => {
       const duration = Date.now() - this.timestampStart;
       if (maxDuration > 0 && duration > maxDuration) {
-        console.log(EC.red(`Maximum duration of ${maxDuration}ms exceeded, stopping the process.`));
+        if (this.options.consoleLog === true) {
+          console.log(EC.red(`Maximum duration of ${maxDuration / 1000.0} seconds exceeded, stopping the process.`));
+        }
         process.exit(0);
       }
       const statDuration = Date.now() - this.lastStatTimestamp;
@@ -41,7 +58,10 @@ class TaurusReporter {
         const unexpected = allTests.filter(t => t.outcome() === 'unexpected').length;
         const flaky = allTests.filter(t => t.outcome() === 'flaky').length;
         const remaining = allTests.filter(t => t.outcome() === 'skipped').length;
-        console.log(`Finished tests: ${allTests.length - remaining}/${allTests.length}. Results expected: ${expected}, unexpected: ${unexpected}, flaky: ${flaky}`);
+        if (this.options.consoleLog === true) {
+          console.log(`Finished tests: ${allTests.length
+          - remaining}/${allTests.length}. Results expected: ${expected}, unexpected: ${unexpected}, flaky: ${flaky}`);
+        }
         this.lastStatTimestamp = Date.now();
       }
       this.tickStart(maxDuration);
@@ -53,7 +73,7 @@ class TaurusReporter {
   }
 
   printsToStdio() {
-    return true;
+    return this.options.consoleLog === true;
   }
 
   getTest(testId) {
@@ -70,7 +90,13 @@ class TaurusReporter {
   onBegin(config, suite) {
     this.config = config;
     this.root = suite;
-    console.log(`Starting the run with ${suite.allTests().length} tests.`);
+    if (this.options.consoleLog === true) {
+      if ((this.options.maxDuration || -1) > 0) {
+        console.log(`Starting the run with ${suite.allTests().length} tests, max duration: ${this.options.maxDuration / 1000.0} seconds`);
+      } else {
+        console.log(`Starting the run with ${suite.allTests().length} tests`);
+      }
+    }
   }
 
   onTestBegin(test, result) {
@@ -95,7 +121,7 @@ class TaurusReporter {
 
   onTestEnd(test, result) {
 
-    if (this.options.verbose === true) {
+    if (this.options.consoleLog === true && this.options.verbose === true) {
       console.log(`Finished test ${test.title}: ${result.status} in ${result.duration}ms`);
     }
 
@@ -111,39 +137,44 @@ class TaurusReporter {
       "latency": null,
       "status": result.status,
       "expectedStatus": test.expectedStatus,
-      "error": result.status === 'passed' ? null : "Test failed: " + (result.error ? result.error.message : (result.status === 'interrupted' ? 'Interrupted' : 'Unknown error')),
+      "error": result.status === 'passed' ? null : "Test failed: " + (result.error ? result.error.message : (result.status === 'interrupted'
+          ? 'Interrupted' : 'Unknown error')),
       "runDetails": test.title + ":" + result.parallelIndex + ":" + test.repeatEachIndex
           + ":" + test.parent.parent?.title,
       "logs": test.logs && test.logs.length > 0 ? test.logs.join('\n') : null,
       "byte_count": null,
     };
     if (this.options.outputFile) {
-      // TODO: configure outputFile to be full path with artifacts dir
-      appendLineToFile(test.parent.project()?.outputDir + "/../" + this.options.outputFile, JSON.stringify(line) + '\n');
+      appendLineToFile(this.options.outputFile, JSON.stringify(line) + '\n');
     }
-    if (this.options.verbose === true) {
+    if (this.options.consoleLog === true && this.options.verbose === true) {
       console.log(`Test result: ${JSON.stringify(line)}`);
     }
   }
 
-
   onStdErr(chunk, test, result) {
     // Note that output may happen when no test is running, in which case this will be void.
     this.addTestLog(test || this.lastTest, EC.red(`${chunk}`));
-    console.log(EC.red(`${chunk}`));
+    if (this.options.consoleLog === true) {
+      console.log(EC.red(`${chunk}`));
+    }
   }
 
   onStdOut(chunk, test, result) {
     // Note that output may happen when no test is running, in which case this will be void.
     this.addTestLog(test || this.lastTest, `${chunk}`);
-    console.log(`${chunk}`);
+    if (this.options.consoleLog === true) {
+      console.log(`${chunk}`);
+    }
   }
 
   // Called on some global error, for example unhandled exception in the worker process.
   onError(error) {
     // add the error to test logs
     this.addTestLog(this.lastTest, EC.red(error.message || "Unknown Error"));
-    console.log(EC.red(error.message || "Unknown Error"));
+    if (this.options.consoleLog === true) {
+      console.log(EC.red(error.message || "Unknown Error"));
+    }
   }
 
   async onEnd(result) {
@@ -153,8 +184,11 @@ class TaurusReporter {
     const unexpected = allTests.filter(t => t.outcome() === 'unexpected').length;
     const flaky = allTests.filter(t => t.outcome() === 'flaky').length;
     const remaining = allTests.filter(t => t.outcome() === 'skipped').length;
-    console.log(`Final results expected: ${expected}, unexpected: ${unexpected}, flaky: ${flaky}, skipped: ${remaining}`);
-    console.log(`Finished the run: ${result.status}`);
+    if (this.options.consoleLog === true) {
+      console.log(
+          `Final results expected: ${expected}, unexpected: ${unexpected}, flaky: ${flaky}, skipped: ${remaining}`);
+      console.log(`Finished the run: ${result.status}`);
+    }
     this.lastTest = undefined;
     this.testMap.clear();
   }

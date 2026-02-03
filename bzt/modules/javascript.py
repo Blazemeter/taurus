@@ -129,22 +129,34 @@ class PlaywrightTester(JavaScriptExecutor):
         env = config["settings"]["env"]
         if "BASE_URL" in env:
             self.env.set({"BASE_URL": env["BASE_URL"]})
-        if isinstance(config["execution"], dict):
-            concurrency = config["execution"].get("concurrency", 1)
-            iterations = config["execution"].get("iterations", 1)
-        else:
-            concurrency = config["execution"][0].get("concurrency", 1)
-            iterations = config["execution"][0].get("iterations", 1)
 
-        if isinstance(concurrency, dict):
-            concurrency = concurrency.get("local", 1)
+        load = self.get_load()
+
+        max_duration = None
+        concurrency = min(1, load.concurrency)
+        if load.duration > 0:
+            max_duration = load.duration
+            if load.iterations > 0:
+                repeat_each = concurrency*load.iterations
+            else:
+                # This seems to be near the maximum number playwright can accept
+                # without throwing error RangeError: Maximum call stack size exceeded
+                repeat_each = 100000
+        else:
+            iterations = min(1, load.iterations)
+            repeat_each = concurrency*iterations
 
         reporter = "@taurus/playwright-custom-reporter"
 
+        # self.env.set({"TAURUS_PWREPORT_VERBOSE": "true"})
+        # self.env.set({"TAURUS_PWREPORT_STDOUT": "true"})
+        self.env.set({"TAURUS_PWREPORT_DIR": self.engine.artifacts_dir})
+        if max_duration:
+            self.env.set({"TAURUS_PWREPORT_DURATION": str(int(max_duration * 1000))})
         options = ["--reporter " + reporter,
                    "--output " + self.engine.artifacts_dir + "/test-output",
                    "--workers " + str(concurrency),
-                   "--repeat-each " + str(concurrency*iterations)]
+                   "--repeat-each " + str(repeat_each)]
 
         if "browser" in self.get_scenario().data:
             options.append("--project=" + self.get_scenario().data["browser"])
@@ -492,6 +504,11 @@ class TaurusNewmanPlugin(RequiredTool):
 class PlaywrightCustomReporter(NPMLocalModulePackage):
     PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.0"
     PACKAGE_LOCAL_PATH = "./playwright-custom-reporter"
+
+    def check_if_installed(self):
+        # always run install for local module to update to latest version
+        # npm version resolving for local modules is not reliable
+        return False
 
 class PLAYWRIGHT(RequiredTool):
     def __init__(self, tools_dir, **kwargs):
