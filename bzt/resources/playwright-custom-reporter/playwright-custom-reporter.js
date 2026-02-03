@@ -30,10 +30,10 @@ class TaurusReporter {
       this.options.outputFile = process.env.TAURUS_PWREPORT_DIR + '/' + 'taurus-playwright-reporter.jsonl';
     }
     if (typeof process.env.TAURUS_PWREPORT_VERBOSE !== 'undefined') {
-      this.options.verbose = process.env.TAURUS_PWREPORT_VERBOSE;
+      this.options.verbose = process.env.TAURUS_PWREPORT_VERBOSE?.toLowerCase() === 'true'
     }
     if (typeof process.env.TAURUS_PWREPORT_STDOUT !== 'undefined') {
-      this.options.consoleLog = process.env.TAURUS_PWREPORT_STDOUT;
+      this.options.consoleLog = process.env.TAURUS_PWREPORT_STDOUT?.toLowerCase() === 'true'
     }
     if (typeof process.env.TAURUS_PWREPORT_DURATION !== 'undefined') {
       this.options.maxDuration = parseInt(process.env.TAURUS_PWREPORT_DURATION);

@@ -6,7 +6,7 @@ or hold-for time will be exceeded.
 Also number of concurrent users (aka workers in Playwright) can be specified using `concurrency`.
 
 *NOTE*: As Playwright does not support infinite iterations if `hold-for` is used without `iterations` Taurus will
-set iterations to _100000 divided by concurrency_. 
+set playwright's repeat-each to _1000_.
 
 You may specify `BASE_URL` in `settings` section to be pass to your test as an environment variable.
 

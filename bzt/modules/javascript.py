@@ -139,9 +139,10 @@ class PlaywrightTester(JavaScriptExecutor):
             if load.iterations > 0:
                 repeat_each = concurrency*load.iterations
             else:
-                # This seems to be near the maximum number playwright can accept
-                # without throwing error RangeError: Maximum call stack size exceeded
-                repeat_each = 100000
+                # playwright support approx 100000 tests (= num tests * repeat_each)
+                # setting repeat each to some save value. Lets customer setup iterations
+                # for their test to hold for expected duration....
+                repeat_each = 1000
         else:
             iterations = max(1, load.iterations)
             repeat_each = concurrency*iterations
