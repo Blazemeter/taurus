@@ -133,7 +133,7 @@ class PlaywrightTester(JavaScriptExecutor):
         load = self.get_load()
 
         max_duration = None
-        concurrency = min(1, load.concurrency)
+        concurrency = max(1, load.concurrency)
         if load.duration > 0:
             max_duration = load.duration
             if load.iterations > 0:
@@ -143,7 +143,7 @@ class PlaywrightTester(JavaScriptExecutor):
                 # without throwing error RangeError: Maximum call stack size exceeded
                 repeat_each = 100000
         else:
-            iterations = min(1, load.iterations)
+            iterations = max(1, load.iterations)
             repeat_each = concurrency*iterations
 
         reporter = "@taurus/playwright-custom-reporter"
