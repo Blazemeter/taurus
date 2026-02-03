@@ -15,6 +15,7 @@ from geventwebsocket.handler import WebSocketHandler
 
 import requests
 
+from bzt.bza import call_with_retry
 from bzt.modules import TransactionListener
 from bzt.modules.aggregator import DataPoint, KPISet, ResultsReader, AggregatorListener, ConsolidatingAggregator
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregatorListener
@@ -420,6 +421,7 @@ class BZMock(object):
         obj.http_session = self
         obj.http_request = self._request_mock
 
+    @call_with_retry
     def _request_mock(self, method, url, **kwargs):
         """
         :param method:

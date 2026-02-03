@@ -50,25 +50,28 @@ def call_with_retry(method):
         attempt = 0
         base_delay = self.retry_delay if hasattr(self, 'retry_delay') else 1
         max_delay = self.timeout if hasattr(self, 'timeout') else 30
+        max_retry_count = self.max_retry_count if hasattr(self, 'max_retry_count') else 10
 
-        while True:
+        while attempt <= max_retry_count:
             try:
                 if attempt > 0:
-                    # Exponential backoff: 1s, 2s, 4s, 8s, 16s, ... up to max_delay
-                    delay = min(base_delay * (2 ** attempt), max_delay)
+                    delay = min(base_delay * (2 ** (attempt - 1)), max_delay)
                     self.log.warning(
-                        "Failed to make request, will retry in %s sec... (attempt %d)",
-                        delay, attempt + 1
+                        "Failed to make request, will retry in %s sec... (attempt %d/%d)",
+                        delay, attempt, max_retry_count
                     )
                     time.sleep(delay)
 
                 return method(self, *args, **kwargs)
+
             except CLOUD_NETWORK_PROBLEMS:
                 self.log.debug("Error making request: %s", traceback.format_exc())
                 attempt += 1
 
-    return _impl
-
+        # If we reach here, all retries are exhausted
+        raise TaurusException(
+            f"Request failed after {max_retry_count} retries"
+        )
 
 class BZAObject(dict):
     def __init__(self, proto=None, data=None):
@@ -88,7 +91,7 @@ class BZAObject(dict):
         self.log = logging.getLogger(self.__class__.__name__)
         self.http_session = requests.Session()
         self.http_request = self.http_session.request
-        self._retry_limit = 5
+        self.max_retry_count = 10
         self.anonymous_access_blocked = False
 
         # copy infrastructure from prototype
