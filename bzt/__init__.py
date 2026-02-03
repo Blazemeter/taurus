@@ -64,7 +64,7 @@ class ToolError(TaurusException):
 class TaurusNetworkError(TaurusException):
     pass
 
-class RetriableCloudError(TaurusException):
+class RetriableCloudError(TaurusNetworkError):
     pass
 
 class NormalShutdown(KeyboardInterrupt, RCProvider):
