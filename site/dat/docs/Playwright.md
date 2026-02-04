@@ -1,8 +1,12 @@
 # Playwright Executor
 Allows running tests written in TypeScript based on Playwright.
 
-Taurus can loop test suite execution in a loop until desired number of `iterations` will complete. Also number of
-concurrent users (aka workers in Playwright) can be specified using `concurrency`. 
+Taurus can loop test suite execution in a loop until desired number of `iterations` will complete (for each concurrent user)
+or hold-for time will be exceeded. 
+Also number of concurrent users (aka workers in Playwright) can be specified using `concurrency`.
+
+*NOTE*: As Playwright does not support infinite iterations if `hold-for` is used without `iterations` Taurus will
+set playwright's repeat-each to _1000_.
 
 You may specify `BASE_URL` in `settings` section to be pass to your test as an environment variable.
 
@@ -17,6 +21,7 @@ execution:
 - executor: playwright
   scenario: playright_test
   iterations: 10
+  hold-for: 1m
   concurrency: 5
 
 settings:
