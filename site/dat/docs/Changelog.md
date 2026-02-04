@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.16.47<sup> 20 January 2026</sup>
+- Playwright executor concurrency/duration fixes
+- Gatling fix problem with string properties in yaml file
+- Send test files to cloud in chunks (by 50)
+- Dependency fixes (urllib3, npm, dotnet, junit, jmeter-plugins-manager)
+
 ## 1.16.46<sup> 16 September 2025</sup>
 - K6 executor updated to 0.45.0
 - Playwright executor added
