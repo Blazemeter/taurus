@@ -6,7 +6,7 @@ In Taurus, you have two ways how to run it:
 Either with a native gatling script, or with the usual Taurus features: `requests`,
 `iterations`, etc. In the latter case, a scala script is generated automatically.
 
-We support Gatling versions 3 or higher.
+We support Gatling versions 3 or higher. Default is version 3.8.
 
 ## Run Gatling Tool
 
@@ -262,7 +262,7 @@ by writing certain lines in the `gatling` section of the modules setting.
  - `java-opts`: A string with some Java options for Gatling
  - `maven-opts`: A string with some Maven options for Gatling 3.11+.
  - `download-link`: A link where to download Gatling from. By default: `https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip`
- -  `version`: The Gatling version
+ -  `version`: The Gatling version, for example, `3.14.3`.
  -  `dir-prefix`: The Gatling report prefix, `gatling-%s` by default. Used by taurus to find gatling reports. If you use the Gatling property `gatling.core.outputDirectoryBaseName`, you can also use this setting.
  - `properties`: The dictionary for tuning the gatling tool behaviour and sending your own variables into Scala program. For the list of available parameters, see the gatling documentation. 
 
