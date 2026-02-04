@@ -150,7 +150,9 @@ class PlaywrightTester(JavaScriptExecutor):
         reporter = "@taurus/playwright-custom-reporter"
 
         # self.env.set({"TAURUS_PWREPORT_VERBOSE": "true"})
-        # self.env.set({"TAURUS_PWREPORT_STDOUT": "true"})
+        # TODO: set to false if we will add support for customer reporter
+        #  - keep stdout to customer reporter (or default)
+        self.env.set({"TAURUS_PWREPORT_STDOUT": "true"})
         self.env.set({"TAURUS_PWREPORT_DIR": self.engine.artifacts_dir})
         if max_duration:
             self.env.set({"TAURUS_PWREPORT_DURATION": str(int(max_duration * 1000))})

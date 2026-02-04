@@ -39,6 +39,13 @@ class TaurusReporter {
       this.options.maxDuration = parseInt(process.env.TAURUS_PWREPORT_DURATION);
     }
 
+    if (fs.existsSync(this.options.outputFile)) {
+      fs.rmSync(p, {
+        force: true,
+        maxRetries: 2
+      });
+    }
+
     this.tickStart(this.options.maxDuration || -1);
   }
 
