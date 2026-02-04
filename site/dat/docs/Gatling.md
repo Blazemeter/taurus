@@ -150,7 +150,7 @@ scenarios:
 ```
 See more info about [data-sources here](DataSources.md).
 
-##### Extractors
+### Extractors
 
 Extractors are the objects that are attached to the request to take a piece of the response and use it in the following requests.
 The following types of extractors are supported:
@@ -206,7 +206,7 @@ scenarios:
     - url: http://blazedemo.com/${varname}.xml
 ```
 
-##### Include Scenario Blocks
+### Include Scenario Blocks
 The `include-scenario` block makes it possible to include one scenario in another one. You can use it to split your test plan into
 several independent scenarios that can be reused. In addition, an `include-scenario` can refer to another scenario which contains `include-scenario` on any level of depth.
 
@@ -260,6 +260,7 @@ by writing certain lines in the `gatling` section of the modules setting.
  The following options are supported:
  - `path`: Path to the Gatling executable. In case no Gatling executable is found, it will be automatically downloaded and installed into the `path` location. By default, `~/.bzt/gatling-taurus/{version}/bin/gatling.sh`.
  - `java-opts`: A string with some Java options for Gatling
+ - `maven-opts`: A string with some Maven options for Gatling 3.11+.
  - `download-link`: A link where to download Gatling from. By default: `https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip`
  -  `version`: The Gatling version
  -  `dir-prefix`: The Gatling report prefix, `gatling-%s` by default. Used by taurus to find gatling reports. If you use the Gatling property `gatling.core.outputDirectoryBaseName`, you can also use this setting.
@@ -314,4 +315,34 @@ modules:
   gatling:
     additional-classpath:
     - most-important-lib.jar  #  a global way to specify required libraries
+```
+
+## How to define Maven options (Gatling 3.11+)
+
+If you are using Gatling version 3.11 or higher, specify the version in your yml config.
+If you need to define settings for Maven (for example, memory increase) in these versions, 
+use the property `maven-opts`, not `java-opts`.
+
+```
+execution:
+  - executor: gatling  # Gatling
+    concurrency: 5
+    hold-for: 20s
+    iterations: 1
+    throughput: 3
+    scenario:
+      script: taurusExamples.jar
+      simulation: com.example.TaurusSimulationUrl
+      properties:
+        url: https://dummyurl/test
+        username: admin
+        password: password
+modules:
+  gatling:
+    version: 3.14.3                   # specify the version
+    java-opts: "-Dtest=value"         # specify Java options
+    maven-opts: "-Xms512m -Xmx512m"   # specify Maven options
+    properties:
+      your_variable: 1024
+      targetUrl: "https://vs196680svc355399.mock.blazemeter.com/test"
 ```
