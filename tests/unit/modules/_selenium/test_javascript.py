@@ -232,6 +232,14 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         self.assertEqual(self.obj.runner.execution["executor"], "playwright")
         self.assertEqual(self.obj.runner.engine.modules['playwright'], PlaywrightTester)
 
+        self.assertTrue(os.path.exists(self.obj.runner.reader.filename))
+        samples = [sample for sample in self.obj.runner.reader._read(final_pass=True)]
+        self.assertEqual(2, len(samples))
+        self.assertEqual(samples[0][1], "destination of week")
+        self.assertEqual(samples[0][6], 0)
+        self.assertEqual(samples[1][1], "reserve flight")
+        self.assertEqual(samples[1][6], 0)
+
     def test_command_line(self):
         self.simple_run({
             'execution': {
