@@ -188,9 +188,11 @@ class TestNewmanExecutor(BZTestCase):
 class TestPlaywrightExecutor(SeleniumTestCase):
     RUNNER_STUB = RESOURCES_DIR + "playwright/playwright" + EXE_SUFFIX
     CMD_LINE = None
+    ENV = None
 
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = ''.join(args)
+        self.ENV = kwargs.get('env').get() if 'env' in kwargs else {}
 
     def prepare(self, config):
         self.obj.engine.config.merge(config)
@@ -227,14 +229,23 @@ class TestPlaywrightExecutor(SeleniumTestCase):
                 }
             }
         })
-        self.assertEquals(self.obj.runner.execution["executor"], "playwright")
-        self.assertEquals(self.obj.runner.engine.modules['playwright'], PlaywrightTester)
+        self.assertEqual(self.obj.runner.execution["executor"], "playwright")
+        self.assertEqual(self.obj.runner.engine.modules['playwright'], PlaywrightTester)
+
+        self.assertTrue(os.path.exists(self.obj.runner.reader.filename))
+        samples = [sample for sample in self.obj.runner.reader._read(final_pass=True)]
+        self.assertEqual(2, len(samples))
+        self.assertEqual(samples[0][1], "destination of week")
+        self.assertEqual(samples[0][6], 0)
+        self.assertEqual(samples[1][1], "reserve flight")
+        self.assertEqual(samples[1][6], 0)
 
     def test_command_line(self):
         self.simple_run({
             'execution': {
                 'iterations': 3,
                 'concurrency': 10,
+                'hold-for': '1m',
                 'settings': {
                     'env': {
                         'BASE_URL': 'https://blazedemo.com/'
@@ -249,8 +260,11 @@ class TestPlaywrightExecutor(SeleniumTestCase):
             },
         })
         self.assertIn("npx playwright test", self.CMD_LINE)
-        self.assertIn("--repeat-each 3", self.CMD_LINE)
+        self.assertIn("--repeat-each 30", self.CMD_LINE)
         self.assertIn("--workers 10", self.CMD_LINE)
         self.assertIn("-project=firefox", self.CMD_LINE)
         self.assertIn("-g 'has title'", self.CMD_LINE)
+        self.assertEqual('60000', self.ENV.get("TAURUS_PWREPORT_DURATION", "undefined"))
+
+
 

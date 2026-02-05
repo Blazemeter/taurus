@@ -1,0 +1,20 @@
+{
+  "name": "@taurus/playwright-custom-reporter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "playwright-custom-reporter.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "compilerOptions": {
+    "module": "CommonJS"
+  },
+  "dependencies": {
+    "eight-colors": "^1.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1"
+  }
+}
