@@ -64,9 +64,6 @@ class ToolError(TaurusException):
 class TaurusNetworkError(TaurusException):
     pass
 
-class RetriableCloudError(TaurusNetworkError):
-    pass
-
 class NormalShutdown(KeyboardInterrupt, RCProvider):
     def get_rc(self):
         """

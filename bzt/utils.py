@@ -68,7 +68,7 @@ from requests.exceptions import ReadTimeout
 from socketio.exceptions import ConnectionError
 from urwid import BaseScreen
 
-from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError, RetriableCloudError
+from bzt import TaurusInternalException, TaurusNetworkError, ToolError, TaurusConfigError
 
 LOG = logging.getLogger("")
 CALL_PROBLEMS = (CalledProcessError, OSError)
@@ -1362,27 +1362,7 @@ class HTTPClient(object):
             msg = "Request to %s failed" % url
             if resp is not None:
                 msg += ": %s - %s" % (resp.status_code, resp.reason)
-                # ===== HANDLE HTTP ERROR RESPONSES (4xx, 5xx) =====
-                if resp.status_code >= 400:
-                    is_retriable = resp.status_code >= 500 or resp.status_code == 429
-                    error_class = RetriableCloudError if is_retriable else TaurusNetworkError
-
-                    try:
-                        result = json.loads(resp) if resp else {}
-                    except ValueError:
-                        result = {}
-
-                    if isinstance(result, dict) and 'error' in result and result['error']:
-                        error_detail = result['error']
-                    elif isinstance(result, dict) and result:
-                        error_detail = str(result)
-                    else:
-                        error_detail = resp.reason or "Unknown error"
-
-                    raise error_class(
-                        "API call error on %s (HTTP %s): %s" % (url, resp.status_code, error_detail)
-                    )
-            raise RetriableCloudError(msg)
+            raise TaurusNetworkError(msg)
 
 
 class HappysocksClient(HTTPClient):
