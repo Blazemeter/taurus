@@ -33,7 +33,7 @@ class BZAObject(dict):
 
         self.address = "https://a.blazemeter.com"
         self.data_address = "https://data.blazemeter.com"
-        self.timeout = 20
+        self.timeout = 30
         self.logger_limit = 256
         self.token = None
         self.log = logging.getLogger(self.__class__.__name__)
