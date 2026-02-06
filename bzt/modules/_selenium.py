@@ -17,6 +17,7 @@ import copy
 import os
 import shutil
 import time
+import re
 import requests
 from abc import abstractmethod
 
@@ -25,7 +26,7 @@ from bzt.modules import ReportableExecutor
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.services import PythonTool
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac_x86, unzip, untar, \
-    is_mac_arm, is_mac
+    is_mac_arm, is_mac, exec_and_communicate
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -305,14 +306,42 @@ class WebDriver(RequiredTool):
 
 
 class ChromeDriver(WebDriver):
-    VERSION = "116.0.5845.96"
+    VERSION = "144.0.7559.133"
     DOWNLOAD_LINK = "https://storage.googleapis.com/chrome-for-testing-public/" \
                     "{version}/{arch}/chromedriver-{arch}.zip"
     HIGHEST_OLD_VERSION = "114.0.5735.90"
     OLD_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
 
-    def _get_latest_version_from_inet(self):
+    def _get_installed_chrome_milestone(self):
+        # For now just simple test for docker container (as debian stable chrome is old)
+        # If we get problems with mismatch in chrome vs chrome driver in other environments
+        # we will add detection for them.
         try:
+            cmd = "google-chrome"
+            if is_mac():
+                cmd = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            out, err = exec_and_communicate([cmd, "--version"])
+            match = re.fullmatch(".*Chrome ([0-9]+)(\\.[0-9]+)+[\r\n\t ]*", out)
+            if match:
+                detected_version = match.group(1)
+                self.log.info(f"Found chrome major version: {detected_version}")
+                return detected_version
+        except Exception as e:
+            pass
+        return None
+
+    def _get_latest_version_from_inet(self):
+        chrome_milestone = self._get_installed_chrome_milestone()
+        try:
+            if (chrome_milestone):
+                response = requests.get(
+                    'https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone.json')
+                data = response.json()
+                milestone_version = data["milestones"].get(str(chrome_milestone), {"version": None})["version"]
+                if milestone_version:
+                    return milestone_version
+
+            # Unable to detect chrome version / or find milestone, download driver for latest stable version
             response = requests.get(
                 'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json')
             data = response.json()
