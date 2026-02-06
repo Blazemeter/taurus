@@ -49,8 +49,11 @@ RUN apt-get update && \
 # Add NodeSource repository
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash -
 # Install Node.js
+# TODO: remove upgrade of npm to npm@11 when version in /usr/lib/node_modules/npm/node_modules/glob/package.json of npm included in nodejs
+# is >= 10.5.0 (or >= 11.1.0)
 RUN apt-get update && \
     apt-get install -y nodejs && \
+    npm i -g npm@11 && \
     rm -rf /var/lib/apt/lists/*
 
 # Download Chrome package
