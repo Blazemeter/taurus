@@ -324,7 +324,7 @@ class ChromeDriver(WebDriver):
             match = re.fullmatch(".*Chrome ([0-9]+)(\\.[0-9]+)+[\r\n\t ]*", out)
             if match:
                 detected_version = match.group(1)
-                self.log.info(f"Found chrome major version: {detected_version}")
+                self.log.debug(f"Chrome major version (milestone): {detected_version}")
                 return detected_version
         except Exception as e:
             pass
