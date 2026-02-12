@@ -30,9 +30,9 @@ settings:
 
 scenarios:
     playwright_test:
-        script: example.spec.ts # points to the file with tests
+        script: example.spec.ts # points to the TypeScript file with tests
         browser: firefox
-        test: has title # can be omitted to run all tests
+        test: has title # Omit the test name to run all tests. Here, "has title" is the name of the test.
 ```
 
 ## Playwright project
