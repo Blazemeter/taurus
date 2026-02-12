@@ -1,15 +1,19 @@
 # Playwright Executor
-Allows running tests written in TypeScript based on Playwright.
+Use this executor to run tests written in TypeScript based on Playwright.
 
-Taurus can loop test suite execution in a loop until desired number of `iterations` will complete. Also number of
-concurrent users (aka workers in Playwright) can be specified using `concurrency`. 
+Taurus can repeat test suite executions in a loop until the desired number of `iterations` is complete (for each concurrent user),
+or until the hold-for time is exceeded. 
+To specifiy the number of concurrent users (also known as workers in Playwright), define the `concurrency` option.
 
-You may specify `BASE_URL` in `settings` section to be pass to your test as an environment variable.
+*NOTE*: As Playwright does not support infinite iterations, if `hold-for` is used without `iterations`, Taurus will
+set playwright's repeat-each to _1000_.
 
-It is possible to override the browser settings from your Playwright test configuration by using the `browser` option, e.g.,
-you may enter one of these: `chromium`, `firefox`, `webkit`.
+To pass the base URL to your test as an environment variable, define the `BASE_URL` option in the `settings` section. 
 
-A single test from the suite may be selected to be executed using the `test` field.
+To override the browser settings from your Playwright test configuration, define the `browser` option.
+For example, enter one of these values: `chromium`, `firefox`, `webkit`.
+
+To select a single test from the suite to be executed, define the `test` field.
 
 ## Usage
 ```yaml
@@ -17,6 +21,7 @@ execution:
 - executor: playwright
   scenario: playright_test
   iterations: 10
+  hold-for: 1m
   concurrency: 5
 
 settings:
@@ -32,12 +37,15 @@ scenarios:
 
 ## Playwright project
 
-Your project will need to consist of at least these files:
-* package.json - lists the dependencies of the project, these are then installed automatically when executing it using the Taurus Playwright executor
-* playwright.config.ts - Playwright configuration file
-* actual file or files with tests, see example below
+Your Playwright project must consist of at least these files:
+* package.json - Lists the dependencies of the project, these are then installed automatically when executing it using the Taurus Playwright executor
+* playwright.config.ts - The Playwright configuration file
+* example.spec.ts - The actual file or files with tests, see example below
 
-Example of Playwright configuration file:
+Example package.json:
+https://github.com/Blazemeter/taurus/blob/master/examples/playwright/package.json
+
+Example playwright.config.ts, the Playwright configuration file:
 ```javascript
 import { defineConfig, devices } from '@playwright/test';
 
@@ -58,7 +66,7 @@ export default defineConfig({
   reporter: 'json',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
+    /* Base URL to use in test actions like `await page.goto('/')`. */
     // baseURL: 'http://127.0.0.1:3000',
     baseURL: process.env.BASE_URL,
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
@@ -84,25 +92,38 @@ export default defineConfig({
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-    }]
+    }
+  ],
 });
 ```
 
-
-Basic example of Playwright test:
+Example example.spec.ts, a basic Playwright test for https://blazedemo.com/:
 ```javascript
 import { test, expect } from '@playwright/test';
 
 test('has title', async ({ page }) => {
-    await page.goto("/");   // uses the BASE_URL
+  await page.goto("/");
 
-    // Expect a title "to contain" a substring.
-    await expect(page).toHaveTitle(/BlazeDemo/);
+  // Expect a title "to contain" a substring.
+  await expect(page).toHaveTitle(/BlazeDemo/);
+});
+
+test('reserve flight', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Find Flights' }).click();
+
+  await expect(page).toHaveTitle(/reserve/);
+
+  await page.getByRole('button', { name: 'Choose This Flight' }).nth(1).click();
+
+  await expect(page).toHaveTitle(/Purchase/);
+
 });
 
 ```
 
-You can also find an example of the complete Playwright-based test suite and Taurus config to run it with
-in [examples/playwright](https://github.com/Blazemeter/taurus/tree/master/examples/playrwright)
+You can find this complete Playwright-based test suite and Taurus config to run it with
+in the [examples/playwright](https://github.com/Blazemeter/taurus/tree/master/examples/playwright)
 folder of Taurus's repo.
 

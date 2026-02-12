@@ -120,7 +120,7 @@ class TestGatlingExecutor(ExecutorTestCase):
             expected_lines = [
                 "#!/bin/bash\n",
                 f"cd {self.obj.tool.tool_dir}\n",
-                f"./mvnw gatling:test -Dgatling.simulationClass=mytest.BasicSimulation -Dgatling.resultsFolder={self.engine.artifacts_dir} $JAVA_OPTS\n"
+                f"eval ./mvnw gatling:test -Dgatling.simulationClass=mytest.BasicSimulation -Dgatling.resultsFolder={self.engine.artifacts_dir} $JAVA_OPTS\n"
             ]
 
         modified_launcher = self.obj.tool.tool_path
