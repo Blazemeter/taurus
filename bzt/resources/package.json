@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@taurus/playwright-custom-reporter": "file:playwright-custom-reporter"
+  }
+}
