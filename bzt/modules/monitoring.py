@@ -317,7 +317,7 @@ class BaseLocalMonitor(ABC):
         except (RuntimeError, PermissionError) as exc:
             self.log.debug("Failed to get disk io counters: %s", exc)
         if counters is None:
-            counters = psutil._ntuples.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
+            counters = psutil._ntuples.sdiskio( (0,)*(len(psutil._ntuples.sdiskio._fields)))  # pylint: disable=protected-access
             # noinspection PyProtectedMember
         return counters
 
@@ -328,7 +328,7 @@ class BaseLocalMonitor(ABC):
         except (RuntimeError, PermissionError) as exc:
             self.log.debug("Failed to get net io counters: %s", exc)
         if counters is None:
-            counters = psutil._ntuples.snetio(0, 0, 0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
+            counters = psutil._ntuples.snetio( (0,)*(len(psutil._ntuples.snetio._fields)))  # pylint: disable=protected-access
             # noinspection PyProtectedMember
         return counters
 
@@ -339,7 +339,7 @@ class BaseLocalMonitor(ABC):
         except (RuntimeError, PermissionError) as exc:
             self.log.debug("Failed to get disk usage metrics: %s", exc)
         if disk is None:
-            disk = psutil._ntuples.sdiskusage(0, 0, 0, 0)  # pylint: disable=protected-access
+            disk = psutil._ntuples.sdiskusage( (0,)*(len(psutil._ntuples.sdiskusage._fields)))  # pylint: disable=protected-access
             # noinspection PyProtectedMember
         return disk
 
