@@ -101,9 +101,6 @@ RUN apt-get update && \
         libyaml-dev \
         libxml2-dev \
         libxslt-dev \
-        # vulnerable libraries \
-        libexpat1=2.6.1-2ubuntu0.3 \
-        libexpat1-dev=2.6.1-2ubuntu0.3 \
         # Load testing tools
         siege \
         apache2-utils \
