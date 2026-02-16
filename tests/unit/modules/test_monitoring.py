@@ -241,7 +241,7 @@ class TestMonitoring(BZTestCase):
         _ = psutil._ntuples.sdiskusage( *(0,)*(len(psutil._ntuples.sdiskusage._fields)))  # pylint: disable=protected-access
 
     def test_psutil_potential_bugs(self):
-        conf = {'metrics': ['cpu', 'mem', 'disks', 'conn-all']}
+        conf = {'metrics': ['cpu', 'mem', 'disks', 'conn-all', 'disk-space']}
         client = LocalClient(ROOT_LOGGER, 'label', conf, EngineEmul())
         client.connect()
 
@@ -250,13 +250,17 @@ class TestMonitoring(BZTestCase):
         try:
             net_io_counters = psutil.net_io_counters
             disk_io_counters = psutil.disk_io_counters
+            disk_usage = psutil.disk_usage
             psutil.net_io_counters = lambda: None
             psutil.disk_io_counters = lambda: None
+            psutil.disk_usage = lambda x: None
 
             client.monitor.resource_stats()  # should throw no exception
         finally:
             psutil.net_io_counters = net_io_counters
             psutil.disk_io_counters = disk_io_counters
+            psutil.disk_usage = disk_usage
+
 
 
 class LoggingMonListener(MonitoringListener):
