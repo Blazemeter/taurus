@@ -236,9 +236,9 @@ class TestMonitoring(BZTestCase):
         # (was moved between packages _common->_ntuples in 7.2.0, has different fields based on OS,
         # -> can be changed without warning in future)
 
-        _ = psutil._ntuples.sdiskio( (0,)*(len(psutil._ntuples.sdiskio._fields)))  # pylint: disable=protected-access
-        _ = psutil._ntuples.snetio( (0,)*(len(psutil._ntuples.snetio._fields)))  # pylint: disable=protected-access
-        _ = psutil._ntuples.sdiskusage( (0,)*(len(psutil._ntuples.sdiskusage._fields)))  # pylint: disable=protected-access
+        _ = psutil._ntuples.sdiskio( *(0,)*(len(psutil._ntuples.sdiskio._fields)))  # pylint: disable=protected-access
+        _ = psutil._ntuples.snetio( *(0,)*(len(psutil._ntuples.snetio._fields)))  # pylint: disable=protected-access
+        _ = psutil._ntuples.sdiskusage( *(0,)*(len(psutil._ntuples.sdiskusage._fields)))  # pylint: disable=protected-access
 
     def test_psutil_potential_bugs(self):
         conf = {'metrics': ['cpu', 'mem', 'disks', 'conn-all']}
