@@ -229,6 +229,15 @@ class TestMonitoring(BZTestCase):
 
         self.assertEquals(b("test\n"), obj.clients[0].socket.sent_data)
 
+    def test_psutil_internal_package_usage(self):
+        import psutil
+
+        # Explicitly check named tuples we use from internal psutil package are still there
+        # (was moved between packages _common->_ntuples in 7.2.0, can be changed without warning)
+        _ = psutil._ntuples.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
+        _ = psutil._ntuples.snetio(0, 0, 0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
+        _ = psutil._ntuples.sdiskusage(0, 0, 0, 0)  # pylint: disable=protected-access
+
     def test_psutil_potential_bugs(self):
         conf = {'metrics': ['cpu', 'mem', 'disks', 'conn-all']}
         client = LocalClient(ROOT_LOGGER, 'label', conf, EngineEmul())
