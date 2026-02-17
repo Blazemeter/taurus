@@ -17,10 +17,12 @@ limitations under the License.
 """
 import copy
 import csv
+import logging
 import os
 import time
 from collections import Counter, OrderedDict
 from datetime import datetime
+import pprint
 
 from terminaltables3 import AsciiTable
 
@@ -46,6 +48,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         self.end_time = time.time()
         self.first_ts = float("inf")
         self.last_ts = 0
+        self.log = logging.getLogger(self.__class__.__name__)
 
     def startup(self):
         self.start_time = time.time()
@@ -74,6 +77,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         :type cumulative_results: bzt.modules.functional.ResultsTree
         :type results: bzt.modules.functional.ResultsTree
         """
+        self.log.info("DEV DEV: Final aggregated_results: %s", pprint.pformat(vars(cumulative_results)))
         self.cumulative_results = cumulative_results
 
     def shutdown(self):
@@ -87,11 +91,11 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
 
         if self.parameters.get("test-duration", True):
             self.__report_duration()
-
+        self.log.info("DEV DEV: Reached in postprocess of FinalStatus")
         if self.last_sec:
             if '' in self.last_sec[DataPoint.CUMULATIVE]:
                 summary_kpi = self.last_sec[DataPoint.CUMULATIVE][""]
-
+                self.log.info(f"DEV DEV: summary_kpi: {summary_kpi}")
                 if self.parameters.get("summary", True):
                     self.__report_samples_count(summary_kpi)
                 if self.parameters.get("percentiles", True):
@@ -136,11 +140,15 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                     self.log.info("Stacktrace:\n%s", case.error_trace)
 
     def __report_failed_tests(self):
+        self.log.info("DEV DEV: __report_failed_tests:")
         for test_suite in self.cumulative_results.test_suites():
             for case in self.cumulative_results.test_cases(test_suite):
+                self.log.info("DEV DEV: case: %s", pprint.pformat(vars(case)))
                 if case.status in ("FAILED", "BROKEN"):
                     full_name = case.test_suite + "." + case.test_case
                     msg = "Test {test_case} failed: {error_msg}".format(test_case=full_name, error_msg=case.error_msg)
+                    if hasattr(case, "action_id") and case.action_id:
+                        msg += f"\nAction ID: {case.action_id}"
                     if case.error_trace:
                         msg += "\n" + case.error_trace
                     self.log.warning(msg)
@@ -182,6 +190,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         """
         reports failed labels
         """
+        self.log.info(f"DEV DEV: cumulative: {cumulative}")
         report_template = "%d failed samples: %s"
         sorted_labels = sorted(cumulative.keys())
         for sample_label in sorted_labels:
@@ -196,6 +205,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         total_samples_count = failed_samples_count + success_samples_count
         assert total_samples_count > 0, "Total samples is zero for %s" % label_name
         success_samples_perc = (success_samples_count * 100) / total_samples_count
+        self.log.info(f"DEV DEV: sample: {sample}, label_name: {label_name}, failed_samples_count: {failed_samples_count}, success_samples_count: {success_samples_count}, total_samples_count: {total_samples_count}, success_samples_perc: {success_samples_perc}")
 
         errors = set()
         for err_desc in sample['errors']:
@@ -403,6 +413,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
         """
         :type cumulative_results: bzt.modules.functional.ResultsTree
         """
+        self.log.info("DEV DEV: aggregated_results: %s", pprint.pformat(vars(cumulative_results)))
         self.cumulative_results = cumulative_results
 
     def post_process(self):

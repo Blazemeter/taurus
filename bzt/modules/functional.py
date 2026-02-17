@@ -18,7 +18,8 @@ from abc import abstractmethod
 from bzt.engine import Aggregator
 from bzt.modules.aggregator import ResultsReader
 from bzt.utils import BetterDict, iteritems, LDJSONReader
-
+import pprint
+import logging
 
 class FunctionalAggregator(Aggregator):
     """
@@ -35,10 +36,12 @@ class FunctionalAggregator(Aggregator):
 
     def add_underling(self, reader):
         assert isinstance(reader, FunctionalResultsReader)
+        self.log.info("DEV DEV: adding underling: %s", pprint.pformat(vars(reader)))
         self.underlings.append(reader)
 
     def add_listener(self, listener):
         assert isinstance(listener, FunctionalAggregatorListener)
+        self.log.info("DEV DEV: adding listener: %s", pprint.pformat(vars(listener)))
         self.listeners.append(listener)
 
     def prepare(self):
@@ -49,11 +52,13 @@ class FunctionalAggregator(Aggregator):
 
         for reader in self.underlings:
             for sample in reader.read(last_pass):
+                self.log.info("DEV DEV: sample in process: %s", pprint.pformat(sample.__dict__))
                 new_results.add_sample(sample)
 
         if new_results:
             self.cumulative_results.merge(new_results)
             for listener in self.listeners:
+                self.log.info("DEV DEV: functional aggregated_results: %s", pprint.pformat(self.cumulative_results.__dict__))
                 listener.aggregated_results(new_results, self.cumulative_results)
 
     def check(self):
@@ -65,10 +70,20 @@ class FunctionalAggregator(Aggregator):
 
 
 class FunctionalSample(object):
+    def to_error_dict(self):
+        err = {
+            "error_msg": self.error_msg,
+            "error_trace": self.error_trace,
+            "status": self.status,
+        }
+        if getattr(self, "actionId", None):
+            err["actionId"] = self.actionId
+        return err
+
     def __init__(
             self, test_case, test_suite, status,
             start_time, duration, error_msg, error_trace,
-            extras=None, subsamples=None, path=None,
+            extras=None, subsamples=None, path=None, actionId=None
     ):
         # test_case: str - name of test case (method)
         # test_suite: str - name of test suite (class)
@@ -90,6 +105,7 @@ class FunctionalSample(object):
         self.extras = extras or {}
         self.subsamples = subsamples or []
         self.path = path or []
+        self.actionId = actionId
 
     def get_fqn(self):
         if self.path:
@@ -112,18 +128,25 @@ class FunctionalSample(object):
 class ResultsTree(BetterDict):
     def __init__(self):
         super(ResultsTree, self).__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
 
     def add_sample(self, sample):
         """
         :type sample: FunctionalSample
         """
         test_suite = sample.test_suite
+        self.log.info("DEV DEV: adding sample to suite: %s", pprint.pformat(vars(sample)))
+        self.log.info("DEV DEV: test_suite: %s", pprint.pformat(test_suite))
+        if hasattr(sample, "error_msg") and sample.error_msg:
+            self.log.info("DEV DEV: Adding error sample with error dict: %s", sample.to_error_dict())
         self.get(test_suite, [], force_set=True).append(sample)
 
     def test_suites(self):
         return [key for key, _ in iteritems(self)]
 
     def test_cases(self, suite_name):
+        test_cases = self.get(suite_name, [])
+        self.log.info("DEV DEV: In results tree test_cases: %s", [sample.to_error_dict() for sample in test_cases])
         return self.get(suite_name, [])
 
 
@@ -237,6 +260,8 @@ class FuncSamplesReader(FunctionalResultsReader):
     FIELDS_EXTRACTED_TO_ARTIFACTS = ["requestBody", "responseBody", "requestCookiesRaw"]
 
     def __init__(self, filename, engine, parent_logger):
+        import logging
+        self.log = logging.getLogger(self.__class__.__name__)
         self.report_reader = TestReportReader(filename, parent_logger)
         self.engine = engine
         self.read_records = 0
@@ -257,14 +282,29 @@ class FuncSamplesReader(FunctionalResultsReader):
 
     def _samples_from_row(self, row):
         result = []
+        self.log.info("DEV DEV: In _samples_from_row, row: %s", pprint.pformat(row))
         subsamples = [sample for item in row.get("subsamples", []) for sample in self._samples_from_row(item)]
         if any(subsample.get_type() == 'transaction' for subsample in subsamples):
+            self.log.info("DEV DEV: In _samples_from_row if")
+            for sub in subsamples:
+                if sub.get_type() == 'transaction':
+                    self.log.info("DEV DEV: transaction subsample actionId: %s", getattr(sub, 'actionId', None))
             result.extend([sub for sub in subsamples if sub.get_type() == 'transaction'])
         else:
-            sample = FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
-                                      status=row["status"], start_time=row["start_time"], duration=row["duration"],
-                                      error_msg=row["error_msg"], error_trace=row["error_trace"],
-                                      extras=row.get("extras", {}), subsamples=subsamples, path=row.get("path", []))
+            self.log.info("DEV DEV: In _samples_from_row else")
+            sample = FunctionalSample(
+                test_case=row["test_case"],
+                test_suite=row["test_suite"],
+                status=row["status"],
+                start_time=row["start_time"],
+                duration=row["duration"],
+                error_msg=row["error_msg"],
+                error_trace=row["error_trace"],
+                extras=row.get("extras", {}),
+                subsamples=subsamples,
+                path=row.get("path", []),
+                actionId=row.get("actionId") or row.get("action_id")
+            )
             result.append(sample)
         return result
 

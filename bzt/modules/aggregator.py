@@ -232,6 +232,7 @@ class KPISet(dict):
         self[KPISet.RESP_CODES] = Counter()
         self[KPISet.PERCENTILES] = {}
         self.ext_aggregation = ext_aggregation
+        self.log = logging.getLogger(self.__class__.__name__)
 
     def __deepcopy__(self, memo):
         mycopy = KPISet(self.perc_levels, self[KPISet.RESP_TIMES].high)
@@ -248,10 +249,12 @@ class KPISet(dict):
     @staticmethod
     def error_item_skel(
             error: str, ret_c: str, cnt: int, err_type: int,
-            urls: Counter, tag: str, err_resp_data: Optional[ErrorResponseData] = None) -> dict:
+            urls: Counter, tag: str, err_resp_data: Optional[ErrorResponseData] = None, action_id: str = None) -> dict:
         assert isinstance(urls, collections.Counter)
+        logging.getLogger("DEV DEV").info("In error_item_skel, err_resp_data: {}".format(err_resp_data))
         response_bodies = KPISet._get_response_bodies(err_resp_data)
-        return {
+        logging.getLogger("DEV DEV").info("In error_item_skel, response_bodies: {}".format(response_bodies))
+        item = {
             "cnt": cnt,
             "msg": error,
             "tag": tag,  # just one more string qualifier
@@ -260,6 +263,9 @@ class KPISet(dict):
             "urls": urls,
             "responseBodies": response_bodies
         }
+        if action_id is not None:
+            item["action_id"] = action_id
+        return item
 
     @staticmethod
     def _get_response_bodies(err_resp_data: Optional[ErrorResponseData]) -> list:
@@ -276,11 +282,15 @@ class KPISet(dict):
 
     def add_sample(self, sample):
         """
-        Add sample, consisting of: cnc, rt, cn, lt, rc, error, trname, byte_count
+        Add sample, consisting of: cnc, rt, cn, lt, rc, error, trname, byte_count, [action_id]
 
         :type sample: tuple
         """
-        cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
+        if len(sample) == 9:
+            cnc, r_time, con_time, latency, r_code, error, trname, byte_count, action_id = sample
+        else:
+            cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
+            action_id = None
         self[self.SAMPLE_COUNT] += 1
         if cnc:
             self.add_concurrency(cnc, trname)
@@ -297,8 +307,19 @@ class KPISet(dict):
 
         if error is not None:
             self[self.FAILURES] += 1
-
-            item = self.error_item_skel(error, r_code, 1, KPISet.ERRTYPE_ERROR, Counter(), None)
+            self.log.info(f"DEV DEV: error: {error}")
+            self.log.info(f"DEV DEV: r_code: {r_code}")
+            self.log.info(f"DEV DEV: error: {error}")
+            self.log.info(f"DEV DEV: action_id: {action_id}")
+            item = self.error_item_skel(
+                error,
+                r_code,
+                1,
+                KPISet.ERRTYPE_ERROR,
+                Counter(),
+                None,
+                action_id=action_id)
+            self.log.info(f"DEV DEV: item: {item}")
             self.inc_list(self[self.ERRORS], ("msg", error), item)
         else:
             self[self.SUCCESSES] += 1
@@ -739,7 +760,7 @@ class ResultsReader(ResultsProvider):
 
             if self.generalize_labels:
                 base_label = self._generalize_label(base_label)
-
+            self.log.info(f"Sample: {sample}")
             self.__add_sample(current, base_label, sample[1:])
 
         overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''), ext_aggregation=self._redundant_aggregation)
@@ -767,7 +788,7 @@ class ResultsReader(ResultsProvider):
                 perc_levels=self.track_percentiles,
                 hist_max_rt=self.__get_rtimes_max(label),
                 ext_aggregation=self._redundant_aggregation)
-
+        self.log.info(f"kpis: {kpis}")
         current[label].add_sample(kpis)
 
     def __get_rtimes_max(self, label):
