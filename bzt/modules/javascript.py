@@ -149,14 +149,24 @@ class PlaywrightTester(JavaScriptExecutor):
 
         reporter = "@taurus/playwright-custom-reporter"
 
+        # Add custom reporters if specified in scenario config
+        custom_reporters = self.get_scenario().get("reporters", [])
+        has_custom_reporter = False
+        if custom_reporters and isinstance(custom_reporters, list):
+            # Sanitize reporter names for command line usage
+            safe_reporters = [r.translate(str.maketrans("", "", " \t\r\n\v\f'\""))
+                              for r in custom_reporters if r and isinstance(r, str)]
+            if safe_reporters:
+                reporter = reporter + "," + ",".join(safe_reporters)
+                has_custom_reporter = True
+
         # self.env.set({"TAURUS_PWREPORT_VERBOSE": "true"})
-        # TODO: set to false if we will add support for customer reporter
-        #  - keep stdout to customer reporter (or default)
-        self.env.set({"TAURUS_PWREPORT_STDOUT": "true"})
+        # Keep stdout for custom reporters if any
+        self.env.set({"TAURUS_PWREPORT_STDOUT": "true" if not has_custom_reporter else "false"})
         self.env.set({"TAURUS_PWREPORT_DIR": self.engine.artifacts_dir})
         if max_duration:
             self.env.set({"TAURUS_PWREPORT_DURATION": str(int(max_duration * 1000))})
-        options = ["--reporter " + reporter,
+        options = ["--reporter \"" + reporter + "\"",
                    "--output " + self.engine.artifacts_dir + "/test-output",
                    "--workers " + str(concurrency),
                    "--repeat-each " + str(repeat_each)]
