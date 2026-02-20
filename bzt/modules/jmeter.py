@@ -1491,7 +1491,7 @@ class JMeter(RequiredTool):
     PLUGINS_MANAGER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/{version}/jmeter-plugins-manager-{version}.jar'
     COMMAND_RUNNER_VERSION = "2.3"
     COMMAND_RUNNER_LINK = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/{version}/cmdrunner-{version}.jar'
-    VERSION = "5.5"
+    VERSION = "5.6.3"
     VERSION_LATEST = "5.6.3"
 
     def __init__(self, config=None, props=None, **kwargs):

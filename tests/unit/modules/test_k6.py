@@ -1,6 +1,7 @@
 from os.path import join
 
 import bzt
+from bzt.engine.names import EXEC
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.k6 import K6Executor, K6LogReader
@@ -60,7 +61,7 @@ class TestK6Executor(ExecutorTestCase):
                 "executor": "k6"
             },
         })
-        self.assertIn(f"--out csv={self.obj.kpi_file}", self.CMD_LINE)
+        self.assertNotIn(f"--out csv={self.obj.kpi_file}", self.CMD_LINE)
 
     def test_concurrency(self):
         self.simple_run({
@@ -119,6 +120,64 @@ class TestK6Executor(ExecutorTestCase):
         })
         self.assertIn("--iterations 100", self.CMD_LINE)
 
+    def test_get_load(self):
+        self.configure({EXEC: {
+            "ramp-up": "1", "concurrency": "2", "throughput": "3"}})
+        self.assertEqual(self.obj.execution.get("ramp-up"), "1")
+        self.assertEqual(self.obj.execution.get("concurrency"), "2")
+        self.assertEqual(self.obj.execution.get("throughput"), "3")
+        load = self.obj.get_load()
+        self.assertEqual(load.ramp_up, 1)
+        self.assertEqual(load.concurrency, 2)
+        self.assertEqual(load.throughput, 3)
+        self.assertEqual(load.iterations, 0)
+
+        self.assertEqual(self.obj.execution.get("ramp-up"), "1")
+        self.assertEqual(self.obj.execution.get("concurrency"), {"local": "2"})
+        self.assertEqual(self.obj.execution.get("throughput"), {"local": "3"})
+
+        self.obj.engine.config.get("execution")[0]["concurrency"] = "22"
+        load = self.obj.get_load()
+        self.assertEqual(load.concurrency, 22)
+        self.assertEqual(self.obj.execution.get("concurrency"), {"local": "22"})
+
+    def test_get_load_defaults(self):
+        self.configure({EXEC: {}})
+        self.assertFalse(self.obj.execution.get("ramp-up"))
+        self.assertFalse(self.obj.execution.get("concurrency"))
+        self.assertFalse(self.obj.execution.get("throughput"))
+        self.assertFalse(self.obj.execution.get("iterations"))
+        load = self.obj.get_load()
+        self.assertEqual(load.ramp_up, None)
+        self.assertEqual(load.concurrency, 0)
+        self.assertEqual(load.throughput, 0)
+        self.assertEqual(load.iterations, 0)
+
+    def test_get_load_str(self):
+        self.configure({EXEC: {
+            "concurrency": "2",
+            "hold-for": "3",
+            "ramp-up": "4",
+            "iterations": "5",
+            "throughput": "6",
+            "steps": "7",
+        }})
+        load = self.obj.get_load()
+        self.assertEquals(2, load.concurrency)
+        self.assertEquals(3, load.hold)
+        self.assertEquals(4, load.ramp_up)
+        self.assertEquals(5, load.iterations)
+        self.assertEquals(6, load.throughput)
+        self.assertEquals(7, load.steps)
+
+    def test_get_load_str_fail(self):
+        self.configure({EXEC: {
+            "concurrency": "2VU",
+            "throughput": "1PS",
+            "steps": "3ST",
+            "iterations": "4IT"
+        }})
+        self.assertRaises(bzt.TaurusConfigError, self.obj.get_load)
 
 class TestK6Reader(BZTestCase):
     def test_read(self):
