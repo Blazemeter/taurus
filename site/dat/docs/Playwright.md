@@ -127,3 +127,17 @@ You can find this complete Playwright-based test suite and Taurus config to run 
 in the [examples/playwright](https://github.com/Blazemeter/taurus/tree/master/examples/playwright)
 folder of Taurus's repo.
 
+## Include custom reporters in the Playwright executor
+
+To add custom reporters to be used together with BlazeMeter reporting, use the `reporters` option. This option redirects the standard output of the reporters to the files playwright.out and playwright.err, respectively, in the requested format.
+
+Note: If you use the `duration` option, the Playwright process ends immediately, which may lead to missing or incomplete reporter output if the reporters print their outputs, summary, or similar only after all tests are finished.
+
+```yaml
+scenarios:
+    playwright_test:
+      script: example.spec.ts # points to the TypeScript file with tests
+      browser: firefox
+      reporters: # Your list of additional reporters
+      - json
+```
