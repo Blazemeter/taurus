@@ -263,6 +263,35 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         self.assertIn("--repeat-each 30", self.CMD_LINE)
         self.assertIn("--workers 10", self.CMD_LINE)
         self.assertIn("-project=firefox", self.CMD_LINE)
+        self.assertIn("-reporter \"@taurus/playwright-custom-reporter\"", self.CMD_LINE)
+        self.assertIn("-g 'has title'", self.CMD_LINE)
+        self.assertEqual('60000', self.ENV.get("TAURUS_PWREPORT_DURATION", "undefined"))
+
+    def test_command_line_additional_reporter(self):
+        self.simple_run({
+            'execution': {
+                'iterations': 3,
+                'concurrency': 10,
+                'hold-for': '1m',
+                'settings': {
+                    'env': {
+                        'BASE_URL': 'https://blazedemo.com/'
+                    }
+                },
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'browser': 'firefox',
+                    'test': 'has title',
+                    'reporters': ['"json" ']
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertIn("npx playwright test", self.CMD_LINE)
+        self.assertIn("--repeat-each 30", self.CMD_LINE)
+        self.assertIn("--workers 10", self.CMD_LINE)
+        self.assertIn("-project=firefox", self.CMD_LINE)
+        self.assertIn("-reporter \"@taurus/playwright-custom-reporter,json\"", self.CMD_LINE)
         self.assertIn("-g 'has title'", self.CMD_LINE)
         self.assertEqual('60000', self.ENV.get("TAURUS_PWREPORT_DURATION", "undefined"))
 
