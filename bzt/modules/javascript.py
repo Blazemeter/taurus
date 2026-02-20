@@ -151,18 +151,18 @@ class PlaywrightTester(JavaScriptExecutor):
 
         # Add custom reporters if specified in scenario config
         custom_reporters = self.get_scenario().get("reporters", [])
-        has_custom_reporter = False
+        has_additional_reporter = False
         if custom_reporters and isinstance(custom_reporters, list):
             # Sanitize reporter names for command line usage
             safe_reporters = [r.translate(str.maketrans("", "", " \t\r\n\v\f'\""))
                               for r in custom_reporters if r and isinstance(r, str)]
             if safe_reporters:
                 reporter = reporter + "," + ",".join(safe_reporters)
-                has_custom_reporter = True
+                has_additional_reporter = True
 
         # self.env.set({"TAURUS_PWREPORT_VERBOSE": "true"})
         # Keep stdout for custom reporters if any
-        self.env.set({"TAURUS_PWREPORT_STDOUT": "true" if not has_custom_reporter else "false"})
+        self.env.set({"TAURUS_PWREPORT_STDOUT": "true" if not has_additional_reporter else "false"})
         self.env.set({"TAURUS_PWREPORT_DIR": self.engine.artifacts_dir})
         if max_duration:
             self.env.set({"TAURUS_PWREPORT_DURATION": str(int(max_duration * 1000))})
