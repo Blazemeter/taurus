@@ -128,7 +128,7 @@ The plugin has several settings:
         percentiles: true  # send average times and percentiles
         send-data: true # enable/disable the sending
         send-interval: 30s   # send data each n-th second
-        applications: myapp  # Optional - will attach tag 'application'
+        application: myapp  # Optional - will attach tag 'application'
 ```
 
 Influxdb reporting capabilities need to be explicitly enabled in the reporting section of the configuration, for example like this:
