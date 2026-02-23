@@ -72,7 +72,7 @@ class ApiritifScriptGenerator(object):
         ]
 
     def _gen_action_start_with_tracking(self, actionId):
-        # Assign actionId to self._current_actionId before action_start
+        # Assign actionId (or None) to self._current_actionId before each action
         return [
             ast.Assign(
                 targets=[ast_attr("self._current_actionId")],
@@ -80,82 +80,25 @@ class ApiritifScriptGenerator(object):
             )
         ]
 
-    def _gen_teardown_with_actionid(self):
-        # Print the last actionId if an error/failure occurred
-        return ast.FunctionDef(
-            name="tearDown",
-            args=[ast.Name(id='self', ctx=ast.Param())],
-            body=[
-                ast.Expr(ast_call(
-                    func=ast.Name(id="print", ctx=ast.Load()),
-                    args=[ast.Constant("[TAURUS] tearDown called", kind="")],
-                    keywords=[]
-                )),
-                ast.If(
-                    test=ast_attr("self.driver"),
-                    body=[ast.Expr(ast_call(func=ast_attr("self.driver.quit")))],
-                    orelse=[]
-                ),
-                ast.Assign(
-                    targets=[ast.Name(id="outcome", ctx=ast.Store())],
-                    value=ast.Call(
-                        func=ast.Name(id="getattr", ctx=ast.Load()),
-                        args=[ast.Name(id="self", ctx=ast.Load()), ast.Constant("_outcome", kind=""),
-                              ast.Constant(None, kind="")],
-                        keywords=[]
-                    )
-                ),
-                ast.Assign(
-                    targets=[ast.Name(id="result", ctx=ast.Store())],
-                    value=ast.Call(
-                        func=ast.Name(id="getattr", ctx=ast.Load()),
-                        args=[ast.Name(id="outcome", ctx=ast.Load()), ast.Constant("result", kind=""),
-                              ast.Constant(None, kind="")],
-                        keywords=[]
-                    )
-                ),
-                ast.If(
-                    test=ast.BoolOp(
-                        op=ast.And(),
-                        values=[
-                            ast.Name(id="result", ctx=ast.Load()),
-                            ast.BoolOp(
-                                op=ast.Or(),
-                                values=[
-                                    ast.Attribute(
-                                        value=ast.Name(id="result", ctx=ast.Load()),
-                                        attr="errors",
-                                        ctx=ast.Load()
-                                    ),
-                                    ast.Attribute(
-                                        value=ast.Name(id="result", ctx=ast.Load()),
-                                        attr="failures",
-                                        ctx=ast.Load()
-                                    )
-                                ]
-                            )
-                        ]
-                    ),
-                    body=[
-                        ast.Expr(ast_call(
-                            func=ast.Name(id="print", ctx=ast.Load()),
-                            args=[ast.BinOp(
-                                left=ast.Constant("[TAURUS][actionId] ", kind=""),
-                                op=ast.Add(),
-                                right=ast.Call(
-                                    func=ast.Name(id="str", ctx=ast.Load()),
-                                    args=[ast_attr("self._current_actionId")],
-                                    keywords=[]
-                                )
-                            )],
-                            keywords=[]
-                        ))
-                    ],
-                    orelse=[]
-                ),
-            ],
-            decorator_list=[]
-        )
+    # def _gen_teardown_with_actionid(self):
+    #     # Print the last actionId if an error/failure occurred
+    #     return ast.FunctionDef(
+    #         name="tearDown",
+    #         args=[ast.Name(id='self', ctx=ast.Param())],
+    #         body=[
+    #             ast.Expr(ast_call(
+    #                 func=ast.Name(id="print", ctx=ast.Load()),
+    #                 args=[ast.Constant("[TAURUS] tearDown called", kind="")],
+    #                 keywords=[]
+    #             )),
+    #             ast.If(
+    #                 test=ast_attr("self.driver"),
+    #                 body=[ast.Expr(ast_call(func=ast_attr("self.driver.quit")))],
+    #                 orelse=[]
+    #             ),
+    #         ],
+    #         decorator_list=[]
+    #     )
     BYS = {
         'xpath': "XPATH",
         'css': "CSS_SELECTOR",
@@ -257,6 +200,7 @@ from selenium.webdriver.common.keys import Keys
         self.replace_dialogs = True
         self.bzm_tdo_settings = bzm_tdo_settings
         self.do_testdata_orchestration = False
+        self.has_action_ids = False
 
     def _parse_action_params(self, expr, name):
         res = expr.match(name)
@@ -337,7 +281,11 @@ from selenium.webdriver.common.keys import Keys
         # actionId is an optional unique identifier for this action, used to track or reference
         # the action in the generated code and logs. It is passed through multiple layers of the
         # code generation process to maintain traceability of actions.
-        actionId = action_config.get("actionId")
+        if "actionId" in action_config and action_config.get("actionId") not in (None, "", {}):
+            actionId = action_config.get("actionId")
+            self.has_action_ids = True
+        else:
+            actionId = None
         selectors = []
         if action_config.get("locators"):
             selectors = action_config.get("locators")
@@ -791,7 +739,7 @@ from selenium.webdriver.common.keys import Keys
         wrapInTransaction = self._is_report_inside_actions(parent_request)
 
         action_tracking = []
-        if actionId:
+        if self.has_action_ids:
             action_tracking.extend(self._gen_action_start_with_tracking(actionId))
 
         action_elements = []
@@ -880,50 +828,6 @@ from selenium.webdriver.common.keys import Keys
             action_elements.append(ast_call(func=ast_attr("waiter"), args=[]))
 
         action_body = [ast.Expr(element) for element in action_elements]
-        if actionId:
-            prefixed_error = ast.BinOp(
-                left=ast.BinOp(
-                    left=ast.Constant("[TAURUS][actionId] ", kind=""),
-                    op=ast.Add(),
-                    right=ast.Call(
-                        func=ast.Name(id="str", ctx=ast.Load()),
-                        args=[ast_attr("self._current_actionId")],
-                        keywords=[]
-                    )
-                ),
-                op=ast.Add(),
-                right=ast.BinOp(
-                    left=ast.Constant(" | ", kind=""),
-                    op=ast.Add(),
-                    right=ast.Call(
-                        func=ast.Name(id="str", ctx=ast.Load()),
-                        args=[ast.Name(id="exc", ctx=ast.Load())],
-                        keywords=[]
-                    )
-                )
-            )
-
-            action_body = [ast.Try(
-                body=action_body,
-                handlers=[ast.ExceptHandler(
-                    type=ast.Name(id="Exception", ctx=ast.Load()),
-                    name="exc",
-                    body=[ast.Raise(
-                        exc=ast.Call(
-                            func=ast.Call(
-                                func=ast.Name(id="type", ctx=ast.Load()),
-                                args=[ast.Name(id="exc", ctx=ast.Load())],
-                                keywords=[]
-                            ),
-                            args=[prefixed_error],
-                            keywords=[]
-                        ),
-                        cause=ast.Name(id="exc", ctx=ast.Load())
-                    )]
-                )],
-                orelse=[],
-                finalbody=[]
-            )]
 
         if wrapInTransaction:
             label = self._create_action_label(parent_request.label, index_label, action)
@@ -1851,7 +1755,8 @@ from selenium.webdriver.common.keys import Keys
 
     def _gen_class_setup(self):
         data_sources = [self._gen_default_vars()]
-        data_sources.extend(self._gen_class_actionid_tracking())
+        if self.has_action_ids:
+            data_sources.extend(self._gen_class_actionid_tracking())
         for idx in range(len(self.data_sources)):
             data_sources.append(ast.Expr(ast_call(func=ast_attr("reader_%s.read_vars" % (idx + 1)))))
 
@@ -1929,7 +1834,14 @@ from selenium.webdriver.common.keys import Keys
         return [setup, gen_empty_line_stmt()]
 
     def _gen_class_teardown(self):
-        return self._gen_teardown_with_actionid()
+        body = [
+            ast.If(
+                test=ast_attr("self.driver"),
+                body=[ast.Expr(ast_call(func=ast_attr("self.driver.quit")))],
+                orelse=[]
+            )
+        ]
+        return ast.FunctionDef(name="tearDown", args=[ast_attr("self")], body=body, decorator_list=[])
 
     def _nfc_preprocess(self, requests):
         setup = []
@@ -1999,7 +1911,11 @@ from selenium.webdriver.common.keys import Keys
             if isinstance(request, SetVariables):
                 self.service_methods.append(label)  # for sample excluding
 
-            methods.append(self._gen_test_method(method_name, body))
+            method_body = body
+            if self.has_action_ids and not finally_marker:
+                method_body = self._gen_actionid_exception_wrapped_body(body)
+
+            methods.append(self._gen_test_method(method_name, method_body))
             if finally_marker:
                 finally_block_content.append(method_name)
             else:
@@ -2017,13 +1933,79 @@ from selenium.webdriver.common.keys import Keys
 
         return res
 
+    def _gen_actionid_exception_wrapped_body(self, body):
+        prefixed_error = ast.BinOp(
+            left=ast.BinOp(
+                left=ast.BinOp(
+                    left=ast.Constant(" actionId: ", kind=""),
+                    op=ast.Add(),
+                    right=ast.Call(
+                        func=ast.Name(id="str", ctx=ast.Load()),
+                        args=[ast_attr("self._current_actionId")],
+                        keywords=[]
+                    )
+                ),
+                op=ast.Add(),
+                right=ast.Constant(" | ", kind="")
+            ),
+            op=ast.Add(),
+            right=ast.Call(
+                func=ast.Name(id="str", ctx=ast.Load()),
+                args=[ast.Name(id="exc", ctx=ast.Load())],
+                keywords=[]
+            )
+        )
+
+        final_error = ast.IfExp(
+            test=ast.Compare(
+                left=ast_attr("self._current_actionId"),
+                ops=[ast.IsNot()],
+                comparators=[ast.Constant(value=None, kind="")]
+            ),
+            body=prefixed_error,
+            orelse=ast.Call(
+                func=ast.Name(id="str", ctx=ast.Load()),
+                args=[ast.Name(id="exc", ctx=ast.Load())],
+                keywords=[]
+            )
+        )
+
+        wrapped_try = ast.Try(
+            body=body,
+            handlers=[ast.ExceptHandler(
+                type=ast.Name(id="Exception", ctx=ast.Load()),
+                name="exc",
+                body=[ast.Raise(
+                    exc=ast.Call(
+                        func=ast.Call(
+                            func=ast.Name(id="type", ctx=ast.Load()),
+                            args=[ast.Name(id="exc", ctx=ast.Load())],
+                            keywords=[]
+                        ),
+                        args=[final_error],
+                        keywords=[]
+                    ),
+                    cause=ast.Name(id="exc", ctx=ast.Load())
+                )]
+            )],
+            orelse=[],
+            finalbody=[]
+        )
+
+        if len(body) == 1 and isinstance(body[0], ast.With):
+            with_stmt = body[0]
+            with_stmt.body = [wrapped_try]
+            return [with_stmt]
+
+        return [wrapped_try]
+
     def _gen_master_test_method(self, try_block, finally_block):
         if not try_block:
             raise TaurusConfigError("Supported transactions not found, test is empty")
 
-        body = []
+        main_body = []
         for slave_name in try_block:
-            body.append(ast.Expr(ast_call(func=ast_attr("self." + slave_name))))
+            main_body.append(ast.Expr(ast_call(func=ast_attr("self." + slave_name))))
 
         finally_body = []
         for slave_name in finally_block:
@@ -2032,7 +2014,16 @@ from selenium.webdriver.common.keys import Keys
         if finally_body:
             teardown_marker = ast.Expr(ast_call(func=ast_attr("apiritif.set_stage"), args=[self._gen_expr("teardown")]))
             finally_body.insert(0, teardown_marker)
-            body = [gen_try_except(try_body=body, final_body=finally_body)]
+
+        if finally_body:
+            body = [ast.Try(
+                body=main_body,
+                handlers=[],
+                orelse=[],
+                finalbody=finally_body
+            )]
+        else:
+            body = main_body
 
         name = 'test_' + create_method_name(self.label)
         return self._gen_test_method(name=name, body=body)
