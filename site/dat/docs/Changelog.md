@@ -1,7 +1,11 @@
 # Changelog
+## 1.16.49<sup> 23 February 2026</sup>
+ - Playwright executor allows to add custom reporters
+ - Documentation updates
+ - Dependency fixes (psutils, libexpat1)
 
 ## 1.16.48<sup> 10 February 2026</sup>
-- Fixed retries for blazemter api client
+- Fixed retries for blazemeter api client
 - Live report for the Playwright executor
 - Correctly handle old Chrome versions in Selenium executor
 
