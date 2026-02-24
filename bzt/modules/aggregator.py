@@ -249,7 +249,6 @@ class KPISet(dict):
     def error_item_skel(
             error: str, ret_c: str, cnt: int, err_type: int,
             urls: Counter, tag: str, err_resp_data: Optional[ErrorResponseData] = None) -> dict:
-        # urls: Counter, tag: str, err_resp_data: Optional[ErrorResponseData] = None, action_id: str = None) -> dict:
         assert isinstance(urls, collections.Counter)
         response_bodies = KPISet._get_response_bodies(err_resp_data)
         return {
@@ -261,18 +260,6 @@ class KPISet(dict):
             "urls": urls,
             "responseBodies": response_bodies
         }
-        # item = {
-        #     "cnt": cnt,
-        #     "msg": error,
-        #     "tag": tag,  # just one more string qualifier
-        #     "rc": ret_c,
-        #     "type": err_type,
-        #     "urls": urls,
-        #     "responseBodies": response_bodies
-        # }
-        # if action_id is not None:
-        #     item["action_id"] = action_id
-        # return item
 
     @staticmethod
     def _get_response_bodies(err_resp_data: Optional[ErrorResponseData]) -> list:
@@ -290,16 +277,10 @@ class KPISet(dict):
     def add_sample(self, sample):
         """
         Add sample, consisting of: cnc, rt, cn, lt, rc, error, trname, byte_count
-        Add sample, consisting of: cnc, rt, cn, lt, rc, error, trname, byte_count, [action_id]
 
         :type sample: tuple
         """
         cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
-        # if len(sample) == 9:
-        #     cnc, r_time, con_time, latency, r_code, error, trname, byte_count, action_id = sample
-        # else:
-        #     cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
-        #     action_id = None
         self[self.SAMPLE_COUNT] += 1
         if cnc:
             self.add_concurrency(cnc, trname)
@@ -316,15 +297,8 @@ class KPISet(dict):
 
         if error is not None:
             self[self.FAILURES] += 1
+
             item = self.error_item_skel(error, r_code, 1, KPISet.ERRTYPE_ERROR, Counter(), None)
-            # item = self.error_item_skel(
-            #     error,
-            #     r_code,
-            #     1,
-            #     KPISet.ERRTYPE_ERROR,
-            #     Counter(),
-            #     None,
-            #     action_id=action_id)
             self.inc_list(self[self.ERRORS], ("msg", error), item)
         else:
             self[self.SUCCESSES] += 1

@@ -204,6 +204,49 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                           TestSeleniumScriptGeneration.clear_spaces(content),
                           msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
+    def test_actionid_try_except_inside_step_method(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"
+            }],
+            "scenarios": {
+                "loc_sc": {
+                    "default-address": "https://example.com",
+                    "requests": [{
+                        "label": "tx",
+                        "actions": [{
+                            "type": "go",
+                            "param": "https://example.com",
+                            "value": None,
+                            "actionId": "aid-1"
+                        }]
+                    }]
+                }
+            }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("with apiritif.smart_transaction('tx'):\n            try:"),
+            TestSeleniumScriptGeneration.clear_spaces(content)
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("raise type(exc)"),
+            TestSeleniumScriptGeneration.clear_spaces(content)
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("actionId: "),
+            TestSeleniumScriptGeneration.clear_spaces(content)
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("def test_locsc(self):\n        self._1_tx()"),
+            TestSeleniumScriptGeneration.clear_spaces(content)
+        )
+
     @staticmethod
     def clear_spaces(content):
         return content.replace(" ", "").replace("\t", "").replace("\n", "")

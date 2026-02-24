@@ -141,8 +141,6 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 if case.status in ("FAILED", "BROKEN"):
                     full_name = case.test_suite + "." + case.test_case
                     msg = "Test {test_case} failed: {error_msg}".format(test_case=full_name, error_msg=case.error_msg)
-                    # if hasattr(case, "action_id") and case.action_id:
-                    #     msg += f"\nAction ID: {case.action_id}"
                     if case.error_trace:
                         msg += "\n" + case.error_trace
                     self.log.warning(msg)

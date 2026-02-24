@@ -80,25 +80,6 @@ class ApiritifScriptGenerator(object):
             )
         ]
 
-    # def _gen_teardown_with_actionid(self):
-    #     # Print the last actionId if an error/failure occurred
-    #     return ast.FunctionDef(
-    #         name="tearDown",
-    #         args=[ast.Name(id='self', ctx=ast.Param())],
-    #         body=[
-    #             ast.Expr(ast_call(
-    #                 func=ast.Name(id="print", ctx=ast.Load()),
-    #                 args=[ast.Constant("[TAURUS] tearDown called", kind="")],
-    #                 keywords=[]
-    #             )),
-    #             ast.If(
-    #                 test=ast_attr("self.driver"),
-    #                 body=[ast.Expr(ast_call(func=ast_attr("self.driver.quit")))],
-    #                 orelse=[]
-    #             ),
-    #         ],
-    #         decorator_list=[]
-    #     )
     BYS = {
         'xpath': "XPATH",
         'css': "CSS_SELECTOR",
@@ -1937,7 +1918,7 @@ from selenium.webdriver.common.keys import Keys
         prefixed_error = ast.BinOp(
             left=ast.BinOp(
                 left=ast.BinOp(
-                    left=ast.Constant(" actionId: ", kind=""),
+                    left=ast.Constant("actionId: ", kind=""),
                     op=ast.Add(),
                     right=ast.Call(
                         func=ast.Name(id="str", ctx=ast.Load()),
@@ -1970,6 +1951,32 @@ from selenium.webdriver.common.keys import Keys
             )
         )
 
+        if len(body) == 1 and isinstance(body[0], ast.With):
+            with_stmt = body[0]
+            wrapped_try = ast.Try(
+                body=with_stmt.body,
+                handlers=[ast.ExceptHandler(
+                    type=ast.Name(id="Exception", ctx=ast.Load()),
+                    name="exc",
+                    body=[ast.Raise(
+                        exc=ast.Call(
+                            func=ast.Call(
+                                func=ast.Name(id="type", ctx=ast.Load()),
+                                args=[ast.Name(id="exc", ctx=ast.Load())],
+                                keywords=[]
+                            ),
+                            args=[final_error],
+                            keywords=[]
+                        ),
+                        cause=ast.Name(id="exc", ctx=ast.Load())
+                    )]
+                )],
+                orelse=[],
+                finalbody=[]
+            )
+            with_stmt.body = [wrapped_try]
+            return [with_stmt]
+
         wrapped_try = ast.Try(
             body=body,
             handlers=[ast.ExceptHandler(
@@ -1991,11 +1998,6 @@ from selenium.webdriver.common.keys import Keys
             orelse=[],
             finalbody=[]
         )
-
-        if len(body) == 1 and isinstance(body[0], ast.With):
-            with_stmt = body[0]
-            with_stmt.body = [wrapped_try]
-            return [with_stmt]
 
         return [wrapped_try]
 

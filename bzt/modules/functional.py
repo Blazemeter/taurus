@@ -65,21 +65,6 @@ class FunctionalAggregator(Aggregator):
 
 
 class FunctionalSample(object):
-    # def to_error_dict(self):
-    #     err = {
-    #         "error_msg": self.error_msg,
-    #         "error_trace": self.error_trace,
-    #         "status": self.status,
-    #     }
-    #     if getattr(self, "actionId", None):
-    #         err["actionId"] = self.actionId
-    #     return err
-
-    # def __init__(
-    #         self, test_case, test_suite, status,
-    #         start_time, duration, error_msg, error_trace,
-    #         extras=None, subsamples=None, path=None, actionId=None
-    # ):
     def __init__(
             self, test_case, test_suite, status,
             start_time, duration, error_msg, error_trace,
@@ -105,7 +90,6 @@ class FunctionalSample(object):
         self.extras = extras or {}
         self.subsamples = subsamples or []
         self.path = path or []
-        # self.actionId = actionId
 
     def get_fqn(self):
         if self.path:
@@ -278,22 +262,9 @@ class FuncSamplesReader(FunctionalResultsReader):
             result.extend([sub for sub in subsamples if sub.get_type() == 'transaction'])
         else:
             sample = FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
-                            status=row["status"], start_time=row["start_time"], duration=row["duration"],
-                            error_msg=row["error_msg"], error_trace=row["error_trace"],
-                            extras=row.get("extras", {}), subsamples=subsamples, path=row.get("path", []))
-            # sample = FunctionalSample(
-            #     test_case=row["test_case"],
-            #     test_suite=row["test_suite"],
-            #     status=row["status"],
-            #     start_time=row["start_time"],
-            #     duration=row["duration"],
-            #     error_msg=row["error_msg"],
-            #     error_trace=row["error_trace"],
-            #     extras=row.get("extras", {}),
-            #     subsamples=subsamples,
-            #     path=row.get("path", []),
-            #     actionId=row.get("actionId") or row.get("action_id")
-            # )
+                                      status=row["status"], start_time=row["start_time"], duration=row["duration"],
+                                      error_msg=row["error_msg"], error_trace=row["error_trace"],
+                                      extras=row.get("extras", {}), subsamples=subsamples, path=row.get("path", []))
             result.append(sample)
         return result
 
