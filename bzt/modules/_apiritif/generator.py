@@ -2017,7 +2017,6 @@ from selenium.webdriver.common.keys import Keys
             teardown_marker = ast.Expr(ast_call(func=ast_attr("apiritif.set_stage"), args=[self._gen_expr("teardown")]))
             finally_body.insert(0, teardown_marker)
 
-        if finally_body:
             body = [ast.Try(
                 body=main_body,
                 handlers=[],
