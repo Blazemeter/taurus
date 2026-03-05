@@ -84,7 +84,7 @@ class PlaywrightTester(JavaScriptExecutor):
 
     def get_script_path(self, required=False, scenario=None):
         if not self.execution:
-            return "~/.bzt/playwright"
+            return get_full_path("~/.bzt/playwright")
         return super(PlaywrightTester, self).get_script_path(required, scenario)
 
     def prepare(self):
@@ -106,11 +106,11 @@ class PlaywrightTester(JavaScriptExecutor):
         self.node = self._get_tool(Node)
         self.npm = self._get_tool(NPM)
 
-        node_npx_module = self._get_tool(NodeNPXModule, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
-        playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.get_launch_cwd())
-        playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
+        node_npx_module = self._get_tool(NodeNPXModule, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
+        playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.tools_dir)
+        playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
 
-        npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.get_launch_cwd())
+        npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.tools_dir)
 
         tools = [tcl_lib, self.node, self.npm, node_npx_module, npm_all_packages, playwright, playwright_reporter]
         self._check_tools(tools)
@@ -501,7 +501,7 @@ class Newman(NPMPackage):
         super(Newman, self).__init__(tool_path=tool_path, tools_dir=tools_dir, **kwargs)
 
 class NodeNPXModule(NPMModulePackage):
-    PACKAGE_NAME = "npx@11.4.2"
+    PACKAGE_NAME = "npx@11.10.0"
 
 
 class TaurusMochaPlugin(RequiredTool):
