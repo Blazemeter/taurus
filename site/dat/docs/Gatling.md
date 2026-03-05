@@ -6,7 +6,8 @@ In Taurus, you have two ways how to run it:
 Either with a native gatling script, or with the usual Taurus features: `requests`,
 `iterations`, etc. In the latter case, a scala script is generated automatically.
 
-We support Gatling versions 3 or higher. Default is version 3.8.
+We support Gatling versions 3 or higher. Default is version 3.9.5. To use Gatling 3.11 or higher versions, see [How to enable the use of Gatling 3.11+](#gatling-versions).
+. Check the [changelog](Changelog.md) for the latest supported executor versions.
 
 ## Run Gatling Tool
 
@@ -317,7 +318,8 @@ modules:
     - most-important-lib.jar  #  a global way to specify required libraries
 ```
 
-## How to define Maven options (Gatling 3.11+)
+<a name="gatling-versions"></a>
+## How to enable the use of Gatling 3.11+
 
 If you are using Gatling version 3.11 or higher, specify the version in your yml config.
 If you need to define settings for Maven (for example, memory increase) in these versions, 
