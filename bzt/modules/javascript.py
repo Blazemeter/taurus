@@ -81,6 +81,7 @@ class PlaywrightTester(JavaScriptExecutor):
     """
     def __init__(self):
         super(PlaywrightTester, self).__init__()
+        self.tools_dir = get_full_path("~/.bzt/playwright")
 
     def get_script_path(self, required=False, scenario=None):
         if not self.execution:
@@ -106,13 +107,12 @@ class PlaywrightTester(JavaScriptExecutor):
         self.node = self._get_tool(Node)
         self.npm = self._get_tool(NPM)
 
-        node_npx_module = self._get_tool(NodeNPXModule, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
         playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.tools_dir)
         playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
 
         npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.tools_dir)
 
-        tools = [tcl_lib, self.node, self.npm, node_npx_module, npm_all_packages, playwright, playwright_reporter]
+        tools = [tcl_lib, self.node, self.npm, npm_all_packages, playwright, playwright_reporter]
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
@@ -500,10 +500,6 @@ class Newman(NPMPackage):
         tool_path = "%s/node_modules/%s/bin/newman.js" % (tools_dir, self.PACKAGE_NAME)
         super(Newman, self).__init__(tool_path=tool_path, tools_dir=tools_dir, **kwargs)
 
-class NodeNPXModule(NPMModulePackage):
-    PACKAGE_NAME = "npx@11.10.0"
-
-
 class TaurusMochaPlugin(RequiredTool):
     def __init__(self, **kwargs):
         tool_path = os.path.join(RESOURCES_DIR, "mocha-taurus-plugin.js")
@@ -533,21 +529,22 @@ class PLAYWRIGHT(RequiredTool):
         return False
 
     def install(self):
-        cmd_line = ["npx", "playwright", "install"]
-        self.install_cmd(cmd_line + ["--with-deps"])
-        self.install_cmd(cmd_line)
-        self.install_cmd(cmd_line + ["chromium"])
-        self.install_cmd(cmd_line + ["firefox"])
-        self.install_cmd(cmd_line + ["webkit"])
+        # chromium, firefox and webkit are default browsers for both commands
+        self.install_cmd(cmdline = ["npx", "playwright", "install-deps"])
+        self.install_cmd(cmdline = ["npx", "playwright", "install"])
 
     def install_cmd(self, cmdline):
         self.log.debug("Installing Playwright: %s", cmdline)
+        if not os.path.exists(self.tools_dir):
+            self.log.debug("Creating directory: %s", self.tools_dir)
+            os.makedirs(self.tools_dir)
+
         try:
             out, err = self.call(cmdline,cwd=self.tools_dir)
         except CALL_PROBLEMS as exc:
             self.log.warning("'%s' install failed: %s", cmdline, exc)
             return
         if out:
-            self.log.debug("%s install stdout: %s", self.tool_name, out)
+            self.log.debug("%s install stdout\n: %s", self.tool_name, out)
         if err:
-            self.log.warning("%s install stderr: %s", self.tool_name, err)
+            self.log.warning("%s install stderr\n: %s", self.tool_name, err)
