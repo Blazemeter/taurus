@@ -284,7 +284,7 @@ class ApiritifTester(ApiritifNoseExecutor):
 
 class Apiritif(PythonTool):
     VERSION = "1.1.3"
-    PACKAGES = ["apiritif"]
+    PACKAGES = ["apiritif", "chardet<7"]
 
 
 class ApiritifLoadReader(ConsolidatingAggregator):

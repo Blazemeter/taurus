@@ -179,7 +179,9 @@ RUN python3 -m pip install --no-cache-dir --upgrade --ignore-installed \
         wheel
 
 # Install BZT package
-RUN python3 -m pip install --no-cache-dir --ignore-installed /tmp/bzt*.whl chardet
+# NOTE: chardet 7.x changed licence LGPL->MIT, which original author dispute as illegal. And it has breaking changes.
+# So no touch chardet 7.x until the dispute is resolved. For more details see https://github.com/chardet/chardet/issues/327
+RUN python3 -m pip install --no-cache-dir --ignore-installed /tmp/bzt*.whl "chardet<7"
 
 # ================================
 # Stage 4: Browser Setup
