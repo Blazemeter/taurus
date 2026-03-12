@@ -545,7 +545,7 @@ class PLAYWRIGHT(RequiredTool):
 
     def install(self):
         # chromium, firefox and webkit are default browsers
-        self.install_cmd(cmdline = ["npx", "playwright", "install --with-deps"])
+        self.install_cmd(cmdline = ["npx", "playwright", "install", "--with-deps"])
 
     def install_cmd(self, cmdline):
         self.log.debug("Installing Playwright: %s", cmdline)
