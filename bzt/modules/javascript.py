@@ -107,12 +107,13 @@ class PlaywrightTester(JavaScriptExecutor):
         self.node = self._get_tool(Node)
         self.npm = self._get_tool(NPM)
 
+        npm_playwright_test = self._get_tool(PlaywrightTestPackage, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
         playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.tools_dir)
         playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
 
         npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.tools_dir)
 
-        tools = [tcl_lib, self.node, self.npm, npm_all_packages, playwright, playwright_reporter]
+        tools = [tcl_lib, self.node, self.npm, npm_playwright_test, npm_all_packages, playwright, playwright_reporter]
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
@@ -509,6 +510,9 @@ class TaurusNewmanPlugin(RequiredTool):
     def __init__(self, **kwargs):
         tool_path = os.path.join(RESOURCES_DIR, "newman-reporter-taurus.js")
         super(TaurusNewmanPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
+
+class PlaywrightTestPackage(NPMPackage):
+    PACKAGE_NAME = "@playwright/test"
 
 class PlaywrightCustomReporter(NPMLocalModulePackage):
     PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.0"
