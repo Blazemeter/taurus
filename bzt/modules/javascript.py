@@ -525,13 +525,27 @@ class PLAYWRIGHT(RequiredTool):
         self.tools_dir = tools_dir
 
     def check_if_installed(self):
-        # currently there seems to be no reliable way to find out whether all Playwright requirements are installed
+        cmd = ["npx", "--no", "--", "playwright", "install", "--list"]
+        self.log.debug("Checking playwright is installed: '%s'...", " ".join(cmd))
+        try:
+            out, err = self.call(cmd)
+        except CALL_PROBLEMS as exc:
+            self.log.debug("Playwright check failed: %s", exc)
+            return False
+
+        if err:
+            out += err
+        self.log.debug("Playwright check output: %s", out)
+
+        if "missing packages" in out:
+            return False
+        if "chromium" in out and "firefox" in out and "webkit" in out:
+            return True
         return False
 
     def install(self):
-        # chromium, firefox and webkit are default browsers for both commands
-        self.install_cmd(cmdline = ["npx", "playwright", "install-deps"])
-        self.install_cmd(cmdline = ["npx", "playwright", "install"])
+        # chromium, firefox and webkit are default browsers
+        self.install_cmd(cmdline = ["npx", "playwright", "install --with-deps"])
 
     def install_cmd(self, cmdline):
         self.log.debug("Installing Playwright: %s", cmdline)
