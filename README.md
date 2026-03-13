@@ -37,5 +37,14 @@ scenarios:
 
 Then run `bzt test.yml`. After the tool finishes, observe resulting summary stats in console log (for more reporting options, see [Generating Test Reports](https://gettaurus.org/docs/Reporting.md)). All artifact files from the run will be placed in the directory mentioned in console log. Read more on command-line tool usage [Command-Line Tool](https://gettaurus.org/docs/CommandLine.md).
 
+
+## Note on Percentile Calculation and Ignored Labels
+
+**Available in the unstable snapshot (August 2025):**
+
+Taurus now fully excludes any labels specified in the `ignored_labels` option from the overall percentile calculation in the aggregator. If you use the `ignored_labels` feature, those labels will not affect the percentiles reported in the summary/overall statistics.
+
+This change ensures that ignored labels are consistently excluded from both score and percentile calculations.
+
 ![Analytics](https://ga-beacon.appspot.com/UA-63369152-1/taurus/readme)
 
