@@ -18,6 +18,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PATH="/usr/local/rbenv/bin:/usr/local/rbenv/shims:${PATH}"
 ENV RBENV_ROOT=/usr/local/rbenv
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright/browsers
+
 # ================================
 # Stage 1: System Dependencies
 # ================================

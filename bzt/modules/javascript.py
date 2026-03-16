@@ -16,13 +16,12 @@ limitations under the License.
 import json
 import os
 from abc import abstractmethod
-from datetime import datetime
 
 from bzt import TaurusConfigError
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
 from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR, FileReader
-from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time, iteritems
+from bzt.utils import get_full_path, is_windows, is_linux, to_json, dehumanize_time, iteritems
 
 
 class JavaScriptExecutor(SubprocessedExecutor):
@@ -107,11 +106,11 @@ class PlaywrightTester(JavaScriptExecutor):
         self.node = self._get_tool(Node)
         self.npm = self._get_tool(NPM)
 
-        npm_playwright_test = self._get_tool(PlaywrightTestPackage, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.tools_dir)
-        playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
+        npm_playwright_test = self._get_tool(PlaywrightTestPackage, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
+        playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.get_launch_cwd())
+        playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
 
-        npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.tools_dir)
+        npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.get_launch_cwd())
 
         tools = [tcl_lib, self.node, self.npm, npm_playwright_test, npm_all_packages, playwright, playwright_reporter]
         self._check_tools(tools)
@@ -512,7 +511,8 @@ class TaurusNewmanPlugin(RequiredTool):
         super(TaurusNewmanPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
 class PlaywrightTestPackage(NPMPackage):
-    PACKAGE_NAME = "@playwright/test"
+    PACKAGE_NAME = "@playwright/test" if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None \
+        else "@playwright/test@" + os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION")
 
 class PlaywrightCustomReporter(NPMLocalModulePackage):
     PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.0"
@@ -529,36 +529,28 @@ class PLAYWRIGHT(RequiredTool):
         self.tools_dir = tools_dir
 
     def check_if_installed(self):
-        cmd = ["npx", "--no", "--", "playwright", "install", "--list"]
-        self.log.debug("Checking playwright is installed: '%s'...", " ".join(cmd))
-        try:
-            out, err = self.call(cmd)
-        except CALL_PROBLEMS as exc:
-            self.log.debug("Playwright check failed: %s", exc)
-            return False
-
-        if err:
-            out += err
-        self.log.debug("Playwright check output: %s", out)
-
-        if "missing packages" in out:
-            return False
-        if "chromium" in out and "firefox" in out and "webkit" in out:
-            return True
+        # currently there seems to be no reliable way to find out whether all Playwright requirements are installed
         return False
 
     def install(self):
-        # chromium, firefox and webkit are default browsers
-        self.install_cmd(cmdline = ["npx", "playwright", "install", "--with-deps"])
+        package_name = "playwright" if os.environ.get("PLAYWRIGHT_PACKAGE_FORCED_VERSION", None) is None \
+            else "playwright@" + os.environ.get("PLAYWRIGHT_PACKAGE_FORCED_VERSION")
+        # Do not install deps/browsers if we know it will fail because of user permissions (linux & non-root)
+        if is_linux() and hasattr(os, "geteuid") and os.geteuid() != 0:
+            self.install_cmd(cmdline = ["npx", package_name, "install"],
+                             env={"PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"})
+        else:
+            # chromium, firefox and webkit are default browsers
+            self.install_cmd(cmdline = ["npx", package_name, "install", "--with-deps"])
 
-    def install_cmd(self, cmdline):
+    def install_cmd(self, cmdline, env={}):
         self.log.debug("Installing Playwright: %s", cmdline)
         if not os.path.exists(self.tools_dir):
             self.log.debug("Creating directory: %s", self.tools_dir)
             os.makedirs(self.tools_dir)
 
         try:
-            out, err = self.call(cmdline,cwd=self.tools_dir)
+            out, err = self.call(cmdline,cwd=self.tools_dir, env=env)
         except CALL_PROBLEMS as exc:
             self.log.warning("'%s' install failed: %s", cmdline, exc)
             return
