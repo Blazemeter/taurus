@@ -43,7 +43,7 @@ pipeline {
         stage("Docker Image Build") {
             steps {
                 script {
-                    sh "docker build --no-cache -t ${JOB_NAME.toLowerCase()} -t ${extraImageTag} ."
+                    sh "docker build -t ${JOB_NAME.toLowerCase()} -t ${extraImageTag} ."
                 }
             }
         }
