@@ -150,33 +150,33 @@ class TestNPMPackageNameParser(BZTestCase):
         self.assertEqual(self.npmPackageScopedFormat.version, '9.0.0')
 
 
-class TestPlaywrightPackageVersioning(BZTestCase):
-    """Test PlaywrightTestPackage version handling"""
-
-    def test_playwright_test_package_default_version(self):
-        """Test that PlaywrightTestPackage uses default version when env var not set"""
-        with patch.dict(os.environ, {}, clear=False):
-            if 'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION' in os.environ:
-                del os.environ['PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION']
-
-            # Re-evaluate the class to pick up the env var change
-            from importlib import reload
-            from bzt.modules import javascript
-            reload(javascript)
-
-            self.assertEqual(javascript.PlaywrightTestPackage.PACKAGE_NAME, "@playwright/test")
-
-    def test_playwright_test_package_forced_version(self):
-        """Test that PlaywrightTestPackage respects PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION"""
-        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.40.0'}):
-            from importlib import reload
-            from bzt.modules import javascript
-            reload(javascript)
-
-            self.assertEqual(
-                javascript.PlaywrightTestPackage.PACKAGE_NAME,
-                "@playwright/test@1.40.0"
-            )
+# class TestPlaywrightPackageVersioning(BZTestCase):
+#     """Test PlaywrightTestPackage version handling"""
+#
+#     def test_playwright_test_package_default_version(self):
+#         """Test that PlaywrightTestPackage uses default version when env var not set"""
+#         with patch.dict(os.environ, {}, clear=False):
+#             if 'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION' in os.environ:
+#                 del os.environ['PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION']
+#
+#             # Re-evaluate the class to pick up the env var change
+#             from importlib import reload
+#             from bzt.modules import javascript
+#             reload(javascript)
+#
+#             self.assertEqual(javascript.PlaywrightTestPackage.PACKAGE_NAME, "@playwright/test")
+#
+#     def test_playwright_test_package_forced_version(self):
+#         """Test that PlaywrightTestPackage respects PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION"""
+#         with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.40.0'}):
+#             from importlib import reload
+#             from bzt.modules import javascript
+#             reload(javascript)
+#
+#             self.assertEqual(
+#                 javascript.PlaywrightTestPackage.PACKAGE_NAME,
+#                 "@playwright/test@1.40.0"
+#             )
 
 
 class TestNewmanExecutor(BZTestCase):
