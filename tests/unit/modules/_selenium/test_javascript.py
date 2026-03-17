@@ -7,11 +7,13 @@ import bzt
 
 from bzt import ToolError
 from bzt.modules.javascript import NPMPackage, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver, \
-    PlaywrightTester
+    PlaywrightTester, PLAYWRIGHT, PlaywrightTestPackage
 from bzt.utils import get_full_path, EXE_SUFFIX
 
 from tests.unit import RESOURCES_DIR, BZTestCase, EngineEmul
 from tests.unit.modules._selenium import SeleniumTestCase
+
+from unittest.mock import patch, MagicMock
 
 
 class TestSeleniumMochaRunner(SeleniumTestCase):
@@ -295,5 +297,268 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         self.assertIn("-g 'has title'", self.CMD_LINE)
         self.assertEqual('60000', self.ENV.get("TAURUS_PWREPORT_DURATION", "undefined"))
 
+    def test_playwright_stdout_env_with_additional_reporter(self):
+        """Test TAURUS_PWREPORT_STDOUT is false when additional reporters are present"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'reporters': ['html', 'json']
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertEqual('false', self.ENV.get("TAURUS_PWREPORT_STDOUT"))
+
+    def test_playwright_stdout_env_without_additional_reporter(self):
+        """Test TAURUS_PWREPORT_STDOUT is true when no additional reporters"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertEqual('true', self.ENV.get("TAURUS_PWREPORT_STDOUT"))
+
+    def test_playwright_reporter_sanitization(self):
+        """Test that reporter names are sanitized (spaces, quotes, etc. removed)"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'reporters': ['"html"', " json ", "list\t", "'dot'"]
+                },
+                'executor': 'playwright',
+            },
+        })
+        # Check that sanitized reporters are in command line
+        self.assertIn("@taurus/playwright-custom-reporter,html,json,list,dot", self.CMD_LINE)
+
+    def test_playwright_reporter_empty_values_filtered(self):
+        """Test that empty/None reporter values are filtered out"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'reporters': ['html', '', None, 'json', '  ']
+                },
+                'executor': 'playwright',
+            },
+        })
+        # Should only include html and json
+        self.assertIn("@taurus/playwright-custom-reporter,html,json", self.CMD_LINE)
+
+    def test_playwright_reporter_non_list_ignored(self):
+        """Test that non-list reporter config is ignored"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'reporters': 'html'  # String instead of list
+                },
+                'executor': 'playwright',
+            },
+        })
+        # Should only have taurus reporter, not html
+        self.assertIn("-reporter \"@taurus/playwright-custom-reporter\"", self.CMD_LINE)
+        self.assertNotIn(",html", self.CMD_LINE)
+
+    def test_playwright_reporter_non_string_items_filtered(self):
+        """Test that non-string items in reporters list are filtered"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'reporters': ['html', 123, {'dict': 'value'}, 'json']
+                },
+                'executor': 'playwright',
+            },
+        })
+        # Should only include html and json
+        self.assertIn("@taurus/playwright-custom-reporter,html,json", self.CMD_LINE)
+
+    def test_playwright_tester_tools_dir_initialization(self):
+        """Test that PlaywrightTester initializes tools_dir in __init__"""
+        tester = PlaywrightTester()
+        self.assertIsNotNone(tester.tools_dir)
+        self.assertIn(".bzt/playwright", tester.tools_dir)
+
+    def test_playwright_get_script_path_no_execution(self):
+        """Test get_script_path returns full path when no execution"""
+        tester = PlaywrightTester()
+        tester.execution = None
+
+        script_path = tester.get_script_path()
+        self.assertIsNotNone(script_path)
+        # Should return full path, not relative
+        self.assertTrue(os.path.isabs(script_path) or script_path.startswith("~"))
+        self.assertIn(".bzt/playwright", script_path)
 
 
+class TestPlaywrightInstallation(BZTestCase):
+    """Test PLAYWRIGHT tool installation logic"""
+
+    def setUp(self):
+        super(TestPlaywrightInstallation, self).setUp()
+        import tempfile
+        self.tools_dir = tempfile.mkdtemp() + "/playwright"
+
+    @patch('bzt.modules.javascript.is_linux')
+    @patch('os.geteuid', create=True)
+    def test_playwright_install_linux_non_root(self, mock_geteuid, mock_is_linux):
+        """Test Playwright install on Linux as non-root user (should skip --with-deps)"""
+        mock_is_linux.return_value = True
+        mock_geteuid.return_value = 1000  # non-root
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        playwright.call = MagicMock(return_value=("", ""))
+
+        # No frozen version - should try to install
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+            playwright.install()
+
+            # Should be called with install but WITHOUT --with-deps
+            playwright.call.assert_called_once()
+            call_args = playwright.call.call_args[0][0]
+            self.assertIn("npx", call_args)
+            self.assertIn("playwright", call_args)
+            self.assertIn("install", call_args)
+            self.assertNotIn("--with-deps", call_args)
+
+    @patch('bzt.modules.javascript.is_linux')
+    @patch('os.geteuid', create=True)
+    def test_playwright_install_linux_root(self, mock_geteuid, mock_is_linux):
+        """Test Playwright install on Linux as root user (should include --with-deps)"""
+        mock_is_linux.return_value = True
+        mock_geteuid.return_value = 0  # root
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        playwright.call = MagicMock(return_value=("", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+            playwright.install()
+
+            # Should be called with install AND --with-deps
+            playwright.call.assert_called_once()
+            call_args = playwright.call.call_args[0][0]
+            self.assertIn("npx", call_args)
+            self.assertIn("playwright", call_args)
+            self.assertIn("install", call_args)
+            self.assertIn("--with-deps", call_args)
+
+    @patch('bzt.modules.javascript.is_linux')
+    def test_playwright_install_non_linux(self, mock_is_linux):
+        """Test Playwright install on non-Linux systems (should include --with-deps)"""
+        mock_is_linux.return_value = False
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        playwright.call = MagicMock(return_value=("", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+            playwright.install()
+
+            # Should be called with install AND --with-deps
+            playwright.call.assert_called_once()
+            call_args = playwright.call.call_args[0][0]
+            self.assertIn("npx", call_args)
+            self.assertIn("playwright", call_args)
+            self.assertIn("install", call_args)
+            self.assertIn("--with-deps", call_args)
+
+    def test_playwright_install_frozen_version(self):
+        """Test that Playwright install is skipped when version is frozen"""
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        playwright.call = MagicMock(return_value=("", ""))
+
+        with patch.dict(os.environ, {'PLAYWRIGHT_PACKAGE_FORCED_VERSION': '1.40.0'}):
+            playwright.install()
+
+            # Should NOT call install when version is frozen
+            playwright.call.assert_not_called()
+
+    def test_playwright_install_creates_tools_dir(self):
+        """Test that Playwright install creates tools_dir if it doesn't exist"""
+        import tempfile
+        import shutil
+
+        temp_base = tempfile.mkdtemp()
+        try:
+            tools_dir = os.path.join(temp_base, "non_existent_dir")
+            self.assertFalse(os.path.exists(tools_dir))
+
+            playwright = PLAYWRIGHT(tools_dir=tools_dir)
+            playwright.call = MagicMock(return_value=("", ""))
+
+            with patch.dict(os.environ, {}, clear=False):
+                if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                    del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+                with patch('bzt.modules.javascript.is_linux', return_value=False):
+                    playwright.install()
+
+            # Directory should have been created
+            self.assertTrue(os.path.exists(tools_dir))
+        finally:
+            shutil.rmtree(temp_base)
+
+    @patch('bzt.modules.javascript.is_linux')
+    def test_playwright_install_cmd_cwd_parameter(self, mock_is_linux):
+        """Test that install_cmd uses tools_dir as cwd"""
+        mock_is_linux.return_value = False
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        playwright.call = MagicMock(return_value=("", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+            os.makedirs(self.tools_dir, exist_ok=True)
+            playwright.install()
+
+            # Check that cwd was passed correctly
+            call_kwargs = playwright.call.call_args[1]
+            self.assertEqual(call_kwargs.get('cwd'), self.tools_dir)
+
+    @patch('bzt.modules.javascript.is_linux')
+    def test_playwright_non_frozen_version_uses_just_package(self, mock_is_linux):
+        """Test that without frozen version would use playwright as package name"""
+        mock_is_linux.return_value = False
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+
+        # Even though install is skipped with frozen version,
+        # we can verify the logic by testing without frozen version
+        # and checking the package name in the command
+        playwright.call = MagicMock(return_value=("", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+            os.makedirs(self.tools_dir, exist_ok=True)
+            playwright.install()
+
+            # Should use just "playwright" when not frozen
+            call_args = playwright.call.call_args[0][0]
+            # Find the package name in the command (should be just "playwright")
+            self.assertIn("playwright", call_args)
+            # Make sure it's not versioned by default
+            self.assertTrue(any("playwright" in str(arg) and "@" not in str(arg) for arg in call_args if "playwright" in str(arg)))

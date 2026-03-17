@@ -18,6 +18,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PATH="/usr/local/rbenv/bin:/usr/local/rbenv/shims:${PATH}"
 ENV RBENV_ROOT=/usr/local/rbenv
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright/browsers
+
 # ================================
 # Stage 1: System Dependencies
 # ================================
@@ -179,7 +181,9 @@ RUN python3 -m pip install --no-cache-dir --upgrade --ignore-installed \
         wheel
 
 # Install BZT package
-RUN python3 -m pip install --no-cache-dir --ignore-installed /tmp/bzt*.whl chardet
+# NOTE: chardet 7.x changed license from LGPL to MIT, which the original author disputes as illegal. It also has breaking changes.
+# Therefore, do not use chardet 7.x until the dispute is resolved. For more details see https://github.com/chardet/chardet/issues/327
+RUN python3 -m pip install --no-cache-dir --ignore-installed /tmp/bzt*.whl "chardet<7"
 
 # ================================
 # Stage 4: Browser Setup
