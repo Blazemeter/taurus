@@ -533,15 +533,15 @@ class PLAYWRIGHT(RequiredTool):
         return False
 
     def install(self):
-        package_name = "playwright" if os.environ.get("PLAYWRIGHT_PACKAGE_FORCED_VERSION", None) is None \
-            else "playwright@" + os.environ.get("PLAYWRIGHT_PACKAGE_FORCED_VERSION")
-        # Do not install deps/browsers if we know it will fail because of user permissions (linux & non-root)
-        if is_linux() and hasattr(os, "geteuid") and os.geteuid() != 0:
-            self.install_cmd(cmdline = ["npx", package_name, "install"],
-                             env={"PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"})
-        else:
-            # chromium, firefox and webkit are default browsers
-            self.install_cmd(cmdline = ["npx", package_name, "install", "--with-deps"])
+        frozen_version = os.environ.get("PLAYWRIGHT_PACKAGE_FORCED_VERSION", None)
+        package_name = "playwright" if frozen_version is None else "playwright@" + frozen_version
+        # npx playwright install is not needed to run again if version did not change (is frozen)
+        if frozen_version is None:
+            # Do not install deps for browsers if we know it will fail because of user permissions (linux & non-root)
+            if is_linux() and hasattr(os, "geteuid") and os.geteuid() != 0:
+                self.install_cmd(cmdline = ["npx", package_name, "install"])
+            else:
+                self.install_cmd(cmdline = ["npx", package_name, "install", "--with-deps"])
 
     def install_cmd(self, cmdline, env={}):
         self.log.debug("Installing Playwright: %s", cmdline)
