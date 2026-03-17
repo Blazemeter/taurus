@@ -412,7 +412,7 @@ class TestPlaywrightInstallation(BZTestCase):
         self.tools_dir = tempfile.mkdtemp() + "/playwright"
 
     @patch('bzt.modules.javascript.is_linux')
-    @patch('os.geteuid')
+    @patch('os.geteuid', create=True)
     def test_playwright_install_linux_non_root(self, mock_geteuid, mock_is_linux):
         """Test Playwright install on Linux as non-root user (should skip --with-deps)"""
         mock_is_linux.return_value = True
@@ -437,7 +437,7 @@ class TestPlaywrightInstallation(BZTestCase):
             self.assertNotIn("--with-deps", call_args)
 
     @patch('bzt.modules.javascript.is_linux')
-    @patch('os.geteuid')
+    @patch('os.geteuid', create=True)
     def test_playwright_install_linux_root(self, mock_geteuid, mock_is_linux):
         """Test Playwright install on Linux as root user (should include --with-deps)"""
         mock_is_linux.return_value = True

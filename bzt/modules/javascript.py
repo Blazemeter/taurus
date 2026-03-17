@@ -543,14 +543,14 @@ class PLAYWRIGHT(RequiredTool):
             else:
                 self.install_cmd(cmdline = ["npx", package_name, "install", "--with-deps"])
 
-    def install_cmd(self, cmdline, env={}):
+    def install_cmd(self, cmdline):
         self.log.debug("Installing Playwright: %s", cmdline)
         if not os.path.exists(self.tools_dir):
             self.log.debug("Creating directory: %s", self.tools_dir)
-            os.makedirs(self.tools_dir)
+            os.makedirs(self.tools_dir, exist_ok=True)
 
         try:
-            out, err = self.call(cmdline,cwd=self.tools_dir, env=env)
+            out, err = self.call(cmdline,cwd=self.tools_dir)
         except CALL_PROBLEMS as exc:
             self.log.warning("'%s' install failed: %s", cmdline, exc)
             return

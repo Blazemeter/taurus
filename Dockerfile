@@ -181,8 +181,8 @@ RUN python3 -m pip install --no-cache-dir --upgrade --ignore-installed \
         wheel
 
 # Install BZT package
-# NOTE: chardet 7.x changed licence LGPL->MIT, which original author dispute as illegal. And it has breaking changes.
-# So no touch chardet 7.x until the dispute is resolved. For more details see https://github.com/chardet/chardet/issues/327
+# NOTE: chardet 7.x changed license from LGPL to MIT, which the original author disputes as illegal. It also has breaking changes.
+# Therefore, do not use chardet 7.x until the dispute is resolved. For more details see https://github.com/chardet/chardet/issues/327
 RUN python3 -m pip install --no-cache-dir --ignore-installed /tmp/bzt*.whl "chardet<7"
 
 # ================================
