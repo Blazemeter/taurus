@@ -33,3 +33,6 @@ integr-artifacts*
 examples/local*
 bzt/20*
 bzt/runtest/**
+
+# vscode
+.vscode
