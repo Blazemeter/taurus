@@ -559,19 +559,25 @@ class Test(BZAObject):
         chunk_size = 50
         failed_files = []
 
-        for chunk_idx in range(0, len(resource_files), chunk_size):
-            chunk = resource_files[chunk_idx:chunk_idx + chunk_size]
+        if not resource_files:
             body = MultiPartForm()
-            if chunk_idx == 0:
-                body.add_file_as_string('script', 'taurus.yml', taurus_config)
-            for idx, rfile in enumerate(chunk):
-                body.add_file(f'files[{idx}]', rfile)
+            body.add_file_as_string('script', 'taurus.yml', taurus_config)
             hdr = {"Content-Type": str(body.get_content_type())}
-            try:
-                self._request(url, body.form_as_bytes(), headers=hdr)
-            except Exception as e:
-                self.log.error(f"Error uploading chunk {chunk_idx}: {e}")
-                failed_files.extend(chunk)
+            self._request(url, body.form_as_bytes(), headers=hdr)
+        else:
+            for chunk_idx in range(0, len(resource_files), chunk_size):
+                chunk = resource_files[chunk_idx:chunk_idx + chunk_size]
+                body = MultiPartForm()
+                if chunk_idx == 0:
+                    body.add_file_as_string('script', 'taurus.yml', taurus_config)
+                for idx, rfile in enumerate(chunk):
+                    body.add_file(f'files[{idx}]', rfile)
+                hdr = {"Content-Type": str(body.get_content_type())}
+                try:
+                    self._request(url, body.form_as_bytes(), headers=hdr)
+                except Exception as e:
+                    self.log.error(f"Error uploading chunk {chunk_idx}: {e}")
+                    failed_files.extend(chunk)
 
         if failed_files:
             error_msg = f"Failed to upload files: {failed_files}"
