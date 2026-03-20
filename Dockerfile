@@ -140,7 +140,7 @@ RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.415/dotnet-sd
     ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Install rbenv and Ruby
-ARG RUBY_VERSION=3.4.5
+ARG RUBY_VERSION=3.4.9
 
 RUN git clone --depth 1 https://github.com/rbenv/rbenv.git ${RBENV_ROOT} && \
     git clone --depth 1 https://github.com/rbenv/ruby-build.git ${RBENV_ROOT}/plugins/ruby-build && \
