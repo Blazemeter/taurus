@@ -16,13 +16,12 @@ limitations under the License.
 import json
 import os
 from abc import abstractmethod
-from datetime import datetime
 
 from bzt import TaurusConfigError
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
 from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR, FileReader
-from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time, iteritems
+from bzt.utils import get_full_path, is_windows, is_linux, to_json, dehumanize_time, iteritems
 
 
 class JavaScriptExecutor(SubprocessedExecutor):
@@ -81,10 +80,11 @@ class PlaywrightTester(JavaScriptExecutor):
     """
     def __init__(self):
         super(PlaywrightTester, self).__init__()
+        self.tools_dir = get_full_path("~/.bzt/playwright")
 
     def get_script_path(self, required=False, scenario=None):
         if not self.execution:
-            return "~/.bzt/playwright"
+            return get_full_path("~/.bzt/playwright")
         return super(PlaywrightTester, self).get_script_path(required, scenario)
 
     def prepare(self):
@@ -106,13 +106,13 @@ class PlaywrightTester(JavaScriptExecutor):
         self.node = self._get_tool(Node)
         self.npm = self._get_tool(NPM)
 
-        node_npx_module = self._get_tool(NodeNPXModule, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
+        npm_playwright_test = self._get_tool(PlaywrightTestPackage, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
         playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.get_launch_cwd())
         playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
 
         npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.get_launch_cwd())
 
-        tools = [tcl_lib, self.node, self.npm, node_npx_module, npm_all_packages, playwright, playwright_reporter]
+        tools = [tcl_lib, self.node, self.npm, npm_playwright_test, npm_all_packages, playwright, playwright_reporter]
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
@@ -149,14 +149,24 @@ class PlaywrightTester(JavaScriptExecutor):
 
         reporter = "@taurus/playwright-custom-reporter"
 
+        # Add custom reporters if specified in scenario config
+        custom_reporters = self.get_scenario().get("reporters", [])
+        has_additional_reporter = False
+        if custom_reporters and isinstance(custom_reporters, list):
+            # Sanitize reporter names for command line usage
+            safe_reporters = [r.translate(str.maketrans("", "", " \t\r\n\v\f'\""))
+                              for r in custom_reporters if r and isinstance(r, str)]
+            if safe_reporters:
+                reporter = reporter + "," + ",".join(safe_reporters)
+                has_additional_reporter = True
+
         # self.env.set({"TAURUS_PWREPORT_VERBOSE": "true"})
-        # TODO: set to false if we will add support for customer reporter
-        #  - keep stdout to customer reporter (or default)
-        self.env.set({"TAURUS_PWREPORT_STDOUT": "true"})
+        # Keep stdout for custom reporters if any
+        self.env.set({"TAURUS_PWREPORT_STDOUT": "true" if not has_additional_reporter else "false"})
         self.env.set({"TAURUS_PWREPORT_DIR": self.engine.artifacts_dir})
         if max_duration:
             self.env.set({"TAURUS_PWREPORT_DURATION": str(int(max_duration * 1000))})
-        options = ["--reporter " + reporter,
+        options = ["--reporter \"" + reporter + "\"",
                    "--output " + self.engine.artifacts_dir + "/test-output",
                    "--workers " + str(concurrency),
                    "--repeat-each " + str(repeat_each)]
@@ -490,10 +500,6 @@ class Newman(NPMPackage):
         tool_path = "%s/node_modules/%s/bin/newman.js" % (tools_dir, self.PACKAGE_NAME)
         super(Newman, self).__init__(tool_path=tool_path, tools_dir=tools_dir, **kwargs)
 
-class NodeNPXModule(NPMModulePackage):
-    PACKAGE_NAME = "npx@11.4.2"
-
-
 class TaurusMochaPlugin(RequiredTool):
     def __init__(self, **kwargs):
         tool_path = os.path.join(RESOURCES_DIR, "mocha-taurus-plugin.js")
@@ -503,6 +509,10 @@ class TaurusNewmanPlugin(RequiredTool):
     def __init__(self, **kwargs):
         tool_path = os.path.join(RESOURCES_DIR, "newman-reporter-taurus.js")
         super(TaurusNewmanPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
+
+class PlaywrightTestPackage(NPMPackage):
+    PACKAGE_NAME = "@playwright/test" if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None \
+        else "@playwright/test@" + os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION")
 
 class PlaywrightCustomReporter(NPMLocalModulePackage):
     PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.0"
@@ -523,21 +533,28 @@ class PLAYWRIGHT(RequiredTool):
         return False
 
     def install(self):
-        cmd_line = ["npx", "playwright", "install"]
-        self.install_cmd(cmd_line + ["--with-deps"])
-        self.install_cmd(cmd_line)
-        self.install_cmd(cmd_line + ["chromium"])
-        self.install_cmd(cmd_line + ["firefox"])
-        self.install_cmd(cmd_line + ["webkit"])
+        frozen_version = os.environ.get("PLAYWRIGHT_PACKAGE_FORCED_VERSION", None)
+        package_name = "playwright" if frozen_version is None else "playwright@" + frozen_version
+        # npx playwright install is not needed to run again if version did not change (is frozen)
+        if frozen_version is None:
+            # Do not install deps for browsers if we know it will fail because of user permissions (linux & non-root)
+            if is_linux() and hasattr(os, "geteuid") and os.geteuid() != 0:
+                self.install_cmd(cmdline = ["npx", package_name, "install"])
+            else:
+                self.install_cmd(cmdline = ["npx", package_name, "install", "--with-deps"])
 
     def install_cmd(self, cmdline):
         self.log.debug("Installing Playwright: %s", cmdline)
+        if not os.path.exists(self.tools_dir):
+            self.log.debug("Creating directory: %s", self.tools_dir)
+            os.makedirs(self.tools_dir, exist_ok=True)
+
         try:
             out, err = self.call(cmdline,cwd=self.tools_dir)
         except CALL_PROBLEMS as exc:
             self.log.warning("'%s' install failed: %s", cmdline, exc)
             return
         if out:
-            self.log.debug("%s install stdout: %s", self.tool_name, out)
+            self.log.debug("%s install stdout\n: %s", self.tool_name, out)
         if err:
-            self.log.warning("%s install stderr: %s", self.tool_name, err)
+            self.log.warning("%s install stderr\n: %s", self.tool_name, err)

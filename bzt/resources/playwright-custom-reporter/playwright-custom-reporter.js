@@ -40,7 +40,7 @@ class TaurusReporter {
     }
 
     if (fs.existsSync(this.options.outputFile)) {
-      fs.rmSync(p, {
+      fs.rmSync(this.options.outputFile, {
         force: true,
         maxRetries: 2
       });

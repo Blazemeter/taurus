@@ -18,6 +18,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PATH="/usr/local/rbenv/bin:/usr/local/rbenv/shims:${PATH}"
 ENV RBENV_ROOT=/usr/local/rbenv
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright/browsers
+
 # ================================
 # Stage 1: System Dependencies
 # ================================
@@ -101,9 +103,6 @@ RUN apt-get update && \
         libyaml-dev \
         libxml2-dev \
         libxslt-dev \
-        # vulnerable libraries \
-        libexpat1=2.6.1-2ubuntu0.3 \
-        libexpat1-dev=2.6.1-2ubuntu0.3 \
         # Load testing tools
         siege \
         apache2-utils \
@@ -141,7 +140,7 @@ RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.415/dotnet-sd
     ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Install rbenv and Ruby
-ARG RUBY_VERSION=3.4.5
+ARG RUBY_VERSION=3.4.9
 
 RUN git clone --depth 1 https://github.com/rbenv/rbenv.git ${RBENV_ROOT} && \
     git clone --depth 1 https://github.com/rbenv/ruby-build.git ${RBENV_ROOT}/plugins/ruby-build && \
@@ -182,7 +181,9 @@ RUN python3 -m pip install --no-cache-dir --upgrade --ignore-installed \
         wheel
 
 # Install BZT package
-RUN python3 -m pip install --no-cache-dir --ignore-installed /tmp/bzt*.whl chardet
+# NOTE: chardet 7.x changed license from LGPL to MIT, which the original author disputes as illegal. It also has breaking changes.
+# Therefore, do not use chardet 7.x until the dispute is resolved. For more details see https://github.com/chardet/chardet/issues/327
+RUN python3 -m pip install --no-cache-dir --ignore-installed /tmp/bzt*.whl "chardet<7"
 
 # ================================
 # Stage 4: Browser Setup

@@ -204,6 +204,111 @@ class TestSeleniumScriptGeneration(ExecutorTestCase):
                           TestSeleniumScriptGeneration.clear_spaces(content),
                           msg="\n\n%s. %s" % (idx, target_lines[idx]))
 
+    def test_actionid_try_except_inside_step_method(self):
+        self.configure({
+            "execution": [{
+                "executor": "apiritif",
+                "scenario": "loc_sc"
+            }],
+            "scenarios": {
+                "loc_sc": {
+                    "default-address": "https://example.com",
+                    "requests": [{
+                        "label": "tx",
+                        "actions": [{
+                            "type": "go",
+                            "param": "https://example.com",
+                            "value": None,
+                            "actionId": "aid-1"
+                        }]
+                    }]
+                }
+            }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            content = fds.read()
+        normalized = TestSeleniumScriptGeneration.clear_spaces(content)
+
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("with apiritif.smart_transaction('tx'):\n            try:"),
+            normalized
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("raise type(exc)"),
+            normalized
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("actionId: "),
+            normalized
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("def test_locsc(self):\n        self._1_tx()"),
+            normalized
+        )
+
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("self._current_actionId = None"),
+            normalized
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("self._current_actionId = 'aid-1'"),
+            normalized
+        )
+
+        action_id_assignment_pos = normalized.find(
+            TestSeleniumScriptGeneration.clear_spaces("self._current_actionId = 'aid-1'")
+        )
+        action_call_pos = normalized.find(
+            TestSeleniumScriptGeneration.clear_spaces("self.driver.get('https://example.com')")
+        )
+        self.assertNotEqual(-1, action_id_assignment_pos)
+        self.assertNotEqual(-1, action_call_pos)
+        self.assertLess(action_id_assignment_pos, action_call_pos)
+
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("self._current_actionId is not None"),
+            normalized
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("str(self._current_actionId)"),
+            normalized
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("'actionId: '"),
+            normalized
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("' | '"),
+            normalized
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("str(exc)"),
+            normalized
+        )
+
+    def test_actionid_try_except_wraps_non_with_body(self):
+        generator = bzt.modules._apiritif.generator.ApiritifScriptGenerator.__new__(
+            bzt.modules._apiritif.generator.ApiritifScriptGenerator
+        )
+        body = [ast.Expr(value=ast.Constant(value="noop"))]
+
+        wrapped = generator._gen_actionid_exception_wrapped_body(body)
+
+        self.assertEqual(1, len(wrapped))
+        self.assertIsInstance(wrapped[0], ast.Try)
+
+        wrapped_code = astunparse.unparse(ast.Module(body=wrapped))
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("try:"),
+            TestSeleniumScriptGeneration.clear_spaces(wrapped_code)
+        )
+        self.assertIn(
+            TestSeleniumScriptGeneration.clear_spaces("raise type(exc)"),
+            TestSeleniumScriptGeneration.clear_spaces(wrapped_code)
+        )
+
     @staticmethod
     def clear_spaces(content):
         return content.replace(" ", "").replace("\t", "").replace("\n", "")
