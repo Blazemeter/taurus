@@ -795,6 +795,34 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEqual(client.send_engine_metrics.call_count, 1)  # 1st check
         client.disconnect.assert_called_once()
 
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_happysocks_instantiation_params(self, mock_client_class):
+        # 1. Default parameters
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'sess1'
+        reporter.parameters['master-id'] = 122362
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.prepare()
+
+        args, _ = mock_client_class.call_args
+        # args expected: address, session_id, signature, verbose_logging, verify_ssl, request_timeout, connect_timeout, use_clickhouse
+        self.assertFalse(args[7])  # default use_clickhouse
+
+        # 2. use_clickhouse = True
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'sess1'
+        reporter.parameters['master-id'] = 122362
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['happysocks-use-clickhouse'] = True
+        reporter.prepare()
+
+        args, _ = mock_client_class.call_args
+        self.assertTrue(args[7])  # explicit use_clickhouse=True
+
 
 class TestBlazeMeterClientUnicode(BZTestCase):
     def test_unicode_request(self):

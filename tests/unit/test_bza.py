@@ -102,6 +102,23 @@ class TestHappysocksClient(BZTestCase):
                          {"x-bzm-session": "r-v4-64102f1ab8795890049369", "x-auth-token": "ci12NC02NDEwMmYxYWI"})
 
     @patch('bzt.utils.socketio.Client')
+    def test_connect_success_clickhouse(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        # perform test
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True, use_clickhouse=True)
+        client.connect()
+        sio.connect.assert_called_once()
+        args = sio.connect.call_args
+        self.assertEqual(args[0][0], "https://happysocks-5100-tester-dev.blazemeter.net")
+        self.assertEqual(args[1]["namespaces"], ["/v1/engine-ch"])
+        self.assertEqual(args[1]["transports"], ["websocket"])
+        self.assertEqual(args[1]["socketio_path"], "/api-ws")
+        self.assertEqual(args[1]["headers"],
+                         {"x-bzm-session": "r-v4-64102f1ab8795890049369", "x-auth-token": "ci12NC02NDEwMmYxYWI"})
+
+    @patch('bzt.utils.socketio.Client')
     def test_connect_success_trailing_slash(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
@@ -200,6 +217,39 @@ class TestHappysocksClient(BZTestCase):
                                                     'masterId': 100, 'calibrationId': 200, 'calibrationStepId': 300},
                                        'timestamp': 1678892271398, 'values': {'cpu': 9.4, 'mem': 5560.0}}])
         self.assertEqual(args[0][2], "/v1/engine")
+        self.assertTrue(args[1]["callback"] is not None)
+
+    @patch('bzt.utils.socketio.Client')
+    def test_send_engine_metrics_clickhouse(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        # perform test
+        client = HappysocksClient("https://prod-rc.blazemeter.com/hs", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True, use_clickhouse=True)
+        client.send_engine_metrics([
+            {
+                'metadata': {
+                    'source': 'local',
+                    'entityId': 'r-v4-64102f1ab8795890049369',
+                    'masterId': 100,
+                    'calibrationId': 200,
+                    'calibrationStepId': 300,
+                },
+                'timestamp': 1678892271398,
+                'values': {
+                    'cpu': 9.4,
+                    'mem': 5560.0,
+                }
+            }
+        ], HappysocksEngineNamespace.METRICS_EVENT)
+        # verify
+        sio.emit.assert_called_once()
+        args = sio.emit.call_args
+        self.assertEqual(args[0][0], "metrics")
+        self.assertEqual(args[0][1], [{'metadata': {'source': 'local', 'entityId': 'r-v4-64102f1ab8795890049369',
+                                                    'masterId': 100, 'calibrationId': 200, 'calibrationStepId': 300},
+                                       'timestamp': 1678892271398, 'values': {'cpu': 9.4, 'mem': 5560.0}}])
+        self.assertEqual(args[0][2], "/v1/engine-ch")
         self.assertTrue(args[1]["callback"] is not None)
 
 
