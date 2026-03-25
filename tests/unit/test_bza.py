@@ -253,6 +253,20 @@ class TestHappysocksClient(BZTestCase):
         self.assertTrue(args[1]["callback"] is not None)
 
 
+class TestHappysocksEngineNamespace(BZTestCase):
+    def test_namespace_default(self):
+        ns = HappysocksEngineNamespace()
+        self.assertEqual(ns.namespace, HappysocksEngineNamespace.NAMESPACE)
+
+    def test_namespace_clickhouse(self):
+        ns = HappysocksEngineNamespace(use_clickhouse=True)
+        self.assertEqual(ns.namespace, HappysocksEngineNamespace.NAMESPACE_CH)
+
+    def test_namespace_legacy(self):
+        ns = HappysocksEngineNamespace(use_clickhouse=False)
+        self.assertEqual(ns.namespace, HappysocksEngineNamespace.NAMESPACE)
+
+
 class TestHappysocksClientMockServer(BZTestCase):
     NAMESPACE = "/v1/engine"
 
