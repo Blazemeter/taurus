@@ -823,6 +823,50 @@ class TestBlazeMeterUploader(BZTestCase):
         args, _ = mock_client_class.call_args
         self.assertTrue(args[7])  # explicit use_clickhouse=True
 
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_happysocks_proxy_settings_propagated(self, mock_client_class):
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.engine.config.merge({"settings": {"proxy": {"address": "http://proxy:8080"}}})
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'sess1'
+        reporter.parameters['master-id'] = 122362
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.prepare()
+
+        mock_client_class.return_value.add_proxy_settings.assert_called_once()
+
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_monitoring_data_routes_to_engine_metrics_buffer_when_enabled(self, mock_client_class):
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['send-monitoring'] = False
+        reporter.prepare()
+
+        data = [{'source': 'local', 'ts': 1678892271.0, 'cpu': 9.4}]
+        reporter.monitoring_data(data)
+
+        self.assertEqual(len(reporter._engine_metrics_buffer.get_data()), 1)
+
+    def test_monitoring_data_skips_engine_metrics_buffer_when_disabled(self):
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        # no happysocks-address → happysocks_client stays None
+        reporter.settings['send-monitoring'] = False
+        reporter.prepare()
+
+        data = [{'source': 'local', 'ts': 1678892271.0, 'cpu': 9.4}]
+        reporter.monitoring_data(data)
+
+        self.assertEqual(len(reporter._engine_metrics_buffer.get_data()), 0)
+
 
 class TestBlazeMeterClientUnicode(BZTestCase):
     def test_unicode_request(self):

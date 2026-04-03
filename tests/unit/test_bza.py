@@ -252,6 +252,42 @@ class TestHappysocksClient(BZTestCase):
         self.assertEqual(args[0][2], "/v1/engine-ch")
         self.assertTrue(args[1]["callback"] is not None)
 
+    @patch('bzt.utils.socketio.Client')
+    def test_construct_passes_request_timeout(self, mock_socketio_class):
+        HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                         "ci12NC02NDEwMmYxYWI", request_timeout=42)
+        args = mock_socketio_class.call_args
+        self.assertEqual(args[1]["request_timeout"], 42)
+
+    @patch('bzt.utils.socketio.Client')
+    def test_connect_passes_wait_timeout(self, mock_socketio_class):
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", connect_timeout=15)
+        client.connect()
+        args = mock_socketio_class.return_value.connect.call_args
+        self.assertEqual(args[1]["wait_timeout"], 15)
+
+    @patch('bzt.utils.socketio.Client')
+    def test_send_engine_metrics_raises_taurus_network_error(self, mock_socketio_class):
+        mock_socketio_class.return_value.emit.side_effect = Exception("socket died")
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI")
+        try:
+            client.send_engine_metrics([{"data": 1}], HappysocksEngineNamespace.METRICS_EVENT)
+            self.fail("Expected TaurusNetworkError")
+        except TaurusNetworkError:
+            pass
+
+    @patch('bzt.utils.socketio.Client')
+    def test_connected_reflects_sio_state(self, mock_socketio_class):
+        sio = mock_socketio_class.return_value
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI")
+        sio.connected = False
+        self.assertFalse(client.connected())
+        sio.connected = True
+        self.assertTrue(client.connected())
+
 
 class TestHappysocksEngineNamespace(BZTestCase):
     def test_namespace_default(self):
@@ -360,6 +396,11 @@ class TestHappysocksClientMockServer(BZTestCase):
             self.fail("Expected TaurusNetworkError")
         except TaurusNetworkError:
             pass
+
+    def test_connected_before_and_after_connect(self):
+        self.assertFalse(self.client.connected())
+        self.client.connect()
+        self.assertTrue(self.client.connected())
 
     def test_get_load_from_config(self):
         engine = EngineEmul()
