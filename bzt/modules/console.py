@@ -32,7 +32,7 @@ from urwid import LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN, Progress
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine, Padding
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
-from urwid.listbox import SimpleListWalker
+from urwid.widget.listbox import SimpleListWalker
 from urwid.widget import Divider
 
 from bzt.engine import Reporter, Singletone, ScenarioExecutor
