@@ -1,4 +1,8 @@
 # Changelog
+## 1.16.50<sup> 3 April 2026</sup>
+- Added support for new namespace in Happysocks server that uses ClickHouse for storing data
+- Expose a `happysocks-use-clickhouse` setting in the BlazeMeter reporter to enable the new namespace
+
 ## 1.16.49<sup> 23 February 2026</sup>
  - Playwright executor allows to add custom reporters
  - Documentation updates
