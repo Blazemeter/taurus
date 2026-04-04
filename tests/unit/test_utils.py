@@ -436,3 +436,30 @@ class TestHTTPClient(BZTestCase):
     def test_request_fail(self):
         obj = HTTPClient()
         self.assertRaises(TaurusNetworkError, lambda: obj.request('GET', 'http://non.existent.com/'))
+
+    def test_get_proxy_props_no_settings(self):
+        obj = HTTPClient()
+        self.assertEqual({}, obj.get_proxy_props())
+
+    def test_get_proxy_props_no_credentials(self):
+        obj = HTTPClient()
+        obj.add_proxy_settings({"address": "http://proxy.example.com:3128"})
+        props = obj.get_proxy_props()
+        self.assertEqual("proxy.example.com", props["http.proxyHost"])
+        self.assertEqual(3128, props["http.proxyPort"])
+        self.assertNotIn("http.proxyUser", props)
+        self.assertNotIn("http.proxyPass", props)
+
+    def test_get_proxy_props_no_non_proxy(self):
+        obj = HTTPClient()
+        obj.add_proxy_settings({"address": "http://proxy.example.com:3128"})
+        props = obj.get_proxy_props()
+        self.assertNotIn("http.nonProxyHosts", props)
+        self.assertNotIn("https.nonProxyHosts", props)
+
+    def test_get_proxy_props_default_port(self):
+        obj = HTTPClient()
+        obj.add_proxy_settings({"address": "http://proxy.example.com"})
+        props = obj.get_proxy_props()
+        self.assertEqual(80, props["http.proxyPort"])
+        self.assertEqual(80, props["https.proxyPort"])
