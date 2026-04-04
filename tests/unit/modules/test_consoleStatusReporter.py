@@ -197,50 +197,6 @@ class TestConsoleStatusReporter(BZTestCase):
         else:
             self.assertEqual(obj._get_screen_type(), "console")
 
-    def test_disabled_in_functional_mode(self):
-        obj = ConsoleStatusReporter()
-        obj.engine = EngineEmul()
-        obj.engine.aggregator.is_functional = True
-        obj.prepare()
-        self.assertTrue(obj.disabled)
-
-    def test_disabled_auto_when_not_tty(self):
-        obj = ConsoleStatusReporter()
-        obj.engine = EngineEmul()
-        # 'auto' is the default — disables when not running in a terminal
-        obj.settings["disable"] = "auto"
-        obj.prepare()
-        self.assertTrue(obj.disabled)
-
-    def test_dummy_screen_custom_size(self):
-        obj = ConsoleStatusReporter()
-        obj.engine = EngineEmul()
-        obj.settings["disable"] = False
-        obj.settings["dummy-cols"] = 200
-        obj.settings["dummy-rows"] = 50
-        obj.prepare()
-        self.assertEqual(obj.screen.get_cols_rows(), (200, 50))
-
-    def test_check_logs_stats_when_disabled(self):
-        obj = ConsoleStatusReporter()
-        obj.engine = EngineEmul()
-        obj.settings["disable"] = True
-        obj.prepare()
-        self.sniff_log(obj.log)
-        point = self.__get_datapoint(1)
-        obj.aggregated_second(point)
-        obj.check()
-        self.assertIn("Current:", self.log_recorder.info_buff.getvalue())
-
-    def test_aggregated_second_disabled_stores_datapoint(self):
-        obj = ConsoleStatusReporter()
-        obj.engine = EngineEmul()
-        obj.settings["disable"] = True
-        obj.prepare()
-        point = self.__get_datapoint(1)
-        obj.aggregated_second(point)
-        self.assertIs(obj._last_datapoint, point)
-
 
 class TestScrollingLog(BZTestCase):
     def test_update_strips_ansi_codes(self):

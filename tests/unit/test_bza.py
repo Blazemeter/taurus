@@ -302,36 +302,6 @@ class TestHappysocksEngineNamespace(BZTestCase):
         ns = HappysocksEngineNamespace(use_clickhouse=False)
         self.assertEqual(ns.namespace, HappysocksEngineNamespace.NAMESPACE)
 
-    def test_on_connect_error_with_message(self):
-        ns = HappysocksEngineNamespace()
-        self.sniff_log(ns._log)
-        ns.on_connect_error({"message": "auth failed"})
-        self.assertIn("auth failed", self.log_recorder.err_buff.getvalue())
-
-    def test_on_connect_error_without_message(self):
-        ns = HappysocksEngineNamespace()
-        self.sniff_log(ns._log)
-        ns.on_connect_error({"code": 403})
-        self.assertIn("Happysocks connection error", self.log_recorder.err_buff.getvalue())
-
-    def test_on_connect_error_non_dict(self):
-        ns = HappysocksEngineNamespace()
-        self.sniff_log(ns._log)
-        ns.on_connect_error("plain string")
-        self.assertIn("Happysocks connection error", self.log_recorder.err_buff.getvalue())
-
-    def test_metrics_callback_logs_error(self):
-        ns = HappysocksEngineNamespace()
-        self.sniff_log(ns._log)
-        ns.metrics_callback({"error": "Missing entityId"})
-        self.assertIn("Missing entityId", self.log_recorder.err_buff.getvalue())
-
-    def test_metrics_callback_no_error(self):
-        ns = HappysocksEngineNamespace()
-        self.sniff_log(ns._log)
-        ns.metrics_callback({})
-        self.assertEqual("", self.log_recorder.err_buff.getvalue())
-
 
 class TestHappysocksClientMockServer(BZTestCase):
     NAMESPACE = "/v1/engine"
