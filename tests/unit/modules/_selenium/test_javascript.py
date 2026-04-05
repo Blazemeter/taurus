@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 import time
 from os.path import exists
 
@@ -7,10 +8,10 @@ import bzt
 
 from bzt import ToolError
 from bzt.modules.javascript import NPMPackage, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver, \
-    PlaywrightTester, PLAYWRIGHT, PlaywrightTestPackage
+    PlaywrightTester, PLAYWRIGHT, PlaywrightTestPackage, IncrementalLineReader, PlaywrightLogReader
 from bzt.utils import get_full_path, EXE_SUFFIX
 
-from tests.unit import RESOURCES_DIR, BZTestCase, EngineEmul
+from tests.unit import RESOURCES_DIR, BZTestCase, EngineEmul, ROOT_LOGGER
 from tests.unit.modules._selenium import SeleniumTestCase
 
 from unittest.mock import patch, MagicMock
@@ -185,6 +186,44 @@ class TestNewmanExecutor(BZTestCase):
         sample = samples[0]
         self.assertEqual(sample["status"], "PASSED")
         self.assertEqual(sample["test_case"], "should load")
+
+    def _prepared_obj(self):
+        self.obj = NewmanExecutor()
+        self.obj.engine = EngineEmul()
+        self.obj.engine.config.merge({"execution": {"scenario": {
+            "script": RESOURCES_DIR + 'functional/postman.json',
+        }}})
+        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + 'functional/postman.json'}})
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *args, **kwargs: ("", "")
+            self.obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
+
+    def test_dump_vars_string_passes_path_directly(self):
+        self._prepared_obj()
+        self.obj.get_scenario().data["globals"] = "/path/to/globals.json"
+        cmdline = self.obj._dump_vars("globals")
+        self.assertEqual(cmdline, ["--globals", "/path/to/globals.json"])
+
+    def test_dump_vars_list_writes_json_file(self):
+        self._prepared_obj()
+        self.obj.get_scenario().data["globals"] = [{"key": "host", "value": "localhost"}]
+        cmdline = self.obj._dump_vars("globals")
+        self.assertEqual(cmdline[0], "--globals")
+        with open(cmdline[1]) as f:
+            data = json.load(f)
+        self.assertEqual(data["values"], [{"key": "host", "value": "localhost"}])
+
+    def test_dump_vars_empty_dict_writes_json_file(self):
+        self._prepared_obj()
+        self.obj.get_scenario().data["environment"] = {}
+        cmdline = self.obj._dump_vars("environment")
+        self.assertEqual(cmdline[0], "--environment")
+        with open(cmdline[1]) as f:
+            data = json.load(f)
+        self.assertIn("values", data)
 
 
 class TestPlaywrightExecutor(SeleniumTestCase):
@@ -402,6 +441,41 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         self.assertTrue(os.path.isabs(script_path) or script_path.startswith("~"))
         self.assertIn(".bzt/playwright", script_path)
 
+    def test_duration_without_iterations_repeat_each_is_1000(self):
+        """When duration is set but iterations are not, repeat-each should be the safe default 1000."""
+        self.simple_run({
+            'execution': {
+                'hold-for': '60s',
+                'scenario': {"script": RESOURCES_DIR + "playwright"},
+                'executor': 'playwright',
+            },
+        })
+        self.assertIn("--repeat-each 1000", self.CMD_LINE)
+
+    def test_no_duration_no_iterations_repeat_each_is_1(self):
+        """With neither duration nor iterations set, concurrency=1, so repeat-each = 1*1 = 1."""
+        self.simple_run({
+            'execution': {
+                'scenario': {"script": RESOURCES_DIR + "playwright"},
+                'executor': 'playwright',
+            },
+        })
+        self.assertIn("--repeat-each 1", self.CMD_LINE)
+        self.assertIn("--workers 1", self.CMD_LINE)
+
+    def test_duration_with_iterations_repeat_each_multiplied(self):
+        """With duration + iterations + concurrency, repeat-each = concurrency * iterations."""
+        self.simple_run({
+            'execution': {
+                'hold-for': '30s',
+                'iterations': 4,
+                'concurrency': 3,
+                'scenario': {"script": RESOURCES_DIR + "playwright"},
+                'executor': 'playwright',
+            },
+        })
+        self.assertIn("--repeat-each 12", self.CMD_LINE)  # 3 * 4
+
 
 class TestPlaywrightInstallation(BZTestCase):
     """Test PLAYWRIGHT tool installation logic"""
@@ -562,3 +636,144 @@ class TestPlaywrightInstallation(BZTestCase):
             self.assertIn("playwright", call_args)
             # Make sure it's not versioned by default
             self.assertTrue(any("playwright" in str(arg) and "@" not in str(arg) for arg in call_args if "playwright" in str(arg)))
+
+
+class TestIncrementalLineReader(BZTestCase):
+
+    def _make_reader(self, content):
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False)
+        tmp.write(content)
+        tmp.close()
+        self.addCleanup(os.unlink, tmp.name)
+        return IncrementalLineReader(ROOT_LOGGER, tmp.name)
+
+    def test_complete_lines_yielded(self):
+        reader = self._make_reader('{"a":1}\n{"b":2}\n')
+        lines = list(reader.read())
+        self.assertEqual(len(lines), 2)
+        self.assertEqual(lines[0], '{"a":1}\n')
+        self.assertEqual(lines[1], '{"b":2}\n')
+
+    def test_partial_line_buffered_not_yielded(self):
+        reader = self._make_reader('{"a":1}')
+        lines = list(reader.read())
+        self.assertEqual(lines, [])
+        self.assertEqual(reader.partial_buffer, '{"a":1}')
+
+    def test_partial_buffer_prepends_to_next_complete_line(self):
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False)
+        tmp.write('{"a"')
+        tmp.flush()
+        self.addCleanup(os.unlink, tmp.name)
+        reader = IncrementalLineReader(ROOT_LOGGER, tmp.name)
+
+        list(reader.read())  # partial — nothing yielded
+        self.assertEqual(reader.partial_buffer, '{"a"')
+
+        tmp.write(':1}\n')
+        tmp.close()
+        lines = list(reader.read())
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(lines[0], '{"a":1}\n')
+        self.assertEqual(reader.partial_buffer, '')
+
+    def test_empty_file_yields_nothing(self):
+        reader = self._make_reader('')
+        self.assertEqual(list(reader.read()), [])
+
+    def test_multiple_reads_continue_from_last_position(self):
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False)
+        tmp.write('line1\n')
+        tmp.flush()
+        self.addCleanup(os.unlink, tmp.name)
+        reader = IncrementalLineReader(ROOT_LOGGER, tmp.name)
+
+        first = list(reader.read())
+        self.assertEqual(first, ['line1\n'])
+
+        tmp.write('line2\n')
+        tmp.close()
+        second = list(reader.read())
+        self.assertEqual(second, ['line2\n'])
+
+
+class TestPlaywrightLogReader(BZTestCase):
+
+    def _write_jsonl(self, records):
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False)
+        for rec in records:
+            tmp.write(json.dumps(rec) + '\n')
+        tmp.close()
+        self.addCleanup(os.unlink, tmp.name)
+        return tmp.name
+
+    def test_safe_ms_to_s_converts(self):
+        reader = PlaywrightLogReader("/dev/null", ROOT_LOGGER)
+        self.assertAlmostEqual(reader._safe_ms_to_s(2000), 2.0)
+        self.assertAlmostEqual(reader._safe_ms_to_s(500), 0.5)
+
+    def test_safe_ms_to_s_none_returns_none(self):
+        reader = PlaywrightLogReader("/dev/null", ROOT_LOGGER)
+        self.assertIsNone(reader._safe_ms_to_s(None))
+
+    def test_safe_ms_to_s_zero_returns_zero(self):
+        reader = PlaywrightLogReader("/dev/null", ROOT_LOGGER)
+        # zero is falsy — should be passed through unchanged
+        result = reader._safe_ms_to_s(0)
+        self.assertEqual(result, 0)
+
+    def test_read_parses_fields_correctly(self):
+        record = {
+            "timestamp": 1000,
+            "label": "homepage load",
+            "concurency": 2,
+            "duration": 300,
+            "connectTime": 20,
+            "latency": 80,
+            "ok": True,
+            "error": None,
+            "runDetails": {"worker": 1},
+            "byte_count": 1024,
+        }
+        path = self._write_jsonl([record])
+        reader = PlaywrightLogReader(path, ROOT_LOGGER)
+        rows = list(reader._read())
+        self.assertEqual(len(rows), 1)
+        ts, label, concurrency, duration, connect, latency, err_flag, error, details, byte_count = rows[0]
+        self.assertAlmostEqual(ts, 1.0)           # 1000ms → 1.0s
+        self.assertEqual(label, "homepage load")
+        self.assertAlmostEqual(duration, 0.3)     # 300ms → 0.3s
+        self.assertAlmostEqual(connect, 0.02)     # 20ms → 0.02s
+        self.assertAlmostEqual(latency, 0.08)     # 80ms → 0.08s
+        self.assertEqual(err_flag, 0)             # ok=True → 1 - 1 = 0
+        self.assertEqual(byte_count, 1024)
+
+    def test_read_error_flag_when_not_ok(self):
+        record = {
+            "timestamp": 2000,
+            "label": "failing test",
+            "concurency": 1,
+            "duration": 100,
+            "ok": False,
+            "error": "AssertionError: expected true",
+            "byte_count": 0,
+        }
+        path = self._write_jsonl([record])
+        reader = PlaywrightLogReader(path, ROOT_LOGGER)
+        rows = list(reader._read())
+        err_flag = rows[0][6]
+        self.assertEqual(err_flag, 1)             # ok=False → 1 - 0 = 1
+
+    def test_read_multiple_records(self):
+        records = [
+            {"timestamp": 1000, "label": "t1", "concurency": 1, "duration": 100,
+             "ok": True, "byte_count": 0},
+            {"timestamp": 2000, "label": "t2", "concurency": 1, "duration": 200,
+             "ok": False, "byte_count": 0},
+        ]
+        path = self._write_jsonl(records)
+        reader = PlaywrightLogReader(path, ROOT_LOGGER)
+        rows = list(reader._read())
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0][1], "t1")
+        self.assertEqual(rows[1][1], "t2")
