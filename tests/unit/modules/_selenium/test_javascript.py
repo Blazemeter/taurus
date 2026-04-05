@@ -777,3 +777,316 @@ class TestPlaywrightLogReader(BZTestCase):
         self.assertEqual(len(rows), 2)
         self.assertEqual(rows[0][1], "t1")
         self.assertEqual(rows[1][1], "t2")
+
+
+class TestNPMCheckIfInstalled(BZTestCase):
+    """Tests for NPM.check_if_installed covering all branches."""
+
+    from unittest.mock import MagicMock
+
+    def _make_npm(self):
+        from bzt.modules.javascript import NPM
+        return NPM()
+
+    def test_npm_found_returns_true_and_sets_tool_path(self):
+        npm = self._make_npm()
+        npm.call = MagicMock(return_value=("8.0.0\n", ""))
+        self.assertTrue(npm.check_if_installed())
+        self.assertEqual(npm.tool_path, "npm")
+
+    def test_npm_not_found_returns_false(self):
+        npm = self._make_npm()
+        npm.call = MagicMock(side_effect=OSError("not found"))
+        self.assertFalse(npm.check_if_installed())
+
+    def test_npm_stderr_appended_to_stdout(self):
+        """Line 381: when err is non-empty, out += err."""
+        npm = self._make_npm()
+        npm.call = MagicMock(return_value=("8.0.0\n", "npm warn: something\n"))
+        self.assertTrue(npm.check_if_installed())
+
+    @patch('bzt.modules.javascript.is_windows', return_value=True)
+    def test_windows_tries_npm_cmd_as_fallback(self, _):
+        """Line 371: on Windows, npm.cmd is added to candidates."""
+        npm = self._make_npm()
+        # npm fails, npm.cmd succeeds
+        npm.call = MagicMock(side_effect=[OSError("npm not found"), ("8.0.0\n", "")])
+        self.assertTrue(npm.check_if_installed())
+        self.assertEqual(npm.tool_path, "npm.cmd")
+
+
+class TestNPMPackageCheckAndInstall(BZTestCase):
+    """Tests for NPMPackage.check_if_installed and install covering uncovered branches."""
+
+    def _make_pkg(self, package_name, tools_dir="/tmp"):
+        from unittest.mock import MagicMock
+        from bzt.modules.javascript import NPMPackage
+
+        class Pkg(NPMPackage):
+            PACKAGE_NAME = package_name
+
+        node = MagicMock()
+        node.tool_path = "node"
+        npm_tool = MagicMock()
+        npm_tool.tool_path = "npm"
+        return Pkg(tools_dir=tools_dir, node_tool=node, npm_tool=npm_tool)
+
+    def _make_esm_pkg(self, package_name, tools_dir="/tmp"):
+        from unittest.mock import MagicMock
+        from bzt.modules.javascript import NPMModulePackage
+
+        class Pkg(NPMModulePackage):
+            PACKAGE_NAME = package_name
+
+        node = MagicMock()
+        node.tool_path = "node"
+        npm_tool = MagicMock()
+        npm_tool.tool_path = "npm"
+        return Pkg(tools_dir=tools_dir, node_tool=node, npm_tool=npm_tool)
+
+    def test_check_if_installed_returns_true_when_found(self):
+        pkg = self._make_pkg("mylib")
+        pkg.call = MagicMock(return_value=("mylib is installed\n", ""))
+        self.assertTrue(pkg.check_if_installed())
+
+    def test_check_if_installed_returns_false_when_call_raises(self):
+        """Lines 430-432: CALL_PROBLEMS → returns False."""
+        pkg = self._make_pkg("mylib")
+        pkg.call = MagicMock(side_effect=OSError("node not found"))
+        self.assertFalse(pkg.check_if_installed())
+
+    def test_esm_module_uses_import_syntax(self):
+        """Lines 419-423: is_module_package=True uses import() cmdline."""
+        pkg = self._make_esm_pkg("my-esm-pkg")
+        captured = []
+
+        def mock_call(cmdline, **kwargs):
+            captured.append(cmdline)
+            return ("my-esm-pkg is installed\n", "")
+
+        pkg.call = mock_call
+        pkg.check_if_installed()
+        self.assertTrue(any("--input-type=module" in str(c) for c in captured[0]))
+        self.assertTrue(any("import(" in str(c) for c in captured[0]))
+
+    def test_esm_module_sets_cwd_when_node_modules_absent(self):
+        """Line 422: cwd set to tools_dir/node_modules when ./node_modules doesn't exist."""
+        pkg = self._make_esm_pkg("my-esm-pkg", tools_dir="/tmp/tools")
+        captured_kwargs = {}
+
+        def mock_call(cmdline, **kwargs):
+            captured_kwargs.update(kwargs)
+            return ("my-esm-pkg is installed\n", "")
+
+        pkg.call = mock_call
+        with patch('os.path.exists', return_value=False):
+            pkg.check_if_installed()
+
+        self.assertEqual(captured_kwargs.get('cwd'), "/tmp/tools/node_modules")
+
+    def test_install_appends_version_to_package_name(self):
+        """Line 437: when version is set, package_name@version is installed."""
+        pkg = self._make_pkg("mocha@10.6.0")
+        captured = []
+        pkg.call = MagicMock(side_effect=lambda cmd, **kw: captured.append(cmd) or ("", ""))
+        pkg.install()
+        install_cmd = captured[0]
+        self.assertIn("mocha@10.6.0", install_cmd)
+
+    def test_install_without_version_uses_bare_name(self):
+        pkg = self._make_pkg("newman")
+        captured = []
+        pkg.call = MagicMock(side_effect=lambda cmd, **kw: captured.append(cmd) or ("", ""))
+        pkg.install()
+        install_cmd = captured[0]
+        self.assertIn("newman", install_cmd)
+        self.assertNotIn("newman@", install_cmd)
+
+    def test_install_call_problems_logged_no_raise(self):
+        """Lines 442-444: OSError during install → log debug, return silently."""
+        pkg = self._make_pkg("mylib")
+        pkg.call = MagicMock(side_effect=OSError("npm failed"))
+        pkg.install()  # must not raise
+
+    def test_install_stderr_logs_warning(self):
+        """Line 448: non-empty stderr triggers warning log."""
+        pkg = self._make_pkg("mylib")
+        pkg.call = MagicMock(return_value=("", "npm warn: peer dep missing\n"))
+        pkg.install()  # must not raise
+
+
+class TestNPMLocalModulePackageInstall(BZTestCase):
+    """Tests for NPMLocalModulePackage.install and NPMModuleInstaller."""
+
+    def _make_local_pkg(self, local_path="/absolute/local/pkg", tools_dir="/tmp/tools"):
+        from unittest.mock import MagicMock
+        from bzt.modules.javascript import NPMLocalModulePackage
+
+        class Pkg(NPMLocalModulePackage):
+            PACKAGE_NAME = "local-pkg"
+            PACKAGE_LOCAL_PATH = local_path
+
+        node = MagicMock()
+        node.tool_path = "node"
+        npm_tool = MagicMock()
+        npm_tool.tool_path = "npm"
+        return Pkg(tools_dir=tools_dir, node_tool=node, npm_tool=npm_tool)
+
+    def test_install_uses_install_links_and_prefix(self):
+        """Lines 467-475: install() builds correct cmdline."""
+        pkg = self._make_local_pkg()
+        captured = []
+        pkg.call = MagicMock(side_effect=lambda cmd, **kw: captured.append(cmd) or ("", ""))
+        pkg.install()
+        cmd = captured[0]
+        self.assertIn(".", cmd)
+        self.assertIn("--install-links", cmd)
+        self.assertIn("--prefix", cmd)
+
+    def test_install_uses_package_local_path_as_cwd(self):
+        pkg = self._make_local_pkg(local_path="/absolute/local/pkg")
+        captured_kwargs = {}
+        pkg.call = MagicMock(side_effect=lambda cmd, **kw: captured_kwargs.update(kw) or ("", ""))
+        pkg.install()
+        self.assertEqual(captured_kwargs.get('cwd'), "/absolute/local/pkg")
+
+    def test_install_call_problems_no_raise(self):
+        """Lines 471-473: OSError → log debug, return silently."""
+        pkg = self._make_local_pkg()
+        pkg.call = MagicMock(side_effect=OSError("npm failed"))
+        pkg.install()  # must not raise
+
+    def test_install_stderr_logs_warning(self):
+        """Line 477: non-empty stderr triggers warning."""
+        pkg = self._make_local_pkg()
+        pkg.call = MagicMock(return_value=("", "warning: something\n"))
+        pkg.install()  # must not raise
+
+    def test_npm_module_installer_sets_package_local_path_to_tools_dir(self):
+        """Lines 482-483: NPMModuleInstaller.__init__ sets package_local_path = tools_dir."""
+        from unittest.mock import MagicMock
+        from bzt.modules.javascript import NPMModuleInstaller
+        node = MagicMock()
+        npm = MagicMock()
+        installer = NPMModuleInstaller(tools_dir="/my/tools", node_tool=node, npm_tool=npm)
+        self.assertEqual(installer.package_local_path, "/my/tools")
+        self.assertTrue(installer.is_module_package)
+
+
+class TestToolInitAndSimpleMethods(BZTestCase):
+    """Tests for simple __init__ methods and single-line methods that were uncovered."""
+
+    def test_taurus_mocha_plugin_tool_path(self):
+        """Lines 505-506: TaurusMochaPlugin sets tool_path to mocha-taurus-plugin.js."""
+        from bzt.modules.javascript import TaurusMochaPlugin
+        plugin = TaurusMochaPlugin()
+        self.assertTrue(os.path.isabs(plugin.tool_path))
+        self.assertIn("mocha-taurus-plugin.js", plugin.tool_path)
+
+    def test_playwright_custom_reporter_check_if_installed_returns_false(self):
+        """Line 524: always returns False to force reinstall."""
+        from unittest.mock import MagicMock
+        from bzt.modules.javascript import PlaywrightCustomReporter
+        node = MagicMock()
+        npm = MagicMock()
+        reporter = PlaywrightCustomReporter(tools_dir="/tmp", node_tool=node, npm_tool=npm)
+        self.assertFalse(reporter.check_if_installed())
+
+    def test_playwright_check_if_installed_returns_false(self):
+        """Line 533: PLAYWRIGHT.check_if_installed always returns False."""
+        pw = PLAYWRIGHT(tools_dir="/tmp")
+        self.assertFalse(pw.check_if_installed())
+
+
+class TestPLAYWRIGHTInstallCmd(BZTestCase):
+    """Tests for PLAYWRIGHT.install_cmd covering stdout/stderr logging and error handling."""
+
+    def setUp(self):
+        super().setUp()
+        self.td = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.td, ignore_errors=True)
+        super().tearDown()
+
+    def _make_pw(self):
+        return PLAYWRIGHT(tools_dir=self.td)
+
+    def test_install_cmd_logs_stdout(self):
+        """Line 558: non-empty stdout is logged at debug level."""
+        pw = self._make_pw()
+        pw.call = MagicMock(return_value=("Playwright installed OK\n", ""))
+        pw.install_cmd(["npx", "playwright", "install"])  # must not raise
+
+    def test_install_cmd_logs_stderr_as_warning(self):
+        """Line 560: non-empty stderr is logged as warning."""
+        pw = self._make_pw()
+        pw.call = MagicMock(return_value=("", "browser install warning\n"))
+        pw.install_cmd(["npx", "playwright", "install"])  # must not raise
+
+    def test_install_cmd_call_problems_no_raise(self):
+        """Lines 554-556: CALL_PROBLEMS → warning logged, returns silently."""
+        pw = self._make_pw()
+        pw.call = MagicMock(side_effect=OSError("npx not found"))
+        pw.install_cmd(["npx", "playwright", "install"])  # must not raise
+
+
+class TestNewmanCoverage(BZTestCase):
+    """Tests for uncovered lines in NewmanExecutor."""
+
+    def _setup_newman(self, scenario_data):
+        import bzt
+        obj = NewmanExecutor()
+        obj.engine = EngineEmul()
+        config = {"execution": {"scenario": scenario_data}}
+        obj.engine.config.merge(config)
+        execution = config["execution"]
+        obj.execution.merge(execution)
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *a, **kw: ("", "")
+            obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
+        return obj
+
+    def test_prepare_no_script_raises_config_error(self):
+        """Line 289: missing script raises TaurusConfigError."""
+        from bzt import TaurusConfigError
+        import bzt
+        obj = NewmanExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({"execution": {"scenario": {}}})
+        obj.execution.merge({"scenario": {}})
+        tmp_eac = bzt.utils.exec_and_communicate
+        try:
+            bzt.utils.exec_and_communicate = lambda *a, **kw: ("", "")
+            with self.assertRaises(TaurusConfigError):
+                obj.prepare()
+        finally:
+            bzt.utils.exec_and_communicate = tmp_eac
+
+    def test_startup_adds_timeout_request(self):
+        """Line 323: scenario timeout → --timeout-request in cmdline."""
+        obj = self._setup_newman({
+            "script": RESOURCES_DIR + 'functional/postman.json',
+            "timeout": "5s",
+        })
+        captured = []
+        obj.engine.start_subprocess = lambda args, **kw: captured.extend(args)
+        obj.startup()
+        self.assertIn("--timeout-request", captured)
+        self.assertIn("5000", captured)
+
+    def test_startup_adds_delay_request_for_think_time(self):
+        """Line 327: scenario think-time → --delay-request in cmdline."""
+        obj = self._setup_newman({
+            "script": RESOURCES_DIR + 'functional/postman.json',
+            "think-time": "2s",
+        })
+        captured = []
+        obj.engine.start_subprocess = lambda args, **kw: captured.extend(args)
+        obj.startup()
+        self.assertIn("--delay-request", captured)
+        self.assertIn("2000", captured)
