@@ -790,28 +790,29 @@ class TestNPMCheckIfInstalled(BZTestCase):
 
     def test_npm_found_returns_true_and_sets_tool_path(self):
         npm = self._make_npm()
-        npm.call = MagicMock(return_value=("8.0.0\n", ""))
-        self.assertTrue(npm.check_if_installed())
+        with patch('bzt.utils.exec_and_communicate', return_value=("8.0.0\n", "")):
+            self.assertTrue(npm.check_if_installed())
         self.assertEqual(npm.tool_path, "npm")
 
     def test_npm_not_found_returns_false(self):
         npm = self._make_npm()
-        npm.call = MagicMock(side_effect=OSError("not found"))
-        self.assertFalse(npm.check_if_installed())
+        with patch('bzt.utils.exec_and_communicate', side_effect=OSError("not found")):
+            self.assertFalse(npm.check_if_installed())
 
     def test_npm_stderr_appended_to_stdout(self):
         """Line 381: when err is non-empty, out += err."""
         npm = self._make_npm()
-        npm.call = MagicMock(return_value=("8.0.0\n", "npm warn: something\n"))
-        self.assertTrue(npm.check_if_installed())
+        with patch('bzt.utils.exec_and_communicate', return_value=("8.0.0\n", "npm warn: something\n")):
+            self.assertTrue(npm.check_if_installed())
 
     @patch('bzt.modules.javascript.is_windows', return_value=True)
     def test_windows_tries_npm_cmd_as_fallback(self, _):
         """Line 371: on Windows, npm.cmd is added to candidates."""
         npm = self._make_npm()
         # npm fails, npm.cmd succeeds
-        npm.call = MagicMock(side_effect=[OSError("npm not found"), ("8.0.0\n", "")])
-        self.assertTrue(npm.check_if_installed())
+        with patch('bzt.utils.exec_and_communicate',
+                   side_effect=[OSError("npm not found"), ("8.0.0\n", "")]):
+            self.assertTrue(npm.check_if_installed())
         self.assertEqual(npm.tool_path, "npm.cmd")
 
 
