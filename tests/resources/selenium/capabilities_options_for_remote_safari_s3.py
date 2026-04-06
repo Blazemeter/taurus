@@ -29,6 +29,7 @@ class TestLocScRemote(unittest.TestCase):
 
         timeout = 30.0
         options = webdriver.WebKitGTKOptions()
+        options.set_capability('unhandledPromptBehavior', 'ignore')
         options.add_argument('one')
         options.add_argument('two')
         from selenium.webdriver.remote.remote_connection import RemoteConnection
