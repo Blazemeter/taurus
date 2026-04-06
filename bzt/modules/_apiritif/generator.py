@@ -1304,12 +1304,7 @@ from selenium.webdriver.common.keys import Keys
             ast.Assign(
                 targets=[ast.Name(id="options")],
                 value=ast_call(
-                    func=ast_attr("webdriver.FirefoxOptions"))),
-            ast.Expr(
-                ast_call(
-                    func=ast_attr("options.set_capability"),
-                    args=[ast.Constant("unhandledPromptBehavior", kind=""),
-                          ast.Constant("ignore", kind="")]))]
+                    func=ast_attr("webdriver.FirefoxOptions")))]
 
         return firefox_options + self._get_headless_setup()
 
