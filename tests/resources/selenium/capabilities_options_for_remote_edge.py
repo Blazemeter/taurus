@@ -30,6 +30,7 @@ class TestRemoteSc(unittest.TestCase):
 
         timeout = 30.0
         options = webdriver.EdgeOptions()
+        options.set_capability('unhandledPromptBehavior', 'ignore')
         options.ignore_local_proxy_environment_variables()
         options.add_argument('one')
         options.add_argument('two')

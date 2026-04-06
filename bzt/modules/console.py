@@ -30,7 +30,7 @@ from bzt.utils import numeric_types
 from logging import StreamHandler
 from urwid import LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN, ProgressBar
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine
-from urwid.decoration import Padding
+from urwid import Padding
 from urwid.font import Thin6x6Font
 from urwid.graphics import BigText
 from urwid.listbox import SimpleListWalker

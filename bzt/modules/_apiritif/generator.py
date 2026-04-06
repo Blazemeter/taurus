@@ -1271,7 +1271,13 @@ from selenium.webdriver.common.keys import Keys
             options = self._get_webkitgtk_options()
         else:
             if self.selenium_version.startswith("4"):
-                options = [ast.Assign(targets=[ast.Name(id="options")], value=ast_call(func=ast_attr("ArgOptions")))]
+                options = [
+                    ast.Assign(targets=[ast.Name(id="options")], value=ast_call(func=ast_attr("ArgOptions"))),
+                    ast.Expr(
+                        ast_call(
+                            func=ast_attr("options.set_capability"),
+                            args=[ast.Constant("unhandledPromptBehavior", kind=""),
+                                  ast.Constant("ignore", kind="")]))]
             else:
                 options = [ast.Assign(targets=[ast_attr("options")], value=ast_attr("None"))]
 
@@ -1333,7 +1339,12 @@ from selenium.webdriver.common.keys import Keys
         edge_options = [
             ast.Assign(
                 targets=[ast.Name(id="options")],
-                value=ast_call(func=ast_attr("webdriver.EdgeOptions")))]
+                value=ast_call(func=ast_attr("webdriver.EdgeOptions"))),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.set_capability"),
+                    args=[ast.Constant("unhandledPromptBehavior", kind=""),
+                          ast.Constant("ignore", kind="")]))]
 
         return edge_options + self._get_headless_setup()
 
@@ -1341,7 +1352,12 @@ from selenium.webdriver.common.keys import Keys
         return [
             ast.Assign(
                 targets=[ast.Name(id="options")],
-                value=ast_call(func=ast_attr("webdriver.WebKitGTKOptions")))]
+                value=ast_call(func=ast_attr("webdriver.WebKitGTKOptions"))),
+            ast.Expr(
+                ast_call(
+                    func=ast_attr("options.set_capability"),
+                    args=[ast.Constant("unhandledPromptBehavior", kind=""),
+                          ast.Constant("ignore", kind="")]))]
 
     def _get_firefox_profile(self):
         capabilities = sorted(self.capabilities.keys())

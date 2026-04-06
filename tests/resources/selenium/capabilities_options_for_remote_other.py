@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import waiter, add_flow_markers, get_locator
+from bzt.resources.selenium_extras import get_locator, add_flow_markers, waiter
 
 
 class TestLocScRemote(unittest.TestCase):
@@ -30,6 +30,7 @@ class TestLocScRemote(unittest.TestCase):
 
         timeout = 30.0
         options = ArgOptions()
+        options.set_capability('unhandledPromptBehavior', 'ignore')
         options.ignore_local_proxy_environment_variables()
         options.add_argument('one')
         options.add_argument('two')
