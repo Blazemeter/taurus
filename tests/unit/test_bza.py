@@ -357,3 +357,23 @@ class TestUploadFilesCount(unittest.TestCase):
         test_obj.log.error.assert_any_call("Error uploading chunk 50: Upload error")
         self.assertIn("Failed to upload files:", error_msg)
         self.assertTrue(all(f'file_{i}' in error_msg for i in range(60)))
+
+    @patch('bzt.bza.MultiPartForm')
+    def test_upload_files_uploads_taurus_yml_when_no_resource_files(self, MockMultiPartForm):
+        mock_form = MagicMock()
+        MockMultiPartForm.return_value = mock_form
+        mock_form.get_content_type.return_value = 'multipart/form-data'
+        mock_form.form_as_bytes.return_value = b'data'
+
+        test_obj = Test()
+        test_obj['id'] = '123'
+        test_obj.address = 'http://fake'
+        test_obj.log = MagicMock()
+        test_obj._request = MagicMock()
+
+        taurus_config = 'config'
+        resource_files = []
+        test_obj.upload_files(taurus_config, resource_files)
+
+        mock_form.add_file_as_string.assert_called_once_with('script', 'taurus.yml', 'config')
+        test_obj._request.assert_called_once()
