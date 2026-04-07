@@ -205,7 +205,7 @@ class PlaywrightLogReader(ResultsReader):
                    self._safe_ms_to_s(content.get("duration")),
                    self._safe_ms_to_s(content.get("connectTime", None)),
                    self._safe_ms_to_s(content.get("latency",  None)),
-                   1 - int(content.get("ok", True)),
+                   None,
                    content.get("error", None),
                    content.get("runDetails", None),
                    content.get("byte_count", 0))
