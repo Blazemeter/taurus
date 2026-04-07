@@ -484,7 +484,7 @@ class NPMModuleInstaller(NPMLocalModulePackage):
 
 
 class Mocha(NPMPackage):
-    PACKAGE_NAME = "mocha@10.6.0"
+    PACKAGE_NAME = "mocha@11.7.5"
 
 
 class JSSeleniumWebdriver(NPMPackage):
