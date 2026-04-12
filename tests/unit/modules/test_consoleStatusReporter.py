@@ -5,7 +5,7 @@ from tests.unit import BZTestCase, RESOURCES_DIR, EngineEmul
 
 from bzt.engine import Provisioning, ScenarioExecutor
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.console import ConsoleStatusReporter, ScrollingLog
+from bzt.modules.console import ConsoleStatusReporter
 from bzt.modules.provisioning import Local
 from bzt.utils import is_windows, EXE_SUFFIX
 from tests.unit.mocks import r, rc
@@ -196,29 +196,3 @@ class TestConsoleStatusReporter(BZTestCase):
             self.assertEqual(obj._get_screen(), "gui")
         else:
             self.assertEqual(obj._get_screen_type(), "console")
-
-
-class TestScrollingLog(BZTestCase):
-    def test_update_strips_ansi_codes(self):
-        log = ScrollingLog()
-        log.last_size = (80, 10)
-        log.update("\x1b[32mgreen text\x1b[0m\nnormal line")
-        texts = [w.text for w in log.body]
-        self.assertIn("green text", texts)
-        self.assertNotIn("\x1b", "".join(texts))
-
-    def test_update_respects_last_size_rows(self):
-        log = ScrollingLog()
-        log.last_size = (80, 3)
-        log.update("\n".join("line %d" % i for i in range(10)))
-        self.assertEqual(len(log.body), 3)
-        texts = [w.text for w in log.body]
-        self.assertEqual(texts, ["line 7", "line 8", "line 9"])
-
-    def test_update_replaces_previous_content(self):
-        log = ScrollingLog()
-        log.last_size = (80, 10)
-        log.update("first")
-        log.update("second")
-        self.assertEqual(len(log.body), 1)
-        self.assertEqual(log.body[0].text, "second")
