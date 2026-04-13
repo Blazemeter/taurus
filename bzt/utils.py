@@ -1182,11 +1182,12 @@ class HappysocksEngineNamespace(socketio.ClientNamespace):
     Listens to socket.io events for engine namespace.
     """
     NAMESPACE = "/v1/engine"
+    NAMESPACE_CH = "/v1/engine-ch"
     METRICS_EVENT = 'metrics'
     CONCURRENCY_EVENT = 'concurrency'
 
-    def __init__(self):
-        super().__init__(HappysocksEngineNamespace.NAMESPACE)
+    def __init__(self, use_clickhouse=False):
+        super().__init__(HappysocksEngineNamespace.NAMESPACE_CH if use_clickhouse else HappysocksEngineNamespace.NAMESPACE)
         self._log = logging.getLogger(self.__class__.__name__)
 
     def on_connect(self):
@@ -1373,7 +1374,7 @@ class HappysocksClient(HTTPClient):
     HEADER_BZM_SESSION = "x-bzm-session"
 
     def __init__(self, happysocks_address: str, session_id: str, session_token: str, verbose_logging=False,
-                 verify_ssl=True, request_timeout=10, connect_timeout=7) -> None:
+                 verify_ssl=True, request_timeout=10, connect_timeout=7, use_clickhouse=False) -> None:
         super().__init__()
         self.session.verify = verify_ssl
         self._log = logging.getLogger(self.__class__.__name__)
@@ -1387,7 +1388,7 @@ class HappysocksClient(HTTPClient):
         socketio_logger = logging.getLogger("SocketIO") if verbose_logging else False
         self._sio = socketio.Client(http_session=self.session, logger=socketio_logger, engineio_logger=socketio_logger,
                                     request_timeout=request_timeout)
-        self._engine_namespace = HappysocksEngineNamespace()
+        self._engine_namespace = HappysocksEngineNamespace(use_clickhouse)
         self._sio.register_namespace(self._engine_namespace)
 
     def connect(self):
@@ -1399,7 +1400,7 @@ class HappysocksClient(HTTPClient):
         self._log.info(f"Connecting to happysocks server {full_address}")
         start_time = time.time()
         try:
-            self._sio.connect(self._happysocks_address, namespaces=[HappysocksEngineNamespace.NAMESPACE],
+            self._sio.connect(self._happysocks_address, namespaces=[self._engine_namespace.namespace],
                               transports=['websocket'], socketio_path=self._socketio_path, headers=headers,
                               wait_timeout=self._connect_timeout)
             end_time = time.time()
@@ -1428,7 +1429,7 @@ class HappysocksClient(HTTPClient):
     def send_engine_metrics(self, metrics_batch: List[dict], event: str):
         self._log.debug(f"Sending {len(metrics_batch)} metric items to happysocks on {event} event")
         try:
-            self._sio.emit(event, metrics_batch, HappysocksEngineNamespace.NAMESPACE,
+            self._sio.emit(event, metrics_batch, self._engine_namespace.namespace,
                            callback=self._engine_namespace.metrics_callback)
         except BaseException as e:
             raise TaurusNetworkError(f"Failed to send the following items {len(metrics_batch)} on {event} event") from e
