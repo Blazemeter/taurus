@@ -795,6 +795,78 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEqual(client.send_engine_metrics.call_count, 1)  # 1st check
         client.disconnect.assert_called_once()
 
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_happysocks_instantiation_params(self, mock_client_class):
+        # 1. Default parameters
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'sess1'
+        reporter.parameters['master-id'] = 122362
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.prepare()
+
+        args, _ = mock_client_class.call_args
+        # args expected: address, session_id, signature, verbose_logging, verify_ssl, request_timeout, connect_timeout, use_clickhouse
+        self.assertFalse(args[7])  # default use_clickhouse
+
+        # 2. use_clickhouse = True
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'sess1'
+        reporter.parameters['master-id'] = 122362
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['happysocks-use-clickhouse'] = True
+        reporter.prepare()
+
+        args, _ = mock_client_class.call_args
+        self.assertTrue(args[7])  # explicit use_clickhouse=True
+
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_happysocks_proxy_settings_propagated(self, mock_client_class):
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.engine.config.merge({"settings": {"proxy": {"address": "http://proxy:8080"}}})
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'sess1'
+        reporter.parameters['master-id'] = 122362
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.prepare()
+
+        mock_client_class.return_value.add_proxy_settings.assert_called_once()
+
+    @patch('bzt.modules.blazemeter.blazemeter_reporter.HappysocksClient')
+    def test_monitoring_data_routes_to_engine_metrics_buffer_when_enabled(self, mock_client_class):
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        reporter.settings['happysocks-address'] = 'https://unknown/hs'
+        reporter.settings['send-monitoring'] = False
+        reporter.prepare()
+
+        data = [{'source': 'local', 'ts': 1678892271.0, 'cpu': 9.4}]
+        reporter.monitoring_data(data)
+
+        self.assertEqual(len(reporter._engine_metrics_buffer.get_data()), 1)
+
+    def test_monitoring_data_skips_engine_metrics_buffer_when_disabled(self):
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters['signature'] = '123'
+        reporter.parameters['session-id'] = 'r-v4-5f50153f49a13'
+        reporter.parameters['master-id'] = 122362
+        # no happysocks-address → happysocks_client stays None
+        reporter.settings['send-monitoring'] = False
+        reporter.prepare()
+
+        data = [{'source': 'local', 'ts': 1678892271.0, 'cpu': 9.4}]
+        reporter.monitoring_data(data)
+
+        self.assertEqual(len(reporter._engine_metrics_buffer.get_data()), 0)
+
 
 class TestBlazeMeterClientUnicode(BZTestCase):
     def test_unicode_request(self):
