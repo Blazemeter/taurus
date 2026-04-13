@@ -589,3 +589,91 @@ class TestPlaywrightInstallation(BZTestCase):
             self.assertIn("playwright", call_args)
             # Make sure it's not versioned by default
             self.assertTrue(any("playwright" in str(arg) and "@" not in str(arg) for arg in call_args if "playwright" in str(arg)))
+
+
+class TestPlaywrightTestPackageInstallation(BZTestCase):
+    """Tests for PlaywrightTestPackage.check_if_installed()"""
+
+    def setUp(self):
+        super(TestPlaywrightTestPackageInstallation, self).setUp()
+        self.node_mock = MagicMock()
+        self.node_mock.tool_path = "node"
+        self.npm_mock = MagicMock()
+        self.npm_mock.tool_path = "npm"
+        self.tools_dir = "~/.bzt/playwright"
+
+    def _create_package(self):
+        return PlaywrightTestPackage(
+            tools_dir=self.tools_dir,
+            node_tool=self.node_mock,
+            npm_tool=self.npm_mock,
+        )
+
+    def test_check_if_installed_super_returns_false(self):
+        """When the parent require() check fails, return False without calling npm list"""
+        pkg = self._create_package()
+        pkg.call = MagicMock(return_value=("", ""))
+
+        result = pkg.check_if_installed()
+
+        self.assertFalse(result)
+        pkg.call.assert_called_once()
+
+    def test_check_if_installed_no_forced_version(self):
+        """When no forced version is set, any installed version is acceptable and npm list is not called"""
+        pkg = self._create_package()
+        pkg.call = MagicMock(return_value=("@playwright/test is installed", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION']
+
+            result = pkg.check_if_installed()
+
+        self.assertTrue(result)
+        pkg.call.assert_called_once()
+
+    def test_check_if_installed_forced_version_correct(self):
+        """When forced version matches the installed version, return True"""
+        pkg = self._create_package()
+        pkg.call = MagicMock(side_effect=[
+            ("@playwright/test is installed", ""),
+            ("@playwright/test@1.40.0 node_modules/@playwright/test", ""),
+        ])
+
+        with patch.object(PlaywrightTestPackage, 'PACKAGE_NAME', '@playwright/test@1.40.0'):
+            with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.40.0'}):
+                result = pkg.check_if_installed()
+
+        self.assertTrue(result)
+        self.assertEqual(pkg.call.call_count, 2)
+        second_call_args = pkg.call.call_args_list[1][0][0]
+        self.assertEqual(second_call_args, [self.npm_mock.tool_path, "list"])
+
+    def test_check_if_installed_forced_version_mismatch(self):
+        """When forced version is not present in npm list output, return False"""
+        pkg = self._create_package()
+        pkg.call = MagicMock(side_effect=[
+            ("@playwright/test is installed", ""),
+            ("@playwright/test@1.39.0 node_modules/@playwright/test", ""),
+        ])
+
+        with patch.object(PlaywrightTestPackage, 'PACKAGE_NAME', '@playwright/test@1.40.0'):
+            with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.40.0'}):
+                result = pkg.check_if_installed()
+
+        self.assertFalse(result)
+        self.assertEqual(pkg.call.call_count, 2)
+
+    def test_check_if_installed_npm_list_call_fails(self):
+        """When npm list raises an OSError, return False"""
+        pkg = self._create_package()
+        pkg.call = MagicMock(side_effect=[
+            ("@playwright/test is installed", ""),
+            OSError("npm list failed"),
+        ])
+
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.40.0'}):
+            result = pkg.check_if_installed()
+
+        self.assertFalse(result)
