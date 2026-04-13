@@ -483,15 +483,42 @@ class TestPlaywrightInstallation(BZTestCase):
             self.assertIn("--with-deps", call_args)
 
     def test_playwright_install_frozen_version(self):
-        """Test that Playwright install is skipped when version is frozen"""
+        """Test that Playwright install is skipped when frozen version is already installed"""
         playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
-        playwright.call = MagicMock(return_value=("", ""))
+        # npm list returns output containing the frozen version
+        playwright.call = MagicMock(return_value=("playwright@1.40.0 node_modules/playwright", ""))
 
         with patch.dict(os.environ, {'PLAYWRIGHT_PACKAGE_FORCED_VERSION': '1.40.0'}):
             playwright.install()
 
-            # Should NOT call install when version is frozen
-            playwright.call.assert_not_called()
+            # Should call npm list once to check the installed version
+            playwright.call.assert_called_once_with(["npm", "list"])
+
+    @patch('bzt.modules.javascript.is_linux')
+    def test_playwright_install_frozen_version_changed(self, mock_is_linux):
+        """Test that Playwright re-installs when installed version differs from frozen version"""
+        mock_is_linux.return_value = False
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        os.makedirs(self.tools_dir, exist_ok=True)
+
+        # npm list returns a different (old) version — frozen version NOT present
+        playwright.call = MagicMock(return_value=("playwright@1.39.0 node_modules/playwright", ""))
+
+        with patch.dict(os.environ, {'PLAYWRIGHT_PACKAGE_FORCED_VERSION': '1.40.0'}):
+            playwright.install()
+
+            # First call: npm list version check
+            first_call_args = playwright.call.call_args_list[0][0][0]
+            self.assertEqual(first_call_args, ["npm", "list"])
+
+            # Second call: npx playwright@1.40.0 install --with-deps
+            self.assertEqual(playwright.call.call_count, 2)
+            second_call_args = playwright.call.call_args_list[1][0][0]
+            self.assertIn("npx", second_call_args)
+            self.assertIn("playwright@1.40.0", second_call_args)
+            self.assertIn("install", second_call_args)
+            self.assertIn("--with-deps", second_call_args)
 
     def test_playwright_install_creates_tools_dir(self):
         """Test that Playwright install creates tools_dir if it doesn't exist"""

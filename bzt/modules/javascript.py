@@ -564,6 +564,7 @@ class PLAYWRIGHT(RequiredTool):
                     self.log.warning("Frozen version not found in installed packages, will re-install %s", package_name)
             except CALL_PROBLEMS as exc:
                 self.log.debug("%s check of forced version failed: %s", package_name, exc)
+                version_changed = True
 
         # npx playwright install is not needed to run again if version did not change and is frozen
         if frozen_version is None or version_changed:
