@@ -520,6 +520,30 @@ class TestPlaywrightInstallation(BZTestCase):
             self.assertIn("install", second_call_args)
             self.assertIn("--with-deps", second_call_args)
 
+    @patch('bzt.modules.javascript.is_linux')
+    def test_playwright_install_frozen_version_npm_list_oserror(self, mock_is_linux):
+        """Test that Playwright re-installs when npm list raises OSError during version check"""
+        mock_is_linux.return_value = False
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        os.makedirs(self.tools_dir, exist_ok=True)
+
+        # First call (npm list) raises OSError; second call is the actual install
+        playwright.call = MagicMock(side_effect=[OSError("npm list failed"), ("", "")])
+
+        with patch.dict(os.environ, {'PLAYWRIGHT_PACKAGE_FORCED_VERSION': '1.40.0'}):
+            playwright.install()
+
+            self.assertEqual(playwright.call.call_count, 2)
+            first_call_args = playwright.call.call_args_list[0][0][0]
+            self.assertEqual(first_call_args, ["npm", "list"])
+
+            second_call_args = playwright.call.call_args_list[1][0][0]
+            self.assertIn("npx", second_call_args)
+            self.assertIn("playwright@1.40.0", second_call_args)
+            self.assertIn("install", second_call_args)
+            self.assertIn("--with-deps", second_call_args)
+
     def test_playwright_install_creates_tools_dir(self):
         """Test that Playwright install creates tools_dir if it doesn't exist"""
         import tempfile
