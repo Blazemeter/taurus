@@ -402,6 +402,109 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         self.assertTrue(os.path.isabs(script_path) or script_path.startswith("~"))
         self.assertIn(".bzt/playwright", script_path)
 
+    def test_playwright_exit_code1_with_tests_ran(self):
+        """Exit code 1 should not raise when tests ran (some failed)."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        mock_process = MagicMock()
+        mock_process.poll.return_value = 1
+        self.obj.runner.process = mock_process
+        self.obj.runner._tests_ran = MagicMock(return_value=True)
+
+        self.assertTrue(self.obj.runner.check())
+
+    def test_playwright_exit_code1_without_tests_ran(self):
+        """Exit code 1 should raise ToolError when no tests ran (config error)."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        mock_process = MagicMock()
+        mock_process.poll.return_value = 1
+        self.obj.runner.process = mock_process
+        self.obj.runner._tests_ran = MagicMock(return_value=False)
+
+        with self.assertRaises(ToolError):
+            self.obj.runner.check()
+
+    def test_playwright_crash_exit_code_raises(self):
+        """Non-1 non-zero exit (e.g. 134 OOM) should raise ToolError even if tests ran."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        mock_process = MagicMock()
+        mock_process.poll.return_value = 134
+        self.obj.runner.process = mock_process
+        self.obj.runner._tests_ran = MagicMock(return_value=True)
+
+        with self.assertRaises(ToolError):
+            self.obj.runner.check()
+
+    def test_tests_ran_file_exists_with_content(self):
+        """_tests_ran returns True when result file exists and is non-empty."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        filename = self.obj.runner.reader.filename
+        with patch('bzt.modules.javascript.os.path.exists', return_value=True) as mock_exists, \
+                patch('bzt.modules.javascript.os.path.getsize', return_value=42) as mock_getsize:
+            self.assertTrue(self.obj.runner._tests_ran())
+            mock_exists.assert_called_once_with(filename)
+            mock_getsize.assert_called_once_with(filename)
+
+    def test_tests_ran_file_exists_empty(self):
+        """_tests_ran returns False when result file exists but is empty."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        with patch('bzt.modules.javascript.os.path.exists', return_value=True), \
+                patch('bzt.modules.javascript.os.path.getsize', return_value=0):
+            self.assertFalse(self.obj.runner._tests_ran())
+
+    def test_tests_ran_file_absent(self):
+        """_tests_ran returns False when result file does not exist."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        with patch('bzt.modules.javascript.os.path.exists', return_value=False):
+            self.assertFalse(self.obj.runner._tests_ran())
+
+    def test_tests_ran_no_reader(self):
+        """_tests_ran returns False when reader is None."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        self.obj.runner.reader = None
+        self.assertFalse(self.obj.runner._tests_ran())
+
 
 class TestPlaywrightInstallation(BZTestCase):
     """Test PLAYWRIGHT tool installation logic"""

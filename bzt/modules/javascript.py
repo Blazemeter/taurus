@@ -17,7 +17,7 @@ import json
 import os
 from abc import abstractmethod
 
-from bzt import TaurusConfigError
+from bzt import TaurusConfigError, ToolError
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
 from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR, FileReader
@@ -182,6 +182,26 @@ class PlaywrightTester(JavaScriptExecutor):
 
     def has_results(self):
         return True
+
+    def check(self):
+        ret_code = self.process.poll()
+        if ret_code is not None:
+            if ret_code != 0:
+                if ret_code == 1 and self._tests_ran():
+                    self.log.debug(
+                        "Playwright process exited with code 1 and tests were run - treating as normal completion"
+                    )
+                    return True
+                msg = "Test runner %s (%s) has failed with retcode %s"
+                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code),
+                                self.get_error_diagnostics())
+            return True
+        return False
+
+    def _tests_ran(self):
+        if self.reader and os.path.exists(self.reader.filename):
+            return os.path.getsize(self.reader.filename) > 0
+        return False
 
 
 class PlaywrightLogReader(ResultsReader):
