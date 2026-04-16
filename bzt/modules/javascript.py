@@ -484,7 +484,7 @@ class NPMModuleInstaller(NPMLocalModulePackage):
 
 
 class Mocha(NPMPackage):
-    PACKAGE_NAME = "mocha@10.6.0"
+    PACKAGE_NAME = "mocha@11.7.5"
 
 
 class JSSeleniumWebdriver(NPMPackage):
@@ -514,6 +514,25 @@ class PlaywrightTestPackage(NPMPackage):
     PACKAGE_NAME = "@playwright/test" if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None \
         else "@playwright/test@" + os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION")
 
+    def check_if_installed(self):
+        if not super().check_if_installed():
+            return False
+        # Check if installed version is expected version if we force version
+        if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None:
+            # Not forcing version, any installed is good
+            return True
+
+        cmdline = [self.npm.tool_path, "list"]
+        try:
+            out, _ = self.call(cmdline)
+            version_changed = self.PACKAGE_NAME not in out
+            if version_changed:
+                self.log.warning("Frozen version not found in installed packages, will re-install %s", self.PACKAGE_NAME)
+            return not version_changed
+        except CALL_PROBLEMS as exc:
+            self.log.debug("%s check of forced version failed: %s", self.PACKAGE_NAME, exc)
+            return False
+
 class PlaywrightCustomReporter(NPMLocalModulePackage):
     PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.0"
     PACKAGE_LOCAL_PATH = "./playwright-custom-reporter"
@@ -535,8 +554,20 @@ class PLAYWRIGHT(RequiredTool):
     def install(self):
         frozen_version = os.environ.get("PLAYWRIGHT_PACKAGE_FORCED_VERSION", None)
         package_name = "playwright" if frozen_version is None else "playwright@" + frozen_version
-        # npx playwright install is not needed to run again if version did not change (is frozen)
-        if frozen_version is None:
+        version_changed = False
+        if frozen_version:
+            cmdline = ["npm", "list"]
+            try:
+                out, _ = self.call(cmdline)
+                version_changed = package_name not in out
+                if version_changed:
+                    self.log.warning("Frozen version not found in installed packages, will re-install %s", package_name)
+            except CALL_PROBLEMS as exc:
+                self.log.debug("%s check of forced version failed: %s", package_name, exc)
+                version_changed = True
+
+        # npx playwright install is not needed to run again if version did not change and is frozen
+        if frozen_version is None or version_changed:
             # Do not install deps for browsers if we know it will fail because of user permissions (linux & non-root)
             if is_linux() and hasattr(os, "geteuid") and os.geteuid() != 0:
                 self.install_cmd(cmdline = ["npx", package_name, "install"])

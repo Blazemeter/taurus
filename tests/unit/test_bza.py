@@ -102,6 +102,23 @@ class TestHappysocksClient(BZTestCase):
                          {"x-bzm-session": "r-v4-64102f1ab8795890049369", "x-auth-token": "ci12NC02NDEwMmYxYWI"})
 
     @patch('bzt.utils.socketio.Client')
+    def test_connect_success_clickhouse(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        # perform test
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True, use_clickhouse=True)
+        client.connect()
+        sio.connect.assert_called_once()
+        args = sio.connect.call_args
+        self.assertEqual(args[0][0], "https://happysocks-5100-tester-dev.blazemeter.net")
+        self.assertEqual(args[1]["namespaces"], ["/v1/engine-ch"])
+        self.assertEqual(args[1]["transports"], ["websocket"])
+        self.assertEqual(args[1]["socketio_path"], "/api-ws")
+        self.assertEqual(args[1]["headers"],
+                         {"x-bzm-session": "r-v4-64102f1ab8795890049369", "x-auth-token": "ci12NC02NDEwMmYxYWI"})
+
+    @patch('bzt.utils.socketio.Client')
     def test_connect_success_trailing_slash(self, mock_socketio_class):
         # prepare mocks
         sio = mock_socketio_class.return_value
@@ -202,6 +219,89 @@ class TestHappysocksClient(BZTestCase):
         self.assertEqual(args[0][2], "/v1/engine")
         self.assertTrue(args[1]["callback"] is not None)
 
+    @patch('bzt.utils.socketio.Client')
+    def test_send_engine_metrics_clickhouse(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        # perform test
+        client = HappysocksClient("https://prod-rc.blazemeter.com/hs", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True, use_clickhouse=True)
+        client.send_engine_metrics([
+            {
+                'metadata': {
+                    'source': 'local',
+                    'entityId': 'r-v4-64102f1ab8795890049369',
+                    'masterId': 100,
+                    'calibrationId': 200,
+                    'calibrationStepId': 300,
+                },
+                'timestamp': 1678892271398,
+                'values': {
+                    'cpu': 9.4,
+                    'mem': 5560.0,
+                }
+            }
+        ], HappysocksEngineNamespace.METRICS_EVENT)
+        # verify
+        sio.emit.assert_called_once()
+        args = sio.emit.call_args
+        self.assertEqual(args[0][0], "metrics")
+        self.assertEqual(args[0][1], [{'metadata': {'source': 'local', 'entityId': 'r-v4-64102f1ab8795890049369',
+                                                    'masterId': 100, 'calibrationId': 200, 'calibrationStepId': 300},
+                                       'timestamp': 1678892271398, 'values': {'cpu': 9.4, 'mem': 5560.0}}])
+        self.assertEqual(args[0][2], "/v1/engine-ch")
+        self.assertTrue(args[1]["callback"] is not None)
+
+    @patch('bzt.utils.socketio.Client')
+    def test_construct_passes_request_timeout(self, mock_socketio_class):
+        HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                         "ci12NC02NDEwMmYxYWI", request_timeout=42)
+        args = mock_socketio_class.call_args
+        self.assertEqual(args[1]["request_timeout"], 42)
+
+    @patch('bzt.utils.socketio.Client')
+    def test_connect_passes_wait_timeout(self, mock_socketio_class):
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", connect_timeout=15)
+        client.connect()
+        args = mock_socketio_class.return_value.connect.call_args
+        self.assertEqual(args[1]["wait_timeout"], 15)
+
+    @patch('bzt.utils.socketio.Client')
+    def test_send_engine_metrics_raises_taurus_network_error(self, mock_socketio_class):
+        mock_socketio_class.return_value.emit.side_effect = Exception("socket died")
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI")
+        try:
+            client.send_engine_metrics([{"data": 1}], HappysocksEngineNamespace.METRICS_EVENT)
+            self.fail("Expected TaurusNetworkError")
+        except TaurusNetworkError:
+            pass
+
+    @patch('bzt.utils.socketio.Client')
+    def test_connected_reflects_sio_state(self, mock_socketio_class):
+        sio = mock_socketio_class.return_value
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI")
+        sio.connected = False
+        self.assertFalse(client.connected())
+        sio.connected = True
+        self.assertTrue(client.connected())
+
+
+class TestHappysocksEngineNamespace(BZTestCase):
+    def test_namespace_default(self):
+        ns = HappysocksEngineNamespace()
+        self.assertEqual(ns.namespace, HappysocksEngineNamespace.NAMESPACE)
+
+    def test_namespace_clickhouse(self):
+        ns = HappysocksEngineNamespace(use_clickhouse=True)
+        self.assertEqual(ns.namespace, HappysocksEngineNamespace.NAMESPACE_CH)
+
+    def test_namespace_legacy(self):
+        ns = HappysocksEngineNamespace(use_clickhouse=False)
+        self.assertEqual(ns.namespace, HappysocksEngineNamespace.NAMESPACE)
+
 
 class TestHappysocksClientMockServer(BZTestCase):
     NAMESPACE = "/v1/engine"
@@ -296,6 +396,11 @@ class TestHappysocksClientMockServer(BZTestCase):
             self.fail("Expected TaurusNetworkError")
         except TaurusNetworkError:
             pass
+
+    def test_connected_before_and_after_connect(self):
+        self.assertFalse(self.client.connected())
+        self.client.connect()
+        self.assertTrue(self.client.connected())
 
     def test_get_load_from_config(self):
         engine = EngineEmul()
