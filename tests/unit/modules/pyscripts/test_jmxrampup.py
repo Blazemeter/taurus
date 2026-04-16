@@ -45,9 +45,9 @@ class TestJmeterRampupProcess(BZTestCase):
                             self.assertIn('Setting concurrency: (5, 100300.0)', self.log_recorder.info_buff.getvalue())
                             mock_socket.socket().connect.assert_called_with(('localhost', 9001))
                             mock_socket.socket().sendall.assert_has_calls([
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                      b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","3");'),
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                      b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","5");')
                             ])
 
@@ -131,7 +131,7 @@ class TestJmeterRampupProcess(BZTestCase):
                             self.assertIn('Setting concurrency: (5, 100000.0)', self.log_recorder.info_buff.getvalue())
                             mock_socket.socket().connect.assert_called_with(('localhost', 9001))
                             mock_socket.socket().sendall.assert_has_calls([
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                           b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","5");')
                             ])
 
@@ -168,13 +168,13 @@ class TestJmeterRampupProcess(BZTestCase):
                             self.assertIn('Setting concurrency: (5, 100450.0)', self.log_recorder.info_buff.getvalue())
                             mock_socket.socket().connect.assert_called_with(('localhost', 9001))
                             mock_socket.socket().sendall.assert_has_calls([
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                           b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","2");'),
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                           b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","3");'),
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                           b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","4");'),
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                           b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","5");')
                             ])
 
@@ -211,13 +211,13 @@ class TestJmeterRampupProcess(BZTestCase):
                               self.assertIn('Setting concurrency: (500, 100059', self.log_recorder.info_buff.getvalue())
                               mock_socket.socket().connect.assert_called_with(('localhost', 9001))
                               mock_socket.socket().sendall.assert_has_calls([
-                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                             b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","10");'),
-                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                             b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","176");'),
-                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                             b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","342");'),
-                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                  mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                             b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","500");'),
                               ])
 
@@ -275,9 +275,9 @@ class TestJmeterRampupProcess(BZTestCase):
                             self.assertIn('Setting concurrency: (5, 100300.0)', self.log_recorder.info_buff.getvalue())
                             mock_socket.socket().connect.assert_called_with(('localhost', 9001))
                             mock_socket.socket().sendall.assert_has_calls([
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                           b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","3");'),
-                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+                                mock.call(b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                                           b'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","5");')
                             ])
 

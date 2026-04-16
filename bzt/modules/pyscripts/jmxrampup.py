@@ -128,7 +128,7 @@ class JmeterRampupProcess(object):
         try:
             sock.connect((beanshell_addr, beanshell_port + 1))
             sock.settimeout(1)
-            script = (f'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_RampUp","0");'
+            script = (f'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_Steps","1");'
                       f'org.apache.jmeter.util.JMeterUtils.setProperty("BM_CTG_TargetLevel","{desired_users}");')
             sock.sendall(script.encode())
 
