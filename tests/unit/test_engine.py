@@ -222,6 +222,20 @@ class TestEngine(BZTestCase):
         self.assertListEqual(['included-circular2.yml', 'included-circular1.yml', 'included-circular2.yml'],
                              self.obj.config["included-configs"])
 
+    def test_included_configs_all_duplicates(self):
+        """Test that all duplicate included-configs are handled correctly"""
+        configs = [
+            RESOURCES_DIR + "yaml/included-all-duplicates.yml",
+        ]
+        self.obj.configure(configs)
+        self.assertTrue(self.obj.config["level1"])
+        # Verify level2 is loaded only once despite being included 3 times
+        self.assertTrue(self.obj.config["level2"])
+        # Verify the included-configs list contains no duplicates
+        self.assertListEqual(['included-level2.yml', 'included-level3.yml'], self.obj.config["included-configs"])
+        # Verify no errors occurred during processing
+        self.assertIsNotNone(self.obj.config)
+
     def test_env_eval(self):
         configs = [
             RESOURCES_DIR + "yaml/env-eval.yml",
