@@ -227,9 +227,6 @@ def dialogs_replace():
           window.__webdriverOriginalAlert = window.alert;
           window.__webdriverNextAlert = null;
           window.alert = function(msg) {
-            if (window.__webdriverNextAlert === null) {
-                window.__webdriverOriginalAlert(msg);
-            }
             window.__webdriverNextAlert = null; 
             window.__webdriverAlerts.push(msg); 
           };
@@ -239,11 +236,8 @@ def dialogs_replace():
           window.confirm = function(msg) {
             window.__webdriverConfirms.push(msg);
             var res = window.__webdriverNextConfirm;
-            if (res === null) {
-                return window.__webdriverPrevConfirm(msg);
-            }
             window.__webdriverNextConfirm = null;
-            return res;
+            return res !== null ? res : true;
           };
           window.__webdriverPrompts = [];
           window.__webdriverNextPrompts = true;
