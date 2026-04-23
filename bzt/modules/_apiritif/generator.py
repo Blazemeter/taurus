@@ -182,6 +182,7 @@ from selenium.webdriver.common.keys import Keys
         self.bzm_tdo_settings = bzm_tdo_settings
         self.do_testdata_orchestration = False
         self.has_action_ids = False
+        self._needs_remote_patch = False
 
     def _parse_action_params(self, expr, name):
         res = expr.match(name)
@@ -1155,7 +1156,7 @@ from selenium.webdriver.common.keys import Keys
                 body.extend(self._get_service(browser))
 
         if browser == 'firefox':
-            body.extend(self._gen_remote_patch_ast())
+            self._needs_remote_patch = True
             if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
                 body.extend(self._get_firefox_profile_v410() + [self._get_firefox_webdriver_4_10()])
             elif LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
@@ -1164,18 +1165,18 @@ from selenium.webdriver.common.keys import Keys
                 body.extend(self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
         elif browser == 'chrome':
-            body.extend(self._gen_remote_patch_ast())
+            self._needs_remote_patch = True
             if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
                 body.extend(self._get_chrome_profile_v414() + [self._get_chrome_webdriver()])
             else:
                 body.extend(self._get_chrome_profile() + [self._get_chrome_webdriver()])
 
         elif browser == 'edge':
-            body.extend(self._gen_remote_patch_ast())
+            self._needs_remote_patch = True
             body.extend([self._get_edge_webdriver()])
 
         elif browser == 'remote':
-            body.extend(self._gen_remote_patch_ast())
+            self._needs_remote_patch = True
             if self.selenium_version.startswith("4"):
                 if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
                     remote_profile = self._get_remote_profile_v414() + [self._get_remote_webdriver()]
@@ -1607,7 +1608,13 @@ from selenium.webdriver.common.keys import Keys
             stmts.extend(self._gen_logging())
 
         stmts.extend(self._gen_data_source_readers())
-        stmts.append(self._gen_classdef())
+        classdef = self._gen_classdef()
+
+        if self._needs_remote_patch:
+            stmts.extend(self._gen_remote_patch_ast())
+            stmts.append(gen_empty_line_stmt())
+
+        stmts.append(classdef)
 
         stmts = self._gen_imports() + stmts
 
