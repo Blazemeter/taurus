@@ -1,0 +1,19 @@
+providers:
+  - name: test-provider
+    type: ANTHROPIC
+    token: test-token
+    model: claude-3-5-haiku-20241022
+
+servers: []
+
+agents:
+  - name: claude-agent
+    provider: test-provider
+
+sessions:
+  - name: File Operations
+    tests:
+      - name: List files
+        prompt: "List files in /tmp"
+      - name: Delete file
+        prompt: "Delete /tmp/test.txt"
