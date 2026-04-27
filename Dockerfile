@@ -130,8 +130,8 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 FROM system-deps AS runtimes
 
 # Install .NET SDK
-RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.415/dotnet-sdk-8.0.415-linux-x64.tar.gz" && \
-    DOTNET_SHA512="0fc0499a857f161f7c35775bb3f50ac6f0333f02f5df21d21147d538eb26a9a87282d4ba3707181c46f3c09d22cdc984e77820a5953a773525d6f7b332deb7f2" && \
+RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.420/dotnet-sdk-8.0.420-linux-x64.tar.gz" && \
+    DOTNET_SHA512="36c68c1be9d5c6f24cd8e6bd4b6d36bfd7ab724ac7e3499fb13e42e70a9003310e5ee5759ed19ced1f0ecd3d26a55f135c7e72d6f788e7d44f5f0eaa72ad9a07" && \
     curl -fSL --output dotnet.tar.gz "${DOTNET_URL}" && \
     echo "${DOTNET_SHA512} dotnet.tar.gz" | sha512sum -c - && \
     mkdir -p /usr/share/dotnet && \
@@ -249,21 +249,28 @@ RUN apt-get remove -y \
            /usr/share/doc
 
 # update dotnet metadata to make scanners happy
-RUN if [ -f /usr/share/dotnet/sdk/8.0.415/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json ]; then \
-      sed -i 's/17\.7\.2/17.14.28/g' /usr/share/dotnet/sdk/8.0.415/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json; \
+RUN for f in \
+      /usr/share/dotnet/sdk/8.0.420/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
+      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/VBCSCompiler.deps.json \
+      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/csc.deps.json \
+      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/vbc.deps.json \
+      /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; do \
+      [ -f "$f" ] && sed -i 's/17\.10\.41/17.14.28/g' "$f" || true; \
+    done
+RUN find /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-watch -name "*.deps.json" \
+      -exec grep -lF "17.10.41" {} \; | \
+    xargs -r sed -i 's/17\.10\.41/17.14.28/g'
+RUN if [ -f /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json ]; then \
+      sed -i 's/17\.11\.31/17.11.48/g' /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json; \
     fi
-
-RUN if [ -f /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json ]; then \
-      sed -i 's/17\.3\.4/17.14.28/g' /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; \
-    fi
-
-RUN if [ -f /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-watch/8.0.415-servicing.25475.18/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json ]; then \
-      sed -i 's/17\.3\.4/17.14.28/g' /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-watch/8.0.415-servicing.25475.18/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; \
-    fi
-
-RUN if [ -f /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-format/dotnet-format.deps.json ]; then \
-      sed -i 's/17\.11\.31/17.14.28/g' /usr/share/dotnet/sdk/8.0.415/DotnetTools/dotnet-format/dotnet-format.deps.json; \
-    fi
+RUN for f in \
+      /usr/share/dotnet/sdk/8.0.420/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
+      /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json; do \
+      [ -f "$f" ] && sed -i \
+        -e 's|System\.Security\.Cryptography\.Xml/[0-9][0-9.]*|System.Security.Cryptography.Xml/8.0.3|g' \
+        -e 's|"System\.Security\.Cryptography\.Xml": "[0-9][0-9.]*"|"System.Security.Cryptography.Xml": "8.0.3"|g' \
+        "$f" || true; \
+    done
 
 
 # Remove security-sensitive files
