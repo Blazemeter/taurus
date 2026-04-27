@@ -234,15 +234,6 @@ RUN google-chrome-stable --version && \
     python3 --version && \
     ruby --version
 
-#  force npm to use cross-spawn@7.0.5, this block can be removed when new version of nodejs uses cross-spawn@7.0.5
-RUN npm_root=$(npm root -g) \
- && npm pack cross-spawn@7.0.5 -q \
- && mkdir -p "$npm_root/npm/node_modules/cross-spawn" \
- && tar -xzf cross-spawn-7.0.5.tgz \
-       --strip-components=1 \
-       -C "$npm_root/npm/node_modules/cross-spawn" \
- && rm cross-spawn-7.0.5.tgz
-
 # Cleanup
 RUN apt-get remove -y \
         software-properties-common \
