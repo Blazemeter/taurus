@@ -1665,6 +1665,15 @@ from selenium.webdriver.common.keys import Keys
                         level=0
                     )
                 )
+            if self._needs_remote_patch:
+                imports.append(
+                    ast.ImportFrom(
+                        module='selenium.webdriver.remote.remote_connection',
+                        names=[ast.alias(name='RemoteConnection', asname=None)],
+                        level=0
+                    )
+                )
+                imports.append(ast.Import(names=[ast.alias(name='copy', asname=None)]))
             self.selenium_extras.add("get_locator")
             self.selenium_extras.add("waiter")
             extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
@@ -2593,15 +2602,6 @@ from selenium.webdriver.common.keys import Keys
         return mod
 
     def _gen_remote_patch_ast(self):
-        import_ast = [
-            ast.ImportFrom(
-                module='selenium.webdriver.remote.remote_connection',
-                names=[ast.alias(name='RemoteConnection', asname=None)],
-                level=0
-            ),
-            ast.Import(names=[ast.alias(name='copy', asname=None)]),
-        ]
-
         assign_original = ast.Assign(
             targets=[ast.Name(id='_original_execute', ctx=ast.Store())],
             value=ast_attr('RemoteConnection.execute')
@@ -2719,12 +2719,26 @@ from selenium.webdriver.common.keys import Keys
                                                 keywords=[]
                                             )
                                         ),
-                                        ast.Expr(
-                                            value=ast.Call(
-                                                func=ast.Name(id='sleep', ctx=ast.Load()),
-                                                args=[ast.Name(id='delay', ctx=ast.Load())],
-                                                keywords=[]
-                                            )
+                                        ast.If(
+                                            test=ast.Compare(
+                                                left=ast.Name(id='attempt', ctx=ast.Load()),
+                                                ops=[ast.Lt()],
+                                                comparators=[ast.BinOp(
+                                                    left=ast.Name(id='retries', ctx=ast.Load()),
+                                                    op=ast.Sub(),
+                                                    right=ast.Constant(value=1)
+                                                )]
+                                            ),
+                                            body=[
+                                                ast.Expr(
+                                                    value=ast.Call(
+                                                        func=ast.Name(id='sleep', ctx=ast.Load()),
+                                                        args=[ast.Name(id='delay', ctx=ast.Load())],
+                                                        keywords=[]
+                                                    )
+                                                )
+                                            ],
+                                            orelse=[]
                                         )
                                     ]
                                 )
@@ -2748,7 +2762,7 @@ from selenium.webdriver.common.keys import Keys
             value=ast.Name(id='execute_with_retries', ctx=ast.Load())
         )
 
-        return import_ast + [assign_original, func_def, assign_patch]
+        return [assign_original, func_def, assign_patch]
 
     def build_source_code(self):
         self.tree = self._build_tree()

@@ -20,10 +20,10 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
-from bzt.resources.selenium_extras import waiter, add_flow_markers, get_locator
-
 from selenium.webdriver.remote.remote_connection import RemoteConnection
 import copy
+from bzt.resources.selenium_extras import waiter, add_flow_markers, get_locator
+
 _original_execute = RemoteConnection.execute
 
 def execute_with_retries(self, command, params=None):
@@ -40,7 +40,8 @@ def execute_with_retries(self, command, params=None):
         except Exception as e:
             last_exc = e
             print(f'[Retry] RemoteConnection.execute failed on attempt {(attempt + 1)}: {e}')
-            sleep(delay)
+            if (attempt < (retries - 1)):
+                sleep(delay)
     raise last_exc
 RemoteConnection.execute = execute_with_retries
 
