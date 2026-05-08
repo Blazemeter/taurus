@@ -20,7 +20,31 @@ from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.options import ArgOptions
+from selenium.webdriver.remote.remote_connection import RemoteConnection
+import copy
 from bzt.resources.selenium_extras import get_loop_range, get_locator, waiter
+
+_original_execute = RemoteConnection.execute
+
+def execute_with_retries(self, command, params=None):
+    params_copy = copy.deepcopy(params)
+    retries = 3
+    delay = 2
+    last_exc = None
+    for attempt in range(retries):
+        try:
+            if (params != params_copy):
+                return _original_execute(self, command, params_copy)
+            else:
+                return _original_execute(self, command, params)
+        except Exception as e:
+            last_exc = e
+            print(f'[Retry] RemoteConnection.execute failed on attempt {(attempt + 1)}: {e}')
+            if (attempt < (retries - 1)):
+                sleep(delay)
+    raise last_exc
+RemoteConnection.execute = execute_with_retries
+
 
 class TestLocSc(unittest.TestCase):
 
@@ -29,27 +53,6 @@ class TestLocSc(unittest.TestCase):
 
         timeout = 30.0
         options = webdriver.FirefoxOptions()
-        from selenium.webdriver.remote.remote_connection import RemoteConnection
-        import copy
-        _original_execute = RemoteConnection.execute
-
-        def execute_with_retries(self, command, params=None):
-            params_copy = copy.deepcopy(params)
-            retries = 3
-            delay = 2
-            last_exc = None
-            for attempt in range(retries):
-                try:
-                    if (params != params_copy):
-                        return _original_execute(self, command, params_copy)
-                    else:
-                        return _original_execute(self, command, params)
-                except Exception as e:
-                    last_exc = e
-                    print(f'[Retry] RemoteConnection.execute failed on attempt {(attempt + 1)}: {e}')
-                    sleep(delay)
-            raise last_exc
-        RemoteConnection.execute = execute_with_retries
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
         options.profile = profile
