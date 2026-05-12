@@ -88,7 +88,7 @@ def get_locator(locators, parent_el=None, ignore_implicit_wait=False, raise_exce
     {css: 'my_cls'}]
     :param parent_el: reference to the parent element (WebElement instance), optional - if provided the find_elements
     method is called on it instead of global context
-    :param ignore_implicit_wait: set it to True to set the implicit wait immediately to 0
+    :param ignore_implicit_wait: deprecated, implicit wait is now set to 0 for the first locator as well, same as it was for 2nd+ locators
     :param raise_exception: set it to True to get the NoSuchElementException in case no elements are matching any
     of the passed locators, if set to False then the first locator is returned in that case
     :return: first valid locator from the passed List, if no locator is valid then returns the
@@ -97,8 +97,7 @@ def get_locator(locators, parent_el=None, ignore_implicit_wait=False, raise_exce
     driver = _get_driver()
     timeout = _get_timeout()
     first_locator = None
-    if ignore_implicit_wait:
-        driver.implicitly_wait(0)
+    driver.implicitly_wait(0)
     if _is_shadow_locator(locators):
         return locators
     for locator in locators:
@@ -136,15 +135,12 @@ def get_elements(locators):
     :return: all elements that match the first valid locator out of the passed locators
     """
     elements = []
-    first_locator = True
     driver = _get_driver()
+    driver.implicitly_wait(0)
     for locator in locators:
         locator_type = list(locator.keys())[0]
         locator_value = locator[locator_type]
-        if not first_locator:
-            driver.implicitly_wait(0)
         elements = driver.find_elements(BYS[locator_type.lower()], locator_value)
-        first_locator = False
         if len(elements) > 0:
             break
 
