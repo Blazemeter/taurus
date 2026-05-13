@@ -538,14 +538,18 @@ class PlaywrightTestPackage(NPMPackage):
         if not super().check_if_installed():
             return False
         # Check if installed version is expected version if we force version
-        if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None:
+        forced_version = os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None)
+        if forced_version is None:
             # Not forcing version, any installed is good
             return True
 
-        cmdline = [self.npm.tool_path, "list"]
+        # `npx --no` reads the locally-installed version without fetching from the
+        # registry. Mirrors the freeze step in taurus-cloud Dockerfile-reduced.
+        cmdline = ["npx", "--no", "--", "@playwright/test", "--version"]
         try:
-            out, _ = self.call(cmdline)
-            version_changed = self.PACKAGE_NAME not in out
+            out, _ = self.call(cmdline, cwd=self.tools_dir)
+            installed = (out or "").strip().split()[-1] if (out or "").strip() else ""
+            version_changed = installed != forced_version
             if version_changed:
                 self.log.warning("Frozen version not found in installed packages, will re-install %s", self.PACKAGE_NAME)
             return not version_changed
@@ -576,10 +580,13 @@ class PLAYWRIGHT(RequiredTool):
         package_name = "playwright" if frozen_version is None else "playwright@" + frozen_version
         version_changed = False
         if frozen_version:
-            cmdline = ["npm", "list"]
+            # `npx --no` reads the locally-installed version without fetching from the
+            # registry. Mirrors the freeze step in taurus-cloud Dockerfile-reduced.
+            cmdline = ["npx", "--no", "--", "playwright", "--version"]
             try:
-                out, _ = self.call(cmdline)
-                version_changed = package_name not in out
+                out, _ = self.call(cmdline, cwd=self.tools_dir)
+                installed = (out or "").strip().split()[-1] if (out or "").strip() else ""
+                version_changed = installed != frozen_version
                 if version_changed:
                     self.log.warning("Frozen version not found in installed packages, will re-install %s", package_name)
             except CALL_PROBLEMS as exc:
