@@ -216,11 +216,18 @@ RUN npm install newman --prefix /tmp/newman-check --silent \
  && NEWMAN_VERSION=$(node -p "require('/tmp/newman-check/node_modules/newman/package.json').version") \
  && rm -rf /tmp/newman-check \
  && if [ "$NEWMAN_VERSION" = "6.2.2" ] && [ ! -f /root/.bzt/newman/package.json ]; then \
-        echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, underscore)" \
+        echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, lodash, uuid, underscore)" \
      && mkdir -p /root/.bzt/newman \
-     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.9",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
+     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.9",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
     elif [ "$NEWMAN_VERSION" != "6.2.2" ]; then \
         echo "WARNING: Newman $NEWMAN_VERSION found (expected 6.2.2); skipping dependency overrides"; \
+    fi
+
+# Pre-seed Mocha dependency overrides (CVE fix for serialize-javascript)
+RUN mkdir -p /root/.bzt/selenium-taurus/mocha \
+ && if [ ! -f /root/.bzt/selenium-taurus/mocha/package.json ]; then \
+        echo "Applying Mocha dependency overrides for CVE fix (serialize-javascript)" \
+     && printf '{\n  "overrides": {\n    "serialize-javascript": "^7.0.5"\n  }\n}\n' > /root/.bzt/selenium-taurus/mocha/package.json; \
     fi
 
 # Install BZT tools
