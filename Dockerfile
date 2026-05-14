@@ -223,6 +223,13 @@ RUN npm install newman --prefix /tmp/newman-check --silent \
         echo "WARNING: Newman $NEWMAN_VERSION found (expected 6.2.2); skipping dependency overrides"; \
     fi
 
+# Pre-seed Mocha dependency overrides (CVE fix for serialize-javascript)
+RUN mkdir -p /root/.bzt/selenium-taurus/mocha \
+ && if [ ! -f /root/.bzt/selenium-taurus/mocha/package.json ]; then \
+        echo "Applying Mocha dependency overrides for CVE fix (serialize-javascript)" \
+     && printf '{\n  "overrides": {\n    "serialize-javascript": "^7.0.5"\n  }\n}\n' > /root/.bzt/selenium-taurus/mocha/package.json; \
+    fi
+
 # Install BZT tools
 RUN bzt -install-tools -v
 
