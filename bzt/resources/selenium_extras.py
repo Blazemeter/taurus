@@ -97,9 +97,9 @@ def get_locator(locators, parent_el=None, ignore_implicit_wait=False, raise_exce
     driver = _get_driver()
     timeout = _get_timeout()
     first_locator = None
-    driver.implicitly_wait(0)
     if _is_shadow_locator(locators):
         return locators
+    driver.implicitly_wait(0)
     for locator in locators:
         locator_type = list(locator.keys())[0]
         locator_value = locator[locator_type]
