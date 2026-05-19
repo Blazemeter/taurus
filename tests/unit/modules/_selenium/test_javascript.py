@@ -7,7 +7,7 @@ import bzt
 
 from bzt import ToolError
 from bzt.modules.javascript import NPMPackage, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver, \
-    PlaywrightTester, PLAYWRIGHT, PlaywrightTestPackage
+    PlaywrightTester, PLAYWRIGHT, PlaywrightTestPackage, PlaywrightLogReader
 from bzt.utils import get_full_path, EXE_SUFFIX
 
 from tests.unit import RESOURCES_DIR, BZTestCase, EngineEmul
@@ -238,9 +238,9 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         samples = [sample for sample in self.obj.runner.reader._read(final_pass=True)]
         self.assertEqual(2, len(samples))
         self.assertEqual(samples[0][1], "destination of week")
-        self.assertEqual(samples[0][6], None)
+        self.assertEqual(samples[0][6], "")
         self.assertEqual(samples[1][1], "reserve flight")
-        self.assertEqual(samples[1][6], None)
+        self.assertEqual(samples[1][6], "")
 
     def test_command_line(self):
         self.simple_run({
@@ -504,6 +504,20 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         })
         self.obj.runner.reader = None
         self.assertFalse(self.obj.runner._tests_ran())
+
+
+class TestPlaywrightLogReaderStripAnsi(BZTestCase):
+    def setUp(self):
+        super().setUp()
+        self.reader = PlaywrightLogReader("nonexistent.jsonl", self.log)
+
+    def test_strip_ansi_empty_input_returned_unchanged(self):
+        self.assertIsNone(self.reader._strip_ansi(None))
+        self.assertEqual("", self.reader._strip_ansi(""))
+
+    def test_strip_ansi_removes_ansi_escapes(self):
+        colored = "\x1b[31mfail\x1b[0m at \x1b[1;33mline 5\x1b[0m"
+        self.assertEqual("fail at line 5", self.reader._strip_ansi(colored))
 
 
 class TestPlaywrightInstallation(BZTestCase):
