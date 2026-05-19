@@ -15,6 +15,7 @@ limitations under the License.
 """
 import json
 import os
+import re
 from abc import abstractmethod
 
 from bzt import TaurusConfigError, ToolError
@@ -217,6 +218,12 @@ class PlaywrightLogReader(ResultsReader):
             return t / 1000.0
         return t
 
+    def _strip_ansi(self, text):
+        if not text:
+            return text
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        return ansi_escape.sub('', text)
+
     def _read(self, final_pass=False):
         for line in self.jsonl_reader.read(final_pass):
             content = json.loads(line)
@@ -225,9 +232,9 @@ class PlaywrightLogReader(ResultsReader):
                    self._safe_ms_to_s(content.get("duration")),
                    self._safe_ms_to_s(content.get("connectTime", None)),
                    self._safe_ms_to_s(content.get("latency",  None)),
-                   None,
-                   content.get("error", None),
-                   content.get("runDetails", None),
+                   "", # return code
+                   self._strip_ansi(content.get("error", None)),
+                   self._strip_ansi(content.get("runDetails", None)),
                    content.get("byte_count", 0))
 
 
