@@ -228,7 +228,8 @@ class PlaywrightLogReader(ResultsReader):
         for line in self.jsonl_reader.read(final_pass):
             content = json.loads(line)
             # runDetails: title of test, worker, repetition and browser platform
-            yield (self._safe_ms_to_s(content.get("timestamp")), content.get("label"), content.get("concurency"),
+            yield (int(self._safe_ms_to_s(content.get("timestamp")) or 0),
+                   content.get("label"), content.get("concurency"),
                    self._safe_ms_to_s(content.get("duration")),
                    self._safe_ms_to_s(content.get("connectTime", None)),
                    self._safe_ms_to_s(content.get("latency",  None)),
