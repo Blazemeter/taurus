@@ -115,7 +115,7 @@ class RobotExecutor(SubprocessedExecutor):
 
 
 class Robot(PythonTool):
-    PACKAGES = ["robotframework", "apiritif", "robotframework-seleniumlibrary"]
+    PACKAGES = ["robotframework", "apiritif", "chardet<7", "robotframework-seleniumlibrary"]
 
 
 class TaurusRobotRunner(RequiredTool):

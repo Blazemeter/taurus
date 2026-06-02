@@ -291,7 +291,8 @@ class KPISet(dict):
             # count times only if we have RCs
             if con_time:
                 self.sum_cn += con_time
-            self.sum_lt += latency
+            if latency:
+                self.sum_lt += latency
             self.sum_rt += r_time
 
         if error is not None:

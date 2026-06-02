@@ -607,6 +607,8 @@ class GatlingExecutor(ScenarioExecutor):
         self.env.set({"NO_PAUSE": "TRUE"})
         self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
 
+        self.env.add_java_param({"MAVEN_OPTS": self.settings.get("maven-opts", None)})
+
         self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
 
     def startup(self):
@@ -1052,7 +1054,7 @@ class Gatling(RequiredTool):
             gid = ET.SubElement(dependency, '{http://maven.apache.org/POM/4.0.0}groupId')
             gid.text = "generated.groupId"
             aid = ET.SubElement(dependency, '{http://maven.apache.org/POM/4.0.0}artifactId')
-            aid.text = "generated.artifactId"
+            aid.text = "generated.artifactId." + os.path.basename(jar_path).replace(".", "_")
             ver = ET.SubElement(dependency, '{http://maven.apache.org/POM/4.0.0}version')
             ver.text = "1.0"
             scope = ET.SubElement(dependency, '{http://maven.apache.org/POM/4.0.0}scope')
@@ -1127,7 +1129,7 @@ class Gatling(RequiredTool):
         else:
             # Unix .sh
             run_line = (
-                f"./mvnw gatling:test "
+                f"eval ./mvnw gatling:test "
                 f"-Dgatling.simulationClass={simulation_class} "
                 f"-Dgatling.resultsFolder={log_folder} $JAVA_OPTS"
             )

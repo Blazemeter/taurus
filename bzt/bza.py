@@ -7,15 +7,12 @@ import json
 import logging
 import math
 import os
-import time
-import traceback
-from collections import OrderedDict
-from functools import wraps
 from urllib.parse import urlencode
 
 import requests
 
 from bzt import ManualShutdown, TaurusException, TaurusNetworkError
+from bzt.bza_retry import retry_transient, retry_critical
 from bzt.engine import ScenarioExecutor
 from bzt.jmx import try_convert
 from bzt.resources.version import VERSION
@@ -24,46 +21,6 @@ from bzt.utils import to_json, MultiPartForm, NETWORK_PROBLEMS, dehumanize_time
 BZA_TEST_DATA_RECEIVED = 100
 ENDED = 140
 PERMANENT_ERROR_CODES = [500]
-
-
-def send_with_retry(method):
-    @wraps(method)
-    def _impl(self, *args, **kwargs):
-        try:
-            method(self, *args, **kwargs)
-        except (IOError, TaurusNetworkError):
-            error_msg = f"Error sending data: {traceback.format_exc()}"
-
-            if any(f"API call error {code}" in error_msg for code in PERMANENT_ERROR_CODES):
-                self.log.error(error_msg)
-                return
-
-            self.log.debug(error_msg)
-            self.log.warning("Failed to send data, will retry in %s sec...", self.timeout)
-            try:
-                time.sleep(self.timeout)
-                method(self, *args, **kwargs)
-                self.log.info("Succeeded with retry")
-            except NETWORK_PROBLEMS:
-                self.log.error("Fatal error sending data: %s", traceback.format_exc())
-                self.log.warning("Will skip failed data and continue running")
-
-    return _impl
-
-
-def get_with_retry(method):
-    @wraps(method)
-    def _impl(self, *args, **kwargs):
-        while True:
-            try:
-                return method(self, *args, **kwargs)
-            except NETWORK_PROBLEMS:
-                self.log.debug("Error making request: %s", traceback.format_exc())
-                self.log.warning("Failed to make request, will retry in %s sec...", self.timeout)
-                time.sleep(self.timeout)
-
-    return _impl
-
 
 class BZAObject(dict):
     def __init__(self, proto=None, data=None):
@@ -82,7 +39,6 @@ class BZAObject(dict):
         self.log = logging.getLogger(self.__class__.__name__)
         self.http_session = requests.Session()
         self.http_request = self.http_session.request
-        self._retry_limit = 5
         self.anonymous_access_blocked = False
 
         # copy infrastructure from prototype
@@ -137,19 +93,8 @@ class BZAObject(dict):
 
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
 
-        retry_limit = self._retry_limit
-
-        while True:
-            try:
-                response = self.http_request(
-                    method=log_method, url=url, data=data, headers=headers, timeout=self.timeout)
-            except requests.ReadTimeout:
-                if retry and retry_limit:
-                    retry_limit -= 1
-                    self.log.warning("ReadTimeout: %s. Retry..." % url)
-                    continue
-                raise
-            break
+        response = self.http_request(
+            method=log_method, url=url, data=data, headers=headers, timeout=self.timeout)
 
         resp = response.content
         if not isinstance(resp, str):
@@ -239,6 +184,7 @@ class User(BZAObject):
         """ Quick check if we can access the service """
         self._request(self.address + '/api/v4/web/version')
 
+    @retry_critical(max_attempts=10)
     def accounts(self, ident=None, name=None):
         """
         :rtype: BZAObjectsList[Account]
@@ -253,6 +199,7 @@ class User(BZAObject):
             accounts.append(Account(self, acc))
         return BZAObjectsList(accounts)
 
+    @retry_critical(max_attempts=10)
     def fetch(self):
         res = self._request(self.address + '/api/v4/user')
         if 'result' in res:
@@ -295,6 +242,7 @@ class User(BZAObject):
 
 
 class Account(BZAObject):
+    @retry_critical(max_attempts=10)
     def workspaces(self, ident=None, name=None):
         """
                 :rtype: BZAObjectsList[Workspace]
@@ -326,6 +274,7 @@ class Account(BZAObject):
 
         return BZAObjectsList(workspaces)
 
+    @retry_critical(max_attempts=10)
     def workspace(self, name=None, ident=None):
         workspaces = BZAObjectsList()
         response = self._request(f"{self.address}/api/v4/workspaces/{ident}")
@@ -334,7 +283,9 @@ class Account(BZAObject):
             workspaces.append(Workspace(self, result))
         return workspaces
 
+
 class Workspace(BZAObject):
+    @retry_critical(max_attempts=10)
     def projects(self, name=None, ident=None):
         """
                 :rtype: BZAObjectsList[Project]
@@ -373,6 +324,7 @@ class Workspace(BZAObject):
 
         return BZAObjectsList(projects)
 
+    @retry_critical(max_attempts=10)
     def project(self, name=None, ident=None):
         projects = BZAObjectsList()
         response = self._request(f"{self.address}/api/v4/projects/{ident}")
@@ -392,6 +344,7 @@ class Workspace(BZAObject):
 
         return BZAObjectsList(res)
 
+    @retry_critical(max_attempts=10)
     def private_locations(self):
         """
         :rtype: BZAObjectsList[BZAObject]
@@ -400,6 +353,7 @@ class Workspace(BZAObject):
         res = self._request(self.address + '/api/v4/private-locations?' + urlencode(params))
         return BZAObjectsList([BZAObject(self, x) for x in res['result']])
 
+    @retry_critical(max_attempts=10)
     def tests(self, name=None, ident=None, test_type=None):
         """
         :rtype: BZAObjectsList[Test]
@@ -436,6 +390,7 @@ class Workspace(BZAObject):
 
         return tests
 
+    @retry_critical(max_attempts=10)
     def test(self, name=None, ident=None, test_type=None):
         response = self._request(f"{self.address}/api/v4/tests/{ident}")
         result = response.get('result', None)
@@ -446,11 +401,13 @@ class Workspace(BZAObject):
             tests.append(Test(self, result))
         return tests
 
+    @retry_critical(max_attempts=10)
     def create_project(self, proj_name):
         params = {"name": str(proj_name), "workspaceId": self['id']}
         data = self._request(self.address + '/api/v4/projects', params)
         return Project(self, data['result'])
 
+    @retry_critical(max_attempts=10)
     def fetch(self):
         res = self._request(self.address + '/api/v4/workspaces/%s' % self['id'])
         self.update(res['result'])
@@ -462,6 +419,7 @@ class Location(BZAObject):
 
 
 class Project(BZAObject):
+    @retry_critical(max_attempts=10)
     def tests(self, name=None, ident=None, test_type=None):
         """
         :rtype: BZAObjectsList[Test]
@@ -497,6 +455,7 @@ class Project(BZAObject):
 
         return tests
 
+    @retry_critical(max_attempts=10)
     def test(self, name=None, ident=None, test_type=None):
         response = self._request(f"{self.address}/api/v4/tests/{ident}")
         result = response.get('result', None)
@@ -508,7 +467,7 @@ class Project(BZAObject):
             tests.append(Test(self, result))
         return tests
 
-
+    @retry_critical(max_attempts=10)
     def create_test(self, name, configuration):
         """
         :param name:
@@ -523,6 +482,7 @@ class Project(BZAObject):
 
 
 class Test(BZAObject):
+    @retry_critical(max_attempts=10)
     def start_external(self, config):
         concurrency, duration = self._get_load_from_config(config)
         data = {
@@ -540,6 +500,7 @@ class Test(BZAObject):
         session.data_signature = result['signature']
         return session, Master(self, result['master'])
 
+    @retry_critical(max_attempts=10)
     def start_anonymous_external_test(self, config):
         """
         :rtype: (Session,Master,str)
@@ -565,6 +526,7 @@ class Test(BZAObject):
         response = self._request(path, method="GET")
         return response["result"]
 
+    @retry_critical(max_attempts=10)
     def delete_files(self):
         files = self.get_files()
         self.log.debug("Test files: %s", [filedict['name'] for filedict in files])
@@ -581,6 +543,7 @@ class Test(BZAObject):
             self.log.debug("Error while test files deletion.")
         return removed
 
+    @retry_critical(max_attempts=10)
     def start(self, as_functional=False):
         url = self.address + "/api/v4/tests/%s/start" % self['id']
         if as_functional:
@@ -589,19 +552,34 @@ class Test(BZAObject):
         master = Master(self, resp['result'])
         return master
 
+    @retry_critical(max_attempts=10)
     def upload_files(self, taurus_config, resource_files):
         self.log.debug("Uploading files into the test: %s", resource_files)
         url = '%s/api/v4/tests/%s/files' % (self.address, self['id'])
+        chunk_size = 50
+        failed_files = []
 
-        body = MultiPartForm()
-        body.add_file_as_string('script', 'taurus.yml', taurus_config)
+        for chunk_idx in range(0, len(resource_files), chunk_size):
+            chunk = resource_files[chunk_idx:chunk_idx + chunk_size]
+            body = MultiPartForm()
+            if chunk_idx == 0:
+                body.add_file_as_string('script', 'taurus.yml', taurus_config)
+            for idx, rfile in enumerate(chunk):
+                body.add_file(f'files[{idx}]', rfile)
+            hdr = {"Content-Type": str(body.get_content_type())}
+            try:
+                self._request(url, body.form_as_bytes(), headers=hdr)
+            except Exception as e:
+                self.log.error(f"Error uploading chunk {chunk_idx}: {e}")
+                failed_files.extend(chunk)
 
-        for idx, rfile in enumerate(resource_files):
-            body.add_file('files[{}]'.format(idx), rfile)
+        if failed_files:
+            error_msg = f"Failed to upload files: {failed_files}"
+            self.log.error(error_msg)
+            return error_msg
+        return None
 
-        hdr = {"Content-Type": str(body.get_content_type())}
-        self._request(url, body.form_as_bytes(), headers=hdr)
-
+    @retry_critical(max_attempts=10)
     def update_props(self, coll):
         url = self.address + "/api/v4/tests/%s" % self['id']
         res = self._request(url, data=coll, method="PATCH")
@@ -636,6 +614,7 @@ class Master(BZAObject):
         super(Master, self).__init__(proto, data)
         self.warned_of_too_much_labels = False
 
+    @retry_critical(max_attempts=10)
     def make_report_public(self):
         url = self.address + "/api/v4/masters/%s/public-token" % self['id']
         res = self._request(url, data={"publicToken": None})
@@ -643,22 +622,25 @@ class Master(BZAObject):
         report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self['id'])
         return report_link
 
+    @retry_critical(max_attempts=5)
     def fetch(self):
         url = self.address + "/api/v4/masters/%s" % self['id']
         res = self._request(url)
         self.update(res['result'])
         return self
 
+    @retry_critical(max_attempts=10)
     def set(self, data):
         url = self.address + "/api/v4/masters/%s" % self['id']
         res = self._request(url, data, method='PATCH')
         self.update(res['result'])
 
-    @get_with_retry
+    @retry_critical(max_attempts=5)
     def get_status(self):
         sess = self._request(self.address + '/api/v4/masters/%s/status' % self['id'])
         return sess['result']
 
+    @retry_critical(max_attempts=10)
     def sessions(self):
         sess = self._request(self.address + '/api/v4/masters/%s/sessions' % self['id'])
         if 'sessions' in sess['result']:
@@ -746,31 +728,36 @@ class Session(BZAObject):
         self.kpi_target = 'labels_bulk'
         self.monitoring_upload_notified = False
 
+    @retry_critical(max_attempts=10)
     def fetch(self):
         url = self.address + "/api/v4/sessions/%s" % self['id']
         res = self._request(url)
         self.update(res['result'])
         return self
 
+    @retry_critical(max_attempts=10)
     def set(self, data):
         url = self.address + "/api/v4/sessions/%s" % self['id']
         res = self._request(url, data, method='PATCH')
         self.update(res['result'])
 
+    @retry_critical(max_attempts=10)
     def stop(self):
         url = self.address + "/api/v4/sessions/%s/stop" % self['id']
         self._request(url, method='POST')
 
+    @retry_critical(max_attempts=10)
     def terminate(self):
         url = self.address + "/api/v4/sessions/%s/terminate" % self['id']
         self._request(url, method='POST')
 
+    @retry_critical(max_attempts=10)
     def stop_anonymous(self):
         url = self.address + "/api/v4/sessions/%s/terminate-external" % self['id']
         data = {"signature": self.data_signature, "testId": self['testId'], "sessionId": self['id']}
         self._request(url, data)
 
-    @send_with_retry
+    @retry_transient(max_attempts=10)
     def send_kpi_data(self, data, is_check_response=True, submit_target=None):
         """
         Sends online data
@@ -800,6 +787,7 @@ class Session(BZAObject):
                 self.log.info("Test was stopped through Web UI: %s", result['status'])
                 raise ManualShutdown("The test was interrupted through Web UI")
 
+    @retry_transient(max_attempts=10)
     def send_monitoring_data(self, engine_id, data):
         file_name = '%s-%s-c.monitoring.json' % (self['id'], engine_id)
         self.upload_file(file_name, to_json(data))
@@ -808,7 +796,7 @@ class Session(BZAObject):
             self.notify_monitoring_file(file_name)
             self.monitoring_upload_notified = True
 
-    @send_with_retry
+    @retry_transient(max_attempts=10)
     def upload_file(self, filename, contents=None):
         """
         Upload single artifact
@@ -837,6 +825,7 @@ class Session(BZAObject):
         if not response['result']:
             raise TaurusNetworkError("Upload failed: %s" % response)
 
+    @retry_critical(max_attempts=10)
     def get_logs(self):
         url = self.address + "/api/v4/sessions/%s/reports/logs" % self['id']
         return self._request(url)['result']['data']
@@ -858,12 +847,15 @@ class BZAProxy(BZAObject):
         super(BZAProxy, self).__init__()
         self.delay = 5
 
+    @retry_critical(max_attempts=10)
     def stop(self):
         self._request(self._get_url("/recording/stop"), method='POST')
 
+    @retry_critical(max_attempts=10)
     def start(self):
         self._request(self._get_url("/recording/start"), method='POST')
 
+    @retry_critical(max_attempts=10)
     def get_jmx(self, smart=False):
         path = '/download?format=jmx&smart=' + str(smart).lower()
         response_url = self._request(self._get_url(path)).get('result')
@@ -873,6 +865,7 @@ class BZAProxy(BZAObject):
     def _get_url(self, path=''):
         return self.address + "/api/latest/proxy" + path
 
+    @retry_critical(max_attempts=10)
     def get_addr(self):
         response = self._request(self._get_url())
 
@@ -898,6 +891,7 @@ class BZAProxy(BZAObject):
 
         return 'http://%s:%s' % (proxy_info['host'], proxy_info['port'])
 
+    @retry_critical(max_attempts=10)
     def get_json(self):
         response = self._request(self._get_url("/download?format=json"), raw_result=True)
         return response

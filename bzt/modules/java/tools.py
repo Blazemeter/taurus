@@ -160,6 +160,6 @@ class JUnit(JarTool):
 
 
 class TaurusJavaHelper(JarTool):
-    VERSION = "1.11"
+    VERSION = "1.27"
     REMOTE_PATH = "com/blazemeter/taurus-java-helpers/{version}/taurus-java-helpers-{version}.jar"
     TOOL_FILE = "taurus-java-helpers-{version}.jar"

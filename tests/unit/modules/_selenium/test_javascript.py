@@ -7,11 +7,13 @@ import bzt
 
 from bzt import ToolError
 from bzt.modules.javascript import NPMPackage, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver, \
-    PlaywrightTester
+    PlaywrightTester, PLAYWRIGHT, PlaywrightTestPackage, PlaywrightLogReader
 from bzt.utils import get_full_path, EXE_SUFFIX
 
 from tests.unit import RESOURCES_DIR, BZTestCase, EngineEmul
 from tests.unit.modules._selenium import SeleniumTestCase
+
+from unittest.mock import patch, MagicMock
 
 
 class TestSeleniumMochaRunner(SeleniumTestCase):
@@ -188,9 +190,11 @@ class TestNewmanExecutor(BZTestCase):
 class TestPlaywrightExecutor(SeleniumTestCase):
     RUNNER_STUB = RESOURCES_DIR + "playwright/playwright" + EXE_SUFFIX
     CMD_LINE = None
+    ENV = None
 
     def start_subprocess(self, args, **kwargs):
         self.CMD_LINE = ''.join(args)
+        self.ENV = kwargs.get('env').get() if 'env' in kwargs else {}
 
     def prepare(self, config):
         self.obj.engine.config.merge(config)
@@ -227,14 +231,23 @@ class TestPlaywrightExecutor(SeleniumTestCase):
                 }
             }
         })
-        self.assertEquals(self.obj.runner.execution["executor"], "playwright")
-        self.assertEquals(self.obj.runner.engine.modules['playwright'], PlaywrightTester)
+        self.assertEqual(self.obj.runner.execution["executor"], "playwright")
+        self.assertEqual(self.obj.runner.engine.modules['playwright'], PlaywrightTester)
+
+        self.assertTrue(os.path.exists(self.obj.runner.reader.filename))
+        samples = [sample for sample in self.obj.runner.reader._read(final_pass=True)]
+        self.assertEqual(2, len(samples))
+        self.assertEqual(samples[0][1], "destination of week")
+        self.assertEqual(samples[0][6], "")
+        self.assertEqual(samples[1][1], "reserve flight")
+        self.assertEqual(samples[1][6], "")
 
     def test_command_line(self):
         self.simple_run({
             'execution': {
                 'iterations': 3,
                 'concurrency': 10,
+                'hold-for': '1m',
                 'settings': {
                     'env': {
                         'BASE_URL': 'https://blazedemo.com/'
@@ -249,8 +262,564 @@ class TestPlaywrightExecutor(SeleniumTestCase):
             },
         })
         self.assertIn("npx playwright test", self.CMD_LINE)
-        self.assertIn("--repeat-each 3", self.CMD_LINE)
+        self.assertIn("--repeat-each 30", self.CMD_LINE)
         self.assertIn("--workers 10", self.CMD_LINE)
         self.assertIn("-project=firefox", self.CMD_LINE)
+        self.assertIn("-reporter \"@taurus/playwright-custom-reporter\"", self.CMD_LINE)
         self.assertIn("-g 'has title'", self.CMD_LINE)
+        self.assertEqual('60000', self.ENV.get("TAURUS_PWREPORT_DURATION", "undefined"))
 
+    def test_command_line_additional_reporter(self):
+        self.simple_run({
+            'execution': {
+                'iterations': 3,
+                'concurrency': 10,
+                'hold-for': '1m',
+                'settings': {
+                    'env': {
+                        'BASE_URL': 'https://blazedemo.com/'
+                    }
+                },
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'browser': 'firefox',
+                    'test': 'has title',
+                    'reporters': ['"json" ']
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertIn("npx playwright test", self.CMD_LINE)
+        self.assertIn("--repeat-each 30", self.CMD_LINE)
+        self.assertIn("--workers 10", self.CMD_LINE)
+        self.assertIn("-project=firefox", self.CMD_LINE)
+        self.assertIn("-reporter \"@taurus/playwright-custom-reporter,json\"", self.CMD_LINE)
+        self.assertIn("-g 'has title'", self.CMD_LINE)
+        self.assertEqual('60000', self.ENV.get("TAURUS_PWREPORT_DURATION", "undefined"))
+
+    def test_playwright_stdout_env_with_additional_reporter(self):
+        """Test TAURUS_PWREPORT_STDOUT is false when additional reporters are present"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'reporters': ['html', 'json']
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertEqual('false', self.ENV.get("TAURUS_PWREPORT_STDOUT"))
+
+    def test_playwright_stdout_env_without_additional_reporter(self):
+        """Test TAURUS_PWREPORT_STDOUT is true when no additional reporters"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertEqual('true', self.ENV.get("TAURUS_PWREPORT_STDOUT"))
+
+    def test_playwright_reporter_sanitization(self):
+        """Test that reporter names are sanitized (spaces, quotes, etc. removed)"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'reporters': ['"html"', " json ", "list\t", "'dot'"]
+                },
+                'executor': 'playwright',
+            },
+        })
+        # Check that sanitized reporters are in command line
+        self.assertIn("@taurus/playwright-custom-reporter,html,json,list,dot", self.CMD_LINE)
+
+    def test_playwright_reporter_empty_values_filtered(self):
+        """Test that empty/None reporter values are filtered out"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'reporters': ['html', '', None, 'json', '  ']
+                },
+                'executor': 'playwright',
+            },
+        })
+        # Should only include html and json
+        self.assertIn("@taurus/playwright-custom-reporter,html,json", self.CMD_LINE)
+
+    def test_playwright_reporter_non_list_ignored(self):
+        """Test that non-list reporter config is ignored"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'reporters': 'html'  # String instead of list
+                },
+                'executor': 'playwright',
+            },
+        })
+        # Should only have taurus reporter, not html
+        self.assertIn("-reporter \"@taurus/playwright-custom-reporter\"", self.CMD_LINE)
+        self.assertNotIn(",html", self.CMD_LINE)
+
+    def test_playwright_reporter_non_string_items_filtered(self):
+        """Test that non-string items in reporters list are filtered"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    'reporters': ['html', 123, {'dict': 'value'}, 'json']
+                },
+                'executor': 'playwright',
+            },
+        })
+        # Should only include html and json
+        self.assertIn("@taurus/playwright-custom-reporter,html,json", self.CMD_LINE)
+
+    def test_playwright_tester_tools_dir_initialization(self):
+        """Test that PlaywrightTester initializes tools_dir in __init__"""
+        tester = PlaywrightTester()
+        self.assertIsNotNone(tester.tools_dir)
+        self.assertIn(".bzt/playwright", tester.tools_dir)
+
+    def test_playwright_get_script_path_no_execution(self):
+        """Test get_script_path returns full path when no execution"""
+        tester = PlaywrightTester()
+        tester.execution = None
+
+        script_path = tester.get_script_path()
+        self.assertIsNotNone(script_path)
+        # Should return full path, not relative
+        self.assertTrue(os.path.isabs(script_path) or script_path.startswith("~"))
+        self.assertIn(".bzt/playwright", script_path)
+
+    def test_playwright_exit_code1_with_tests_ran(self):
+        """Exit code 1 should not raise when tests ran (some failed)."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        mock_process = MagicMock()
+        mock_process.poll.return_value = 1
+        self.obj.runner.process = mock_process
+        self.obj.runner._tests_ran = MagicMock(return_value=True)
+
+        self.assertTrue(self.obj.runner.check())
+
+    def test_playwright_exit_code1_without_tests_ran(self):
+        """Exit code 1 should raise ToolError when no tests ran (config error)."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        mock_process = MagicMock()
+        mock_process.poll.return_value = 1
+        self.obj.runner.process = mock_process
+        self.obj.runner._tests_ran = MagicMock(return_value=False)
+
+        with self.assertRaises(ToolError):
+            self.obj.runner.check()
+
+    def test_playwright_crash_exit_code_raises(self):
+        """Non-1 non-zero exit (e.g. 134 OOM) should raise ToolError even if tests ran."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        mock_process = MagicMock()
+        mock_process.poll.return_value = 134
+        self.obj.runner.process = mock_process
+        self.obj.runner._tests_ran = MagicMock(return_value=True)
+
+        with self.assertRaises(ToolError):
+            self.obj.runner.check()
+
+    def test_tests_ran_file_exists_with_content(self):
+        """_tests_ran returns True when result file exists and is non-empty."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        filename = self.obj.runner.reader.filename
+        with patch('bzt.modules.javascript.os.path.exists', return_value=True) as mock_exists, \
+                patch('bzt.modules.javascript.os.path.getsize', return_value=42) as mock_getsize:
+            self.assertTrue(self.obj.runner._tests_ran())
+            mock_exists.assert_called_once_with(filename)
+            mock_getsize.assert_called_once_with(filename)
+
+    def test_tests_ran_file_exists_empty(self):
+        """_tests_ran returns False when result file exists but is empty."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        with patch('bzt.modules.javascript.os.path.exists', return_value=True), \
+                patch('bzt.modules.javascript.os.path.getsize', return_value=0):
+            self.assertFalse(self.obj.runner._tests_ran())
+
+    def test_tests_ran_file_absent(self):
+        """_tests_ran returns False when result file does not exist."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        with patch('bzt.modules.javascript.os.path.exists', return_value=False):
+            self.assertFalse(self.obj.runner._tests_ran())
+
+    def test_tests_ran_no_reader(self):
+        """_tests_ran returns False when reader is None."""
+        self.prepare({
+            'execution': {
+                "executor": "playwright",
+                "iterations": 1,
+                "scenario": {"script": RESOURCES_DIR + "playwright"}
+            }
+        })
+        self.obj.runner.reader = None
+        self.assertFalse(self.obj.runner._tests_ran())
+
+
+class TestPlaywrightLogReaderStripAnsi(BZTestCase):
+    def setUp(self):
+        super().setUp()
+        self.reader = PlaywrightLogReader("nonexistent.jsonl", self.log)
+
+    def test_strip_ansi_empty_input_returned_unchanged(self):
+        self.assertIsNone(self.reader._strip_ansi(None))
+        self.assertEqual("", self.reader._strip_ansi(""))
+
+    def test_strip_ansi_removes_ansi_escapes(self):
+        colored = "\x1b[31mfail\x1b[0m at \x1b[1;33mline 5\x1b[0m"
+        self.assertEqual("fail at line 5", self.reader._strip_ansi(colored))
+
+
+class TestPlaywrightInstallation(BZTestCase):
+    """Test PLAYWRIGHT tool installation logic"""
+
+    def setUp(self):
+        super(TestPlaywrightInstallation, self).setUp()
+        import tempfile
+        self.tools_dir = tempfile.mkdtemp() + "/playwright"
+
+    @patch('bzt.modules.javascript.is_linux')
+    @patch('os.geteuid', create=True)
+    def test_playwright_install_linux_non_root(self, mock_geteuid, mock_is_linux):
+        """Test Playwright install on Linux as non-root user (should skip --with-deps)"""
+        mock_is_linux.return_value = True
+        mock_geteuid.return_value = 1000  # non-root
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        playwright.call = MagicMock(return_value=("", ""))
+
+        # No frozen version - should try to install
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+            playwright.install()
+
+            # Should be called with install but WITHOUT --with-deps
+            playwright.call.assert_called_once()
+            call_args = playwright.call.call_args[0][0]
+            self.assertIn("npx", call_args)
+            self.assertIn("playwright", call_args)
+            self.assertIn("install", call_args)
+            self.assertNotIn("--with-deps", call_args)
+
+    @patch('bzt.modules.javascript.is_linux')
+    @patch('os.geteuid', create=True)
+    def test_playwright_install_linux_root(self, mock_geteuid, mock_is_linux):
+        """Test Playwright install on Linux as root user (should include --with-deps)"""
+        mock_is_linux.return_value = True
+        mock_geteuid.return_value = 0  # root
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        playwright.call = MagicMock(return_value=("", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+            playwright.install()
+
+            # Should be called with install AND --with-deps
+            playwright.call.assert_called_once()
+            call_args = playwright.call.call_args[0][0]
+            self.assertIn("npx", call_args)
+            self.assertIn("playwright", call_args)
+            self.assertIn("install", call_args)
+            self.assertIn("--with-deps", call_args)
+
+    @patch('bzt.modules.javascript.is_linux')
+    def test_playwright_install_non_linux(self, mock_is_linux):
+        """Test Playwright install on non-Linux systems (should include --with-deps)"""
+        mock_is_linux.return_value = False
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        playwright.call = MagicMock(return_value=("", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+            playwright.install()
+
+            # Should be called with install AND --with-deps
+            playwright.call.assert_called_once()
+            call_args = playwright.call.call_args[0][0]
+            self.assertIn("npx", call_args)
+            self.assertIn("playwright", call_args)
+            self.assertIn("install", call_args)
+            self.assertIn("--with-deps", call_args)
+
+    def test_playwright_install_frozen_version(self):
+        """Test that Playwright install is skipped when frozen version is already installed"""
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        # `npx --no -- playwright --version` reports the installed version, matching the frozen one
+        playwright.call = MagicMock(return_value=("Version 1.40.0\n", ""))
+
+        with patch.dict(os.environ, {'PLAYWRIGHT_PACKAGE_FORCED_VERSION': '1.40.0'}):
+            playwright.install()
+
+            # Should call npx --no -- playwright --version once to check the installed version
+            playwright.call.assert_called_once_with(
+                ["npx", "--no", "--", "playwright", "--version"],
+                cwd=self.tools_dir,
+            )
+
+    @patch('bzt.modules.javascript.is_linux')
+    def test_playwright_install_frozen_version_changed(self, mock_is_linux):
+        """Test that Playwright re-installs when installed version differs from frozen version"""
+        mock_is_linux.return_value = False
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        os.makedirs(self.tools_dir, exist_ok=True)
+
+        # Probe reports a different (old) version — frozen version mismatch
+        playwright.call = MagicMock(side_effect=[("Version 1.39.0\n", ""), ("", "")])
+
+        with patch.dict(os.environ, {'PLAYWRIGHT_PACKAGE_FORCED_VERSION': '1.40.0'}):
+            playwright.install()
+
+            # First call: version probe
+            first_call_args = playwright.call.call_args_list[0][0][0]
+            self.assertEqual(first_call_args, ["npx", "--no", "--", "playwright", "--version"])
+            self.assertEqual(playwright.call.call_args_list[0][1].get('cwd'), self.tools_dir)
+
+            # Second call: npx playwright@1.40.0 install --with-deps
+            self.assertEqual(playwright.call.call_count, 2)
+            second_call_args = playwright.call.call_args_list[1][0][0]
+            self.assertIn("npx", second_call_args)
+            self.assertIn("playwright@1.40.0", second_call_args)
+            self.assertIn("install", second_call_args)
+            self.assertIn("--with-deps", second_call_args)
+
+    @patch('bzt.modules.javascript.is_linux')
+    def test_playwright_install_frozen_version_probe_oserror(self, mock_is_linux):
+        """Test that Playwright re-installs when the version probe raises OSError"""
+        mock_is_linux.return_value = False
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        os.makedirs(self.tools_dir, exist_ok=True)
+
+        # First call (version probe) raises OSError; second call is the actual install
+        playwright.call = MagicMock(side_effect=[OSError("npx probe failed"), ("", "")])
+
+        with patch.dict(os.environ, {'PLAYWRIGHT_PACKAGE_FORCED_VERSION': '1.40.0'}):
+            playwright.install()
+
+            self.assertEqual(playwright.call.call_count, 2)
+            first_call_args = playwright.call.call_args_list[0][0][0]
+            self.assertEqual(first_call_args, ["npx", "--no", "--", "playwright", "--version"])
+
+            second_call_args = playwright.call.call_args_list[1][0][0]
+            self.assertIn("npx", second_call_args)
+            self.assertIn("playwright@1.40.0", second_call_args)
+            self.assertIn("install", second_call_args)
+            self.assertIn("--with-deps", second_call_args)
+
+    def test_playwright_install_creates_tools_dir(self):
+        """Test that Playwright install creates tools_dir if it doesn't exist"""
+        import tempfile
+        import shutil
+
+        temp_base = tempfile.mkdtemp()
+        try:
+            tools_dir = os.path.join(temp_base, "non_existent_dir")
+            self.assertFalse(os.path.exists(tools_dir))
+
+            playwright = PLAYWRIGHT(tools_dir=tools_dir)
+            playwright.call = MagicMock(return_value=("", ""))
+
+            with patch.dict(os.environ, {}, clear=False):
+                if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                    del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+                with patch('bzt.modules.javascript.is_linux', return_value=False):
+                    playwright.install()
+
+            # Directory should have been created
+            self.assertTrue(os.path.exists(tools_dir))
+        finally:
+            shutil.rmtree(temp_base)
+
+    @patch('bzt.modules.javascript.is_linux')
+    def test_playwright_install_cmd_cwd_parameter(self, mock_is_linux):
+        """Test that install_cmd uses tools_dir as cwd"""
+        mock_is_linux.return_value = False
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+        playwright.call = MagicMock(return_value=("", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+            os.makedirs(self.tools_dir, exist_ok=True)
+            playwright.install()
+
+            # Check that cwd was passed correctly
+            call_kwargs = playwright.call.call_args[1]
+            self.assertEqual(call_kwargs.get('cwd'), self.tools_dir)
+
+    @patch('bzt.modules.javascript.is_linux')
+    def test_playwright_non_frozen_version_uses_just_package(self, mock_is_linux):
+        """Test that without frozen version would use playwright as package name"""
+        mock_is_linux.return_value = False
+
+        playwright = PLAYWRIGHT(tools_dir=self.tools_dir)
+
+        # Even though install is skipped with frozen version,
+        # we can verify the logic by testing without frozen version
+        # and checking the package name in the command
+        playwright.call = MagicMock(return_value=("", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_PACKAGE_FORCED_VERSION']
+
+            os.makedirs(self.tools_dir, exist_ok=True)
+            playwright.install()
+
+            # Should use just "playwright" when not frozen
+            call_args = playwright.call.call_args[0][0]
+            # Find the package name in the command (should be just "playwright")
+            self.assertIn("playwright", call_args)
+            # Make sure it's not versioned by default
+            self.assertTrue(any("playwright" in str(arg) and "@" not in str(arg) for arg in call_args if "playwright" in str(arg)))
+
+
+class TestPlaywrightTestPackageInstallation(BZTestCase):
+    """Tests for PlaywrightTestPackage.check_if_installed()"""
+
+    def setUp(self):
+        super(TestPlaywrightTestPackageInstallation, self).setUp()
+        self.node_mock = MagicMock()
+        self.node_mock.tool_path = "node"
+        self.npm_mock = MagicMock()
+        self.npm_mock.tool_path = "npm"
+        self.tools_dir = "~/.bzt/playwright"
+
+    def _create_package(self):
+        return PlaywrightTestPackage(
+            tools_dir=self.tools_dir,
+            node_tool=self.node_mock,
+            npm_tool=self.npm_mock,
+        )
+
+    def test_check_if_installed_super_returns_false(self):
+        """When the parent require() check fails, return False without probing version"""
+        pkg = self._create_package()
+        pkg.call = MagicMock(return_value=("", ""))
+
+        result = pkg.check_if_installed()
+
+        self.assertFalse(result)
+        pkg.call.assert_called_once()
+
+    def test_check_if_installed_no_forced_version(self):
+        """When no forced version is set, any installed version is acceptable and the probe is not called"""
+        pkg = self._create_package()
+        pkg.call = MagicMock(return_value=("@playwright/test is installed", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            if 'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION' in os.environ:
+                del os.environ['PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION']
+
+            result = pkg.check_if_installed()
+
+        self.assertTrue(result)
+        pkg.call.assert_called_once()
+
+    def test_check_if_installed_forced_version_correct(self):
+        """When forced version matches the installed version, return True"""
+        pkg = self._create_package()
+        pkg.call = MagicMock(side_effect=[
+            ("@playwright/test is installed", ""),
+            ("Version 1.40.0\n", ""),
+        ])
+
+        with patch.object(PlaywrightTestPackage, 'PACKAGE_NAME', '@playwright/test@1.40.0'):
+            with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.40.0'}):
+                result = pkg.check_if_installed()
+
+        self.assertTrue(result)
+        self.assertEqual(pkg.call.call_count, 2)
+        second_call_args = pkg.call.call_args_list[1][0][0]
+        self.assertEqual(second_call_args, ["npx", "--no", "--", "@playwright/test", "--version"])
+        self.assertEqual(pkg.call.call_args_list[1][1].get('cwd'), self.tools_dir)
+
+    def test_check_if_installed_forced_version_mismatch(self):
+        """When the probed version differs from the forced version, return False"""
+        pkg = self._create_package()
+        pkg.call = MagicMock(side_effect=[
+            ("@playwright/test is installed", ""),
+            ("Version 1.39.0\n", ""),
+        ])
+
+        with patch.object(PlaywrightTestPackage, 'PACKAGE_NAME', '@playwright/test@1.40.0'):
+            with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.40.0'}):
+                result = pkg.check_if_installed()
+
+        self.assertFalse(result)
+        self.assertEqual(pkg.call.call_count, 2)
+
+    def test_check_if_installed_version_probe_fails(self):
+        """When the version probe raises an OSError, return False"""
+        pkg = self._create_package()
+        pkg.call = MagicMock(side_effect=[
+            ("@playwright/test is installed", ""),
+            OSError("npx probe failed"),
+        ])
+
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.40.0'}):
+            result = pkg.check_if_installed()
+
+        self.assertFalse(result)

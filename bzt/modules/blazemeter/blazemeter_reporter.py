@@ -159,9 +159,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             self.log.info(f"Engine metrics will be sent to '{happysocks_address}'")
             request_timeout = self.settings.get("happysocks-request-timeout", 10)
             connect_timeout = self.settings.get("happysocks-connect-timeout", 7)
+            use_clickhouse = self.settings.get("happysocks-use-clickhouse", False)
             self.happysocks_client = HappysocksClient(happysocks_address, self._sess_id, signature,
                                                       happysocks_verbose_logging, happysocks_verify_ssl,
-                                                      request_timeout, connect_timeout)
+                                                      request_timeout, connect_timeout, use_clickhouse)
             if self.engine.config and "settings" in self.engine.config and "proxy" in self.engine.config.get(
                     "settings"):
                 self.happysocks_client.add_proxy_settings(self.engine.config.get("settings").get("proxy"), force=True)

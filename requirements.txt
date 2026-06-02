@@ -7,16 +7,16 @@ fuzzyset2
 hdrpy>=0.3.3
 lxml>=6.0.0
 progressbar33
-psutil>=7.0.0
+psutil>=7.2.2,<7.3.0
 pyvirtualdisplay; sys_platform != 'win32'
 pyyaml
 requests>=2.32.4
-urwid>=3.0.2
+urwid>=3.0.2,<4.0.0
 terminaltables3>=4.0.0
 molotov>=2.6
 influxdb >= 5.3.2
 python-socketio>=5.13.0
 h11>=0.16.0
 websocket-client>=1.8.0
-urllib3==2.5.0
+urllib3==2.7.0
 setuptools==79.0.1

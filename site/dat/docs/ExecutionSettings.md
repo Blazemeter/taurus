@@ -30,6 +30,7 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [JMeter](JMeter.md), executor type `jmeter`
   - [Selenium](Selenium.md), executor type `selenium`
   - [Gatling](Gatling.md), executor type `gatling`
+  - [Playwright Executor](Playwright.md), executor type `playwright`
   - [Locust](Locust.md), executor type `locust`
   - [Siege](Siege.md), executor type `siege`
   - [ApacheBenchmark](ApacheBenchmark.md), executor type `ab`
@@ -131,7 +132,7 @@ scenarios:
     test-case: TestIndex
 ```
 
-You can read more on that [here](SoapUI.md).
+To learn more, see [SoapUI Integration](SoapUI.md).
 
 ## Startup Schedule
 

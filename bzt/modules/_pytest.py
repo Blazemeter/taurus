@@ -122,7 +122,7 @@ class PyTestExecutor(SubprocessedExecutor):
 
 
 class PyTest(PythonTool):
-    PACKAGES = ["pytest", "pytest-xdist", "apiritif"]
+    PACKAGES = ["pytest", "pytest-xdist", "apiritif", "chardet<7"]
 
 
 class TaurusPytestRunner(RequiredTool):

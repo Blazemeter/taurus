@@ -18,6 +18,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PATH="/usr/local/rbenv/bin:/usr/local/rbenv/shims:${PATH}"
 ENV RBENV_ROOT=/usr/local/rbenv
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright/browsers
+
 # ================================
 # Stage 1: System Dependencies
 # ================================
@@ -49,8 +51,11 @@ RUN apt-get update && \
 # Add NodeSource repository
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash -
 # Install Node.js
+# TODO: remove upgrade of npm to npm@11 when version in /usr/lib/node_modules/npm/node_modules/glob/package.json of npm included in nodejs
+# is >= 10.5.0 (or >= 11.1.0)
 RUN apt-get update && \
     apt-get install -y nodejs && \
+    npm i -g npm@11 && \
     rm -rf /var/lib/apt/lists/*
 
 # Download Chrome package
@@ -98,9 +103,6 @@ RUN apt-get update && \
         libyaml-dev \
         libxml2-dev \
         libxslt-dev \
-        # vulnerable libraries \
-        libexpat1=2.6.1-2ubuntu0.3 \
-        libexpat1-dev=2.6.1-2ubuntu0.3 \
         # Load testing tools
         siege \
         apache2-utils \
@@ -128,8 +130,8 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 FROM system-deps AS runtimes
 
 # Install .NET SDK
-RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.412/dotnet-sdk-8.0.412-linux-x64.tar.gz" && \
-    DOTNET_SHA512="48062e12222224845cb3f922d991c78c064a1dd056e4b1c892b606e24a27c1f5413dc42221cdcf4225dcb61e3ee025d2a77159006687009130335ac515f59304" && \
+RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.420/dotnet-sdk-8.0.420-linux-x64.tar.gz" && \
+    DOTNET_SHA512="36c68c1be9d5c6f24cd8e6bd4b6d36bfd7ab724ac7e3499fb13e42e70a9003310e5ee5759ed19ced1f0ecd3d26a55f135c7e72d6f788e7d44f5f0eaa72ad9a07" && \
     curl -fSL --output dotnet.tar.gz "${DOTNET_URL}" && \
     echo "${DOTNET_SHA512} dotnet.tar.gz" | sha512sum -c - && \
     mkdir -p /usr/share/dotnet && \
@@ -138,7 +140,7 @@ RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.412/dotnet-sd
     ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Install rbenv and Ruby
-ARG RUBY_VERSION=3.4.5
+ARG RUBY_VERSION=3.4.9
 
 RUN git clone --depth 1 https://github.com/rbenv/rbenv.git ${RBENV_ROOT} && \
     git clone --depth 1 https://github.com/rbenv/ruby-build.git ${RBENV_ROOT}/plugins/ruby-build && \
@@ -179,7 +181,9 @@ RUN python3 -m pip install --no-cache-dir --upgrade --ignore-installed \
         wheel
 
 # Install BZT package
-RUN python3 -m pip install --no-cache-dir --ignore-installed /tmp/bzt*.whl chardet
+# NOTE: chardet 7.x changed license from LGPL to MIT, which the original author disputes as illegal. It also has breaking changes.
+# Therefore, do not use chardet 7.x until the dispute is resolved. For more details see https://github.com/chardet/chardet/issues/327
+RUN python3 -m pip install --no-cache-dir --ignore-installed /tmp/bzt*.whl "chardet<7"
 
 # ================================
 # Stage 4: Browser Setup
@@ -207,6 +211,25 @@ RUN mkdir -p /etc/bzt.d /bzt-configs /tmp/artifacts
 RUN echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json && \
     echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
 
+# Pre-seed Newman dependency overrides (CVE fix) only when Newman 6.2.2 is current
+RUN npm install newman --prefix /tmp/newman-check --silent \
+ && NEWMAN_VERSION=$(node -p "require('/tmp/newman-check/node_modules/newman/package.json').version") \
+ && rm -rf /tmp/newman-check \
+ && if [ "$NEWMAN_VERSION" = "6.2.2" ] && [ ! -f /root/.bzt/newman/package.json ]; then \
+        echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, lodash, uuid, underscore)" \
+     && mkdir -p /root/.bzt/newman \
+     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.9",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
+    elif [ "$NEWMAN_VERSION" != "6.2.2" ]; then \
+        echo "WARNING: Newman $NEWMAN_VERSION found (expected 6.2.2); skipping dependency overrides"; \
+    fi
+
+# Pre-seed Mocha dependency overrides (CVE fix for serialize-javascript)
+RUN mkdir -p /root/.bzt/selenium-taurus/mocha \
+ && if [ ! -f /root/.bzt/selenium-taurus/mocha/package.json ]; then \
+        echo "Applying Mocha dependency overrides for CVE fix (serialize-javascript)" \
+     && printf '{\n  "overrides": {\n    "serialize-javascript": "^7.0.5"\n  }\n}\n' > /root/.bzt/selenium-taurus/mocha/package.json; \
+    fi
+
 # Install BZT tools
 RUN bzt -install-tools -v
 
@@ -217,15 +240,6 @@ RUN google-chrome-stable --version && \
     node --version && \
     python3 --version && \
     ruby --version
-
-#  force npm to use cross-spawn@7.0.5, this block can be removed when new version of nodejs uses cross-spawn@7.0.5
-RUN npm_root=$(npm root -g) \
- && npm pack cross-spawn@7.0.5 -q \
- && mkdir -p "$npm_root/npm/node_modules/cross-spawn" \
- && tar -xzf cross-spawn-7.0.5.tgz \
-       --strip-components=1 \
-       -C "$npm_root/npm/node_modules/cross-spawn" \
- && rm cross-spawn-7.0.5.tgz
 
 # Cleanup
 RUN apt-get remove -y \
@@ -242,15 +256,29 @@ RUN apt-get remove -y \
            /usr/share/doc
 
 # update dotnet metadata to make scanners happy
-RUN if [ -f /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json ]; then \
-      sed -i 's/17\.3\.4/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; \
+RUN for f in \
+      /usr/share/dotnet/sdk/8.0.420/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
+      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/VBCSCompiler.deps.json \
+      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/csc.deps.json \
+      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/vbc.deps.json \
+      /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; do \
+      [ -f "$f" ] && sed -i 's/17\.10\.41/17.14.28/g' "$f" || true; \
+    done
+RUN find /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-watch -name "*.deps.json" \
+      -exec grep -lF "17.10.41" {} \; | \
+    xargs -r sed -i 's/17\.10\.41/17.14.28/g'
+RUN if [ -f /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json ]; then \
+      sed -i 's/17\.11\.31/17.11.48/g' /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json; \
     fi
-RUN if [ -f /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-watch/8.0.412-servicing.25320.8/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json ]; then \
-      sed -i 's/17\.3\.4/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/DotnetTools/dotnet-watch/8.0.412-servicing.25320.8/tools/net8.0/any/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; \
-    fi
-RUN if [ -f /usr/share/dotnet/sdk/8.0.412/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json ]; then \
-      sed -i 's/17\.7\.2/17.11.31/g' /usr/share/dotnet/sdk/8.0.412/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json; \
-    fi
+RUN for f in \
+      /usr/share/dotnet/sdk/8.0.420/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
+      /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json; do \
+      [ -f "$f" ] && sed -i \
+        -e 's|System\.Security\.Cryptography\.Xml/[0-9][0-9.]*|System.Security.Cryptography.Xml/8.0.3|g' \
+        -e 's|"System\.Security\.Cryptography\.Xml": "[0-9][0-9.]*"|"System.Security.Cryptography.Xml": "8.0.3"|g' \
+        "$f" || true; \
+    done
+
 
 # Remove security-sensitive files
 WORKDIR /root/.bzt/python-packages/3.12.3/gevent/tests
