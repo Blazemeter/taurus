@@ -230,6 +230,7 @@ class RemoteExecutor(ReportableExecutor, TransactionProvider):
         self.bridge_command_url = self.bridge_url.rstrip("/") + "/command"
         self.bridge_upload_url = self.bridge_url.rstrip("/") + "/upload?path="
         self.file_url = self.bridge_url.rstrip("/") + "/file"
+        self.bridge_list_url = self.bridge_url.rstrip("/") + "/list"
         self.bridge_os = self.settings.get("remote-os", os.environ.get("REMOTE_OS", 'windows')).lower()
         self.remote_root_path = self.settings.get("remote-root-path", os.environ.get("REMOTE_ROOT_PATH", None))
         if not self.remote_root_path:
@@ -285,6 +286,16 @@ class RemoteExecutor(ReportableExecutor, TransactionProvider):
             files = {"file": ('file', f, "text/plain")}
             encoded_test_path = quote(remote_file_path)
             requests.post(self.bridge_upload_url + encoded_test_path, files=files)
+
+    def list_files(self, path, glob):
+        """
+        List remote files matching a glob via the bridge.
+        :return: list of {"name": str, "size": int}
+        """
+        response = requests.get(self.bridge_list_url, params={"path": path, "glob": glob})
+        if response.status_code != 200:
+            raise ToolError(f"Bridge list failed with status code {response.status_code}: {response.text}")
+        return response.json().get("files", [])
 
 
 def resource_files(self):

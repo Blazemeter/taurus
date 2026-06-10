@@ -16,13 +16,15 @@ limitations under the License.
 import copy
 import os
 import shutil
+import subprocess
+import sys
 import time
 import re
 import requests
 from abc import abstractmethod
 
 from bzt import TaurusConfigError
-from bzt.modules import ReportableExecutor
+from bzt.modules import ReportableExecutor, RemoteExecutor
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.services import PythonTool
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac_x86, unzip, untar, \
@@ -433,3 +435,152 @@ class GeckoDriver(WebDriver):
 
             if not is_windows():
                 os.chmod(self.tool_path, 0o755)
+
+
+class RemoteSeleniumExecutor(SeleniumExecutor):
+    """
+    Runs apiritif-based Selenium tests on a remote host via the Taurus Bridge.
+    Non-apiritif runner types fall back to normal SeleniumExecutor behavior.
+    """
+
+    def __init__(self):
+        super(RemoteSeleniumExecutor, self).__init__()
+        self.remote_executor = RemoteExecutor()
+        self._is_remote_apiritif = False
+        self._pulled_files = set()
+        self.report_type = None
+        self.remote_script_path = None
+
+    def create_func_reader(self, report_file):
+        del report_file
+        # imported lazily to avoid a circular import (_apiritif.executor imports Selenium)
+        from bzt.modules._apiritif.executor import ApiritifFuncReader
+        return ApiritifFuncReader(self.engine, self.log)
+
+    def create_load_reader(self, report_file):
+        del report_file
+        # imported lazily to avoid a circular import (_apiritif.executor imports Selenium)
+        from bzt.modules._apiritif.executor import ApiritifLoadReader
+        reader = ApiritifLoadReader(self.log)
+        reader.engine = self.engine
+        return reader
+
+    def prepare(self):
+        if self.get_runner_type() != "apiritif":
+            super(RemoteSeleniumExecutor, self).prepare()
+            return
+        self._is_remote_apiritif = True
+
+        # propagate context so the bridge client can read settings/env and reach the host
+        self.remote_executor.engine = self.engine
+        self.remote_executor.settings = self.settings
+        self.remote_executor.execution = self.execution
+        self.remote_executor.prepare()
+
+        # reuse Selenium's apiritif runner only to generate the Python test script.
+        # NOTE: intentionally do NOT call install_required_tools() — local webdrivers are
+        # not needed for the remote run, and the base method would download them.
+        self.create_runner()
+        self.runner.register_reader = False  # we own the reader, not the runner
+        self.runner.prepare()
+        self.script = self.runner.script
+
+        # upload the generated script + any scenario data sources
+        self.remote_script_path = self.remote_executor.remote_artifacts_path + '/' + os.path.basename(self.script)
+        self.remote_executor.upload_file(self.script, self.remote_script_path)
+        for source in self.get_scenario().get_data_sources():
+            ds_path = source['path']
+            if os.path.exists(ds_path):
+                remote_ds = self.remote_executor.remote_artifacts_path + '/' + os.path.basename(ds_path)
+                self.remote_executor.upload_file(ds_path, remote_ds)
+            else:
+                self.log.warning("Data source %s does not exist, skipping upload", ds_path)
+
+        # set up the apiritif multi-file reader (functional .ldjson / load .csv)
+        self.report_type = ".ldjson" if self.engine.is_functional_mode() else ".csv"
+        self.reporting_setup(prefix="RemoteSeleniumExecutor", suffix=self.report_type)
+
+    def startup(self):
+        if not self._is_remote_apiritif:
+            super(RemoteSeleniumExecutor, self).startup()
+            return
+        self.start_time = time.time()
+        interpreter = self.settings.get("interpreter", "python")
+        remote_tpl = self.remote_executor.remote_artifacts_path + '/apiritif.%s' + self.report_type
+        cmdline = [interpreter, '-m', 'apiritif.loadgen', '--result-file-template', remote_tpl]
+
+        load = self.runner.get_load()
+        if load.concurrency:
+            cmdline += ['--concurrency', str(load.concurrency)]
+        if load.iterations:
+            cmdline += ['--iterations', str(load.iterations)]
+        if load.hold:
+            cmdline += ['--hold-for', str(load.hold)]
+        if load.ramp_up:
+            cmdline += ['--ramp-up', str(load.ramp_up)]
+        if load.steps:
+            cmdline += ['--steps', str(load.steps)]
+        cmdline += [self.remote_script_path]
+
+        command = ' '.join(cmdline)
+        if self.remote_executor.bridge_os == 'windows':
+            command = command.replace("/", "\\")
+        self.remote_executor.runner_pid = self.remote_executor.command(
+            command, wait_for_completion=False,
+            workingDir=self.remote_executor.remote_artifacts_path).get('pid')
+
+    def check(self):
+        if not self._is_remote_apiritif:
+            return super(RemoteSeleniumExecutor, self).check()
+        if self.widget:
+            self.widget.update()
+        self._discover_and_pull()
+        return self.remote_executor.check()
+
+    def shutdown(self):
+        if not self._is_remote_apiritif:
+            super(RemoteSeleniumExecutor, self).shutdown()
+            return
+        self.remote_executor.shutdown()
+        self.report_test_duration()
+
+    def post_process(self):
+        if not self._is_remote_apiritif:
+            super(RemoteSeleniumExecutor, self).post_process()
+            return
+        # one final discovery pass to register any late-arriving result files
+        self._discover_and_pull()
+
+    def get_error_diagnostics(self):
+        if not self._is_remote_apiritif:
+            return super(RemoteSeleniumExecutor, self).get_error_diagnostics()
+        return []
+
+    def has_results(self):
+        if not self._is_remote_apiritif:
+            return super(RemoteSeleniumExecutor, self).has_results()
+        return bool(self.reader) and bool(self.reader.read_records)
+
+    def _discover_and_pull(self):
+        glob = 'apiritif.*' + self.report_type
+        for entry in self.remote_executor.list_files(self.remote_executor.remote_artifacts_path, glob):
+            name = entry["name"]
+            if name in self._pulled_files or entry.get("size", 0) == 0:
+                continue
+            self._pulled_files.add(name)
+            remote_path = self.remote_executor.remote_artifacts_path + '/' + name
+            local_path = os.path.join(self.engine.artifacts_dir, name)
+            self._start_puller(remote_path, local_path)
+            self.reader.register_file(local_path)
+
+    def _start_puller(self, remote_path, local_path):
+        interpreter = self.settings.get("interpreter", sys.executable)
+        cmd = [
+            interpreter,
+            "/tmp/bridge_file_puller.py",
+            self.remote_executor.file_url,
+            str(1024 * 1024),
+            remote_path.replace('/', '\\') if self.remote_executor.bridge_os == 'windows' else remote_path,
+            local_path,
+        ]
+        subprocess.Popen(cmd, start_new_session=True, close_fds=True)

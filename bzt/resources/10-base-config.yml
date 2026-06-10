@@ -25,7 +25,7 @@ modules:
 
   # selenium & functional executors
   selenium:
-    class: bzt.modules._selenium.SeleniumExecutor
+    class: bzt.modules._selenium.RemoteSeleniumExecutor
   junit:
     class: bzt.modules.java.RemoteJUnitTester
   testng:
