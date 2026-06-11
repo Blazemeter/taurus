@@ -37,6 +37,7 @@ class RemotePyTestExecutor(RemoteExecutor):
         self._additional_args = []
 
     def prepare(self):
+        self.log.info("Starting RemotePyTestExecutor")
         super(RemotePyTestExecutor, self).prepare()
         self.install_required_tools()
         self.script = self.get_script_path()

@@ -1832,6 +1832,7 @@ class RemoteJmeterExecutor(JMeterExecutor):
         self.runner_pid = 0
 
     def prepare(self):
+        self.log.info("Starting RemoteJmeterExecutor")
         self.remote_executor.prepare()
         super().prepare()
 

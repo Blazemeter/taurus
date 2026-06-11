@@ -470,6 +470,7 @@ class RemoteSeleniumExecutor(SeleniumExecutor):
             super(RemoteSeleniumExecutor, self).prepare()
             return
         self._is_remote_apiritif = True
+        self.log.info("Starting RemoteSeleniumExecutor")
 
         # propagate context so the bridge client can read settings/env and reach the host
         self.remote_executor.engine = self.engine

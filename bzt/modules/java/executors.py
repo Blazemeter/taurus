@@ -305,6 +305,7 @@ class RemoteJUnitTester(JUnitTester):
         self.remote_java_classes = []
 
     def prepare(self):
+        self.log.info("Starting RemoteJUnitTester")
         self.remote_executor.prepare()
         # upload mandatory jars
         self.log.info("Downloading mandatory JARs to remote host")
