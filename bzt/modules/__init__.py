@@ -231,13 +231,21 @@ class RemoteExecutor(ReportableExecutor, TransactionProvider):
         self.bridge_upload_url = self.bridge_url.rstrip("/") + "/upload?path="
         self.file_url = self.bridge_url.rstrip("/") + "/file"
         self.bridge_list_url = self.bridge_url.rstrip("/") + "/list"
-        self.bridge_os = self.settings.get("remote-os", os.environ.get("REMOTE_OS", 'windows')).lower()
-        self.remote_root_path = self.settings.get("remote-root-path", os.environ.get("REMOTE_ROOT_PATH", None))
-        if not self.remote_root_path:
-            self.remote_root_path = self.command('echo %TEMP%')['output']
-        if self.bridge_os == 'windows':
-            self.remote_root_path = self.remote_root_path.replace('\\', '/')
-        self.log.info('Remote root path: %s', self.remote_root_path)
+        self.bridge_info_url = self.bridge_url.rstrip("/") + "/info"
+
+        info = {}
+        try:
+            response = requests.get(self.bridge_info_url)
+            info = response.json()
+        except Exception:
+            pass
+
+        self.remote_root_path = info.get("rootPath", "%TEMP%")
+        explicit_os = self.settings.get("remote-os", os.environ.get("REMOTE_OS", None))
+        self.bridge_os = explicit_os.lower() if explicit_os else info.get("os", "windows")
+
+        source = "bridge /info" if info else "fallback (%TEMP%)"
+        self.log.info("Remote root path (%s): %s", source, self.remote_root_path)
 
         artifacts_dir = datetime.now().strftime("%Y-%m-%d-%Hh-%Mm-%Ss-") \
                         + str(datetime.now().microsecond // 1000).zfill(3) + "ms"
