@@ -234,17 +234,19 @@ class RemoteExecutor(ReportableExecutor, TransactionProvider):
         self.bridge_info_url = self.bridge_url.rstrip("/") + "/info"
 
         info = {}
+        bridge_reachable = False
         try:
             response = requests.get(self.bridge_info_url)
             info = response.json()
-        except Exception:
-            pass
+            bridge_reachable = True
+        except Exception as e:
+            self.log.debug("Failed to fetch bridge /info, falling back to defaults: %s", e)
 
         self.remote_root_path = info.get("rootPath", "%TEMP%")
         explicit_os = self.settings.get("remote-os", os.environ.get("REMOTE_OS", None))
         self.bridge_os = explicit_os.lower() if explicit_os else info.get("os", "windows")
 
-        source = "bridge /info" if info else "fallback (%TEMP%)"
+        source = "bridge /info" if bridge_reachable else "fallback (%TEMP%)"
         self.log.info("Remote root path (%s): %s", source, self.remote_root_path)
 
         artifacts_dir = datetime.now().strftime("%Y-%m-%d-%Hh-%Mm-%Ss-") \
