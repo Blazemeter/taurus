@@ -7,7 +7,7 @@ modules:
   gatling:
     class: bzt.modules.gatling.GatlingExecutor
   jmeter:
-    class: bzt.modules.jmeter.JMeterExecutor
+    class: bzt.modules.jmeter.RemoteJmeterExecutor
     protocol-handlers:
       http: bzt.jmx.http.HTTPProtocolHandler
       mqtt: bzt.jmx.mqtt.MQTTProtocolHandler
@@ -25,9 +25,9 @@ modules:
 
   # selenium & functional executors
   selenium:
-    class: bzt.modules._selenium.SeleniumExecutor
+    class: bzt.modules._selenium.RemoteSeleniumExecutor
   junit:
-    class: bzt.modules.java.JUnitTester
+    class: bzt.modules.java.RemoteJUnitTester
   testng:
     class: bzt.modules.java.TestNGTester
   mocha:
@@ -37,7 +37,7 @@ modules:
   xunit:
     class: bzt.modules.csharp.XUnitExecutor
   pytest:
-    class: bzt.modules._pytest.PyTestExecutor
+    class: bzt.modules._remote_pytest.RemotePyTestExecutor
   robot:
     class: bzt.modules.robot.RobotExecutor
   newman:
