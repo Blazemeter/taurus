@@ -15,6 +15,10 @@ class FakeResponse:
     def json(self):
         return self._payload
 
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise Exception(f"HTTP {self.status_code}")
+
 
 class TestRemoteExecutorListFiles(BZTestCase):
     def test_list_files_parses_files(self):

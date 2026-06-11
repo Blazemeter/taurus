@@ -237,6 +237,7 @@ class RemoteExecutor(ReportableExecutor, TransactionProvider):
         bridge_reachable = False
         try:
             response = requests.get(self.bridge_info_url)
+            response.raise_for_status()
             info = response.json()
             bridge_reachable = True
         except Exception as e:
