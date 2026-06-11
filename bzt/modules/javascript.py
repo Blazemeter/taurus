@@ -235,7 +235,7 @@ class PlaywrightLogReader(ResultsReader):
                    self._safe_ms_to_s(content.get("latency",  None)),
                    "", # return code
                    self._strip_ansi(content.get("error", None)),
-                   self._strip_ansi(content.get("runDetails", None)),
+                   "", # source id
                    content.get("byte_count", 0))
 
 
