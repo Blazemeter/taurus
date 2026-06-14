@@ -14,14 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-import subprocess
-import sys
 import time
 from os import listdir
 from os.path import join
 
 from bzt import ToolError
 from bzt.modules import SubprocessedExecutor, RemoteExecutor
+from bzt.modules._bridge_file_puller import BridgeFilePuller
 from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, BetterDict, get_assembled_value
@@ -303,6 +302,7 @@ class RemoteJUnitTester(JUnitTester):
         self.remote_jars = []
         self.remote_java_files = []
         self.remote_java_classes = []
+        self._pullers = []
 
     def prepare(self):
         self.log.info("Starting RemoteJUnitTester")
@@ -527,17 +527,14 @@ class RemoteJUnitTester(JUnitTester):
         self.remote_executor.runner_pid \
             = self.remote_executor.command(' '.join(junit_cmd_line).replace("/", "\\"), wait_for_completion=False,
                                            workingDir=self.remote_executor.remote_artifacts_path).get('pid')
-        executable = self.settings.get("interpreter", sys.executable)
-        cmd = [
-            executable,
-            "/tmp/bridge_file_puller.py",
-            self.remote_executor.file_url,
-            str(1024 * 1024),
-            self.remote_report_path.replace('/', '\\'),
-            '/tmp/artifacts/RemoteJUnitTester' + self.report_file_suffix
-        ]
-        # Detach child process using setsid (Linux/Unix)
-        subprocess.Popen(cmd, start_new_session=True, close_fds=True)
+        p = BridgeFilePuller(
+            file_url=self.remote_executor.file_url,
+            remote_path=self.remote_report_path.replace('/', '\\'),
+            local_path='/tmp/artifacts/RemoteJUnitTester' + self.report_file_suffix,
+            log=self.log,
+        )
+        p.start()
+        self._pullers.append(p)
 
     def check(self):
         return self.remote_executor.check()
@@ -546,6 +543,8 @@ class RemoteJUnitTester(JUnitTester):
         pass
 
     def shutdown(self):
+        for p in self._pullers:
+            p.stop()
         self.remote_executor.shutdown()
 
 
