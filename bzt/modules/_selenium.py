@@ -16,8 +16,6 @@ limitations under the License.
 import copy
 import os
 import shutil
-import subprocess
-import sys
 import time
 import re
 import requests
@@ -25,6 +23,7 @@ from abc import abstractmethod
 
 from bzt import TaurusConfigError
 from bzt.modules import ReportableExecutor, RemoteExecutor
+from bzt.modules._bridge_file_puller import BridgeFilePuller
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.services import PythonTool
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, is_windows, is_mac_x86, unzip, untar, \
@@ -448,6 +447,7 @@ class RemoteSeleniumExecutor(SeleniumExecutor):
         self.remote_executor = RemoteExecutor()
         self._is_remote_apiritif = False
         self._pulled_files = set()
+        self._pullers = []
         self.report_type = None
         self.remote_script_path = None
 
@@ -542,6 +542,8 @@ class RemoteSeleniumExecutor(SeleniumExecutor):
         if not self._is_remote_apiritif:
             super(RemoteSeleniumExecutor, self).shutdown()
             return
+        for p in self._pullers:
+            p.stop()
         self.remote_executor.shutdown()
         self.report_test_duration()
 
@@ -575,13 +577,11 @@ class RemoteSeleniumExecutor(SeleniumExecutor):
             self.reader.register_file(local_path)
 
     def _start_puller(self, remote_path, local_path):
-        interpreter = self.settings.get("interpreter", sys.executable)
-        cmd = [
-            interpreter,
-            "/tmp/bridge_file_puller.py",
-            self.remote_executor.file_url,
-            str(1024 * 1024),
-            remote_path.replace('/', '\\') if self.remote_executor.bridge_os == 'windows' else remote_path,
-            local_path,
-        ]
-        subprocess.Popen(cmd, start_new_session=True, close_fds=True)
+        p = BridgeFilePuller(
+            file_url=self.remote_executor.file_url,
+            remote_path=remote_path.replace('/', '\\') if self.remote_executor.bridge_os == 'windows' else remote_path,
+            local_path=local_path,
+            log=self.log,
+        )
+        p.start()
+        self._pullers.append(p)

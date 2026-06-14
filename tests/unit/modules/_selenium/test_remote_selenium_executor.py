@@ -145,7 +145,8 @@ class TestRemoteSeleniumExecutor(SeleniumTestCase):
         registered = []
         self.obj.reader.register_file = lambda f: registered.append(f)
 
-        with mock.patch("bzt.modules._selenium.subprocess.Popen") as popen:
+        with mock.patch("bzt.modules._selenium.BridgeFilePuller") as MockPuller:
+            mock_instance = MockPuller.return_value
             # tick 1: one ready file + one empty file (skipped)
             self.obj.remote_executor._list = [
                 {"name": "apiritif.0.csv", "size": 12},
@@ -161,7 +162,8 @@ class TestRemoteSeleniumExecutor(SeleniumTestCase):
             [os.path.join(self.obj.engine.artifacts_dir, "apiritif.0.csv"),
              os.path.join(self.obj.engine.artifacts_dir, "apiritif.1.csv")],
             registered)
-        self.assertEqual(2, popen.call_count)  # one puller spawned per file, once each
+        self.assertEqual(2, MockPuller.call_count)
+        self.assertEqual(2, mock_instance.start.call_count)
 
     def test_shutdown_and_post_process_use_remote_executor(self):
         self.configure({
