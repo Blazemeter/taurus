@@ -17,12 +17,11 @@ import multiprocessing
 import os
 import re
 import shlex
-import subprocess
-import sys
 
 from bzt import TaurusConfigError
 from bzt.engine import SETTINGS, Provisioning
 from bzt.modules import ScenarioExecutor, RemoteExecutor
+from bzt.modules._bridge_file_puller import BridgeFilePuller
 from bzt.modules.services import PythonTool
 from bzt.utils import RESOURCES_DIR, RequiredTool
 
@@ -35,6 +34,7 @@ class RemotePyTestExecutor(RemoteExecutor):
         super(RemotePyTestExecutor, self).__init__()
         self.runner_path = os.path.join(RESOURCES_DIR, "pytest_runner.py")
         self._additional_args = []
+        self._pullers = []
 
     def prepare(self):
         self.log.info("Starting RemotePyTestExecutor")
@@ -99,17 +99,19 @@ class RemotePyTestExecutor(RemoteExecutor):
         cmdline += [remote_test_path]
         self.runner_pid = self.command(' '.join(cmdline).replace("/", "\\"), wait_for_completion=False,
                                        workingDir=self.remote_artifacts_path).get('pid')
-        executable = self.settings.get("interpreter", sys.executable)
-        cmd = [
-            executable,
-            "/tmp/bridge_file_puller.py",
-            self.file_url,
-            str(1024 * 1024),
-            self.remote_report_path.replace('/', '\\'),
-            '/tmp/artifacts/RemotePyTestExecutor.ldjson'
-        ]
-        # Detach child process using setsid (Linux/Unix)
-        subprocess.Popen(cmd, start_new_session=True, close_fds=True)
+        p = BridgeFilePuller(
+            file_url=self.file_url,
+            remote_path=self.remote_report_path.replace('/', '\\'),
+            local_path='/tmp/artifacts/RemotePyTestExecutor.ldjson',
+            log=self.log,
+        )
+        p.start()
+        self._pullers.append(p)
+
+    def shutdown(self):
+        for p in self._pullers:
+            p.stop()
+        super(RemotePyTestExecutor, self).shutdown()
 
     def post_process(self):
         super(RemotePyTestExecutor, self).post_process()
