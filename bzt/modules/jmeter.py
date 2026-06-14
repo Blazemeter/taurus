@@ -23,8 +23,6 @@ import os
 import re
 import shutil
 import socket
-import subprocess
-import sys
 import tempfile
 import time
 import traceback
@@ -42,6 +40,7 @@ from bzt.engine import Scenario, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor, try_convert
 from bzt.modules import RemoteExecutor
+from bzt.modules._bridge_file_puller import BridgeFilePuller
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ErrorResponseData, \
     ERROR_RESPONSE_BODIES_SIZE_LIMIT, ERROR_RESPONSE_BODIES_LIMIT
 from bzt.modules.console import ExecutorWidget
@@ -1830,6 +1829,7 @@ class RemoteJmeterExecutor(JMeterExecutor):
         super(RemoteJmeterExecutor, self).__init__()
         self.remote_executor = RemoteExecutor()
         self.runner_pid = 0
+        self._pullers = []
 
     def prepare(self):
         self.log.info("Starting RemoteJmeterExecutor")
@@ -1881,33 +1881,25 @@ class RemoteJmeterExecutor(JMeterExecutor):
             = self.remote_executor.command(' '.join(cmdline).replace("/", "\\"), wait_for_completion=False,
                                            workingDir=self.remote_executor.remote_artifacts_path,
                                            use_shell=True).get('pid')
-        executable = self.settings.get("interpreter", sys.executable)
-        # pull kpi,jtl
-        cmd = [
-            executable,
-            "/tmp/bridge_file_puller.py",
-            self.remote_executor.file_url,
-            str(1024 * 1024),
-            self.remote_kpi_path.replace('/', '\\'),
-            '/tmp/artifacts/kpi.jtl'
-        ]
-        subprocess.Popen(cmd, start_new_session=True, close_fds=True)
-        # pull error.jtl
-        cmd = [
-            executable,
-            "/tmp/bridge_file_puller.py",
-            self.remote_executor.file_url,
-            str(1024 * 1024),
-            self.remote_error_path.replace('/', '\\'),
-            '/tmp/artifacts/error.jtl'
-        ]
-        # Detach child process using setsid (Linux/Unix)
-        subprocess.Popen(cmd, start_new_session=True, close_fds=True)
+        for remote_path, local_path in [
+            (self.remote_kpi_path.replace('/', '\\'), '/tmp/artifacts/kpi.jtl'),
+            (self.remote_error_path.replace('/', '\\'), '/tmp/artifacts/error.jtl'),
+        ]:
+            p = BridgeFilePuller(
+                file_url=self.remote_executor.file_url,
+                remote_path=remote_path,
+                local_path=local_path,
+                log=self.log,
+            )
+            p.start()
+            self._pullers.append(p)
 
     def check(self):
         return self.remote_executor.check()
 
     def shutdown(self):
+        for p in self._pullers:
+            p.stop()
         self.remote_executor.shutdown()
 
     def install_required_tools(self):
