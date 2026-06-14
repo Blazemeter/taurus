@@ -3,7 +3,6 @@ import logging
 import os
 import tempfile
 import threading
-import time
 from unittest import mock
 
 from tests.unit import BZTestCase
@@ -47,12 +46,14 @@ class TestBridgeFilePuller(BZTestCase):
         try:
             puller = _make_puller(path)
             call_count = [0]
+            seen_offsets = []
             payloads = [
                 {"chunk": chunk1, "limit": 5},
                 {"chunk": chunk2, "limit": 6},
             ]
 
             def fake_get(url, params=None):
+                seen_offsets.append(params.get("offset", 0))
                 idx = call_count[0]
                 call_count[0] += 1
                 if idx < len(payloads):
@@ -64,8 +65,11 @@ class TestBridgeFilePuller(BZTestCase):
                 puller.start()
                 puller.join(timeout=5)
 
+            self.assertFalse(puller.is_alive(), "puller did not stop within timeout")
             with open(path, "rb") as f:
                 self.assertEqual(b"hello world", f.read())
+            self.assertEqual(0, seen_offsets[0])
+            self.assertEqual(5, seen_offsets[1])   # advanced by len(b"hello")
         finally:
             os.unlink(path)
 
@@ -74,13 +78,15 @@ class TestBridgeFilePuller(BZTestCase):
             path = f.name
         try:
             puller = _make_puller(path)
+            first_call = threading.Event()
 
             def fake_get(url, params=None):
+                first_call.set()
                 return FakeResp(200, {"chunk": "", "limit": 0})
 
             with mock.patch("bzt.modules._bridge_file_puller.requests.get", side_effect=fake_get):
                 puller.start()
-                time.sleep(0.05)
+                first_call.wait(timeout=3)
                 puller.stop()
                 puller.join(timeout=3)
 

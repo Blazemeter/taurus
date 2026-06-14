@@ -40,11 +40,13 @@ class BridgeFilePuller(threading.Thread):
                         continue
                     data = resp.json()
                     chunk_b64 = data.get("chunk", "")
-                    resp_limit = data.get("limit", self.CHUNK_SIZE)
                     if chunk_b64:
-                        f.write(base64.b64decode(chunk_b64))
+                        chunk_bytes = base64.b64decode(chunk_b64)
+                        f.write(chunk_bytes)
                         f.flush()
-                    offset += resp_limit
+                        offset += len(chunk_bytes)
+                    else:
+                        self._stop_event.wait(1)
                 except Exception:
                     self.log.debug("BridgeFilePuller: request error, retrying", exc_info=True)
-                self._stop_event.wait(1)
+                    self._stop_event.wait(1)
