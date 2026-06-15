@@ -530,7 +530,7 @@ class RemoteJUnitTester(JUnitTester):
         p = BridgeFilePuller(
             file_url=self.remote_executor.file_url,
             remote_path=self.remote_report_path.replace('/', '\\'),
-            local_path='/tmp/artifacts/RemoteJUnitTester' + self.report_file_suffix,
+            local_path=self.report_file,
             log=self.log,
         )
         p.start()

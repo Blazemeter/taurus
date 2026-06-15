@@ -102,7 +102,7 @@ class RemotePyTestExecutor(RemoteExecutor):
         p = BridgeFilePuller(
             file_url=self.file_url,
             remote_path=self.remote_report_path.replace('/', '\\'),
-            local_path='/tmp/artifacts/RemotePyTestExecutor.ldjson',
+            local_path=self.report_file,
             log=self.log,
         )
         p.start()

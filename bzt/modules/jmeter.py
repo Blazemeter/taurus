@@ -1882,8 +1882,8 @@ class RemoteJmeterExecutor(JMeterExecutor):
                                            workingDir=self.remote_executor.remote_artifacts_path,
                                            use_shell=True).get('pid')
         for remote_path, local_path in [
-            (self.remote_kpi_path.replace('/', '\\'), '/tmp/artifacts/kpi.jtl'),
-            (self.remote_error_path.replace('/', '\\'), '/tmp/artifacts/error.jtl'),
+            (self.remote_kpi_path.replace('/', '\\'), self.kpi_jtl),
+            (self.remote_error_path.replace('/', '\\'), self.log_jtl),
         ]:
             p = BridgeFilePuller(
                 file_url=self.remote_executor.file_url,
