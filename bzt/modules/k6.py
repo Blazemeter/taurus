@@ -17,7 +17,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.modules import ScenarioExecutor
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
-from bzt.utils import RequiredTool, CALL_PROBLEMS, FileReader, shutdown_process
+from bzt.utils import RequiredTool, CALL_PROBLEMS, FileReader, shutdown_process, dehumanize_time, numeric_types
 
 
 class K6Executor(ScenarioExecutor):
@@ -47,7 +47,13 @@ class K6Executor(ScenarioExecutor):
             self.engine.aggregator.add_underling(self.reader)
 
     def startup(self):
-        cmdline = [self.k6.tool_name, "run", "--out", f"csv={self.kpi_file}"]
+
+        modifs = self.get_scenario().get('modifications')
+
+        if 'disable' in modifs:
+            cmdline = [self.k6.tool_name, "run"] #, "--out", f"csv={self.kpi_file}"]
+        else:
+            cmdline = [self.k6.tool_name, "run", "--out", f"csv={self.kpi_file}"]
 
         load = self.get_load()
         #using stages with duration/iteration is not allowed
@@ -75,6 +81,55 @@ class K6Executor(ScenarioExecutor):
 
         cmdline += [self.script]
         self.process = self._execute(cmdline)
+
+    def get_load(self):
+        def eval_int(value):
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                return value
+
+        def eval_float(value):
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                return value
+            
+        raw_load = self.get_raw_load()
+
+        iterations = eval_int(raw_load.iterations or 0)
+        ramp_up = raw_load.ramp_up
+
+        throughput = eval_float(raw_load.throughput or 0)
+        concurrency = eval_int(raw_load.concurrency or 0)
+
+        steps = eval_int(raw_load.steps)
+        hold = dehumanize_time(raw_load.hold or 0)
+
+        if ramp_up is None:
+            duration = hold
+        else:
+            ramp_up = dehumanize_time(raw_load.ramp_up)
+            duration = hold + ramp_up
+
+        msg = ''
+        if not isinstance(concurrency, numeric_types + (type(None),)):
+            msg += "Invalid concurrency value[%s]: %s " % (type(concurrency).__name__, concurrency)
+        if not isinstance(throughput, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(throughput).__name__, throughput)
+        if not isinstance(steps, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(steps).__name__, steps)
+        if not isinstance(iterations, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(iterations).__name__, iterations)
+
+        if msg:
+            raise TaurusConfigError(msg)
+
+        return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
+                             iterations=iterations, duration=duration, steps=steps)
+
+ 
+
 
     def get_widget(self):
         if not self.widget:
