@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.16.51<sup> 15 June 2026</sup>
+- Playwright executor fixes
+- Selenium executor fixes
+- Vulnerability fixes
+
 ## 1.16.50<sup> 27 April 2026</sup>
 - Playwright executor fixes
 - Improved happysocks integration
