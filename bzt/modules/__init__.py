@@ -23,7 +23,7 @@ from urllib.parse import quote
 import requests
 
 from bzt import ToolError
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, SETTINGS
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader, LinuxFuncSamplesReader, \
@@ -222,10 +222,12 @@ class RemoteExecutor(ReportableExecutor, TransactionProvider):
         self.runner_pid = 0
 
     def prepare(self):
-        self.bridge_url = self.settings.get("bridge-url", os.environ.get("BRIDGE_URL", None))
+        self.bridge_url = (self.settings.get("bridge-url", None)
+                           or self.engine.config.get(SETTINGS).get("bridge-url", None)
+                           or os.environ.get("BRIDGE_URL", None))
         if not self.bridge_url:
             self.log.warning("Bridge URL is not set. Please set 'bridge-url' "
-                             "in the executor settings or BRIDGE_URL environment variable.")
+                             "in the executor settings, under 'settings:', or BRIDGE_URL environment variable.")
             pass
         self.bridge_command_url = self.bridge_url.rstrip("/") + "/command"
         self.bridge_upload_url = self.bridge_url.rstrip("/") + "/upload?path="

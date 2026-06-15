@@ -4,6 +4,7 @@ from bzt import ToolError
 from bzt.modules import RemoteExecutor
 from bzt.utils import BetterDict
 from tests.unit import BZTestCase
+from tests.unit.mocks import EngineEmul
 
 
 class FakeResponse:
@@ -87,3 +88,32 @@ class TestRemoteExecutorPrepare(BZTestCase):
                         return_value=mkdir_response):
             obj.prepare()
         self.assertEqual("http://bridge:8080/info", obj.bridge_info_url)
+
+    def test_prepare_reads_bridge_url_from_global_settings(self):
+        obj = RemoteExecutor()
+        obj.settings = BetterDict()  # no bridge-url in module settings
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({"settings": {"bridge-url": "http://global:9090"}})
+        info_payload = {"rootPath": "C:/art", "os": "windows"}
+        mkdir_response = FakeResponse(200, {"output": "", "pid": 0})
+        with mock.patch("bzt.modules.requests.get",
+                        return_value=FakeResponse(200, info_payload)), \
+             mock.patch("bzt.modules.requests.post",
+                        return_value=mkdir_response):
+            obj.prepare()
+        self.assertEqual("http://global:9090", obj.bridge_url)
+
+    def test_prepare_module_setting_overrides_global_settings(self):
+        obj = RemoteExecutor()
+        obj.settings = BetterDict()
+        obj.settings.merge({"bridge-url": "http://module:8080"})
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({"settings": {"bridge-url": "http://global:9090"}})
+        info_payload = {"rootPath": "C:/art", "os": "windows"}
+        mkdir_response = FakeResponse(200, {"output": "", "pid": 0})
+        with mock.patch("bzt.modules.requests.get",
+                        return_value=FakeResponse(200, info_payload)), \
+             mock.patch("bzt.modules.requests.post",
+                        return_value=mkdir_response):
+            obj.prepare()
+        self.assertEqual("http://module:8080", obj.bridge_url)
