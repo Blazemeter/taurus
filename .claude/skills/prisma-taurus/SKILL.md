@@ -408,9 +408,9 @@ CVEs fixed: <comma-separated CVE IDs>
 git push -u origin <branch-name>
 ```
 
-The worktree can be removed now (the branch is on `origin`):
+The worktree can be removed now (the branch is on `origin`). Run this from the repo root:
 ```bash
-cd /Users/rguevara/perforce/taurus && git worktree remove .worktrees/<branch-name>
+git worktree remove .worktrees/<branch-name>
 ```
 
 ### 12. Build the branch into an image and re-scan it
@@ -456,6 +456,22 @@ Then do two checks:
 **Decision gate:**
 - **Vulnerabilities went down AND no fixed package is still flagged at its old version** → proceed to create the PR (below).
 - **Vulnerabilities did not improve, OR a fix silently failed to land** → do NOT create a PR. Report the comparison, the failed fixes and why, and stop. Tell the user the branch is pushed and the build number so they can decide.
+
+**Before creating the PR — optionally update `vulnerability_history.md` on the SAME fix branch (so it ships in this PR, no separate PR):**
+
+This is **conditional, not mandatory.** The file exists so a future run doesn't repeat a past mistake, and understands *why* a change was made so it doesn't undo it. Update it only when this run produced a **durable lesson** of that kind — a fix that silently didn't land and the root cause, a new not-buildable category, a corrected recipe, or a non-obvious decision worth preserving. The most valuable lessons are only known *after* the branch scan in step 13.
+
+**If the run was routine** — known fixes applied cleanly, branch scan dropped as expected, no surprises — **skip this entirely and go straight to creating the PR.** Logging routine runs just dilutes the real lessons and makes them harder to find. Quality over completeness; don't pad the timeline.
+
+When there *is* something worth recording, add a dated run entry in the timeline and/or update the relevant "Patterns" section, then commit it **on the fix branch** alongside the code fixes and push, so the doc update is part of this same PR rather than a separate one:
+```bash
+cd .worktrees/<branch-name>   # or re-add the worktree on the fix branch if already removed
+git add .claude/skills/prisma-taurus/vulnerability_history.md
+git commit -m "Document <lesson> in prisma-taurus history"
+git push origin <branch-name>
+```
+
+> **Caveat — the history file must exist on the base branch (`master`) for this to work.** The fix branch is cut from `origin/master`; `vulnerability_history.md` is only present there once the prisma-taurus skill itself has been merged to `master`. If the skill is not yet on `master` (e.g. still on a feature branch), the file won't be in the fix branch's worktree — in that case commit the history update on whatever branch the skill lives on instead, and note in the PR that the history doc lives elsewhere. Once the skill is merged, this caveat no longer applies and the history update rides along in the same PR every run.
 
 **Create the PR (only when the gate passes):**
 ```bash
