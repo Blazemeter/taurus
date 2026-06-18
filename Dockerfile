@@ -124,6 +124,23 @@ RUN current_version=$(dpkg -l firefox | tail -1 | awk '{print $3}' | grep -oP '[
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
 
+# Upgrade OS packages to patched versions in noble-security/noble-updates (CVE fixes):
+#   libgnutls30 (gnutls28): CVE-2026-3832/3833/5260/5419/33845/33846/42009-42015
+#   libgcrypt20:            CVE-2026-41989
+#   librabbitmq4:           CVE-2023-35789, CVE-2026-44235, CVE-2026-44236
+#   mesa userspace libs:    CVE-2026-40393
+# (--only-upgrade never installs new packages; absent ones are skipped.)
+RUN apt-get update && \
+    apt-get install -y --only-upgrade \
+        libgnutls30 \
+        libgcrypt20 \
+        librabbitmq4 \
+        libgbm1 \
+        libgl1-mesa-dri \
+        libglx-mesa0 \
+        libegl-mesa0 && \
+    rm -rf /var/lib/apt/lists/*
+
 # ================================
 # Stage 2: Language Runtimes
 # ================================
@@ -158,6 +175,24 @@ RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
 # Set up Ruby alternatives
 RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/ruby 1 && \
     update-alternatives --install /usr/local/bin/gem gem ${RBENV_ROOT}/shims/gem 1
+
+# Patch vulnerable Ruby default gems (CVE fix).
+#   net-imap 0.5.8 -> 0.5.15: CVE-2026-42245/42246/42256/42257/42258/47240/47241/47242 (incl. 2 critical)
+#   erb      4.0.4 -> 4.0.4.1: CVE-2026-41316
+# net-imap and erb are *default gems* shipped with Ruby. `gem install` adds the patched
+# version, but Prisma keeps reporting the old one until its default-gem spec/lib files are
+# removed (gem uninstall refuses to remove default gems). Remove only the OLD version's files.
+RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
+    gem install net-imap -v 0.5.15 && \
+    gem install erb -v 4.0.4.1 && \
+    GEM_DEFAULT_DIR=$(ruby -e 'print Gem.default_dir') && \
+    rm -f "$GEM_DEFAULT_DIR"/specifications/default/net-imap-0.5.8.gemspec \
+          "$GEM_DEFAULT_DIR"/specifications/net-imap-0.5.8.gemspec \
+          "$GEM_DEFAULT_DIR"/specifications/default/erb-4.0.4.gemspec \
+          "$GEM_DEFAULT_DIR"/specifications/erb-4.0.4.gemspec && \
+    rm -rf "$GEM_DEFAULT_DIR"/gems/net-imap-0.5.8 \
+           "$GEM_DEFAULT_DIR"/gems/erb-4.0.4 && \
+    rbenv rehash
 
 # Install OpenJDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -216,9 +251,9 @@ RUN npm install newman --prefix /tmp/newman-check --silent \
  && NEWMAN_VERSION=$(node -p "require('/tmp/newman-check/node_modules/newman/package.json').version") \
  && rm -rf /tmp/newman-check \
  && if [ "$NEWMAN_VERSION" = "6.2.2" ] && [ ! -f /root/.bzt/newman/package.json ]; then \
-        echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, lodash, uuid, underscore)" \
+        echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, lodash, uuid, underscore, qs, jose)" \
      && mkdir -p /root/.bzt/newman \
-     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.9",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
+     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.9",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "qs": "^6.15.2",\n    "jose": "^4.15.5",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
     elif [ "$NEWMAN_VERSION" != "6.2.2" ]; then \
         echo "WARNING: Newman $NEWMAN_VERSION found (expected 6.2.2); skipping dependency overrides"; \
     fi
