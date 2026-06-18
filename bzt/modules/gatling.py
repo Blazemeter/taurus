@@ -945,7 +945,8 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "3.9.5"
+    # 3.10.5 is the last version distributed as a downloadable bundle ZIP; 3.11.0+ is maven-plugin-only
+    VERSION = "3.10.5"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
     LOCAL_PATH_MVN = "~/.bzt/gatling-taurus/{version}/gatling{suffix}"
     LOCAL_PATH_MVN_POM = "~/.bzt/gatling-taurus/{version}/pom.xml"

@@ -120,6 +120,11 @@ RUN current_version=$(dpkg -l firefox | tail -1 | awk '{print $3}' | grep -oP '[
     snap_version="1:${current_version}snap1-0ubuntu1" && \
     sed -i "/^Package: firefox$/,/^$/{s/^Version: .*/Version: $snap_version/}" /var/lib/dpkg/status
 
+# Fix OS package CVEs: pull latest security updates for vulnerable libs (gnutls28, libgcrypt20, librabbitmq)
+RUN apt-get update && \
+    apt-get install -y --only-upgrade libgnutls30 libgcrypt20 librabbitmq4 && \
+    rm -rf /var/lib/apt/lists/*
+
 # Set up Python alternatives
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
@@ -153,6 +158,11 @@ RUN git clone --depth 1 https://github.com/rbenv/rbenv.git ${RBENV_ROOT} && \
 RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
     rbenv install ${RUBY_VERSION} && \
     rbenv global ${RUBY_VERSION} && \
+    rbenv rehash
+
+# Fix CVE-2026-42257 / CVE-2026-42258 (net-imap) and erb gem CVEs: update vulnerable default gems
+RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
+    gem update net-imap erb && \
     rbenv rehash
 
 # Set up Ruby alternatives
@@ -216,9 +226,9 @@ RUN npm install newman --prefix /tmp/newman-check --silent \
  && NEWMAN_VERSION=$(node -p "require('/tmp/newman-check/node_modules/newman/package.json').version") \
  && rm -rf /tmp/newman-check \
  && if [ "$NEWMAN_VERSION" = "6.2.2" ] && [ ! -f /root/.bzt/newman/package.json ]; then \
-        echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, lodash, uuid, underscore)" \
+        echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, lodash, uuid, underscore, qs, jose)" \
      && mkdir -p /root/.bzt/newman \
-     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.9",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
+     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.9",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "qs": "^6.15.2",\n    "jose": "^4.15.9",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
     elif [ "$NEWMAN_VERSION" != "6.2.2" ]; then \
         echo "WARNING: Newman $NEWMAN_VERSION found (expected 6.2.2); skipping dependency overrides"; \
     fi
@@ -226,8 +236,8 @@ RUN npm install newman --prefix /tmp/newman-check --silent \
 # Pre-seed Mocha dependency overrides (CVE fix for serialize-javascript)
 RUN mkdir -p /root/.bzt/selenium-taurus/mocha \
  && if [ ! -f /root/.bzt/selenium-taurus/mocha/package.json ]; then \
-        echo "Applying Mocha dependency overrides for CVE fix (serialize-javascript)" \
-     && printf '{\n  "overrides": {\n    "serialize-javascript": "^7.0.5"\n  }\n}\n' > /root/.bzt/selenium-taurus/mocha/package.json; \
+        echo "Applying Mocha dependency overrides for CVE fix (serialize-javascript, diff)" \
+     && printf '{\n  "overrides": {\n    "serialize-javascript": "^7.0.5",\n    "diff": "^5.2.2"\n  }\n}\n' > /root/.bzt/selenium-taurus/mocha/package.json; \
     fi
 
 # Install BZT tools
