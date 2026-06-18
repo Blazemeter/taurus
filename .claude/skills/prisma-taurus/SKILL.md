@@ -72,7 +72,7 @@ These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjav
 | `/root/.bzt/newman/node_modules/` | npm override | Dockerfile newman `package.json` printf block |
 | `/root/.bzt/selenium-taurus/mocha/node_modules/` | npm override | Dockerfile mocha `package.json` printf block |
 | `/root/.bzt/selenium-taurus/*/node_modules/` | npm direct package | `bzt/modules/javascript.py` PACKAGE_NAME constant |
-| `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem update` line (mind the default-gem caveat) |
+| `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem install <gem> -v <fixed>` + default-gem/cache cleanup (see Ruby gems section) |
 | empty path or OS path (`/usr/lib/`, `/lib/`) | OS package | Dockerfile `apt-get install --only-upgrade` |
 | Python dist-info path | Python package | `requirements.txt` |
 
@@ -294,24 +294,30 @@ When a CVE is in a system package (path is empty or in `/usr/`, `/lib/`, `/bin/`
 
 When a CVE is in a Ruby gem (path contains `/usr/local/rbenv/`):
 
-Add a targeted gem update in the Dockerfile after the rbenv setup block:
+Install the **explicit fixed version** in the Dockerfile after the rbenv setup block — pin the version with `gem install <gem> -v <fixed-version>`, never `gem update` (which jumps to latest and is not reproducible/auditable):
 ```dockerfile
 # Fix <CVE-ID>: upgrade <gem> to <fixed-version>
-RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && gem update <gem> && rbenv rehash
+RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && gem install <gem> -v <fixed-version> && rbenv rehash
 ```
 
-> ⚠️ **Default-gem caveat (verified the hard way):** gems that ship *with Ruby itself* (`net-imap`, `erb`, `json`, `psych`, `uri`, etc.) are **default gems**. `gem update <gem>` installs the patched version alongside the old one, but the vulnerable version's spec remains at `…/specifications/default/<gem>-<old>.gemspec` (and its lib dir under `…/gems/<gem>-<old>/`). Prisma enumerates those default gemspecs and **still reports the old version** — the build log will say `Successfully installed <gem>-<new>` while the scan still flags `<old>`. `gem uninstall` refuses to remove default gems.
+> ⚠️ **Default-gem / cached-archive caveat (verified the hard way — see `vulnerability_history.md`):** gems that ship *with Ruby* (`net-imap`, `erb`, `json`, `psych`, `uri`, etc.) are **default/bundled gems**, and Prisma reads the OLD version from **three** places that `gem install`/`gem update` leave behind — even though `gem list` shows only the patched version:
+> 1. **gemspec** — `…/specifications/<gem>-<old>.gemspec` or `…/specifications/default/<gem>-<old>.gemspec`
+> 2. **lib dir** — `…/gems/<gem>-<old>`
+> 3. **cached archive** — `…/cache/<gem>-<old>.gem`  ← **easily missed; this is what kept net-imap 0.5.8 flagged** even after the gemspec + lib dir were removed (build #567). `gem uninstall` refuses to remove default gems.
 >
-> For a default gem, the fix must also **remove the old default version's files** after the update, e.g.:
+> Remove all three for the OLD version only, purge the gem cache, then **assert** the old version is gone so the build fails loudly instead of silently shipping it. Use **exact** old-version strings — never broad globs like `net-imap-0.*` or `erb-4.*`, which also match the patched version (e.g. `0.5.15`) and would delete the fix:
 > ```dockerfile
-> RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && gem update net-imap erb && \
->     RUBY_GEMS_DIR=$(ruby -e 'print Gem.default_dir') && \
->     rm -f "$RUBY_GEMS_DIR"/specifications/default/net-imap-*.gemspec \
->           "$RUBY_GEMS_DIR"/specifications/default/erb-*.gemspec && \
->     rm -rf "$RUBY_GEMS_DIR"/gems/net-imap-0.* "$RUBY_GEMS_DIR"/gems/erb-4.* && \
->     rbenv rehash
+> RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
+>     gem install net-imap -v 0.5.15 && gem install erb -v 4.0.4.1 && \
+>     GEMS_DIR="$(ruby -e 'print Gem.dir')" && \
+>     for OLD in net-imap-0.5.8 erb-4.0.4; do \
+>         rm -rf "$GEMS_DIR/gems/$OLD" "$GEMS_DIR/specifications/$OLD.gemspec" \
+>                "$GEMS_DIR/specifications/default/$OLD.gemspec"; done && \
+>     rm -f "$GEMS_DIR"/cache/*.gem && rbenv rehash && \
+>     if find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' | grep -q .; then \
+>         echo 'ERROR: vulnerable Ruby gem still on disk' >&2; exit 1; fi
 > ```
-> (delete only the *old* version dirs — keep the patched one). Always confirm in the branch scan (step 12) that the old version is no longer flagged.
+> (substitute the actual gem/version pairs). Purging `cache/*.gem` wholesale is safe — cache archives aren't needed at runtime. Always confirm in the branch scan (step 12) that the old version is no longer flagged; `Successfully installed` in the build log is NOT proof.
 
 ---
 
@@ -391,9 +397,10 @@ The branch must exist on `origin` so `taurus-branch-builder` can build it. **Do 
 **Stage and commit** (from inside the worktree). Stage only files that actually changed:
 ```bash
 cd .worktrees/<branch-name> && \
-git add requirements.txt Dockerfile bzt/modules/java/tools.py bzt/modules/jmeter.py \
-        bzt/modules/gatling.py bzt/modules/javascript.py
+git add requirements.txt Dockerfile bzt/modules/services.py bzt/modules/java/tools.py \
+        bzt/modules/jmeter.py bzt/modules/gatling.py bzt/modules/javascript.py
 ```
+(`bzt/modules/services.py` holds `PipInstaller.pip_constraints` — include it whenever a Python CVE fix required updating those constraints. Stage only the files you actually changed.)
 
 Commit message:
 ```
