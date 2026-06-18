@@ -176,23 +176,33 @@ RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
 RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/ruby 1 && \
     update-alternatives --install /usr/local/bin/gem gem ${RBENV_ROOT}/shims/gem 1
 
-# Patch vulnerable Ruby default gems (CVE fix).
+# Patch vulnerable Ruby default/bundled gems (CVE fix).
 #   net-imap 0.5.8 -> 0.5.15: CVE-2026-42245/42246/42256/42257/42258/47240/47241/47242 (incl. 2 critical)
 #   erb      4.0.4 -> 4.0.4.1: CVE-2026-41316
-# net-imap and erb are *default gems* shipped with Ruby. `gem install` adds the patched
-# version, but Prisma keeps reporting the old one until its default-gem spec/lib files are
-# removed (gem uninstall refuses to remove default gems). Remove only the OLD version's files.
+# These ship with Ruby. Installing the patched gem is NOT enough: Prisma reads the OLD version
+# from THREE places that `gem install`/`gem update` leave behind:
+#   1. the gemspec   -> specifications[/default]/<gem>-<old>.gemspec
+#   2. the lib dir   -> gems/<gem>-<old>
+#   3. the CACHED ARCHIVE -> cache/<gem>-<old>.gem   <-- easily missed; this is what kept
+#      net-imap 0.5.8 flagged even though only 0.5.15 was installed (erb had no cache archive,
+#      so it cleared). Remove all three, purge the gem cache, then ASSERT the old version is gone
+#      so the build fails loudly instead of silently shipping the vulnerable version.
 RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
     gem install net-imap -v 0.5.15 && \
     gem install erb -v 4.0.4.1 && \
-    GEM_DEFAULT_DIR=$(ruby -e 'print Gem.default_dir') && \
-    rm -f "$GEM_DEFAULT_DIR"/specifications/default/net-imap-0.5.8.gemspec \
-          "$GEM_DEFAULT_DIR"/specifications/net-imap-0.5.8.gemspec \
-          "$GEM_DEFAULT_DIR"/specifications/default/erb-4.0.4.gemspec \
-          "$GEM_DEFAULT_DIR"/specifications/erb-4.0.4.gemspec && \
-    rm -rf "$GEM_DEFAULT_DIR"/gems/net-imap-0.5.8 \
-           "$GEM_DEFAULT_DIR"/gems/erb-4.0.4 && \
-    rbenv rehash
+    GEMS_DIR="$(ruby -e 'print Gem.dir')" && \
+    for OLD in net-imap-0.5.8 erb-4.0.4; do \
+        rm -rf "$GEMS_DIR/gems/$OLD" \
+               "$GEMS_DIR/specifications/$OLD.gemspec" \
+               "$GEMS_DIR/specifications/default/$OLD.gemspec"; \
+    done && \
+    rm -f "$GEMS_DIR"/cache/*.gem && \
+    rbenv rehash && \
+    if find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' | grep -q .; then \
+        echo 'ERROR: vulnerable Ruby gem version still on disk after patch (build aborted)' >&2; \
+        find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' >&2; \
+        exit 1; \
+    fi
 
 # Install OpenJDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
