@@ -1,11 +1,19 @@
 ---
 name: prisma-taurus
-description: Use when the user wants to check, fix, or verify Prisma Cloud vulnerability scan results for the Taurus Docker image (blazemeter/taurus:unstable).
+description: Use when the user wants to check, fix, or verify Prisma Cloud vulnerability scan results for the Taurus Docker image (blazemeter/taurus:unstable). Run this skill on Opus 4.8 (1M context) — choosing and applying the correct CVE fix requires strong reasoning.
 ---
+
+## Model requirement — run on Opus 4.8 (1M context)
+
+> **Before doing anything else, confirm the active model is Opus 4.8 (1M context) (`claude-opus-4-8[1m]`). If it is not, STOP and tell the user to switch with `/model` (choose Opus 4.8) and re-invoke `/prisma-taurus` — do not proceed on a smaller model.**
+>
+> Why: this skill makes real, hard-to-verify decisions — classifying each CVE by `Path`, choosing the right fix mechanism, recognizing traps like the Ruby default-gem problem or scanner appeasement, and reasoning about whether a fix will actually land in the image before opening a PR. Weaker models miss these and produce fixes that silently don't work. Skills run on the session's active model (there is no frontmatter field that forces a model), so the model must be set by the user before running.
 
 ## Overview
 
-End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, and opens a PR.
+End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, then **builds the fixed branch into a Docker image and re-scans it** to confirm the fixes actually reduce vulnerabilities in the real image. A PR is opened **only after** that branch scan shows fewer vulnerabilities than the baseline — never at an early stage.
+
+**Why verify before the PR:** unit tests do not exercise the Dockerfile (gem/npm/apt changes) and a fix that "looks" applied can be a no-op against the scanner (e.g. `gem update` installs a patched gem but leaves the vulnerable Ruby *default-gem* version on disk, which Prisma still reports). The `taurus-branch-builder` Jenkins job can build any branch into an image and scan it with Prisma — so the fixes are proven in the image *before* a PR is created, not assumed.
 
 ## When to Use
 
@@ -17,9 +25,11 @@ End-to-end vulnerability management for the Taurus Docker image. Fetches the lat
 ## Common Mistakes
 
 - Triggering a new scan when a valid one already exists (within 5 days and after last `unstable` push) — always check first
+- **Fixing JMeter/Gatling-bundled CVEs** — any finding whose `Path` is under `/root/.bzt/jmeter-taurus/` or `/root/.bzt/gatling-taurus/` is out of scope. Do not repin jars and **do not bump `JMeter.VERSION` / `Gatling.VERSION`** (a version bump is a JMeter/Gatling fix). List them only.
 - Auto-fixing scanner appeasement CVEs (`.deps.json`, `/var/lib/dpkg/` paths) — these must always be flagged as manual
 - Removing the worktree after a test failure — leave it in place for the user to investigate
-- Re-scanning after PR creation — there is no PR Docker image for Taurus; re-scan only after the PR is merged and Jenkins builds a new `unstable`
+- **Opening the PR before the branch scan confirms a reduction** — push the branch, build+re-scan it via `taurus-branch-builder`, compare against the baseline, and create the PR ONLY if vulnerabilities went down. The PR is the last step, never an early one.
+- **Trusting that a Dockerfile fix landed just because the build succeeded** — always confirm in the branch scan that each fixed package's vulnerable version is actually gone. `gem update` on a Ruby *default gem* (e.g. `net-imap`, `erb`) installs the patched version but leaves the old default-gem version on disk, which the scanner still reports.
 
 ## Image target
 
@@ -43,24 +53,30 @@ If any variable is missing, stop and tell the user which one is absent.
 
 ## Fix classification rules
 
-Before applying any fix, classify each CVE:
+Before applying any fix, classify each CVE **by its `Path`** (the path is the definitive identifier of what the vulnerable component belongs to). Apply the categories in this order — the first match wins:
 
-**Scanner appeasement → flag as manual, never auto-fix:**
+**1. JMeter / Gatling bundled → DO NOT FIX, monitor only:**
+- `Path` contains `/root/.bzt/jmeter-taurus/` (e.g. `/root/.bzt/jmeter-taurus/5.5/lib/tika-core-1.28.3.jar`)
+- `Path` contains `/root/.bzt/gatling-taurus/` (e.g. `/root/.bzt/gatling-taurus/3.9.5/lib/netty-codec-http-4.1.92.Final.jar`)
+
+These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjava, json-smart, json-path, commons-*, etc.) ship **inside** the JMeter/Gatling distributions. Taurus does not pin them individually, and **we do not remediate them** — not by replacing jars, and **not** by bumping the JMeter or Gatling version (a version bump is itself a JMeter/Gatling fix, only partially clears the CVEs, and carries runtime/behavioral risk). Display them in the report under "JMeter/Gatling — not fixed (out of scope)", never patch them.
+
+**2. Scanner appeasement → flag as manual, never auto-fix:**
 - `Path` contains `/usr/share/dotnet/sdk/` (Roslyn / .deps.json metadata patches)
 - `Path` contains `/var/lib/dpkg/` (OS package version string manipulation)
 
-**Auto-fixable → apply automatically (all others where `Fix Status` starts with `fixed in`):**
+**3. Auto-fixable → apply automatically (remaining CVEs where `Fix Status` starts with `fixed in`):**
 
 | Path pattern | Fix type | Where to fix |
 |---|---|---|
-| `/root/.bzt/jmeter-taurus/*/lib/*.jar` | Java jar version constant | `bzt/modules/jmeter.py` or `bzt/modules/java/tools.py` |
-| `/root/.bzt/gatling-taurus/*/lib/*.jar` | Java jar version constant | `bzt/modules/gatling.py` |
 | `/root/.bzt/newman/node_modules/` | npm override | Dockerfile newman `package.json` printf block |
 | `/root/.bzt/selenium-taurus/mocha/node_modules/` | npm override | Dockerfile mocha `package.json` printf block |
 | `/root/.bzt/selenium-taurus/*/node_modules/` | npm direct package | `bzt/modules/javascript.py` PACKAGE_NAME constant |
-| `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem update` line |
+| `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem update` line (mind the default-gem caveat) |
 | empty path or OS path (`/usr/lib/`, `/lib/`) | OS package | Dockerfile `apt-get install --only-upgrade` |
 | Python dist-info path | Python package | `requirements.txt` |
+
+> **Note:** the `/root/.bzt/jmeter-taurus/*` and `/root/.bzt/gatling-taurus/*` paths are intentionally **absent** from this auto-fixable table — they belong to category 1 (do not fix). Do not reintroduce JMeter/Gatling jar fixes or version bumps.
 
 CVEs where `Fix Status` is not `fixed in ...` (e.g. `needed`, `deferred`, or empty) → display only, do not attempt to fix.
 
@@ -150,14 +166,15 @@ Display a table with columns:
 - CVSS
 - Package + Version
 - Fix Status
-- Fix Type (`auto-fix` / `manual` / `no fix available`)
+- Fix Type (`auto-fix` / `jmeter-gatling (out of scope)` / `manual` / `no fix available`)
 
 Show a summary line:
-> `X vulnerabilities — Y critical, Z high, N medium, M low — A auto-fixable, B manual, C no fix available`
+> `X vulnerabilities — Y critical, Z high, N medium, M low — A auto-fixable, J jmeter/gatling (out of scope), B manual, C no fix available`
 
 ### 6. Collect auto-fixable CVEs
 
 Gather all CVEs where:
+- `Path` is NOT under `/root/.bzt/jmeter-taurus/` or `/root/.bzt/gatling-taurus/` (those are out of scope — category 1)
 - `Fix Status` starts with `fixed in`
 - Path does NOT match scanner appeasement patterns
 
@@ -183,37 +200,13 @@ Extract the fixed version from the `Fix Status` field (e.g. `fixed in 2.7.0` →
 
 ---
 
-#### Java jar version constants
+#### JMeter / Gatling jars — DO NOT FIX
 
-**For JMeter jars** (`/root/.bzt/jmeter-taurus/*/lib/`):
+Any CVE whose `Path` is under `/root/.bzt/jmeter-taurus/` or `/root/.bzt/gatling-taurus/` is **out of scope** (classification category 1). Do **not**:
+- replace or repin individual bundled jars, and
+- bump `JMeter.VERSION` / `Gatling.VERSION` in `bzt/modules/jmeter.py` / `bzt/modules/gatling.py` to refresh them.
 
-First check if bumping the JMeter version itself would bring in the fixed jar. Look up the jar in `bzt/modules/java/tools.py` or `bzt/modules/jmeter.py` — each bundled jar has a version constant:
-
-```python
-# bzt/modules/java/tools.py examples
-class TestNG(JarTool):
-    VERSION = "7.10.2"   # bump this
-
-class JUnitJupiterApi(JarTool):
-    VERSION = "5.10.3"   # bump this
-```
-
-```python
-# bzt/modules/jmeter.py examples
-PLUGINS_MANAGER_VERSION = "1.11"   # bump this
-VERSION = "5.5"                    # bump JMeter itself if needed
-VERSION_LATEST = "5.6.3"
-```
-
-Steps:
-1. Search for the jar's artifact ID in `bzt/modules/java/tools.py` and `bzt/modules/jmeter.py`
-2. Look up on NVD (`https://nvd.nist.gov/vuln/detail/<CVE-ID>`) to confirm the safe version
-3. Verify the fixed version exists on Maven Central before updating
-4. Update the version constant
-
-**For Gatling jars** (`/root/.bzt/gatling-taurus/*/lib/`):
-
-Search `bzt/modules/gatling.py` for the version constant. Bump it to the fixed version.
+A version bump is itself a JMeter/Gatling change: it only partially clears the jar CVEs (e.g. netty would still be below the fixed `4.1.135`), carries runtime/behavioral risk that unit tests don't catch, and can trip the coverage gate. Simply **list these findings** in the report under "JMeter/Gatling — not fixed (out of scope)" and move on. (The `JarTool` constants in `bzt/modules/java/tools.py` — TestNG, JUnit, etc. — are also JMeter-side tooling; leave them alone too.)
 
 ---
 
@@ -304,8 +297,21 @@ When a CVE is in a Ruby gem (path contains `/usr/local/rbenv/`):
 Add a targeted gem update in the Dockerfile after the rbenv setup block:
 ```dockerfile
 # Fix <CVE-ID>: upgrade <gem> to <fixed-version>
-RUN gem update <gem>
+RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && gem update <gem> && rbenv rehash
 ```
+
+> ⚠️ **Default-gem caveat (verified the hard way):** gems that ship *with Ruby itself* (`net-imap`, `erb`, `json`, `psych`, `uri`, etc.) are **default gems**. `gem update <gem>` installs the patched version alongside the old one, but the vulnerable version's spec remains at `…/specifications/default/<gem>-<old>.gemspec` (and its lib dir under `…/gems/<gem>-<old>/`). Prisma enumerates those default gemspecs and **still reports the old version** — the build log will say `Successfully installed <gem>-<new>` while the scan still flags `<old>`. `gem uninstall` refuses to remove default gems.
+>
+> For a default gem, the fix must also **remove the old default version's files** after the update, e.g.:
+> ```dockerfile
+> RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && gem update net-imap erb && \
+>     RUBY_GEMS_DIR=$(ruby -e 'print Gem.default_dir') && \
+>     rm -f "$RUBY_GEMS_DIR"/specifications/default/net-imap-*.gemspec \
+>           "$RUBY_GEMS_DIR"/specifications/default/erb-*.gemspec && \
+>     rm -rf "$RUBY_GEMS_DIR"/gems/net-imap-0.* "$RUBY_GEMS_DIR"/gems/erb-4.* && \
+>     rbenv rehash
+> ```
+> (delete only the *old* version dirs — keep the patched one). Always confirm in the branch scan (step 12) that the old version is no longer flagged.
 
 ---
 
@@ -359,19 +365,35 @@ Report:
 Tell the user:
 > "Tests failed. The worktree has been left at `.worktrees/<branch-name>` on branch `<branch-name>` for you to investigate. Once you've resolved the failures, you can commit and push manually from that directory."
 
-**If tests pass → continue to step 11.**
+**If tests pass → continue to the coverage gate below.**
 
-### 11. Commit, push, and PR
+#### Coverage gate (predict the `codecov/project` check before pushing)
 
-**[4/6] Stage and commit** (from inside the worktree)
+The PR's `codecov/project` check uses codecov defaults (`target: auto, threshold: 0%`) — **any** net coverage decrease over `bzt/` (excluding `bzt/resources`, per `.codecov.yml`) fails it and blocks merge. Detect this locally **before** committing/pushing.
 
-Stage only files that were modified:
+- **If no `bzt/**/*.py` file was modified** (only `Dockerfile`, `requirements.txt`) → coverage cannot change (CI measures `--source=bzt` only). Skip this gate.
+- **If any `bzt/**/*.py` was modified** (e.g. the npm `PACKAGE_NAME` in `bzt/modules/javascript.py`) → measure base-vs-branch coverage in the same env and compare:
+  ```bash
+  # in the worktree (branch), then again in a clean origin/master checkout (base)
+  coverage run --source=bzt -m nose2 -s tests/unit -v ; coverage report | tail -1
+  ```
+  Compare the TOTAL %. (Absolute numbers differ from CI if the local Python errors some tests — that's fine; the gate is the branch-vs-base **delta**, which reproduces locally as long as both runs use the same env.)
+
+**If branch coverage < base coverage → the PR will be blocked.** Take action before pushing:
+1. Prefer adding/extending a unit test that covers the lines/branches the change left uncovered.
+2. If the drop comes from a change that collapses a previously-tested branch (e.g. making two constants equal), reconsider whether that change is even in scope — JMeter/Gatling version bumps are **not** (category 1), and that was the original cause.
+3. Only push once branch coverage ≥ base coverage.
+
+### 11. Commit and push the branch (NO PR yet)
+
+The branch must exist on `origin` so `taurus-branch-builder` can build it. **Do not create a PR here** — the PR is created in step 13, only after the branch scan confirms a reduction.
+
+**Stage and commit** (from inside the worktree). Stage only files that actually changed:
 ```bash
 cd .worktrees/<branch-name> && \
 git add requirements.txt Dockerfile bzt/modules/java/tools.py bzt/modules/jmeter.py \
         bzt/modules/gatling.py bzt/modules/javascript.py
 ```
-(only add files that actually changed)
 
 Commit message:
 ```
@@ -381,34 +403,89 @@ Auto-fixed by prisma-taurus skill.
 CVEs fixed: <comma-separated CVE IDs>
 ```
 
-**[5/6] Push branch**
+**Push the branch:**
 ```bash
-git push origin <branch-name>
+git push -u origin <branch-name>
 ```
 
-**[6/6] Remove worktree and create PR**
+The worktree can be removed now (the branch is on `origin`):
 ```bash
-cd /Users/rguevara/perforce/taurus && \
-git worktree remove .worktrees/<branch-name>
+cd /Users/rguevara/perforce/taurus && git worktree remove .worktrees/<branch-name>
 ```
 
-Then create the PR:
+### 12. Build the branch into an image and re-scan it
+
+Trigger `taurus-branch-builder` to build the pushed branch into a Docker image, run integration tests, and run a Prisma scan on the resulting image. This is the verification gate before any PR.
+
 ```bash
-gh pr create \
-  --title "CVE fixes - $(date +%Y-%m-%d)" \
-  --body "..."
+curl -s -o /dev/null -D - -X POST -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
+  "https://blazect-jenkins.blazemeter.com/job/taurus-branch-builder/buildWithParameters?branch_name=<branch-name>&run_integration=true&push_docker=true&public_docker=false&publish_internal_python=false&PERFORM_PRISMA_SCAN=true"
 ```
+
+Parameter rationale:
+- `run_integration=true` — catches breakage unit tests can't (the Dockerfile gem/npm/apt steps and the JMeter/Gatling version bumps only run for real here).
+- `push_docker=true` — pushes to the **internal** GCR registry (`us.gcr.io/verdant-bulwark-278/taurus:<branch>-<build>`); `twistcli` scans that image. **Required** for the scan.
+- `public_docker=false` — **never** publish a branch image to the public registry.
+- `PERFORM_PRISMA_SCAN=true` — runs `twistcli images scan --details` and prints the full vulnerability table inline in the build console.
+
+Capture the `Location:` header (queue item URL), poll the queue item for `executable.number` to get the build number, then poll the build until `building=false` (typically **~30–40 min** with integration; ~14 min without). Tell the user the build number and that you are waiting.
+
+```bash
+curl -sL -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
+  "https://blazect-jenkins.blazemeter.com/job/taurus-branch-builder/<BUILD>/api/json?tree=building,result"
+```
+
+**If `result` is `FAILURE`** → integration or the build broke. Stop, do NOT create a PR, and give the console URL:
+`https://blazect-jenkins.blazemeter.com/job/taurus-branch-builder/<BUILD>/console`
+
+### 13. Compare scan results and decide whether to PR
+
+Fetch the build console and parse the `twistcli` table (it starts at the line `Scan results for: image us.gcr.io/...:<branch>-<build>`):
+```bash
+curl -sL -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
+  "https://blazect-jenkins.blazemeter.com/job/taurus-branch-builder/<BUILD>/console"
+```
+
+Strip ANSI codes and count rows by severity (`critical`/`high`/`medium`/`low`). **Parse the whole table — it is large; do not truncate the byte range.**
+
+Then do two checks:
+
+1. **Per-fix verification** — for every package you fixed, confirm its vulnerable version is **no longer flagged** in the branch scan. If a package is still flagged at the old version (e.g. `net-imap 0.5.8`), that fix did NOT land — diagnose it (see the default-gem caveat under "Ruby gems") before proceeding.
+2. **Aggregate comparison** — compare the branch counts (total + per severity) against the baseline scan from steps 4–5.
+
+**Decision gate:**
+- **Vulnerabilities went down AND no fixed package is still flagged at its old version** → proceed to create the PR (below).
+- **Vulnerabilities did not improve, OR a fix silently failed to land** → do NOT create a PR. Report the comparison, the failed fixes and why, and stop. Tell the user the branch is pushed and the build number so they can decide.
+
+**Create the PR (only when the gate passes):**
+```bash
+# gh if available; otherwise POST to the GitHub API with $GITHUB_TOKEN
+gh pr create --title "CVE fixes - $(date +%Y-%m-%d)" --body-file <body.md>
+```
+If `gh` is not on PATH, create via the GitHub API using `$GITHUB_TOKEN` (`POST /repos/Blazemeter/taurus/pulls`).
 
 PR body should include:
-- Table of auto-fixed CVEs: CVE ID, package, old version → new version, severity
-- Note: "Re-run `/prisma-taurus` after this PR is merged and Jenkins builds a new `unstable` image to verify fixes."
-- Note: "The following CVEs were NOT fixed by this skill and require manual intervention (see below)."
+- The branch-scan comparison: baseline vs branch image (total + per severity, with the build number).
+- Table of fixes confirmed in the image: CVE ID, package, old version → new version, severity.
+- Note: "Verified against the `taurus-branch-builder` image scan (build #<BUILD>) before opening — integration passed and vulnerabilities dropped from X to Y."
+- Note: "The following CVEs were NOT fixed and require manual intervention (see below)."
 
-Use `GITHUB_TOKEN` for authentication if `gh` is not already authenticated.
+### 14. Report manual intervention and out-of-scope items
 
-### 10. Report manual intervention items
+First, list the JMeter/Gatling findings that are intentionally **not** fixed:
 
-After the PR is created, display a clear section:
+```
+═══════════════════════════════════════════════
+ℹ  JMETER / GATLING — NOT FIXED (out of scope)
+═══════════════════════════════════════════════
+These live in the bundled JMeter/Gatling distributions and are not remediated by this skill
+(no jar repinning, no JMeter/Gatling version bump). Listed for awareness only.
+
+<count> findings — <N critical, M high, ...>
+<one line per CVE: CVE-ID | severity | package version | path>
+```
+
+Then the manual section:
 
 ```
 ═══════════════════════════════════════════════
@@ -437,7 +514,7 @@ What to do: <specific instruction — see below>
 > 2. Add a `sed` command in the Dockerfile to patch `/var/lib/dpkg/status` — see the existing Firefox version patch in the Dockerfile as a reference
 > 3. Add a Prisma Cloud suppression — preferred if the actual installed version is not vulnerable
 
-### 11. Final summary
+### 15. Final summary
 
 End with a complete status summary:
 
@@ -445,9 +522,19 @@ End with a complete status summary:
 ═══════════════════════════════════════════════
 SUMMARY
 ═══════════════════════════════════════════════
-✅ Auto-fixed and included in PR #<number>:
+Branch image scan (taurus-branch-builder #<BUILD>): integration <pass/fail>
+Vulnerabilities: baseline <X> → branch <Y>  (crit A→A', high B→B', med C→C', low D→D')
+
+✅ Verified in the branch image and included in PR #<number>:
    - <CVE-ID>: <package> <old> → <new>
    - ...
+
+✗ Fix attempted but did NOT land in the image (excluded from PR):
+   - <CVE-ID>: <package> — <why it didn't take, e.g. default-gem version still on disk>
+   - ...
+
+ℹ  JMeter/Gatling — not fixed (out of scope):
+   - <count> findings (<N crit, M high, ...>) — bundled jars, not remediated
 
 ⚠  Manual intervention required (NOT in PR):
    - <CVE-ID>: <package> — <one-line reason>
@@ -457,11 +544,13 @@ SUMMARY
    - <CVE-ID>: <package> — fix not yet released
 
 Next steps:
-1. Review and merge PR #<number>
-2. Wait for Jenkins to build a new blazemeter/taurus:unstable from master
-3. Re-run /prisma-taurus to verify the auto-fixed CVEs are resolved
-4. Address manual intervention items separately
+1. Review and merge PR #<number> (already verified to reduce vulnerabilities in the image)
+2. After merge, Jenkins builds a new blazemeter/taurus:unstable from master
+3. Re-run /prisma-taurus to confirm the fixes are reflected in the unstable scan
+4. Address manual-intervention items and any fixes that didn't land
 ```
+
+If the decision gate in step 13 did NOT pass, end instead with: the comparison, which fixes failed to land and why, the pushed branch name and build number, and that **no PR was created** — hand it to the user to decide.
 
 ## Researching a CVE
 
@@ -477,11 +566,26 @@ For each vulnerability, look up sources in this order:
 
 | What | URL |
 |---|---|
-| On-demand scan job | `https://blazect-jenkins.blazemeter.com/job/prisma-cloud-ondemand-scan/` |
+| On-demand scan job (baseline scan of `unstable`) | `https://blazect-jenkins.blazemeter.com/job/prisma-cloud-ondemand-scan/` |
 | All builds + params | `.../api/json?tree=builds[number,timestamp,result,building,actions[parameters[name,value]]]` |
 | Taurus artifact (CSV) | `.../prisma-cloud-ondemand-scan/<BUILD>/artifact/taurus.csv` |
 | Build console | `.../prisma-cloud-ondemand-scan/<BUILD>/console` |
+| **Branch builder (build+integration+scan a branch)** | `https://blazect-jenkins.blazemeter.com/job/taurus-branch-builder/` |
+| Branch builder trigger | `.../taurus-branch-builder/buildWithParameters?branch_name=<b>&run_integration=true&push_docker=true&public_docker=false&PERFORM_PRISMA_SCAN=true` |
+| Branch builder console (twistcli scan table) | `.../taurus-branch-builder/<BUILD>/console` |
+| Branch image (internal GCR) | `us.gcr.io/verdant-bulwark-278/taurus:<branch>-<build>` |
 | Queue item | `https://blazect-jenkins.blazemeter.com/queue/item/<ID>/api/json` |
 | Docker Hub unstable tag | `https://hub.docker.com/v2/repositories/blazemeter/taurus/tags/unstable` |
 | .NET 8.0 release metadata | `https://dotnetcli.azureedge.net/dotnet/release-metadata/8.0/releases.json` |
-| Vulnerability fix history | `.claude/vulnerabilities_history/vulnerability_history.md` — consult this before fixing any CVE |
+| Vulnerability fix history | `vulnerability_history.md` (in this skill's folder) — consult this before fixing any CVE |
+
+## taurus-branch-builder parameters
+
+| Param | Type | Use for CVE verification |
+|---|---|---|
+| `branch_name` | string | the pushed fix branch |
+| `run_integration` | bool | `true` — verify the fixes don't break runtime |
+| `push_docker` | bool | `true` — internal GCR; required so twistcli can scan the image |
+| `public_docker` | bool | `false` — never publish a branch image publicly |
+| `publish_internal_python` | bool | `false` |
+| `PERFORM_PRISMA_SCAN` | bool | `true` — scan the built image, results printed in the console |
