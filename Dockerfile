@@ -124,6 +124,23 @@ RUN current_version=$(dpkg -l firefox | tail -1 | awk '{print $3}' | grep -oP '[
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
 
+# Upgrade OS packages to patched versions in noble-security/noble-updates (CVE fixes):
+#   libgnutls30 (gnutls28): CVE-2026-3832/3833/5260/5419/33845/33846/42009-42015
+#   libgcrypt20:            CVE-2026-41989
+#   librabbitmq4:           CVE-2023-35789, CVE-2026-44235, CVE-2026-44236
+#   mesa userspace libs:    CVE-2026-40393
+# (--only-upgrade never installs new packages; absent ones are skipped.)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends --only-upgrade \
+        libgnutls30 \
+        libgcrypt20 \
+        librabbitmq4 \
+        libgbm1 \
+        libgl1-mesa-dri \
+        libglx-mesa0 \
+        libegl-mesa0 && \
+    rm -rf /var/lib/apt/lists/*
+
 # ================================
 # Stage 2: Language Runtimes
 # ================================
@@ -158,6 +175,34 @@ RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
 # Set up Ruby alternatives
 RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/ruby 1 && \
     update-alternatives --install /usr/local/bin/gem gem ${RBENV_ROOT}/shims/gem 1
+
+# Patch vulnerable Ruby default/bundled gems (CVE fix).
+#   net-imap 0.5.8 -> 0.5.15: CVE-2026-42245/42246/42256/42257/42258/47240/47241/47242 (incl. 2 critical)
+#   erb      4.0.4 -> 4.0.4.1: CVE-2026-41316
+# These ship with Ruby. Installing the patched gem is NOT enough: Prisma reads the OLD version
+# from THREE places that `gem install`/`gem update` leave behind:
+#   1. the gemspec   -> specifications[/default]/<gem>-<old>.gemspec
+#   2. the lib dir   -> gems/<gem>-<old>
+#   3. the CACHED ARCHIVE -> cache/<gem>-<old>.gem   <-- easily missed; this is what kept
+#      net-imap 0.5.8 flagged even though only 0.5.15 was installed (erb had no cache archive,
+#      so it cleared). Remove all three, purge the gem cache, then ASSERT the old version is gone
+#      so the build fails loudly instead of silently shipping the vulnerable version.
+RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
+    gem install net-imap -v 0.5.15 --no-document && \
+    gem install erb -v 4.0.4.1 --no-document && \
+    GEMS_DIR="$(ruby -e 'print Gem.dir')" && \
+    for OLD in net-imap-0.5.8 erb-4.0.4; do \
+        rm -rf "$GEMS_DIR/gems/$OLD" \
+               "$GEMS_DIR/specifications/$OLD.gemspec" \
+               "$GEMS_DIR/specifications/default/$OLD.gemspec"; \
+    done && \
+    rm -f "$GEMS_DIR"/cache/*.gem && \
+    rbenv rehash && \
+    if find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' | grep -q .; then \
+        echo 'ERROR: vulnerable Ruby gem version still on disk after patch (build aborted)' >&2; \
+        find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' >&2; \
+        exit 1; \
+    fi
 
 # Install OpenJDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -216,9 +261,9 @@ RUN npm install newman --prefix /tmp/newman-check --silent \
  && NEWMAN_VERSION=$(node -p "require('/tmp/newman-check/node_modules/newman/package.json').version") \
  && rm -rf /tmp/newman-check \
  && if [ "$NEWMAN_VERSION" = "6.2.2" ] && [ ! -f /root/.bzt/newman/package.json ]; then \
-        echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, lodash, uuid, underscore)" \
+        echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, lodash, uuid, underscore, qs, jose)" \
      && mkdir -p /root/.bzt/newman \
-     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.9",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
+     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.9",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "qs": "^6.15.2",\n    "jose": "^4.15.5",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
     elif [ "$NEWMAN_VERSION" != "6.2.2" ]; then \
         echo "WARNING: Newman $NEWMAN_VERSION found (expected 6.2.2); skipping dependency overrides"; \
     fi

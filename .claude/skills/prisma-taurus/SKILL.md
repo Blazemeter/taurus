@@ -51,6 +51,8 @@ GITHUB_TOKEN       # GitHub personal access token
 
 If any variable is missing, stop and tell the user which one is absent.
 
+**Jira** (used by the ticket-creation step before the PR) is accessed through the **Atlassian MCP**, not an env var — it authenticates as the developer running the skill (that's how the ticket gets assigned to them). No token to set. Note: interactively-authenticated MCP servers may be **absent in headless/cron runs**; if the Atlassian tools aren't available, create the PR without a Jira ticket and flag that the ticket must be created manually — don't block the PR.
+
 ## Fix classification rules
 
 Before applying any fix, classify each CVE **by its `Path`** (the path is the definitive identifier of what the vulnerable component belongs to). Apply the categories in this order — the first match wins:
@@ -285,8 +287,9 @@ When a CVE is in a system package (path is empty or in `/usr/`, `/lib/`, `/bin/`
 2. Add a targeted upgrade in the Dockerfile at the `FROM system-deps` stage, after the main `apt-get install` block:
    ```dockerfile
    # Fix <CVE-ID>: upgrade <package> to <fixed-version>
-   RUN apt-get update && apt-get install -y --only-upgrade <package>=<fixed-version>
+   RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade <package>=<fixed-version>
    ```
+   Use `--no-install-recommends` (consistent with the rest of the Dockerfile — keeps upgrades from pulling extra recommended packages).
 
 ---
 
@@ -294,10 +297,10 @@ When a CVE is in a system package (path is empty or in `/usr/`, `/lib/`, `/bin/`
 
 When a CVE is in a Ruby gem (path contains `/usr/local/rbenv/`):
 
-Install the **explicit fixed version** in the Dockerfile after the rbenv setup block — pin the version with `gem install <gem> -v <fixed-version>`, never `gem update` (which jumps to latest and is not reproducible/auditable):
+Install the **explicit fixed version** in the Dockerfile after the rbenv setup block — pin the version with `gem install <gem> -v <fixed-version>`, never `gem update` (which jumps to latest and is not reproducible/auditable). Add `--no-document` to skip rdoc/ri generation (smaller image, faster build):
 ```dockerfile
 # Fix <CVE-ID>: upgrade <gem> to <fixed-version>
-RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && gem install <gem> -v <fixed-version> && rbenv rehash
+RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && gem install <gem> -v <fixed-version> --no-document && rbenv rehash
 ```
 
 > ⚠️ **Default-gem / cached-archive caveat (verified the hard way — see `vulnerability_history.md`):** gems that ship *with Ruby* (`net-imap`, `erb`, `json`, `psych`, `uri`, etc.) are **default/bundled gems**, and Prisma reads the OLD version from **three** places that `gem install`/`gem update` leave behind — even though `gem list` shows only the patched version:
@@ -308,7 +311,7 @@ RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && gem install <gem> -v <fixed-vers
 > Remove all three for the OLD version only, purge the gem cache, then **assert** the old version is gone so the build fails loudly instead of silently shipping it. Use **exact** old-version strings — never broad globs like `net-imap-0.*` or `erb-4.*`, which also match the patched version (e.g. `0.5.15`) and would delete the fix:
 > ```dockerfile
 > RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
->     gem install net-imap -v 0.5.15 && gem install erb -v 4.0.4.1 && \
+>     gem install net-imap -v 0.5.15 --no-document && gem install erb -v 4.0.4.1 --no-document && \
 >     GEMS_DIR="$(ruby -e 'print Gem.dir')" && \
 >     for OLD in net-imap-0.5.8 erb-4.0.4; do \
 >         rm -rf "$GEMS_DIR/gems/$OLD" "$GEMS_DIR/specifications/$OLD.gemspec" \
@@ -464,6 +467,29 @@ Then do two checks:
 - **Vulnerabilities went down AND no fixed package is still flagged at its old version** → proceed to create the PR (below).
 - **Vulnerabilities did not improve, OR a fix silently failed to land** → do NOT create a PR. Report the comparison, the failed fixes and why, and stop. Tell the user the branch is pushed and the build number so they can decide.
 
+**Before creating the PR — create a Jira Bug for the fixes and reference its key in the PR.**
+
+Do this **only after the decision gate passes** (never for a run that didn't reduce vulnerabilities — otherwise you leave an orphan ticket). Use the Atlassian (Jira) MCP tools — they're deferred, so load them first, e.g. `ToolSearch` with `select:mcp__claude_ai_Atlassian_Rovo__createJiraIssue,mcp__claude_ai_Atlassian_Rovo__atlassianUserInfo,mcp__claude_ai_Atlassian_Rovo__getJiraProjectIssueTypesMetadata,mcp__claude_ai_Atlassian_Rovo__getTransitionsForJiraIssue,mcp__claude_ai_Atlassian_Rovo__transitionJiraIssue`.
+
+| Field | Value |
+|---|---|
+| Project | `MOB` |
+| Issue type | `Bug` |
+| Summary | generic, e.g. `Fix CVE vulnerabilities in blazemeter/taurus Docker image (YYYY-MM-DD)` |
+| Description | the CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity), plus the baseline→branch reduction (total X→Y, crit A→A') |
+| Assignee | **the developer running the skill** — resolve dynamically via `atlassianUserInfo` (the authenticated Atlassian user *is* the runner); never hardcode a person |
+| Labels | `["ai_assisted"]` |
+| Sprint | the active sprint — **best effort** (see step 3) |
+| Status | transition to **In Progress** after creation |
+
+1. `atlassianUserInfo` → the runner's `accountId` (use as the assignee).
+2. `getJiraProjectIssueTypesMetadata` (project `MOB`, issue type `Bug`) → confirm the field ids you need, in particular the **Sprint** custom field id (e.g. `customfield_XXXXX`) and that `labels`/`assignee` are settable on create.
+3. **Sprint (best-effort, never blocks):** try to resolve the project board's *active* sprint id and set the Sprint field. The available Atlassian MCP tools may not expose board/active-sprint queries (the Jira Agile API does; the MCP may not). **If you cannot resolve an active sprint id, create the ticket without a sprint and note in the run output that the sprint needs manual assignment** — do not block the PR on it.
+4. `createJiraIssue` with project=`MOB`, issuetype=`Bug`, summary, description, assignee=`<accountId>`, labels=`["ai_assisted"]` (+ sprint if resolved). Capture the returned key, e.g. `MOB-XXXXX`.
+5. `getTransitionsForJiraIssue` → find the **In Progress** transition id → `transitionJiraIssue` to move it there.
+
+**Reference the key in the PR, not the commit.** The fix commit was already made and pushed at step 11 (before this ticket exists), so the key can't be in it — and that's fine. Put the key in the **PR title and body** only (next step). Do **not** amend or force-push the fix commit to backfill the key: leaving the verified commit untouched keeps it matching exactly the image already built and scanned by `taurus-branch-builder`.
+
 **Before creating the PR — optionally update `vulnerability_history.md` on the SAME fix branch (so it ships in this PR, no separate PR):**
 
 This is **conditional, not mandatory.** The file exists so a future run doesn't repeat a past mistake, and understands *why* a change was made so it doesn't undo it. Update it only when this run produced a **durable lesson** of that kind — a fix that silently didn't land and the root cause, a new not-buildable category, a corrected recipe, or a non-obvious decision worth preserving. The most valuable lessons are only known *after* the branch scan in step 13.
@@ -480,14 +506,15 @@ git push origin <branch-name>
 
 > **Caveat — the history file must exist on the base branch (`master`) for this to work.** The fix branch is cut from `origin/master`; `vulnerability_history.md` is only present there once the prisma-taurus skill itself has been merged to `master`. If the skill is not yet on `master` (e.g. still on a feature branch), the file won't be in the fix branch's worktree — in that case commit the history update on whatever branch the skill lives on instead, and note in the PR that the history doc lives elsewhere. Once the skill is merged, this caveat no longer applies and the history update rides along in the same PR every run.
 
-**Create the PR (only when the gate passes):**
+**Create the PR (only when the gate passes):** include the Jira key in the title so Jira ↔ GitHub link automatically.
 ```bash
 # gh if available; otherwise POST to the GitHub API with $GITHUB_TOKEN
-gh pr create --title "CVE fixes - $(date +%Y-%m-%d)" --body-file <body.md>
+gh pr create --title "<MOB-XXXXX>: CVE fixes - $(date +%Y-%m-%d)" --body-file <body.md>
 ```
 If `gh` is not on PATH, create via the GitHub API using `$GITHUB_TOKEN` (`POST /repos/Blazemeter/taurus/pulls`).
 
 PR body should include:
+- **Jira:** `<MOB-XXXXX>` (the ticket created above).
 - The branch-scan comparison: baseline vs branch image (total + per severity, with the build number).
 - Table of fixes confirmed in the image: CVE ID, package, old version → new version, severity.
 - Note: "Verified against the `taurus-branch-builder` image scan (build #<BUILD>) before opening — integration passed and vulnerabilities dropped from X to Y."
@@ -547,6 +574,7 @@ SUMMARY
 ═══════════════════════════════════════════════
 Branch image scan (taurus-branch-builder #<BUILD>): integration <pass/fail>
 Vulnerabilities: baseline <X> → branch <Y>  (crit A→A', high B→B', med C→C', low D→D')
+Jira: <MOB-XXXXX> (Bug, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>
 
 ✅ Verified in the branch image and included in PR #<number>:
    - <CVE-ID>: <package> <old> → <new>
