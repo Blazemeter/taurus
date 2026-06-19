@@ -131,7 +131,7 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 #   mesa userspace libs:    CVE-2026-40393
 # (--only-upgrade never installs new packages; absent ones are skipped.)
 RUN apt-get update && \
-    apt-get install -y --only-upgrade \
+    apt-get install -y --no-install-recommends --only-upgrade \
         libgnutls30 \
         libgcrypt20 \
         librabbitmq4 \
@@ -188,8 +188,8 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 #      so it cleared). Remove all three, purge the gem cache, then ASSERT the old version is gone
 #      so the build fails loudly instead of silently shipping the vulnerable version.
 RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
-    gem install net-imap -v 0.5.15 && \
-    gem install erb -v 4.0.4.1 && \
+    gem install net-imap -v 0.5.15 --no-document && \
+    gem install erb -v 4.0.4.1 --no-document && \
     GEMS_DIR="$(ruby -e 'print Gem.dir')" && \
     for OLD in net-imap-0.5.8 erb-4.0.4; do \
         rm -rf "$GEMS_DIR/gems/$OLD" \
