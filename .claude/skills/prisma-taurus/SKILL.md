@@ -469,24 +469,39 @@ Then do two checks:
 
 **Before creating the PR — create a Jira Bug for the fixes and reference its key in the PR.**
 
-Do this **only after the decision gate passes** (never for a run that didn't reduce vulnerabilities — otherwise you leave an orphan ticket). Use the Atlassian (Jira) MCP tools — they're deferred, so load them first, e.g. `ToolSearch` with `select:mcp__claude_ai_Atlassian_Rovo__createJiraIssue,mcp__claude_ai_Atlassian_Rovo__atlassianUserInfo,mcp__claude_ai_Atlassian_Rovo__getJiraProjectIssueTypesMetadata,mcp__claude_ai_Atlassian_Rovo__getTransitionsForJiraIssue,mcp__claude_ai_Atlassian_Rovo__transitionJiraIssue`.
+Do this **only after the decision gate passes** (never for a run that didn't reduce vulnerabilities — otherwise you leave an orphan ticket). Load the deferred Atlassian (Jira) MCP tools first, e.g. `ToolSearch` with `select:mcp__claude_ai_Atlassian_Rovo__atlassianUserInfo,mcp__claude_ai_Atlassian_Rovo__searchJiraIssuesUsingJql,mcp__claude_ai_Atlassian_Rovo__createJiraIssue,mcp__claude_ai_Atlassian_Rovo__editJiraIssue,mcp__claude_ai_Atlassian_Rovo__getTransitionsForJiraIssue,mcp__claude_ai_Atlassian_Rovo__transitionJiraIssue` (add `getAccessibleAtlassianResources` if you need the cloudId).
+
+Site / cloudId: `perforce.atlassian.net` = `2accdbdb-9d65-4c22-b174-5d4a9d437c59`. Project `MOB` (name "R&D"), issue type `Bug`.
 
 | Field | Value |
 |---|---|
 | Project | `MOB` |
 | Issue type | `Bug` |
 | Summary | generic, e.g. `Fix CVE vulnerabilities in blazemeter/taurus Docker image (YYYY-MM-DD)` |
-| Description | the CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity), plus the baseline→branch reduction (total X→Y, crit A→A') |
-| Assignee | **the developer running the skill** — resolve dynamically via `atlassianUserInfo` (the authenticated Atlassian user *is* the runner); never hardcode a person |
+| Description | the CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity) + baseline→branch reduction (total X→Y, crit A→A') |
+| Assignee | **the developer running the skill** — `atlassianUserInfo` accountId; never hardcode a person |
 | Labels | `["ai_assisted"]` |
-| Sprint | the active sprint — **best effort** (see step 3) |
+| **Scrum Team** (`customfield_10067`) | **required on create** — copy from the runner's recent MOB issue (step 2) |
+| **Product** (`customfield_10350`) | **required on create** — copy from the runner's recent MOB issue (for Taurus this is `Blazemeter`, option id `21409`) |
+| Sprint (`customfield_10020`) | the team's active sprint — copy from the runner's recent open-sprint MOB issue (step 2) and set it (step 4); it is **not** auto-assigned |
 | Status | transition to **In Progress** after creation |
 
-1. `atlassianUserInfo` → the runner's `accountId` (use as the assignee).
-2. `getJiraProjectIssueTypesMetadata` (project `MOB`, issue type `Bug`) → confirm the field ids you need, in particular the **Sprint** custom field id (e.g. `customfield_XXXXX`) and that `labels`/`assignee` are settable on create.
-3. **Sprint (best-effort, never blocks):** try to resolve the project board's *active* sprint id and set the Sprint field. The available Atlassian MCP tools may not expose board/active-sprint queries (the Jira Agile API does; the MCP may not). **If you cannot resolve an active sprint id, create the ticket without a sprint and note in the run output that the sprint needs manual assignment** — do not block the PR on it.
-4. `createJiraIssue` with project=`MOB`, issuetype=`Bug`, summary, description, assignee=`<accountId>`, labels=`["ai_assisted"]` (+ sprint if resolved). Capture the returned key, e.g. `MOB-XXXXX`.
-5. `getTransitionsForJiraIssue` → find the **In Progress** transition id → `transitionJiraIssue` to move it there.
+> ⚠️ **The MOB Bug create screen rejects a create that omits `customfield_10067` (Scrum Team) or `customfield_10350` (Product)** — both are mandatory and have no default. Do **not** hardcode them (they are team-specific); derive them per-run from the runner's own issues so the skill works for any developer/team.
+
+1. `atlassianUserInfo` → the runner's `accountId` (assignee).
+2. **Harvest Scrum Team + Product + the active sprint in one query** — they all come off the runner's most recent issue currently in an open sprint:
+   ```
+   searchJiraIssuesUsingJql
+     jql:    project = MOB AND assignee = currentUser() AND sprint IN openSprints() ORDER BY updated DESC
+     fields: ["customfield_10067","customfield_10350","customfield_10020"]
+   ```
+   From the top result copy: **Scrum Team** `customfield_10067.id`, **Product** `customfield_10350.id`, and the **active sprint** = the entry in the `customfield_10020` array whose `state == "active"` → its numeric `id` (e.g. `27845` = `26-Q2-S6`).
+   - *Fallback:* if the runner has no open-sprint issue, drop the sprint clause (`… assignee = currentUser() ORDER BY updated DESC`) to get Scrum Team/Product, then resolve the sprint via `project = MOB AND "Scrum Team" = "<team>" AND sprint IN openSprints()`. If still none, create without a sprint and flag it for manual assignment.
+   - *Why this way:* the Atlassian MCP has **no board/sprint tool** and only `read/write:jira-work` scope (not the `jira-software`/agile scopes), so the Agile API for "active sprint" is unavailable — reading an existing issue's Sprint field is the scope-free path.
+3. `createJiraIssue` — `projectKey=MOB`, `issueTypeName=Bug`, summary, description, `assignee_account_id=<accountId>`, `additional_fields: {"labels":["ai_assisted"], "customfield_10067":{"id":"<scrumTeamId>"}, "customfield_10350":{"id":"<productId>"}}`. Capture the returned key, e.g. `MOB-XXXXX`. (The Sprint field is usually not on the *create* screen — set it in the next step.)
+4. **Set the sprint:** `editJiraIssue` on the new key with `fields: {"customfield_10020": <activeSprintId>}` (numeric id). If the write is rejected (some boards restrict sprint assignment via API), flag the sprint for manual assignment — don't block the PR.
+5. `getTransitionsForJiraIssue` → find the **In Progress** transition id → `transitionJiraIssue`.
+6. **Read the ticket back** (`customfield_10020`, `status`) to confirm the sprint landed and status is *In Progress* before moving on.
 
 **Reference the key in the PR, not the commit.** The fix commit was already made and pushed at step 11 (before this ticket exists), so the key can't be in it — and that's fine. Put the key in the **PR title and body** only (next step). Do **not** amend or force-push the fix commit to backfill the key: leaving the verified commit untouched keeps it matching exactly the image already built and scanned by `taurus-branch-builder`.
 
