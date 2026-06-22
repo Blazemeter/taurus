@@ -467,38 +467,37 @@ Then do two checks:
 - **Vulnerabilities went down AND no fixed package is still flagged at its old version** → proceed to create the PR (below).
 - **Vulnerabilities did not improve, OR a fix silently failed to land** → do NOT create a PR. Report the comparison, the failed fixes and why, and stop. Tell the user the branch is pushed and the build number so they can decide.
 
-**Before creating the PR — create a Jira Bug for the fixes and reference its key in the PR.**
+**Before creating the PR — create a Jira Story for the fixes and reference its key in the PR.**
 
 Do this **only after the decision gate passes** (never for a run that didn't reduce vulnerabilities — otherwise you leave an orphan ticket). Load the deferred Atlassian (Jira) MCP tools first, e.g. `ToolSearch` with `select:mcp__claude_ai_Atlassian_Rovo__atlassianUserInfo,mcp__claude_ai_Atlassian_Rovo__searchJiraIssuesUsingJql,mcp__claude_ai_Atlassian_Rovo__createJiraIssue,mcp__claude_ai_Atlassian_Rovo__editJiraIssue,mcp__claude_ai_Atlassian_Rovo__getTransitionsForJiraIssue,mcp__claude_ai_Atlassian_Rovo__transitionJiraIssue` (add `getAccessibleAtlassianResources` if you need the cloudId).
 
-Site / cloudId: `perforce.atlassian.net` = `2accdbdb-9d65-4c22-b174-5d4a9d437c59`. Project `MOB` (name "R&D"), issue type `Bug`.
+Site / cloudId: `perforce.atlassian.net` = `2accdbdb-9d65-4c22-b174-5d4a9d437c59`. Project `MOB` (name "R&D"), issue type `Story`.
 
 | Field | Value |
 |---|---|
 | Project | `MOB` |
-| Issue type | `Bug` |
+| Issue type | `Story` |
 | Summary | generic, e.g. `Fix CVE vulnerabilities in blazemeter/taurus Docker image (YYYY-MM-DD)` |
 | Description | the CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity) + baseline→branch reduction (total X→Y, crit A→A') |
 | Assignee | **the developer running the skill** — `atlassianUserInfo` accountId; never hardcode a person |
 | Labels | `["ai_assisted"]` |
-| **Scrum Team** (`customfield_10067`) | **required on create** — copy from the runner's recent MOB issue (step 2) |
-| **Product** (`customfield_10350`) | **required on create** — copy from the runner's recent MOB issue (for Taurus this is `Blazemeter`, option id `21409`) |
-| Sprint (`customfield_10020`) | the team's active sprint — copy from the runner's recent open-sprint MOB issue (step 2) and set it (step 4); it is **not** auto-assigned |
+| **Scrum Team** (`customfield_10067`) | **required on create** — hardcoded to **Sparta**, option id `21405` |
+| **Product** (`customfield_10350`) | **required on create** — hardcoded to **Blazemeter**, option id `21409` |
+| Sprint (`customfield_10020`) | the team's active sprint — resolve dynamically (step 2) and set it (step 4); it is **not** auto-assigned |
 | Status | transition to **In Progress** after creation |
 
-> ⚠️ **The MOB Bug create screen rejects a create that omits `customfield_10067` (Scrum Team) or `customfield_10350` (Product)** — both are mandatory and have no default. Do **not** hardcode them (they are team-specific); derive them per-run from the runner's own issues so the skill works for any developer/team.
+> ⚠️ **The MOB Story create screen rejects a create that omits `customfield_10067` (Scrum Team) or `customfield_10350` (Product)** — both are mandatory and have no default. For now they are **hardcoded** to this team's values (Scrum Team = Sparta `21405`, Product = Blazemeter `21409`). If another team starts running this skill, switch these to per-run values derived from the runner's own recent MOB issue instead.
 
 1. `atlassianUserInfo` → the runner's `accountId` (assignee).
-2. **Harvest Scrum Team + Product + the active sprint in one query** — they all come off the runner's most recent issue currently in an open sprint:
+2. **Resolve the active sprint** — read it off the runner's most recent issue currently in an open sprint (the Atlassian MCP has **no board/sprint tool** and only `read/write:jira-work` scope, so the Agile API for "active sprint" is unavailable — reading an existing issue's Sprint field is the scope-free path):
    ```
    searchJiraIssuesUsingJql
      jql:    project = MOB AND assignee = currentUser() AND sprint IN openSprints() ORDER BY updated DESC
-     fields: ["customfield_10067","customfield_10350","customfield_10020"]
+     fields: ["customfield_10020"]
    ```
-   From the top result copy: **Scrum Team** `customfield_10067.id`, **Product** `customfield_10350.id`, and the **active sprint** = the entry in the `customfield_10020` array whose `state == "active"` → its numeric `id` (e.g. `27845` = `26-Q2-S6`).
-   - *Fallback:* if the runner has no open-sprint issue, drop the sprint clause (`… assignee = currentUser() ORDER BY updated DESC`) to get Scrum Team/Product, then resolve the sprint via `project = MOB AND "Scrum Team" = "<team>" AND sprint IN openSprints()`. If still none, create without a sprint and flag it for manual assignment.
-   - *Why this way:* the Atlassian MCP has **no board/sprint tool** and only `read/write:jira-work` scope (not the `jira-software`/agile scopes), so the Agile API for "active sprint" is unavailable — reading an existing issue's Sprint field is the scope-free path.
-3. `createJiraIssue` — `projectKey=MOB`, `issueTypeName=Bug`, summary, description, `assignee_account_id=<accountId>`, `additional_fields: {"labels":["ai_assisted"], "customfield_10067":{"id":"<scrumTeamId>"}, "customfield_10350":{"id":"<productId>"}}`. Capture the returned key, e.g. `MOB-XXXXX`. (The Sprint field is usually not on the *create* screen — set it in the next step.)
+   The **active sprint** = the entry in the top result's `customfield_10020` array whose `state == "active"` → its numeric `id` (e.g. `27845` = `26-Q2-S6`).
+   - *Fallback:* if the runner has no open-sprint issue, resolve via `project = MOB AND "Scrum Team" = "Sparta" AND sprint IN openSprints() ORDER BY updated DESC`. If still none, create without a sprint and flag it for manual assignment.
+3. `createJiraIssue` — `projectKey=MOB`, `issueTypeName=Story`, summary, description, `assignee_account_id=<accountId>`, `additional_fields: {"labels":["ai_assisted"], "customfield_10067":{"id":"21405"}, "customfield_10350":{"id":"21409"}}`. Capture the returned key, e.g. `MOB-XXXXX`. (The Sprint field is usually not on the *create* screen — set it in the next step.)
 4. **Set the sprint:** `editJiraIssue` on the new key with `fields: {"customfield_10020": <activeSprintId>}` (numeric id). If the write is rejected (some boards restrict sprint assignment via API), flag the sprint for manual assignment — don't block the PR.
 5. `getTransitionsForJiraIssue` → find the **In Progress** transition id → `transitionJiraIssue`.
 6. **Read the ticket back** (`customfield_10020`, `status`) to confirm the sprint landed and status is *In Progress* before moving on.
@@ -589,7 +588,7 @@ SUMMARY
 ═══════════════════════════════════════════════
 Branch image scan (taurus-branch-builder #<BUILD>): integration <pass/fail>
 Vulnerabilities: baseline <X> → branch <Y>  (crit A→A', high B→B', med C→C', low D→D')
-Jira: <MOB-XXXXX> (Bug, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>
+Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>
 
 ✅ Verified in the branch image and included in PR #<number>:
    - <CVE-ID>: <package> <old> → <new>
