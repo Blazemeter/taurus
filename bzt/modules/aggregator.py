@@ -738,14 +738,19 @@ class ResultsReader(ResultsProvider):
                 base_label = '[empty]'
 
             if self.generalize_labels:
-                base_label = self._generalize_label(base_label)
+                base_label = self._generalize_label(str(base_label))
+
+            # Skip ignored labels
+            if any([base_label.startswith(ignore) for ignore in self.ignored_labels]):
+                continue
 
             self.__add_sample(current, base_label, sample[1:])
 
+        # Exclude ignored labels from percentile calculation for the overall KPISet
+        filtered_labels = [label for label in current if not any([label.startswith(ignore) for ignore in self.ignored_labels]) and label != '']
         overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''), ext_aggregation=self._redundant_aggregation)
-
-        for label in current.values():
-            overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
+        for label in filtered_labels:
+            overall.merge_kpis(current[label], datapoint[DataPoint.SOURCE_ID])
         current[''] = overall
 
         return current
