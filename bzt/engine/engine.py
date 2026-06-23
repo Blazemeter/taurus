@@ -128,7 +128,7 @@ class Engine(object):
 
         all_includes = []
         while "included-configs" in self.config:
-            includes = self.config.pop("included-configs")
+            includes = list(set(self.config.pop("included-configs")))
             included_configs = [self.find_file(conf) for conf in includes if conf not in all_includes + user_configs]
             all_includes += includes
             self.config.load(included_configs)
