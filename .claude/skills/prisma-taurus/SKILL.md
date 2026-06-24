@@ -77,7 +77,7 @@ These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjav
 | `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem install <gem> -v <fixed>` + default-gem/cache cleanup (see Ruby gems section) |
 | empty path or OS path (`/usr/lib/`, `/lib/`) | OS package | Dockerfile `apt-get install --only-upgrade` |
 | Python pkg, `Path` under `/usr/local/lib/python3.x/...` | Python package | `requirements.txt` or `services.py` pip constraints — **classify into 5 cases**, see Python section |
-| Python pkg, `Path` under `/usr/lib/python3/dist-packages/...` | distro Python (apt) | Dockerfile `apt-get --only-upgrade`/`purge` (NOT `requirements.txt`) |
+| Python pkg, `Path` under `/usr/lib/python3/dist-packages/...` | distro Python (apt) | Dockerfile `apt-get install --only-upgrade`/`apt-get purge` (NOT `requirements.txt`) |
 
 > **Note:** the `/root/.bzt/jmeter-taurus/*` and `/root/.bzt/gatling-taurus/*` paths are intentionally **absent** from this auto-fixable table — they belong to category 1 (do not fix). Do not reintroduce JMeter/Gatling jar fixes or version bumps.
 
@@ -198,9 +198,13 @@ Past runs left temporary fixes in the Dockerfile and `requirements.txt`: npm `ov
 - **Does the CVE it was added for still appear in the current baseline scan (step 5)?** If the parent package or base image now ships the fixed version (the CVE is gone from the baseline), **remove that line on the fix branch.** The branch re-scan (step 12) is the safety net — if a removal regresses, the scan catches it before the PR.
 - If the CVE is still present → leave the fix in place.
 
-Check `vulnerability_history.md` for any recorded removal condition before deciding (see step 13).
+Check `vulnerability_history.md` for any recorded removal condition before deciding.
 
-**Convention — mark every temporary fix with its removal condition.** Each temporary fix this skill adds must carry an inline `# remove when <upstream condition>` comment (e.g. `# remove when nodejs ships npm with glob >= 11.1.0`) so a future run can find and re-evaluate it. A self-pruning runtime guard — like the Newman `NEWMAN_VERSION = 6.2.2` check that skips the override once Newman moves — satisfies this too. When the condition is non-obvious, also record it under the relevant recipe in `vulnerability_history.md`.
+**Convention — mark every temporary fix with its removal condition.** Each temporary fix this skill adds must carry a `# remove when <upstream condition>` comment (e.g. `# remove when nodejs ships npm with glob >= 11.1.0`) so a future run can find and re-evaluate it. Where the comment goes depends on the fix:
+- **Dockerfile `RUN` steps** (gem installs, apt upgrades, sed patches, extra `pip install`) → put the `# remove when …` line directly above the `RUN`.
+- **JSON-based fixes** (npm `overrides` seeded via a `printf`'d `package.json`) → JSON has no comment syntax, so put the marker on the surrounding Dockerfile `RUN`/`echo` line that writes the file, and record the per-package removal conditions in `vulnerability_history.md`.
+
+A self-pruning runtime guard — like the Newman `NEWMAN_VERSION = 6.2.2` check that skips the override once Newman moves — satisfies this too. When the condition is non-obvious, also record it under the relevant recipe in `vulnerability_history.md`.
 
 ---
 
