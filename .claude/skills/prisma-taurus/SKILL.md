@@ -76,7 +76,8 @@ These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjav
 | `/root/.bzt/selenium-taurus/*/node_modules/` | npm direct package | `bzt/modules/javascript.py` PACKAGE_NAME constant |
 | `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem install <gem> -v <fixed>` + default-gem/cache cleanup (see Ruby gems section) |
 | empty path or OS path (`/usr/lib/`, `/lib/`) | OS package | Dockerfile `apt-get install --only-upgrade` |
-| Python dist-info path | Python package | `requirements.txt` |
+| Python pkg, `Path` under `/usr/local/lib/python3.x/...` | Python package | `requirements.txt` or `services.py` pip constraints — **classify into 5 cases**, see Python section |
+| Python pkg, `Path` under `/usr/lib/python3/dist-packages/...` | distro Python (apt) | Dockerfile `apt-get --only-upgrade`/`purge` (NOT `requirements.txt`) |
 
 > **Note:** the `/root/.bzt/jmeter-taurus/*` and `/root/.bzt/gatling-taurus/*` paths are intentionally **absent** from this auto-fixable table — they belong to category 1 (do not fix). Do not reintroduce JMeter/Gatling jar fixes or version bumps.
 
@@ -95,6 +96,8 @@ echo "credentials OK"
 
 ### 2. Check if last scan is still valid
 
+> **curl gotcha (`-g`):** Jenkins `tree=` queries contain `[` and `]`, which curl treats as a glob range — an un-escaped one fails with `bad range in URL`. The commands below URL-encode the brackets (`%5B`/`%5D`) and so are safe as written. If you ever write the brackets literally (as the reference table does for readability), add `-g` (globoff): `curl -sS -g -u "$JENKINS_USERNAME:$JENKINS_TOKEN" ".../api/json?tree=foo[bar]"`.
+
 **Get the timestamp when `unstable` was last pushed to Docker Hub:**
 ```bash
 curl -s "https://hub.docker.com/v2/repositories/blazemeter/taurus/tags/unstable" \
@@ -112,12 +115,12 @@ Look for the most recent build where:
 - The `IMAGE_URL` parameter value is `blazemeter/taurus:unstable`
 
 **The scan is valid only if BOTH are true:**
-- Scan timestamp is **after** the `unstable` image push timestamp
-- Scan timestamp is **within the last 5 days**
+- Scan timestamp is **after** the `unstable` image push timestamp (correctness — the scan must reflect the current master image)
+- Scan ran **today** (same UTC calendar day as now) — freshness, since CVE feeds update daily and a re-scan of an unchanged image surfaces newly-disclosed CVEs
 
 If valid → skip to step 4 using that build number.
 
-Otherwise → continue to step 3.
+Otherwise (no scan today, even if the image is unchanged) → continue to step 3 and trigger a fresh scan.
 
 **First check if a scan is already running:**
 ```bash
@@ -188,17 +191,31 @@ Work in priority order: critical → high → medium → low. For each CVE apply
 
 ---
 
-#### Python packages (`requirements.txt`)
+#### Before adding new fixes — prune stale ones
 
-Identify the package by matching `Source Package` against entries in `requirements.txt`. Update the pinned version:
-```
-# before
-urllib3==2.6.3
-# after
-urllib3==2.7.0
-```
+Past runs left temporary fixes in the Dockerfile and `requirements.txt`: npm `overrides` blocks, forced `gem install` + default-gem purges, `apt-get --only-upgrade` pins, `.deps.json`/dpkg `sed` patches, and any `pip install` step outside the normal requirements install. Before adding anything new, re-evaluate each one:
 
-Extract the fixed version from the `Fix Status` field (e.g. `fixed in 2.7.0` → `2.7.0`).
+- **Does the CVE it was added for still appear in the current baseline scan (step 5)?** If the parent package or base image now ships the fixed version (the CVE is gone from the baseline), **remove that line on the fix branch.** The branch re-scan (step 12) is the safety net — if a removal regresses, the scan catches it before the PR.
+- If the CVE is still present → leave the fix in place.
+
+Check `vulnerability_history.md` for any recorded removal condition before deciding (see step 13).
+
+**Convention — mark every temporary fix with its removal condition.** Each temporary fix this skill adds must carry an inline `# remove when <upstream condition>` comment (e.g. `# remove when nodejs ships npm with glob >= 11.1.0`) so a future run can find and re-evaluate it. A self-pruning runtime guard — like the Newman `NEWMAN_VERSION = 6.2.2` check that skips the override once Newman moves — satisfies this too. When the condition is non-obvious, also record it under the relevant recipe in `vulnerability_history.md`.
+
+---
+
+#### Python packages — classify by `Path` (not every Python fix is `requirements.txt`)
+
+Decide the mechanism from the finding's `Path`:
+
+1. **Pinned in `requirements.txt`** — `Path` under `/usr/local/lib/python3.x/...` and the package name *is* in `requirements.txt` → bump the existing pin. Extract the fixed version from `Fix Status` (`fixed in 2.7.0` → `2.7.0`):
+   ```
+   urllib3==2.6.3   →   urllib3==2.7.0
+   ```
+2. **Transitive dep not in `requirements.txt`** — `Path` under `/usr/local/lib/python3.x/...` but the package name is absent from `requirements.txt` → force the fixed version with a new pin. Prefer adding it to `PipInstaller.pip_constraints` in `bzt/modules/services.py` (the constraints file is applied to every pip install); add a direct `requirements.txt` line only if it is genuinely a direct dependency.
+3. **Resolver constraint blocks the pin** — another dependency caps the version, so re-resolving `requirements.txt` fails → add a dedicated `pip install <pkg>==<fixed>` step in the Dockerfile right after the BZT-install pip step, with a `# remove when <condition>` marker (see the pruning convention above).
+4. **Vendored inside setuptools** — `Path` contains `/setuptools/_vendor/...` → cannot be pinned directly; only bumping the pinned `setuptools==` in `requirements.txt` clears it. Bump setuptools if a patched, compatible version exists; otherwise skip a low-value vendored finding and list it.
+5. **System / distro Python** — `Path` under `/usr/lib/python3/dist-packages/...` → **not** a `requirements.txt` fix; the package came from `apt`, not pip. Upgrade or remove it in the Dockerfile (`apt-get install --only-upgrade <pkg>` or `apt-get purge <pkg>`), exactly like an OS package.
 
 ---
 
@@ -504,13 +521,15 @@ Site / cloudId: `perforce.atlassian.net` = `2accdbdb-9d65-4c22-b174-5d4a9d437c59
 
 **Reference the key in the PR, not the commit.** The fix commit was already made and pushed at step 11 (before this ticket exists), so the key can't be in it — and that's fine. Put the key in the **PR title and body** only (next step). Do **not** amend or force-push the fix commit to backfill the key: leaving the verified commit untouched keeps it matching exactly the image already built and scanned by `taurus-branch-builder`.
 
-**Before creating the PR — optionally update `vulnerability_history.md` on the SAME fix branch (so it ships in this PR, no separate PR):**
+**Before creating the PR — reconcile `vulnerability_history.md` on the SAME fix branch (so it ships in this PR, no separate PR):**
 
-This is **conditional, not mandatory.** The file exists so a future run doesn't repeat a past mistake, and understands *why* a change was made so it doesn't undo it. Update it only when this run produced a **durable lesson** of that kind — a fix that silently didn't land and the root cause, a new not-buildable category, a corrected recipe, or a non-obvious decision worth preserving. The most valuable lessons are only known *after* the branch scan in step 13.
+`vulnerability_history.md` is a **problem-solving reference, not a log of what happened.** Its job is to help a future run (a) fix similar vulnerabilities faster and (b) know when a temporary fix can be removed because a newer upstream version resolved the original CVE. Update it **in place** — improve the matching recipe or pattern; do **not** append a blow-by-blow "what happened today" entry.
 
-**If the run was routine** — known fixes applied cleanly, branch scan dropped as expected, no surprises — **skip this entirely and go straight to creating the PR.** Logging routine runs just dilutes the real lessons and makes them harder to find. Quality over completeness; don't pad the timeline.
+At the end of every run, reconcile it for two things:
+- **A durable lesson** — a fix that silently didn't land and its root cause, a new not-buildable category, a corrected recipe, or a non-obvious decision worth preserving. The most valuable of these are only known *after* the branch scan in this step. Fold it into the matching "Patterns" recipe (or add a new recipe), not into a dated timeline.
+- **A removal condition** — if this run **pruned** a now-unneeded fix (step 7) or added a new temporary fix, record *under that recipe* what the fix is for and the upstream condition that makes it removable, so a future run can prune it confidently.
 
-When there *is* something worth recording, add a dated run entry in the timeline and/or update the relevant "Patterns" section, then commit it **on the fix branch** alongside the code fixes and push, so the doc update is part of this same PR rather than a separate one:
+If the run applied known recipes cleanly and there is no new lesson and nothing to prune, change nothing and go straight to the PR — don't pad the file. When there *is* something to record, commit it **on the fix branch** alongside the code fixes and push, so the doc update is part of this same PR rather than a separate one:
 ```bash
 cd .worktrees/<branch-name>   # or re-add the worktree on the fix branch if already removed
 git add .claude/skills/prisma-taurus/vulnerability_history.md
