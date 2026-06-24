@@ -24,7 +24,7 @@ End-to-end vulnerability management for the Taurus Docker image. Fetches the lat
 
 ## Common Mistakes
 
-- Triggering a new scan when a valid one already exists (within 5 days and after last `unstable` push) — always check first
+- Triggering a new scan when a valid one already exists (one already ran **today (UTC)** and after the last `unstable` push) — always check first
 - **Fixing JMeter/Gatling-bundled CVEs** — any finding whose `Path` is under `/root/.bzt/jmeter-taurus/` or `/root/.bzt/gatling-taurus/` is out of scope. Do not repin jars and **do not bump `JMeter.VERSION` / `Gatling.VERSION`** (a version bump is a JMeter/Gatling fix). List them only.
 - Auto-fixing scanner appeasement CVEs (`.deps.json`, `/var/lib/dpkg/` paths) — these must always be flagged as manual
 - Removing the worktree after a test failure — leave it in place for the user to investigate
@@ -76,7 +76,7 @@ These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjav
 | `/root/.bzt/selenium-taurus/*/node_modules/` | npm direct package | `bzt/modules/javascript.py` PACKAGE_NAME constant |
 | `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem install <gem> -v <fixed>` + default-gem/cache cleanup (see Ruby gems section) |
 | empty path or OS path (`/usr/lib/`, `/lib/`) | OS package | Dockerfile `apt-get install --only-upgrade` |
-| Python pkg, `Path` under `/usr/local/lib/python3.x/...` | Python package | `requirements.txt` or `services.py` pip constraints — **classify into 5 cases**, see Python section |
+| Python pkg, `Path` under `/usr/local/lib/python3.x/...` | Python package | `requirements.txt` (feeds the wheel's `install_requires`) or a dedicated Dockerfile `pip install` step — **classify into 5 cases**, see Python section |
 | Python pkg, `Path` under `/usr/lib/python3/dist-packages/...` | distro Python (apt) | Dockerfile `apt-get install --only-upgrade`/`apt-get purge` (NOT `requirements.txt`) |
 
 > **Note:** the `/root/.bzt/jmeter-taurus/*` and `/root/.bzt/gatling-taurus/*` paths are intentionally **absent** from this auto-fixable table — they belong to category 1 (do not fix). Do not reintroduce JMeter/Gatling jar fixes or version bumps.
@@ -193,7 +193,7 @@ Work in priority order: critical → high → medium → low. For each CVE apply
 
 #### Before adding new fixes — prune stale ones
 
-Past runs left temporary fixes in the Dockerfile and `requirements.txt`: npm `overrides` blocks, forced `gem install` + default-gem purges, `apt-get --only-upgrade` pins, `.deps.json`/dpkg `sed` patches, and any `pip install` step outside the normal requirements install. Before adding anything new, re-evaluate each one:
+Past runs left temporary fixes in the Dockerfile and `requirements.txt`: npm `overrides` blocks, forced `gem install` + default-gem purges, `apt-get install --only-upgrade` pins, `.deps.json`/dpkg `sed` patches, and any `pip install` step outside the normal requirements install. Before adding anything new, re-evaluate each one:
 
 - **Does the CVE it was added for still appear in the current baseline scan (step 5)?** If the parent package or base image now ships the fixed version (the CVE is gone from the baseline), **remove that line on the fix branch.** The branch re-scan (step 12) is the safety net — if a removal regresses, the scan catches it before the PR.
 - If the CVE is still present → leave the fix in place.
@@ -216,7 +216,7 @@ Decide the mechanism from the finding's `Path`:
    ```
    urllib3==2.6.3   →   urllib3==2.7.0
    ```
-2. **Transitive dep not in `requirements.txt`** — `Path` under `/usr/local/lib/python3.x/...` but the package name is absent from `requirements.txt` → force the fixed version with a new pin. Prefer adding it to `PipInstaller.pip_constraints` in `bzt/modules/services.py` (the constraints file is applied to every pip install); add a direct `requirements.txt` line only if it is genuinely a direct dependency.
+2. **Transitive dep not in `requirements.txt`** — `Path` under `/usr/local/lib/python3.x/...` but the package name is absent from `requirements.txt` → add an explicit pin to `requirements.txt`. It feeds the wheel's `install_requires` (see `setup.py`), so the Dockerfile's `pip install /tmp/bzt*.whl` step resolves the fixed version into the image. If the requirements resolver can't accommodate the pin, use a dedicated Dockerfile `pip install` step instead (case 3). Do **not** rely on `PipInstaller.pip_constraints` (`bzt/modules/services.py`) — that constraints file only governs packages bzt installs at **runtime** (`pip install -t <target>`), not the image site-packages the scanner reads.
 3. **Resolver constraint blocks the pin** — another dependency caps the version, so re-resolving `requirements.txt` fails → add a dedicated `pip install <pkg>==<fixed>` step in the Dockerfile right after the BZT-install pip step, with a `# remove when <condition>` marker (see the pruning convention above).
 4. **Vendored inside setuptools** — `Path` contains `/setuptools/_vendor/...` → cannot be pinned directly; only bumping the pinned `setuptools==` in `requirements.txt` clears it. Bump setuptools if a patched, compatible version exists; otherwise skip a low-value vendored finding and list it.
 5. **System / distro Python** — `Path` under `/usr/lib/python3/dist-packages/...` → **not** a `requirements.txt` fix; the package came from `apt`, not pip. Upgrade or remove it in the Dockerfile (`apt-get install --only-upgrade <pkg>` or `apt-get purge <pkg>`), exactly like an OS package.
@@ -239,13 +239,13 @@ Each npm tool has a `PACKAGE_NAME` constant:
 
 ```python
 class Mocha(NPMPackage):
-    PACKAGE_NAME = "mocha@10.6.0"   # bump version after @
+    PACKAGE_NAME = "mocha@11.7.5"   # versioned — bump after @
 
 class Newman(NPMPackage):
-    PACKAGE_NAME = "newman@6.2.2"   # bump version after @
+    PACKAGE_NAME = "newman"          # UNVERSIONED — tracks npm latest; not bumped here
 ```
 
-Bump the version after `@` to the fixed version from `Fix Status`.
+For a **versioned** constant (e.g. Mocha), bump the version after `@` to the fixed version from `Fix Status`. **Newman's `PACKAGE_NAME` has no version** (`"newman"`), so it tracks npm's latest and can't be pinned here — its transitive-dep CVEs are handled by the Dockerfile `overrides` block (guarded on Newman `6.2.2`), see the npm overrides section below. (Confirm the actual constant values in `bzt/modules/javascript.py` before editing — they change as packages are bumped.)
 
 ---
 
@@ -418,13 +418,12 @@ The PR's `codecov/project` check uses codecov defaults (`target: auto, threshold
 
 The branch must exist on `origin` so `taurus-branch-builder` can build it. **Do not create a PR here** — the PR is created in step 13, only after the branch scan confirms a reduction.
 
-**Stage and commit** (from inside the worktree). Stage only files that actually changed:
+**Stage and commit** (from inside the worktree). Stage only files that actually changed — the in-scope fix targets are `requirements.txt`, the `Dockerfile`, and `bzt/modules/javascript.py` (npm direct `PACKAGE_NAME`):
 ```bash
 cd .worktrees/<branch-name> && \
-git add requirements.txt Dockerfile bzt/modules/services.py bzt/modules/java/tools.py \
-        bzt/modules/jmeter.py bzt/modules/gatling.py bzt/modules/javascript.py
+git add requirements.txt Dockerfile bzt/modules/javascript.py
 ```
-(`bzt/modules/services.py` holds `PipInstaller.pip_constraints` — include it whenever a Python CVE fix required updating those constraints. Stage only the files you actually changed.)
+(Do **not** stage `bzt/modules/jmeter.py` or `bzt/modules/gatling.py` — bumping `JMeter.VERSION`/`Gatling.VERSION` is category 1, out of scope. `bzt/modules/java/tools.py` is a **permitted-but-discouraged** target: stage it only if you deliberately bumped a `JarTool` version constant (TestNG, JUnit, org.json, etc.) for a specific reason — recipe in `vulnerability_history.md` ("When a Java jar has a CVE"). `bzt/modules/services.py` only holds the runtime `PipInstaller.pip_constraints`, which doesn't affect the scanned image, so it's normally not part of a CVE fix.)
 
 Commit message:
 ```
