@@ -24,7 +24,7 @@ End-to-end vulnerability management for the Taurus Docker image. Fetches the lat
 
 ## Common Mistakes
 
-- Triggering a new scan when a valid one already exists (within 5 days and after last `unstable` push) — always check first
+- Triggering a new scan when a valid one already exists (one already ran **today (UTC)** and after the last `unstable` push) — always check first
 - **Fixing JMeter/Gatling-bundled CVEs** — any finding whose `Path` is under `/root/.bzt/jmeter-taurus/` or `/root/.bzt/gatling-taurus/` is out of scope. Do not repin jars and **do not bump `JMeter.VERSION` / `Gatling.VERSION`** (a version bump is a JMeter/Gatling fix). List them only.
 - Auto-fixing scanner appeasement CVEs (`.deps.json`, `/var/lib/dpkg/` paths) — these must always be flagged as manual
 - Removing the worktree after a test failure — leave it in place for the user to investigate
@@ -76,7 +76,8 @@ These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjav
 | `/root/.bzt/selenium-taurus/*/node_modules/` | npm direct package | `bzt/modules/javascript.py` PACKAGE_NAME constant |
 | `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem install <gem> -v <fixed>` + default-gem/cache cleanup (see Ruby gems section) |
 | empty path or OS path (`/usr/lib/`, `/lib/`) | OS package | Dockerfile `apt-get install --only-upgrade` |
-| Python dist-info path | Python package | `requirements.txt` |
+| Python pkg, `Path` under `/usr/local/lib/python3.x/...` | Python package | `requirements.txt` (feeds the wheel's `install_requires`) or a dedicated Dockerfile `pip install` step — **classify into 5 cases**, see Python section |
+| Python pkg, `Path` under `/usr/lib/python3/dist-packages/...` | distro Python (apt) | Dockerfile `apt-get install --only-upgrade`/`apt-get purge` (NOT `requirements.txt`) |
 
 > **Note:** the `/root/.bzt/jmeter-taurus/*` and `/root/.bzt/gatling-taurus/*` paths are intentionally **absent** from this auto-fixable table — they belong to category 1 (do not fix). Do not reintroduce JMeter/Gatling jar fixes or version bumps.
 
@@ -95,6 +96,8 @@ echo "credentials OK"
 
 ### 2. Check if last scan is still valid
 
+> **curl gotcha (`-g`):** Jenkins `tree=` queries contain `[` and `]`, which curl treats as a glob range — an un-escaped one fails with `bad range in URL`. The commands below URL-encode the brackets (`%5B`/`%5D`) and so are safe as written. If you ever write the brackets literally (as the reference table does for readability), add `-g` (globoff): `curl -sS -g -u "$JENKINS_USERNAME:$JENKINS_TOKEN" ".../api/json?tree=foo[bar]"`.
+
 **Get the timestamp when `unstable` was last pushed to Docker Hub:**
 ```bash
 curl -s "https://hub.docker.com/v2/repositories/blazemeter/taurus/tags/unstable" \
@@ -112,12 +115,12 @@ Look for the most recent build where:
 - The `IMAGE_URL` parameter value is `blazemeter/taurus:unstable`
 
 **The scan is valid only if BOTH are true:**
-- Scan timestamp is **after** the `unstable` image push timestamp
-- Scan timestamp is **within the last 5 days**
+- Scan timestamp is **after** the `unstable` image push timestamp (correctness — the scan must reflect the current master image)
+- Scan ran **today** (same UTC calendar day as now) — freshness, since CVE feeds update daily and a re-scan of an unchanged image surfaces newly-disclosed CVEs
 
 If valid → skip to step 4 using that build number.
 
-Otherwise → continue to step 3.
+Otherwise (no scan today, even if the image is unchanged) → continue to step 3 and trigger a fresh scan.
 
 **First check if a scan is already running:**
 ```bash
@@ -188,17 +191,35 @@ Work in priority order: critical → high → medium → low. For each CVE apply
 
 ---
 
-#### Python packages (`requirements.txt`)
+#### Before adding new fixes — prune stale ones
 
-Identify the package by matching `Source Package` against entries in `requirements.txt`. Update the pinned version:
-```
-# before
-urllib3==2.6.3
-# after
-urllib3==2.7.0
-```
+Past runs left temporary fixes in the Dockerfile and `requirements.txt`: npm `overrides` blocks, forced `gem install` + default-gem purges, `apt-get install --only-upgrade` pins, `.deps.json`/dpkg `sed` patches, and any `pip install` step outside the normal requirements install. Before adding anything new, re-evaluate each one:
 
-Extract the fixed version from the `Fix Status` field (e.g. `fixed in 2.7.0` → `2.7.0`).
+- **Does the CVE it was added for still appear in the current baseline scan (step 5)?** If the parent package or base image now ships the fixed version (the CVE is gone from the baseline), **remove that line on the fix branch.** The branch re-scan (step 12) is the safety net — if a removal regresses, the scan catches it before the PR.
+- If the CVE is still present → leave the fix in place.
+
+Check `vulnerability_history.md` for any recorded removal condition before deciding.
+
+**Convention — mark every temporary fix with its removal condition.** Each temporary fix this skill adds must carry a `# remove when <upstream condition>` comment (e.g. `# remove when nodejs ships npm with glob >= 11.1.0`) so a future run can find and re-evaluate it. Where the comment goes depends on the fix:
+- **Dockerfile `RUN` steps** (gem installs, apt upgrades, sed patches, extra `pip install`) → put the `# remove when …` line directly above the `RUN`.
+- **JSON-based fixes** (npm `overrides` seeded via a `printf`'d `package.json`) → JSON has no comment syntax, so put the marker on the surrounding Dockerfile `RUN`/`echo` line that writes the file, and record the per-package removal conditions in `vulnerability_history.md`.
+
+A self-pruning runtime guard — like the Newman `NEWMAN_VERSION = 6.2.2` check that skips the override once Newman moves — satisfies this too. When the condition is non-obvious, also record it under the relevant recipe in `vulnerability_history.md`.
+
+---
+
+#### Python packages — classify by `Path` (not every Python fix is `requirements.txt`)
+
+Decide the mechanism from the finding's `Path`:
+
+1. **Pinned in `requirements.txt`** — `Path` under `/usr/local/lib/python3.x/...` and the package name *is* in `requirements.txt` → bump the existing pin. Extract the fixed version from `Fix Status` (`fixed in 2.7.0` → `2.7.0`):
+   ```
+   urllib3==2.6.3   →   urllib3==2.7.0
+   ```
+2. **Transitive dep not in `requirements.txt`** — `Path` under `/usr/local/lib/python3.x/...` but the package name is absent from `requirements.txt` → add an explicit pin to `requirements.txt`. It feeds the wheel's `install_requires` (see `setup.py`), so the Dockerfile's `pip install /tmp/bzt*.whl` step resolves the fixed version into the image. If the requirements resolver can't accommodate the pin, use a dedicated Dockerfile `pip install` step instead (case 3). Do **not** rely on `PipInstaller.pip_constraints` (`bzt/modules/services.py`) — that constraints file only governs packages bzt installs at **runtime** (`pip install -t <target>`), not the image site-packages the scanner reads.
+3. **Resolver constraint blocks the pin** — another dependency caps the version, so re-resolving `requirements.txt` fails → add a dedicated `pip install <pkg>==<fixed>` step in the Dockerfile right after the BZT-install pip step, with a `# remove when <condition>` marker (see the pruning convention above).
+4. **Vendored inside setuptools** — `Path` contains `/setuptools/_vendor/...` → cannot be pinned directly; only bumping the pinned `setuptools==` in `requirements.txt` clears it. Bump setuptools if a patched, compatible version exists; otherwise skip a low-value vendored finding and list it.
+5. **System / distro Python** — `Path` under `/usr/lib/python3/dist-packages/...` → **not** a `requirements.txt` fix; the package came from `apt`, not pip. Upgrade or remove it in the Dockerfile (`apt-get install --only-upgrade <pkg>` or `apt-get purge <pkg>`), exactly like an OS package.
 
 ---
 
@@ -218,13 +239,13 @@ Each npm tool has a `PACKAGE_NAME` constant:
 
 ```python
 class Mocha(NPMPackage):
-    PACKAGE_NAME = "mocha@10.6.0"   # bump version after @
+    PACKAGE_NAME = "mocha@11.7.5"   # versioned — bump after @
 
 class Newman(NPMPackage):
-    PACKAGE_NAME = "newman@6.2.2"   # bump version after @
+    PACKAGE_NAME = "newman"          # UNVERSIONED — tracks npm latest; not bumped here
 ```
 
-Bump the version after `@` to the fixed version from `Fix Status`.
+For a **versioned** constant (e.g. Mocha), bump the version after `@` to the fixed version from `Fix Status`. **Newman's `PACKAGE_NAME` has no version** (`"newman"`), so it tracks npm's latest and can't be pinned here — its transitive-dep CVEs are handled by the Dockerfile `overrides` block (guarded on Newman `6.2.2`), see the npm overrides section below. (Confirm the actual constant values in `bzt/modules/javascript.py` before editing — they change as packages are bumped.)
 
 ---
 
@@ -397,13 +418,12 @@ The PR's `codecov/project` check uses codecov defaults (`target: auto, threshold
 
 The branch must exist on `origin` so `taurus-branch-builder` can build it. **Do not create a PR here** — the PR is created in step 13, only after the branch scan confirms a reduction.
 
-**Stage and commit** (from inside the worktree). Stage only files that actually changed:
+**Stage and commit** (from inside the worktree). Stage only files that actually changed — the in-scope fix targets are `requirements.txt`, the `Dockerfile`, and `bzt/modules/javascript.py` (npm direct `PACKAGE_NAME`):
 ```bash
 cd .worktrees/<branch-name> && \
-git add requirements.txt Dockerfile bzt/modules/services.py bzt/modules/java/tools.py \
-        bzt/modules/jmeter.py bzt/modules/gatling.py bzt/modules/javascript.py
+git add requirements.txt Dockerfile bzt/modules/javascript.py
 ```
-(`bzt/modules/services.py` holds `PipInstaller.pip_constraints` — include it whenever a Python CVE fix required updating those constraints. Stage only the files you actually changed.)
+(Do **not** stage `bzt/modules/jmeter.py` or `bzt/modules/gatling.py` — bumping `JMeter.VERSION`/`Gatling.VERSION` is category 1, out of scope. `bzt/modules/java/tools.py` is a **permitted-but-discouraged** target: stage it only if you deliberately bumped a `JarTool` version constant (TestNG, JUnit, org.json, etc.) for a specific reason — recipe in `vulnerability_history.md` ("When a Java jar has a CVE"). `bzt/modules/services.py` only holds the runtime `PipInstaller.pip_constraints`, which doesn't affect the scanned image, so it's normally not part of a CVE fix.)
 
 Commit message:
 ```
@@ -467,36 +487,52 @@ Then do two checks:
 - **Vulnerabilities went down AND no fixed package is still flagged at its old version** → proceed to create the PR (below).
 - **Vulnerabilities did not improve, OR a fix silently failed to land** → do NOT create a PR. Report the comparison, the failed fixes and why, and stop. Tell the user the branch is pushed and the build number so they can decide.
 
-**Before creating the PR — create a Jira Bug for the fixes and reference its key in the PR.**
+**Before creating the PR — create a Jira Story for the fixes and reference its key in the PR.**
 
-Do this **only after the decision gate passes** (never for a run that didn't reduce vulnerabilities — otherwise you leave an orphan ticket). Use the Atlassian (Jira) MCP tools — they're deferred, so load them first, e.g. `ToolSearch` with `select:mcp__claude_ai_Atlassian_Rovo__createJiraIssue,mcp__claude_ai_Atlassian_Rovo__atlassianUserInfo,mcp__claude_ai_Atlassian_Rovo__getJiraProjectIssueTypesMetadata,mcp__claude_ai_Atlassian_Rovo__getTransitionsForJiraIssue,mcp__claude_ai_Atlassian_Rovo__transitionJiraIssue`.
+Do this **only after the decision gate passes** (never for a run that didn't reduce vulnerabilities — otherwise you leave an orphan ticket). Load the deferred Atlassian (Jira) MCP tools first, e.g. `ToolSearch` with `select:mcp__claude_ai_Atlassian_Rovo__atlassianUserInfo,mcp__claude_ai_Atlassian_Rovo__searchJiraIssuesUsingJql,mcp__claude_ai_Atlassian_Rovo__createJiraIssue,mcp__claude_ai_Atlassian_Rovo__editJiraIssue,mcp__claude_ai_Atlassian_Rovo__getTransitionsForJiraIssue,mcp__claude_ai_Atlassian_Rovo__transitionJiraIssue` (add `getAccessibleAtlassianResources` if you need the cloudId).
+
+Site / cloudId: `perforce.atlassian.net` = `2accdbdb-9d65-4c22-b174-5d4a9d437c59`. Project `MOB` (name "R&D"), issue type `Story`.
 
 | Field | Value |
 |---|---|
 | Project | `MOB` |
-| Issue type | `Bug` |
+| Issue type | `Story` |
 | Summary | generic, e.g. `Fix CVE vulnerabilities in blazemeter/taurus Docker image (YYYY-MM-DD)` |
-| Description | the CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity), plus the baseline→branch reduction (total X→Y, crit A→A') |
-| Assignee | **the developer running the skill** — resolve dynamically via `atlassianUserInfo` (the authenticated Atlassian user *is* the runner); never hardcode a person |
+| Description | the CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity) + baseline→branch reduction (total X→Y, crit A→A') |
+| Assignee | **the developer running the skill** — `atlassianUserInfo` accountId; never hardcode a person |
 | Labels | `["ai_assisted"]` |
-| Sprint | the active sprint — **best effort** (see step 3) |
+| **Scrum Team** (`customfield_10067`) | **required on create** — hardcoded to **Sparta**, option id `21405` |
+| **Product** (`customfield_10350`) | **required on create** — hardcoded to **Blazemeter**, option id `21409` |
+| Sprint (`customfield_10020`) | the team's active sprint — resolve dynamically (step 2) and set it (step 4); it is **not** auto-assigned |
 | Status | transition to **In Progress** after creation |
 
-1. `atlassianUserInfo` → the runner's `accountId` (use as the assignee).
-2. `getJiraProjectIssueTypesMetadata` (project `MOB`, issue type `Bug`) → confirm the field ids you need, in particular the **Sprint** custom field id (e.g. `customfield_XXXXX`) and that `labels`/`assignee` are settable on create.
-3. **Sprint (best-effort, never blocks):** try to resolve the project board's *active* sprint id and set the Sprint field. The available Atlassian MCP tools may not expose board/active-sprint queries (the Jira Agile API does; the MCP may not). **If you cannot resolve an active sprint id, create the ticket without a sprint and note in the run output that the sprint needs manual assignment** — do not block the PR on it.
-4. `createJiraIssue` with project=`MOB`, issuetype=`Bug`, summary, description, assignee=`<accountId>`, labels=`["ai_assisted"]` (+ sprint if resolved). Capture the returned key, e.g. `MOB-XXXXX`.
-5. `getTransitionsForJiraIssue` → find the **In Progress** transition id → `transitionJiraIssue` to move it there.
+> ⚠️ **The MOB Story create screen rejects a create that omits `customfield_10067` (Scrum Team) or `customfield_10350` (Product)** — both are mandatory and have no default. For now they are **hardcoded** to this team's values (Scrum Team = Sparta `21405`, Product = Blazemeter `21409`). If another team starts running this skill, switch these to per-run values derived from the runner's own recent MOB issue instead.
+
+1. `atlassianUserInfo` → the runner's `accountId` (assignee).
+2. **Resolve the active sprint** — read it off the runner's most recent issue currently in an open sprint (the Atlassian MCP has **no board/sprint tool** and only `read/write:jira-work` scope, so the Agile API for "active sprint" is unavailable — reading an existing issue's Sprint field is the scope-free path):
+   ```
+   searchJiraIssuesUsingJql
+     jql:    project = MOB AND assignee = currentUser() AND sprint IN openSprints() ORDER BY updated DESC
+     fields: ["customfield_10020"]
+   ```
+   The **active sprint** = the entry in the top result's `customfield_10020` array whose `state == "active"` → its numeric `id` (e.g. `27845` = `26-Q2-S6`).
+   - *Fallback:* if the runner has no open-sprint issue, resolve via `project = MOB AND "Scrum Team" = "Sparta" AND sprint IN openSprints() ORDER BY updated DESC`. If still none, create without a sprint and flag it for manual assignment.
+3. `createJiraIssue` — `projectKey=MOB`, `issueTypeName=Story`, summary, description, `assignee_account_id=<accountId>`, `additional_fields: {"labels":["ai_assisted"], "customfield_10067":{"id":"21405"}, "customfield_10350":{"id":"21409"}}`. Capture the returned key, e.g. `MOB-XXXXX`. (The Sprint field is usually not on the *create* screen — set it in the next step.)
+4. **Set the sprint:** `editJiraIssue` on the new key with `fields: {"customfield_10020": <activeSprintId>}` (numeric id). If the write is rejected (some boards restrict sprint assignment via API), flag the sprint for manual assignment — don't block the PR.
+5. `getTransitionsForJiraIssue` → find the **In Progress** transition id → `transitionJiraIssue`.
+6. **Read the ticket back** (`customfield_10020`, `status`) to confirm the sprint landed and status is *In Progress* before moving on.
 
 **Reference the key in the PR, not the commit.** The fix commit was already made and pushed at step 11 (before this ticket exists), so the key can't be in it — and that's fine. Put the key in the **PR title and body** only (next step). Do **not** amend or force-push the fix commit to backfill the key: leaving the verified commit untouched keeps it matching exactly the image already built and scanned by `taurus-branch-builder`.
 
-**Before creating the PR — optionally update `vulnerability_history.md` on the SAME fix branch (so it ships in this PR, no separate PR):**
+**Before creating the PR — reconcile `vulnerability_history.md` on the SAME fix branch (so it ships in this PR, no separate PR):**
 
-This is **conditional, not mandatory.** The file exists so a future run doesn't repeat a past mistake, and understands *why* a change was made so it doesn't undo it. Update it only when this run produced a **durable lesson** of that kind — a fix that silently didn't land and the root cause, a new not-buildable category, a corrected recipe, or a non-obvious decision worth preserving. The most valuable lessons are only known *after* the branch scan in step 13.
+`vulnerability_history.md` is a **problem-solving reference, not a log of what happened.** Its job is to help a future run (a) fix similar vulnerabilities faster and (b) know when a temporary fix can be removed because a newer upstream version resolved the original CVE. Update it **in place** — improve the matching recipe or pattern; do **not** append a blow-by-blow "what happened today" entry.
 
-**If the run was routine** — known fixes applied cleanly, branch scan dropped as expected, no surprises — **skip this entirely and go straight to creating the PR.** Logging routine runs just dilutes the real lessons and makes them harder to find. Quality over completeness; don't pad the timeline.
+At the end of every run, reconcile it for two things:
+- **A durable lesson** — a fix that silently didn't land and its root cause, a new not-buildable category, a corrected recipe, or a non-obvious decision worth preserving. The most valuable of these are only known *after* the branch scan in this step. Fold it into the matching "Patterns" recipe (or add a new recipe), not into a dated timeline.
+- **A removal condition** — if this run **pruned** a now-unneeded fix (step 7) or added a new temporary fix, record *under that recipe* what the fix is for and the upstream condition that makes it removable, so a future run can prune it confidently.
 
-When there *is* something worth recording, add a dated run entry in the timeline and/or update the relevant "Patterns" section, then commit it **on the fix branch** alongside the code fixes and push, so the doc update is part of this same PR rather than a separate one:
+If the run applied known recipes cleanly and there is no new lesson and nothing to prune, change nothing and go straight to the PR — don't pad the file. When there *is* something to record, commit it **on the fix branch** alongside the code fixes and push, so the doc update is part of this same PR rather than a separate one:
 ```bash
 cd .worktrees/<branch-name>   # or re-add the worktree on the fix branch if already removed
 git add .claude/skills/prisma-taurus/vulnerability_history.md
@@ -574,7 +610,7 @@ SUMMARY
 ═══════════════════════════════════════════════
 Branch image scan (taurus-branch-builder #<BUILD>): integration <pass/fail>
 Vulnerabilities: baseline <X> → branch <Y>  (crit A→A', high B→B', med C→C', low D→D')
-Jira: <MOB-XXXXX> (Bug, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>
+Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>
 
 ✅ Verified in the branch image and included in PR #<number>:
    - <CVE-ID>: <package> <old> → <new>
