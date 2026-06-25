@@ -129,7 +129,10 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 #   libgcrypt20:            CVE-2026-41989
 #   librabbitmq4:           CVE-2023-35789, CVE-2026-44235, CVE-2026-44236
 #   mesa userspace libs:    CVE-2026-40393
+#   perl:                   CVE-2026-8376, CVE-2026-42496 (-> 5.38.2-3.2ubuntu0.3)
+#   libxml2:                CVE-2026-6653 (-> 2.9.14+dfsg-1.3ubuntu3.8)
 # (--only-upgrade never installs new packages; absent ones are skipped.)
+# remove each when the base image ships the fixed version natively (CVE drops from baseline scan)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends --only-upgrade \
         libgnutls30 \
@@ -138,7 +141,9 @@ RUN apt-get update && \
         libgbm1 \
         libgl1-mesa-dri \
         libglx-mesa0 \
-        libegl-mesa0 && \
+        libegl-mesa0 \
+        perl \
+        libxml2 && \
     rm -rf /var/lib/apt/lists/*
 
 # ================================
