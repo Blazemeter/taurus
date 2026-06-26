@@ -74,8 +74,9 @@ These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjav
 | `/root/.bzt/newman/node_modules/` | npm override | Dockerfile newman `package.json` printf block |
 | `/root/.bzt/selenium-taurus/mocha/node_modules/` | npm override | Dockerfile mocha `package.json` printf block |
 | `/root/.bzt/selenium-taurus/*/node_modules/` | npm direct package | `bzt/modules/javascript.py` PACKAGE_NAME constant |
+| `/usr/lib/node_modules/npm/node_modules/` | npm-internal bundled dep | bump global npm (`npm i -g`); if the latest npm still bundles the vulnerable version → **monitor**. There is **no clean in-place override** (see "npm-internal bundled deps" section) |
 | `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem install <gem> -v <fixed>` + default-gem/cache cleanup (see Ruby gems section) |
-| empty path or OS path (`/usr/lib/`, `/lib/`) | OS package | Dockerfile `apt-get install --only-upgrade` |
+| empty path or OS path (`/usr/lib/`, `/lib/`) — **excluding** `/usr/lib/node_modules/npm/node_modules/` (npm-internal, see row above) | OS package | Dockerfile `apt-get install --only-upgrade` |
 | Python pkg, `Path` under `/usr/local/lib/python3.x/...` | Python package | `requirements.txt` (feeds the wheel's `install_requires`) or a dedicated Dockerfile `pip install` step — **classify into 5 cases**, see Python section |
 | Python pkg, `Path` under `/usr/lib/python3/dist-packages/...` | distro Python (apt) | Dockerfile `apt-get install --only-upgrade`/`apt-get purge` (NOT `requirements.txt`) |
 
@@ -274,6 +275,23 @@ Add the new package to the `overrides` object inside the `printf` string. Update
 **Mocha** (`/root/.bzt/selenium-taurus/mocha/node_modules/`):
 
 Find the `printf` block that seeds `/root/.bzt/selenium-taurus/mocha/package.json` and add the override there.
+
+---
+
+#### npm-internal bundled deps (Dockerfile) — `/usr/lib/node_modules/npm/node_modules/`
+
+Deps bundled **inside the global `npm` CLI itself** (`undici`, `glob`, `cross-spawn`, …), installed by `npm i -g npm@N`. **The only safe fix is to bump npm; otherwise monitor.**
+
+1. **Bump npm.** Check what the latest npm bundles (it's pinned in npm's own lockfile):
+   ```bash
+   curl -s https://raw.githubusercontent.com/npm/cli/v<NPM_VERSION>/package-lock.json \
+     | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['packages'].get('node_modules/<dep>',{}).get('version'))"
+   ```
+   If the latest npm bundles the fixed version → the existing `npm i -g npm@11` clears it on rebuild.
+2. **If the latest npm still bundles the vulnerable version → MONITOR.** Do **not** try to patch it in place:
+   - `cd /usr/lib/node_modules/npm && npm install <dep>@<fixed>` **does not work** — it makes npm re-resolve its *own* `package.json`, which references unpublished workspace deps (`@npmcli/docs`), and the build fails with a registry `404`. **Verified failing** in taurus build #571 and taurus-cloud `MOB-51270` build #1.
+   - The only mechanism that would replace the dep is copying a temp-installed folder over npm's bundled one — that's the **brittle "manual unpack"** the cross-spawn lesson (commit #4) warns against. Don't.
+   - So the correct action is monitor: re-check each run; the fix lands automatically once an npm release bundles the patched dep and `npm i -g npm@11` picks it up.
 
 ---
 
