@@ -76,7 +76,7 @@ These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjav
 | `/root/.bzt/selenium-taurus/*/node_modules/` | npm direct package | `bzt/modules/javascript.py` PACKAGE_NAME constant |
 | `/usr/lib/node_modules/npm/node_modules/` | npm-internal bundled dep | bump global npm (`npm i -g`); if the latest npm still bundles the vulnerable version → **monitor**. There is **no clean in-place override** (see "npm-internal bundled deps" section) |
 | `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem install <gem> -v <fixed>` + default-gem/cache cleanup (see Ruby gems section) |
-| empty path or OS path (`/usr/lib/`, `/lib/`) — **excluding** `/usr/lib/node_modules/` (npm-internal, see row above) | OS package | Dockerfile `apt-get install --only-upgrade` |
+| empty path or OS path (`/usr/lib/`, `/lib/`) — **excluding** `/usr/lib/node_modules/npm/node_modules/` (npm-internal, see row above) | OS package | Dockerfile `apt-get install --only-upgrade` |
 | Python pkg, `Path` under `/usr/local/lib/python3.x/...` | Python package | `requirements.txt` (feeds the wheel's `install_requires`) or a dedicated Dockerfile `pip install` step — **classify into 5 cases**, see Python section |
 | Python pkg, `Path` under `/usr/lib/python3/dist-packages/...` | distro Python (apt) | Dockerfile `apt-get install --only-upgrade`/`apt-get purge` (NOT `requirements.txt`) |
 
