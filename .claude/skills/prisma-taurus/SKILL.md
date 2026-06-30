@@ -174,8 +174,23 @@ Display a table with columns:
 - Fix Status
 - Fix Type (`auto-fix` / `jmeter-gatling (out of scope)` / `manual` / `no fix available`)
 
-Show a summary line:
-> `X vulnerabilities — Y critical, Z high, N medium, M low — A auto-fixable, J jmeter/gatling (out of scope), B manual, C no fix available`
+#### Reporting rule — lead with the ADDRESSABLE denominator, never the raw total
+
+The raw scan total (e.g. 284) is **misleading** as a headline: the large majority of findings are things this repo never fixes, so "fixed 4 of 284" makes a complete run look like it did almost nothing. **Every report, Jira ticket, and PR must lead with the addressable count, not the raw total.**
+
+Define two numbers:
+- **Addressable** = findings where a fix exists **and** it's a component we patch in a normal build. Concretely: `Fix Status` starts with `fixed in`, AND NOT JMeter/Gatling, AND NOT Ubuntu Pro ESM (`fixed in …+esmN`/`~esm1`), AND NOT a binary-internal lib (k6 Go libs under `/usr/bin/k6`), AND NOT distro pip that apt can't reach. (Includes the items we then defer/skip for cause — setuptools-vendored, breaking npm major jumps, low-value — so the denominator is honest about what was *considered*.)
+- **Fixed this run** = the addressable items actually patched and verified in the branch image.
+
+**Headline format (use everywhere):**
+> `Fixed A of N addressable findings (B self-resolve on rebuild, C deferred/skipped for cause).`
+
+Show the raw total and the structural buckets **only as a footnote, with no leading numbers in the headline**:
+> Not counted (not ours to fix): JMeter/Gatling bundled jars (policy — never remediated here), findings with no released patch (open/needed/deferred), Ubuntu Pro ESM and k6 binary internals (uninstallable in a standard build). Raw scan total for reference: X.
+
+Do **not** put the JMeter/Gatling count or the raw total in the first sentence of any report, Jira summary, or PR title/intro. They belong in the footnote only.
+
+You may still display the full per-CVE table (ordered critical → high → medium → low, CVSS desc) for completeness, but the **summary sentence above the table must use the addressable framing.**
 
 ### 6. Collect auto-fixable CVEs
 
@@ -516,7 +531,7 @@ Site / cloudId: `perforce.atlassian.net` = `2accdbdb-9d65-4c22-b174-5d4a9d437c59
 | Project | `MOB` |
 | Issue type | `Story` |
 | Summary | generic, e.g. `Fix CVE vulnerabilities in blazemeter/taurus Docker image (YYYY-MM-DD)` |
-| Description | the CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity) + baseline→branch reduction (total X→Y, crit A→A') |
+| Description | Lead with the **addressable framing** (see step 5's reporting rule): `Fixed A of N addressable findings (B self-resolve, C deferred/skipped for cause).` Then the table of CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity). Put JMeter/Gatling, no-fix, ESM/k6 in a **"Not counted"** footnote with no leading numbers. The raw baseline→branch total (X→Y) may appear, but only after the addressable headline — never as the opening number. |
 | Assignee | **the developer running the skill** — `atlassianUserInfo` accountId; never hardcode a person |
 | Labels | `["ai_assisted"]` |
 | **Scrum Team** (`customfield_10067`) | **required on create** — hardcoded to **Sparta**, option id `21405` |
@@ -567,12 +582,14 @@ gh pr create --title "<MOB-XXXXX>: CVE fixes - $(date +%Y-%m-%d)" --body-file <b
 ```
 If `gh` is not on PATH, create via the GitHub API using `$GITHUB_TOKEN` (`POST /repos/Blazemeter/taurus/pulls`).
 
-PR body should include:
+PR body should include (apply the step-5 reporting rule — **lead with the addressable framing, not the raw total**):
 - **Jira:** `<MOB-XXXXX>` (the ticket created above).
-- The branch-scan comparison: baseline vs branch image (total + per severity, with the build number).
+- **Headline first:** `Fixed A of N addressable findings (B self-resolve on rebuild, C deferred/skipped for cause).` This is the opening line — do **not** open with the raw total or any JMeter/Gatling count.
 - Table of fixes confirmed in the image: CVE ID, package, old version → new version, severity.
-- Note: "Verified against the `taurus-branch-builder` image scan (build #<BUILD>) before opening — integration passed and vulnerabilities dropped from X to Y."
-- Note: "The following CVEs were NOT fixed and require manual intervention (see below)."
+- Note: "Verified against the `taurus-branch-builder` image scan (build #<BUILD>) before opening — integration passed."
+- The branch-scan comparison (baseline vs branch image, total + per severity, with the build number) — included for completeness **below** the addressable headline, not as the lead.
+- A **"Not counted (not ours to fix)"** footnote: JMeter/Gatling bundled jars (policy), no-released-patch findings, Ubuntu Pro ESM and k6 binary internals — listed without front-and-center counts.
+- Note: "The following CVEs require manual intervention (see below)."
 
 ### 14. Report manual intervention and out-of-scope items
 
@@ -626,27 +643,33 @@ End with a complete status summary:
 ═══════════════════════════════════════════════
 SUMMARY
 ═══════════════════════════════════════════════
+Fixed <A> of <N> addressable findings  (<B> self-resolve on rebuild, <C> deferred/skipped for cause)
 Branch image scan (taurus-branch-builder #<BUILD>): integration <pass/fail>
-Vulnerabilities: baseline <X> → branch <Y>  (crit A→A', high B→B', med C→C', low D→D')
 Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>
 
 ✅ Verified in the branch image and included in PR #<number>:
    - <CVE-ID>: <package> <old> → <new>
    - ...
 
+🔄 Self-resolves on next clean (uncached) build — no change needed:
+   - <CVE-ID>: <package> — <why, e.g. latest npm already bundles the fix>
+
+⏸️ Addressable but deferred/skipped for cause (NOT in PR):
+   - <CVE-ID>: <package> — <reason, e.g. breaks the build / breaking major jump / low value>
+
 ✗ Fix attempted but did NOT land in the image (excluded from PR):
    - <CVE-ID>: <package> — <why it didn't take, e.g. default-gem version still on disk>
    - ...
-
-ℹ  JMeter/Gatling — not fixed (out of scope):
-   - <count> findings (<N crit, M high, ...>) — bundled jars, not remediated
 
 ⚠  Manual intervention required (NOT in PR):
    - <CVE-ID>: <package> — <one-line reason>
    - ...
 
-ℹ  No fix available (monitor):
-   - <CVE-ID>: <package> — fix not yet released
+─── Not counted (not ours to fix; no leading numbers in the headline) ───
+ℹ  JMeter/Gatling bundled jars (policy — never remediated here): <count>
+ℹ  No released patch (open/needed/deferred): <count>
+ℹ  Ubuntu Pro ESM / k6 binary internals (uninstallable in a standard build): <count>
+ℹ  Raw scan total for reference only: baseline <X> → branch <Y> (crit A→A', high B→B', med C→C', low D→D')
 
 Next steps:
 1. Review and merge PR #<number> (already verified to reduce vulnerabilities in the image)
