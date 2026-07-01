@@ -131,6 +131,9 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 #   mesa userspace libs:    CVE-2026-40393
 #   perl:                   CVE-2026-8376, CVE-2026-42496 (-> 5.38.2-3.2ubuntu0.3)
 #   libxml2:                CVE-2026-6653 (-> 2.9.14+dfsg-1.3ubuntu3.8)
+#   libsqlite3-0 (sqlite3): CVE-2026-11822, CVE-2026-11824 (-> 3.45.1-1ubuntu2.6)
+#   libnss3 (nss):          CVE-2026-12318 (-> 2:3.98-1ubuntu0.2)
+#   tar:                    CVE-2026-5704 (-> 1.35+dfsg-3ubuntu0.1)
 # (--only-upgrade never installs new packages; absent ones are skipped.)
 # remove each when the base image ships the fixed version natively (CVE drops from baseline scan)
 RUN apt-get update && \
@@ -143,7 +146,10 @@ RUN apt-get update && \
         libglx-mesa0 \
         libegl-mesa0 \
         perl \
-        libxml2 && \
+        libxml2 \
+        libsqlite3-0 \
+        libnss3 \
+        tar && \
     rm -rf /var/lib/apt/lists/*
 
 # ================================
