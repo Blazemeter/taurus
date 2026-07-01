@@ -25,7 +25,7 @@ from influxdb import InfluxDBClient
 
 from bzt.engine import Reporter, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
-from bzt.utils import iteritems
+from bzt.utils import iteritems, dehumanize_time
 from influxdb.exceptions import InfluxDBServerError, InfluxDBClientError
 
 
@@ -80,6 +80,7 @@ class InfluxdbStatusReporter(Reporter, AggregatorListener, Singletone):
     def prepare(self):
         super(InfluxdbStatusReporter, self).prepare()
 
+        self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_data = self.parameters.get("send-data", self.send_data)
         self.application = self.parameters.get("application", self.settings.get("application", self.application))
         self.measurement = self.settings.get("measurement", None)
