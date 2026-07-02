@@ -13,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import os
+
 from bzt import TaurusConfigError, ToolError
 from bzt.modules import ScenarioExecutor
 from bzt.modules.console import ExecutorWidget
@@ -32,12 +34,17 @@ class K6Executor(ScenarioExecutor):
 
     def prepare(self):
         super(K6Executor, self).prepare()
+        scenario = self.get_scenario()
         self.install_required_tools()
 
-        self.script = self.get_script_path()
-        if not self.script:
-            raise TaurusConfigError("'script' should be present for k6 executor")
+        script = self.get_script_path()
+        if script:
+            if not os.path.exists(script):
+                raise TaurusConfigError("k6: script '%s' doesn't exist" % script)
+        elif scenario.get("requests"):
+            script = self.generate_k6_script_from_requests(scenario)
 
+        self.script = script
         self.stdout = open(self.engine.create_artifact("k6", ".out"), "w")
         self.stderr = open(self.engine.create_artifact("k6", ".err"), "w")
 
@@ -103,8 +110,26 @@ class K6Executor(ScenarioExecutor):
         if not self.k6.check_if_installed():
             self.k6.install()
 
+    def generate_k6_script_from_requests(self, scenario):
+        """
+        Generate k6 script from requests
+        :return:
+        """
+        filename = self.engine.create_artifact("script", ".js")
+        with open(filename, "w") as f:
+            f.write(f'import http from "k6/http";')
+            f.write(f'export default function () {{')
+            for request in scenario.get("requests"):
+                f.write(f'http.get("{request}");')
+            f.write(f'}}')
+        return filename
+
     def resource_files(self):
-        return [self.get_script_path(required=True)]
+        script = self.get_script_path()
+        if script:
+            return [script]
+        else:
+            return []
 
 
 class K6LogReader(ResultsReader):
