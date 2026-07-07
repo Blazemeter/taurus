@@ -161,6 +161,36 @@ def _get_timeout():
     return timeout
 
 
+def native_click(element):
+    """
+    Performs a click using Chrome DevTools Protocol (CDP) Input.dispatchMouseEvent.
+    This sends a real OS-level mouse event through Chrome's input pipeline,
+    bypassing both WebDriver's synthesized click and JavaScript's synthetic events.
+    Works with Angular apps where element.click() fails to trigger form submission
+    handlers (ngSubmit) because the button has no direct click listeners.
+    """
+    driver = _get_driver()
+    rect = driver.execute_script(
+        "var r = arguments[0].getBoundingClientRect();"
+        "return {x: r.left + r.width/2, y: r.top + r.height/2};",
+        element)
+    x = rect['x']
+    y = rect['y']
+
+    driver.execute_cdp_cmd('Input.dispatchMouseEvent', {
+        'type': 'mousePressed',
+        'x': x, 'y': y,
+        'button': 'left',
+        'clickCount': 1
+    })
+    driver.execute_cdp_cmd('Input.dispatchMouseEvent', {
+        'type': 'mouseReleased',
+        'x': x, 'y': y,
+        'button': 'left',
+        'clickCount': 1
+    })
+
+
 def add_flow_markers():
     handlers = get_transaction_handlers()
     handlers["enter"].append(_send_start_flow_marker)

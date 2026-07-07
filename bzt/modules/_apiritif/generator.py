@@ -108,7 +108,8 @@ class ApiritifScriptGenerator(object):
         'mouseout': "move_to_element_with_offset"
     }
 
-    ACTIONS = "|".join(['click', 'doubleClick', 'contextClick', 'mouseDown', 'mouseUp', 'mouseMove', 'mouseOut',
+    ACTIONS = "|".join(['click', 'nativeClick', 'doubleClick', 'contextClick', 'mouseDown', 'mouseUp', 'mouseMove',
+                        'mouseOut',
                         'mouseOver', 'select', 'wait', 'keys', 'pauseFor', 'clear', 'assert',
                         'assertText', 'assertValue', 'assertDialog', 'answerDialog', 'submit',
                         'close', 'script', 'editcontent',
@@ -117,8 +118,8 @@ class ApiritifScriptGenerator(object):
                         'resize', 'maximize', 'alert', 'waitFor'
                         ])
 
-    ACTIONS_WITH_WAITER = ['go', 'click', 'doubleclick', 'contextclick', 'drag', 'select', 'type', 'typeSecret',
-                           'script', 'waitFor']
+    ACTIONS_WITH_WAITER = ['go', 'click', 'nativeclick', 'doubleclick', 'contextclick', 'drag', 'select', 'type',
+                           'typeSecret', 'script', 'waitFor']
 
     EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach', 'loopOverData'])
 
@@ -755,6 +756,13 @@ from selenium.webdriver.common.keys import Keys
         elif atype is not None and (atype.startswith("assert") or atype.startswith("store")):
             action_elements.extend(self._gen_assert_store_mngr(atype, tag, param, value, selectors))
 
+        elif atype == "nativeclick":
+            action_elements.append(self._gen_get_locator_call("var_loc_keys", selectors))
+            action_elements.append(ast_call(
+                func="native_click",
+                args=[ast_call(func=ast_attr("self.driver.find_element"),
+                               args=[ast_attr("var_loc_keys[0]"),
+                                     ast_attr("var_loc_keys[1]")])]))
         elif atype in ("click", "type", "typesecret", "keys", "submit"):
             action_elements.extend(self._gen_keys_mngr(atype, param, selectors))
 
