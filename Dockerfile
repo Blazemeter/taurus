@@ -133,7 +133,11 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 #   libxml2:                CVE-2026-6653 (-> 2.9.14+dfsg-1.3ubuntu3.8)
 #   libsqlite3-0 (sqlite3): CVE-2026-11822, CVE-2026-11824 (-> 3.45.1-1ubuntu2.6)
 #   libnss3 (nss):          CVE-2026-12318 (-> 2:3.98-1ubuntu0.2)
-#   tar:                    CVE-2026-5704 (-> 1.35+dfsg-3ubuntu0.1)
+#   tar:                    CVE-2026-5704 (-> 1.35+dfsg-3ubuntu0.1), CVE-2025-45582 (-> 1.35+dfsg-3ubuntu0.2)
+#   python3.12:             CVE-2026-6100/9669, CVE-2025-69534, CVE-2026-4786/4519/7774/3276/4224/3644/1299/8328/2297/1502/6019, CVE-2025-13462 (-> 3.12.3-1ubuntu0.15)
+#   gzip:                   CVE-2026-41992, CVE-2026-41991 (-> 1.12-1ubuntu3.2)
+#   libnghttp2-14 (nghttp2):CVE-2026-58055 (-> 1.59.0-1ubuntu0.4)
+#   ncurses libs:           CVE-2025-69720 (-> 6.4+20240113-1ubuntu2.1)
 # (--only-upgrade never installs new packages; absent ones are skipped.)
 # remove each when the base image ships the fixed version natively (CVE drops from baseline scan)
 RUN apt-get update && \
@@ -149,7 +153,16 @@ RUN apt-get update && \
         libxml2 \
         libsqlite3-0 \
         libnss3 \
-        tar && \
+        tar \
+        python3.12 \
+        python3.12-dev \
+        gzip \
+        libnghttp2-14 \
+        libtinfo6 \
+        libncurses6 \
+        libncursesw6 \
+        ncurses-base \
+        ncurses-bin && \
     rm -rf /var/lib/apt/lists/*
 
 # ================================
@@ -190,6 +203,7 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 # Patch vulnerable Ruby default/bundled gems (CVE fix).
 #   net-imap 0.5.8 -> 0.5.15: CVE-2026-42245/42246/42256/42257/42258/47240/47241/47242 (incl. 2 critical)
 #   erb      4.0.4 -> 4.0.4.1: CVE-2026-41316
+#   json     2.9.1 -> 2.19.9:  CVE-2026-54696
 # These ship with Ruby. Installing the patched gem is NOT enough: Prisma reads the OLD version
 # from THREE places that `gem install`/`gem update` leave behind:
 #   1. the gemspec   -> specifications[/default]/<gem>-<old>.gemspec
@@ -201,17 +215,18 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
     gem install net-imap -v 0.5.15 --no-document && \
     gem install erb -v 4.0.4.1 --no-document && \
+    gem install json -v 2.19.9 --no-document && \
     GEMS_DIR="$(ruby -e 'print Gem.dir')" && \
-    for OLD in net-imap-0.5.8 erb-4.0.4; do \
+    for OLD in net-imap-0.5.8 erb-4.0.4 json-2.9.1; do \
         rm -rf "$GEMS_DIR/gems/$OLD" \
                "$GEMS_DIR/specifications/$OLD.gemspec" \
                "$GEMS_DIR/specifications/default/$OLD.gemspec"; \
     done && \
     rm -f "$GEMS_DIR"/cache/*.gem && \
     rbenv rehash && \
-    if find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' | grep -q .; then \
+    if find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' -o -name 'json-2.9.1.gem' -o -name 'json-2.9.1.gemspec' | grep -q .; then \
         echo 'ERROR: vulnerable Ruby gem version still on disk after patch (build aborted)' >&2; \
-        find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' >&2; \
+        find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' -o -name 'json-2.9.1.gem' -o -name 'json-2.9.1.gemspec' >&2; \
         exit 1; \
     fi
 
