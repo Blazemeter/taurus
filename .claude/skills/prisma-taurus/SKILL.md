@@ -11,7 +11,7 @@ description: Use when the user wants to check, fix, or verify Prisma Cloud vulne
 
 ## Overview
 
-End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, then **builds the fixed branch into a Docker image and re-scans it** to confirm the fixes actually reduce vulnerabilities in the real image. A PR is opened **only after** that branch scan shows fewer vulnerabilities than the baseline — never at an early stage.
+End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, gets an independent local code review (if a review skill is available) and amends accepted fixes **before pushing**, then **builds the fixed branch into a Docker image and re-scans it** to confirm the fixes actually reduce vulnerabilities in the real image. A PR is opened **only after** that branch scan shows fewer vulnerabilities than the baseline — never at an early stage; the PR then requests a GitHub Copilot review and triages it once.
 
 **Why verify before the PR:** unit tests do not exercise the Dockerfile (gem/npm/apt changes) and a fix that "looks" applied can be a no-op against the scanner (e.g. `gem update` installs a patched gem but leaves the vulnerable Ruby *default-gem* version on disk, which Prisma still reports). The `taurus-branch-builder` Jenkins job can build any branch into an image and scan it with Prisma — so the fixes are proven in the image *before* a PR is created, not assumed.
 
@@ -28,7 +28,7 @@ End-to-end vulnerability management for the Taurus Docker image. Fetches the lat
 - **Fixing JMeter/Gatling-bundled CVEs** — any finding whose `Path` is under `/root/.bzt/jmeter-taurus/` or `/root/.bzt/gatling-taurus/` is out of scope. Do not repin jars and **do not bump `JMeter.VERSION` / `Gatling.VERSION`** (a version bump is a JMeter/Gatling fix). List them only.
 - Auto-fixing scanner appeasement CVEs (`.deps.json`, `/var/lib/dpkg/` paths) — these must always be flagged as manual
 - Removing the worktree after a test failure — leave it in place for the user to investigate
-- **Opening the PR before the branch scan confirms a reduction** — push the branch, build+re-scan it via `taurus-branch-builder`, compare against the baseline, and create the PR ONLY if vulnerabilities went down. The PR is the last step, never an early one.
+- **Opening the PR before the branch scan confirms a reduction** — push the branch, build+re-scan it via `taurus-branch-builder`, compare against the baseline, and create the PR ONLY if vulnerabilities went down. The PR comes only after that verification — never early.
 - **Trusting that a Dockerfile fix landed just because the build succeeded** — always confirm in the branch scan that each fixed package's vulnerable version is actually gone. `gem update` on a Ruby *default gem* (e.g. `net-imap`, `erb`) installs the patched version but leaves the old default-gem version on disk, which the scanner still reports.
 
 ## Image target
@@ -174,23 +174,29 @@ Display a table with columns:
 - Fix Status
 - Fix Type (`auto-fix` / `jmeter-gatling (out of scope)` / `manual` / `no fix available`)
 
-#### Reporting rule — lead with the ADDRESSABLE denominator, never the raw total
+#### Reporting rule — lead with "fixable detected → fixed", never the raw total
 
-The raw scan total (e.g. 284) is **misleading** as a headline: the large majority of findings are things this repo never fixes, so "fixed 4 of 284" makes a complete run look like it did almost nothing. **Every report, Jira ticket, and PR must lead with the addressable count, not the raw total.**
+The raw scan total (e.g. 290) is **misleading** as a headline: the large majority of findings are things this repo can never fix (JMeter/Gatling bundled jars incl. every critical, k6 binary internals, Ubuntu ESM, no-released-patch), so "fixed 20 of 290" makes a complete run look like it did almost nothing. **Every report, Jira ticket, and PR must lead with what taurus could actually act on — not the raw total.**
 
-Define two numbers:
-- **Addressable** = findings where a fix exists **and** it's a component we patch in a normal build. Concretely: `Fix Status` starts with `fixed in`, AND NOT JMeter/Gatling, AND NOT Ubuntu Pro ESM (`fixed in …+esmN`/`~esm1`), AND NOT a binary-internal lib (k6 Go libs under `/usr/bin/k6`), AND NOT distro pip that apt can't reach. (Includes the items we then defer/skip for cause — setuptools-vendored, breaking npm major jumps, low-value — so the denominator is honest about what was *considered*.)
-- **Fixed this run** = the addressable items actually patched and verified in the branch image.
+**Headline (use everywhere):**
+> **Fixable in taurus, this run: `<X>` detected → `<Y>` fixed.**
 
-**Headline format (use everywhere):**
-> `Fixed A of N addressable findings (B self-resolve on rebuild, C deferred/skipped for cause).`
+Counting basis — X and Y are **distinct CVEs**:
+- **X** = distinct in-scope **fixable-in-taurus** CVEs at baseline: `Fix Status` starts with `fixed in`, AND NOT JMeter/Gatling, AND NOT Ubuntu Pro ESM (`+esmN`/`~esm1`), AND NOT a binary-internal lib (k6 Go libs under `/usr/bin/k6`), AND NOT distro pip apt can't reach, AND NOT scanner-appeasement (`.deps.json`/Roslyn, `/var/lib/dpkg` — those are manual, classification category 2, and belong in Z). (Includes the items we then defer/skip for cause — setuptools-vendored, breaking npm major jumps, low-value — so the denominator is honest about what was *considered*.)
+- **Y** = the subset whose old version is **confirmed gone in the branch re-scan** through this repo's own `Dockerfile` / `requirements.txt` (a change made this run, or an existing unpinned line that picked up the fix). If `Y < X`, list which didn't land and why.
 
-Show the raw total and the structural buckets **only as a footnote, with no leading numbers in the headline**:
-> Not counted (not ours to fix): JMeter/Gatling bundled jars (policy — never remediated here), findings with no released patch (open/needed/deferred), Ubuntu Pro ESM and k6 binary internals (uninstallable in a standard build). Raw scan total for reference: X.
+Every finding lands in **exactly one** bucket so nothing is silently omitted:
+- **Fixed (Y)** — verified gone in the branch image.
+- **Fixable but did NOT land (X − Y)** — deferred/skipped for cause, or attempted-but-failed.
+- **Not actionable in this repo (Z)** — collapse into **ONE categorized count, never a per-CVE scoreboard**: monitor-only JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, no-released-patch (open/needed/deferred), Ubuntu ESM, scanner-appeasement/manual (`.deps.json`/Roslyn, `/var/lib/dpkg`).
 
-Do **not** put the JMeter/Gatling count or the raw total in the first sentence of any report, Jira summary, or PR title/intro. They belong in the footnote only.
+**taurus IS the base image** — there is no "base image tag bump" and no "base-owned (cleared by a base tag)" bucket; those exist only in taurus-cloud (which builds `FROM blazemeter/taurus`). Omit them here.
 
-You may still display the full per-CVE table (ordered critical → high → medium → low, CVSS desc) for completeness, but the **summary sentence above the table must use the addressable framing.**
+Show the raw all-severity total **only as a parenthetical** for reconciliation, with **at least crit/high** (e.g. "raw scan: baseline 290 → branch 269 [crit 4→4, high 44→44]"). **X/Y are distinct CVEs; the raw total counts per-occurrence and is much larger — do NOT assert an arithmetic identity between them.** Treat the raw total as context, not a checksum.
+
+> **Presentation only.** This framing changes reporting, **not** the decision gate: step 15's gate still keys on the **all-severity branch-scan total going down**, not on X/Y.
+
+You may still display the full per-CVE table (ordered critical → high → medium → low, CVSS desc) for completeness, but the **summary sentence above the table must use the fixable-detected/fixed framing.**
 
 ### 6. Collect auto-fixable CVEs
 
@@ -211,7 +217,7 @@ Work in priority order: critical → high → medium → low. For each CVE apply
 
 Past runs left temporary fixes in the Dockerfile and `requirements.txt`: npm `overrides` blocks, forced `gem install` + default-gem purges, `apt-get install --only-upgrade` pins, `.deps.json`/dpkg `sed` patches, and any `pip install` step outside the normal requirements install. Before adding anything new, re-evaluate each one:
 
-- **Does the CVE it was added for still appear in the current baseline scan (step 5)?** If the parent package or base image now ships the fixed version (the CVE is gone from the baseline), **remove that line on the fix branch.** The branch re-scan (step 12) is the safety net — if a removal regresses, the scan catches it before the PR.
+- **Does the CVE it was added for still appear in the current baseline scan (step 5)?** If the parent package or base image now ships the fixed version (the CVE is gone from the baseline), **remove that line on the fix branch.** The branch re-scan (step 14) is the safety net — if a removal regresses, the scan catches it before the PR.
 - If the CVE is still present → leave the fix in place.
 
 Check `vulnerability_history.md` for any recorded removal condition before deciding.
@@ -374,7 +380,7 @@ RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && gem install <gem> -v <fixed-vers
 >     if find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' | grep -q .; then \
 >         echo 'ERROR: vulnerable Ruby gem still on disk' >&2; exit 1; fi
 > ```
-> (substitute the actual gem/version pairs). Purging `cache/*.gem` wholesale is safe — cache archives aren't needed at runtime. Always confirm in the branch scan (step 12) that the old version is no longer flagged; `Successfully installed` in the build log is NOT proof.
+> (substitute the actual gem/version pairs). Purging `cache/*.gem` wholesale is safe — cache archives aren't needed at runtime. Always confirm in the branch scan (step 14) that the old version is no longer flagged; `Successfully installed` in the build log is NOT proof.
 
 ---
 
@@ -447,9 +453,9 @@ The PR's `codecov/project` check uses codecov defaults (`target: auto, threshold
 2. If the drop comes from a change that collapses a previously-tested branch (e.g. making two constants equal), reconsider whether that change is even in scope — JMeter/Gatling version bumps are **not** (category 1), and that was the original cause.
 3. Only push once branch coverage ≥ base coverage.
 
-### 11. Commit and push the branch (NO PR yet)
+### 11. Commit the fixes (do NOT push yet)
 
-The branch must exist on `origin` so `taurus-branch-builder` can build it. **Do not create a PR here** — the PR is created in step 13, only after the branch scan confirms a reduction.
+Commit so the local review (step 12) has a concrete diff, but **do not push** — the review may amend this commit, and the branch should be reviewed **before** the expensive build + re-scan (step 14) runs on it.
 
 **Stage and commit** (from inside the worktree). Stage only files that actually changed — the in-scope fix targets are `requirements.txt`, the `Dockerfile`, and `bzt/modules/javascript.py` (npm direct `PACKAGE_NAME`):
 ```bash
@@ -466,9 +472,30 @@ Auto-fixed by prisma-taurus skill.
 CVEs fixed: <comma-separated CVE IDs>
 ```
 
-**Push the branch:**
+Do **not** push yet — the push is step 13, after the local review.
+
+### 12. Local code review — before the push (amend into the commit)
+
+Review the committed-but-unpushed diff (`Dockerfile`, `requirements.txt`, and any `bzt/**/*.py`) with an independent reviewer **before pushing**, so any accepted fix is **amended into the commit** and the branch is pushed once, clean — and the build + re-scan (step 14) then validates the **already-reviewed** image (reviewing *after* the ~30-min scan would invalidate it). It catches judgment mistakes a self-check misses (a broad gem-purge glob that also deletes the patched version, an `apt` pin so exact it breaks on the next security-pocket bump, a fix that won't actually land, a `|| true` that masks a failure).
+
+**Pick the reviewer by what's available — this step must never block or fail the run because a review tool is missing (a "not available"/"unknown skill" error is not a failure; fall through to the next option):**
+1. If the **`superpowers:requesting-code-review`** skill is available, use it (preferred — an independent agent).
+2. Else, if the **`/code-review`** skill is available, use it (diff-scoped review).
+3. Else (neither installed), **skip the review and go straight to the push (step 13).** Note in the PR body that no automated review ran. Do **not** error out.
+
+Then, whichever ran (if any):
+1. Invoke the chosen review skill on the committed fix diff.
+2. **Triage every comment yourself — do not auto-apply.** Decide **change** vs **keep as-is** with technical rigor (as in `superpowers:receiving-code-review`), and justify each call:
+   - Accept when it improves correctness, robustness, or matches an in-repo convention (e.g. use `<gem>-<old>.gem*` like the net-imap line instead of an exact `.gem` in the default-gem purge assertion; keep an `apt --only-upgrade` unpinned so a security-pocket bump doesn't later break the build).
+   - Reject/keep when the current change is already correct, or the comment conflicts with the skill's classification rules (e.g. a suggestion to fix a JMeter/Gatling-bundled, ESM, or scanner-appeasement finding — out of scope here; keep it as-is).
+3. If you accept changes, apply them, **`git add` the changed files**, then **`git commit --amend --no-edit`** into the fix commit — safe, because nothing is pushed yet (**never force-push**). (Without the `git add`, `--amend` re-uses the previous tree and your accepted edit is silently dropped — never pushed, never in the PR.)
+4. Record the outcome for the PR body: which comments were applied, which were consciously kept and why.
+
+### 13. Push the branch (NO PR yet)
+
+Only after the review-and-amend pass. The branch must exist on `origin` so `taurus-branch-builder` can build it. **Do not create a PR here** — the PR is created in step 15, only after the branch scan confirms a reduction.
 ```bash
-git push -u origin <branch-name>
+cd .worktrees/<branch-name> && git push -u origin <branch-name>
 ```
 
 The worktree can be removed now (the branch is on `origin`). Run this from the repo root:
@@ -476,7 +503,7 @@ The worktree can be removed now (the branch is on `origin`). Run this from the r
 git worktree remove .worktrees/<branch-name>
 ```
 
-### 12. Build the branch into an image and re-scan it
+### 14. Build the branch into an image and re-scan it
 
 Trigger `taurus-branch-builder` to build the pushed branch into a Docker image, run integration tests, and run a Prisma scan on the resulting image. This is the verification gate before any PR.
 
@@ -501,7 +528,7 @@ curl -sL -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
 **If `result` is `FAILURE`** → integration or the build broke. Stop, do NOT create a PR, and give the console URL:
 `https://blazect-jenkins.blazemeter.com/job/taurus-branch-builder/<BUILD>/console`
 
-### 13. Compare scan results and decide whether to PR
+### 15. Compare scan results and decide whether to PR
 
 Fetch the build console and parse the `twistcli` table (it starts at the line `Scan results for: image us.gcr.io/...:<branch>-<build>`):
 ```bash
@@ -516,7 +543,7 @@ Then do two checks:
 1. **Per-fix verification** — for every package you fixed, confirm its vulnerable version is **no longer flagged** in the branch scan. If a package is still flagged at the old version (e.g. `net-imap 0.5.8`), that fix did NOT land — diagnose it (see the default-gem caveat under "Ruby gems") before proceeding.
 2. **Aggregate comparison** — compare the branch counts (total + per severity) against the baseline scan from steps 4–5.
 
-**Decision gate:**
+**Decision gate** (keyed on the **all-severity branch-scan total**, not on the X→Y reporting framing from step 5):
 - **Vulnerabilities went down AND no fixed package is still flagged at its old version** → proceed to create the PR (below).
 - **Vulnerabilities did not improve, OR a fix silently failed to land** → do NOT create a PR. Report the comparison, the failed fixes and why, and stop. Tell the user the branch is pushed and the build number so they can decide.
 
@@ -531,7 +558,7 @@ Site / cloudId: `perforce.atlassian.net` = `2accdbdb-9d65-4c22-b174-5d4a9d437c59
 | Project | `MOB` |
 | Issue type | `Story` |
 | Summary | generic, e.g. `Fix CVE vulnerabilities in blazemeter/taurus Docker image (YYYY-MM-DD)` |
-| Description | Lead with the **addressable framing** (see step 5's reporting rule): `Fixed A of N addressable findings (B self-resolve, C deferred/skipped for cause).` Then the table of CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity). Put JMeter/Gatling, no-fix, ESM/k6 in a **"Not counted"** footnote with no leading numbers. The raw baseline→branch total (X→Y) may appear, but only after the addressable headline — never as the opening number. |
+| Description | Lead with the **fixable-detected/fixed framing** (see step 5's reporting rule): `Fixable in taurus, this run: <X> detected → <Y> fixed.` Then the table of CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity). Collapse everything not-actionable-here into **one categorized count** (`Z`) — never a per-CVE scoreboard. The raw baseline→branch total may appear only as a parenthetical (with at least crit/high) — never as the opening number, and never asserted to sum with X/Y. |
 | Assignee | **the developer running the skill** — `atlassianUserInfo` accountId; never hardcode a person |
 | Labels | `["ai_assisted"]` |
 | **Scrum Team** (`customfield_10067`) | **required on create** — hardcoded to **Sparta**, option id `21405` |
@@ -548,14 +575,14 @@ Site / cloudId: `perforce.atlassian.net` = `2accdbdb-9d65-4c22-b174-5d4a9d437c59
      jql:    project = MOB AND assignee = currentUser() AND sprint IN openSprints() ORDER BY updated DESC
      fields: ["customfield_10020"]
    ```
-   The **active sprint** = the entry in the top result's `customfield_10020` array whose `state == "active"` → its numeric `id` (e.g. `27845` = `26-Q2-S6`).
+   The **active sprint** = the entry in the top result's `customfield_10020` array whose `state == "active"` → its numeric `id` (e.g. `27845` = `26-Q2-S6`). (The "resolve dynamically / set it" pointers above are to sub-steps 2 and 4 of *this* numbered list, not to top-level skill steps 2/4.)
    - *Fallback:* if the runner has no open-sprint issue, resolve via `project = MOB AND "Scrum Team" = "Sparta" AND sprint IN openSprints() ORDER BY updated DESC`. If still none, create without a sprint and flag it for manual assignment.
 3. `createJiraIssue` — `projectKey=MOB`, `issueTypeName=Story`, summary, description, `assignee_account_id=<accountId>`, `additional_fields: {"labels":["ai_assisted"], "customfield_10067":{"id":"21405"}, "customfield_10350":{"id":"21409"}}`. Capture the returned key, e.g. `MOB-XXXXX`. (The Sprint field is usually not on the *create* screen — set it in the next step.)
 4. **Set the sprint:** `editJiraIssue` on the new key with `fields: {"customfield_10020": <activeSprintId>}` (numeric id). If the write is rejected (some boards restrict sprint assignment via API), flag the sprint for manual assignment — don't block the PR.
 5. `getTransitionsForJiraIssue` → find the **In Progress** transition id → `transitionJiraIssue`.
 6. **Read the ticket back** (`customfield_10020`, `status`) to confirm the sprint landed and status is *In Progress* before moving on.
 
-**Reference the key in the PR, not the commit.** The fix commit was already made and pushed at step 11 (before this ticket exists), so the key can't be in it — and that's fine. Put the key in the **PR title and body** only (next step). Do **not** amend or force-push the fix commit to backfill the key: leaving the verified commit untouched keeps it matching exactly the image already built and scanned by `taurus-branch-builder`.
+**Reference the key in the PR, not the commit.** The fix commit was already made and pushed at step 13 (before this ticket exists), so the key can't be in it — and that's fine. Put the key in the **PR title and body** only (next step). Do **not** amend or force-push the fix commit to backfill the key: leaving the verified commit untouched keeps it matching exactly the image already built and scanned by `taurus-branch-builder`.
 
 **Before creating the PR — reconcile `vulnerability_history.md` on the SAME fix branch (so it ships in this PR, no separate PR):**
 
@@ -575,23 +602,61 @@ git push origin <branch-name>
 
 > **Caveat — the history file must exist on the base branch (`master`) for this to work.** The fix branch is cut from `origin/master`; `vulnerability_history.md` is only present there once the prisma-taurus skill itself has been merged to `master`. If the skill is not yet on `master` (e.g. still on a feature branch), the file won't be in the fix branch's worktree — in that case commit the history update on whatever branch the skill lives on instead, and note in the PR that the history doc lives elsewhere. Once the skill is merged, this caveat no longer applies and the history update rides along in the same PR every run.
 
-**Create the PR (only when the gate passes):** include the Jira key in the title so Jira ↔ GitHub link automatically.
+**Create the PR (only when the gate passes).** Do this in **two independent steps** so creating the PR never depends on Copilot being available.
+
+**15a — create the PR (must succeed on its own; do NOT put `--reviewer` here):** include the Jira key in the title so Jira ↔ GitHub link automatically.
 ```bash
 # gh if available; otherwise POST to the GitHub API with $GITHUB_TOKEN
-gh pr create --title "<MOB-XXXXX>: CVE fixes - $(date +%Y-%m-%d)" --body-file <body.md>
+gh pr create --repo Blazemeter/taurus --base master \
+  --title "<MOB-XXXXX>: CVE fixes - $(date +%Y-%m-%d)" --body-file <body.md>
 ```
 If `gh` is not on PATH, create via the GitHub API using `$GITHUB_TOKEN` (`POST /repos/Blazemeter/taurus/pulls`).
 
-PR body should include (apply the step-5 reporting rule — **lead with the addressable framing, not the raw total**):
-- **Jira:** `<MOB-XXXXX>` (the ticket created above).
-- **Headline first:** `Fixed A of N addressable findings (B self-resolve on rebuild, C deferred/skipped for cause).` This is the opening line — do **not** open with the raw total or any JMeter/Gatling count.
-- Table of fixes confirmed in the image: CVE ID, package, old version → new version, severity.
-- Note: "Verified against the `taurus-branch-builder` image scan (build #<BUILD>) before opening — integration passed."
-- The branch-scan comparison (baseline vs branch image, total + per severity, with the build number) — included for completeness **below** the addressable headline, not as the lead.
-- A **"Not counted (not ours to fix)"** footnote: JMeter/Gatling bundled jars (policy), no-released-patch findings, Ubuntu Pro ESM and k6 binary internals — listed without front-and-center counts.
-- Note: "The following CVEs require manual intervention (see below)."
+**15b — request GitHub Copilot's review (best-effort; must NEVER fail the run):**
+```bash
+# so the maintainer doesn't have to click "Request review" on the site.
+# Any failure here is fine — the PR from 15a already exists.
+gh pr edit <pr-number-or-url> --repo Blazemeter/taurus --add-reviewer @copilot 2>/dev/null \
+  || gh api repos/Blazemeter/taurus/pulls/<number>/requested_reviewers \
+       -f 'reviewers[]=copilot-pull-request-reviewer[bot]' 2>/dev/null \
+  || echo "Copilot reviewer not added (needs gh >= 2.88.0 and Copilot code review enabled) — PR created regardless; request it manually if wanted"
+```
+Keeping 15b separate is deliberate: a bad `--reviewer` on `gh pr create` can fail the *whole* create call and leave no PR. By creating first and requesting Copilot after, the PR is guaranteed and the Copilot request is a harmless add-on. (This is GitHub Copilot's own PR review — separate from and in addition to the step-12 local pre-push review.) Never block or error the run because Copilot couldn't be added.
 
-### 14. Report manual intervention and out-of-scope items
+PR body should include (apply the step-5 reporting rule — **lead with fixable-detected/fixed, not the raw total**):
+- **Jira:** `<MOB-XXXXX>` (the ticket created above).
+- **Headline first — Fixable in taurus, this run: `<X>` detected → `<Y>` fixed.** Distinct CVEs; count only this repo's own `Dockerfile` / `requirements.txt` fixes confirmed gone in the branch scan. This is the opening line — do **not** open with the raw total or any JMeter/Gatling count. If `Y < X`, list which didn't land and why.
+- Table of the fixed CVEs: CVE ID, severity, package, old version → new version.
+- Note: "Verified against the `taurus-branch-builder` image scan (build #<BUILD>) before opening — integration passed."
+- Local code-review outcome (from step 12): which review comments were applied vs kept, and why.
+- **Not actionable in this repo — one categorized COUNT only (never per-CVE):** `<Z>` = monitor-only JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, no-released-patch (open/needed/deferred), Ubuntu ESM, scanner-appeasement/manual (`.deps.json`/Roslyn, `/var/lib/dpkg`). State this run's criticals explicitly and computed (e.g. "all N criticals are monitor-only JMeter/Gatling" — verify each run, don't assume).
+- If you show the raw baseline→branch totals at all, put them in a single parenthetical **with at least crit/high** — never as the headline. (X/Y are distinct CVEs; the raw total counts per-occurrence, so it won't sum arithmetically with X — context, not a checksum.)
+- Note: "The following CVEs require manual intervention (see below)."
+- **Decision gate is unchanged by this framing — it keys on the all-severity branch-scan total going down (see the gate above), not on X/Y.**
+
+### 16. Wait for and triage Copilot's review (one round only)
+
+After 15b, **wait for Copilot to finish reviewing, then triage its comments** — but do this exactly **once**. This is best-effort: if Copilot never runs, don't block.
+
+**[16a] Detect completion (bounded poll).** If `gh` is not on PATH, **skip step 16 entirely** (note it in the summary) — don't burn the poll. Otherwise poll until Copilot posts its review — a review by `copilot-pull-request-reviewer[bot]` with a non-null `submitted_at` is the signal (Copilot also drops out of `requested_reviewers` when done, but the submitted review is sufficient):
+```bash
+PR=<number>
+for i in $(seq 1 20); do   # ~5 min cap (15s * 20)
+  finished=$(gh api repos/Blazemeter/taurus/pulls/$PR/reviews \
+    --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]" and .submitted_at!=null)] | length' 2>/dev/null)
+  [ "$finished" -ge 1 ] 2>/dev/null && break
+  sleep 15
+done
+```
+If the cap elapses with no Copilot review, note "Copilot review did not complete in time" and go to step 17 — do not block.
+
+**[16b] Triage the comments.** Read Copilot's inline comments (`gh api repos/Blazemeter/taurus/pulls/$PR/comments`) and the review body. Triage each with the **same judgment as step 12** (accept if it improves correctness/robustness/convention; keep-as-is if it conflicts with the classification rules — e.g. never patch a JMeter/Gatling-bundled, ESM, or scanner-appeasement finding). Justify each call.
+
+**[16c] Apply accepted changes — then STOP (do not re-request Copilot).** If you accept any comments, first **re-add the worktree on the fix branch if it was removed at step 13** (`git worktree add .worktrees/<branch-name> <branch-name>`), apply them to the `Dockerfile` / `requirements.txt` / `bzt/**/*.py`, **`git add` the changed files**, and **commit + push one follow-up commit** on the same branch. **This is a single round: after this push, do NOT request Copilot again and do NOT wait for another Copilot review** — even though the push may auto-trigger one. Leave any resulting new Copilot review for the human reviewer; record in the summary which comments were applied and which were kept.
+
+> ⚠️ **Prisma-specific: re-verify a material Dockerfile change.** Copilot's comments are usually robustness nits (e.g. a `.gem*` glob vs an exact `.gem`, an exact-apt-pin brittleness, a `|| true` scope) that do **not** change which CVEs the image clears — a single push without re-scan is fine. But if an accepted Copilot fix **materially** changes the Dockerfile (a different package/version, a removed layer), the pushed image no longer matches the one verified at steps 14–15. In that case, re-trigger the branch build + re-scan (step 14) and re-confirm the decision gate (step 15) before considering the PR verified — the "verified before merge" guarantee is the whole point of this skill. **If that re-confirmed gate does NOT pass, do not leave the PR looking verified:** convert it to a draft (`gh pr ready <pr> --undo`) or post a blocking comment, stop, and report — restore it only once a passing re-scan exists, and update the PR body's build-number note to that new build.
+
+### 17. Report manual intervention and out-of-scope items
 
 First, list the JMeter/Gatling findings that are intentionally **not** fixed:
 
@@ -635,7 +700,7 @@ What to do: <specific instruction — see below>
 > 2. Add a `sed` command in the Dockerfile to patch `/var/lib/dpkg/status` — see the existing Firefox version patch in the Dockerfile as a reference
 > 3. Add a Prisma Cloud suppression — preferred if the actual installed version is not vulnerable
 
-### 15. Final summary
+### 18. Final summary
 
 End with a complete status summary:
 
@@ -643,42 +708,44 @@ End with a complete status summary:
 ═══════════════════════════════════════════════
 SUMMARY
 ═══════════════════════════════════════════════
-Fixed <A> of <N> addressable findings  (<B> self-resolve on rebuild, <C> deferred/skipped for cause)
+Fixable in taurus (this run): <X> detected → <Y> fixed
+  [distinct CVEs; this repo's own Dockerfile/requirements fixes, verified gone in branch scan #<BUILD>]
 Branch image scan (taurus-branch-builder #<BUILD>): integration <pass/fail>
-Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>
+Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>  ·  PR #<number>
 
-✅ Verified in the branch image and included in PR #<number>:
+✅ Fixed (in PR, old version gone in branch scan):
    - <CVE-ID>: <package> <old> → <new>
    - ...
+   (of which self-resolved via an existing unpinned line / npm bump, no new change this run:
+    <CVE-ID>: <package> — <why>)
 
-🔄 Self-resolves on next clean (uncached) build — no change needed:
-   - <CVE-ID>: <package> — <why, e.g. latest npm already bundles the fix>
-
-⏸️ Addressable but deferred/skipped for cause (NOT in PR):
-   - <CVE-ID>: <package> — <reason, e.g. breaks the build / breaking major jump / low value>
-
-✗ Fix attempted but did NOT land in the image (excluded from PR):
-   - <CVE-ID>: <package> — <why it didn't take, e.g. default-gem version still on disk>
+✗ Fixable but did NOT land (excluded from PR):
+   - <CVE-ID>: <package> — <reason: deferred for cause (breaking major jump / setuptools-vendored /
+     low value), OR attempted-but-failed (e.g. default-gem version still on disk)>
    - ...
 
 ⚠  Manual intervention required (NOT in PR):
    - <CVE-ID>: <package> — <one-line reason>
    - ...
 
-─── Not counted (not ours to fix; no leading numbers in the headline) ───
-ℹ  JMeter/Gatling bundled jars (policy — never remediated here): <count>
-ℹ  No released patch (open/needed/deferred): <count>
-ℹ  Ubuntu Pro ESM / k6 binary internals (uninstallable in a standard build): <count>
-ℹ  Raw scan total for reference only: baseline <X> → branch <Y> (crit A→A', high B→B', med C→C', low D→D')
+ℹ  Not actionable in this repo — not auto-fixed this run (count only): <Z> — monitor-only
+   JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, no-released-patch
+   (open/needed/deferred), Ubuntu ESM, scanner-appeasement/manual (.deps.json/Roslyn, /var/lib/dpkg)
+   (the ⚠ manual-intervention items above are the detail behind Z's scanner-appeasement/manual
+    portion — a subset of Z, NOT an additional count)
+   criticals this run: <state it — e.g. "all N monitor-only JMeter/Gatling (Tika)"; do NOT assume>
+   (raw scan, reconciliation only: baseline <a> → branch <b> [crit A→A', high B→B'])
+
+Copilot review: <triaged N comments — M applied, K kept | did not complete in time | skipped (no gh)>
 
 Next steps:
-1. Review and merge PR #<number> (already verified to reduce vulnerabilities in the image)
+1. Review and merge PR #<number> (verified to reduce vulnerabilities in the image)
 2. After merge, Jenkins builds a new blazemeter/taurus:unstable from master
 3. Re-run /prisma-taurus to confirm the fixes are reflected in the unstable scan
-4. Address manual-intervention items and any fixes that didn't land
+4. Address manual-intervention items and any fixable ones that didn't land
 ```
 
-If the decision gate in step 13 did NOT pass, end instead with: the comparison, which fixes failed to land and why, the pushed branch name and build number, and that **no PR was created** — hand it to the user to decide.
+If the decision gate in step 15 did NOT pass, end instead with: the comparison, which fixes failed to land and why, the pushed branch name and build number, and that **no PR was created** — hand it to the user to decide.
 
 ## Researching a CVE
 
