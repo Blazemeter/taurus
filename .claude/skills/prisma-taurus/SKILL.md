@@ -616,10 +616,14 @@ If `gh` is not on PATH, create via the GitHub API using `$GITHUB_TOKEN` (`POST /
 ```bash
 # so the maintainer doesn't have to click "Request review" on the site.
 # Any failure here is fine — the PR from 15a already exists.
-gh pr edit <pr-number-or-url> --repo Blazemeter/taurus --add-reviewer @copilot 2>/dev/null \
-  || gh api repos/Blazemeter/taurus/pulls/<number>/requested_reviewers \
-       -f 'reviewers[]=copilot-pull-request-reviewer[bot]' 2>/dev/null \
-  || echo "Copilot reviewer not added (needs gh >= 2.88.0 and Copilot code review enabled) — PR created regardless; request it manually if wanted"
+if ! command -v gh >/dev/null 2>&1; then
+  echo "gh not installed — skipping Copilot reviewer request (PR already created; request it manually if wanted)"
+else
+  gh pr edit <pr-number-or-url> --repo Blazemeter/taurus --add-reviewer @copilot 2>/dev/null \
+    || gh api repos/Blazemeter/taurus/pulls/<number>/requested_reviewers \
+         -f 'reviewers[]=copilot-pull-request-reviewer[bot]' 2>/dev/null \
+    || echo "Copilot reviewer not added (needs gh >= 2.88.0 and Copilot code review enabled) — PR created regardless; request it manually if wanted"
+fi
 ```
 Keeping 15b separate is deliberate: a bad `--reviewer` on `gh pr create` can fail the *whole* create call and leave no PR. By creating first and requesting Copilot after, the PR is guaranteed and the Copilot request is a harmless add-on. (This is GitHub Copilot's own PR review — separate from and in addition to the step-12 local pre-push review.) Never block or error the run because Copilot couldn't be added.
 
