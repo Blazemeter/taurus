@@ -168,9 +168,22 @@ def native_click(element):
     bypassing both WebDriver's synthesized click and JavaScript's synthetic events.
     Works with Angular apps where element.click() fails to trigger form submission
     handlers (ngSubmit) because the button has no direct click listeners.
+
+    Limitations:
+    - Chrome/Chromium browsers only (uses execute_cdp_cmd)
+    - Requires Selenium 4.0+
+    - Element must be visible and in viewport
     """
     driver = _get_driver()
+
+    if not hasattr(driver, 'execute_cdp_cmd'):
+        log.warning("nativeClick requires Chrome/Chromium browser. Falling back to regular click.")
+        element.click()
+        return
+
+    # Scroll element into view and get coordinates
     rect = driver.execute_script(
+        "arguments[0].scrollIntoView({block: 'center'});"
         "var r = arguments[0].getBoundingClientRect();"
         "return {x: r.left + r.width/2, y: r.top + r.height/2};",
         element)
