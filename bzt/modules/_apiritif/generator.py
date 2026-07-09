@@ -757,6 +757,7 @@ from selenium.webdriver.common.keys import Keys
             action_elements.extend(self._gen_assert_store_mngr(atype, tag, param, value, selectors))
 
         elif atype == "nativeclick":
+            self.selenium_extras.add("native_click")
             action_elements.append(self._gen_get_locator_call("var_loc_keys", selectors))
             action_elements.append(ast_call(
                 func="native_click",
