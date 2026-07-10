@@ -11,7 +11,7 @@ description: Use when the user wants to check, fix, or verify Prisma Cloud vulne
 
 ## Overview
 
-End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, gets an independent local code review (if a review skill is available) and amends accepted fixes **before pushing**, then **builds the fixed branch into a Docker image and re-scans it** to confirm the fixes actually reduce vulnerabilities in the real image. A PR is opened **only after** that branch scan shows fewer vulnerabilities than the baseline — never at an early stage; the PR then requests a GitHub Copilot review and triages it once.
+End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, gets an independent local code review (if a review skill is available) and amends accepted fixes **before pushing**, then **builds the fixed branch into a Docker image and re-scans it** to confirm the fixes actually reduce vulnerabilities in the real image. A PR is opened **only after** that branch scan shows fewer vulnerabilities than the baseline — never at an early stage; the PR then requests a GitHub Copilot review and triages it once, and finally posts a "ready for review" summary to Slack (best-effort).
 
 **Why verify before the PR:** unit tests do not exercise the Dockerfile (gem/npm/apt changes) and a fix that "looks" applied can be a no-op against the scanner (e.g. `gem update` installs a patched gem but leaves the vulnerable Ruby *default-gem* version on disk, which Prisma still reports). The `taurus-branch-builder` Jenkins job can build any branch into an image and scan it with Prisma — so the fixes are proven in the image *before* a PR is created, not assumed.
 
@@ -49,7 +49,16 @@ JENKINS_TOKEN      # Jenkins API token
 GITHUB_TOKEN       # GitHub personal access token
 ```
 
-If any variable is missing, stop and tell the user which one is absent.
+If any of the **three above** is missing, stop and tell the user which one is absent.
+
+**Optional — Slack notification (step 17 only):**
+
+```bash
+SLACK_BOT_TOKEN          # Slack bot token (xoxb-...) — posts the "ready for review" message
+SLACK_SPARTA_CHANNEL_ID  # Slack channel id (C...) to post it to
+```
+
+These two are **optional and best-effort**: if either is unset, the skill **skips the Slack post (step 17) and continues** — it never blocks the run and never prompts for them. (The bot must be a member of the channel, or the post returns `not_in_channel`.)
 
 **Jira** (used by the ticket-creation step before the PR) is accessed through the **Atlassian MCP**, not an env var — it authenticates as the developer running the skill (that's how the ticket gets assigned to them). No token to set. Note: interactively-authenticated MCP servers may be **absent in headless/cron runs**; if the Atlassian tools aren't available, create the PR without a Jira ticket and flag that the ticket must be created manually — don't block the PR.
 
@@ -660,7 +669,72 @@ If the cap elapses with no Copilot review, note "Copilot review did not complete
 
 > ⚠️ **Prisma-specific: re-verify a material Dockerfile change.** Copilot's comments are usually robustness nits (e.g. a `.gem*` glob vs an exact `.gem`, an exact-apt-pin brittleness, a `|| true` scope) that do **not** change which CVEs the image clears — a single push without re-scan is fine. But if an accepted Copilot fix **materially** changes the Dockerfile (a different package/version, a removed layer), the pushed image no longer matches the one verified at steps 14–15. In that case, re-trigger the branch build + re-scan (step 14) and re-confirm the decision gate (step 15) before considering the PR verified — the "verified before merge" guarantee is the whole point of this skill. **If that re-confirmed gate does NOT pass, do not leave the PR looking verified:** convert it to a draft (`gh pr ready <pr> --undo`) or post a blocking comment, stop, and report — restore it only once a passing re-scan exists, and update the PR body's build-number note to that new build.
 
-### 17. Report manual intervention and out-of-scope items
+### 17. Post the "ready for review" notification to Slack (best-effort; must NEVER fail the run)
+
+After step 16 — the PR exists, Copilot's single triage round is done (or timed out), and any accepted follow-up is pushed — post **one** summary to the team Slack channel so a human knows the PR is basically ready to approve. **Best-effort, exactly like the Copilot request (15b): it must never fail, block, or error the run.**
+
+- **Only when there is a PR.** If the decision gate (step 15) failed and no PR was created, **skip** this step entirely.
+- **Skip cleanly if unconfigured.** If `SLACK_BOT_TOKEN` or `SLACK_SPARTA_CHANNEL_ID` is unset, skip the post, note "Slack notification skipped (SLACK_* not set)" in the summary, and continue. Never prompt.
+- **Content = only the CVEs that landed** (the ✅ "Fixed" set, `Y`). No pendings, no not-landed, no out-of-scope, no notes — just the fixed list.
+
+**Message format (locked).** Header line + fixed CVEs grouped by package, each package's CVEs listed vertically. `unfurl_links:false`. The count is **computed** from the fixed list (`= Y`), never hand-typed. Build/send in Python (avoids shell-quoting pain), reading both values from the environment:
+
+```python
+import json, os, subprocess
+
+token   = os.environ.get("SLACK_BOT_TOKEN")
+channel = os.environ.get("SLACK_SPARTA_CHANNEL_ID")
+if not (token and channel):
+    print("Slack notification skipped (SLACK_BOT_TOKEN / SLACK_SPARTA_CHANNEL_ID not set)")
+else:
+    def esc(s):  # escape Slack mrkdwn metachars in dynamic text — NOT the <url|text> links we build
+        return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    pr_num = <PR number>
+    pr_url = f"https://github.com/Blazemeter/taurus/pull/{pr_num}"
+    jira   = "<MOB-XXXXX>"   # set to None / "" if no Jira ticket was created (headless/cron)
+
+    # ONLY the CVEs confirmed fixed (Y). (package, "old → new", [CVE, ...])
+    groups = [
+        # ("perl", "5.38.2-3.2ubuntu0.2 → 5.38.2-3.2ubuntu0.3", ["CVE-2026-8376", "CVE-2026-42496"]),
+    ]
+    total = sum(len(c) for _, _, c in groups)   # computed — must equal Y
+
+    lines = []
+    for pkg, bump, cves in groups:
+        lines.append(f"• *{esc(pkg)}* {esc(bump)}")   # esc() so pip constraints like <13.0.0 don't break mrkdwn
+        for c in cves:
+            lines.append(f"        ◦ {esc(c)}")
+    # drop the Jira segment entirely when no ticket exists (never render a placeholder link)
+    jira_seg = f" · <https://perforce.atlassian.net/browse/{jira}|{jira}>" if jira and jira != "<MOB-XXXXX>" else ""
+    header = (f":hammer_and_wrench: *Prisma CVE fixes ready for review* — "
+              f"<{pr_url}|taurus #{pr_num}> · {total} CVEs fixed{jira_seg}")
+
+    payload = {
+        "channel": channel, "unfurl_links": False,
+        "text": f"Prisma CVE fixes ready for review — taurus #{pr_num}",
+        "blocks": [{"type": "section",
+                    "text": {"type": "mrkdwn", "text": header + "\n" + "\n".join(lines)}}],
+    }
+    try:
+        r = subprocess.run(
+            ["curl","-s","-X","POST","https://slack.com/api/chat.postMessage",
+             "-H", f"Authorization: Bearer {token}",
+             "-H", "Content-type: application/json; charset=utf-8",
+             "--data", json.dumps(payload)],
+            capture_output=True, text=True, timeout=30)
+        resp = json.loads(r.stdout or "{}")
+        print("Slack notification posted" if resp.get("ok")
+              else f"Slack notification failed: {resp.get('error')} (continuing)")
+    except Exception as e:
+        print(f"Slack notification errored: {e} (continuing)")
+```
+
+Non-fatal errors to note but never block on: `not_in_channel` (invite the bot to the channel), `channel_not_found` (wrong id), `invalid_auth` (bad/rotated token). Record the outcome (posted / skipped / failed) in the final summary; the PR stands regardless.
+
+> **Format is intentionally minimal and shared.** The same bot ("Sparta Scan") and the same format are reused by the taurus-cloud skills (`prisma-taurus-cloud` and `mend-taurus-cloud`, with a `Mend` tag instead of `Prisma`) and across repos (the link text is `<repo> #<PR>`). Keep the header/emoji/grouping identical so the channel reads consistently — only the scan-type tag and repo name differ.
+
+### 18. Report manual intervention and out-of-scope items
 
 First, list the JMeter/Gatling findings that are intentionally **not** fixed:
 
@@ -704,7 +778,7 @@ What to do: <specific instruction — see below>
 > 2. Add a `sed` command in the Dockerfile to patch `/var/lib/dpkg/status` — see the existing Firefox version patch in the Dockerfile as a reference
 > 3. Add a Prisma Cloud suppression — preferred if the actual installed version is not vulnerable
 
-### 18. Final summary
+### 19. Final summary
 
 End with a complete status summary:
 
@@ -741,6 +815,7 @@ Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprin
    (raw scan, reconciliation only: baseline <a> → branch <b> [crit A→A', high B→B'])
 
 Copilot review: <triaged N comments — M applied, K kept | did not complete in time | skipped (no gh)>
+Slack: <posted to #channel / skipped (SLACK_* not set) / failed: <error>>  (step 17; never blocks)
 
 Next steps:
 1. Review and merge PR #<number> (verified to reduce vulnerabilities in the image)
