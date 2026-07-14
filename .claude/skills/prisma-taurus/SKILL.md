@@ -492,6 +492,8 @@ Review the committed-but-unpushed diff (`Dockerfile`, `requirements.txt`, and an
 2. Else, if the **`/code-review`** skill is available, use it (diff-scoped review).
 3. Else (neither installed), **skip the review and go straight to the push (step 13).** Note in the PR body that no automated review ran. Do **not** error out.
 
+> **This order is MECHANICAL, not advisory. If `superpowers:requesting-code-review` is available, you MUST use it — always.** It is option 1 and it is mandatory whenever present; `/code-review` is a fallback used **only** when `superpowers:requesting-code-review` is genuinely absent or errors on invocation. Do **not** choose `/code-review` (or skip) while `superpowers:requesting-code-review` is available. There is **no exception for a "small" or "Dockerfile-only" diff, no "right-sized / lighter tool" judgment** — diff size is irrelevant to this choice and must never move you off `superpowers:requesting-code-review`. If you ever believe the fallback is better for the situation, do **not** silently substitute it: state out loud "the skill mandates `superpowers:requesting-code-review`; I'm considering `/code-review` because `<reason>`" and get confirmation before deviating. Substituting your own optimization for this explicit order is a process error even when the outcome would be the same.
+
 Then, whichever ran (if any):
 1. Invoke the chosen review skill on the committed fix diff.
 2. **Triage every comment yourself — do not auto-apply.** Decide **change** vs **keep as-is** with technical rigor (as in `superpowers:receiving-code-review`), and justify each call:

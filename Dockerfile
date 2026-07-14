@@ -138,6 +138,7 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 #   gzip:                   CVE-2026-41992, CVE-2026-41991 (-> 1.12-1ubuntu3.2)
 #   libnghttp2-14 (nghttp2):CVE-2026-58055 (-> 1.59.0-1ubuntu0.4)
 #   ncurses libs:           CVE-2025-69720 (-> 6.4+20240113-1ubuntu2.1)
+#   pipewire libs:          CVE-2026-14324, CVE-2026-14330 (-> 1.0.5-1ubuntu3.3)
 # (--only-upgrade never installs new packages; absent ones are skipped.)
 # remove each when the base image ships the fixed version natively (CVE drops from baseline scan)
 RUN apt-get update && \
@@ -162,7 +163,12 @@ RUN apt-get update && \
         libncurses6 \
         libncursesw6 \
         ncurses-base \
-        ncurses-bin && \
+        ncurses-bin \
+        pipewire \
+        libpipewire-0.3-0 \
+        libpipewire-0.3-common \
+        libpipewire-0.3-modules \
+        pipewire-bin && \
     rm -rf /var/lib/apt/lists/*
 
 # ================================
@@ -171,8 +177,8 @@ RUN apt-get update && \
 FROM system-deps AS runtimes
 
 # Install .NET SDK
-RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.420/dotnet-sdk-8.0.420-linux-x64.tar.gz" && \
-    DOTNET_SHA512="36c68c1be9d5c6f24cd8e6bd4b6d36bfd7ab724ac7e3499fb13e42e70a9003310e5ee5759ed19ced1f0ecd3d26a55f135c7e72d6f788e7d44f5f0eaa72ad9a07" && \
+RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.422/dotnet-sdk-8.0.422-linux-x64.tar.gz" && \
+    DOTNET_SHA512="5cde8b72ad98b910856207a19f6ffb0977f1f3b9ac76bbd03ed9e2f155370e2b7a950e589d38f55b3fd7799a2abc9ccbe4a3b180f1f628fe625634888449e07c" && \
     curl -fSL --output dotnet.tar.gz "${DOTNET_URL}" && \
     echo "${DOTNET_SHA512} dotnet.tar.gz" | sha512sum -c - && \
     mkdir -p /usr/share/dotnet && \
@@ -328,22 +334,22 @@ RUN apt-get remove -y \
 
 # update dotnet metadata to make scanners happy
 RUN for f in \
-      /usr/share/dotnet/sdk/8.0.420/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
-      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/VBCSCompiler.deps.json \
-      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/csc.deps.json \
-      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/vbc.deps.json \
-      /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; do \
+      /usr/share/dotnet/sdk/8.0.422/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
+      /usr/share/dotnet/sdk/8.0.422/Roslyn/bincore/VBCSCompiler.deps.json \
+      /usr/share/dotnet/sdk/8.0.422/Roslyn/bincore/csc.deps.json \
+      /usr/share/dotnet/sdk/8.0.422/Roslyn/bincore/vbc.deps.json \
+      /usr/share/dotnet/sdk/8.0.422/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; do \
       [ -f "$f" ] && sed -i 's/17\.10\.41/17.14.28/g' "$f" || true; \
     done
-RUN find /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-watch -name "*.deps.json" \
+RUN find /usr/share/dotnet/sdk/8.0.422/DotnetTools/dotnet-watch -name "*.deps.json" \
       -exec grep -lF "17.10.41" {} \; | \
     xargs -r sed -i 's/17\.10\.41/17.14.28/g'
-RUN if [ -f /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json ]; then \
-      sed -i 's/17\.11\.31/17.11.48/g' /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json; \
+RUN if [ -f /usr/share/dotnet/sdk/8.0.422/DotnetTools/dotnet-format/dotnet-format.deps.json ]; then \
+      sed -i 's/17\.11\.31/17.11.48/g' /usr/share/dotnet/sdk/8.0.422/DotnetTools/dotnet-format/dotnet-format.deps.json; \
     fi
 RUN for f in \
-      /usr/share/dotnet/sdk/8.0.420/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
-      /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json; do \
+      /usr/share/dotnet/sdk/8.0.422/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
+      /usr/share/dotnet/sdk/8.0.422/DotnetTools/dotnet-format/dotnet-format.deps.json; do \
       [ -f "$f" ] && sed -i \
         -e 's|System\.Security\.Cryptography\.Xml/[0-9][0-9.]*|System.Security.Cryptography.Xml/8.0.3|g' \
         -e 's|"System\.Security\.Cryptography\.Xml": "[0-9][0-9.]*"|"System.Security.Cryptography.Xml": "8.0.3"|g' \
