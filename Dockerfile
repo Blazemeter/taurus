@@ -139,7 +139,7 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 #   libnghttp2-14 (nghttp2):CVE-2026-58055 (-> 1.59.0-1ubuntu0.4)
 #   ncurses libs:           CVE-2025-69720 (-> 6.4+20240113-1ubuntu2.1)
 #   pipewire libs:          CVE-2026-14324, CVE-2026-14330 (-> 1.0.5-1ubuntu3.3)
-#   libasound2t64 (alsa-lib):CVE-2026-56109 (-> 1.2.11-1ubuntu0.3)
+#   libasound2t64 (alsa-lib): CVE-2026-56109 (-> 1.2.11-1ubuntu0.3)
 #   libde265-0 (libde265):  CVE-2026-33164 (-> 1.0.15-1ubuntu0.1)
 #   libheif1 (libheif):     CVE-2026-47714 (-> 1.17.6-1ubuntu4.6)
 #   wget:                   CVE-2026-58469 (fixed in 1.21.4-1ubuntu4.3; pocket ships 1.21.4-1ubuntu4.4)
