@@ -131,14 +131,18 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 #   mesa userspace libs:    CVE-2026-40393
 #   perl:                   CVE-2026-8376, CVE-2026-42496 (-> 5.38.2-3.2ubuntu0.3)
 #   libxml2:                CVE-2026-6653 (-> 2.9.14+dfsg-1.3ubuntu3.8)
-#   libsqlite3-0 (sqlite3): CVE-2026-11822, CVE-2026-11824 (-> 3.45.1-1ubuntu2.6)
+#   libsqlite3-0 (sqlite3): CVE-2026-11822, CVE-2026-11824, CVE-2026-50813 (-> 3.45.1-1ubuntu2.7)
 #   libnss3 (nss):          CVE-2026-12318 (-> 2:3.98-1ubuntu0.2)
-#   tar:                    CVE-2026-5704 (-> 1.35+dfsg-3ubuntu0.1), CVE-2025-45582 (-> 1.35+dfsg-3ubuntu0.2)
+#   tar:                    CVE-2026-5704, CVE-2025-45582 (-> 1.35+dfsg-3ubuntu0.3)
 #   python3.12:             CVE-2026-6100/9669, CVE-2025-69534, CVE-2026-4786/4519/7774/3276/4224/3644/1299/8328/2297/1502/6019, CVE-2025-13462 (-> 3.12.3-1ubuntu0.15)
 #   gzip:                   CVE-2026-41992, CVE-2026-41991 (-> 1.12-1ubuntu3.2)
 #   libnghttp2-14 (nghttp2):CVE-2026-58055 (-> 1.59.0-1ubuntu0.4)
 #   ncurses libs:           CVE-2025-69720 (-> 6.4+20240113-1ubuntu2.1)
 #   pipewire libs:          CVE-2026-14324, CVE-2026-14330 (-> 1.0.5-1ubuntu3.3)
+#   libasound2t64 (alsa-lib):CVE-2026-56109 (-> 1.2.11-1ubuntu0.3)
+#   libde265-0 (libde265):  CVE-2026-33164 (-> 1.0.15-1ubuntu0.1)
+#   libheif1 (libheif):     CVE-2026-47714 (-> 1.17.6-1ubuntu4.6)
+#   wget:                   CVE-2026-58469 (fixed in 1.21.4-1ubuntu4.3; pocket ships 1.21.4-1ubuntu4.4)
 # (--only-upgrade never installs new packages; absent ones are skipped.)
 # remove each when the base image ships the fixed version natively (CVE drops from baseline scan)
 RUN apt-get update && \
@@ -168,7 +172,11 @@ RUN apt-get update && \
         libpipewire-0.3-0 \
         libpipewire-0.3-common \
         libpipewire-0.3-modules \
-        pipewire-bin && \
+        pipewire-bin \
+        libasound2t64 \
+        libde265-0 \
+        libheif1 \
+        wget && \
     rm -rf /var/lib/apt/lists/*
 
 # ================================
