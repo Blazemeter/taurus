@@ -185,8 +185,8 @@ RUN apt-get update && \
 FROM system-deps AS runtimes
 
 # Install .NET SDK
-RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.422/dotnet-sdk-8.0.422-linux-x64.tar.gz" && \
-    DOTNET_SHA512="5cde8b72ad98b910856207a19f6ffb0977f1f3b9ac76bbd03ed9e2f155370e2b7a950e589d38f55b3fd7799a2abc9ccbe4a3b180f1f628fe625634888449e07c" && \
+RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.423/dotnet-sdk-8.0.423-linux-x64.tar.gz" && \
+    DOTNET_SHA512="e94513dfe42271a85f01e87bd4272aa80b4ec13556f4531754802542225667775242c5e281a94837dae6cc65f7bcc457d2f663f240c0e2b7573fd909e786b1a5" && \
     curl -fSL --output dotnet.tar.gz "${DOTNET_URL}" && \
     echo "${DOTNET_SHA512} dotnet.tar.gz" | sha512sum -c - && \
     mkdir -p /usr/share/dotnet && \
@@ -342,27 +342,26 @@ RUN apt-get remove -y \
 
 # update dotnet metadata to make scanners happy
 RUN for f in \
-      /usr/share/dotnet/sdk/8.0.422/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
-      /usr/share/dotnet/sdk/8.0.422/Roslyn/bincore/VBCSCompiler.deps.json \
-      /usr/share/dotnet/sdk/8.0.422/Roslyn/bincore/csc.deps.json \
-      /usr/share/dotnet/sdk/8.0.422/Roslyn/bincore/vbc.deps.json \
-      /usr/share/dotnet/sdk/8.0.422/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; do \
+      /usr/share/dotnet/sdk/8.0.423/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
+      /usr/share/dotnet/sdk/8.0.423/Roslyn/bincore/VBCSCompiler.deps.json \
+      /usr/share/dotnet/sdk/8.0.423/Roslyn/bincore/csc.deps.json \
+      /usr/share/dotnet/sdk/8.0.423/Roslyn/bincore/vbc.deps.json \
+      /usr/share/dotnet/sdk/8.0.423/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; do \
       [ -f "$f" ] && sed -i 's/17\.10\.41/17.14.28/g' "$f" || true; \
     done
-RUN find /usr/share/dotnet/sdk/8.0.422/DotnetTools/dotnet-watch -name "*.deps.json" \
+RUN find /usr/share/dotnet/sdk/8.0.423/DotnetTools/dotnet-watch -name "*.deps.json" \
       -exec grep -lF "17.10.41" {} \; | \
     xargs -r sed -i 's/17\.10\.41/17.14.28/g'
-RUN if [ -f /usr/share/dotnet/sdk/8.0.422/DotnetTools/dotnet-format/dotnet-format.deps.json ]; then \
-      sed -i 's/17\.11\.31/17.11.48/g' /usr/share/dotnet/sdk/8.0.422/DotnetTools/dotnet-format/dotnet-format.deps.json; \
+RUN if [ -f /usr/share/dotnet/sdk/8.0.423/DotnetTools/dotnet-format/dotnet-format.deps.json ]; then \
+      sed -i 's/17\.11\.31/17.11.48/g' /usr/share/dotnet/sdk/8.0.423/DotnetTools/dotnet-format/dotnet-format.deps.json; \
     fi
-RUN for f in \
-      /usr/share/dotnet/sdk/8.0.422/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
-      /usr/share/dotnet/sdk/8.0.422/DotnetTools/dotnet-format/dotnet-format.deps.json; do \
-      [ -f "$f" ] && sed -i \
-        -e 's|System\.Security\.Cryptography\.Xml/[0-9][0-9.]*|System.Security.Cryptography.Xml/8.0.3|g' \
-        -e 's|"System\.Security\.Cryptography\.Xml": "[0-9][0-9.]*"|"System.Security.Cryptography.Xml": "8.0.3"|g' \
-        "$f" || true; \
-    done
+# System.Security.Cryptography.Xml -> 8.0.4 (CVE-2026-47302/47304/50525/50527/50648): patch every
+# SDK .deps.json that references it (scanner reads these metadata files across the whole SDK tree)
+RUN find /usr/share/dotnet/sdk/8.0.423 -name "*.deps.json" \
+      -exec grep -lF "System.Security.Cryptography.Xml" {} \; | \
+    xargs -r sed -i \
+      -e 's|System\.Security\.Cryptography\.Xml/[0-9][0-9.]*|System.Security.Cryptography.Xml/8.0.4|g' \
+      -e 's|"System\.Security\.Cryptography\.Xml": "[0-9][0-9.]*"|"System.Security.Cryptography.Xml": "8.0.4"|g'
 
 
 # Remove security-sensitive files
