@@ -442,10 +442,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.post_process()  # no 'Cumulative KPISet is non-consistent' exception here
 
     def test_kpi_body_includes_encoded_histogram(self):
-        # The upload payload must carry an encoded response-time histogram (hstRt) per
-        # interval so the BlazeMeter ClickHouse pipeline can derive percentiles by merging
-        # HdrHistograms. Verify it is present, is a compressed HdrHistogram V2 blob, decodes,
-        # and reflects the recorded distribution.
+        # Each interval must carry an encoded hstRt so the ClickHouse pipeline can merge histograms.
         from hdrh.histogram import HdrHistogram
 
         reporter = BlazeMeterUploader()

@@ -106,10 +106,8 @@ class SinglePassIterator(RecordedIterator):
 
 
 class RespTimesCounter(JSONConvertible):
-    # Canonical HdrHistogram config for the BlazeMeter ingestion pipeline. Must match the
-    # cloud producer (bza-data jetpack: IntCountsHistogram, 1h in ms, 1% accuracy) so the
-    # encoded histogram merges with cloud records and decodes in the lambdas (hdrh) and
-    # Dagger (org.HdrHistogram). Values are milliseconds.
+    # Must match the cloud producer (bza-data jetpack: 1h in ms, 1% accuracy) so histograms
+    # merge and decode in the lambdas (hdrh) and Dagger (org.HdrHistogram). Values in ms.
     ENCODE_LOWEST = 1
     ENCODE_HIGHEST = 3600000  # 1 hour in milliseconds
     ENCODE_SIGNIFICANT_FIGURES = 3
@@ -179,15 +177,10 @@ class RespTimesCounter(JSONConvertible):
         }
 
     def encode(self):
-        """
-        Encode the response-time distribution as a base64 HdrHistogram (V2, compressed)
-        blob compatible with the BlazeMeter ingestion pipeline. Recorded values are
-        milliseconds, using the canonical fixed config so the histogram merges with cloud
-        records and decodes in the lambdas / Dagger. Returns a base64 string.
-        """
+        """Encode the response-time distribution as a base64 HdrHistogram (V2) blob for the
+        BlazeMeter pipeline. Values are ms, using the canonical config. Returns a base64 string."""
         encodable = EncodableHdrHistogram(self.ENCODE_LOWEST, self.ENCODE_HIGHEST, self.ENCODE_SIGNIFICANT_FIGURES)
-        # get_value_counts() iterates recorded (value_ms -> count) pairs directly, so no
-        # known_mean is required and this stays valid even before percentiles are computed.
+        # get_value_counts() yields recorded (value_ms -> count) pairs; valid before percentiles.
         for value_ms, count in iteritems(self.histogram.get_value_counts()):
             if count <= 0:
                 continue

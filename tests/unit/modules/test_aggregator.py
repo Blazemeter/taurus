@@ -245,8 +245,7 @@ class TestRespTimesCounterEncode(BZTestCase):
         counter = self._counter_from_seconds([7200.0] * 10)  # 2h
         decoded = HdrHistogram.decode(counter.encode())
         self.assertEqual(10, decoded.get_total_count())
-        # recorded at the ceiling bucket (get_max_value is the bucket's highest-equivalent,
-        # so it may exceed ENCODE_HIGHEST by one bucket width at 3 significant figures)
+        # clamped to the ceiling bucket, so max may exceed ENCODE_HIGHEST by ~1 bucket width
         self.assertLessEqual(
             abs(decoded.get_max_value() - RespTimesCounter.ENCODE_HIGHEST) / RespTimesCounter.ENCODE_HIGHEST,
             0.01)
