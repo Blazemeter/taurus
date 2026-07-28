@@ -14,4 +14,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from .tools import TaurusJavaHelper
-from .executors import TestNGTester, JUnitTester
+from .executors import TestNGTester, JUnitTester, RemoteJUnitTester

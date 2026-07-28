@@ -13,13 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import json
 import os
+import re
 from abc import abstractmethod
 
-from bzt import TaurusConfigError
+from bzt import TaurusConfigError, ToolError
 from bzt.modules import SubprocessedExecutor
-from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR
-from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time, iteritems
+from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
+from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR, FileReader
+from bzt.utils import get_full_path, is_windows, is_linux, to_json, dehumanize_time, iteritems
 
 
 class JavaScriptExecutor(SubprocessedExecutor):
@@ -41,6 +44,199 @@ class JavaScriptExecutor(SubprocessedExecutor):
     @abstractmethod
     def get_launch_cwd(self, *args):
         pass
+
+
+class IncrementalLineReader(object):
+    """
+    Line reader (e.g. jsonl)
+    """
+
+    def __init__(self, parent_logger, filename):
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.partial_buffer = ""
+        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.read_speed = 1024 * 1024
+
+    def read(self, last_pass=False):
+        """
+        read data from file
+        yield one complete row (ending with \n)
+        :type last_pass: bool
+        """
+        lines = self.file.get_lines(size=self.read_speed, last_pass=last_pass)
+
+        for line in lines:
+            if not line.endswith("\n"):
+                self.partial_buffer += line
+                continue
+
+            line = "%s%s" % (self.partial_buffer, line)
+            self.partial_buffer = ""
+            yield line
+
+class PlaywrightTester(JavaScriptExecutor):
+
+    """
+    Playwright tests runner
+    """
+    def __init__(self):
+        super(PlaywrightTester, self).__init__()
+        self.tools_dir = get_full_path("~/.bzt/playwright")
+
+    def get_script_path(self, required=False, scenario=None):
+        if not self.execution:
+            return get_full_path("~/.bzt/playwright")
+        return super(PlaywrightTester, self).get_script_path(required, scenario)
+
+    def prepare(self):
+        self.tools_dir = self.get_launch_cwd()
+        super(PlaywrightTester, self).prepare()
+
+        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
+        self.script = self.get_script_path()
+        if not self.script:
+            raise TaurusConfigError("Script not passed to runner %s" % self)
+        self.reader = PlaywrightLogReader(self.engine.artifacts_dir + "/taurus-playwright-reporter.jsonl", self.log)
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.engine.aggregator.add_underling(self.reader)
+
+        self.install_required_tools()
+
+    def install_required_tools(self):
+        tcl_lib = self._get_tool(TclLibrary)
+        self.node = self._get_tool(Node)
+        self.npm = self._get_tool(NPM)
+
+        npm_playwright_test = self._get_tool(PlaywrightTestPackage, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
+        playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.get_launch_cwd())
+        playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
+
+        npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.get_launch_cwd())
+
+        tools = [tcl_lib, self.node, self.npm, npm_playwright_test, npm_all_packages, playwright, playwright_reporter]
+        self._check_tools(tools)
+
+    def get_launch_cmdline(self, *args):
+        return "npx playwright test " + self.get_script_path() + ' ' + ' '.join(args[0])
+
+    def get_launch_cwd(self, *args):
+        script_path = self.get_script_path()
+        if os.path.isfile(script_path):
+            script_path = os.path.dirname(script_path)
+        return script_path
+
+    def startup(self):
+        config = self.get_scenario().engine.config
+        env = config["settings"]["env"]
+        if "BASE_URL" in env:
+            self.env.set({"BASE_URL": env["BASE_URL"]})
+
+        load = self.get_load()
+
+        max_duration = None
+        concurrency = max(1, load.concurrency)
+        if load.duration > 0:
+            max_duration = load.duration
+            if load.iterations > 0:
+                repeat_each = concurrency*load.iterations
+            else:
+                # playwright support approx 100000 tests (= num tests * repeat_each)
+                # setting repeat each to some save value. Lets customer setup iterations
+                # for their test to hold for expected duration....
+                repeat_each = 1000
+        else:
+            iterations = max(1, load.iterations)
+            repeat_each = concurrency*iterations
+
+        reporter = "@taurus/playwright-custom-reporter"
+
+        # Add custom reporters if specified in scenario config
+        custom_reporters = self.get_scenario().get("reporters", [])
+        has_additional_reporter = False
+        if custom_reporters and isinstance(custom_reporters, list):
+            # Sanitize reporter names for command line usage
+            safe_reporters = [r.translate(str.maketrans("", "", " \t\r\n\v\f'\""))
+                              for r in custom_reporters if r and isinstance(r, str)]
+            if safe_reporters:
+                reporter = reporter + "," + ",".join(safe_reporters)
+                has_additional_reporter = True
+
+        # self.env.set({"TAURUS_PWREPORT_VERBOSE": "true"})
+        # Keep stdout for custom reporters if any
+        self.env.set({"TAURUS_PWREPORT_STDOUT": "true" if not has_additional_reporter else "false"})
+        self.env.set({"TAURUS_PWREPORT_DIR": self.engine.artifacts_dir})
+        if max_duration:
+            self.env.set({"TAURUS_PWREPORT_DURATION": str(int(max_duration * 1000))})
+        options = ["--reporter \"" + reporter + "\"",
+                   "--output " + self.engine.artifacts_dir + "/test-output",
+                   "--workers " + str(concurrency),
+                   "--repeat-each " + str(repeat_each)]
+
+        if "browser" in self.get_scenario().data:
+            options.append("--project=" + self.get_scenario().data["browser"])
+        if "test" in self.get_scenario().data:
+            options.append("-g '" + self.get_scenario().data["test"] + "'")
+
+        cmd_line = self.get_launch_cmdline(options)
+        self.log.info("Launching Playwright: '%s'", cmd_line)
+        self.process = self._execute(cmd_line, cwd=self.get_launch_cwd())
+
+    def has_results(self):
+        return True
+
+    def check(self):
+        ret_code = self.process.poll()
+        if ret_code is not None:
+            if ret_code != 0:
+                if ret_code == 1 and self._tests_ran():
+                    self.log.debug(
+                        "Playwright process exited with code 1 and tests were run - treating as normal completion"
+                    )
+                    return True
+                msg = "Test runner %s (%s) has failed with retcode %s"
+                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code),
+                                self.get_error_diagnostics())
+            return True
+        return False
+
+    def _tests_ran(self):
+        if self.reader and os.path.exists(self.reader.filename):
+            return os.path.getsize(self.reader.filename) > 0
+        return False
+
+
+class PlaywrightLogReader(ResultsReader):
+
+    def __init__(self, filename, parent_logger):
+        super(PlaywrightLogReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.filename = filename
+        self.jsonl_reader = IncrementalLineReader(self.log, filename)
+
+    def _safe_ms_to_s(self, t):
+        if t:
+            return t / 1000.0
+        return t
+
+    def _strip_ansi(self, text):
+        if not text:
+            return text
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        return ansi_escape.sub('', text)
+
+    def _read(self, final_pass=False):
+        for line in self.jsonl_reader.read(final_pass):
+            content = json.loads(line)
+            # runDetails: title of test, worker, repetition and browser platform
+            yield (int(self._safe_ms_to_s(content.get("timestamp")) or 0),
+                   content.get("label"), content.get("concurency"),
+                   self._safe_ms_to_s(content.get("duration")),
+                   self._safe_ms_to_s(content.get("connectTime", None)),
+                   self._safe_ms_to_s(content.get("latency",  None)),
+                   "", # return code
+                   self._strip_ansi(content.get("error", None)),
+                   "", # source id
+                   content.get("byte_count", 0))
 
 
 class MochaTester(JavaScriptExecutor):
@@ -98,77 +294,6 @@ class MochaTester(JavaScriptExecutor):
             mocha_cmdline += ['--hold-for', str(load.hold)]
 
         self.process = self._execute(mocha_cmdline, cwd=self.get_launch_cwd())
-
-
-class WebdriverIOExecutor(JavaScriptExecutor):
-    """
-    WebdriverIO-based test runner
-
-    :type wdio: WDIO
-    :type wdio_taurus_plugin: TaurusWDIOPlugin
-    """
-
-    def __init__(self):
-        super(WebdriverIOExecutor, self).__init__()
-        self.tools_dir = "~/.bzt/selenium-taurus/wdio-mjs"
-        self.wdio = None
-        self.wdio_taurus_plugin = None
-
-    def prepare(self):
-        super(WebdriverIOExecutor, self).prepare()
-        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
-        # NODE_PATH doesn't work for ems modules -> we will change pwd so executor sees tools node_modules...
-        self.script = self.get_script_path()
-        if not self.script:
-            raise TaurusConfigError("Script not passed to executor %s" % self)
-
-        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
-        self.install_required_tools()
-        self.reporting_setup(suffix='.ldjson')
-
-    def install_required_tools(self):
-        tcl_lib = self._get_tool(TclLibrary)
-        self.node = self._get_tool(Node)
-        self.npm = self._get_tool(NPM)
-        self.wdio = self._get_tool(WDIO, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.wdio_reporter = self._get_tool(WDIOReporter, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.wdio_runner = self._get_tool(WDIORunner, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.wdio_taurus_plugin = self._get_tool(TaurusWDIOPlugin, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-        self.node_tsx_module = self._get_tool(NodeTSXModule, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-
-        wdio_mocha_plugin = self._get_tool(
-            WDIOMochaPlugin, tools_dir=self.tools_dir, node_tool=self.node, npm_tool=self.npm)
-
-        tools = [tcl_lib, self.node, self.npm, self.wdio, self.wdio_taurus_plugin, self.wdio_reporter, self.wdio_runner, wdio_mocha_plugin, self.node_tsx_module]
-
-        self._check_tools(tools)
-
-    def get_launch_cmdline(self, *args):
-        return [self.node.tool_path, '@taurus/wdio-taurus-plugin'] + list(args)
-
-    def get_launch_cwd(self, *args):
-        return self.tools_dir + "/node_modules"
-
-    def startup(self):
-        script_dir = get_full_path(self.script, step_up=1)
-        script_file = os.path.basename(self.script)
-        cmdline = self.get_launch_cmdline(
-            "--report-file",
-            self.report_file,
-            "--wdio-config",
-            script_file,
-        )
-
-        load = self.get_load()
-        if load.iterations:
-            cmdline += ['--iterations', str(load.iterations)]
-
-        if load.hold:
-            cmdline += ['--hold-for', str(load.hold)]
-
-        cmdline += ['--cwd', script_dir]
-
-        self.process = self._execute(cmdline, cwd=self.get_launch_cwd())
 
 
 class NewmanExecutor(JavaScriptExecutor):
@@ -380,31 +505,21 @@ class NPMLocalModulePackage(NPMPackage):
             self.log.warning("%s install stderr: %s", self.tool_name, err)
 
 
+class NPMModuleInstaller(NPMLocalModulePackage):
+    def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
+        super(NPMModuleInstaller, self).__init__(tools_dir, node_tool, npm_tool, **kwargs)
+        self.package_local_path = tools_dir
+
+
 class Mocha(NPMPackage):
-    PACKAGE_NAME = "mocha@10.6.0"
+    PACKAGE_NAME = "mocha@11.7.5"
 
 
 class JSSeleniumWebdriver(NPMPackage):
     PACKAGE_NAME = "selenium-webdriver@4.23.0"
 
-class WDIO(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/cli@9.2.1"
-
-class WDIORunner(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/local-runner@9.2.1"
-
-class WDIOReporter(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/reporter@9.1.3"
-
-class WDIOMochaPlugin(NPMModulePackage):
-    PACKAGE_NAME = "@wdio/mocha-framework@9.1.3"
-
 class NodeTSXModule(NPMModulePackage):
     PACKAGE_NAME = "tsx@4.19.2"
-
-class TaurusWDIOPlugin(NPMLocalModulePackage):
-    PACKAGE_NAME = "@taurus/wdio-taurus-plugin@1.0.0"
-    PACKAGE_LOCAL_PATH = "./wdio-taurus-plugin"
 
 class Newman(NPMPackage):
     PACKAGE_NAME = "newman"
@@ -412,7 +527,6 @@ class Newman(NPMPackage):
     def __init__(self, tools_dir="", **kwargs):
         tool_path = "%s/node_modules/%s/bin/newman.js" % (tools_dir, self.PACKAGE_NAME)
         super(Newman, self).__init__(tool_path=tool_path, tools_dir=tools_dir, **kwargs)
-
 
 class TaurusMochaPlugin(RequiredTool):
     def __init__(self, **kwargs):
@@ -423,3 +537,90 @@ class TaurusNewmanPlugin(RequiredTool):
     def __init__(self, **kwargs):
         tool_path = os.path.join(RESOURCES_DIR, "newman-reporter-taurus.js")
         super(TaurusNewmanPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
+
+class PlaywrightTestPackage(NPMPackage):
+    PACKAGE_NAME = "@playwright/test" if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None \
+        else "@playwright/test@" + os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION")
+
+    def check_if_installed(self):
+        if not super().check_if_installed():
+            return False
+        # Check if installed version is expected version if we force version
+        forced_version = os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None)
+        if forced_version is None:
+            # Not forcing version, any installed is good
+            return True
+
+        # `npx --no` reads the locally-installed version without fetching from the
+        # registry. Mirrors the freeze step in taurus-cloud Dockerfile-reduced.
+        cmdline = ["npx", "--no", "--", "@playwright/test", "--version"]
+        try:
+            out, _ = self.call(cmdline, cwd=self.tools_dir)
+            installed = (out or "").strip().split()[-1] if (out or "").strip() else ""
+            version_changed = installed != forced_version
+            if version_changed:
+                self.log.warning("Frozen version not found in installed packages, will re-install %s", self.PACKAGE_NAME)
+            return not version_changed
+        except CALL_PROBLEMS as exc:
+            self.log.debug("%s check of forced version failed: %s", self.PACKAGE_NAME, exc)
+            return False
+
+class PlaywrightCustomReporter(NPMLocalModulePackage):
+    PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.0"
+    PACKAGE_LOCAL_PATH = "./playwright-custom-reporter"
+
+    def check_if_installed(self):
+        # always run install for local module to update to latest version
+        # npm version resolving for local modules is not reliable
+        return False
+
+class PLAYWRIGHT(RequiredTool):
+    def __init__(self, tools_dir, **kwargs):
+        super(PLAYWRIGHT, self).__init__(installable=True, **kwargs)
+        self.tools_dir = tools_dir
+
+    def check_if_installed(self):
+        # currently there seems to be no reliable way to find out whether all Playwright requirements are installed
+        return False
+
+    def install(self):
+        frozen_version = os.environ.get("PLAYWRIGHT_PACKAGE_FORCED_VERSION", None)
+        package_name = "playwright" if frozen_version is None else "playwright@" + frozen_version
+        version_changed = False
+        if frozen_version:
+            # `npx --no` reads the locally-installed version without fetching from the
+            # registry. Mirrors the freeze step in taurus-cloud Dockerfile-reduced.
+            cmdline = ["npx", "--no", "--", "playwright", "--version"]
+            try:
+                out, _ = self.call(cmdline, cwd=self.tools_dir)
+                installed = (out or "").strip().split()[-1] if (out or "").strip() else ""
+                version_changed = installed != frozen_version
+                if version_changed:
+                    self.log.warning("Frozen version not found in installed packages, will re-install %s", package_name)
+            except CALL_PROBLEMS as exc:
+                self.log.debug("%s check of forced version failed: %s", package_name, exc)
+                version_changed = True
+
+        # npx playwright install is not needed to run again if version did not change and is frozen
+        if frozen_version is None or version_changed:
+            # Do not install deps for browsers if we know it will fail because of user permissions (linux & non-root)
+            if is_linux() and hasattr(os, "geteuid") and os.geteuid() != 0:
+                self.install_cmd(cmdline = ["npx", package_name, "install"])
+            else:
+                self.install_cmd(cmdline = ["npx", package_name, "install", "--with-deps"])
+
+    def install_cmd(self, cmdline):
+        self.log.debug("Installing Playwright: %s", cmdline)
+        if not os.path.exists(self.tools_dir):
+            self.log.debug("Creating directory: %s", self.tools_dir)
+            os.makedirs(self.tools_dir, exist_ok=True)
+
+        try:
+            out, err = self.call(cmdline,cwd=self.tools_dir)
+        except CALL_PROBLEMS as exc:
+            self.log.warning("'%s' install failed: %s", cmdline, exc)
+            return
+        if out:
+            self.log.debug("%s install stdout\n: %s", self.tool_name, out)
+        if err:
+            self.log.warning("%s install stderr\n: %s", self.tool_name, err)

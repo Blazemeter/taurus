@@ -5,7 +5,6 @@ Quick links: [Taurus Documentation](https://gettaurus.org/docs/) | [Knowledge Ba
 ## Purpose
 Hides the complexity of performance and functional tests with an automation-friendly convenience wrapper. Taurus relies on JMeter, Gatling, Locust.io, and Selenium WebDriver as its underlying tools. Free and open source under Apache 2.0 License.
 
-
 ## Installation or Upgrade
 
 Just install it using PyPi:

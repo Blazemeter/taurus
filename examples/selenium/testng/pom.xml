@@ -19,14 +19,14 @@
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
-            <version>4.14.0</version>
+            <version>4.34.0</version>
         </dependency>
 
         <!-- TestNG Dependency -->
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>7.10.2</version>
+            <version>7.11.0</version>
         </dependency>
         <dependency>
             <groupId>com.beust</groupId>
@@ -36,7 +36,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>2.0.16</version>
+            <version>2.0.17</version>
         </dependency>
     </dependencies>
 

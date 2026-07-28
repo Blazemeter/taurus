@@ -22,7 +22,7 @@ import time
 from collections import Counter, OrderedDict
 from datetime import datetime
 
-from terminaltables import AsciiTable
+from terminaltables3 import AsciiTable
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Reporter

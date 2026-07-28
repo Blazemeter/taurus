@@ -9,6 +9,10 @@ from bzt.utils import HappysocksClient, HappysocksEngineNamespace
 from tests.unit import BZTestCase
 from tests.unit.mocks import BZMock, MockHappysocksServer, EngineEmul
 
+import unittest
+from unittest.mock import MagicMock
+from bzt.bza import Test
+
 
 class TestBZAClient(BZTestCase):
     def test_bza_py3_unicode_token(self):
@@ -92,6 +96,23 @@ class TestHappysocksClient(BZTestCase):
         args = sio.connect.call_args
         self.assertEqual(args[0][0], "https://happysocks-5100-tester-dev.blazemeter.net")
         self.assertEqual(args[1]["namespaces"], ["/v1/engine"])
+        self.assertEqual(args[1]["transports"], ["websocket"])
+        self.assertEqual(args[1]["socketio_path"], "/api-ws")
+        self.assertEqual(args[1]["headers"],
+                         {"x-bzm-session": "r-v4-64102f1ab8795890049369", "x-auth-token": "ci12NC02NDEwMmYxYWI"})
+
+    @patch('bzt.utils.socketio.Client')
+    def test_connect_success_clickhouse(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        # perform test
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True, use_clickhouse=True)
+        client.connect()
+        sio.connect.assert_called_once()
+        args = sio.connect.call_args
+        self.assertEqual(args[0][0], "https://happysocks-5100-tester-dev.blazemeter.net")
+        self.assertEqual(args[1]["namespaces"], ["/v1/engine-ch"])
         self.assertEqual(args[1]["transports"], ["websocket"])
         self.assertEqual(args[1]["socketio_path"], "/api-ws")
         self.assertEqual(args[1]["headers"],
@@ -198,6 +219,89 @@ class TestHappysocksClient(BZTestCase):
         self.assertEqual(args[0][2], "/v1/engine")
         self.assertTrue(args[1]["callback"] is not None)
 
+    @patch('bzt.utils.socketio.Client')
+    def test_send_engine_metrics_clickhouse(self, mock_socketio_class):
+        # prepare mocks
+        sio = mock_socketio_class.return_value
+        # perform test
+        client = HappysocksClient("https://prod-rc.blazemeter.com/hs", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", True, True, use_clickhouse=True)
+        client.send_engine_metrics([
+            {
+                'metadata': {
+                    'source': 'local',
+                    'entityId': 'r-v4-64102f1ab8795890049369',
+                    'masterId': 100,
+                    'calibrationId': 200,
+                    'calibrationStepId': 300,
+                },
+                'timestamp': 1678892271398,
+                'values': {
+                    'cpu': 9.4,
+                    'mem': 5560.0,
+                }
+            }
+        ], HappysocksEngineNamespace.METRICS_EVENT)
+        # verify
+        sio.emit.assert_called_once()
+        args = sio.emit.call_args
+        self.assertEqual(args[0][0], "metrics")
+        self.assertEqual(args[0][1], [{'metadata': {'source': 'local', 'entityId': 'r-v4-64102f1ab8795890049369',
+                                                    'masterId': 100, 'calibrationId': 200, 'calibrationStepId': 300},
+                                       'timestamp': 1678892271398, 'values': {'cpu': 9.4, 'mem': 5560.0}}])
+        self.assertEqual(args[0][2], "/v1/engine-ch")
+        self.assertTrue(args[1]["callback"] is not None)
+
+    @patch('bzt.utils.socketio.Client')
+    def test_construct_passes_request_timeout(self, mock_socketio_class):
+        HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                         "ci12NC02NDEwMmYxYWI", request_timeout=42)
+        args = mock_socketio_class.call_args
+        self.assertEqual(args[1]["request_timeout"], 42)
+
+    @patch('bzt.utils.socketio.Client')
+    def test_connect_passes_wait_timeout(self, mock_socketio_class):
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI", connect_timeout=15)
+        client.connect()
+        args = mock_socketio_class.return_value.connect.call_args
+        self.assertEqual(args[1]["wait_timeout"], 15)
+
+    @patch('bzt.utils.socketio.Client')
+    def test_send_engine_metrics_raises_taurus_network_error(self, mock_socketio_class):
+        mock_socketio_class.return_value.emit.side_effect = Exception("socket died")
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI")
+        try:
+            client.send_engine_metrics([{"data": 1}], HappysocksEngineNamespace.METRICS_EVENT)
+            self.fail("Expected TaurusNetworkError")
+        except TaurusNetworkError:
+            pass
+
+    @patch('bzt.utils.socketio.Client')
+    def test_connected_reflects_sio_state(self, mock_socketio_class):
+        sio = mock_socketio_class.return_value
+        client = HappysocksClient("https://happysocks-5100-tester-dev.blazemeter.net", "r-v4-64102f1ab8795890049369",
+                                  "ci12NC02NDEwMmYxYWI")
+        sio.connected = False
+        self.assertFalse(client.connected())
+        sio.connected = True
+        self.assertTrue(client.connected())
+
+
+class TestHappysocksEngineNamespace(BZTestCase):
+    def test_namespace_default(self):
+        ns = HappysocksEngineNamespace()
+        self.assertEqual(ns.namespace, HappysocksEngineNamespace.NAMESPACE)
+
+    def test_namespace_clickhouse(self):
+        ns = HappysocksEngineNamespace(use_clickhouse=True)
+        self.assertEqual(ns.namespace, HappysocksEngineNamespace.NAMESPACE_CH)
+
+    def test_namespace_legacy(self):
+        ns = HappysocksEngineNamespace(use_clickhouse=False)
+        self.assertEqual(ns.namespace, HappysocksEngineNamespace.NAMESPACE)
+
 
 class TestHappysocksClientMockServer(BZTestCase):
     NAMESPACE = "/v1/engine"
@@ -293,6 +397,11 @@ class TestHappysocksClientMockServer(BZTestCase):
         except TaurusNetworkError:
             pass
 
+    def test_connected_before_and_after_connect(self):
+        self.assertFalse(self.client.connected())
+        self.client.connect()
+        self.assertTrue(self.client.connected())
+
     def test_get_load_from_config(self):
         engine = EngineEmul()
         obj = BZAObject()
@@ -305,3 +414,51 @@ class TestHappysocksClientMockServer(BZTestCase):
         concurrency, duration = obj._get_load_from_config(engine.config)
         self.assertEqual(10, concurrency)
         self.assertEqual(12, duration)
+
+class TestUploadFilesCount(unittest.TestCase):
+    @patch('bzt.bza.MultiPartForm')
+    def test_uploads_all_files(self, MockMultiPartForm):
+        mock_form = MagicMock()
+        MockMultiPartForm.return_value = mock_form
+        mock_form.get_content_type.return_value = 'multipart/form-data'
+        mock_form.form_as_bytes.return_value = b'data'
+
+        test_obj = Test()
+        test_obj['id'] = '123'
+        test_obj.address = 'http://fake'
+        test_obj.log = MagicMock()
+        test_obj._request = MagicMock()
+
+        taurus_config = 'config'
+        resource_files = [f'file_{i}' for i in range(60)]
+        test_obj.upload_files(taurus_config, resource_files)
+
+        self.assertEqual(mock_form.add_file.call_count, 60)
+        expected_calls = [((f'files[{i}]', f'file_{i}'),) for i in range(50)]
+        expected_calls += [((f'files[{i}]', f'file_{i+50}'),) for i in range(10)]
+        mock_form.add_file.assert_has_calls(expected_calls, any_order=False)
+        self.assertEqual(test_obj._request.call_count, 2)
+
+    @patch('bzt.bza.MultiPartForm')
+    def test_upload_files_logs_error_and_returns_failed_files(self, MockMultiPartForm):
+        mock_form = MagicMock()
+        MockMultiPartForm.return_value = mock_form
+        mock_form.get_content_type.return_value = 'multipart/form-data'
+        mock_form.form_as_bytes.return_value = b'data'
+
+        test_obj = Test()
+        test_obj['id'] = '123'
+        test_obj.address = 'http://fake'
+        test_obj.log = MagicMock()
+        # Always raise exception for every chunk
+        test_obj._request = MagicMock(side_effect=Exception("Upload error"))
+
+        taurus_config = 'config'
+        resource_files = [f'file_{i}' for i in range(60)]
+        error_msg = test_obj.upload_files(taurus_config, resource_files)
+
+        # Check that error was logged for chunk 0 and chunk 50
+        test_obj.log.error.assert_any_call("Error uploading chunk 0: Upload error")
+        test_obj.log.error.assert_any_call("Error uploading chunk 50: Upload error")
+        self.assertIn("Failed to upload files:", error_msg)
+        self.assertTrue(all(f'file_{i}' in error_msg for i in range(60)))

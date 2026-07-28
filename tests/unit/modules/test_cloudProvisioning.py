@@ -814,8 +814,6 @@ class TestCloudProvisioning(BZTestCase):
                 'file-in-home-16.java',  # 17 (script)
                 'bd_scenarios.js',  # 18 (script)
                 'file-in-home-17.js',  # 19 (sript)
-                'example_spec.rb',  # 20 (script)
-                'file-in-home-18.rb',  # 21 (sript)
                 'file-in-home-19.jar',  # global testng settings (additional-classpath)
                 'variable_file_upload.jmx',
             }

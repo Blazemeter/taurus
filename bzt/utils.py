@@ -711,6 +711,29 @@ class FileReader(object):
                 self.offset += len(line)
                 yield self._decode(line, last_pass)
 
+    def get_lines_with_decoder(self, binary_decoder, last_pass=False):
+        if self.is_ready():
+            if last_pass:
+                buffer = -1
+            else:
+                buffer = 1000
+            self.fds.seek(self.offset)
+            counter = 0
+            # read a object from binary file -> convert to line like it was previous text file
+            # also the size (number of bytes) needs to be part of the object, so the offset can be updated!!!
+            try:
+                for line_data, dsize in binary_decoder.read_log_object(self.fds, buffer):
+                    self.offset += dsize  # update offset with size of the object
+                    self.log.debug("Read %s bytes from binary log file, data: %s, offset: %s", dsize, line_data, self.offset)
+                    counter += 1
+                    yield line_data
+            except Exception as exc:
+                # During testing, it was observed that log file didn't contain a full object
+                # so the decoder failed, but it should not break the whole process.
+                # Wait for the next pass, when the object is complete
+                self.log.debug("Exception in binary log reader: %s", exc)
+                return # return to the caller; interrupting generator, will wait for the next batch
+
     def get_line(self):
         line = ""
         if self.is_ready():
@@ -738,6 +761,60 @@ class FileReader(object):
     def close(self):
         if self.fds:
             self.fds.close()
+
+
+class LinuxFileReader(object):
+
+    def __init__(self, filename, parent_logger=None):
+        self.filename = filename
+        self.parent_logger = parent_logger
+        self.offset = 0
+
+    def is_ready(self):
+        exists_and_readable = os.access(self.filename, os.R_OK)
+        self.parent_logger.info("File checked %s: readable=%s", self.filename, exists_and_readable)
+        return exists_and_readable
+
+    def get_lines(self, size=-1, last_pass=False):
+        if not self.is_ready():
+            return
+
+        if last_pass:
+            # Read from current offset to end of file
+            cmd = ['tail', '-c', f'+{self.offset + 1}', self.filename]
+        else:
+            # Read specific chunk size from offset
+            if size == -1:
+                # Read from offset to end
+                cmd = ['tail', '-c', f'+{self.offset + 1}', self.filename]
+            else:
+                # Read chunk using dd command
+                skip_bytes = self.offset
+                cmd = ['dd', f'if={self.filename}', 'bs=1', f'skip={skip_bytes}', f'count={size}', 'status=none']
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            content = result.stdout
+
+            if not content:
+                return
+
+            # Split into lines and yield each one
+            lines = content.splitlines(keepends=True)
+
+            for line in lines:
+                line_bytes = len(line.encode('utf-8'))
+                self.offset += line_bytes
+                yield self._decode(line, last_pass)
+
+        except subprocess.CalledProcessError as e:
+            if self.parent_logger:
+                self.parent_logger.error(f"Error reading file with command {' '.join(cmd)}: {e}")
+            return
+
+    def _decode(self, line, last_pass=False):
+        # Simple decode - just return the line as is since we're already handling text
+        return line
 
 
 def ensure_is_dict(container, key, sub_key):
@@ -1159,11 +1236,12 @@ class HappysocksEngineNamespace(socketio.ClientNamespace):
     Listens to socket.io events for engine namespace.
     """
     NAMESPACE = "/v1/engine"
+    NAMESPACE_CH = "/v1/engine-ch"
     METRICS_EVENT = 'metrics'
     CONCURRENCY_EVENT = 'concurrency'
 
-    def __init__(self):
-        super().__init__(HappysocksEngineNamespace.NAMESPACE)
+    def __init__(self, use_clickhouse=False):
+        super().__init__(HappysocksEngineNamespace.NAMESPACE_CH if use_clickhouse else HappysocksEngineNamespace.NAMESPACE)
         self._log = logging.getLogger(self.__class__.__name__)
 
     def on_connect(self):
@@ -1350,7 +1428,7 @@ class HappysocksClient(HTTPClient):
     HEADER_BZM_SESSION = "x-bzm-session"
 
     def __init__(self, happysocks_address: str, session_id: str, session_token: str, verbose_logging=False,
-                 verify_ssl=True, request_timeout=10, connect_timeout=7) -> None:
+                 verify_ssl=True, request_timeout=10, connect_timeout=7, use_clickhouse=False) -> None:
         super().__init__()
         self.session.verify = verify_ssl
         self._log = logging.getLogger(self.__class__.__name__)
@@ -1364,7 +1442,7 @@ class HappysocksClient(HTTPClient):
         socketio_logger = logging.getLogger("SocketIO") if verbose_logging else False
         self._sio = socketio.Client(http_session=self.session, logger=socketio_logger, engineio_logger=socketio_logger,
                                     request_timeout=request_timeout)
-        self._engine_namespace = HappysocksEngineNamespace()
+        self._engine_namespace = HappysocksEngineNamespace(use_clickhouse)
         self._sio.register_namespace(self._engine_namespace)
 
     def connect(self):
@@ -1376,7 +1454,7 @@ class HappysocksClient(HTTPClient):
         self._log.info(f"Connecting to happysocks server {full_address}")
         start_time = time.time()
         try:
-            self._sio.connect(self._happysocks_address, namespaces=[HappysocksEngineNamespace.NAMESPACE],
+            self._sio.connect(self._happysocks_address, namespaces=[self._engine_namespace.namespace],
                               transports=['websocket'], socketio_path=self._socketio_path, headers=headers,
                               wait_timeout=self._connect_timeout)
             end_time = time.time()
@@ -1405,7 +1483,7 @@ class HappysocksClient(HTTPClient):
     def send_engine_metrics(self, metrics_batch: List[dict], event: str):
         self._log.debug(f"Sending {len(metrics_batch)} metric items to happysocks on {event} event")
         try:
-            self._sio.emit(event, metrics_batch, HappysocksEngineNamespace.NAMESPACE,
+            self._sio.emit(event, metrics_batch, self._engine_namespace.namespace,
                            callback=self._engine_namespace.metrics_callback)
         except BaseException as e:
             raise TaurusNetworkError(f"Failed to send the following items {len(metrics_batch)} on {event} event") from e
@@ -1903,6 +1981,24 @@ class LDJSONReader(object):
         self.file = FileReader(filename=filename,
                                file_opener=lambda f: open(f, 'rb'),
                                parent_logger=self.log)
+        self.partial_buffer = ""
+
+    def read(self, last_pass=False):
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
+
+        for line in lines:
+            if not last_pass and not line.endswith("\n"):
+                self.partial_buffer += line
+                continue
+            line = "%s%s" % (self.partial_buffer, line)
+            self.partial_buffer = ""
+            yield json.loads(line)
+
+
+class LinuxLDJSONReader(object):
+    def __init__(self, filename, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.file = LinuxFileReader(filename=filename, parent_logger=self.log)
         self.partial_buffer = ""
 
     def read(self, last_pass=False):

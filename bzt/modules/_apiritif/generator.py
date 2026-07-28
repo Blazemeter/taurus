@@ -62,6 +62,24 @@ def create_method_name(label):
 
 
 class ApiritifScriptGenerator(object):
+    def _gen_class_actionid_tracking(self):
+        # Add _current_actionId to the class and update it on each action_start
+        return [
+            ast.Assign(
+                targets=[ast_attr("self._current_actionId")],
+                value=ast.Constant(value=None, kind="")
+            )
+        ]
+
+    def _gen_action_start_with_tracking(self, actionId):
+        # Assign actionId (or None) to self._current_actionId before each action
+        return [
+            ast.Assign(
+                targets=[ast_attr("self._current_actionId")],
+                value=ast.Constant(value=actionId, kind="")
+            )
+        ]
+
     BYS = {
         'xpath': "XPATH",
         'css': "CSS_SELECTOR",
@@ -163,6 +181,8 @@ from selenium.webdriver.common.keys import Keys
         self.replace_dialogs = True
         self.bzm_tdo_settings = bzm_tdo_settings
         self.do_testdata_orchestration = False
+        self.has_action_ids = False
+        self._needs_remote_patch = False
 
     def _parse_action_params(self, expr, name):
         res = expr.match(name)
@@ -234,10 +254,20 @@ from selenium.webdriver.common.keys import Keys
         elif atype in ['answerdialog', 'assertdialog']:
             param, value = value, param
 
-        return atype, tag, param, value, selectors
+        # Legacy string-format actions don't have actionId,
+        # return None to match _parse_dict_action signature
+        return atype, tag, param, value, selectors, None
 
     def _parse_dict_action(self, action_config):
         name = action_config["type"]
+        # actionId is an optional unique identifier for this action, used to track or reference
+        # the action in the generated code and logs. It is passed through multiple layers of the
+        # code generation process to maintain traceability of actions.
+        if "actionId" in action_config and action_config.get("actionId") not in (None, "", {}):
+            actionId = action_config.get("actionId")
+            self.has_action_ids = True
+        else:
+            actionId = None
         selectors = []
         if action_config.get("locators"):
             selectors = action_config.get("locators")
@@ -260,7 +290,7 @@ from selenium.webdriver.common.keys import Keys
         expr = re.compile("^(%s)(%s)?$" % (all_actions, tags), re.IGNORECASE)
         action_params = self._parse_action_params(expr, name)
 
-        return action_params[0], action_params[1], param, value, selectors
+        return action_params[0], action_params[1], param, value, selectors, actionId
 
     @staticmethod
     def _gen_selector_byelement(config):
@@ -323,7 +353,7 @@ from selenium.webdriver.common.keys import Keys
         for loc in locators:
             locator_type = list(loc.keys())[0]
             locator_value = loc[locator_type]
-            args.append(ast.Dict([ast.Str(locator_type, kind="")], [self._gen_expr(locator_value)]))
+            args.append(ast.Dict([ast.Constant(locator_type, kind="")], [self._gen_expr(locator_value)]))
         return args
 
     def _gen_loc_method_call(self, method, var_name, locators, parent_el=None):
@@ -412,7 +442,7 @@ from selenium.webdriver.common.keys import Keys
 
             elements.append(ast_call(
                 func=ast_attr(method),
-                args=[ast.Str(selector, kind="")]))
+                args=[ast.Constant(selector, kind="")]))
         else:
             if not tag:
                 if "=" in selector:
@@ -436,7 +466,7 @@ from selenium.webdriver.common.keys import Keys
             operator = ast_attr(fields=(
                 ast_call(func="ActionChains", args=[ast_attr("self.driver")]),
                 self.ACTION_CHAINS[atype.lower()]))
-            args = [locator, ast.Num(-10, kind=""), ast.Num(-10, kind="")] if atype == "mouseout" else [locator]
+            args = [locator, ast.Constant(-10, kind=""), ast.Constant(-10, kind="")] if atype == "mouseout" else [locator]
             elements.append(ast_call(
                 func=ast_attr(
                     fields=(
@@ -492,7 +522,7 @@ from selenium.webdriver.common.keys import Keys
             escaped_value = self._escape_js_blocks(name)
             elements.append(ast_call(
                 func=ast_attr("self.assertTrue"),
-                args=[self._gen_eval_js_expression(escaped_value), ast.Str(name, kind="")]))
+                args=[self._gen_eval_js_expression(escaped_value), ast.Constant(name, kind="")]))
         elif atype == 'store' and tag == 'eval':
             escaped_value = self._escape_js_blocks(value)
             elements.append(
@@ -515,7 +545,7 @@ from selenium.webdriver.common.keys import Keys
                         fields=(
                             self._gen_dynamic_locator("var_loc_as", selectors),
                             "get_attribute")),
-                    args=[ast.Str(target, kind="")])
+                    args=[ast.Constant(target, kind="")])
 
                 if atype.startswith("assert"):
                     elements.append(ast_call(
@@ -583,11 +613,11 @@ from selenium.webdriver.common.keys import Keys
         if self._is_foreach_element(locators):
             el = locators[0].get("byelement")
             exc_msg = "The element '%s' (tag name: '%s', text: '%s') is not a contenteditable element"
-            exc_args = [ast.Str(el, kind=""), ast_attr(el + ".tag_name"), ast_attr(el + ".text")]
+            exc_args = [ast.Constant(el, kind=""), ast_attr(el + ".tag_name"), ast_attr(el + ".text")]
         elif self._is_shadow_locator(locators):
             el = locators[0].get("shadow")
             exc_msg = "The element (shadow: '%s') is not a contenteditable element"
-            exc_args = [ast.Str(el, kind="")]
+            exc_args = [ast.Constant(el, kind="")]
         else:
             exc_msg = "The element (%s: %r) is not a contenteditable element"
             exc_args = [tag, selector]
@@ -596,7 +626,7 @@ from selenium.webdriver.common.keys import Keys
             func="NoSuchElementException",
             args=[
                 ast.BinOp(
-                    left=ast.Str(exc_msg, kind=""),
+                    left=ast.Constant(exc_msg, kind=""),
                     op=ast.Mod(),
                     right=ast.Tuple(elts=exc_args))
             ]
@@ -609,7 +639,7 @@ from selenium.webdriver.common.keys import Keys
         body = ast.Expr(ast_call(func=ast_attr("self.driver.execute_script"),
                                  args=[
                                      ast.BinOp(
-                                         left=ast.Str("arguments[0].innerHTML = '%s';", kind=""),
+                                         left=ast.Constant("arguments[0].innerHTML = '%s';", kind=""),
                                          op=ast.Mod(),
                                          right=self._gen_expr(param.strip())),
                                      locator]))
@@ -618,7 +648,7 @@ from selenium.webdriver.common.keys import Keys
             test=ast_call(
                 func=ast_attr(
                     fields=(locator, "get_attribute")),
-                args=[ast.Str("contenteditable", kind="")]),
+                args=[ast.Constant("contenteditable", kind="")]),
             body=[body],
             orelse=[ast.Raise(**raise_kwargs)])
 
@@ -639,14 +669,14 @@ from selenium.webdriver.common.keys import Keys
                     args=[
                         ast_call(
                             func=ast_attr("os.getenv"),
-                            args=[ast.Str('TAURUS_ARTIFACTS_DIR', kind="")]),
+                            args=[ast.Constant('TAURUS_ARTIFACTS_DIR', kind="")]),
                         ast.BinOp(
-                            left=ast.Str('screenshot-%d.png', kind=""),
+                            left=ast.Constant('screenshot-%d.png', kind=""),
                             op=ast.Mod(),
                             right=ast.BinOp(
                                 left=ast_call(func="time"),
                                 op=ast.Mult(),
-                                right=ast.Num(1000, kind="")))])))
+                                right=ast.Constant(1000, kind="")))])))
             elements.append(ast_call(
                 func=ast_attr("self.driver.save_screenshot"),
                 args=[ast.Name(id="filename")]))
@@ -668,7 +698,7 @@ from selenium.webdriver.common.keys import Keys
     def _gen_sleep_mngr(self, param):
         elements = [ast_call(
             func="sleep",
-            args=[ast.Num(dehumanize_time(param), kind="")])]
+            args=[ast.Constant(dehumanize_time(param), kind="")])]
 
         return elements
 
@@ -684,15 +714,25 @@ from selenium.webdriver.common.keys import Keys
     def _gen_action(self, action_config, parent_request=None, index_label=""):
         action = self._parse_action(action_config)
         if action:
-            atype, tag, param, value, selectors = action
+            atype, tag, param, value, selectors, actionId = action
         else:
-            atype = tag = param = value = selectors = None
+            atype = tag = param = value = selectors = actionId = None
 
         wrapInTransaction = self._is_report_inside_actions(parent_request)
+
+        action_tracking = []
+        if self.has_action_ids:
+            action_tracking.extend(self._gen_action_start_with_tracking(actionId))
 
         action_elements = []
 
         if atype in self.EXTERNAL_HANDLER_TAGS:
+            # Add actionId to the param dict so it is passed through to the generated action_start/action_end
+            # function calls. Exclude actions of type 'new_session' because they do not have actionId in their
+            # source definition.
+            if actionId and isinstance(param, dict) and 'type' in param and param.get('type') != 'new_session':
+                param['actionId'] = actionId
+
             action_elements.append(ast_call(
                 func=ast_attr(atype),
                 args=[self._gen_expr(self._gen_expr(param))]
@@ -769,17 +809,21 @@ from selenium.webdriver.common.keys import Keys
         if atype.lower() in self.ACTIONS_WITH_WAITER:
             action_elements.append(ast_call(func=ast_attr("waiter"), args=[]))
 
+        action_body = [ast.Expr(element) for element in action_elements]
+
         if wrapInTransaction:
             label = self._create_action_label(parent_request.label, index_label, action)
 
+            body = action_tracking + action_body
             return [ast.With(
-                context_expr=ast_call(
-                    func=ast_attr("apiritif.transaction"),
-                    args=[self._gen_expr(label)]),
-                optional_vars=None,
-                body=[ast.Expr(element) for element in action_elements])]
+                items=[ast.withitem(
+                    context_expr=ast_call(
+                        func=ast_attr("apiritif.transaction"),
+                        args=[self._gen_expr(label)]),
+                    optional_vars=None)],
+                body=body)]
 
-        return [ast.Expr(element) for element in action_elements]
+        return action_tracking + action_body
 
     def _gen_foreach_mngr(self, action_config):
         self.selenium_extras.add("get_elements")
@@ -820,9 +864,9 @@ from selenium.webdriver.common.keys import Keys
                                     (atype, param, ", ".join(supported_conds)))
 
         return [ast_call(func="wait_for",
-                         args=[ast.Str(param, kind=""),
+                         args=[ast.Constant(param, kind=""),
                                ast.List(elts=self._gen_ast_locators_dict(selectors)),
-                               ast.Num(timeout, kind="")])]
+                               ast.Constant(timeout, kind="")])]
 
     def _gen_answer_dialog(self, type, value):
         if type not in ['alert', 'prompt', 'confirm']:
@@ -833,7 +877,7 @@ from selenium.webdriver.common.keys import Keys
             raise TaurusConfigError("answerDialog of type alert must have value '#Ok'")
         dlg_method = "dialogs_answer_on_next_%s" % type
         self.selenium_extras.add(dlg_method)
-        return [ast_call(func=ast_attr(dlg_method), args=[ast.Str(value, kind="")])]
+        return [ast_call(func=ast_attr(dlg_method), args=[ast.Constant(value, kind="")])]
 
     def _gen_assert_dialog(self, type, value):
         if type not in ['alert', 'prompt', 'confirm']:
@@ -846,10 +890,10 @@ from selenium.webdriver.common.keys import Keys
                                        func=ast_attr(dlg_method))))
         elements.append(ast_call(
             func=ast_attr("self.assertIsNotNone"),
-            args=[ast.Name(id='dialog'), ast.Str("No dialog of type %s appeared" % type, kind="")]))
+            args=[ast.Name(id='dialog'), ast.Constant("No dialog of type %s appeared" % type, kind="")]))
         elements.append(ast_call(
             func=ast_attr("self.assertEqual"),
-            args=[ast.Name(id='dialog'), ast.Str(value, kind=""), ast.Str("Dialog message didn't match", kind="")]))
+            args=[ast.Name(id='dialog'), ast.Constant(value, kind=""), ast.Constant("Dialog message didn't match", kind="")]))
 
         return elements
 
@@ -903,10 +947,11 @@ from selenium.webdriver.common.keys import Keys
                 action_lines = self._gen_action(action)
 
                 transaction = ast.With(
-                    context_expr=ast_call(
-                        func=ast_attr("apiritif.transaction"),
-                        args=[self._gen_expr(label)]),
-                    optional_vars=None,
+                    items=[ast.withitem(
+                        context_expr=ast_call(
+                            func=ast_attr("apiritif.transaction"),
+                            args=[self._gen_expr(label)]),
+                        optional_vars=None)],
                     body=[action_lines])
 
                 body.append([transaction])
@@ -947,20 +992,20 @@ from selenium.webdriver.common.keys import Keys
         for ds in self.data_sources:
             var_names = []
             if ds["variable-names"]:
-                var_names = [ast.Str(v.strip(), kind="") for v in ds["variable-names"].split(",")]
+                var_names = [ast.Constant(v.strip(), kind="") for v in ds["variable-names"].split(",")]
             variable_names = ast.List(elts=var_names)
             keys = [
-                ast.Str("path", kind=""),
-                ast.Str("variable-names", kind=""),
-                ast.Str("quoted", kind=""),
-                ast.Str("delimiter", kind=""),
-                ast.Str("encoding", kind="")]
+                ast.Constant("path", kind=""),
+                ast.Constant("variable-names", kind=""),
+                ast.Constant("quoted", kind=""),
+                ast.Constant("delimiter", kind=""),
+                ast.Constant("encoding", kind="")]
             values = [
-                ast.Str(ds["path"], kind=""),
+                ast.Constant(ds["path"], kind=""),
                 variable_names,
-                ast.Str(ds["quoted"], kind=""),
-                ast.Str(ds["delimiter"], kind=""),
-                ast.Str(ds["encoding"], kind="")]
+                ast.Constant(ds["quoted"], kind=""),
+                ast.Constant(ds["delimiter"], kind=""),
+                ast.Constant(ds["encoding"], kind="")]
             data_sources.append(ast.Dict(keys, values))
 
         entity = action_config.get("loopOverData").replace(".", "_").replace("/", "_").replace("\\", "_")\
@@ -971,7 +1016,7 @@ from selenium.webdriver.common.keys import Keys
         elements = [ast.Assign(targets=[ast.Name(id=csv_reader, ctx=ast.Store())],
                                value=ast_call(func=ast_attr("get_csv_reader_for_entity_loop"),
                                               args=[ast.List(elts=data_sources),
-                                                    ast.Str(action_config.get("loopOverData"), kind="")]))]
+                                                    ast.Constant(action_config.get("loopOverData"), kind="")]))]
 
         # if from or to is specified we need to define the loop counter
         counter = ""
@@ -1111,6 +1156,7 @@ from selenium.webdriver.common.keys import Keys
                 body.extend(self._get_service(browser))
 
         if browser == 'firefox':
+            self._needs_remote_patch = True
             if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
                 body.extend(self._get_firefox_profile_v410() + [self._get_firefox_webdriver_4_10()])
             elif LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
@@ -1119,15 +1165,18 @@ from selenium.webdriver.common.keys import Keys
                 body.extend(self._get_firefox_profile() + [self._get_firefox_webdriver()])
 
         elif browser == 'chrome':
+            self._needs_remote_patch = True
             if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
                 body.extend(self._get_chrome_profile_v414() + [self._get_chrome_webdriver()])
             else:
                 body.extend(self._get_chrome_profile() + [self._get_chrome_webdriver()])
 
         elif browser == 'edge':
+            self._needs_remote_patch = True
             body.extend([self._get_edge_webdriver()])
 
         elif browser == 'remote':
+            self._needs_remote_patch = True
             if self.selenium_version.startswith("4"):
                 if LooseVersion(self.selenium_version) > self.SELENIUM_413_VERSION:
                     remote_profile = self._get_remote_profile_v414() + [self._get_remote_webdriver()]
@@ -1243,7 +1292,7 @@ from selenium.webdriver.common.keys import Keys
                     keywords=[
                         ast.keyword(
                             arg="service_args",
-                            value=ast.List(elts=[ast.Str(f"--log-path={self.wdlog}", kind="")]))]))]
+                            value=ast.List(elts=[ast.Constant(f"--log-path={self.wdlog}", kind="")]))]))]
 
     def _get_firefox_options(self):
         firefox_options = [
@@ -1263,21 +1312,21 @@ from selenium.webdriver.common.keys import Keys
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
-                    args=[ast.Str("--no-sandbox", kind="")])),
+                    args=[ast.Constant("--no-sandbox", kind="")])),
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
-                    args=[ast.Str("--disable-dev-shm-usage", kind="")])),
+                    args=[ast.Constant("--disable-dev-shm-usage", kind="")])),
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
-                    args=[ast.Str("--disable-gpu", kind="")])),
+                    args=[ast.Constant("--disable-gpu", kind="")])),
 
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.set_capability"),
-                    args=[ast.Str("unhandledPromptBehavior", kind=""),
-                          ast.Str("ignore", kind="")]))]
+                    args=[ast.Constant("unhandledPromptBehavior", kind=""),
+                          ast.Constant("ignore", kind="")]))]
 
         return chrome_options + self._get_headless_setup()
 
@@ -1303,7 +1352,7 @@ from selenium.webdriver.common.keys import Keys
                 ast.Expr(
                     ast_call(
                         func=ast_attr("options.set_capability"),
-                        args=[ast.Str(capability, kind=""), ast.Str(self.capabilities[capability], kind="")]))
+                        args=[ast.Constant(capability, kind=""), ast.Constant(self.capabilities[capability], kind="")]))
 
             ])
 
@@ -1313,11 +1362,11 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
             ast.Expr(ast_call(
                 func=ast_attr("profile.set_preference"),
-                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
+                args=[ast.Constant("webdriver.log.file", kind=""), ast.Constant(self.wdlog, kind="")])),
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.set_capability"),
-                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
+                    args=[ast.Constant("unhandledPromptBehavior", kind=""), ast.Constant("ignore", kind="")]))] + cap_expr
 
     def _get_firefox_profile_v414(self):
         cap_expr = self._get_capabilities_v414()
@@ -1327,11 +1376,11 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
             ast.Expr(ast_call(
                 func=ast_attr("profile.set_preference"),
-                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
+                args=[ast.Constant("webdriver.log.file", kind=""), ast.Constant(self.wdlog, kind="")])),
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.set_capability"),
-                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
+                    args=[ast.Constant("unhandledPromptBehavior", kind=""), ast.Constant("ignore", kind="")]))] + cap_expr
 
     def _get_firefox_profile_v410(self):
         cap_expr = self._get_capabilities_v414()
@@ -1341,14 +1390,14 @@ from selenium.webdriver.common.keys import Keys
                 value=ast_call(func=ast_attr("webdriver.FirefoxProfile"))),
             ast.Expr(ast_call(
                 func=ast_attr("profile.set_preference"),
-                args=[ast.Str("webdriver.log.file", kind=""), ast.Str(self.wdlog, kind="")])),
+                args=[ast.Constant("webdriver.log.file", kind=""), ast.Constant(self.wdlog, kind="")])),
             ast.Assign(
                 targets=[ast.Name(id="options.profile")],
                 value=ast_attr("profile")),
             ast.Expr(
                 ast_call(
                     func=ast_attr("options.set_capability"),
-                    args=[ast.Str("unhandledPromptBehavior", kind=""), ast.Str("ignore", kind="")]))] + cap_expr
+                    args=[ast.Constant("unhandledPromptBehavior", kind=""), ast.Constant("ignore", kind="")]))] + cap_expr
 
     def _get_chrome_profile(self):
         capabilities = sorted(self.capabilities.keys())
@@ -1358,7 +1407,7 @@ from selenium.webdriver.common.keys import Keys
                 ast.Expr(
                     ast_call(
                         func=ast_attr("options.set_capability"),
-                        args=[ast.Str(capability, kind=""), ast.Str(self.capabilities[capability], kind="")]))
+                        args=[ast.Constant(capability, kind=""), ast.Constant(self.capabilities[capability], kind="")]))
 
             ])
 
@@ -1377,7 +1426,7 @@ from selenium.webdriver.common.keys import Keys
                 ast.Expr(
                     ast_call(
                         func=ast_attr("options.set_capability"),
-                        args=[ast.Str(capability, kind=""), ast.Str(self.capabilities[capability], kind="")]))
+                        args=[ast.Constant(capability, kind=""), ast.Constant(self.capabilities[capability], kind="")]))
 
             ])
 
@@ -1410,7 +1459,7 @@ from selenium.webdriver.common.keys import Keys
 
     def _get_chrome_webdriver(self):
 
-        log_keyword = ast.keyword(arg="service_log_path", value=ast.Str(self.wdlog, kind=""))
+        log_keyword = ast.keyword(arg="service_log_path", value=ast.Constant(self.wdlog, kind=""))
         if LooseVersion(self.selenium_version) > self.SELENIUM_491_VERSION:
             log_keyword = ast.keyword(arg="service", value=ast.Name(id="service"))
 
@@ -1439,7 +1488,7 @@ from selenium.webdriver.common.keys import Keys
                     keywords=[
                         ast.keyword(
                             arg="command_executor",
-                            value=ast.Str(self.remote_address, kind="")),
+                            value=ast.Constant(self.remote_address, kind="")),
                         ast.keyword(
                             arg="options",
                             value=ast.Name(id="options"))]))
@@ -1456,12 +1505,12 @@ from selenium.webdriver.common.keys import Keys
                     keywords=[
                         ast.keyword(
                             arg="command_executor",
-                            value=ast.Str(self.remote_address, kind="")),
+                            value=ast.Constant(self.remote_address, kind="")),
                         ast.keyword(
                             arg="desired_capabilities",
                             value=ast.Dict(
-                                keys=[ast.Str(key, kind="") for key in keys],
-                                values=[ast.Str(value, kind="") for value in values])),
+                                keys=[ast.Constant(key, kind="") for key in keys],
+                                values=[ast.Constant(value, kind="") for value in values])),
                         ast.keyword(
                             arg="options",
                             value=ast.Name(id="options"))]))
@@ -1508,7 +1557,7 @@ from selenium.webdriver.common.keys import Keys
             args.extend([ast.Expr(
                 ast_call(
                     func=ast_attr("options.add_argument"),
-                    args=[ast.Str(arg, kind="")]))])
+                    args=[ast.Constant(arg, kind="")]))])
 
         return args
 
@@ -1524,8 +1573,8 @@ from selenium.webdriver.common.keys import Keys
             exp_opts.append(ast.Expr(ast_call(
                 func=ast_attr("options.add_experimental_option"),
                 args=[
-                    [ast.Str(key, kind="")],
-                    [ast.Str(value, kind="")]])))
+                    [ast.Constant(key, kind="")],
+                    [ast.Constant(value, kind="")]])))
         return exp_opts
 
     def _get_preferences(self, browser):
@@ -1540,8 +1589,8 @@ from selenium.webdriver.common.keys import Keys
             prefers.append(ast.Expr(ast_call(
                 func=ast_attr("options.set_preference"),
                 args=[
-                    [ast.Str(key, kind="")],
-                    [ast.Str(value, kind="")]])))
+                    [ast.Constant(key, kind="")],
+                    [ast.Constant(value, kind="")]])))
 
         return prefers
 
@@ -1550,7 +1599,7 @@ from selenium.webdriver.common.keys import Keys
         return ast.Expr(
             ast_call(
                 func=ast_attr("self.driver.implicitly_wait"),
-                args=[ast.Num(dehumanize_time(timeout), kind="")]))
+                args=[ast.Constant(dehumanize_time(timeout), kind="")]))
 
     def _gen_module(self):
         stmts = []
@@ -1559,7 +1608,13 @@ from selenium.webdriver.common.keys import Keys
             stmts.extend(self._gen_logging())
 
         stmts.extend(self._gen_data_source_readers())
-        stmts.append(self._gen_classdef())
+        classdef = self._gen_classdef()
+
+        if self._needs_remote_patch:
+            stmts.extend(self._gen_remote_patch_ast())
+            stmts.append(gen_empty_line_stmt())
+
+        stmts.append(classdef)
 
         stmts = self._gen_imports() + stmts
 
@@ -1610,6 +1665,15 @@ from selenium.webdriver.common.keys import Keys
                         level=0
                     )
                 )
+            if self._needs_remote_patch:
+                imports.append(
+                    ast.ImportFrom(
+                        module='selenium.webdriver.remote.remote_connection',
+                        names=[ast.alias(name='RemoteConnection', asname=None)],
+                        level=0
+                    )
+                )
+                imports.append(ast.Import(names=[ast.alias(name='copy', asname=None)]))
             self.selenium_extras.add("get_locator")
             self.selenium_extras.add("waiter")
             extra_names = [ast.alias(name=name, asname=None) for name in self.selenium_extras]
@@ -1632,42 +1696,37 @@ from selenium.webdriver.common.keys import Keys
             keywords = []
 
             if "variable-names" in source:
-                fieldnames = ast.keyword()
-                fieldnames.arg = "fieldnames"
                 str_names = source.get("variable-names").split(",")
-                fieldnames.value = ast.List(elts=[ast.Str(s=fname, kind="") for fname in str_names])
-                keywords.append(fieldnames)
+                keywords.append(
+                    ast.keyword(arg="fieldnames",
+                                value=ast.List(elts=[ast.Constant(value=fname, kind="") for fname in str_names])))
 
             if "loop" in source:
-                loop = ast.keyword()
-                loop.arg = "loop"
-                loop.value = ast.Name(id=source.get("loop"))
-                keywords.append(loop)
+                keywords.append(
+                    ast.keyword(arg="loop",
+                                value=ast.Name(id=source.get("loop"))))
 
             if "quoted" in source:
-                quoted = ast.keyword()
-                quoted.arg = "quoted"
-                quoted.value = ast.Name(id=source.get("quoted"))
-                keywords.append(quoted)
+                keywords.append(
+                    ast.keyword(arg="quoted",
+                                value=ast.Name(id=source.get("quoted"))))
 
             if "delimiter" in source:
-                delimiter = ast.keyword()
-                delimiter.arg = "delimiter"
-                delimiter.value = ast.Str(s=source.get("delimiter"), kind="")
-                keywords.append(delimiter)
+                keywords.append(
+                    ast.keyword(arg="delimiter",
+                                value=ast.Constant(value=source.get("delimiter"), kind="")))
 
             if "encoding" in source:
-                encoding = ast.keyword()
-                encoding.arg = "encoding"
-                encoding.value = ast.Str(s=source.get("encoding"), kind="")
-                keywords.append(encoding)
+                keywords.append(
+                    ast.keyword(arg="encoding",
+                                value=ast.Constant(value=source.get("encoding"), kind="")))
 
             csv_file = self.scenario.engine.find_file(source["path"])
             reader = ast.Assign(
                 targets=[ast.Name(id="reader_%s" % idx)],
                 value=ast_call(
                     func=ast_attr("apiritif.CSVReaderPerThread"),
-                    args=[ast.Str(s=csv_file, kind="")],
+                    args=[ast.Constant(value=csv_file, kind="")],
                     keywords=keywords))
 
             readers.append(reader)
@@ -1689,12 +1748,12 @@ from selenium.webdriver.common.keys import Keys
             bases=[ast_attr("unittest.TestCase")],
             body=class_body,
             keywords=[],
-            starargs=None,
-            kwargs=None,
             decorator_list=[])
 
     def _gen_class_setup(self):
         data_sources = [self._gen_default_vars()]
+        if self.has_action_ids:
+            data_sources.extend(self._gen_class_actionid_tracking())
         for idx in range(len(self.data_sources)):
             data_sources.append(ast.Expr(ast_call(func=ast_attr("reader_%s.read_vars" % (idx + 1)))))
 
@@ -1726,7 +1785,7 @@ from selenium.webdriver.common.keys import Keys
                 stored_vars["windows"] = "{}"
 
         has_ds = bool(list(self.scenario.get_data_sources()))
-        stored_vars['scenario_name'] = [ast.Str(self.label, kind="")]
+        stored_vars['scenario_name'] = [ast.Constant(self.label, kind="")]
         if has_ds:
             stored_vars['data_sources'] = str(has_ds)
 
@@ -1748,7 +1807,7 @@ from selenium.webdriver.common.keys import Keys
 
         timeout_setup = [ast.Expr(ast.Assign(
             targets=[ast_attr("timeout")],
-            value=ast.Num(self._get_scenario_timeout(), kind="")))]
+            value=ast.Constant(self._get_scenario_timeout(), kind="")))]
         body = data_sources + timeout_setup + target_init + handlers + store_block
 
         if self.do_testdata_orchestration:
@@ -1775,8 +1834,10 @@ from selenium.webdriver.common.keys import Keys
         body = [
             ast.If(
                 test=ast_attr("self.driver"),
-                body=ast.Expr(ast_call(func=ast_attr("self.driver.quit"))), orelse=[])]
-
+                body=[ast.Expr(ast_call(func=ast_attr("self.driver.quit")))],
+                orelse=[]
+            )
+        ]
         return ast.FunctionDef(name="tearDown", args=[ast_attr("self")], body=body, decorator_list=[])
 
     def _nfc_preprocess(self, requests):
@@ -1847,7 +1908,11 @@ from selenium.webdriver.common.keys import Keys
             if isinstance(request, SetVariables):
                 self.service_methods.append(label)  # for sample excluding
 
-            methods.append(self._gen_test_method(method_name, body))
+            method_body = body
+            if self.has_action_ids and not finally_marker:
+                method_body = self._gen_actionid_exception_wrapped_body(body)
+
+            methods.append(self._gen_test_method(method_name, method_body))
             if finally_marker:
                 finally_block_content.append(method_name)
             else:
@@ -1861,17 +1926,104 @@ from selenium.webdriver.common.keys import Keys
         for name in sorted(request.mapping.keys()):
             res.append(ast.Assign(
                 targets=[self._gen_expr("${%s}" % name)],
-                value=ast.Str(s="%s" % request.mapping[name], kind="")))
+                value=ast.Constant(value="%s" % request.mapping[name], kind="")))
 
         return res
+
+    def _gen_actionid_exception_wrapped_body(self, body):
+        prefixed_error = ast.BinOp(
+            left=ast.BinOp(
+                left=ast.BinOp(
+                    left=ast.Constant("actionId: ", kind=""),
+                    op=ast.Add(),
+                    right=ast.Call(
+                        func=ast.Name(id="str", ctx=ast.Load()),
+                        args=[ast_attr("self._current_actionId")],
+                        keywords=[]
+                    )
+                ),
+                op=ast.Add(),
+                right=ast.Constant(" | ", kind="")
+            ),
+            op=ast.Add(),
+            right=ast.Call(
+                func=ast.Name(id="str", ctx=ast.Load()),
+                args=[ast.Name(id="exc", ctx=ast.Load())],
+                keywords=[]
+            )
+        )
+
+        final_error = ast.IfExp(
+            test=ast.Compare(
+                left=ast_attr("self._current_actionId"),
+                ops=[ast.IsNot()],
+                comparators=[ast.Constant(value=None, kind="")]
+            ),
+            body=prefixed_error,
+            orelse=ast.Call(
+                func=ast.Name(id="str", ctx=ast.Load()),
+                args=[ast.Name(id="exc", ctx=ast.Load())],
+                keywords=[]
+            )
+        )
+
+        if len(body) == 1 and isinstance(body[0], ast.With):
+            with_stmt = body[0]
+            wrapped_try = ast.Try(
+                body=with_stmt.body,
+                handlers=[ast.ExceptHandler(
+                    type=ast.Name(id="Exception", ctx=ast.Load()),
+                    name="exc",
+                    body=[ast.Raise(
+                        exc=ast.Call(
+                            func=ast.Call(
+                                func=ast.Name(id="type", ctx=ast.Load()),
+                                args=[ast.Name(id="exc", ctx=ast.Load())],
+                                keywords=[]
+                            ),
+                            args=[final_error],
+                            keywords=[]
+                        ),
+                        cause=ast.Name(id="exc", ctx=ast.Load())
+                    )]
+                )],
+                orelse=[],
+                finalbody=[]
+            )
+            with_stmt.body = [wrapped_try]
+            return [with_stmt]
+
+        wrapped_try = ast.Try(
+            body=body,
+            handlers=[ast.ExceptHandler(
+                type=ast.Name(id="Exception", ctx=ast.Load()),
+                name="exc",
+                body=[ast.Raise(
+                    exc=ast.Call(
+                        func=ast.Call(
+                            func=ast.Name(id="type", ctx=ast.Load()),
+                            args=[ast.Name(id="exc", ctx=ast.Load())],
+                            keywords=[]
+                        ),
+                        args=[final_error],
+                        keywords=[]
+                    ),
+                    cause=ast.Name(id="exc", ctx=ast.Load())
+                )]
+            )],
+            orelse=[],
+            finalbody=[]
+        )
+
+        return [wrapped_try]
 
     def _gen_master_test_method(self, try_block, finally_block):
         if not try_block:
             raise TaurusConfigError("Supported transactions not found, test is empty")
 
-        body = []
+        main_body = []
         for slave_name in try_block:
-            body.append(ast.Expr(ast_call(func=ast_attr("self." + slave_name))))
+            main_body.append(ast.Expr(ast_call(func=ast_attr("self." + slave_name))))
 
         finally_body = []
         for slave_name in finally_block:
@@ -1880,7 +2032,15 @@ from selenium.webdriver.common.keys import Keys
         if finally_body:
             teardown_marker = ast.Expr(ast_call(func=ast_attr("apiritif.set_stage"), args=[self._gen_expr("teardown")]))
             finally_body.insert(0, teardown_marker)
-            body = [gen_try_except(try_body=body, final_body=finally_body)]
+
+            body = [ast.Try(
+                body=main_body,
+                handlers=[],
+                orelse=[],
+                finalbody=finally_body
+            )]
+        else:
+            body = main_body
 
         name = 'test_' + create_method_name(self.label)
         return self._gen_test_method(name=name, body=body)
@@ -2041,10 +2201,11 @@ from selenium.webdriver.common.keys import Keys
                 body.append(self._gen_http_request(request))
 
         transaction = ast.With(
-            context_expr=ast_call(
-                func=ast_attr(transaction_class),
-                args=[self._gen_expr(trans_conf.label)]),
-            optional_vars=None,
+            items=[ast.withitem(
+                    context_expr=ast_call(
+                        func=ast_attr(transaction_class),
+                        args=[self._gen_expr(trans_conf.label)]),
+                    optional_vars=None)],
             body=body)
 
         return transaction
@@ -2192,10 +2353,11 @@ from selenium.webdriver.common.keys import Keys
         return param
 
     def _gen_action_start(self, action):
-        atype, tag, param, value, selectors = self._parse_action(action)
+        atype, tag, param, value, selectors, actionId = self._parse_action(action)
         return self._gen_action({
             'type': self.EXTERNAL_HANDLER_START,
             'value': None,
+            'actionId': actionId,
             'param': {
                 'type': atype,
                 'tag': tag,
@@ -2206,10 +2368,11 @@ from selenium.webdriver.common.keys import Keys
         })
 
     def _gen_action_end(self, action):
-        atype, tag, param, value, selectors = self._parse_action(action)
+        atype, tag, param, value, selectors, actionId = self._parse_action(action)
         return self._gen_action({
             'type': self.EXTERNAL_HANDLER_END,
             'value': None,
+            'actionId': actionId,
             'param': {
                 'type': atype,
                 'tag': tag,
@@ -2248,19 +2411,19 @@ from selenium.webdriver.common.keys import Keys
                         targets=[ast.Name(id="re_pattern")],
                         value=ast_call(
                             func=ast_attr("re.compile"),
-                            args=[ast.Str(val, kind="")])))
+                            args=[ast.Constant(val, kind="")])))
 
                 assertion_elements.append(ast.Expr(
                     ast_call(
                         func=ast_attr(method),
                         args=[
-                            ast.Num(0, kind=""),
+                            ast.Constant(0, kind=""),
                             ast_call(
                                 func=ast.Name(id="len"),
                                 args=[ast_call(
                                     func=ast_attr("re.findall"),
                                     args=[ast.Name(id="re_pattern"), ast.Name(id="body")])]),
-                            ast.Str("Assertion: %s" % assert_message, kind="")])))
+                            ast.Constant("Assertion: %s" % assert_message, kind="")])))
 
             else:
                 if reverse:
@@ -2272,9 +2435,9 @@ from selenium.webdriver.common.keys import Keys
                         ast_call(
                             func=ast_attr(method),
                             args=[
-                                ast.Str(val, kind=""),
+                                ast.Constant(val, kind=""),
                                 ast.Name(id="body"),
-                                ast.Str("Assertion: %s" % assert_message, kind="")])))
+                                ast.Constant("Assertion: %s" % assert_message, kind="")])))
 
         return assertion_elements
 
@@ -2313,7 +2476,7 @@ from selenium.webdriver.common.keys import Keys
                     ast.Expr(
                         ast_call(
                             func=ast_attr("options.set_capability"),
-                            args=[ast.Str('bzm:options', kind=""), ast.Name(id='bzm_options')]))
+                            args=[ast.Constant('bzm:options', kind=""), ast.Name(id='bzm_options')]))
 
                 ])
         for capability in sorted(native_capabilities.keys()):
@@ -2321,7 +2484,7 @@ from selenium.webdriver.common.keys import Keys
                 ast.Expr(
                     ast_call(
                         func=ast_attr("options.set_capability"),
-                        args=[ast.Str(capability, kind=""), ast.Str(native_capabilities[capability], kind="")]))
+                        args=[ast.Constant(capability, kind=""), ast.Constant(native_capabilities[capability], kind="")]))
 
             ])
         return cap_expr
@@ -2438,6 +2601,169 @@ from selenium.webdriver.common.keys import Keys
         mod = ast.fix_missing_locations(mod)
         return mod
 
+    def _gen_remote_patch_ast(self):
+        assign_original = ast.Assign(
+            targets=[ast.Name(id='_original_execute', ctx=ast.Store())],
+            value=ast_attr('RemoteConnection.execute')
+        )
+
+        func_def = ast.FunctionDef(
+            name='execute_with_retries',
+            args=ast.arguments(
+                posonlyargs=[],
+                args=[
+                    ast.arg(arg='self'),
+                    ast.arg(arg='command'),
+                    ast.arg(arg='params', annotation=None, type_comment=None)
+                ],
+                vararg=None,
+                kwonlyargs=[],
+                kw_defaults=[],
+                defaults=[ast.Constant(value=None)]
+            ),
+            body=[
+                ast.Assign(
+                    targets=[ast.Name(id='params_copy', ctx=ast.Store())],
+                    value=ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Name(id='copy', ctx=ast.Load()),
+                            attr='deepcopy',
+                            ctx=ast.Load()
+                        ),
+                        args=[ast.Name(id='params', ctx=ast.Load())],
+                        keywords=[]
+                    )
+                ),
+                ast.Assign(
+                    targets=[ast.Name(id='retries', ctx=ast.Store())],
+                    value=ast.Constant(value=3)
+                ),
+                ast.Assign(
+                    targets=[ast.Name(id='delay', ctx=ast.Store())],
+                    value=ast.Constant(value=2)
+                ),
+                ast.Assign(
+                    targets=[ast.Name(id='last_exc', ctx=ast.Store())],
+                    value=ast.Constant(value=None)
+                ),
+                ast.For(
+                    target=ast.Name(id='attempt', ctx=ast.Store()),
+                    iter=ast.Call(func=ast.Name(id='range', ctx=ast.Load()), args=[ast.Name(id='retries', ctx=ast.Load())], keywords=[]),
+                    body=[
+                        ast.Try(
+                            body=[
+                                ast.If(
+                                    test=ast.Compare(
+                                        left=ast.Name(id='params', ctx=ast.Load()),
+                                        ops=[ast.NotEq()],
+                                        comparators=[ast.Name(id='params_copy', ctx=ast.Load())]
+                                    ),
+                                    body=[
+                                        ast.Return(
+                                            value=ast.Call(
+                                                func=ast.Name(id='_original_execute', ctx=ast.Load()),
+                                                args=[
+                                                    ast.Name(id='self', ctx=ast.Load()),
+                                                    ast.Name(id='command', ctx=ast.Load()),
+                                                    ast.Name(id='params_copy', ctx=ast.Load())
+                                                ],
+                                                keywords=[]
+                                            )
+                                        )
+                                    ],
+                                    orelse=[
+                                        ast.Return(
+                                            value=ast.Call(
+                                                func=ast.Name(id='_original_execute', ctx=ast.Load()),
+                                                args=[
+                                                    ast.Name(id='self', ctx=ast.Load()),
+                                                    ast.Name(id='command', ctx=ast.Load()),
+                                                    ast.Name(id='params', ctx=ast.Load())
+                                                ],
+                                                keywords=[]
+                                            )
+                                        )
+                                    ]
+                                )
+                            ],
+                            handlers=[
+                                ast.ExceptHandler(
+                                    type=ast.Name(id='Exception', ctx=ast.Load()),
+                                    name='e',
+                                    body=[
+                                        ast.Assign(
+                                            targets=[ast.Name(id='last_exc', ctx=ast.Store())],
+                                            value=ast.Name(id='e', ctx=ast.Load())
+                                        ),
+                                        ast.Expr(
+                                            value=ast.Call(
+                                                func=ast.Name(id='print', ctx=ast.Load()),
+                                                args=[
+                                                    ast.JoinedStr(values=[
+                                                        ast.Constant(value='[Retry] RemoteConnection.execute failed on attempt '),
+                                                        ast.FormattedValue(
+                                                            value=ast.BinOp(
+                                                                left=ast.Name(id='attempt', ctx=ast.Load()),
+                                                                op=ast.Add(),
+                                                                right=ast.Constant(value=1)
+                                                            ),
+                                                            conversion=-1
+                                                        ),
+                                                        ast.Constant(value=': '),
+                                                        ast.FormattedValue(
+                                                            value=ast.Name(id='e', ctx=ast.Load()),
+                                                            conversion=-1
+                                                        )
+                                                    ])
+                                                ],
+                                                keywords=[]
+                                            )
+                                        ),
+                                        ast.If(
+                                            test=ast.Compare(
+                                                left=ast.Name(id='attempt', ctx=ast.Load()),
+                                                ops=[ast.Lt()],
+                                                comparators=[ast.BinOp(
+                                                    left=ast.Name(id='retries', ctx=ast.Load()),
+                                                    op=ast.Sub(),
+                                                    right=ast.Constant(value=1)
+                                                )]
+                                            ),
+                                            body=[
+                                                ast.Expr(
+                                                    value=ast.Call(
+                                                        func=ast.Name(id='sleep', ctx=ast.Load()),
+                                                        args=[ast.Name(id='delay', ctx=ast.Load())],
+                                                        keywords=[]
+                                                    )
+                                                )
+                                            ],
+                                            orelse=[]
+                                        )
+                                    ]
+                                )
+                            ],
+                            orelse=[],
+                            finalbody=[]
+                        )
+                    ],
+                    orelse=[]
+                ),
+                ast.Raise(
+                    exc=ast.Name(id='last_exc', ctx=ast.Load()),
+                    cause=None
+                )
+            ],
+            decorator_list=[]
+        )
+
+        assign_patch = ast.Assign(
+            targets=[ast.Attribute(value=ast.Name(id='RemoteConnection', ctx=ast.Load()), attr='execute', ctx=ast.Store())],
+            value=ast.Name(id='execute_with_retries', ctx=ast.Load())
+        )
+
+        return [assign_original, func_def, assign_patch]
+
     def build_source_code(self):
         self.tree = self._build_tree()
 
@@ -2451,7 +2777,7 @@ from selenium.webdriver.common.keys import Keys
             targets=[ast.Name(id="log")],
             value=ast_call(
                 func=ast_attr("logging.getLogger"),
-                args=[ast.Str(s="apiritif.http", kind="")]))
+                args=[ast.Constant(value="apiritif.http", kind="")]))
         add_handler = ast_call(
             func=ast_attr("log.addHandler"),
             args=[ast_call(
@@ -2466,9 +2792,9 @@ from selenium.webdriver.common.keys import Keys
 
     def _create_action_label(self, prefix, index_label, action):
         if action:
-            atype, tag, param, value, selectors = action
+            atype, tag, param, value, selectors, actionId = action
         else:
-            atype = tag = param = value = selectors = ""
+            atype = tag = param = value = selectors = actionId = ""
 
         keep_special = "._-:()?/="
         replace_special = " $"

@@ -229,8 +229,19 @@ class TestMonitoring(BZTestCase):
 
         self.assertEquals(b("test\n"), obj.clients[0].socket.sent_data)
 
+    def test_psutil_internal_package_usage(self):
+        import psutil
+
+        # Explicitly check named tuples construction - we use code from internal psutil package
+        # (was moved between packages _common->_ntuples in 7.2.0, has different fields based on OS,
+        # -> can be changed without warning in future)
+
+        _ = psutil._ntuples.sdiskio( *(0,)*(len(psutil._ntuples.sdiskio._fields)))  # pylint: disable=protected-access
+        _ = psutil._ntuples.snetio( *(0,)*(len(psutil._ntuples.snetio._fields)))  # pylint: disable=protected-access
+        _ = psutil._ntuples.sdiskusage( *(0,)*(len(psutil._ntuples.sdiskusage._fields)))  # pylint: disable=protected-access
+
     def test_psutil_potential_bugs(self):
-        conf = {'metrics': ['cpu', 'mem', 'disks', 'conn-all']}
+        conf = {'metrics': ['cpu', 'mem', 'disks', 'conn-all', 'disk-space']}
         client = LocalClient(ROOT_LOGGER, 'label', conf, EngineEmul())
         client.connect()
 
@@ -239,13 +250,17 @@ class TestMonitoring(BZTestCase):
         try:
             net_io_counters = psutil.net_io_counters
             disk_io_counters = psutil.disk_io_counters
+            disk_usage = psutil.disk_usage
             psutil.net_io_counters = lambda: None
             psutil.disk_io_counters = lambda: None
+            psutil.disk_usage = lambda x: None
 
             client.monitor.resource_stats()  # should throw no exception
         finally:
             psutil.net_io_counters = net_io_counters
             psutil.disk_io_counters = disk_io_counters
+            psutil.disk_usage = disk_usage
+
 
 
 class LoggingMonListener(MonitoringListener):

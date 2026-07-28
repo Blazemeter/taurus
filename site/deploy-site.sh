@@ -4,7 +4,7 @@ GOOGLE_STORAGE="https:\/\/storage.cloud.google.com\/taurus-site\/"
 UNSTABLE_SNAPSHOT=""
 TAURUS_VERSION=$(python3 -c 'from bzt.resources.version import VERSION; print(VERSION)')
 
-mkdir site/builds
+mkdir -p site/builds
 PREFIX="\/builds\/"
 
 if [ "$1" != "true" ]; then

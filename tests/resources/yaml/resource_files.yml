@@ -107,14 +107,6 @@ execution:
   scenario:
     script: ~/file-in-home-17.js
 
-# 20, 21
-- executor: rspec
-  scenario:
-    script: resources/selenium/ruby/example_spec.rb
-- executor: rspec
-  scenario:
-    script: ~/file-in-home-18.rb
-
 
 provisioning: cloud
 modules:

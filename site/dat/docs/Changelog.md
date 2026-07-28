@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.16.51<sup> 15 June 2026</sup>
+- Playwright executor fixes
+- Selenium executor fixes
+- Vulnerability fixes
+
+## 1.16.50<sup> 27 April 2026</sup>
+- Playwright executor fixes
+- Improved happysocks integration
+- Dependency updates & fixes
+
+## 1.16.49<sup> 23 February 2026</sup>
+ - Playwright executor allows to add custom reporters
+ - Documentation updates
+ - Dependency fixes (psutils, libexpat1)
+
+## 1.16.48<sup> 10 February 2026</sup>
+- Fixed retries for blazemeter api client
+- Live report for the Playwright executor
+- Correctly handle old Chrome versions in Selenium executor
+
+## 1.16.47<sup> 20 January 2026</sup>
+- Playwright executor concurrency/duration fixes
+- Gatling fix problem with string properties in yaml file
+- Send test files to cloud in chunks (by 50)
+- Dependency fixes (urllib3, npm, dotnet, junit, jmeter-plugins-manager)
+
+## 1.16.46<sup> 16 September 2025</sup>
+- K6 executor updated to 0.45.0
+- Playwright executor added
+- Support for latest Gatling 
+- Dependency fixes (commons-lang3, commons-text, selenium, chromedriver, testng)
+- Migrated to Ubuntu 24.04 and upgraded dependencies
+- Removed custom vulnerability fixes for jmeter and gatling
+
+## 1.16.45<sup> 21 July 2025</sup>
+- Python has been upgraded to version 3.13.0
+- Remove support for RSpec and WDIO
+
+## 1.16.44<sup> 11 July 2025</sup>
+- Urllib3 version update to 2.5.0
+- 
+## 1.16.43<sup> 10 July 2025</sup>
+- Urllib3 version update to 2.4.0
+
 ## 1.16.42<sup> 14 May 2025</sup>
 - Small fix in handling of huge xmls
 
