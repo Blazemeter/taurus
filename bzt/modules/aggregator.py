@@ -181,17 +181,10 @@ class RespTimesCounter(JSONConvertible):
         BlazeMeter pipeline. Values are ms, using the canonical config. Returns a base64 string."""
         encodable = EncodableHdrHistogram(self.ENCODE_LOWEST, self.ENCODE_HIGHEST, self.ENCODE_SIGNIFICANT_FIGURES)
         # get_value_counts() yields recorded (value_ms -> count) pairs; valid before percentiles.
+        # Clamp to the ceiling; hdrh drops values above highest_trackable_value otherwise.
         for value_ms, count in iteritems(self.histogram.get_value_counts()):
-            if count <= 0:
-                continue
-            value = int(value_ms)
-            if value > self.ENCODE_HIGHEST:
-                value = self.ENCODE_HIGHEST
-            elif value < self.ENCODE_LOWEST:
-                value = self.ENCODE_LOWEST
-            encodable.record_value(value, int(count))
-        encoded = encodable.encode()
-        return encoded.decode("ascii") if isinstance(encoded, (bytes, bytearray)) else encoded
+            encodable.record_value(min(int(value_ms), self.ENCODE_HIGHEST), int(count))
+        return encodable.encode().decode("ascii")
 
     def __grow(self, newsize):
         log.debug("Growing HDR from %s to %s", self.high, newsize)
