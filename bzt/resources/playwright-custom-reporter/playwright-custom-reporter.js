@@ -23,6 +23,7 @@ class TaurusReporter {
       verbose: false,
       consoleLog: true,
       granularity: 'STEP',
+      noReportPrefix: '',
     };
     this.options = {...defaultOptions, ...userOptions};
 
@@ -45,6 +46,9 @@ class TaurusReporter {
     const normalizedGranularity = `${this.options.granularity}`.toUpperCase();
     this.options.granularity = ['TEST', 'STEP', 'STEP_LEAF'].includes(normalizedGranularity)
         ? normalizedGranularity : 'STEP';
+    if (typeof process.env.TAURUS_PWREPORT_NOREPORT_PREFIX !== 'undefined') {
+      this.options.noReportPrefix = process.env.TAURUS_PWREPORT_NOREPORT_PREFIX;
+    }
 
     if (fs.existsSync(this.options.outputFile)) {
       fs.rmSync(this.options.outputFile, {
@@ -101,6 +105,14 @@ class TaurusReporter {
     }
   }
 
+  // Empty prefix (the default) means nothing is excluded.
+  isSkippedByNoReportPrefix(title) {
+    if (!this.options.noReportPrefix) {
+      return false;
+    }
+    return typeof title === 'string' && title.startsWith(this.options.noReportPrefix);
+  }
+
   onBegin(config, suite) {
     this.config = config;
     this.root = suite;
@@ -140,6 +152,9 @@ class TaurusReporter {
     }
 
     if (this.options.granularity !== 'TEST') {
+      return;
+    }
+    if (this.isSkippedByNoReportPrefix(test.title)) {
       return;
     }
 
@@ -203,6 +218,9 @@ class TaurusReporter {
         return;
       }
     } else {
+      return;
+    }
+    if (this.isSkippedByNoReportPrefix(step.title)) {
       return;
     }
 
