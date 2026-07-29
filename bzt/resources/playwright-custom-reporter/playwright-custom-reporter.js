@@ -22,6 +22,7 @@ class TaurusReporter {
       statTime: 15000,
       verbose: false,
       consoleLog: true,
+      granularity: 'STEP',
     };
     this.options = {...defaultOptions, ...userOptions};
 
@@ -38,6 +39,10 @@ class TaurusReporter {
     if (typeof process.env.TAURUS_PWREPORT_DURATION !== 'undefined') {
       this.options.maxDuration = parseInt(process.env.TAURUS_PWREPORT_DURATION);
     }
+    if (typeof process.env.TAURUS_PWREPORT_GRANULARITY !== 'undefined') {
+      this.options.granularity = process.env.TAURUS_PWREPORT_GRANULARITY;
+    }
+    this.options.granularity = `${this.options.granularity}`.toUpperCase() === 'TEST' ? 'TEST' : 'STEP';
 
     if (fs.existsSync(this.options.outputFile)) {
       fs.rmSync(this.options.outputFile, {
@@ -132,6 +137,10 @@ class TaurusReporter {
       console.log(`Finished test ${test.title}: ${result.status} in ${result.duration}ms`);
     }
 
+    if (this.options.granularity !== 'TEST') {
+      return;
+    }
+
     const timestamp = test.timestamps ? test.timestamps[test.timestamps.length - 1] : Date.now();
 
     const line = {
@@ -156,6 +165,55 @@ class TaurusReporter {
     }
     if (this.options.consoleLog === true && this.options.verbose === true) {
       console.log(`Test result: ${JSON.stringify(line)}`);
+    }
+  }
+
+  // Only first-level test.step() calls are reported (nested test.step calls are skipped).
+  // Playwright's own category enum reserves 'test.step' exclusively for explicit
+  // test.step() calls, so this already excludes hooks, fixtures, expects and pw:api steps.
+  isReportableStep(step) {
+    if (!step || step.category !== 'test.step') {
+      return false;
+    }
+    if (step.parent) {
+      return false;
+    }
+    return true;
+  }
+
+  onStepEnd(test, result, step) {
+    if (this.options.granularity !== 'STEP') {
+      return;
+    }
+    if (!this.isReportableStep(step)) {
+      return;
+    }
+
+    if (this.options.consoleLog === true && this.options.verbose === true) {
+      console.log(`Finished step ${step.title}: ${step.error ? 'failed' : 'passed'} in ${step.duration}ms`);
+    }
+
+    const line = {
+      "timestamp": step.startTime.getTime(),
+      "label": step.title,
+      "ok": !step.error,
+      "concurency": this.config?.workers || 1,
+      "duration": step.duration,
+      "connectTime": null,
+      "latency": null,
+      "status": step.error ? "failed" : "passed",
+      "expectedStatus": test.expectedStatus,
+      "error": step.error ? "Step failed: " + step.error.message : null,
+      "runDetails": test.title + ":" + result.parallelIndex + ":" + test.repeatEachIndex
+          + ":" + test.parent.parent?.title,
+      "logs": null,
+      "byte_count": null,
+    };
+    if (this.options.outputFile) {
+      appendLineToFile(this.options.outputFile, JSON.stringify(line) + '\n');
+    }
+    if (this.options.consoleLog === true && this.options.verbose === true) {
+      console.log(`Step result: ${JSON.stringify(line)}`);
     }
   }
 

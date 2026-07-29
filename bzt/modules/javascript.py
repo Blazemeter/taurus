@@ -167,6 +167,8 @@ class PlaywrightTester(JavaScriptExecutor):
         self.env.set({"TAURUS_PWREPORT_DIR": self.engine.artifacts_dir})
         if max_duration:
             self.env.set({"TAURUS_PWREPORT_DURATION": str(int(max_duration * 1000))})
+        # TODO: read granularity from customer YAML configuration (scenario option) instead of hardcoding
+        self.env.set({"TAURUS_PWREPORT_GRANULARITY": "STEP"})
         options = ["--reporter \"" + reporter + "\"",
                    "--output " + self.engine.artifacts_dir + "/test-output",
                    "--workers " + str(concurrency),

@@ -324,6 +324,19 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         })
         self.assertEqual('true', self.ENV.get("TAURUS_PWREPORT_STDOUT"))
 
+    def test_playwright_granularity_env_default(self):
+        """Test TAURUS_PWREPORT_GRANULARITY defaults to STEP"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertEqual('STEP', self.ENV.get("TAURUS_PWREPORT_GRANULARITY"))
+
     def test_playwright_reporter_sanitization(self):
         """Test that reporter names are sanitized (spaces, quotes, etc. removed)"""
         self.simple_run({
