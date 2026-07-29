@@ -42,7 +42,9 @@ class TaurusReporter {
     if (typeof process.env.TAURUS_PWREPORT_GRANULARITY !== 'undefined') {
       this.options.granularity = process.env.TAURUS_PWREPORT_GRANULARITY;
     }
-    this.options.granularity = `${this.options.granularity}`.toUpperCase() === 'TEST' ? 'TEST' : 'STEP';
+    const normalizedGranularity = `${this.options.granularity}`.toUpperCase();
+    this.options.granularity = ['TEST', 'STEP', 'STEP_LEAF'].includes(normalizedGranularity)
+        ? normalizedGranularity : 'STEP';
 
     if (fs.existsSync(this.options.outputFile)) {
       fs.rmSync(this.options.outputFile, {
@@ -171,7 +173,7 @@ class TaurusReporter {
   // Only first-level test.step() calls are reported (nested test.step calls are skipped).
   // Playwright's own category enum reserves 'test.step' exclusively for explicit
   // test.step() calls, so this already excludes hooks, fixtures, expects and pw:api steps.
-  isReportableStep(step) {
+  isFirstLevelStep(step) {
     if (!step || step.category !== 'test.step') {
       return false;
     }
@@ -181,11 +183,26 @@ class TaurusReporter {
     return true;
   }
 
-  onStepEnd(test, result, step) {
-    if (this.options.granularity !== 'STEP') {
-      return;
+  // Only leaf test.step() calls are reported - i.e. steps that do not themselves
+  // contain a nested test.step() call, regardless of how deep they are in the hierarchy.
+  isLeafStep(step) {
+    if (!step || step.category !== 'test.step') {
+      return false;
     }
-    if (!this.isReportableStep(step)) {
+    const hasNestedStep = Array.isArray(step.steps) && step.steps.some(child => child.category === 'test.step');
+    return !hasNestedStep;
+  }
+
+  onStepEnd(test, result, step) {
+    if (this.options.granularity === 'STEP') {
+      if (!this.isFirstLevelStep(step)) {
+        return;
+      }
+    } else if (this.options.granularity === 'STEP_LEAF') {
+      if (!this.isLeafStep(step)) {
+        return;
+      }
+    } else {
       return;
     }
 
