@@ -113,6 +113,23 @@ class TaurusReporter {
     return typeof title === 'string' && title.startsWith(this.options.noReportPrefix);
   }
 
+  // The no-report prefix disables the whole tree under the step/test it is found on:
+  // checks the test title and every step from the given one up through its parents.
+  isExcludedByNoReportPrefix(test, step) {
+    if (!this.options.noReportPrefix) {
+      return false;
+    }
+    if (this.isSkippedByNoReportPrefix(test?.title)) {
+      return true;
+    }
+    for (let current = step; current; current = current.parent) {
+      if (this.isSkippedByNoReportPrefix(current.title)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   onBegin(config, suite) {
     this.config = config;
     this.root = suite;
@@ -200,12 +217,23 @@ class TaurusReporter {
 
   // Only leaf test.step() calls are reported - i.e. steps that do not themselves
   // contain a nested test.step() call, regardless of how deep they are in the hierarchy.
-  isLeafStep(step) {
+  // A step also counts as a leaf when every one of its test.step children is excluded by
+  // the no-report prefix: that step becomes the effective leaf for whatever survived under it.
+  isLeafStep(test, step) {
     if (!step || step.category !== 'test.step') {
       return false;
     }
-    const hasNestedStep = Array.isArray(step.steps) && step.steps.some(child => child.category === 'test.step');
-    return !hasNestedStep;
+    if (this.isExcludedByNoReportPrefix(test, step)) {
+      return false;
+    }
+    const children = Array.isArray(step.steps) ? step.steps : [];
+    if (!this.options.noReportPrefix) {
+      // No prefix configured - nothing can be excluded, skip checking children for it.
+      return !children.some(child => child.category === 'test.step');
+    }
+    const hasReportableChildStep = children.some(child =>
+        child.category === 'test.step' && !this.isExcludedByNoReportPrefix(test, child));
+    return !hasReportableChildStep;
   }
 
   onStepEnd(test, result, step) {
@@ -213,14 +241,16 @@ class TaurusReporter {
       if (!this.isFirstLevelStep(step)) {
         return;
       }
+      if (this.isExcludedByNoReportPrefix(test, step)) {
+        return;
+      }
     } else if (this.options.granularity === 'STEP_LEAF') {
-      if (!this.isLeafStep(step)) {
+      // isLeafStep() already accounts for the no-report prefix (both self- and
+      // children-exclusion), no separate isExcludedByNoReportPrefix check needed here.
+      if (!this.isLeafStep(test, step)) {
         return;
       }
     } else {
-      return;
-    }
-    if (this.isSkippedByNoReportPrefix(step.title)) {
       return;
     }
 
