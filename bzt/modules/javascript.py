@@ -570,7 +570,7 @@ class PlaywrightTestPackage(NPMPackage):
             return False
 
 class PlaywrightCustomReporter(NPMLocalModulePackage):
-    PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.0"
+    PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.1"
     PACKAGE_LOCAL_PATH = "./playwright-custom-reporter"
 
     def check_if_installed(self):
