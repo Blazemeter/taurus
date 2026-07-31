@@ -203,14 +203,20 @@ class TaurusReporter {
   }
 
   // Only first-level test.step() calls are reported (nested test.step calls are skipped).
-  // Playwright's own category enum reserves 'test.step' exclusively for explicit
-  // test.step() calls, so this already excludes hooks, fixtures, expects and pw:api steps.
+  // "First-level" means no ancestor in the parent chain is itself a test.step. A parent
+  // that is a hook/fixture/pw:api step does not count as nesting - it isn't something the
+  // test author wrote. This matters because Playwright can attribute still-running
+  // test.step() calls to its own teardown fixture (e.g. "Fixture \"context\"") as their
+  // parent when a whole-test timeout races with in-flight user code, which would otherwise
+  // make a genuinely top-level step look nested and get silently dropped.
   isFirstLevelStep(step) {
     if (!step || step.category !== 'test.step') {
       return false;
     }
-    if (step.parent) {
-      return false;
+    for (let current = step.parent; current; current = current.parent) {
+      if (current.category === 'test.step') {
+        return false;
+      }
     }
     return true;
   }
