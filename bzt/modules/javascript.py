@@ -167,10 +167,11 @@ class PlaywrightTester(JavaScriptExecutor):
         self.env.set({"TAURUS_PWREPORT_DIR": self.engine.artifacts_dir})
         if max_duration:
             self.env.set({"TAURUS_PWREPORT_DURATION": str(int(max_duration * 1000))})
-        # TODO: read granularity from customer YAML configuration (scenario option) instead of hardcoding
-        self.env.set({"TAURUS_PWREPORT_GRANULARITY": "STEP"})
-        # TODO: read noReportPrefix from customer YAML configuration (scenario option) instead of hardcoding
-        self.env.set({"TAURUS_PWREPORT_NOREPORT_PREFIX": ""})
+        granularity = str(self.get_scenario().get("report-granularity", "step")).upper().replace("-", "_")
+        if granularity not in ("STEP", "TEST", "STEP_LEAF"):
+            self.log.warning("Unknown report-granularity '%s', reporter will default to STEP", granularity)
+        self.env.set({"TAURUS_PWREPORT_GRANULARITY": granularity})
+        self.env.set({"TAURUS_PWREPORT_NOREPORT_PREFIX": self.get_scenario().get("report-exclude-prefix", "")})
         options = ["--reporter \"" + reporter + "\"",
                    "--output " + self.engine.artifacts_dir + "/test-output",
                    "--workers " + str(concurrency),
