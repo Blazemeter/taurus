@@ -105,6 +105,13 @@ class TaurusReporter {
     }
   }
 
+  addStepLog(step, log) {
+    if (step && step.logs) {
+      // log could be Buffer
+      step.logs.push(`${log}`);
+    }
+  }
+
   // Empty prefix (the default) means nothing is excluded.
   isSkippedByNoReportPrefix(title) {
     if (!this.options.noReportPrefix) {
@@ -145,6 +152,10 @@ class TaurusReporter {
   onTestBegin(test, result) {
     // For logs when no test is running
     this.lastTest = test;
+    this.lastStep = undefined;
+    // Tracks whether any step already reported this attempt's failure, so onTestEnd
+    // knows whether a fallback whole-test line is needed under STEP/STEP_LEAF granularity.
+    test.reportedFailure = false;
 
     this.testMap.set(test.id, test);
 
@@ -162,22 +173,9 @@ class TaurusReporter {
     }
   }
 
-  onTestEnd(test, result) {
-
-    if (this.options.consoleLog === true && this.options.verbose === true) {
-      console.log(`Finished test ${test.title}: ${result.status} in ${result.duration}ms`);
-    }
-
-    if (this.options.granularity !== 'TEST') {
-      return;
-    }
-    if (this.isSkippedByNoReportPrefix(test.title)) {
-      return;
-    }
-
+  buildTestLine(test, result) {
     const timestamp = test.timestamps ? test.timestamps[test.timestamps.length - 1] : Date.now();
-
-    const line = {
+    return {
       "timestamp": timestamp,
       "label": test.title,
       "ok": test.ok() && result.status !== 'interrupted',
@@ -194,11 +192,66 @@ class TaurusReporter {
       "logs": test.logs && test.logs.length > 0 ? test.logs.join('\n') : null,
       "byte_count": null,
     };
-    if (this.options.outputFile) {
-      appendLineToFile(this.options.outputFile, JSON.stringify(line) + '\n');
-    }
+  }
+
+  // Generic marker line used when STEP/STEP_LEAF granularity has no step-level failure
+  // to attribute a problem to (whole-test timeout, failure outside any test.step, etc).
+  // Uses a fixed, clearly-synthetic label (not the test title) so it reads as one bucket
+  // across all tests, and zeroes out the fields that would otherwise be treated as real
+  // performance measurements - only the "error" message carries the actual test title.
+  buildUntrackedFailureLine(test, result) {
+    const reason = result.error ? result.error.message : (result.status === 'interrupted' ? 'Interrupted' : 'Unknown error');
+    return {
+      "timestamp": test.timestamps ? test.timestamps[test.timestamps.length - 1] : Date.now(),
+      "label": "__untracked_failure__",
+      "ok": false,
+      "concurency": this.config?.workers || 1,
+      "duration": 0,
+      "connectTime": null,
+      "latency": null,
+      "status": result.status,
+      "expectedStatus": test.expectedStatus,
+      "error": `Test "${test.title}" ${result.status}, no step captured it: ${reason}`,
+      "runDetails": test.title + ":" + result.parallelIndex + ":" + test.repeatEachIndex
+          + ":" + test.parent.parent?.title,
+      "logs": test.logs && test.logs.length > 0 ? test.logs.join('\n') : null,
+      "byte_count": 0,
+    };
+  }
+
+  onTestEnd(test, result) {
+
     if (this.options.consoleLog === true && this.options.verbose === true) {
-      console.log(`Test result: ${JSON.stringify(line)}`);
+      console.log(`Finished test ${test.title}: ${result.status} in ${result.duration}ms`);
+    }
+
+    if (this.isSkippedByNoReportPrefix(test.title)) {
+      return;
+    }
+
+    if (this.options.granularity === 'TEST') {
+      const line = this.buildTestLine(test, result);
+      if (this.options.outputFile) {
+        appendLineToFile(this.options.outputFile, JSON.stringify(line) + '\n');
+      }
+      if (this.options.consoleLog === true && this.options.verbose === true) {
+        console.log(`Test result: ${JSON.stringify(line)}`);
+      }
+      return;
+    }
+
+    // STEP / STEP_LEAF granularity: if the test didn't pass and no step already
+    // reported the failure (e.g. a whole-test timeout with every step showing passed,
+    // or a failure outside any test.step), fall back to a synthetic marker line -
+    // otherwise this failure would be completely invisible at this granularity.
+    if (result.status !== 'passed' && !test.reportedFailure) {
+      const line = this.buildUntrackedFailureLine(test, result);
+      if (this.options.outputFile) {
+        appendLineToFile(this.options.outputFile, JSON.stringify(line) + '\n');
+      }
+      if (this.options.consoleLog === true) {
+        console.log(EC.yellow(`Untracked test failure, emitting synthetic marker line: ${JSON.stringify(line)}`));
+      }
     }
   }
 
@@ -242,55 +295,65 @@ class TaurusReporter {
     return !hasReportableChildStep;
   }
 
+  onStepBegin(test, result, step) {
+    this.lastStep = step;
+    if (!step.logs) {
+      step.logs = [];
+    }
+  }
+
   onStepEnd(test, result, step) {
+    let shouldReport;
     if (this.options.granularity === 'STEP') {
-      if (!this.isFirstLevelStep(step)) {
-        return;
-      }
-      if (this.isExcludedByNoReportPrefix(test, step)) {
-        return;
-      }
+      shouldReport = this.isFirstLevelStep(step) && !this.isExcludedByNoReportPrefix(test, step);
     } else if (this.options.granularity === 'STEP_LEAF') {
       // isLeafStep() already accounts for the no-report prefix (both self- and
       // children-exclusion), no separate isExcludedByNoReportPrefix check needed here.
-      if (!this.isLeafStep(test, step)) {
-        return;
-      }
+      shouldReport = this.isLeafStep(test, step);
     } else {
-      return;
+      shouldReport = false;
     }
 
-    if (this.options.consoleLog === true && this.options.verbose === true) {
-      console.log(`Finished step ${step.title}: ${step.error ? 'failed' : 'passed'} in ${step.duration}ms`);
+    if (shouldReport) {
+      if (this.options.consoleLog === true && this.options.verbose === true) {
+        console.log(`Finished step ${step.title}: ${step.error ? 'failed' : 'passed'} in ${step.duration}ms`);
+      }
+
+      const line = {
+        "timestamp": step.startTime.getTime(),
+        "label": step.title,
+        "ok": !step.error,
+        "concurency": this.config?.workers || 1,
+        "duration": step.duration,
+        "connectTime": null,
+        "latency": null,
+        "status": step.error ? "failed" : "passed",
+        "expectedStatus": test.expectedStatus,
+        "error": step.error ? "Step failed: " + step.error.message : null,
+        "runDetails": test.title + ":" + result.parallelIndex + ":" + test.repeatEachIndex
+            + ":" + test.parent.parent?.title,
+        "logs": step.logs && step.logs.length > 0 ? step.logs.join('\n') : null,
+        "byte_count": null,
+      };
+      if (step.error && test) {
+        test.reportedFailure = true;
+      }
+      if (this.options.outputFile) {
+        appendLineToFile(this.options.outputFile, JSON.stringify(line) + '\n');
+      }
+      if (this.options.consoleLog === true && this.options.verbose === true) {
+        console.log(`Step result: ${JSON.stringify(line)}`);
+      }
     }
 
-    const line = {
-      "timestamp": step.startTime.getTime(),
-      "label": step.title,
-      "ok": !step.error,
-      "concurency": this.config?.workers || 1,
-      "duration": step.duration,
-      "connectTime": null,
-      "latency": null,
-      "status": step.error ? "failed" : "passed",
-      "expectedStatus": test.expectedStatus,
-      "error": step.error ? "Step failed: " + step.error.message : null,
-      "runDetails": test.title + ":" + result.parallelIndex + ":" + test.repeatEachIndex
-          + ":" + test.parent.parent?.title,
-      "logs": null,
-      "byte_count": null,
-    };
-    if (this.options.outputFile) {
-      appendLineToFile(this.options.outputFile, JSON.stringify(line) + '\n');
-    }
-    if (this.options.consoleLog === true && this.options.verbose === true) {
-      console.log(`Step result: ${JSON.stringify(line)}`);
-    }
+    // Leaving this step's scope - current step becomes its parent (or none, at top level).
+    this.lastStep = step ? step.parent : this.lastStep;
   }
 
   onStdErr(chunk, test, result) {
     // Note that output may happen when no test is running, in which case this will be void.
     this.addTestLog(test || this.lastTest, EC.red(`${chunk}`));
+    this.addStepLog(this.lastStep, EC.red(`${chunk}`));
     if (this.options.consoleLog === true) {
       console.log(EC.red(`${chunk}`));
     }
@@ -299,6 +362,7 @@ class TaurusReporter {
   onStdOut(chunk, test, result) {
     // Note that output may happen when no test is running, in which case this will be void.
     this.addTestLog(test || this.lastTest, `${chunk}`);
+    this.addStepLog(this.lastStep, `${chunk}`);
     if (this.options.consoleLog === true) {
       console.log(`${chunk}`);
     }
@@ -306,8 +370,9 @@ class TaurusReporter {
 
   // Called on some global error, for example unhandled exception in the worker process.
   onError(error) {
-    // add the error to test logs
+    // add the error to test and step logs
     this.addTestLog(this.lastTest, EC.red(error.message || "Unknown Error"));
+    this.addStepLog(this.lastStep, EC.red(error.message || "Unknown Error"));
     if (this.options.consoleLog === true) {
       console.log(EC.red(error.message || "Unknown Error"));
     }
@@ -326,6 +391,7 @@ class TaurusReporter {
       console.log(`Finished the run: ${result.status}`);
     }
     this.lastTest = undefined;
+    this.lastStep = undefined;
     this.testMap.clear();
   }
 }
