@@ -141,3 +141,72 @@ scenarios:
       reporters: # Your list of additional reporters
       - json
 ```
+
+## Report granularity
+
+By default, Taurus reports one result per first-level `test.step()` call in your test (a step not nested inside
+another step). Use the `report-granularity` scenario option to change this.
+
+Supported values:
+- `step` (default): report each first-level `test.step()` call.
+- `step-leaf`: report each innermost `test.step()` call instead - i.e. the most nested step in each chain.
+- `test`: report one result per whole test; `test.step()` calls are not reported individually.
+
+```yaml
+scenarios:
+    playwright_test:
+      script: example.spec.ts
+      report-granularity: step-leaf # step (default), step-leaf, or test
+```
+
+For example, given this adapted version of the `reserve flight` test:
+```javascript
+test('reserve flight', async ({ page }) => {
+  await page.goto('/');
+
+  await test.step('search flight', async () => {
+    await test.step('select departure city', async () => {
+      await page.getByRole('button', { name: 'Find Flights' }).click();
+    });
+    await expect(page).toHaveTitle(/reserve/);
+  });
+
+  await page.getByRole('button', { name: 'Choose This Flight' }).nth(1).click();
+  await expect(page).toHaveTitle(/Purchase/);
+});
+```
+- `step` reports `search flight`.
+- `step-leaf` reports `select departure city`.
+- `test` reports `reserve flight`.
+
+*NOTE*: Code that runs directly inside a test, outside of any `test.step()` call, is not included in the report when
+using `step` or `step-leaf`. If such a test fails or times out without any `test.step()` call reporting the failure,
+Taurus still reports it as a single result labeled `__untracked_failure__`, instead of dropping it silently. The
+actual test name and failure reason are included in that result's error message.
+
+## Exclude steps from the report
+
+Use the `report-exclude-prefix` scenario option to exclude tests or `test.step()` calls whose title starts with the
+given prefix - useful for excluding setup steps you don't want counted in your results. By default no prefix is set,
+so nothing is excluded.
+
+```yaml
+scenarios:
+    playwright_test:
+      script: example.spec.ts
+      report-exclude-prefix: 'NOREPORT:'
+```
+
+```javascript
+test('has title', async ({ page }) => {
+  await test.step('NOREPORT: warm up', async () => {
+    await page.goto('/');
+  });
+
+  await test.step('verify title', async () => {
+    await expect(page).toHaveTitle(/BlazeDemo/);
+  });
+});
+```
+With this configuration, only `verify title` appears in the report - `NOREPORT: warm up` is excluded. If an excluded
+test or step contains nested `test.step()` calls, those are excluded too.
