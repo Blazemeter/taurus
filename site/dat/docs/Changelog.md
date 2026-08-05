@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.17.0<sup> 15 June 2026</sup>
+- Improved response-time percentile accuracy for externally-executed tests reported to BlazeMeter
+- Dependency updates & fixes
+
 ## 1.16.51<sup> 15 June 2026</sup>
 - Playwright executor fixes
 - Selenium executor fixes

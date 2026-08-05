@@ -83,3 +83,10 @@ bzt mytest.yml -o modules.blazemeter.report-name="Jenkins Build ${BUILD_NUMBER}"
 ```
 
 Also, there is CLI alias `-public` to automatically set `public-report=true`.
+
+<div class="alert alert-info">
+Reporting a locally- or CI-executed run to BlazeMeter creates what BlazeMeter calls an
+<b>external test</b>. On accounts using BlazeMeter's latest reporting engine, this
+requires Taurus 1.17.0 or newer — older clients are prompted to upgrade and the run is
+not stored. Other accounts work with any version.
+</div>
