@@ -4,8 +4,10 @@ import time
 from bzt.utils import to_json
 from tests.unit import BZTestCase, ROOT_LOGGER
 
-from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
+from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, RespTimesCounter
 from tests.unit.mocks import r, rc, err, MockReader
+
+from hdrh.histogram import HdrHistogram
 
 
 class TestResultsReader(BZTestCase):
@@ -194,3 +196,61 @@ class TestResultsReader(BZTestCase):
                 rt = float(key)
                 self.assertGreaterEqual(rt, 1.0)
                 self.assertLessEqual(rt, 2.0)
+
+
+class TestRespTimesCounterEncode(BZTestCase):
+    """
+    The encoded response-time histogram (hstRt) is consumed by the BlazeMeter ClickHouse
+    ingestion pipeline, which derives all percentiles by merging HdrHistograms. It must be
+    a base64 HdrHistogram V2 (compressed) blob, in milliseconds, using the canonical fixed
+    config (lowest=1, highest=3_600_000, 3 significant figures) so it merges with cloud
+    records and decodes with hdrh (lambdas) / org.HdrHistogram (Dagger).
+    """
+
+    def _counter_from_seconds(self, samples_sec):
+        counter = RespTimesCounter(1, 1000.0, 3)
+        for rt in samples_sec:
+            counter.add(rt, 1)
+        return counter
+
+    def test_encode_roundtrip_percentiles(self):
+        # a spread of response times in seconds
+        samples = [((i % 500) + 1) / 1000.0 for i in range(5000)]  # 1ms..500ms
+        counter = self._counter_from_seconds(samples)
+
+        encoded = counter.encode()
+        self.assertIsInstance(encoded, str)
+        # compressed HdrHistogram V2 base64 blobs start with the "HISTF" cookie
+        self.assertTrue(encoded.startswith("HISTF"), encoded[:12])
+
+        decoded = HdrHistogram.decode(encoded)
+        self.assertEqual(RespTimesCounter.ENCODE_HIGHEST, decoded.highest_trackable_value)
+        self.assertEqual(RespTimesCounter.ENCODE_SIGNIFICANT_FIGURES, decoded.significant_figures)
+        self.assertEqual(len(samples), decoded.get_total_count())
+
+        ms = sorted(int(round(s * 1000)) for s in samples)
+
+        def raw_pct(p):
+            return ms[min(len(ms) - 1, int(round(p / 100.0 * len(ms))) - 1)]
+
+        for p in (50.0, 90.0, 95.0, 99.0):
+            got = decoded.get_value_at_percentile(p)
+            exp = raw_pct(p)
+            # within HdrHistogram's 3-significant-figure (1%) tolerance
+            self.assertLessEqual(abs(got - exp) / max(1, exp), 0.02,
+                                 "p%s decoded=%s raw=%s" % (p, got, exp))
+
+    def test_encode_clamps_above_highest(self):
+        # values beyond one hour (in ms) must be clamped, not dropped
+        counter = self._counter_from_seconds([7200.0] * 10)  # 2h
+        decoded = HdrHistogram.decode(counter.encode())
+        self.assertEqual(10, decoded.get_total_count())
+        # clamped to the ceiling bucket, so max may exceed ENCODE_HIGHEST by ~1 bucket width
+        self.assertLessEqual(
+            abs(decoded.get_max_value() - RespTimesCounter.ENCODE_HIGHEST) / RespTimesCounter.ENCODE_HIGHEST,
+            0.01)
+
+    def test_encode_empty_is_valid(self):
+        counter = RespTimesCounter(1, 1000.0, 3)
+        decoded = HdrHistogram.decode(counter.encode())
+        self.assertEqual(0, decoded.get_total_count())

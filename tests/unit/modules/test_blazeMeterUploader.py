@@ -441,6 +441,41 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.kpi_buffer[-1][DataPoint.CUMULATIVE] = {}  # remove cumulative when ramp-up data is excluded
         obj.post_process()  # no 'Cumulative KPISet is non-consistent' exception here
 
+    def test_kpi_body_includes_encoded_histogram(self):
+        # Each interval must carry an encoded hstRt so the ClickHouse pipeline can merge histograms.
+        from hdrh.histogram import HdrHistogram
+
+        reporter = BlazeMeterUploader()
+        reporter.engine = EngineEmul()
+        reporter.parameters["send-data"] = False
+        reporter.prepare()
+
+        ts = 123
+        point = DataPoint(ts, (0.0, 50.0, 90.0, 95.0, 99.0, 100.0))
+        for label in ("", "/login"):
+            kpi = KPISet(perc_levels=(0.0, 50.0, 90.0, 95.0, 99.0, 100.0))
+            for i in range(2000):
+                rt = ((i % 400) + 1) / 1000.0  # 1ms..400ms, in seconds
+                kpi.add_sample((1, rt, 0.0, rt, "200", None, "", 100))
+            kpi.recalculate()
+            point[DataPoint.CUMULATIVE][label] = kpi
+            point[DataPoint.CURRENT][label] = kpi
+
+        body = json.loads(reporter._dpoint_serializer.get_kpi_body([point], is_final=True))
+
+        intervals_checked = 0
+        for label in body["labels"]:
+            for interval in label["intervals"]:
+                self.assertIn("hstRt", interval)
+                encoded = interval["hstRt"]
+                self.assertTrue(encoded.startswith("HISTF"), encoded[:12])
+                decoded = HdrHistogram.decode(encoded)
+                self.assertEqual(3600000, decoded.highest_trackable_value)
+                self.assertEqual(3, decoded.significant_figures)
+                self.assertEqual(interval["n"], decoded.get_total_count())
+                intervals_checked += 1
+        self.assertEqual(2, intervals_checked)
+
     def test_record_data_aggregated_second(self):
         reporter = BlazeMeterUploader()
         reporter.engine = EngineEmul()

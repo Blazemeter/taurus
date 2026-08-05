@@ -783,6 +783,8 @@ class DatapointSerializer(object):
             "n": item[KPISet.SAMPLE_COUNT],
             "failed": item[KPISet.FAILURES],
             "rc": rc_list,
+            # Encoded response-time HdrHistogram (base64 ms) for the ClickHouse pipeline to merge.
+            "hstRt": item[KPISet.RESP_TIMES].encode(),
             "t": {
                 "min": int(self.multi * item[KPISet.PERCENTILES]["0.0"]) if "0.0" in item[KPISet.PERCENTILES] else 0,
                 "max": int(self.multi * item[KPISet.PERCENTILES]["100.0"]) if "100.0" in item[
