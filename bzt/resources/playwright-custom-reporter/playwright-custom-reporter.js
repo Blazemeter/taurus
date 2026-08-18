@@ -22,7 +22,7 @@ class TaurusReporter {
       statTime: 15000,
       verbose: false,
       consoleLog: true,
-      granularity: 'STEP',
+      granularity: 'AUTO',
       noReportPrefix: '',
     };
     this.options = {...defaultOptions, ...userOptions};
@@ -44,8 +44,8 @@ class TaurusReporter {
       this.options.granularity = process.env.TAURUS_PWREPORT_GRANULARITY;
     }
     const normalizedGranularity = `${this.options.granularity}`.toUpperCase();
-    this.options.granularity = ['TEST', 'STEP', 'STEP_LEAF'].includes(normalizedGranularity)
-        ? normalizedGranularity : 'STEP';
+    this.options.granularity = ['TEST', 'STEP', 'STEP_LEAF', 'AUTO'].includes(normalizedGranularity)
+        ? normalizedGranularity : 'AUTO';
     if (typeof process.env.TAURUS_PWREPORT_NOREPORT_PREFIX !== 'undefined') {
       this.options.noReportPrefix = process.env.TAURUS_PWREPORT_NOREPORT_PREFIX;
     }
@@ -156,6 +156,10 @@ class TaurusReporter {
     // Tracks whether any step already reported this attempt's failure, so onTestEnd
     // knows whether a fallback whole-test line is needed under STEP/STEP_LEAF granularity.
     test.reportedFailure = false;
+    // Tracks whether any step was reported at all this attempt, so onTestEnd can decide,
+    // under AUTO granularity, whether to report this test like STEP (steps already
+    // covered it) or fall back to one whole-test line (this test used no test.step()).
+    test.reportedAnyStep = false;
 
     this.testMap.set(test.id, test);
 
@@ -240,10 +244,25 @@ class TaurusReporter {
       return;
     }
 
-    // STEP / STEP_LEAF granularity: if the test didn't pass and no step already
-    // reported the failure (e.g. a whole-test timeout with every step showing passed,
-    // or a failure outside any test.step), fall back to a synthetic marker line -
-    // otherwise this failure would be completely invisible at this granularity.
+    // AUTO granularity, and this test never reported a step (either it doesn't use
+    // test.step() at all, or every step was excluded by report-exclude-prefix): report
+    // it like TEST, unconditionally (pass or fail) - so it's never silently dropped.
+    if (this.options.granularity === 'AUTO' && !test.reportedAnyStep) {
+      const line = this.buildTestLine(test, result);
+      if (this.options.outputFile) {
+        appendLineToFile(this.options.outputFile, JSON.stringify(line) + '\n');
+      }
+      if (this.options.consoleLog === true && this.options.verbose === true) {
+        console.log(`Test result: ${JSON.stringify(line)}`);
+      }
+      return;
+    }
+
+    // STEP / STEP_LEAF granularity, or AUTO with at least one reported step: if the
+    // test didn't pass and no step already reported the failure (e.g. a whole-test
+    // timeout with every step showing passed, or a failure outside any test.step),
+    // fall back to a synthetic marker line - otherwise this failure would be
+    // completely invisible at this granularity.
     if (result.status !== 'passed' && !test.reportedFailure) {
       const line = this.buildUntrackedFailureLine(test, result);
       if (this.options.outputFile) {
@@ -304,7 +323,10 @@ class TaurusReporter {
 
   onStepEnd(test, result, step) {
     let shouldReport;
-    if (this.options.granularity === 'STEP') {
+    if (this.options.granularity === 'STEP' || this.options.granularity === 'AUTO') {
+      // AUTO decides per-test (in onTestEnd) whether to behave like STEP or TEST, based
+      // on whether the test reports any step at all - so while a step is being reported,
+      // it's always evaluated with plain first-level STEP rules.
       shouldReport = this.isFirstLevelStep(step) && !this.isExcludedByNoReportPrefix(test, step);
     } else if (this.options.granularity === 'STEP_LEAF') {
       // isLeafStep() already accounts for the no-report prefix (both self- and
@@ -337,6 +359,9 @@ class TaurusReporter {
       };
       if (step.error && test) {
         test.reportedFailure = true;
+      }
+      if (test) {
+        test.reportedAnyStep = true;
       }
       if (this.options.outputFile) {
         appendLineToFile(this.options.outputFile, JSON.stringify(line) + '\n');

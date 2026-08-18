@@ -167,9 +167,9 @@ class PlaywrightTester(JavaScriptExecutor):
         self.env.set({"TAURUS_PWREPORT_DIR": self.engine.artifacts_dir})
         if max_duration:
             self.env.set({"TAURUS_PWREPORT_DURATION": str(int(max_duration * 1000))})
-        granularity = str(self.get_scenario().get("report-granularity", "step")).upper().replace("-", "_")
-        if granularity not in ("STEP", "TEST", "STEP_LEAF"):
-            self.log.warning("Unknown report-granularity '%s', reporter will default to STEP", granularity)
+        granularity = str(self.get_scenario().get("report-granularity", "auto")).upper().replace("-", "_")
+        if granularity not in ("STEP", "TEST", "STEP_LEAF", "AUTO"):
+            self.log.warning("Unknown report-granularity '%s', reporter will default to AUTO", granularity)
         self.env.set({"TAURUS_PWREPORT_GRANULARITY": granularity})
         self.env.set({"TAURUS_PWREPORT_NOREPORT_PREFIX": self.get_scenario().get("report-exclude-prefix", "")})
         options = ["--reporter \"" + reporter + "\"",

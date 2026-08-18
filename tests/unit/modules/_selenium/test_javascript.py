@@ -325,7 +325,7 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         self.assertEqual('true', self.ENV.get("TAURUS_PWREPORT_STDOUT"))
 
     def test_playwright_granularity_env_default(self):
-        """Test TAURUS_PWREPORT_GRANULARITY defaults to STEP"""
+        """Test TAURUS_PWREPORT_GRANULARITY defaults to AUTO"""
         self.simple_run({
             'execution': {
                 'iterations': 1,
@@ -335,7 +335,7 @@ class TestPlaywrightExecutor(SeleniumTestCase):
                 'executor': 'playwright',
             },
         })
-        self.assertEqual('STEP', self.ENV.get("TAURUS_PWREPORT_GRANULARITY"))
+        self.assertEqual('AUTO', self.ENV.get("TAURUS_PWREPORT_GRANULARITY"))
 
     def test_playwright_noreport_prefix_env_default(self):
         """Test TAURUS_PWREPORT_NOREPORT_PREFIX defaults to empty string"""
@@ -364,6 +364,20 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         })
         self.assertEqual('STEP_LEAF', self.ENV.get("TAURUS_PWREPORT_GRANULARITY"))
 
+    def test_playwright_granularity_env_explicit_auto(self):
+        """Test report-granularity: auto is translated into TAURUS_PWREPORT_GRANULARITY=AUTO"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    "report-granularity": "auto",
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertEqual('AUTO', self.ENV.get("TAURUS_PWREPORT_GRANULARITY"))
+
     def test_playwright_granularity_unknown_value_logs_warning(self):
         """Test an unrecognized report-granularity value is passed through with a warning"""
         self.prepare({
@@ -384,6 +398,7 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         self.assertEqual('BOGUS', self.ENV.get("TAURUS_PWREPORT_GRANULARITY"))
         self.assertTrue(any("Unknown report-granularity" in msg
                              for msg in self.log_recorder.warn_buff.getvalue().split('\n')))
+        self.assertIn("default to AUTO", self.log_recorder.warn_buff.getvalue())
 
     def test_playwright_noreport_prefix_env_from_scenario(self):
         """Test report-exclude-prefix scenario option is passed through to TAURUS_PWREPORT_NOREPORT_PREFIX"""

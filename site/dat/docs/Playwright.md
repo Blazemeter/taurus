@@ -144,19 +144,22 @@ scenarios:
 
 ## Report granularity
 
-By default, Taurus reports one result per first-level `test.step()` call in your test (a step not nested inside
-another step). Use the `report-granularity` scenario option to change this.
+By default (`report-granularity: auto`), Taurus reports step-level detail for a test that uses `test.step()`, and
+one result for the whole test for a test that doesn't. Use the `report-granularity` scenario option to pick a
+different, fixed behavior instead.
 
 Supported values:
-- `step` (default): report each first-level `test.step()` call.
-- `step-leaf`: report each innermost `test.step()` call instead - i.e. the most nested step in each chain.
-- `test`: report one result per whole test; `test.step()` calls are not reported individually.
+- `auto` (default): report step-level detail for a test that uses `test.step()`; report the whole test as one
+  result otherwise.
+- `step`: always report each first-level `test.step()` call.
+- `step-leaf`: always report each innermost `test.step()` call instead - i.e. the most nested step in each chain.
+- `test`: always report one result per whole test; `test.step()` calls are not reported individually.
 
 ```yaml
 scenarios:
     playwright_test:
       script: example.spec.ts
-      report-granularity: step-leaf # step (default), step-leaf, or test
+      report-granularity: step-leaf # auto (default), step, step-leaf, or test
 ```
 
 For example, given this adapted version of the `reserve flight` test:
@@ -175,14 +178,16 @@ test('reserve flight', async ({ page }) => {
   await expect(page).toHaveTitle(/Purchase/);
 });
 ```
-- `step` reports `search flight`.
+- `auto` and `step` both report `search flight`.
 - `step-leaf` reports `select departure city`.
 - `test` reports `reserve flight`.
 
-*NOTE*: Code that runs directly inside a test, outside of any `test.step()` call, is not included in the report when
-using `step` or `step-leaf`. If such a test fails or times out without any `test.step()` call reporting the failure,
-Taurus still reports it as a single result labeled `__untracked_failure__`, instead of dropping it silently. The
-actual test name and failure reason are included in that result's error message.
+*NOTE*: For a test that uses `test.step()`, code outside of those calls is not included in the report when using
+`step`, `step-leaf`, or `auto`. If such a test fails or times out without any `test.step()` call reporting the
+failure, Taurus still reports it as a single result labeled `__untracked_failure__`, instead of dropping it silently.
+The actual test name and failure reason are included in that result's error message. A test that doesn't use
+`test.step()` at all is unaffected by this under `auto` (the default) - it's always reported as one whole-test
+result, whether it passes or fails.
 
 ## Exclude steps from the report
 
