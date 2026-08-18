@@ -192,7 +192,7 @@ class TaurusReporter {
       "error": result.status === 'passed' ? null : "Test failed: " + (result.error ? result.error.message : (result.status === 'interrupted'
           ? 'Interrupted' : 'Unknown error')),
       "runDetails": test.title + ":" + result.parallelIndex + ":" + test.repeatEachIndex
-          + ":" + test.parent.parent?.title,
+          + ":" + test.parent?.parent?.title,
       "logs": test.logs && test.logs.length > 0 ? test.logs.join('\n') : null,
       "byte_count": null,
     };
@@ -217,7 +217,7 @@ class TaurusReporter {
       "expectedStatus": test.expectedStatus,
       "error": `Test "${test.title}" ${result.status}, no step captured it: ${reason}`,
       "runDetails": test.title + ":" + result.parallelIndex + ":" + test.repeatEachIndex
-          + ":" + test.parent.parent?.title,
+          + ":" + test.parent?.parent?.title,
       "logs": test.logs && test.logs.length > 0 ? test.logs.join('\n') : null,
       "byte_count": 0,
     };
@@ -353,7 +353,7 @@ class TaurusReporter {
         "expectedStatus": test.expectedStatus,
         "error": step.error ? "Step failed: " + step.error.message : null,
         "runDetails": test.title + ":" + result.parallelIndex + ":" + test.repeatEachIndex
-            + ":" + test.parent.parent?.title,
+            + ":" + test.parent?.parent?.title,
         "logs": step.logs && step.logs.length > 0 ? step.logs.join('\n') : null,
         "byte_count": null,
       };
