@@ -5,6 +5,7 @@ cssselect
 Cython; python_version >= '3.9'
 fuzzyset2
 hdrpy>=0.3.3
+hdrhistogram>=0.10.3
 lxml>=6.0.0
 progressbar33
 psutil>=7.2.2,<7.3.0

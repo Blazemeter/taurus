@@ -27,6 +27,7 @@ from typing import Optional, NamedTuple
 
 import fuzzyset
 from hdrpy import HdrHistogram, RecordedIterator
+from hdrh.histogram import HdrHistogram as EncodableHdrHistogram
 from yaml import SafeDumper
 from yaml.representer import SafeRepresenter
 
@@ -105,6 +106,12 @@ class SinglePassIterator(RecordedIterator):
 
 
 class RespTimesCounter(JSONConvertible):
+    # Must match the cloud producer (bza-data jetpack: 1h in ms, 1% accuracy) so histograms
+    # merge and decode in the lambdas (hdrh) and Dagger (org.HdrHistogram). Values in ms.
+    ENCODE_LOWEST = 1
+    ENCODE_HIGHEST = 3600000  # 1 hour in milliseconds
+    ENCODE_SIGNIFICANT_FIGURES = 3
+
     def __init__(self, low, high, sign_figures, perc_levels=()):
         super(RespTimesCounter, self).__init__()
         self.low = low
@@ -168,6 +175,16 @@ class RespTimesCounter(JSONConvertible):
             rt / 1000.0: int(count)  # because hdrpy returns int64, which is unrecognized by json serializer
             for rt, count in iteritems(self.get_counts())
         }
+
+    def encode(self):
+        """Encode the response-time distribution as a base64 HdrHistogram (V2) blob for the
+        BlazeMeter pipeline. Values are ms, using the canonical config. Returns a base64 string."""
+        encodable = EncodableHdrHistogram(self.ENCODE_LOWEST, self.ENCODE_HIGHEST, self.ENCODE_SIGNIFICANT_FIGURES)
+        # get_value_counts() yields recorded (value_ms -> count) pairs; valid before percentiles.
+        # Clamp to the ceiling; hdrh drops values above highest_trackable_value otherwise.
+        for value_ms, count in iteritems(self.histogram.get_value_counts()):
+            encodable.record_value(min(int(value_ms), self.ENCODE_HIGHEST), int(count))
+        return encodable.encode().decode("ascii")
 
     def __grow(self, newsize):
         log.debug("Growing HDR from %s to %s", self.high, newsize)
