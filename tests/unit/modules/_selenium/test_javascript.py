@@ -324,6 +324,96 @@ class TestPlaywrightExecutor(SeleniumTestCase):
         })
         self.assertEqual('true', self.ENV.get("TAURUS_PWREPORT_STDOUT"))
 
+    def test_playwright_granularity_env_default(self):
+        """Test TAURUS_PWREPORT_GRANULARITY defaults to AUTO"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertEqual('AUTO', self.ENV.get("TAURUS_PWREPORT_GRANULARITY"))
+
+    def test_playwright_noreport_prefix_env_default(self):
+        """Test TAURUS_PWREPORT_NOREPORT_PREFIX defaults to empty string"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertEqual('', self.ENV.get("TAURUS_PWREPORT_NOREPORT_PREFIX"))
+
+    def test_playwright_granularity_env_from_scenario(self):
+        """Test report-granularity scenario option is translated into TAURUS_PWREPORT_GRANULARITY"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    "report-granularity": "step-leaf",
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertEqual('STEP_LEAF', self.ENV.get("TAURUS_PWREPORT_GRANULARITY"))
+
+    def test_playwright_granularity_env_explicit_auto(self):
+        """Test report-granularity: auto is translated into TAURUS_PWREPORT_GRANULARITY=AUTO"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    "report-granularity": "auto",
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertEqual('AUTO', self.ENV.get("TAURUS_PWREPORT_GRANULARITY"))
+
+    def test_playwright_granularity_unknown_value_logs_warning(self):
+        """Test an unrecognized report-granularity value is passed through with a warning"""
+        self.prepare({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    "report-granularity": "bogus",
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.sniff_log(self.obj.runner.log)
+        self.obj.engine.start_subprocess = self.start_subprocess
+        self.obj.startup()
+        self.obj.post_process()
+
+        self.assertEqual('BOGUS', self.ENV.get("TAURUS_PWREPORT_GRANULARITY"))
+        self.assertTrue(any("Unknown report-granularity" in msg
+                             for msg in self.log_recorder.warn_buff.getvalue().split('\n')))
+        self.assertIn("default to AUTO", self.log_recorder.warn_buff.getvalue())
+
+    def test_playwright_noreport_prefix_env_from_scenario(self):
+        """Test report-exclude-prefix scenario option is passed through to TAURUS_PWREPORT_NOREPORT_PREFIX"""
+        self.simple_run({
+            'execution': {
+                'iterations': 1,
+                'scenario': {
+                    "script": RESOURCES_DIR + "playwright",
+                    "report-exclude-prefix": "NOREPORT:",
+                },
+                'executor': 'playwright',
+            },
+        })
+        self.assertEqual('NOREPORT:', self.ENV.get("TAURUS_PWREPORT_NOREPORT_PREFIX"))
+
     def test_playwright_reporter_sanitization(self):
         """Test that reporter names are sanitized (spaces, quotes, etc. removed)"""
         self.simple_run({

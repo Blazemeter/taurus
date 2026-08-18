@@ -141,3 +141,77 @@ scenarios:
       reporters: # Your list of additional reporters
       - json
 ```
+
+## Report granularity
+
+By default (`report-granularity: auto`), Taurus reports step-level detail for a test that uses `test.step()`, and
+one result for the whole test for a test that doesn't. Use the `report-granularity` scenario option to pick a
+different, fixed behavior instead.
+
+Supported values:
+- `auto` (default): report step-level detail for a test that uses `test.step()`; report the whole test as one
+  result otherwise.
+- `step`: always report each first-level `test.step()` call.
+- `step-leaf`: always report each innermost `test.step()` call instead - i.e. the most nested step in each chain.
+- `test`: always report one result per whole test; `test.step()` calls are not reported individually.
+
+```yaml
+scenarios:
+    playwright_test:
+      script: example.spec.ts
+      report-granularity: step-leaf # auto (default), step, step-leaf, or test
+```
+
+For example, given this adapted version of the `reserve flight` test:
+```javascript
+test('reserve flight', async ({ page }) => {
+  await page.goto('/');
+
+  await test.step('search flight', async () => {
+    await test.step('select departure city', async () => {
+      await page.getByRole('button', { name: 'Find Flights' }).click();
+    });
+    await expect(page).toHaveTitle(/reserve/);
+  });
+
+  await page.getByRole('button', { name: 'Choose This Flight' }).nth(1).click();
+  await expect(page).toHaveTitle(/Purchase/);
+});
+```
+- `auto` and `step` both report `search flight`.
+- `step-leaf` reports `select departure city`.
+- `test` reports `reserve flight`.
+
+*NOTE*: For a test that uses `test.step()`, code outside of those calls is not included in the report when using
+`step`, `step-leaf`, or `auto`. If such a test fails or times out without any `test.step()` call reporting the
+failure, Taurus still reports it as a single result labeled `__untracked_failure__`, instead of dropping it silently.
+The actual test name and failure reason are included in that result's error message. A test that doesn't use
+`test.step()` at all is unaffected by this under `auto` (the default) - it's always reported as one whole-test
+result, whether it passes or fails.
+
+## Exclude steps from the report
+
+Use the `report-exclude-prefix` scenario option to exclude tests or `test.step()` calls whose title starts with the
+given prefix - useful for excluding setup steps you don't want counted in your results. By default no prefix is set,
+so nothing is excluded.
+
+```yaml
+scenarios:
+    playwright_test:
+      script: example.spec.ts
+      report-exclude-prefix: 'NOREPORT:'
+```
+
+```javascript
+test('has title', async ({ page }) => {
+  await test.step('NOREPORT: warm up', async () => {
+    await page.goto('/');
+  });
+
+  await test.step('verify title', async () => {
+    await expect(page).toHaveTitle(/BlazeDemo/);
+  });
+});
+```
+With this configuration, only `verify title` appears in the report - `NOREPORT: warm up` is excluded. If an excluded
+test or step contains nested `test.step()` calls, those are excluded too.
