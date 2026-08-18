@@ -90,3 +90,8 @@ Executors write results to files (JTL, CSV, etc.). Each executor attaches a `Res
 - `tests/unit/mocks.py` — `EngineEmul` (in-memory engine for tests), mock readers, fake data generators
 
 Tests inherit from `BZTestCase`, construct an `EngineEmul`, load YAML fixtures from `tests/resources/`, and assert on engine state or output files.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

@@ -3,3 +3,10 @@ include NOTICE
 include requirements.txt
 include bzt/bzt-configs.json
 recursive-include bzt/resources *
+
+prune .claude
+prune .specify
+prune specs
+global-exclude .claude/*
+global-exclude .specify/*
+global-exclude specs/*
