@@ -1392,7 +1392,7 @@ class JTLErrorsReader(object):
                 continue
             for url in subsample.iterchildren("java.net.URL"):  # the sub-sample's own URL, not its children's
                 if url.text:
-                    url_counts[url.text] = 1  # URL counts must not exceed the count of the error itself
+                    url_counts[url.text] = 1  # avoid overcounting when multiple failing sub-samples share the same URL
                 break
         return url_counts
 
