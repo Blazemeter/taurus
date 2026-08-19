@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.17.0<sup> 15 June 2026</sup>
+## 1.17.0<sup> 17 August 2026</sup>
 - Improved response-time percentile accuracy for externally-executed tests reported to BlazeMeter
 - Dependency updates & fixes
 
