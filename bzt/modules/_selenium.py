@@ -259,9 +259,6 @@ class WebDriver(RequiredTool):
         # version from yml config (override)
         settings_version = settings.get("version")
 
-        # latest if no override in settings
-        latest_version = self._get_latest_version(driver_name)
-
         # try to use latest existed...
         drivers_dir = os.path.join(base_dir, 'drivers', driver_name)
         drivers_dir_content = os.path.exists(drivers_dir) and os.listdir(drivers_dir)
@@ -274,7 +271,12 @@ class WebDriver(RequiredTool):
         # decide, which version to use:
         if not self._is_running_in_cloud():
             version = settings_version
-        version = version or installed_version or latest_version
+        version = version or installed_version
+
+        # only fetch latest version from network if no version resolved yet
+        if not version:
+            latest_version = self._get_latest_version(driver_name)
+            version = latest_version
 
         version = str(version)  # let's fix reading version as number from yaml
         self.log.info(f'Used version of {driver_name} is {version}')
@@ -336,7 +338,8 @@ class ChromeDriver(WebDriver):
         try:
             if (chrome_milestone):
                 response = requests.get(
-                    'https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone.json')
+                    'https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone.json',
+                    timeout=10)
                 data = response.json()
                 milestone_version = data["milestones"].get(str(chrome_milestone), {"version": None})["version"]
                 if milestone_version:
@@ -344,12 +347,13 @@ class ChromeDriver(WebDriver):
 
             # Unable to detect chrome version / or find milestone, download driver for latest stable version
             response = requests.get(
-                'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json')
+                'https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json',
+                timeout=10)
             data = response.json()
             stable_version = data["channels"]["Stable"]["version"]
             return stable_version
         except Exception as e:
-            print("An error occurred:", e)
+            self.log.warning("Failed to get latest chromedriver version: %s", e)
             return self.VERSION
 
     def _get_arch_and_ext_for_chromedriver(self):
@@ -402,7 +406,8 @@ class GeckoDriver(WebDriver):
         "https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}"
 
     def _get_latest_version_from_inet(self):
-        return requests.get("https://api.github.com/repos/mozilla/geckodriver/releases/latest").json()["name"]
+        return requests.get("https://api.github.com/repos/mozilla/geckodriver/releases/latest",
+                            timeout=10).json()["name"]
 
     def _expand_download_link(self):
         if is_windows():

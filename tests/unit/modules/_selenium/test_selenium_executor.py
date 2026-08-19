@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import shutil
+from unittest.mock import patch
 
 import yaml
 from io import BytesIO
@@ -456,3 +457,14 @@ class TestReportReader(BZTestCase):
         self.assertEqual("https://chromedriver.storage.googleapis.com"
                          "/110.0.5481.77/chromedriver_" + arch + ".zip",
                          chrome_driver.download_link)
+
+    @patch('bzt.modules._selenium.requests.get')
+    def test_chromedriver_version_fallback_on_network_error(self, mock_get):
+        mock_get.side_effect = Exception("Connection timed out")
+        log = logging.getLogger('')
+        driver = ChromeDriver(settings={}, log=log)
+        # When network fails and no installed version, should fall back to VERSION constant
+        version = driver._get_latest_version_from_inet()
+        self.assertEqual(version, ChromeDriver.VERSION)
+        # Verify requests.get was called (and failed)
+        mock_get.assert_called()
