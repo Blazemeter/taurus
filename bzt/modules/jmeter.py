@@ -1357,11 +1357,13 @@ class JTLErrorsReader(object):
         if f_type == KPISet.ERRTYPE_SUBSAMPLE:
             url_counts = Counter({f_url: 1})
         else:
-            urls = elem.xpath(self.url_xpath)
-            if urls:
-                url_counts = Counter({urls[0].text: 1})
-            else:
-                url_counts = Counter()
+            url_counts = Counter()
+            if f_type != KPISet.ERRTYPE_ASSERT:  # assertion belongs to the sample itself, not to a sub-sample
+                url_counts = self._get_failed_subsample_urls(elem, r_code)
+            if not url_counts:
+                urls = elem.xpath(self.url_xpath)
+                if urls:
+                    url_counts = Counter({urls[0].text: 1})
 
         err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag, f_response_data)
         buf = self.buffer.get(t_stamp, force_set=True)
@@ -1374,6 +1376,25 @@ class JTLErrorsReader(object):
 
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
+
+    def _get_failed_subsample_urls(self, elem, r_code):
+        """
+        Get URLs of failed sub-samples that carry the response code reported by the sample
+
+        With 'Generate parent sample' enabled, JMeter copies the response code of a failed sub-sample onto
+        the transaction sample, so the transaction looks like a failure of its own and `url_xpath` reports
+        the URL of the transaction's first request instead of the one that actually failed. Samples without
+        sub-samples find nothing here, so their own URL is used, as before.
+        """
+        url_counts = Counter()
+        for subsample in elem.iterdescendants("httpSample", "sample"):
+            if subsample.get("s") != "false" or subsample.get("rc") != r_code:
+                continue
+            for url in subsample.iterchildren("java.net.URL"):  # the sub-sample's own URL, not its children's
+                if url.text:
+                    url_counts[url.text] = 1  # URL counts must not exceed the count of the error itself
+                break
+        return url_counts
 
     def _should_not_collect_error_response(self, response_hash: int) -> bool:
         if len(self._collected_error_responses) == self.error_response_bodies_limit:
