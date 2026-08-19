@@ -34,3 +34,4 @@ examples/local*
 bzt/20*
 bzt/runtest/**
 .worktrees
+.specify/feature.json
