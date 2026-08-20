@@ -24,6 +24,9 @@ End-to-end vulnerability management for the Taurus Docker image. Fetches the lat
 
 ## Common Mistakes
 
+- **Triggering `taurus-community-master` (the publish job) without explicit approval** — it overwrites the public `unstable` tag and notifies the team channel. "I want the CVE gone" is NOT approval to publish; ask, state the side effects, and wait for a yes
+- **Trying to publish with `taurus-branch-builder`** — it only pushes to internal GCR, never Docker Hub, so its image can't be consumed by taurus-cloud (`FROM blazemeter/taurus`). Nothing can promote a branch image; only `taurus-community-master` publishes
+- **Reporting "nothing to do" when the real answer is "rebuild"** — a finding already covered by an unpinned Dockerfile line, whose patch was published after the image was built, needs no code change but is not "nothing". Classify it as R (category 4) and say so
 - Triggering a new scan when a valid one already exists (one already ran **today (UTC)** and after the last `unstable` push) — always check first
 - **Fixing JMeter/Gatling-bundled CVEs** — any finding whose `Path` is under `/root/.bzt/jmeter-taurus/` or `/root/.bzt/gatling-taurus/` is out of scope. Do not repin jars and **do not bump `JMeter.VERSION` / `Gatling.VERSION`** (a version bump is a JMeter/Gatling fix). List them only.
 - Auto-fixing scanner appeasement CVEs (`.deps.json`, `/var/lib/dpkg/` paths) — these must always be flagged as manual
@@ -64,7 +67,7 @@ These two are **optional and best-effort**: if either is unset, the skill **skip
 
 ## Fix classification rules
 
-Before applying any fix, classify each CVE **by its `Path`** (the path is the definitive identifier of what the vulnerable component belongs to). Apply the categories in this order — the first match wins:
+Before applying any fix, classify each CVE **by its `Path`** (the path is the definitive identifier of what the vulnerable component belongs to). Apply the categories in this order — the first match wins, with **one exception**: a finding that matches category 3 (auto-fixable) must ALSO be tested against **category 4 (rebuild-clearable)** before any fix is applied. Category 4 is not reached by first-match-wins — it is a mandatory gate on category 3, because an R finding looks exactly like an auto-fixable one and "fixing" it produces a brittle pin for something already handled.
 
 **1. JMeter / Gatling bundled → DO NOT FIX, monitor only:**
 - `Path` contains `/root/.bzt/jmeter-taurus/` (e.g. `/root/.bzt/jmeter-taurus/5.5/lib/tika-core-1.28.3.jar`)
@@ -78,20 +81,64 @@ These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjav
 
 **3. Auto-fixable → apply automatically (remaining CVEs where `Fix Status` starts with `fixed in`):**
 
+> ⚠️ **Gate first:** before applying anything from this table, run the **category-4 (rebuild-clearable)** check below. If the finding is R, it needs **no change at all** — stop here for that finding.
+
 | Path pattern | Fix type | Where to fix |
 |---|---|---|
 | `/root/.bzt/newman/node_modules/` | npm override | Dockerfile newman `package.json` printf block |
 | `/root/.bzt/selenium-taurus/mocha/node_modules/` | npm override | Dockerfile mocha `package.json` printf block |
 | `/root/.bzt/selenium-taurus/*/node_modules/` | npm direct package | `bzt/modules/javascript.py` PACKAGE_NAME constant |
-| `/usr/lib/node_modules/npm/node_modules/` | npm-internal bundled dep | bump global npm (`npm i -g`); if the latest npm still bundles the vulnerable version → **monitor**. There is **no clean in-place override** (see "npm-internal bundled deps" section) |
+| `/usr/lib/node_modules/npm/node_modules/` | npm-internal bundled dep | Check the **latest** npm's lockfile: if it bundles the fixed version → **R** (the existing `npm i -g npm@11` picks it up on rebuild); if it still bundles the vulnerable version → **monitor** (no upstream fix reachable). There is **no clean in-place override** (see "npm-internal bundled deps" section) |
 | `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem install <gem> -v <fixed>` + default-gem/cache cleanup (see Ruby gems section) |
-| empty path or OS path (`/usr/lib/`, `/lib/`) — **excluding** `/usr/lib/node_modules/npm/node_modules/` (npm-internal, see row above) | OS package | Dockerfile `apt-get install --only-upgrade` |
+| empty path or OS path (`/usr/lib/`, `/lib/`) — **excluding** `/usr/lib/node_modules/npm/node_modules/` (npm-internal, see row above) | OS package | **First check category 4 (R).** If not R → add the package to the Dockerfile's existing **unpinned** `--only-upgrade` list (see OS packages section) |
 | Python pkg, `Path` under `/usr/local/lib/python3.x/...` | Python package | `requirements.txt` (feeds the wheel's `install_requires`) or a dedicated Dockerfile `pip install` step — **classify into 5 cases**, see Python section |
 | Python pkg, `Path` under `/usr/lib/python3/dist-packages/...` | distro Python (apt) | Dockerfile `apt-get install --only-upgrade`/`apt-get purge` (NOT `requirements.txt`) |
 
 > **Note:** the `/root/.bzt/jmeter-taurus/*` and `/root/.bzt/gatling-taurus/*` paths are intentionally **absent** from this auto-fixable table — they belong to category 1 (do not fix). Do not reintroduce JMeter/Gatling jar fixes or version bumps.
 
 CVEs where `Fix Status` is not `fixed in ...` (e.g. `needed`, `deferred`, or empty) → display only, do not attempt to fix.
+
+**4. Rebuild-clearable (R) → NO code change; a republish of current master clears it.**
+
+A finding can be `fixed in <v>` and fully handled by the repo *already*, yet still show up — because the image is **older than the patch**. The Dockerfile resolves several things at build time rather than pinning them (`apt-get install --only-upgrade <pkgs>` with no version pins, `npm i -g npm@11`, `bzt -install-tools`, `FROM ubuntu:24.04`), and `Jenkinsfile` builds with `--no-cache`. So **identical code produces a different image at a different time.** Nothing to fix — the fix is already in the Dockerfile; the published image just predates it.
+
+Classify a finding as **R** when ALL of these hold:
+- `Fix Status` starts with `fixed in`, and
+- the package is **already covered by an unpinned line** (it's in the `--only-upgrade` list, or comes from `npm i -g`, `bzt -install-tools`, or the base image), and
+- a release containing the fix **exists upstream now** and the unpinned line would pick it up on a rebuild, and
+- the fixed version was **published after the scanned image's build started**.
+
+> **R vs monitor — the distinguishing test.** Both mean "no code change", so keep them apart: the fix **exists now** and an existing unpinned line would install it → **R** (a rebuild clears it). The fix does **not** exist in any release that line would pick up → **monitor** (nothing clears it yet). *Example:* `undici` was monitor while npm bundled the old version, and became R once an npm release bundled the fix. In scan #203 the npm-internal findings (ip-address, brace-expansion, undici, tar) were **monitor**, because npm 11.19.0 *and* 12.0.2 both still bundled the vulnerable versions.
+
+**Compare against the BUILD START, not the push.** The publishing pipeline runs the Prisma scan and the full integration suite between `docker build` and `docker image push` — 30–60 min. A patch published 20 minutes before the push is still absent from the image, so using the push time misclassifies it as "not R" and sends you down the pin path.
+
+```bash
+# (a) build-start time of the build that produced the scanned image
+curl -sL -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
+  "https://blazect-jenkins.blazemeter.com/job/taurus-community-master/api/json?tree=builds%5Bnumber%2Ctimestamp%2Cresult%5D" \
+  | python3 -c "import json,sys,datetime; d=json.load(sys.stdin); [print(b['number'], datetime.datetime.utcfromtimestamp(b['timestamp']/1000)) for b in d['builds'][:5]]"
+# (b) when the fixed version hit the Ubuntu pocket — OS packages only.
+#     <pkg> must be the BINARY package name (Prisma reports the SOURCE name:
+#     source `libheif` ships binary `libheif1`; `binary_name=libheif` returns NOTHING).
+curl -s "https://api.launchpad.net/1.0/ubuntu/+archive/primary?ws.op=getPublishedBinaries&binary_name=<binary-pkg>&exact_match=true&version=<fixed-version>&status=Published" \
+  | python3 -c "import json,sys; [print(e['pocket'], e['date_published']) for e in json.load(sys.stdin)['entries']]"
+```
+Expect **several rows** (one per architecture, and per `Security`/`Updates` pocket) — that's normal; read the earliest `date_published`. Get the binary name from the Dockerfile's `--only-upgrade` list (that's the name apt installs).
+
+**Evidence required per source — an R claim without evidence is not allowed:**
+| Source | Evidence that the fix exists and post-dates the build |
+|---|---|
+| OS package (apt) | Launchpad `date_published` (above) |
+| npm-internal (`npm i -g npm@11`) | the npm/cli lockfile check in the "npm-internal bundled deps" section — confirm the **latest** npm bundles the fixed version |
+| `bzt -install-tools` npm packages | the registry's published version + its release date |
+| base image | the `ubuntu:24.04` tag's own push time on Docker Hub |
+
+**Decide — and bias every ambiguity toward changing nothing:**
+- fix published **after** build start → **R**. Report it; do **not** add a version pin (brittle — the build breaks when Ubuntu supersedes that exact version and drops it from the pocket).
+- fix published **before** build start and still flagged → **NOT R**. The fix isn't landing (stale layer, or the package isn't in the unpinned list). Treat it as auto-fixable and act — add the package to the existing unpinned list.
+- **evidence missing, empty (`entries: []`), or the date falls inside the build→push window → INCONCLUSIVE. Classify as monitor, change nothing, and say it was inconclusive.** Never resolve ambiguity by adding a pin.
+
+*Worked example (2026-08-20, scan #203):* libheif `1.17.6-1ubuntu4.6` flagged, fixed in `1ubuntu4.7`. `libheif1` was already in the unpinned upgrade list, and all three timestamps line up in this order on 2026-08-19: the image's build **started 12:06:22Z** (`taurus-community-master` #14894), it was **pushed 12:30:07Z**, and only then did noble-security **publish the fix at 12:36:56Z** — i.e. **the patch did not yet exist while the image was being built**, so no version of that image could contain it. Correct action: zero code changes, republish. Confirmed by scan #204 on the republished image: 295 → 294, libheif gone, nothing new.
 
 ## Steps
 
@@ -181,7 +228,7 @@ Display a table with columns:
 - CVSS
 - Package + Version
 - Fix Status
-- Fix Type (`auto-fix` / `jmeter-gatling (out of scope)` / `manual` / `no fix available`)
+- Fix Type (`auto-fix` / `rebuild-clearable` / `jmeter-gatling (out of scope)` / `manual` / `no fix available`)
 
 #### Reporting rule — lead with "fixable detected → fixed", never the raw total
 
@@ -189,14 +236,15 @@ The raw scan total (e.g. 290) is **misleading** as a headline: the large majorit
 
 **Headline (use everywhere):**
 > **Fixable in taurus, this run: `<X>` detected → `<Y>` fixed.**
+> **Rebuild-clearable: `<R>`** — no code change needed; a republish of current master clears these (omit the line when `R = 0`).
 
 Counting basis — X and Y are **distinct CVEs**:
-- **X** = distinct in-scope **fixable-in-taurus** CVEs at baseline: `Fix Status` starts with `fixed in`, AND NOT JMeter/Gatling, AND NOT Ubuntu Pro ESM (`+esmN`/`~esm1`), AND NOT a binary-internal lib (k6 Go libs under `/usr/bin/k6`), AND NOT distro pip apt can't reach, AND NOT scanner-appeasement (`.deps.json`/Roslyn, `/var/lib/dpkg` — those are manual, classification category 2, and belong in Z). (Includes the items we then defer/skip for cause — setuptools-vendored, breaking npm major jumps, low-value — so the denominator is honest about what was *considered*.)
+- **X** = distinct in-scope **fixable-in-taurus** CVEs at baseline: `Fix Status` starts with `fixed in`, AND NOT JMeter/Gatling, AND NOT Ubuntu Pro ESM (`+esmN`/`~esm1`), AND NOT a binary-internal lib (k6 Go libs under `/usr/bin/k6`), AND NOT distro pip apt can't reach, AND NOT a JDK finding whose only fix is a later Java major (`/usr/lib/jvm/…`, `fixed in 22.0.1, 18, 12` — no 11.x fix exists), AND NOT scanner-appeasement (`.deps.json`/Roslyn, `/var/lib/dpkg` — those are manual, classification category 2, and belong in Z). (Includes the items we then defer/skip for cause — setuptools-vendored, breaking npm major jumps, low-value — so the denominator is honest about what was *considered*.)
 - **Y** = the subset whose old version is **confirmed gone in the branch re-scan** through this repo's own `Dockerfile` / `requirements.txt` (a change made this run, or an existing unpinned line that picked up the fix). If `Y < X`, list which didn't land and why.
 
 Every finding lands in **exactly one** bucket so nothing is silently omitted:
 - **Fixed (Y)** — verified gone in the branch image.
-- **Fixable but did NOT land (X − Y)** — deferred/skipped for cause, or attempted-but-failed.
+- **Fixable but did NOT land (X − Y)** — deferred/skipped for cause, or attempted-but-failed. **R (rebuild-clearable) is a *labeled subset of this bucket*, not a fourth bucket** — an R finding is in X (it is fixed-in and in scope) and not in Y (no code change landed it this run), but it is NOT "deferred for cause": label it "clears on rebuild, no code change". So `X`, `Y` and `Z` still partition every finding; `R` only tags some of `X − Y`, and must never be added to X, Y or Z as an extra count.
 - **Not actionable in this repo (Z)** — collapse into **ONE categorized count, never a per-CVE scoreboard**: monitor-only JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, no-released-patch (open/needed/deferred), Ubuntu ESM, scanner-appeasement/manual (`.deps.json`/Roslyn, `/var/lib/dpkg`).
 
 **taurus IS the base image** — there is no "base image tag bump" and no "base-owned (cleared by a base tag)" bucket; those exist only in taurus-cloud (which builds `FROM blazemeter/taurus`). Omit them here.
@@ -214,7 +262,9 @@ Gather all CVEs where:
 - `Fix Status` starts with `fixed in`
 - Path does NOT match scanner appeasement patterns
 
-If there are no auto-fixable CVEs → report that and list any manual items, then stop.
+If there are no auto-fixable CVEs → report that and list any manual items. ("No auto-fixable CVEs" means *after* the category-4 gate has run: R findings start out looking auto-fixable and are removed from that set by the gate, so a run can legitimately reach this branch with `R > 0`.)
+
+**Before stopping, report any R (rebuild-clearable) findings** — see classification category 4. "Nothing to fix in the repo" and "a republish removes N CVEs" are **both** true at the same time, and stopping without mentioning R leaves a real, zero-code win on the table (and leaves taurus-cloud consuming a stale image). If `R > 0`, report it and follow "Republishing to clear R findings" below instead of just stopping.
 
 ### 7. Apply all auto-fixes
 
@@ -352,13 +402,20 @@ When a CVE is in a .NET SDK component:
 
 When a CVE is in a system package (path is empty or in `/usr/`, `/lib/`, `/bin/`):
 
-1. Look up the fixed package version on NVD
-2. Add a targeted upgrade in the Dockerfile at the `FROM system-deps` stage, after the main `apt-get install` block:
+0. **Run the category-4 (R) check first.** If the fixed version was published after the image's build started, the finding is **R** — no change at all. Only continue if it is NOT R.
+1. Look up the fixed package version on NVD, and confirm it exists in a noble pocket.
+2. **Default fix — add the binary package to the existing UNPINNED `--only-upgrade` list** in the `FROM system-deps` stage (the block whose comment ends `# remove each when the base image ships the fixed version natively`). Append the package name only, **no `=<version>`**, and add its CVE to that block's comment:
    ```dockerfile
-   # Fix <CVE-ID>: upgrade <package> to <fixed-version>
-   RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade <package>=<fixed-version>
+   # ... existing comment block: document "<pkg>: <CVE-ID> (-> <fixed-version>)"
+   RUN apt-get update && \
+       apt-get install -y --no-install-recommends --only-upgrade \
+           <existing packages> \
+           <new-package> && \
+       rm -rf /var/lib/apt/lists/*
    ```
-   Use `--no-install-recommends` (consistent with the rest of the Dockerfile — keeps upgrades from pulling extra recommended packages).
+   Unpinned is deliberate and self-maintaining: it always resolves to the pocket's current version, so it can't break when Ubuntu supersedes a version, and it keeps working for future CVEs in the same package. Editing this block also busts its layer cache, which is what makes the upgrade actually re-resolve.
+3. **Exact pin — last resort only.** A pinned `--only-upgrade <package>=<fixed-version>` in its own `RUN` is acceptable *only* when you must guarantee one specific version and have accepted the cost: **the build breaks the moment Ubuntu supersedes that exact version and drops it from the pocket.** If you do it, add a `# remove when …` marker. Never use a pin to "force" something the unpinned list already covers — that's the R mistake.
+   Use `--no-install-recommends` in either form (consistent with the rest of the Dockerfile — keeps upgrades from pulling extra recommended packages).
 
 ---
 
@@ -549,6 +606,11 @@ curl -sL -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
 
 Strip ANSI codes and count rows by severity (`critical`/`high`/`medium`/`low`). **Parse the whole table — it is large; do not truncate the byte range.**
 
+> **Method-mismatch caveat (reconciles with the "compare CSV to CSV" rule in the republish section).** This step compares a twistcli **console-table parse** against the baseline **`taurus.csv`** — two different extraction methods, which can differ by a row or two on identical content. That does not invalidate this gate, but it does set which signal is authoritative:
+> - **Check 1 (per-package verification) is authoritative** — "is `<pkg> <old-version>` still listed?" is a presence test, immune to counting differences. Never override it with an aggregate.
+> - **The aggregate is corroboration.** A double-digit reduction is real. If the total moves by only **1–3** in either direction, treat it as **inconclusive, not a result**: re-run `prisma-cloud-ondemand-scan` on the branch image (or compare only per-package presence) before letting the gate decide.
+> - The strict "CSV to CSV" rule applies to **judging small deltas and to verifying a republish** — not to this step's coarse pass/fail.
+
 Then do two checks:
 
 1. **Per-fix verification** — for every package you fixed, confirm its vulnerable version is **no longer flagged** in the branch scan. If a package is still flagged at the old version (e.g. `net-imap 0.5.8`), that fix did NOT land — diagnose it (see the default-gem caveat under "Ruby gems") before proceeding.
@@ -569,7 +631,7 @@ Site / cloudId: `perforce.atlassian.net` = `2accdbdb-9d65-4c22-b174-5d4a9d437c59
 | Project | `MOB` |
 | Issue type | `Story` |
 | Summary | generic, e.g. `Fix CVE vulnerabilities in blazemeter/taurus Docker image (YYYY-MM-DD)` |
-| Description | Lead with the **fixable-detected/fixed framing** (see step 5's reporting rule): `Fixable in taurus, this run: <X> detected → <Y> fixed.` Then the table of CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity). Collapse everything not-actionable-here into **one categorized count** (`Z`) — never a per-CVE scoreboard. The raw baseline→branch total may appear only as a parenthetical (with at least crit/high) — never as the opening number, and never asserted to sum with X/Y. |
+| Description | Lead with the **fixable-detected/fixed framing** (see step 5's reporting rule): `Fixable in taurus, this run: <X> detected → <Y> fixed.` — plus `Rebuild-clearable: <R>` when `R > 0` (labeled subset of `X − Y`; never an extra count). Then the table of CVEs fixed and confirmed in the branch image (CVE ID, package, old → new, severity). Collapse everything not-actionable-here into **one categorized count** (`Z`) — never a per-CVE scoreboard. The raw baseline→branch total may appear only as a parenthetical (with at least crit/high) — never as the opening number, and never asserted to sum with X/Y. |
 | Assignee | **the developer running the skill** — `atlassianUserInfo` accountId; never hardcode a person |
 | Labels | `["ai_assisted"]` |
 | **Scrum Team** (`customfield_10067`) | **required on create** — hardcoded to **Sparta**, option id `21405` |
@@ -640,7 +702,7 @@ Keeping 15b separate is deliberate: a bad `--reviewer` on `gh pr create` can fai
 
 PR body should include (apply the step-5 reporting rule — **lead with fixable-detected/fixed, not the raw total**):
 - **Jira:** `<MOB-XXXXX>` (the ticket created above).
-- **Headline first — Fixable in taurus, this run: `<X>` detected → `<Y>` fixed.** Distinct CVEs; count only this repo's own `Dockerfile` / `requirements.txt` fixes confirmed gone in the branch scan. This is the opening line — do **not** open with the raw total or any JMeter/Gatling count. If `Y < X`, list which didn't land and why.
+- **Headline first — Fixable in taurus, this run: `<X>` detected → `<Y>` fixed.** Distinct CVEs; count only this repo's own `Dockerfile` / `requirements.txt` fixes confirmed gone in the branch scan. This is the opening line — do **not** open with the raw total or any JMeter/Gatling count. If `Y < X`, list which didn't land and why. Add `**Rebuild-clearable: <R>**` when `R > 0`, noting these need no code change and clear on the next master build (labeled subset of `X − Y`, never an extra count).
 - Table of the fixed CVEs: CVE ID, severity, package, old version → new version.
 - Note: "Verified against the `taurus-branch-builder` image scan (build #<BUILD>) before opening — integration passed."
 - Local code-review outcome (from step 12): which review comments were applied vs kept, and why.
@@ -736,6 +798,54 @@ Non-fatal errors to note but never block on: `not_in_channel` (invite the bot to
 
 > **Format is intentionally minimal and shared.** The same bot ("Sparta Scan") and the same format are reused by the taurus-cloud skills (`prisma-taurus-cloud` and `mend-taurus-cloud`, with a `Mend` tag instead of `Prisma`) and across repos (the link text is `<repo> #<PR>`). Keep the header/emoji/grouping identical so the channel reads consistently — only the scan-type tag and repo name differ.
 
+### Republishing to clear R findings (no code change) — RECOMMEND, never auto-run
+
+> **Reference section, NOT a numbered step.** Despite sitting between steps 17 and 18, this is never "the next step" in the flow. Consult it whenever `R > 0` — which is reachable from **step 5** (the headline reports R), **step 6** (the no-auto-fixes branch), and **step 19** (the final summary). In a mixed run (some auto-fixable CVEs *and* `R > 0`) the numbered flow runs 7 → 17 and never lands here, so the R report itself is what must bring you back.
+
+**The only job that publishes to Docker Hub is `taurus-community-master`.** Get this right — it cost a wasted 45-minute build once:
+
+| Job | Pushes to | Can publish `blazemeter/taurus`? |
+|---|---|---|
+| `taurus-community-master` | Docker Hub, via the `dockerhub-access` credential — `docker image push --all-tags blazemeter/taurus`, tagging `unstable` + `master-<sha>-<date>` | **YES — the only one** |
+| `taurus-branch-builder` | internal GCR only (`push_docker` = *"Push docker image to GCP?"*, `public_docker` = *"Push docker image to public **GCP**?"*) | **NO** — never touches Docker Hub |
+
+There is **no promote/copy path**: no job takes an existing image and pushes it, and the master job hardcodes `docker build --no-cache`, so it always builds its own. A branch-builder image **cannot** be turned into a published one. Don't try.
+
+**⚠️ Require explicit human approval before triggering it.** This is an outward-facing publish: it overwrites the public `unstable` tag, creates a new `master-<sha>-<date>` tag, notifies `#bm-taurus-dev` on Slack, and takes ~45–60 min. **State the side effects and wait for a clear yes** — do not infer approval from "I want the CVE gone" or "I want it published later". Triggering it unasked is a process violation, not a shortcut.
+
+**Default recommendation: usually don't.** Say *"this clears itself on the next merge to master"* and only advise forcing a republish when:
+- a release or a taurus-cloud build is imminent and needs the fix now, or
+- R contains something with real severity (a high/critical). A single CVSS-0 medium does **not** justify a public republish.
+
+If approved:
+```bash
+curl -s -o /dev/null -D - -X POST -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
+  "https://blazect-jenkins.blazemeter.com/job/taurus-community-master/buildWithParameters?PERFORM_PRISMA_SCAN=true"
+```
+`PERFORM_PRISMA_SCAN=true` is already the job's default; pass it explicitly anyway so the run is recorded in the Prisma Cloud console — but do **not** plan to verify from it (see below).
+
+Then follow the same pattern as every other trigger in this skill: capture the `Location:` header → poll the queue item for `executable.number` → poll `.../taurus-community-master/<BUILD>/api/json?tree=building,result` every 30 s. Expect **~45–60 min** (`--no-cache` rebuild + scan + integration). **If the build ends `FAILURE`, nothing was published** — say so plainly and do NOT claim R cleared; give the console URL.
+**🚫 Never publish in a non-interactive run.** If the run is headless/cron (no human who can approve), do **not** trigger this job under any circumstance — report R and stop. The approval gate above assumes someone is present to say yes.
+
+**Check for a release tag first — on a release commit a republish does NOT clear R.** `Jenkinsfile` sets:
+```groovy
+extraImageTag = isRelease ? "${imageName}:${tagName} -t ${imageTag} -t ${imageName}:latest"
+                          : "${imageName}:unstable -t ${imageTag}"
+```
+So when `isRelease` is true, **`unstable` is never built or pushed** — the very tag the scan targets is untouched, R does not clear, *and* the job additionally uploads to PyPI, moves `:latest`, and deploys the website. If the tag is non-empty: **do not recommend a republish; wait for the next non-release merge.** Check against the remote, not a possibly-stale local checkout:
+```bash
+git fetch --tags && git tag --points-at origin/master   # empty => isRelease=false => safe
+```
+
+Safety property worth knowing: integration tests run **before** the push (stage 5 vs stage 7), so a broken build publishes nothing.
+
+**A rebuild is NOT monotonic — verify, never assume.** `--no-cache` re-resolves every unpinned dependency, so it can also *add* findings (newly-disclosed CVEs, or a newer tool version carrying its own). R is a prediction; confirm it against the republished image.
+
+**Verify with `prisma-cloud-ondemand-scan`, not the master job's own scan.** The master job's Prisma stage (`prismaCloudScanImage`) uploads to the Prisma Cloud console (`https://us-west1.cloud.twistlock.com/us-4-161024623` → Monitor → Vulnerabilities → Images → CI) but prints **no table** and **archives no JSON**, so its output can't be diffed. Re-run the on-demand scan on `unstable` to get a `taurus.csv` and diff it against the baseline.
+- **Never compare counts across extraction methods.** The plugin's `Found N vulnerabilities` aggregate, a twistcli `--details` table parse, and `taurus.csv` rows do not count identically — a cross-method "+1" is an artifact, not a finding. Compare CSV to CSV.
+- When diffing, **key on `(CVE ID, package, version)` and ignore `Path` for temp-extracted jars** — `jmeter-plugins-manager` unpacks to `/tmp/…jar<random>.jar`, so its path changes every build and a naive path-inclusive diff reports the same CVE as both "gone" and "new".
+- *DevOps improvement worth requesting:* one line in the master job's Prisma stage — `archiveArtifacts artifacts: 'prisma-cloud-scan-results.json'` — would make every master build a diffable baseline and remove the need for a separate on-demand scan. (Caveat for consumers: twistcli's JSON has no `Path`; recover it by joining `(packageName, packageVersion)` to `results[0].entityInfo.packages[].pkgs[]`.)
+
 ### 18. Report manual intervention and out-of-scope items
 
 First, list the JMeter/Gatling findings that are intentionally **not** fixed:
@@ -789,6 +899,8 @@ End with a complete status summary:
 SUMMARY
 ═══════════════════════════════════════════════
 Fixable in taurus (this run): <X> detected → <Y> fixed
+Rebuild-clearable: <R>  [omit when 0 — no code change; clears on the next master build.
+  Labeled subset of X − Y, NOT an extra count. If a republish was approved and run, say so + the build #]
   [distinct CVEs; this repo's own Dockerfile/requirements fixes, verified gone in branch scan #<BUILD>]
 Branch image scan (taurus-branch-builder #<BUILD>): integration <pass/fail>
 Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>  ·  PR #<number>
@@ -851,6 +963,9 @@ For each vulnerability, look up sources in this order:
 | Branch builder console (twistcli scan table) | `.../taurus-branch-builder/<BUILD>/console` |
 | Branch image (internal GCR) | `us.gcr.io/verdant-bulwark-278/taurus:<branch>-<build>` |
 | Queue item | `https://blazect-jenkins.blazemeter.com/queue/item/<ID>/api/json` |
+| **Publish job (ONLY Docker Hub publisher)** | `https://blazect-jenkins.blazemeter.com/job/taurus-community-master/` |
+| Publish trigger | **Not listed here on purpose** — publishing is gated. See "Republishing to clear R findings" for the trigger and its approval requirements |
+| Prisma Cloud console (master job's scan lands here) | `https://us-west1.cloud.twistlock.com/us-4-161024623` → Monitor → Vulnerabilities → Images → CI |
 | Docker Hub unstable tag | `https://hub.docker.com/v2/repositories/blazemeter/taurus/tags/unstable` |
 | .NET 8.0 release metadata | `https://dotnetcli.azureedge.net/dotnet/release-metadata/8.0/releases.json` |
 | Vulnerability fix history | `vulnerability_history.md` (in this skill's folder) — consult this before fixing any CVE |
