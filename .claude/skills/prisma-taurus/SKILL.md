@@ -138,7 +138,7 @@ Expect **several rows** (one per architecture, and per `Security`/`Updates` pock
 - fix published **before** build start and still flagged → **NOT R**. The fix isn't landing (stale layer, or the package isn't in the unpinned list). Treat it as auto-fixable and act — add the package to the existing unpinned list.
 - **evidence missing, empty (`entries: []`), or the date falls inside the build→push window → INCONCLUSIVE. Classify as monitor, change nothing, and say it was inconclusive.** Never resolve ambiguity by adding a pin.
 
-*Worked example (2026-08-20, scan #203):* libheif `1.17.6-1ubuntu4.6` flagged, fixed in `1ubuntu4.7`. `libheif1` was already in the unpinned upgrade list; the pocket published 4.7 at **12:36:56Z** while `unstable` was pushed at **12:30:07Z** the same day — **7 minutes earlier**. Correct action: zero code changes, republish. Confirmed by scan #204 on the republished image: 295 → 294, libheif gone, nothing new.
+*Worked example (2026-08-20, scan #203):* libheif `1.17.6-1ubuntu4.6` flagged, fixed in `1ubuntu4.7`. `libheif1` was already in the unpinned upgrade list, and all three timestamps line up in this order on 2026-08-19: the image's build **started 12:06:22Z** (`taurus-community-master` #14894), it was **pushed 12:30:07Z**, and only then did noble-security **publish the fix at 12:36:56Z** — i.e. **the patch did not yet exist while the image was being built**, so no version of that image could contain it. Correct action: zero code changes, republish. Confirmed by scan #204 on the republished image: 295 → 294, libheif gone, nothing new.
 
 ## Steps
 
@@ -262,9 +262,9 @@ Gather all CVEs where:
 - `Fix Status` starts with `fixed in`
 - Path does NOT match scanner appeasement patterns
 
-If there are no auto-fixable CVEs → report that and list any manual items.
+If there are no auto-fixable CVEs → report that and list any manual items. ("No auto-fixable CVEs" means *after* the category-4 gate has run: R findings start out looking auto-fixable and are removed from that set by the gate, so a run can legitimately reach this branch with `R > 0`.)
 
-**Before stopping, check for R (rebuild-clearable) findings** — see classification category 4. "Nothing to fix in the repo" and "a republish removes N CVEs" are **both** true at the same time, and stopping without mentioning R leaves a real, zero-code win on the table (and leaves taurus-cloud consuming a stale image). If `R > 0`, report it and follow "Republishing to clear R findings" below instead of just stopping.
+**Before stopping, report any R (rebuild-clearable) findings** — see classification category 4. "Nothing to fix in the repo" and "a republish removes N CVEs" are **both** true at the same time, and stopping without mentioning R leaves a real, zero-code win on the table (and leaves taurus-cloud consuming a stale image). If `R > 0`, report it and follow "Republishing to clear R findings" below instead of just stopping.
 
 ### 7. Apply all auto-fixes
 
@@ -900,7 +900,7 @@ SUMMARY
 ═══════════════════════════════════════════════
 Fixable in taurus (this run): <X> detected → <Y> fixed
 Rebuild-clearable: <R>  [omit when 0 — no code change; clears on the next master build.
-  Labeled subset of X-Y, NOT an extra count. If a republish was approved and run, say so + the build #]
+  Labeled subset of X − Y, NOT an extra count. If a republish was approved and run, say so + the build #]
   [distinct CVEs; this repo's own Dockerfile/requirements fixes, verified gone in branch scan #<BUILD>]
 Branch image scan (taurus-branch-builder #<BUILD>): integration <pass/fail>
 Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>  ·  PR #<number>
