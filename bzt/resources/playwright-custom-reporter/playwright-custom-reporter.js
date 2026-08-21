@@ -233,6 +233,14 @@ class TaurusReporter {
       return;
     }
 
+    // A skipped test (test.skip(), a mid-test skip, or a test.describe.serial() group
+    // skipping the rest of its tests after an earlier failure) is not reported at all,
+    // at any granularity - there's nothing to report, and a skip must never be mistaken
+    // for a failure (e.g. by the untracked-failure fallback below).
+    if (result.status === 'skipped') {
+      return;
+    }
+
     if (this.options.granularity === 'TEST') {
       const line = this.buildTestLine(test, result);
       if (this.options.outputFile) {
@@ -314,6 +322,14 @@ class TaurusReporter {
     return !hasReportableChildStep;
   }
 
+  // A step explicitly skipped via step.skip()/step.skip(condition, description) never
+  // throws (so step.error stays falsy) - Playwright records it as a 'skip' annotation on
+  // the step instead. Without this check such a step would be indistinguishable from one
+  // that genuinely ran and passed.
+  isStepSkipped(step) {
+    return Array.isArray(step.annotations) && step.annotations.some(a => a.type === 'skip');
+  }
+
   onStepBegin(test, result, step) {
     this.lastStep = step;
     if (!step.logs) {
@@ -333,6 +349,12 @@ class TaurusReporter {
       // children-exclusion), no separate isExcludedByNoReportPrefix check needed here.
       shouldReport = this.isLeafStep(test, step);
     } else {
+      shouldReport = false;
+    }
+
+    // A skipped step is never reported - like a skipped test, it must not be mistaken
+    // for a passed one (step.error stays falsy for a skip, same as for a genuine pass).
+    if (shouldReport && this.isStepSkipped(step)) {
       shouldReport = false;
     }
 
