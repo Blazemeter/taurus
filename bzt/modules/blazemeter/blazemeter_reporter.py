@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
+import json
 import logging
 import os
 import platform
@@ -297,6 +298,102 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                     tail = tail[tail.index(b("\n")) + 1:]
                     self._session.upload_file(modified_name + ".tail.bz", tail)
 
+    def _find_functional_aggregator(self):
+        """Return the FunctionalAggregator holding functional (Selenium/Apiritif) results,
+        or None. The engine's aggregator is a FunctionalAggregator when running functional
+        tests; for load tests it is a ConsolidatingAggregator with no cumulative_results tree.
+        """
+        aggregator = getattr(self.engine, "aggregator", None)
+        if aggregator is not None and hasattr(aggregator, "cumulative_results"):
+            return aggregator
+        return None
+
+    def _generate_failed_transactions_artifact(self):
+        """Build and write failed_transactions.json into engine.artifacts_dir when the
+        opt-in flag is set. Guarded end-to-end so it never breaks post_process (FR-005/FR-006
+        graceful-degradation contract): a falsy flag skips generation entirely (zero behaviour
+        change), and any error while building/writing is logged and swallowed.
+        """
+        if not self.settings.get("generate-failed-transactions", False):
+            return  # FR-006: opt-in, default off -> zero behaviour change
+
+        try:
+            from bzt.modules.eft import build_failed_transactions, classify_failure, \
+                recover_assertion_name
+
+            transactions = []
+            func_agg = self._find_functional_aggregator()
+            results_tree = func_agg.cumulative_results if func_agg else None
+
+            if results_tree is not None:
+                for _suite, samples in iteritems(results_tree):
+                    for sample in samples:
+                        if sample.status not in ("FAILED", "BROKEN"):
+                            continue
+                        assertion_name = recover_assertion_name(sample)
+                        if assertion_name is None and self._sample_is_assertion(sample):
+                            # Assertion failure whose real name is not recoverable: synthesize
+                            # from the transaction label so it stays typed ERRTYPE_ASSERT (FR-004).
+                            assertion_name = "assert::%s" % sample.test_case
+                        item = classify_failure(
+                            label=sample.test_case,
+                            message=sample.error_msg,
+                            trace=sample.error_trace,
+                            rc=None,  # FR-005: browser errors have no HTTP response code
+                            assertion_name=assertion_name,
+                        )
+                        transactions.append(self._transaction_from_item(sample, item))
+
+            artifact = build_failed_transactions(
+                transactions,
+                session_id=self._session.get("id") if self._session else None,
+                test_id=self._session.get("testId") if self._session else None,
+                timestamp=time.time(),
+            )
+
+            out_path = os.path.join(self.engine.artifacts_dir, "failed_transactions.json")
+            with open(out_path, "w") as fh:
+                json.dump(artifact, fh)
+            self.log.info("Wrote EFT artifact: %s (%s transaction(s))", out_path, len(transactions))
+        except BaseException:
+            # Missing artifact simply means no EFT data for this run; never crash post_process.
+            self.log.warning("Failed to generate EFT failed_transactions.json: %s",
+                             traceback.format_exc())
+
+    @staticmethod
+    def _sample_is_assertion(sample):
+        """True if a failed FunctionalSample represents a raised assertion (AssertionError)
+        rather than a general browser error. Mirrors the assertion-detection intent of
+        JTLErrorsReader.find_failure for the functional path."""
+        for text in (getattr(sample, "error_msg", None), getattr(sample, "error_trace", None)):
+            if text and "AssertionError" in text:
+                return True
+        return False
+
+    @staticmethod
+    def _transaction_from_item(sample, item):
+        """Place a classified error_item into the three-way split for a transaction entry,
+        mirroring DatapointSerializer.__add_errors (errors / assertions / failedEmbeddedResources)."""
+        txn = {
+            "label": sample.test_case,
+            "timestamp": getattr(sample, "start_time", None),
+            "duration": getattr(sample, "duration", None),
+            "errors": [],
+            "assertions": [],
+            "failedEmbeddedResources": [],
+        }
+        if item["type"] == KPISet.ERRTYPE_ASSERT:
+            txn["assertions"].append({
+                "name": item["tag"] if item["tag"] else ("assert::%s" % sample.test_case),
+                "failureMessage": item["msg"],
+                "failures": item["cnt"],
+            })
+        elif item["type"] == KPISet.ERRTYPE_SUBSAMPLE:
+            txn["failedEmbeddedResources"].append(item)
+        else:
+            txn["errors"].append(item)
+        return txn
+
     def post_process(self):
         """
         Upload results if possible
@@ -304,6 +401,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if not self._session:
             self.log.debug("No feeding session obtained, nothing to finalize")
             return
+
+        # EFT (Exclude Failed Transactions): flag-gated, default off (FR-006). Generate the
+        # generic failed_transactions.json artifact BEFORE __upload_artifacts so it is bundled
+        # into artifacts.zip by the existing upload path (A-UPLOAD, FR-001).
+        self._generate_failed_transactions_artifact()
 
         self.log.debug("KPI bulk buffer len in post-proc: %s", len(self.kpi_buffer))
         try:
