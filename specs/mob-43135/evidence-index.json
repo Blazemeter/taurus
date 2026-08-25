@@ -1,0 +1,28 @@
+{
+  "version": "1",
+  "ticket": "MOB-43135",
+  "repo": "taurus",
+  "sources": [
+    {"id": "E-001", "source": "JIRA:MOB-43135:description", "claim": "The ticket requires Taurus to generate a generic EFT-compatible json file for browser-based tests."},
+    {"id": "E-002", "source": "JIRA:MOB-43135:description", "claim": "The ticket requires categorizing Selenium errors into general errors vs. failed assertions."},
+    {"id": "E-003", "source": "SLACK:1787646729.715029:1787657070.534619", "claim": "EFT json generation is opt-in via a new Taurus config flag under modules.blazemeter, default off (option A)."},
+    {"id": "E-004", "source": "FILE:spec.md:170-176", "claim": "Graceful degradation: empty responseBodies for browser tests and synthetic assertion name when the real name is unrecoverable."},
+    {"id": "E-005", "source": "FILE:plan.md:51-54", "claim": "Decision D-1: extract the ERRTYPE_* classification into a shared helper (do not modify JTLErrorsReader)."},
+    {"id": "E-006", "source": "FILE:plan.md:61-64", "claim": "Decision D-2: generate failed_transactions.json in BlazeMeterUploader.post_process and reuse the existing __upload_artifacts path."},
+    {"id": "E-007", "source": "FILE:brownfield-context.md:105-127", "claim": "The error_item_skel shape and the DatapointSerializer three-way split are the proven analog to mirror."},
+    {"id": "E-008", "source": "FILE:brownfield-context.md:274-286", "claim": "Runtime data (FunctionalAggregator.cumulative_results) is available at post_process; assertion-name recovery is a medium-risk VALIDATE item."},
+    {"id": "E-009", "source": "FILE:plan.md:116-120", "claim": "Assumption ledger records A-ASSERT as VALIDATE with a POC/contract task."},
+    {"id": "E-010", "source": "FILE:tasks.md:36-37", "claim": "T008 implements the flag-gated EFT generation hook in blazemeter_reporter.py."},
+    {"id": "E-011", "source": "FILE:tasks.md:46", "claim": "T011 extracts the ERRTYPE_* classification into bzt/modules/eft.py without modifying jmeter.py."},
+    {"id": "E-012", "source": "FILE:tasks.md:56", "claim": "T014 guards the generation path behind the config flag."},
+    {"id": "E-013", "source": "FILE:tasks.md:61", "claim": "T016 implements graceful-degradation handling (empty responseBodies, null rc)."},
+    {"id": "E-014", "source": "FILE:test-scenarios.md:12", "claim": "test_artifact_written_when_flag_on covers the artifact-generation requirement."},
+    {"id": "E-015", "source": "FILE:test-scenarios.md:15", "claim": "test_classify_general_vs_assertion covers the categorization requirement."},
+    {"id": "E-016", "source": "FILE:test-scenarios.md:18", "claim": "test_no_artifact_when_flag_off covers the opt-in-default-off requirement."},
+    {"id": "E-017", "source": "FILE:test-scenarios.md:16-19", "claim": "test_synthetic_assertion_name_fallback and test_empty_response_bodies_and_null_rc cover graceful degradation."},
+    {"id": "E-018", "source": "FILE:plan.md:31-43", "claim": "The Constitution Check passes all five principles; the architecture (extract-classify + generate-in-uploader) is resolved."},
+    {"id": "E-019", "source": "FILE:brownfield-context.md:219-225", "claim": "Negative constraints: do not modify JTLErrorsReader for non-JMeter formats; do not gate EFT in taurus."},
+    {"id": "E-020", "source": "FILE:tasks.md:19", "claim": "T001 creates the realistic Selenium assertion-failure fixture used by the categorization tests."},
+    {"id": "E-021", "source": "FILE:tasks.md:35", "claim": "T007 implements build_failed_transactions mirroring the DatapointSerializer split."}
+  ]
+}
