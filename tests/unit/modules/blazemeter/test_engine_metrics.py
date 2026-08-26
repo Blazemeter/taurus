@@ -1,8 +1,8 @@
 import sys
 
-from modules.blazemeter.engine_metrics import MetricsReportingBuffer, HappysocksMetricsConverter, \
+from bzt.modules.blazemeter.engine_metrics import MetricsReportingBuffer, HappysocksMetricsConverter, \
     HappySocksConcurrencyConverter
-from unit import BZTestCase, random_datapoint
+from tests.unit import BZTestCase, random_datapoint
 
 
 class TestEngineMetricsBuffer(BZTestCase):
