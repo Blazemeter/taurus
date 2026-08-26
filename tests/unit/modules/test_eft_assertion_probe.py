@@ -1,20 +1,14 @@
 """
-Covers T002. Contract-verification / POC probe for the A-ASSERT VALIDATE assumption
-(brownfield-context.md Assumption Ledger, spec.md Assumptions).
+MOB-43135: Contract probe for assertion-name recoverability in EFT.
 
 Claim under test: "Assertion names for Selenium/Apiritif failures can be recovered
 from FunctionalSample.error_msg/error_trace."
 
-This probe loads the REAL checked-in fixture (tests/resources/selenium/
-eft_assertion_failure.ldjson, built from actual apiritif assert_in_body /
-NoSuchElementException failure shapes — see generator.py::_gen_assertions and
-functional.py::TestReportReader.SAMPLE_KEYS) into FunctionalSample objects and
-proves whether the assertion name is recoverable.
-
-Per tasks.md T002: if the real name is NOT recoverable, this probe MUST assert
-that a synthetic name derived from the transaction label is produced instead.
-Do NOT mock this away — the whole point is to prove/disprove the assumption
-against real data shapes.
+Loads the REAL checked-in fixture (tests/resources/selenium/eft_assertion_failure.ldjson)
+into FunctionalSample objects and proves whether the assertion name is recoverable.
+If the real name is NOT recoverable, asserts that a synthetic name derived from the
+transaction label is produced instead. Not mocked — the point is to prove/disprove
+the assumption against real data shapes.
 """
 import json
 import os

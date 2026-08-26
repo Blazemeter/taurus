@@ -331,10 +331,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                         if sample.status not in ("FAILED", "BROKEN"):
                             continue
                         assertion_name = recover_assertion_name(sample)
-                        if assertion_name is None and self._sample_is_assertion(sample):
-                            # Assertion failure whose real name is not recoverable: synthesize
-                            # from the transaction label so it stays typed ERRTYPE_ASSERT (FR-004).
-                            assertion_name = "assert::%s" % sample.test_case
                         item = classify_failure(
                             label=sample.test_case,
                             message=sample.error_msg,
@@ -355,20 +351,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             with open(out_path, "w") as fh:
                 json.dump(artifact, fh)
             self.log.info("Wrote EFT artifact: %s (%s transaction(s))", out_path, len(transactions))
-        except BaseException:
+        except Exception:
             # Missing artifact simply means no EFT data for this run; never crash post_process.
             self.log.warning("Failed to generate EFT failed_transactions.json: %s",
                              traceback.format_exc())
-
-    @staticmethod
-    def _sample_is_assertion(sample):
-        """True if a failed FunctionalSample represents a raised assertion (AssertionError)
-        rather than a general browser error. Mirrors the assertion-detection intent of
-        JTLErrorsReader.find_failure for the functional path."""
-        for text in (getattr(sample, "error_msg", None), getattr(sample, "error_trace", None)):
-            if text and "AssertionError" in text:
-                return True
-        return False
 
     @staticmethod
     def _transaction_from_item(sample, item):
@@ -388,8 +374,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                 "failureMessage": item["msg"],
                 "failures": item["cnt"],
             })
-        elif item["type"] == KPISet.ERRTYPE_SUBSAMPLE:
-            txn["failedEmbeddedResources"].append(item)
         else:
             txn["errors"].append(item)
         return txn

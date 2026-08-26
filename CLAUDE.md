@@ -79,8 +79,6 @@ The `bzt/jmx/` package handles JMeter XML generation. It has separate protocol h
 
 Cloud provisioning, result uploading, and project/test management are isolated in this sub-package. `bza.py` at the top level is the low-level REST API client.
 
-The `bzt/modules/eft.py` helper (EFT — Exclude Failed Transactions) builds a generic `failed_transactions.json` artifact for browser-based (Selenium/Apiritif) runs, categorizing failures via the existing `ERRTYPE_*` enums. It is written in `BlazeMeterUploader.post_process()` when the opt-in `modules.blazemeter.generate-failed-transactions` flag is set (default off), and picked up by the standard artifact upload path. The classification logic is *extracted* from `JTLErrorsReader.find_failure` — `bzt/modules/jmeter.py` is intentionally left unchanged.
-
 ### Data Flow
 
 Executors write results to files (JTL, CSV, etc.). Each executor attaches a `ResultsReader` that tails that file and emits `DataPoint` objects. The `ConsolidatingAggregator` merges these across all executors and passes aggregated `DataPoint`s to every `AggregatorListener` (reporters, pass/fail checker, etc.).

@@ -4,16 +4,14 @@ Transactions) for browser-based tests. Exercises the flag-gated generation hook
 inside BlazeMeterUploader.post_process() writing failed_transactions.json to
 engine.artifacts_dir.
 
-Covers T005, T006, T013 (see specs/mob-43135/tasks.md).
-Traces to specs/mob-43135/spec.md FR-001, FR-002, FR-006, SC-001, SC-002.
+MOB-43135: EFT (Exclude Failed Transactions) integration tests for browser-based tests.
+Exercises the flag-gated generation hook inside BlazeMeterUploader.post_process()
+writing failed_transactions.json to engine.artifacts_dir.
 
-Per brownfield-context.md Test Validity Strategy: DO NOT mock FunctionalSample /
-ResultsTree — real objects are constructed and attached to a real
-FunctionalAggregator so the artifact-generation hook is exercised against the
-actual aggregation data structure it will read from at post_process time.
-Network calls are intercepted via BZMock (the repo's existing convention for
-BlazeMeterUploader tests — see test_blazeMeterUploader.py::test_no_notes_for_public_reporting)
-so this stays a hermetic unit test, not a live-endpoint call.
+Real FunctionalSample / ResultsTree objects are used (not mocked) so the
+artifact-generation hook is exercised against the actual aggregation data structure.
+Network calls are intercepted via BZMock (the repo's existing convention —
+see test_blazeMeterUploader.py::test_no_notes_for_public_reporting).
 """
 import json
 import os
@@ -110,6 +108,88 @@ class TestEmptyArtifactWhenNoFailures(BZTestCase):
             artifact = json.load(fh)
         # US1 scenario 3 — well-formed, but no transaction entries for all-passing runs
         self.assertEqual(artifact["transactions"], [])
+
+
+class TestArtifactWrittenForGeneralError(BZTestCase):
+    """General (non-assertion) error must produce a valid artifact with the error
+    in the 'errors' list, not 'assertions'. Regression guard for Counter()
+    JSON-serialization bug."""
+
+    def test_artifact_written_for_general_error(self):
+        obj = _prepare_public_reporting_uploader()
+        obj.settings['generate-failed-transactions'] = True
+
+        func_agg = _attach_functional_aggregator(obj.engine)
+        general_error_sample = FunctionalSample(
+            test_case="test_login_invalid_creds", test_suite="TestLogin", status="FAILED",
+            start_time=1724500001.5, duration=1.203,
+            error_msg='no such element: Unable to locate element: {"method":"id","selector":"dashboard-header"}',
+            error_trace="selenium.common.exceptions.NoSuchElementException: Message: no such element",
+            extras={}, subsamples=[], path=[])
+        func_agg.cumulative_results.add_sample(general_error_sample)
+
+        obj.prepare()
+        obj._session = Session(obj._user, {'id': 1, 'testId': 1, 'userId': 1})
+        obj._master = Master(obj._user, {'id': 1})
+        obj.send_data = False
+        obj.send_monitoring = False
+
+        obj.post_process()
+
+        artifact_path = os.path.join(obj.engine.artifacts_dir, "failed_transactions.json")
+        self.assertTrue(
+            os.path.exists(artifact_path),
+            "failed_transactions.json must be written for general (non-assertion) errors too")
+
+        with open(artifact_path) as fh:
+            artifact = json.load(fh)
+        self.assertEqual(len(artifact["transactions"]), 1)
+        txn = artifact["transactions"][0]
+        self.assertEqual(txn["label"], "test_login_invalid_creds")
+        self.assertEqual(len(txn["errors"]), 1, "general error must be in 'errors' list")
+        self.assertEqual(len(txn["assertions"]), 0, "general error must NOT be in 'assertions'")
+
+
+class TestArtifactWithMixedFailures(BZTestCase):
+    """Mixed assertion + general error in same run must both appear correctly classified."""
+
+    def test_artifact_with_mixed_failures(self):
+        obj = _prepare_public_reporting_uploader()
+        obj.settings['generate-failed-transactions'] = True
+
+        func_agg = _attach_functional_aggregator(obj.engine)
+
+        assertion_sample = FunctionalSample(
+            test_case="test_checkout_flow", test_suite="TestCheckout", status="FAILED",
+            start_time=1724500000.0, duration=0.842,
+            error_msg="Assertion failed: 'Order Confirmed' not found in body",
+            error_trace="AssertionError: Assertion failed: 'Order Confirmed' not found in body",
+            extras={}, subsamples=[], path=[])
+        func_agg.cumulative_results.add_sample(assertion_sample)
+
+        general_sample = FunctionalSample(
+            test_case="test_login_invalid_creds", test_suite="TestLogin", status="FAILED",
+            start_time=1724500001.5, duration=1.203,
+            error_msg="no such element",
+            error_trace="selenium.common.exceptions.NoSuchElementException: Message: no such element",
+            extras={}, subsamples=[], path=[])
+        func_agg.cumulative_results.add_sample(general_sample)
+
+        obj.prepare()
+        obj._session = Session(obj._user, {'id': 1, 'testId': 1, 'userId': 1})
+        obj._master = Master(obj._user, {'id': 1})
+        obj.send_data = False
+        obj.send_monitoring = False
+
+        obj.post_process()
+
+        artifact_path = os.path.join(obj.engine.artifacts_dir, "failed_transactions.json")
+        with open(artifact_path) as fh:
+            artifact = json.load(fh)
+        self.assertEqual(len(artifact["transactions"]), 2)
+
+        labels = {t["label"] for t in artifact["transactions"]}
+        self.assertEqual(labels, {"test_checkout_flow", "test_login_invalid_creds"})
 
 
 class TestNoArtifactWhenFlagOff(BZTestCase):

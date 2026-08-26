@@ -23,8 +23,6 @@ Public surface (used by BlazeMeterUploader.post_process):
 Traces to specs/mob-43135/spec.md FR-002, FR-003, FR-004, FR-005 and
 specs/mob-43135/contracts/failed_transactions.schema.json.
 """
-from collections import Counter
-
 from bzt.modules.aggregator import KPISet
 
 # Marker used to detect an assertion failure in a functional sample's error text.
@@ -118,7 +116,7 @@ def classify_failure(label, message, trace, rc, assertion_name):
         "tag": tag,
         "rc": rc,
         "type": err_type,
-        "urls": Counter(),
+        "urls": {},
         "responseBodies": [],
     }
 
