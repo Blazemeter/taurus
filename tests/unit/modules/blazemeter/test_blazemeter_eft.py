@@ -192,12 +192,36 @@ class TestArtifactWithMixedFailures(BZTestCase):
         self.assertEqual(labels, {"test_checkout_flow", "test_login_invalid_creds"})
 
 
+class TestArtifactWithNoFunctionalAggregator(BZTestCase):
+    """Flag on but engine uses ConsolidatingAggregator (load test, not functional).
+    Should produce well-formed empty artifact, not crash."""
+
+    def test_artifact_with_no_functional_aggregator(self):
+        obj = _prepare_public_reporting_uploader()
+        obj.settings['generate-failed-transactions'] = True
+        # Do NOT attach FunctionalAggregator — engine.aggregator is default (no cumulative_results)
+
+        obj.prepare()
+        obj._session = Session(obj._user, {'id': 1, 'testId': 1, 'userId': 1})
+        obj._master = Master(obj._user, {'id': 1})
+        obj.send_data = False
+        obj.send_monitoring = False
+
+        obj.post_process()
+
+        artifact_path = os.path.join(obj.engine.artifacts_dir, "failed_transactions.json")
+        self.assertTrue(os.path.exists(artifact_path))
+        with open(artifact_path) as fh:
+            artifact = json.load(fh)
+        self.assertEqual(artifact["transactions"], [])
+
+
 class TestNoArtifactWhenFlagOff(BZTestCase):
-    """Covers T013. Scenario: flag absent/false (default) -> no artifact, no error."""
+    """Scenario: flag absent/false (default) -> no artifact, no error."""
 
     def test_no_artifact_when_flag_off(self):
         obj = _prepare_public_reporting_uploader()
-        # generate-failed-transactions intentionally NOT set — default off (FR-006)
+        # generate-failed-transactions intentionally NOT set — default off
 
         func_agg = _attach_functional_aggregator(obj.engine)
         failing_sample = FunctionalSample(
