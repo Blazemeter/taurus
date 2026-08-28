@@ -15,8 +15,10 @@ see test_blazeMeterUploader.py::test_no_notes_for_public_reporting).
 """
 import json
 import os
+from collections import Counter
 
 from bzt.bza import Master, Session
+from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
 from bzt.modules.functional import FunctionalAggregator, FunctionalSample
 from bzt.modules.blazemeter import BlazeMeterUploader
 from tests.unit import BZTestCase, EngineEmul, BZMock
@@ -243,3 +245,180 @@ class TestNoArtifactWhenFlagOff(BZTestCase):
         self.assertFalse(
             os.path.exists(artifact_path),
             "no failed_transactions.json should be produced when the flag is off (default)")
+
+
+# ---------------------------------------------------------------------------
+# BBT / ConsolidatingAggregator path
+# ---------------------------------------------------------------------------
+
+def _attach_consolidating_aggregator(engine):
+    """Wire a real ConsolidatingAggregator onto the emulated engine."""
+    agg = ConsolidatingAggregator()
+    agg.engine = engine
+    engine.aggregator = agg
+    return agg
+
+
+def _make_kpi_set_with_assertion(label):
+    """Build a KPISet that has 1 assertion failure (ERRTYPE_ASSERT)."""
+    kpi = KPISet()
+    kpi[KPISet.FAILURES] = 1
+    kpi[KPISet.ERRORS].append({
+        "cnt": 1,
+        "msg": "AssertionError: 'BlazeDemo' != 'ThisTitleDoesNotExist'",
+        "tag": "assert::%s" % label,
+        "rc": None,
+        "type": KPISet.ERRTYPE_ASSERT,
+        "urls": Counter(),
+        "responseBodies": [],
+    })
+    return kpi
+
+
+def _make_kpi_set_with_general_error(label):
+    """Build a KPISet that has 1 general error (ERRTYPE_ERROR)."""
+    kpi = KPISet()
+    kpi[KPISet.FAILURES] = 1
+    kpi[KPISet.ERRORS].append({
+        "cnt": 1,
+        "msg": "NoSuchElementException: Unable to locate element",
+        "tag": None,
+        "rc": None,
+        "type": KPISet.ERRTYPE_ERROR,
+        "urls": Counter(),
+        "responseBodies": [],
+    })
+    return kpi
+
+
+class TestBBTAssertionFailure(BZTestCase):
+    """BBT path: ConsolidatingAggregator with ERRTYPE_ASSERT -> assertion in artifact."""
+
+    def test_bbt_assertion_failure_in_artifact(self):
+        obj = _prepare_public_reporting_uploader()
+        obj.settings['generate-failed-transactions'] = True
+
+        agg = _attach_consolidating_aggregator(obj.engine)
+        label = "Assert wrong title (ERRTYPE_ASSERT)"
+        agg.cumulative[label] = _make_kpi_set_with_assertion(label)
+
+        obj.prepare()
+        obj._session = Session(obj._user, {'id': 1, 'testId': 1, 'userId': 1})
+        obj._master = Master(obj._user, {'id': 1})
+        obj.send_data = False
+        obj.send_monitoring = False
+
+        obj.post_process()
+
+        artifact_path = os.path.join(obj.engine.artifacts_dir, "failed_transactions.json")
+        self.assertTrue(os.path.exists(artifact_path))
+
+        with open(artifact_path) as fh:
+            artifact = json.load(fh)
+
+        self.assertEqual(len(artifact["transactions"]), 1)
+        txn = artifact["transactions"][0]
+        self.assertEqual(txn["label"], label)
+        self.assertEqual(len(txn["assertions"]), 1, "assertion failure must appear in assertions[]")
+        self.assertEqual(len(txn["errors"]), 0, "assertion failure must NOT appear in errors[]")
+        self.assertIn("assert::", txn["assertions"][0]["name"])
+        self.assertEqual(txn["assertions"][0]["failures"], 1)
+
+
+class TestBBTGeneralError(BZTestCase):
+    """BBT path: ConsolidatingAggregator with ERRTYPE_ERROR -> error in artifact."""
+
+    def test_bbt_general_error_in_artifact(self):
+        obj = _prepare_public_reporting_uploader()
+        obj.settings['generate-failed-transactions'] = True
+
+        agg = _attach_consolidating_aggregator(obj.engine)
+        label = "Click submit button"
+        agg.cumulative[label] = _make_kpi_set_with_general_error(label)
+
+        obj.prepare()
+        obj._session = Session(obj._user, {'id': 1, 'testId': 1, 'userId': 1})
+        obj._master = Master(obj._user, {'id': 1})
+        obj.send_data = False
+        obj.send_monitoring = False
+
+        obj.post_process()
+
+        artifact_path = os.path.join(obj.engine.artifacts_dir, "failed_transactions.json")
+        with open(artifact_path) as fh:
+            artifact = json.load(fh)
+
+        self.assertEqual(len(artifact["transactions"]), 1)
+        txn = artifact["transactions"][0]
+        self.assertEqual(txn["label"], label)
+        self.assertEqual(len(txn["errors"]), 1, "general error must appear in errors[]")
+        self.assertEqual(len(txn["assertions"]), 0, "general error must NOT appear in assertions[]")
+
+
+class TestBBTPassingLabelsExcluded(BZTestCase):
+    """BBT path: labels with zero failures must not appear in the artifact."""
+
+    def test_bbt_passing_labels_excluded(self):
+        obj = _prepare_public_reporting_uploader()
+        obj.settings['generate-failed-transactions'] = True
+
+        agg = _attach_consolidating_aggregator(obj.engine)
+        # Passing label — FAILURES == 0
+        passing_kpi = KPISet()
+        passing_kpi[KPISet.FAILURES] = 0
+        agg.cumulative["Navigate to site"] = passing_kpi
+        # Failing label
+        failing_label = "Assert wrong title (ERRTYPE_ASSERT)"
+        agg.cumulative[failing_label] = _make_kpi_set_with_assertion(failing_label)
+
+        obj.prepare()
+        obj._session = Session(obj._user, {'id': 1, 'testId': 1, 'userId': 1})
+        obj._master = Master(obj._user, {'id': 1})
+        obj.send_data = False
+        obj.send_monitoring = False
+
+        obj.post_process()
+
+        artifact_path = os.path.join(obj.engine.artifacts_dir, "failed_transactions.json")
+        with open(artifact_path) as fh:
+            artifact = json.load(fh)
+
+        self.assertEqual(len(artifact["transactions"]), 1)
+        self.assertEqual(artifact["transactions"][0]["label"], failing_label)
+
+
+class TestBBTJsonSerializable(BZTestCase):
+    """BBT path: Counter in urls field must be JSON-serializable (no TypeError)."""
+
+    def test_bbt_counter_serializable(self):
+        obj = _prepare_public_reporting_uploader()
+        obj.settings['generate-failed-transactions'] = True
+
+        agg = _attach_consolidating_aggregator(obj.engine)
+        label = "Navigate to site"
+        kpi = KPISet()
+        kpi[KPISet.FAILURES] = 1
+        kpi[KPISet.ERRORS].append({
+            "cnt": 1,
+            "msg": "Connection timeout",
+            "tag": None,
+            "rc": "500",
+            "type": KPISet.ERRTYPE_ERROR,
+            "urls": Counter({"https://example.com/": 1}),  # Counter not plain dict
+            "responseBodies": [],
+        })
+        agg.cumulative[label] = kpi
+
+        obj.prepare()
+        obj._session = Session(obj._user, {'id': 1, 'testId': 1, 'userId': 1})
+        obj._master = Master(obj._user, {'id': 1})
+        obj.send_data = False
+        obj.send_monitoring = False
+
+        obj.post_process()  # must not raise TypeError for Counter serialization
+
+        artifact_path = os.path.join(obj.engine.artifacts_dir, "failed_transactions.json")
+        self.assertTrue(os.path.exists(artifact_path))
+        with open(artifact_path) as fh:
+            artifact = json.load(fh)  # must parse without error
+        self.assertEqual(len(artifact["transactions"]), 1)

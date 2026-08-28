@@ -313,6 +313,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         opt-in flag is set. Guarded end-to-end so it never breaks post_process (FR-005/FR-006
         graceful-degradation contract): a falsy flag skips generation entirely (zero behaviour
         change), and any error while building/writing is logged and swallowed.
+
+        Two data paths:
+        - Functional tests (FunctionalAggregator): reads FunctionalSample objects from
+          ``aggregator.cumulative_results`` (dict of {suite: [FunctionalSample]}).
+        - BBT / performance tests (ConsolidatingAggregator): reads KPISets from
+          ``aggregator.cumulative`` (dict of {label: KPISet}) and classifies each error item
+          by its ERRTYPE_* type, mirroring DatapointSerializer.__add_errors.
         """
         if not self.settings.get("generate-failed-transactions", False):
             return  # FR-006: opt-in, default off -> zero behaviour change
@@ -326,6 +333,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             results_tree = func_agg.cumulative_results if func_agg else None
 
             if results_tree is not None:
+                # Functional test path: FunctionalAggregator -> FunctionalSample objects
                 for _suite, samples in iteritems(results_tree):
                     for sample in samples:
                         if sample.status not in ("FAILED", "BROKEN"):
@@ -339,6 +347,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                             assertion_name=assertion_name,
                         )
                         transactions.append(self._transaction_from_item(sample, item))
+            else:
+                # BBT / performance test path: ConsolidatingAggregator -> KPISet objects
+                transactions = self._transactions_from_consolidating_aggregator()
 
             artifact = build_failed_transactions(
                 transactions,
@@ -355,6 +366,60 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             # Missing artifact simply means no EFT data for this run; never crash post_process.
             self.log.warning("Failed to generate EFT failed_transactions.json: %s",
                              traceback.format_exc())
+
+    def _transactions_from_consolidating_aggregator(self):
+        """Build transaction entries from ConsolidatingAggregator.cumulative for BBT runs.
+
+        Reads from ``engine.aggregator.cumulative`` (dict of {label: KPISet}) and classifies
+        each error item using its ERRTYPE_* type, mirroring DatapointSerializer.__add_errors:
+          - ERRTYPE_ERROR   -> errors[]
+          - ERRTYPE_ASSERT  -> assertions[]
+          - ERRTYPE_SUBSAMPLE -> failedEmbeddedResources[] (skipped for EFT)
+        Only labels with at least one failure (KPISet.FAILURES > 0) are included.
+
+        :rtype: list[dict]
+        """
+        aggregator = getattr(self.engine, "aggregator", None)
+        cumulative = getattr(aggregator, "cumulative", None)
+        if not cumulative:
+            return []
+
+        transactions = []
+        for label, kpi_set in iteritems(cumulative):
+            if not kpi_set.get(KPISet.FAILURES):
+                continue
+
+            txn = {
+                "label": label,
+                "timestamp": None,
+                "duration": None,
+                "errors": [],
+                "assertions": [],
+                "failedEmbeddedResources": [],
+            }
+            for error in kpi_set.get(KPISet.ERRORS, []):
+                err_type = error.get("type")
+                if err_type == KPISet.ERRTYPE_SUBSAMPLE:
+                    txn["failedEmbeddedResources"].append({
+                        "url": error.get("msg", ""),
+                        "statusCode": error.get("rc"),
+                    })
+                elif err_type == KPISet.ERRTYPE_ASSERT:
+                    txn["assertions"].append({
+                        "name": error.get("tag") or ("assert::%s" % label),
+                        "failureMessage": error.get("msg", ""),
+                        "failures": error.get("cnt", 1),
+                    })
+                else:
+                    # ERRTYPE_ERROR or unknown — general error
+                    err_item = dict(error)
+                    # urls is a Counter; serialise to plain dict for JSON
+                    if hasattr(err_item.get("urls"), "items"):
+                        err_item["urls"] = dict(err_item["urls"])
+                    txn["errors"].append(err_item)
+
+            transactions.append(txn)
+        return transactions
 
     @staticmethod
     def _transaction_from_item(sample, item):
