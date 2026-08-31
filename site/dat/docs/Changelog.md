@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.17.1<sup> 31 August 2026</sup>
+- Added playwright option for report granularity (test.step)
+- Added playwright option for do not report title prefix
+- Playwright executor does not report skipped test
+- Fix chromedriver version check timeout on private locations (OPL)
+- Report the failing sub-sample's URL for transaction errors
+
 ## 1.17.0<sup> 17 August 2026</sup>
 - Improved response-time percentile accuracy for externally-executed tests reported to BlazeMeter
 - Dependency updates & fixes
