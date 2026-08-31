@@ -271,7 +271,12 @@ class PlaywrightFuncReader(FunctionalResultsReader):
             content = json.loads(line)
             label = content.get("label", "unknown")
             error_msg = self._strip_ansi(content.get("error", None))
-            status = "FAILED" if error_msg else "PASSED"
+            # prefer the reporter's "ok" field — handles expected failures (test.fail())
+            # where ok=true but error message is still present
+            if "ok" in content:
+                status = "PASSED" if content["ok"] else "FAILED"
+            else:
+                status = "FAILED" if error_msg else "PASSED"
             duration = self._safe_ms_to_s(content.get("duration")) or 0
             timestamp = self._safe_ms_to_s(content.get("timestamp")) or 0
 

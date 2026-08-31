@@ -114,6 +114,17 @@ class RemotePlaywrightExecutor(RemoteExecutor):
         p.start()
         self._pullers.append(p)
 
+    def check(self):
+        # Override base RemoteExecutor.check() which uses Windows tasklist.
+        # Charmander runs on Linux — use ps to check if PID is still running.
+        if self.runner_pid != 0:
+            result = self.command('ps -p ' + str(self.runner_pid) + ' -o pid=')
+            output = result.get('output', '').strip()
+            if str(self.runner_pid) not in output:
+                return True
+            return False
+        return True
+
     def has_results(self):
         if not self.reader:
             return False
@@ -124,7 +135,10 @@ class RemotePlaywrightExecutor(RemoteExecutor):
     def shutdown(self):
         for p in self._pullers:
             p.stop()
-        super(RemotePlaywrightExecutor, self).shutdown()
+        # Override base RemoteExecutor.shutdown() which uses Windows taskkill.
+        # Charmander runs on Linux — use kill.
+        self.log.info("Terminating remote process with PID %s", self.runner_pid)
+        self.command('kill -9 ' + str(self.runner_pid))
 
     def post_process(self):
         super(RemotePlaywrightExecutor, self).post_process()

@@ -210,18 +210,27 @@ class TestRemotePlaywrightExecutor(BZTestCase):
         mock_instance.start.assert_called_once()
         self.assertEqual(1, len(self.obj._pullers))
 
-    def test_shutdown_stops_pullers(self):
+    def test_shutdown_stops_pullers_and_kills_linux(self):
         mock_puller = mock.Mock()
         self.obj._pullers = [mock_puller]
-        self.obj.runner_pid = 0
-        self.obj.bridge_command_url = "http://bridge:8080/command"
+        self.obj.runner_pid = 1234
+        commands_sent = []
+        self.obj.command = lambda cmd, **kw: commands_sent.append(cmd) or {"output": ""}
 
-        with mock.patch("bzt.modules.requests.post") as mock_post:
-            mock_post.return_value = mock.Mock(
-                status_code=200, json=lambda: {"output": ""})
-            self.obj.shutdown()
+        self.obj.shutdown()
 
         mock_puller.stop.assert_called_once()
+        self.assertEqual(1, len(commands_sent))
+        self.assertIn("kill -9 1234", commands_sent[0])
+
+    def test_check_uses_linux_ps(self):
+        self.obj.runner_pid = 4242
+        # process still running
+        self.obj.command = lambda cmd, **kw: {"output": "  4242\n"}
+        self.assertFalse(self.obj.check())
+        # process finished
+        self.obj.command = lambda cmd, **kw: {"output": "\n"}
+        self.assertTrue(self.obj.check())
 
     def test_startup_with_duration(self):
         self.engine.aggregator = ConsolidatingAggregator()
@@ -323,6 +332,33 @@ class TestPlaywrightFuncReader(BZTestCase):
             self.assertEqual("standalone_test", samples[2].test_case)
             self.assertEqual("Playwright", samples[2].test_suite)
             self.assertEqual("PASSED", samples[2].status)
+        finally:
+            os.unlink(tmpfile.name)
+
+    def test_ok_field_overrides_error_presence(self):
+        """Playwright test.fail() emits ok=true with an error message — should be PASSED."""
+        tmpfile = tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False)
+        try:
+            lines = [
+                {"label": "expected failure", "timestamp": 1000, "duration": 100,
+                 "ok": True, "error": "Expected failure message"},
+                {"label": "real failure", "timestamp": 2000, "duration": 200,
+                 "ok": False, "error": "Unexpected error"},
+                {"label": "pass no ok field", "timestamp": 3000, "duration": 50},
+            ]
+            for line in lines:
+                tmpfile.write(json.dumps(line) + "\n")
+            tmpfile.flush()
+            tmpfile.close()
+
+            import logging
+            reader = PlaywrightFuncReader(tmpfile.name, EngineEmul(), logging.getLogger("test"))
+            samples = list(reader.read(last_pass=True))
+
+            self.assertEqual(3, len(samples))
+            self.assertEqual("PASSED", samples[0].status)   # ok=True, even with error
+            self.assertEqual("FAILED", samples[1].status)    # ok=False
+            self.assertEqual("PASSED", samples[2].status)    # no ok field, no error
         finally:
             os.unlink(tmpfile.name)
 
