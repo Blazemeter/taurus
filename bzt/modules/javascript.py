@@ -211,10 +211,10 @@ class PlaywrightTester(JavaScriptExecutor):
         return False
 
 
-class PlaywrightLogReader(ResultsReader):
+class _PlaywrightReaderMixin:
+    """Shared helpers for Playwright JSONL readers."""
 
-    def __init__(self, filename, parent_logger):
-        super(PlaywrightLogReader, self).__init__()
+    def _init_jsonl(self, filename, parent_logger):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.filename = filename
         self.jsonl_reader = IncrementalLineReader(self.log, filename)
@@ -229,6 +229,13 @@ class PlaywrightLogReader(ResultsReader):
             return text
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         return ansi_escape.sub('', text)
+
+
+class PlaywrightLogReader(_PlaywrightReaderMixin, ResultsReader):
+
+    def __init__(self, filename, parent_logger):
+        super(PlaywrightLogReader, self).__init__()
+        self._init_jsonl(filename, parent_logger)
 
     def _read(self, final_pass=False):
         for line in self.jsonl_reader.read(final_pass):
@@ -245,26 +252,13 @@ class PlaywrightLogReader(ResultsReader):
                    content.get("byte_count", 0))
 
 
-class PlaywrightFuncReader(FunctionalResultsReader):
+class PlaywrightFuncReader(_PlaywrightReaderMixin, FunctionalResultsReader):
     """Reads Playwright custom reporter JSONL and yields FunctionalSample objects."""
 
     def __init__(self, filename, engine, parent_logger):
         super(PlaywrightFuncReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.engine = engine
-        self.filename = filename
-        self.jsonl_reader = IncrementalLineReader(self.log, filename)
-
-    def _safe_ms_to_s(self, t):
-        if t:
-            return t / 1000.0
-        return t
-
-    def _strip_ansi(self, text):
-        if not text:
-            return text
-        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-        return ansi_escape.sub('', text)
+        self._init_jsonl(filename, parent_logger)
 
     def read(self, last_pass=False):
         for line in self.jsonl_reader.read(last_pass):
