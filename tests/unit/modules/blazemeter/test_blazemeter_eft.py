@@ -387,6 +387,81 @@ class TestBBTPassingLabelsExcluded(BZTestCase):
         self.assertEqual(artifact["transactions"][0]["label"], failing_label)
 
 
+class TestBBTEmptyLabelSkipped(BZTestCase):
+    """BBT path: the aggregate '' (empty-string) label from ConsolidatingAggregator
+    must be excluded from the artifact."""
+
+    def test_bbt_empty_label_skipped(self):
+        obj = _prepare_public_reporting_uploader()
+        obj.settings['generate-failed-transactions'] = True
+
+        agg = _attach_consolidating_aggregator(obj.engine)
+        # Aggregate all-labels entry (empty string key)
+        agg.cumulative[""] = _make_kpi_set_with_general_error("")
+        # Real labelled entry
+        real_label = "Click submit"
+        agg.cumulative[real_label] = _make_kpi_set_with_general_error(real_label)
+
+        obj.prepare()
+        obj._session = Session(obj._user, {'id': 1, 'testId': 1, 'userId': 1})
+        obj._master = Master(obj._user, {'id': 1})
+        obj.send_data = False
+        obj.send_monitoring = False
+
+        obj.post_process()
+
+        artifact_path = os.path.join(obj.engine.artifacts_dir, "failed_transactions.json")
+        with open(artifact_path) as fh:
+            artifact = json.load(fh)
+        labels = [t["label"] for t in artifact["transactions"]]
+        self.assertNotIn("", labels, "aggregate empty-label must be excluded")
+        self.assertEqual(labels, [real_label])
+
+
+class TestBBTAssertionReclassification(BZTestCase):
+    """BBT path: ERRTYPE_ERROR with 'AssertionError' in message must be reclassified
+    as an assertion (not kept in errors[])."""
+
+    def test_bbt_assertion_reclassified_from_message(self):
+        obj = _prepare_public_reporting_uploader()
+        obj.settings['generate-failed-transactions'] = True
+
+        agg = _attach_consolidating_aggregator(obj.engine)
+        label = "Assert wrong title"
+        kpi = KPISet()
+        kpi[KPISet.FAILURES] = 1
+        # Apiritif/Selenium reader classifies all failures as ERRTYPE_ERROR
+        kpi[KPISet.ERRORS].append({
+            "cnt": 1,
+            "msg": "AssertionError: 'BlazeDemo' != 'ThisTitleDoesNotExist'",
+            "tag": None,
+            "rc": "",
+            "type": KPISet.ERRTYPE_ERROR,  # misclassified at KPISet level
+            "urls": Counter(),
+            "responseBodies": [],
+        })
+        agg.cumulative[label] = kpi
+
+        obj.prepare()
+        obj._session = Session(obj._user, {'id': 1, 'testId': 1, 'userId': 1})
+        obj._master = Master(obj._user, {'id': 1})
+        obj.send_data = False
+        obj.send_monitoring = False
+
+        obj.post_process()
+
+        artifact_path = os.path.join(obj.engine.artifacts_dir, "failed_transactions.json")
+        with open(artifact_path) as fh:
+            artifact = json.load(fh)
+
+        txn = artifact["transactions"][0]
+        self.assertEqual(len(txn["assertions"]), 1,
+                         "AssertionError in message must be reclassified to assertions[]")
+        self.assertEqual(len(txn["errors"]), 0,
+                         "reclassified assertion must NOT remain in errors[]")
+        self.assertIn("assert::", txn["assertions"][0]["name"])
+
+
 class TestBBTJsonSerializable(BZTestCase):
     """BBT path: Counter in urls field must be JSON-serializable (no TypeError)."""
 

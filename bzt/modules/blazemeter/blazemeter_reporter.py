@@ -371,14 +371,25 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         """Build transaction entries from ConsolidatingAggregator.cumulative for BBT runs.
 
         Reads from ``engine.aggregator.cumulative`` (dict of {label: KPISet}) and classifies
-        each error item using its ERRTYPE_* type, mirroring DatapointSerializer.__add_errors:
-          - ERRTYPE_ERROR   -> errors[]
-          - ERRTYPE_ASSERT  -> assertions[]
-          - ERRTYPE_SUBSAMPLE -> failedEmbeddedResources[] (skipped for EFT)
+        each error item into the three-way split (errors / assertions / failedEmbeddedResources).
+
+        Two classification layers:
+          1. ERRTYPE_* from KPISet (mirrors DatapointSerializer.__add_errors):
+             ERRTYPE_ASSERT -> assertions[], ERRTYPE_SUBSAMPLE -> failedEmbeddedResources[]
+          2. Message-based reclassification: the Selenium/Apiritif results reader does not
+             distinguish assertion failures from general errors at the KPISet level — all
+             failures arrive as ERRTYPE_ERROR.  Errors whose message contains 'AssertionError'
+             are reclassified as assertions (same heuristic as eft._looks_like_assertion).
+
+        Skips the aggregate '' (empty-string) label that ConsolidatingAggregator maintains
+        as a combined-all-labels entry.
+
         Only labels with at least one failure (KPISet.FAILURES > 0) are included.
 
         :rtype: list[dict]
         """
+        from bzt.modules.eft import _ASSERTION_MARKER
+
         aggregator = getattr(self.engine, "aggregator", None)
         cumulative = getattr(aggregator, "cumulative", None)
         if not cumulative:
@@ -386,6 +397,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
         transactions = []
         for label, kpi_set in iteritems(cumulative):
+            if not label:  # skip aggregate all-labels entry
+                continue
             if not kpi_set.get(KPISet.FAILURES):
                 continue
 
@@ -399,15 +412,18 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             }
             for error in kpi_set.get(KPISet.ERRORS, []):
                 err_type = error.get("type")
+                msg = error.get("msg", "")
+
                 if err_type == KPISet.ERRTYPE_SUBSAMPLE:
                     txn["failedEmbeddedResources"].append({
-                        "url": error.get("msg", ""),
+                        "url": msg,
                         "statusCode": error.get("rc"),
                     })
-                elif err_type == KPISet.ERRTYPE_ASSERT:
+                elif err_type == KPISet.ERRTYPE_ASSERT or _ASSERTION_MARKER in msg:
+                    # Explicit ERRTYPE_ASSERT or message-based reclassification
                     txn["assertions"].append({
                         "name": error.get("tag") or ("assert::%s" % label),
-                        "failureMessage": error.get("msg", ""),
+                        "failureMessage": msg,
                         "failures": error.get("cnt", 1),
                     })
                 else:
