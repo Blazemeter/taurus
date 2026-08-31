@@ -21,6 +21,7 @@ from abc import abstractmethod
 from bzt import TaurusConfigError, ToolError
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
+from bzt.modules.functional import FunctionalResultsReader, FunctionalSample
 from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR, FileReader
 from bzt.utils import get_full_path, is_windows, is_linux, to_json, dehumanize_time, iteritems
 
@@ -210,10 +211,10 @@ class PlaywrightTester(JavaScriptExecutor):
         return False
 
 
-class PlaywrightLogReader(ResultsReader):
+class _PlaywrightReaderMixin:
+    """Shared helpers for Playwright JSONL readers."""
 
-    def __init__(self, filename, parent_logger):
-        super(PlaywrightLogReader, self).__init__()
+    def _init_jsonl(self, filename, parent_logger):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.filename = filename
         self.jsonl_reader = IncrementalLineReader(self.log, filename)
@@ -229,6 +230,13 @@ class PlaywrightLogReader(ResultsReader):
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         return ansi_escape.sub('', text)
 
+
+class PlaywrightLogReader(_PlaywrightReaderMixin, ResultsReader):
+
+    def __init__(self, filename, parent_logger):
+        super(PlaywrightLogReader, self).__init__()
+        self._init_jsonl(filename, parent_logger)
+
     def _read(self, final_pass=False):
         for line in self.jsonl_reader.read(final_pass):
             content = json.loads(line)
@@ -242,6 +250,47 @@ class PlaywrightLogReader(ResultsReader):
                    self._strip_ansi(content.get("error", None)),
                    "", # source id
                    content.get("byte_count", 0))
+
+
+class PlaywrightFuncReader(_PlaywrightReaderMixin, FunctionalResultsReader):
+    """Reads Playwright custom reporter JSONL and yields FunctionalSample objects."""
+
+    def __init__(self, filename, engine, parent_logger):
+        super(PlaywrightFuncReader, self).__init__()
+        self.engine = engine
+        self._init_jsonl(filename, parent_logger)
+
+    def read(self, last_pass=False):
+        for line in self.jsonl_reader.read(last_pass):
+            content = json.loads(line)
+            label = content.get("label", "unknown")
+            error_msg = self._strip_ansi(content.get("error", None))
+            # prefer the reporter's "ok" field — handles expected failures (test.fail())
+            # where ok=true but error message is still present
+            if "ok" in content:
+                status = "PASSED" if content["ok"] else "FAILED"
+            else:
+                status = "FAILED" if error_msg else "PASSED"
+            duration = self._safe_ms_to_s(content.get("duration")) or 0
+            timestamp = self._safe_ms_to_s(content.get("timestamp")) or 0
+
+            # split label into suite and case: "suite > case" or just "case"
+            parts = label.rsplit(" > ", 1)
+            if len(parts) == 2:
+                test_suite, test_case = parts
+            else:
+                test_suite = "Playwright"
+                test_case = label
+
+            yield FunctionalSample(
+                test_case=test_case,
+                test_suite=test_suite,
+                status=status,
+                start_time=timestamp,
+                duration=duration,
+                error_msg=error_msg or "",
+                error_trace="",
+            )
 
 
 class MochaTester(JavaScriptExecutor):
