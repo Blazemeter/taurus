@@ -79,10 +79,18 @@ class RemotePlaywrightExecutor(RemoteExecutor):
         reporter = "@taurus/playwright-custom-reporter"
         remote_output = self.remote_artifacts_path + '/test-output'
 
-        # build env vars for the reporter
+        # build env vars for the reporter (mirrors PlaywrightTester.startup())
+        scenario = self.get_scenario()
+        granularity = str(scenario.get("report-granularity", "auto")).upper().replace("-", "_")
+        if granularity not in ("STEP", "TEST", "STEP_LEAF", "AUTO"):
+            self.log.warning("Unknown report-granularity '%s', reporter will default to AUTO", granularity)
+        noreport_prefix = scenario.get("report-exclude-prefix", "")
+
         env_parts = [
             'TAURUS_PWREPORT_STDOUT=true',
             'TAURUS_PWREPORT_DIR=' + self.remote_artifacts_path,
+            'TAURUS_PWREPORT_GRANULARITY=' + granularity,
+            'TAURUS_PWREPORT_NOREPORT_PREFIX=' + noreport_prefix,
         ]
         if load.duration > 0:
             env_parts.append('TAURUS_PWREPORT_DURATION=' + str(int(load.duration * 1000)))

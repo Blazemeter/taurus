@@ -179,6 +179,8 @@ class TestRemotePlaywrightExecutor(BZTestCase):
         self.assertIn("@taurus/playwright-custom-reporter", cmd)
         self.assertIn("TAURUS_PWREPORT_DIR=", cmd)
         self.assertIn("TAURUS_PWREPORT_STDOUT=true", cmd)
+        self.assertIn("TAURUS_PWREPORT_GRANULARITY=AUTO", cmd)
+        self.assertIn("TAURUS_PWREPORT_NOREPORT_PREFIX=", cmd)
 
         self.assertEqual(4242, self.obj.runner_pid)
 
