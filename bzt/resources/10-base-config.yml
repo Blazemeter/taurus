@@ -46,6 +46,8 @@ modules:
     class: bzt.modules._apiritif.ApiritifNoseExecutor
   playwright:
     class: bzt.modules.javascript.PlaywrightTester
+  remote-playwright:
+    class: bzt.modules._remote_playwright.RemotePlaywrightExecutor
 
   # service & infra modules
   local:
