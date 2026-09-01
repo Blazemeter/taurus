@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
+import json
 import logging
 import os
 import platform
@@ -297,6 +298,167 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                     tail = tail[tail.index(b("\n")) + 1:]
                     self._session.upload_file(modified_name + ".tail.bz", tail)
 
+    def _find_functional_aggregator(self):
+        """Return the FunctionalAggregator holding functional (Selenium/Apiritif) results,
+        or None. The engine's aggregator is a FunctionalAggregator when running functional
+        tests; for load tests it is a ConsolidatingAggregator with no cumulative_results tree.
+        """
+        aggregator = getattr(self.engine, "aggregator", None)
+        if aggregator is not None and hasattr(aggregator, "cumulative_results"):
+            return aggregator
+        return None
+
+    def _generate_failed_transactions_artifact(self):
+        """Build and write failed_transactions.json into engine.artifacts_dir when the
+        opt-in flag is set. Guarded end-to-end so it never breaks post_process (FR-005/FR-006
+        graceful-degradation contract): a falsy flag skips generation entirely (zero behaviour
+        change), and any error while building/writing is logged and swallowed.
+
+        Two data paths:
+        - Functional tests (FunctionalAggregator): reads FunctionalSample objects from
+          ``aggregator.cumulative_results`` (dict of {suite: [FunctionalSample]}).
+        - BBT / performance tests (ConsolidatingAggregator): reads KPISets from
+          ``aggregator.cumulative`` (dict of {label: KPISet}) and classifies each error item
+          by its ERRTYPE_* type, mirroring DatapointSerializer.__add_errors.
+        """
+        if not self.settings.get("generate-failed-transactions", False):
+            return  # FR-006: opt-in, default off -> zero behaviour change
+
+        try:
+            from bzt.modules.eft import build_failed_transactions, classify_failure, \
+                recover_assertion_name
+
+            transactions = []
+            func_agg = self._find_functional_aggregator()
+            results_tree = func_agg.cumulative_results if func_agg else None
+
+            if results_tree is not None:
+                # Functional test path: FunctionalAggregator -> FunctionalSample objects
+                for _suite, samples in iteritems(results_tree):
+                    for sample in samples:
+                        if sample.status not in ("FAILED", "BROKEN"):
+                            continue
+                        assertion_name = recover_assertion_name(sample)
+                        item = classify_failure(
+                            label=sample.test_case,
+                            message=sample.error_msg,
+                            trace=sample.error_trace,
+                            rc=None,  # FR-005: browser errors have no HTTP response code
+                            assertion_name=assertion_name,
+                        )
+                        transactions.append(self._transaction_from_item(sample, item))
+            else:
+                # BBT / performance test path: ConsolidatingAggregator -> KPISet objects
+                transactions = self._transactions_from_consolidating_aggregator()
+
+            artifact = build_failed_transactions(
+                transactions,
+                session_id=self._session.get("id") if self._session else None,
+                test_id=self._session.get("testId") if self._session else None,
+                timestamp=time.time(),
+            )
+
+            out_path = os.path.join(self.engine.artifacts_dir, "failed_transactions.json")
+            with open(out_path, "w") as fh:
+                json.dump(artifact, fh)
+            self.log.info("Wrote EFT artifact: %s (%s transaction(s))", out_path, len(transactions))
+        except Exception:
+            # Missing artifact simply means no EFT data for this run; never crash post_process.
+            self.log.warning("Failed to generate EFT failed_transactions.json: %s",
+                             traceback.format_exc())
+
+    def _transactions_from_consolidating_aggregator(self):
+        """Build transaction entries from ConsolidatingAggregator.cumulative for BBT runs.
+
+        Reads from ``engine.aggregator.cumulative`` (dict of {label: KPISet}) and classifies
+        each error item into the three-way split (errors / assertions / failedEmbeddedResources).
+
+        Two classification layers:
+          1. ERRTYPE_* from KPISet (mirrors DatapointSerializer.__add_errors):
+             ERRTYPE_ASSERT -> assertions[], ERRTYPE_SUBSAMPLE -> failedEmbeddedResources[]
+          2. Message-based reclassification: the Selenium/Apiritif results reader does not
+             distinguish assertion failures from general errors at the KPISet level — all
+             failures arrive as ERRTYPE_ERROR.  Errors whose message contains 'AssertionError'
+             are reclassified as assertions (same heuristic as eft._looks_like_assertion).
+
+        Skips the aggregate '' (empty-string) label that ConsolidatingAggregator maintains
+        as a combined-all-labels entry.
+
+        Only labels with at least one failure (KPISet.FAILURES > 0) are included.
+
+        :rtype: list[dict]
+        """
+        from bzt.modules.eft import _ASSERTION_MARKER
+
+        aggregator = getattr(self.engine, "aggregator", None)
+        cumulative = getattr(aggregator, "cumulative", None)
+        if not cumulative:
+            return []
+
+        transactions = []
+        for label, kpi_set in iteritems(cumulative):
+            if not label:  # skip aggregate all-labels entry
+                continue
+            if not kpi_set.get(KPISet.FAILURES):
+                continue
+
+            txn = {
+                "label": label,
+                "timestamp": None,
+                "duration": None,
+                "errors": [],
+                "assertions": [],
+                "failedEmbeddedResources": [],
+            }
+            for error in kpi_set.get(KPISet.ERRORS, []):
+                err_type = error.get("type")
+                msg = error.get("msg", "")
+
+                if err_type == KPISet.ERRTYPE_SUBSAMPLE:
+                    txn["failedEmbeddedResources"].append({
+                        "url": msg,
+                        "statusCode": error.get("rc"),
+                    })
+                elif err_type == KPISet.ERRTYPE_ASSERT or _ASSERTION_MARKER in msg:
+                    # Explicit ERRTYPE_ASSERT or message-based reclassification
+                    txn["assertions"].append({
+                        "name": error.get("tag") or ("assert::%s" % label),
+                        "failureMessage": msg,
+                        "failures": error.get("cnt", 1),
+                    })
+                else:
+                    # ERRTYPE_ERROR or unknown — general error
+                    err_item = dict(error)
+                    # urls is a Counter; serialise to plain dict for JSON
+                    if hasattr(err_item.get("urls"), "items"):
+                        err_item["urls"] = dict(err_item["urls"])
+                    txn["errors"].append(err_item)
+
+            transactions.append(txn)
+        return transactions
+
+    @staticmethod
+    def _transaction_from_item(sample, item):
+        """Place a classified error_item into the three-way split for a transaction entry,
+        mirroring DatapointSerializer.__add_errors (errors / assertions / failedEmbeddedResources)."""
+        txn = {
+            "label": sample.test_case,
+            "timestamp": getattr(sample, "start_time", None),
+            "duration": getattr(sample, "duration", None),
+            "errors": [],
+            "assertions": [],
+            "failedEmbeddedResources": [],
+        }
+        if item["type"] == KPISet.ERRTYPE_ASSERT:
+            txn["assertions"].append({
+                "name": item["tag"] if item["tag"] else ("assert::%s" % sample.test_case),
+                "failureMessage": item["msg"],
+                "failures": item["cnt"],
+            })
+        else:
+            txn["errors"].append(item)
+        return txn
+
     def post_process(self):
         """
         Upload results if possible
@@ -304,6 +466,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if not self._session:
             self.log.debug("No feeding session obtained, nothing to finalize")
             return
+
+        # EFT (Exclude Failed Transactions): flag-gated, default off (FR-006). Generate the
+        # generic failed_transactions.json artifact BEFORE __upload_artifacts so it is bundled
+        # into artifacts.zip by the existing upload path (A-UPLOAD, FR-001).
+        self._generate_failed_transactions_artifact()
 
         self.log.debug("KPI bulk buffer len in post-proc: %s", len(self.kpi_buffer))
         try:

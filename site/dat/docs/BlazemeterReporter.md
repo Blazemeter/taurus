@@ -70,6 +70,7 @@ modules:
                                    # that goes into zip for artifact upload, 10 by default
     public-report: false  # set to true to create a public link to the report
     request-logging-limit: 10240 # use this to dump more of request/response data into logs, for debugging
+    generate-failed-transactions: false  # opt-in: write failed_transactions.json for browser tests (default off)
 
     # following instructions will have effect when no per-reporter settings
     report-name: My Next Test  # if you will use value 'ask', it will ask it from command line
@@ -90,3 +91,38 @@ Reporting a locally- or CI-executed run to BlazeMeter creates what BlazeMeter ca
 requires Taurus 1.17.0 or newer — older clients are prompted to upgrade and the run is
 not stored. Other accounts work with any version.
 </div>
+
+
+## Failed Transactions Artifact (browser-based tests)
+
+For browser-based (Selenium/Apiritif) runs you can have Taurus emit a generic
+`failed_transactions.json` artifact that categorizes each failed transaction into general
+errors, failed assertions, and failed embedded resources. This mirrors the error
+classification already used for JMeter results and is uploaded to BlazeMeter as part of the
+standard `artifacts.zip`.
+
+The feature is **opt-in and default off** — existing runs are unaffected unless you set the
+flag:
+
+```yaml
+modules:
+  blazemeter:
+    generate-failed-transactions: true   # default: false
+
+execution:
+  - executor: selenium
+    scenario: my-browser-scenario
+```
+
+When enabled, after the run completes Taurus writes `failed_transactions.json` into the run's
+artifacts directory. Its `transactions[]` entries split failures into `errors` (general),
+`assertions` (each carrying a `name` — recovered when possible, otherwise a synthetic
+`assert::<transaction>` fallback), and `failedEmbeddedResources`, keyed by the existing
+ERRTYPE_* classification.
+
+Notes:
+
+- Browser tests emit an empty `responseBodies` list and may have a null `rc` (response code).
+- Runs with only passing transactions still produce a well-formed artifact with an empty
+  `transactions` list.
+- The JSON schema is an initial format subject to sign-off by the Taurus (Sparta) team.
