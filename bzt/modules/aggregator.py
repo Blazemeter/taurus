@@ -580,6 +580,11 @@ class ResultsProvider(object):
 
     def set_aggregation(self, aggregation):
         self._redundant_aggregation = aggregation
+        # MOB-53647: propagate to nested underlings (e.g. ApiritifLoadReader
+        # is a ConsolidatingAggregator whose startup() is never called by the
+        # engine, so its own underlings never received the flag).
+        for underling in getattr(self, 'underlings', []):
+            underling.set_aggregation(aggregation)
 
     @staticmethod
     def _fuzzy_fold(key, dataset, limit):
