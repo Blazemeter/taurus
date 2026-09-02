@@ -898,6 +898,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         mixed_labels = set(data.keys()) - {overall_label}
         data[overall_label] = dict()
         for key in mixed_labels:
+            if '-' not in key:
+                continue  # label has no pass/fail state suffix, skip extension
             sep = key.rindex('-')
             original_label, state = key[:sep], key[sep + 1:]
             kpi_set = data.pop(key)

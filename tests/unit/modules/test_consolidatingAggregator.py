@@ -199,6 +199,31 @@ class TestConsolidatingAggregator(BZTestCase):
                 for state in written_kpis[label].keys():
                     self.assertIn(state, allowed_states, f"Wrong state '{state}' for label '{label}'")
 
+    def test_extend_data_labels_without_dash(self):
+        """MOB-43135: Labels without a '-' separator must not crash __extend_reported_data."""
+        self.obj.settings['extend-aggregation'] = True
+        reader = MockReader()
+        watcher = MockListener()
+        watcher.engine = self.obj.engine
+
+        reader.buffer_scale_idx = '100.0'
+        # Inject a label without '-' directly into the DataPoint to simulate
+        # edge cases where mixed labels lack the expected state suffix.
+        reader.data.append((1, "test_index", 1, 1, 1, 1, '200', None, '', 1))
+
+        self.obj.add_underling(reader)
+        self.obj.add_listener(watcher)
+
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
+
+        # Converter must not raise ValueError on labels without '-'
+        for dp in watcher.results:
+            self.obj.converter(dp)  # should not raise
+
     def test_two_executions(self):
         self.obj.track_percentiles = [0, 50, 100]
         self.obj.prepare()
