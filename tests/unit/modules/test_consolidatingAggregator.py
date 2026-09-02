@@ -200,7 +200,7 @@ class TestConsolidatingAggregator(BZTestCase):
                     self.assertIn(state, allowed_states, f"Wrong state '{state}' for label '{label}'")
 
     def test_extend_data_labels_without_dash(self):
-        """MOB-43135: Labels without a '-' separator must not crash __extend_reported_data."""
+        """MOB-53647: Labels without a '-' separator must not crash __extend_reported_data."""
         self.obj.settings['extend-aggregation'] = True
         reader = MockReader()
         watcher = MockListener()
