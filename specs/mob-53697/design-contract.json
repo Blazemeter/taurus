@@ -1,0 +1,132 @@
+{
+  "contract_version": "1",
+  "evidence_index": "evidence-index.json",
+  "ticket": "MOB-53697",
+  "repo": "taurus",
+  "requirements": [
+    {
+      "id": "AC-1",
+      "statement": "All 4 research questions (how load is applied; how to skip the rest of an iteration on failure; whether per-iteration status is set and can be marked SKIPPED; whether skipping an iteration skips the whole test) are answered and documented with code evidence, including the residual apiritif iteration-abort risk.",
+      "source": "JIRA:MOB-53697:description",
+      "evidence": [
+        {"id": "E-001", "source": "JIRA:MOB-53697:description", "claim": "The spike must answer how load/iterations are applied and how to skip the rest of an iteration on failure."}
+      ]
+    },
+    {
+      "id": "AC-2",
+      "statement": "A follow-up implementation Story is filed against Epic MOB-47570 capturing the SKIP ON FAILURE feature scope, informed by the spike's findings.",
+      "source": "JIRA:MOB-53697:description",
+      "evidence": [
+        {"id": "E-002", "source": "JIRA:MOB-53697:description", "claim": "The spike must file a follow-up implementation Story against Epic MOB-47570."}
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-1",
+      "selected": "Recommend skip logic in taurus generated code (design A: early-exit-on-failure in _gen_master_test_method), gated on validating apiritif iteration semantics.",
+      "alternatives": [
+        "Skip logic in taurus generated code (design A)",
+        "New apiritif.loadgen runtime flag (design B)",
+        "Executor-level result short-circuit (design C)"
+      ],
+      "rationale": "Design A keeps skip control where taurus owns the code (generated test methods), avoids an external apiritif dependency change / fork risk, and reuses the existing SKIPPED status. B risks a fork; C has wrong semantics (steps still ran).",
+      "evidence": [
+        {"id": "E-003", "source": "FILE:plan.md:72", "claim": "Design Alternative A (skip logic in generated code) is SELECTED over apiritif-flag and executor-wrapper alternatives."}
+      ]
+    },
+    {
+      "id": "D-2",
+      "selected": "Treat the apiritif iteration-abort behavior as a VALIDATE assumption (A4) with a falsification test, not a proven fact.",
+      "alternatives": [
+        "Assume apiritif continues remaining iterations (PROCEED)",
+        "Validate with a falsification test before committing (VALIDATE)"
+      ],
+      "rationale": "The apiritif iteration loop is external/opaque; proceeding on the unproven assumption risks scoping a feature that cannot work. The follow-up Story must run the --iterations 2 falsification test first.",
+      "evidence": [
+        {"id": "E-004", "source": "FILE:brownfield-context.md:93", "claim": "Assumption A4 (apiritif does not auto-abort remaining iterations) is VALIDATE, gated on a falsification test."}
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A-1",
+      "claim": "apiritif.loadgen does not auto-abort remaining iterations when the first iteration raises; skipping an iteration does not skip the whole test.",
+      "risk": "medium",
+      "decision": "VALIDATE",
+      "validation": "Run python -m apiritif.loadgen --iterations 2 with a raising iteration 1 and observe whether iteration 2 executes (falsification task T010).",
+      "evidence": [
+        {"id": "E-004", "source": "FILE:brownfield-context.md:93", "claim": "Assumption A4 (apiritif does not auto-abort remaining iterations) is VALIDATE, gated on a falsification test."}
+      ]
+    }
+  ],
+  "interfaces": [],
+  "change_map": [
+    {
+      "id": "C-1",
+      "path": "specs/mob-53697/plan.md",
+      "symbols": ["specs/mob-53697/plan.md::Research Findings", "specs/mob-53697/plan.md::Failure Modes"],
+      "change_type": "docs",
+      "reason": "Document the four answered research questions and the residual apiritif iteration-abort risk with code evidence (spike deliverable for AC-1).",
+      "requirement_ids": ["AC-1"],
+      "task_ids": ["T002", "T003", "T004", "T005", "T006", "T008", "T010"],
+      "evidence": [
+        {"id": "E-006", "source": "FILE:plan.md:76", "claim": "The plan's Failure Modes section documents the residual apiritif.loadgen iteration-abort risk and validation step."}
+      ]
+    },
+    {
+      "id": "C-2",
+      "path": "specs/mob-53697/plan.md",
+      "symbols": ["specs/mob-53697/plan.md::Recommended Implementation Approach"],
+      "change_type": "docs",
+      "reason": "Document the recommended implementation approach that scopes the follow-up implementation Story against Epic MOB-47570 (spike deliverable for AC-2).",
+      "requirement_ids": ["AC-2"],
+      "task_ids": ["T007"],
+      "evidence": [
+        {"id": "E-005", "source": "FILE:plan.md:57", "claim": "The plan documents the recommended implementation approach and design for a follow-up Story."}
+      ]
+    }
+  ],
+  "traceability": [
+    {
+      "requirement_id": "AC-1",
+      "decision_ids": ["D-1", "D-2"],
+      "change_ids": ["C-1"],
+      "task_ids": ["T002", "T003", "T004", "T005", "T006", "T008", "T010"],
+      "test_ids": ["test_q1_answer_cited", "test_q2_answer_cited", "test_q3_answer_cited", "test_q4_answer_cited", "test_apiritif_abort_risk_documented", "test_findings_published"],
+      "evidence": [
+        {"id": "E-007", "source": "FILE:spec.md:132", "claim": "The Requirement Traceability Matrix maps AC-1 and AC-2 to FR/tasks/verification gates."}
+      ]
+    },
+    {
+      "requirement_id": "AC-2",
+      "decision_ids": ["D-1"],
+      "change_ids": ["C-2"],
+      "task_ids": ["T007"],
+      "test_ids": ["test_followup_story_filed"],
+      "evidence": [
+        {"id": "E-007", "source": "FILE:spec.md:132", "claim": "The Requirement Traceability Matrix maps AC-1 and AC-2 to FR/tasks/verification gates."}
+      ]
+    }
+  ],
+  "architectural_clarification": {
+    "status": "resolved",
+    "decision": "For the future feature, skip logic lives in taurus generated code (design A); apiritif iteration-abort behavior is a VALIDATE assumption gated on a falsification test. This spike ships no code.",
+    "alternatives": [
+      "Skip logic in taurus generated code (design A)",
+      "New apiritif.loadgen runtime flag (design B)",
+      "Executor-level result short-circuit (design C)"
+    ],
+    "evidence": [
+      {"id": "E-003", "source": "FILE:plan.md:72", "claim": "Design Alternative A (skip logic in generated code) is SELECTED over apiritif-flag and executor-wrapper alternatives."}
+    ]
+  },
+  "freshness": {
+    "captured_at": "2026-09-03T13:35:26Z",
+    "source_commit": "10f33231461a5907e29787abcc7a86d83018fa92",
+    "brownfield_context_sha256": "fbedfc332bef997b04fd98a6c13081883a973de93510a329aaa3c23e410f944f",
+    "ticket_input_sha256": "4abb0fc18590f53d1c341b180ea5429259596a45a84581c2e3c40a9f162c4395",
+    "sharder_manifest_sha256": "46247a07896c862adb446506f572953a084daf54a9c92114342dcb2c426b35ac",
+    "planner_version": "task-planner/1"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "version": "1",
+  "ticket": "MOB-53697",
+  "repo": "taurus",
+  "sources": [
+    {
+      "id": "E-001",
+      "source": "JIRA:MOB-53697:description",
+      "claim": "The spike must answer how load/iterations are applied and how to skip the rest of an iteration on failure."
+    },
+    {
+      "id": "E-002",
+      "source": "JIRA:MOB-53697:description",
+      "claim": "The spike must file a follow-up implementation Story against Epic MOB-47570."
+    },
+    {
+      "id": "E-003",
+      "source": "FILE:plan.md:72",
+      "claim": "Design Alternative A (skip logic in generated code) is SELECTED over apiritif-flag and executor-wrapper alternatives."
+    },
+    {
+      "id": "E-004",
+      "source": "FILE:brownfield-context.md:93",
+      "claim": "Assumption A4 (apiritif does not auto-abort remaining iterations) is VALIDATE, gated on a falsification test."
+    },
+    {
+      "id": "E-005",
+      "source": "FILE:plan.md:57",
+      "claim": "The plan documents the recommended implementation approach and design for a follow-up Story."
+    },
+    {
+      "id": "E-006",
+      "source": "FILE:plan.md:76",
+      "claim": "The plan's Failure Modes section documents the residual apiritif.loadgen iteration-abort risk and validation step."
+    },
+    {
+      "id": "E-007",
+      "source": "FILE:spec.md:132",
+      "claim": "The Requirement Traceability Matrix maps AC-1 and AC-2 to FR/tasks/verification gates."
+    },
+    {
+      "id": "E-008",
+      "source": "FILE:brownfield-context.md:3",
+      "claim": "Semantic disambiguation found no forbidden identifiers; skip_on_failure is NEW, SKIPPED and iteration are USE."
+    }
+  ]
+}
