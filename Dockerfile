@@ -219,7 +219,9 @@ RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.423/dotnet-sd
     ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Install rbenv and Ruby
-ARG RUBY_VERSION=3.4.9
+# 3.4.10 ships patched net-imap (0.5.15) and erb (4.0.4.1) as its own bundled/default gems, which
+# removes the need to force-install and purge them below. Do not drop back to 3.4.9.
+ARG RUBY_VERSION=3.4.10
 
 RUN git clone --depth 1 https://github.com/rbenv/rbenv.git ${RBENV_ROOT} && \
     git clone --depth 1 https://github.com/rbenv/ruby-build.git ${RBENV_ROOT}/plugins/ruby-build && \
@@ -238,45 +240,40 @@ RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
 RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/ruby 1 && \
     update-alternatives --install /usr/local/bin/gem gem ${RBENV_ROOT}/shims/gem 1
 
-# Patch vulnerable Ruby default/bundled gems (CVE fix).
-#   net-imap 0.5.8 -> 0.5.15: CVE-2026-42245/42246/42256/42257/42258/47240/47241/47242 (incl. 2 critical)
-#                             ^ REAL fix: net-imap's code lives in the gem dir, so removing the old
-#                               gem dir removed the old code and 0.5.15 is what actually loads.
-#   erb      4.0.4 -> 4.0.4.1: CVE-2026-41316   <-- APPEASEMENT ONLY, NOT A FIX
-#   json     2.9.1 -> 2.19.9:  CVE-2026-54696   <-- APPEASEMENT ONLY, NOT A FIX
-#     erb and json are *pure* default gems: their code lives in Ruby's stdlib dir, not the gem dir.
-#     Deleting specifications/default/<gem>-<old>.gemspec de-registers the feature as gem-upgradable,
-#     so `require` stops consulting RubyGems and loads the OLD stdlib copy. Verified in the published
-#     image: ERB.version == 4.0.4 and JSON::VERSION == 2.9.1 even though `gem list` shows 4.0.4.1 and
-#     2.19.9 installed. Prisma goes quiet; the vulnerable code still runs.
-#     Revert in a DEDICATED PR (reverting alone re-adds scan findings, so it cannot ride inside a CVE
-#     run whose gate requires the total to drop). See .claude/skills/prisma-taurus/vulnerability_history.md,
-#     "When a Ruby gem has a CVE" step 3 (pure-default-gem trap) for the decision test and options.
-# These ship with Ruby. Installing the patched gem is NOT enough: Prisma reads the OLD version
-# from THREE places that `gem install`/`gem update` leave behind:
-#   1. the gemspec   -> specifications[/default]/<gem>-<old>.gemspec
-#   2. the lib dir   -> gems/<gem>-<old>
-#   3. the CACHED ARCHIVE -> cache/<gem>-<old>.gem   <-- easily missed; this is what kept
-#      net-imap 0.5.8 flagged even though only 0.5.15 was installed (erb had no cache archive,
-#      so it cleared). Remove all three, purge the gem cache, then ASSERT the old version is gone
-#      so the build fails loudly instead of silently shipping the vulnerable version.
+# Patch vulnerable Ruby gems that Ruby itself still ships unpatched (CVE fix).
+#   json   2.9.1 -> 2.19.9: CVE-2026-54696
+#   resolv 0.7.1 -> 0.7.2:  CVE-2026-80212, CVE-2026-80213
+# (net-imap CVE-2026-42245/42246/42256/42257/42258/47240/47241/47242 -- incl. 2 critical -- and
+#  erb CVE-2026-41316 are fixed by Ruby 3.4.10 itself, so their former force-install + purge is gone.)
+#
+# Install the patched gem and DO NOT touch specifications/default/<gem>-<old>.gemspec.
+# Keeping that gemspec is what lets RubyGems activate the newer gem at require time. The previous
+# recipe deleted it, which silenced Prisma but ALSO de-registered the feature, so `require` fell back
+# to Ruby's own stdlib copy and the VULNERABLE code kept loading (measured in the published image:
+# ERB.version 4.0.4 / JSON::VERSION 2.9.1 despite patched gems being installed). That is scanner
+# appeasement, not a fix -- see .claude/skills/prisma-taurus/vulnerability_history.md,
+# "When a Ruby gem has a CVE" step 3.
+#
+# Consequence, accepted deliberately: Prisma still reads the stale default gemspec and reports
+# json 2.9.1 / resolv 0.7.1. Those findings are VISIBLE AND HONEST while the loaded code is patched.
+# Do not "fix" them by deleting the gemspec. They clear for real when Ruby bundles the patched
+# versions (as 3.4.10 just did for net-imap and erb) -- then drop that gem's line here.
+#
+# The assertion below checks the thing that actually matters: that the patched version is what
+# `require` loads. A silent activation failure fails the build instead of shipping quietly.
 RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
-    gem install net-imap -v 0.5.15 --no-document && \
-    gem install erb -v 4.0.4.1 --no-document && \
     gem install json -v 2.19.9 --no-document && \
-    GEMS_DIR="$(ruby -e 'print Gem.dir')" && \
-    for OLD in net-imap-0.5.8 erb-4.0.4 json-2.9.1; do \
-        rm -rf "$GEMS_DIR/gems/$OLD" \
-               "$GEMS_DIR/specifications/$OLD.gemspec" \
-               "$GEMS_DIR/specifications/default/$OLD.gemspec"; \
-    done && \
-    rm -f "$GEMS_DIR"/cache/*.gem && \
+    gem install resolv -v 0.7.2 --no-document && \
     rbenv rehash && \
-    if find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' -o -name 'json-2.9.1.gem' -o -name 'json-2.9.1.gemspec' | grep -q .; then \
-        echo 'ERROR: vulnerable Ruby gem version still on disk after patch (build aborted)' >&2; \
-        find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' -o -name 'json-2.9.1.gem' -o -name 'json-2.9.1.gemspec' >&2; \
-        exit 1; \
-    fi
+    ruby -rjson -rerb -rnet/imap -rresolv -e '\
+        want = { "json" => "2.19.9", "resolv" => "0.7.2", "erb" => "4.0.4.1", "net-imap" => "0.5.15" }; \
+        bad = want.reject { |g, v| (Gem.loaded_specs[g] && Gem.loaded_specs[g].version.to_s == v) || \
+                                   (g == "erb" && ERB.version == v) }; \
+        unless bad.empty?; \
+            got = bad.keys.map { |g| "#{g}: want #{want[g]}, loaded #{Gem.loaded_specs[g]&.version || "stdlib"}" }; \
+            abort("ERROR: vulnerable Ruby gem still active at runtime (build aborted)\n  " + got.join("\n  ")); \
+        end; \
+        puts "Ruby gem CVE check OK: " + want.map { |g, v| "#{g}=#{v}" }.join(" ")'
 
 # Install OpenJDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
