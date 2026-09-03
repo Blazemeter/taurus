@@ -125,8 +125,10 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
 
 # Upgrade OS packages to patched versions in noble-security/noble-updates (CVE fixes):
-#   libgnutls30 (gnutls28): CVE-2026-3832/3833/5260/5419/33845/33846/42009-42015
-#   libgcrypt20:            CVE-2026-41989
+#   libgnutls30t64 (gnutls28): CVE-2026-3832/3833/5260/5419/33845/33846/42009-42015
+#     (noble renamed libgnutls30 -> libgnutls30t64; the old name matches nothing and was being
+#      skipped silently, so this list was not actually enforced for gnutls)
+#   libgcrypt20:            CVE-2026-41989, CVE-2024-2236 (-> 1.10.3-2ubuntu0.2; base ships ...0.1)
 #   librabbitmq4:           CVE-2023-35789, CVE-2026-44235, CVE-2026-44236
 #   mesa userspace libs:    CVE-2026-40393
 #   perl:                   CVE-2026-8376, CVE-2026-42496 (-> 5.38.2-3.2ubuntu0.3)
@@ -137,17 +139,30 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 #   python3.12:             CVE-2026-6100/9669, CVE-2025-69534, CVE-2026-4786/4519/7774/3276/4224/3644/1299/8328/2297/1502/6019, CVE-2025-13462 (-> 3.12.3-1ubuntu0.15)
 #   gzip:                   CVE-2026-41992, CVE-2026-41991 (-> 1.12-1ubuntu3.2)
 #   libnghttp2-14 (nghttp2):CVE-2026-58055 (-> 1.59.0-1ubuntu0.4)
-#   ncurses libs:           CVE-2025-69720 (-> 6.4+20240113-1ubuntu2.1)
+#   ncurses libs:           CVE-2025-69720, CVE-2025-6141 (-> 6.4+20240113-1ubuntu2.2; base ships ...2.1)
 #   pipewire libs:          CVE-2026-14324, CVE-2026-14330 (-> 1.0.5-1ubuntu3.3)
+#     (libpipewire-0.3-0 was likewise renamed to libpipewire-0.3-0t64 and was being skipped)
 #   libasound2t64 (alsa-lib): CVE-2026-56109 (-> 1.2.11-1ubuntu0.3)
 #   libde265-0 (libde265):  CVE-2026-33164 (-> 1.0.15-1ubuntu0.1)
 #   libheif1 (libheif):     CVE-2026-47714 (-> 1.17.6-1ubuntu4.6)
 #   wget:                   CVE-2026-58469 (fixed in 1.21.4-1ubuntu4.3; pocket ships 1.21.4-1ubuntu4.4)
-# (--only-upgrade never installs new packages; absent ones are skipped.)
-# remove each when the base image ships the fixed version natively (CVE drops from baseline scan)
+#   libp11-kit0 (p11-kit):  CVE-2026-18938, CVE-2026-13757 (-> 0.25.3-4ubuntu2.2)
+#   libattr1 (attr):        CVE-2026-54371 (-> 1:2.5.2-1ubuntu0.1)
+#   coreutils:              CVE-2025-5278 (-> 9.4-3ubuntu6.3)
+# libp11-kit0, libattr1 and coreutils (and also libgcrypt20 / the ncurses libs) ship in the
+# ubuntu:24.04 base image at exactly the flagged versions and are not reinstalled by any earlier
+# apt-get install, so a plain rebuild never picks up their fixes -- only an explicit --only-upgrade
+# does. (A package installed unpinned by an earlier apt-get install is already pocket-current on
+# each rebuild and does NOT need an entry here.)
+# (--only-upgrade never installs new packages; absent ones are skipped -- so a wrong/renamed name
+#  fails silently. Verify with `apt-cache policy <pkg>` in the image before adding one.)
+# These entries are unpinned and self-maintaining: each resolves to the pocket's current version at
+# build time, which also picks up security updates published AFTER the base image tag was built.
+# Do NOT prune an entry merely because the base image caught up -- that trades away the forward
+# protection for no benefit. See vulnerability_history.md (pruning note).
 RUN apt-get update && \
     apt-get install -y --no-install-recommends --only-upgrade \
-        libgnutls30 \
+        libgnutls30t64 \
         libgcrypt20 \
         librabbitmq4 \
         libgbm1 \
@@ -169,14 +184,17 @@ RUN apt-get update && \
         ncurses-base \
         ncurses-bin \
         pipewire \
-        libpipewire-0.3-0 \
+        libpipewire-0.3-0t64 \
         libpipewire-0.3-common \
         libpipewire-0.3-modules \
         pipewire-bin \
         libasound2t64 \
         libde265-0 \
         libheif1 \
-        wget && \
+        wget \
+        libp11-kit0 \
+        libattr1 \
+        coreutils && \
     rm -rf /var/lib/apt/lists/*
 
 # ================================
@@ -216,8 +234,18 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 
 # Patch vulnerable Ruby default/bundled gems (CVE fix).
 #   net-imap 0.5.8 -> 0.5.15: CVE-2026-42245/42246/42256/42257/42258/47240/47241/47242 (incl. 2 critical)
-#   erb      4.0.4 -> 4.0.4.1: CVE-2026-41316
-#   json     2.9.1 -> 2.19.9:  CVE-2026-54696
+#                             ^ REAL fix: net-imap's code lives in the gem dir, so removing the old
+#                               gem dir removed the old code and 0.5.15 is what actually loads.
+#   erb      4.0.4 -> 4.0.4.1: CVE-2026-41316   <-- APPEASEMENT ONLY, NOT A FIX
+#   json     2.9.1 -> 2.19.9:  CVE-2026-54696   <-- APPEASEMENT ONLY, NOT A FIX
+#     erb and json are *pure* default gems: their code lives in Ruby's stdlib dir, not the gem dir.
+#     Deleting specifications/default/<gem>-<old>.gemspec de-registers the feature as gem-upgradable,
+#     so `require` stops consulting RubyGems and loads the OLD stdlib copy. Verified in the published
+#     image: ERB.version == 4.0.4 and JSON::VERSION == 2.9.1 even though `gem list` shows 4.0.4.1 and
+#     2.19.9 installed. Prisma goes quiet; the vulnerable code still runs.
+#     Revert in a DEDICATED PR (reverting alone re-adds scan findings, so it cannot ride inside a CVE
+#     run whose gate requires the total to drop). See vulnerability_history.md, "When a Ruby gem has a
+#     CVE" step 3 (pure-default-gem trap) for the decision test and options.
 # These ship with Ruby. Installing the patched gem is NOT enough: Prisma reads the OLD version
 # from THREE places that `gem install`/`gem update` leave behind:
 #   1. the gemspec   -> specifications[/default]/<gem>-<old>.gemspec
