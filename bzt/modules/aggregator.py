@@ -783,9 +783,6 @@ class ResultsReader(ResultsProvider):
         if self._redundant_aggregation:
             # kpis format: conc, r_time, con_time, latency, r_code, error_msg, trname, byte_count
             label = self.get_mixed_label(label=label, rc=kpis[4], msg=kpis[5])
-        elif '-' not in label:
-            self.log.debug("MOB-53647 DEBUG: __add_sample without redundant_aggregation, label=%s, self=%s",
-                           label, type(self).__name__)
 
         if label not in current:
             current[label] = KPISet(
@@ -904,11 +901,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         data = kpi_sets['current']
         overall_label = ''
         mixed_labels = set(data.keys()) - {overall_label}
-        # MOB-53647 debug: log labels entering __extend_reported_data
-        dashless = [k for k in mixed_labels if '-' not in k]
-        if dashless:
-            self.log.error("MOB-53647 DEBUG: labels without dash in __extend_reported_data: %s (all keys: %s)",
-                           dashless, list(data.keys()))
         data[overall_label] = dict()
         for key in mixed_labels:
             sep = key.rindex('-')
