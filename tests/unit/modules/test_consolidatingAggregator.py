@@ -199,6 +199,40 @@ class TestConsolidatingAggregator(BZTestCase):
                 for state in written_kpis[label].keys():
                     self.assertIn(state, allowed_states, f"Wrong state '{state}' for label '{label}'")
 
+    def test_nested_aggregator_propagates_extend_aggregation(self):
+        """MOB-53647: When an underling is itself a ConsolidatingAggregator (e.g.
+        ApiritifLoadReader), set_aggregation must propagate to the inner's
+        underlings so that get_mixed_label adds the '-state' suffix. Without
+        propagation, the inner's JTLReader produces raw labels that crash
+        __extend_reported_data on key.rindex('-')."""
+        self.obj.settings['extend-aggregation'] = True
+
+        # Build a nested aggregator chain: outer -> inner -> reader
+        inner = ConsolidatingAggregator()
+        inner.engine = self.obj.engine
+        inner.track_percentiles = self.obj.track_percentiles
+
+        reader = MockReader()
+        reader.buffer_scale_idx = '100.0'
+        reader.data.append((1, "Navigate to site", 1, 2, 0, 0, '200', None, '', 2))
+        inner.add_underling(reader)
+
+        self.obj.add_underling(inner)
+
+        self.obj.prepare()
+        self.obj.startup()
+
+        # verify the reader got the flag propagated through the nested chain
+        self.assertTrue(reader._redundant_aggregation,
+                        'set_aggregation must propagate to nested underlings')
+
+        # verify the reader produces mixed labels with '-state' suffix
+        for dp in reader.datapoints(True):
+            mixed_labels = set(dp[DataPoint.CURRENT].keys()) - {''}
+            for label in mixed_labels:
+                self.assertIn('-', label,
+                              f"Label '{label}' missing '-state' suffix — get_mixed_label was not called")
+
     def test_two_executions(self):
         self.obj.track_percentiles = [0, 50, 100]
         self.obj.prepare()
