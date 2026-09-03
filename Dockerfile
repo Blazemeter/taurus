@@ -125,8 +125,10 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
 
 # Upgrade OS packages to patched versions in noble-security/noble-updates (CVE fixes):
-#   libgnutls30 (gnutls28): CVE-2026-3832/3833/5260/5419/33845/33846/42009-42015
-#   libgcrypt20:            CVE-2026-41989
+#   libgnutls30t64 (gnutls28): CVE-2026-3832/3833/5260/5419/33845/33846/42009-42015
+#     (noble renamed libgnutls30 -> libgnutls30t64; the old name matches nothing and was being
+#      skipped silently, so this list was not actually enforced for gnutls)
+#   libgcrypt20:            CVE-2026-41989, CVE-2024-2236 (-> 1.10.3-2ubuntu0.2; base ships ...0.1)
 #   librabbitmq4:           CVE-2023-35789, CVE-2026-44235, CVE-2026-44236
 #   mesa userspace libs:    CVE-2026-40393
 #   perl:                   CVE-2026-8376, CVE-2026-42496 (-> 5.38.2-3.2ubuntu0.3)
@@ -137,17 +139,36 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 #   python3.12:             CVE-2026-6100/9669, CVE-2025-69534, CVE-2026-4786/4519/7774/3276/4224/3644/1299/8328/2297/1502/6019, CVE-2025-13462 (-> 3.12.3-1ubuntu0.15)
 #   gzip:                   CVE-2026-41992, CVE-2026-41991 (-> 1.12-1ubuntu3.2)
 #   libnghttp2-14 (nghttp2):CVE-2026-58055 (-> 1.59.0-1ubuntu0.4)
-#   ncurses libs:           CVE-2025-69720 (-> 6.4+20240113-1ubuntu2.1)
+#   ncurses libs:           CVE-2025-69720, CVE-2025-6141 (-> 6.4+20240113-1ubuntu2.2; base ships ...2.1)
 #   pipewire libs:          CVE-2026-14324, CVE-2026-14330 (-> 1.0.5-1ubuntu3.3)
+#     (libpipewire-0.3-0 was likewise renamed to libpipewire-0.3-0t64 and was being skipped)
 #   libasound2t64 (alsa-lib): CVE-2026-56109 (-> 1.2.11-1ubuntu0.3)
 #   libde265-0 (libde265):  CVE-2026-33164 (-> 1.0.15-1ubuntu0.1)
 #   libheif1 (libheif):     CVE-2026-47714 (-> 1.17.6-1ubuntu4.6)
 #   wget:                   CVE-2026-58469 (fixed in 1.21.4-1ubuntu4.3; pocket ships 1.21.4-1ubuntu4.4)
-# (--only-upgrade never installs new packages; absent ones are skipped.)
-# remove each when the base image ships the fixed version natively (CVE drops from baseline scan)
+#   libp11-kit0 (p11-kit):  CVE-2026-18938, CVE-2026-13757 (-> 0.25.3-4ubuntu2.2)
+#   libattr1 (attr):        CVE-2026-54371 (-> 1:2.5.2-1ubuntu0.1)
+#   coreutils:              CVE-2025-5278 (-> 9.4-3ubuntu6.3)
+# libp11-kit0, libattr1 and coreutils (and also libgcrypt20 / the ncurses libs) ship in the
+# ubuntu:24.04 base image at exactly the flagged versions and are not reinstalled by any earlier
+# apt-get install, so a plain rebuild never picks up their fixes -- only an explicit --only-upgrade
+# does. That is the case an entry here is REQUIRED for.
+# Some entries below (e.g. wget, python3.12, libnss3) are instead installed unpinned by an earlier
+# apt-get install in this same stage. Those are already pocket-current in the --no-cache master
+# build (Jenkinsfile), so their entries add nothing there -- but they are NOT useless: in a
+# layer-cached taurus-branch-builder build the earlier install layer can be reused while this layer
+# re-resolves, so the entry is what actually applies the update. Keep them; just don't add a new
+# entry for a package on that basis alone (prove provenance first -- see the OS-provenance rule in
+# .claude/skills/prisma-taurus/vulnerability_history.md).
+# (--only-upgrade never installs new packages; absent ones are skipped -- so a wrong/renamed name
+#  fails silently. Verify with `apt-cache policy <pkg>` in the image before adding one.)
+# These entries are unpinned and self-maintaining: each resolves to the pocket's current version at
+# build time, which also picks up security updates published AFTER the base image tag was built.
+# Do NOT prune an entry merely because the base image caught up -- that trades away the forward
+# protection for no benefit. See .claude/skills/prisma-taurus/vulnerability_history.md (pruning note).
 RUN apt-get update && \
     apt-get install -y --no-install-recommends --only-upgrade \
-        libgnutls30 \
+        libgnutls30t64 \
         libgcrypt20 \
         librabbitmq4 \
         libgbm1 \
@@ -169,14 +190,17 @@ RUN apt-get update && \
         ncurses-base \
         ncurses-bin \
         pipewire \
-        libpipewire-0.3-0 \
+        libpipewire-0.3-0t64 \
         libpipewire-0.3-common \
         libpipewire-0.3-modules \
         pipewire-bin \
         libasound2t64 \
         libde265-0 \
         libheif1 \
-        wget && \
+        wget \
+        libp11-kit0 \
+        libattr1 \
+        coreutils && \
     rm -rf /var/lib/apt/lists/*
 
 # ================================
@@ -195,7 +219,9 @@ RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.423/dotnet-sd
     ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Install rbenv and Ruby
-ARG RUBY_VERSION=3.4.9
+# 3.4.10 ships patched net-imap (0.5.15) and erb (4.0.4.1) as its own bundled/default gems, which
+# removes the need to force-install and purge them below. Do not drop back to 3.4.9.
+ARG RUBY_VERSION=3.4.10
 
 RUN git clone --depth 1 https://github.com/rbenv/rbenv.git ${RBENV_ROOT} && \
     git clone --depth 1 https://github.com/rbenv/ruby-build.git ${RBENV_ROOT}/plugins/ruby-build && \
@@ -214,35 +240,40 @@ RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
 RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/ruby 1 && \
     update-alternatives --install /usr/local/bin/gem gem ${RBENV_ROOT}/shims/gem 1
 
-# Patch vulnerable Ruby default/bundled gems (CVE fix).
-#   net-imap 0.5.8 -> 0.5.15: CVE-2026-42245/42246/42256/42257/42258/47240/47241/47242 (incl. 2 critical)
-#   erb      4.0.4 -> 4.0.4.1: CVE-2026-41316
-#   json     2.9.1 -> 2.19.9:  CVE-2026-54696
-# These ship with Ruby. Installing the patched gem is NOT enough: Prisma reads the OLD version
-# from THREE places that `gem install`/`gem update` leave behind:
-#   1. the gemspec   -> specifications[/default]/<gem>-<old>.gemspec
-#   2. the lib dir   -> gems/<gem>-<old>
-#   3. the CACHED ARCHIVE -> cache/<gem>-<old>.gem   <-- easily missed; this is what kept
-#      net-imap 0.5.8 flagged even though only 0.5.15 was installed (erb had no cache archive,
-#      so it cleared). Remove all three, purge the gem cache, then ASSERT the old version is gone
-#      so the build fails loudly instead of silently shipping the vulnerable version.
+# Patch vulnerable Ruby gems that Ruby itself still ships unpatched (CVE fix).
+#   json   2.9.1 -> 2.19.9: CVE-2026-54696
+#   resolv 0.7.1 -> 0.7.2:  CVE-2026-80212, CVE-2026-80213
+# (net-imap CVE-2026-42245/42246/42256/42257/42258/47240/47241/47242 -- incl. 2 critical -- and
+#  erb CVE-2026-41316 are fixed by Ruby 3.4.10 itself, so their former force-install + purge is gone.)
+#
+# Install the patched gem and DO NOT touch specifications/default/<gem>-<old>.gemspec.
+# Keeping that gemspec is what lets RubyGems activate the newer gem at require time. The previous
+# recipe deleted it, which silenced Prisma but ALSO de-registered the feature, so `require` fell back
+# to Ruby's own stdlib copy and the VULNERABLE code kept loading (measured in the published image:
+# ERB.version 4.0.4 / JSON::VERSION 2.9.1 despite patched gems being installed). That is scanner
+# appeasement, not a fix -- see .claude/skills/prisma-taurus/vulnerability_history.md,
+# "When a Ruby gem has a CVE" step 3.
+#
+# Consequence, accepted deliberately: Prisma still reads the stale default gemspec and reports
+# json 2.9.1 / resolv 0.7.1. Those findings are VISIBLE AND HONEST while the loaded code is patched.
+# Do not "fix" them by deleting the gemspec. They clear for real when Ruby bundles the patched
+# versions (as 3.4.10 just did for net-imap and erb) -- then drop that gem's line here.
+#
+# The assertion below checks the thing that actually matters: that the patched version is what
+# `require` loads. A silent activation failure fails the build instead of shipping quietly.
 RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
-    gem install net-imap -v 0.5.15 --no-document && \
-    gem install erb -v 4.0.4.1 --no-document && \
     gem install json -v 2.19.9 --no-document && \
-    GEMS_DIR="$(ruby -e 'print Gem.dir')" && \
-    for OLD in net-imap-0.5.8 erb-4.0.4 json-2.9.1; do \
-        rm -rf "$GEMS_DIR/gems/$OLD" \
-               "$GEMS_DIR/specifications/$OLD.gemspec" \
-               "$GEMS_DIR/specifications/default/$OLD.gemspec"; \
-    done && \
-    rm -f "$GEMS_DIR"/cache/*.gem && \
+    gem install resolv -v 0.7.2 --no-document && \
     rbenv rehash && \
-    if find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' -o -name 'json-2.9.1.gem' -o -name 'json-2.9.1.gemspec' | grep -q .; then \
-        echo 'ERROR: vulnerable Ruby gem version still on disk after patch (build aborted)' >&2; \
-        find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' -o -name 'json-2.9.1.gem' -o -name 'json-2.9.1.gemspec' >&2; \
-        exit 1; \
-    fi
+    ruby -rjson -rerb -rnet/imap -rresolv -e '\
+        want = { "json" => "2.19.9", "resolv" => "0.7.2", "erb" => "4.0.4.1", "net-imap" => "0.5.15" }; \
+        bad = want.reject { |g, v| (Gem.loaded_specs[g] && Gem.loaded_specs[g].version.to_s == v) || \
+                                   (g == "erb" && ERB.version == v) }; \
+        unless bad.empty?; \
+            got = bad.keys.map { |g| "#{g}: want #{want[g]}, loaded #{Gem.loaded_specs[g]&.version || "stdlib"}" }; \
+            abort("ERROR: vulnerable Ruby gem still active at runtime (build aborted)\n  " + got.join("\n  ")); \
+        end; \
+        puts "Ruby gem CVE check OK: " + want.map { |g, v| "#{g}=#{v}" }.join(" ")'
 
 # Install OpenJDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
