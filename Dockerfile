@@ -152,14 +152,20 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 # libp11-kit0, libattr1 and coreutils (and also libgcrypt20 / the ncurses libs) ship in the
 # ubuntu:24.04 base image at exactly the flagged versions and are not reinstalled by any earlier
 # apt-get install, so a plain rebuild never picks up their fixes -- only an explicit --only-upgrade
-# does. (A package installed unpinned by an earlier apt-get install is already pocket-current on
-# each rebuild and does NOT need an entry here.)
+# does. That is the case an entry here is REQUIRED for.
+# Some entries below (e.g. wget, python3.12, libnss3) are instead installed unpinned by an earlier
+# apt-get install in this same stage. Those are already pocket-current in the --no-cache master
+# build (Jenkinsfile), so their entries add nothing there -- but they are NOT useless: in a
+# layer-cached taurus-branch-builder build the earlier install layer can be reused while this layer
+# re-resolves, so the entry is what actually applies the update. Keep them; just don't add a new
+# entry for a package on that basis alone (prove provenance first -- see the OS-provenance rule in
+# .claude/skills/prisma-taurus/vulnerability_history.md).
 # (--only-upgrade never installs new packages; absent ones are skipped -- so a wrong/renamed name
 #  fails silently. Verify with `apt-cache policy <pkg>` in the image before adding one.)
 # These entries are unpinned and self-maintaining: each resolves to the pocket's current version at
 # build time, which also picks up security updates published AFTER the base image tag was built.
 # Do NOT prune an entry merely because the base image caught up -- that trades away the forward
-# protection for no benefit. See vulnerability_history.md (pruning note).
+# protection for no benefit. See .claude/skills/prisma-taurus/vulnerability_history.md (pruning note).
 RUN apt-get update && \
     apt-get install -y --no-install-recommends --only-upgrade \
         libgnutls30t64 \
@@ -244,8 +250,8 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 #     image: ERB.version == 4.0.4 and JSON::VERSION == 2.9.1 even though `gem list` shows 4.0.4.1 and
 #     2.19.9 installed. Prisma goes quiet; the vulnerable code still runs.
 #     Revert in a DEDICATED PR (reverting alone re-adds scan findings, so it cannot ride inside a CVE
-#     run whose gate requires the total to drop). See vulnerability_history.md, "When a Ruby gem has a
-#     CVE" step 3 (pure-default-gem trap) for the decision test and options.
+#     run whose gate requires the total to drop). See .claude/skills/prisma-taurus/vulnerability_history.md,
+#     "When a Ruby gem has a CVE" step 3 (pure-default-gem trap) for the decision test and options.
 # These ship with Ruby. Installing the patched gem is NOT enough: Prisma reads the OLD version
 # from THREE places that `gem install`/`gem update` leave behind:
 #   1. the gemspec   -> specifications[/default]/<gem>-<old>.gemspec
