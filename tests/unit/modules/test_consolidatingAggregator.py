@@ -233,6 +233,37 @@ class TestConsolidatingAggregator(BZTestCase):
                 self.assertIn('-', label,
                               f"Label '{label}' missing '-state' suffix — get_mixed_label was not called")
 
+    def test_late_added_underling_gets_extend_aggregation(self):
+        """MOB-53647: JTLReader is added at runtime via register_file() during
+        check(), AFTER set_aggregation() has already propagated. add_underling()
+        must set _redundant_aggregation on any late-added underling."""
+        self.obj.settings['extend-aggregation'] = True
+
+        inner = ConsolidatingAggregator()
+        inner.engine = self.obj.engine
+        inner.track_percentiles = self.obj.track_percentiles
+
+        self.obj.add_underling(inner)
+        self.obj.prepare()
+        self.obj.startup()
+
+        # Simulate register_file() adding a reader AFTER startup
+        reader = MockReader()
+        reader.buffer_scale_idx = '100.0'
+        reader.data.append((1, "Navigate to site", 1, 2, 0, 0, '200', None, '', 2))
+        inner.add_underling(reader)
+
+        # reader must have _redundant_aggregation from add_underling
+        self.assertTrue(reader._redundant_aggregation,
+                        'late-added underling must receive _redundant_aggregation from add_underling')
+
+        # verify labels get '-state' suffix
+        for dp in reader.datapoints(True):
+            mixed_labels = set(dp[DataPoint.CURRENT].keys()) - {''}
+            for label in mixed_labels:
+                self.assertIn('-', label,
+                              f"Label '{label}' missing '-state' suffix on late-added reader")
+
     def test_two_executions(self):
         self.obj.track_percentiles = [0, 50, 100]
         self.obj.prepare()
