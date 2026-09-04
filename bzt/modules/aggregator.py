@@ -579,7 +579,7 @@ class ResultsProvider(object):
         self._redundant_aggregation = False
 
     def set_aggregation(self, aggregation):
-        self.log.error("MOB-53647 set_aggregation: %s.%s _redundant_aggregation=%s",
+        self.log.error("DEV DEV DEV DEV DEV MOB-53647 set_aggregation: %s.%s _redundant_aggregation=%s",
                        type(self).__module__, type(self).__name__, aggregation)
         self._redundant_aggregation = aggregation
         # MOB-53647: propagate to nested underlings (e.g. ApiritifLoadReader
@@ -587,7 +587,7 @@ class ResultsProvider(object):
         # engine, so its own underlings never received the flag).
         nested = getattr(self, 'underlings', [])
         if nested:
-            self.log.error("MOB-53647 set_aggregation propagating to %d nested underlings", len(nested))
+            self.log.error("DEV DEV DEV DEV DEV MOB-53647 set_aggregation propagating to %d nested underlings", len(nested))
         for underling in nested:
             underling.set_aggregation(aggregation)
 
@@ -789,7 +789,7 @@ class ResultsReader(ResultsProvider):
             # kpis format: conc, r_time, con_time, latency, r_code, error_msg, trname, byte_count
             label = self.get_mixed_label(label=label, rc=kpis[4], msg=kpis[5])
         else:
-            self.log.error("MOB-53647 __add_sample: %s.%s _redundant_aggregation=False, label=%r (raw, no suffix)",
+            self.log.error("DEV DEV DEV DEV DEV MOB-53647 __add_sample: %s.%s _redundant_aggregation=False, label=%r (raw, no suffix)",
                            type(self).__module__, type(self).__name__, label)
 
         if label not in current:
@@ -909,12 +909,12 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         data = kpi_sets['current']
         overall_label = ''
         mixed_labels = set(data.keys()) - {overall_label}
-        self.log.error("MOB-53647 __extend_reported_data: processing %d labels: %s",
+        self.log.error("DEV DEV DEV DEV DEV MOB-53647 __extend_reported_data: processing %d labels: %s",
                        len(mixed_labels), sorted(mixed_labels))
         data[overall_label] = dict()
         for key in mixed_labels:
             if '-' not in key:
-                self.log.error("MOB-53647 __extend_reported_data: label %r has no '-' separator — "
+                self.log.error("DEV DEV DEV DEV DEV MOB-53647 __extend_reported_data: label %r has no '-' separator — "
                                "this means _redundant_aggregation was False in the reader that produced it. "
                                "Reader type: %s, _redundant_aggregation: %s",
                                key, type(self).__name__, self._redundant_aggregation)
@@ -985,7 +985,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
     def startup(self):
         super(Aggregator, self).startup()
 
-        self.log.error("MOB-53647 ConsolidatingAggregator.startup: _redundant_aggregation=%s, %d underlings: %s",
+        self.log.error("DEV DEV DEV DEV DEV MOB-53647 ConsolidatingAggregator.startup: _redundant_aggregation=%s, %d underlings: %s",
                        self._redundant_aggregation,
                        len(self.underlings),
                        [type(u).__name__ for u in self.underlings])
@@ -1021,7 +1021,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         # MOB-53647: propagate extend-aggregation to late-added underlings.
         # ApiritifLoadReader.register_file() adds JTLReader at runtime (during
         # check()), after set_aggregation() has already run.
-        self.log.error("MOB-53647 add_underling: %s.%s adding %s.%s, propagating _redundant_aggregation=%s",
+        self.log.error("DEV DEV DEV DEV DEV MOB-53647 add_underling: %s.%s adding %s.%s, propagating _redundant_aggregation=%s",
                        type(self).__module__, type(self).__name__,
                        type(underling).__module__, type(underling).__name__,
                        self._redundant_aggregation)

@@ -162,7 +162,7 @@ class CLI(object):
             file_handler.setFormatter(Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s"))
 
             self.log.addHandler(file_handler)
-            self.log.debug("Switched writing logs to %s", self.options.log)
+            self.log.debug("DEV DEV DEV DEV DEV Switched writing logs to %s", self.options.log)
 
     def __configure(self, configs):
         if self.options.no_system_configs is None:
