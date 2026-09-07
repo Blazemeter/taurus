@@ -999,6 +999,11 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         underling.error_response_bodies_limit = self.error_response_bodies_limit
         underling.error_response_bodies_size_limit = self.error_response_bodies_size_limit
 
+        # MOB-53647: propagate extend-aggregation to late-added underlings.
+        # ApiritifLoadReader.register_file() adds JTLReader at runtime (during
+        # check()), after set_aggregation() has already run.
+        underling.set_aggregation(self._redundant_aggregation)
+
         self.underlings.append(underling)
 
     def check(self):
