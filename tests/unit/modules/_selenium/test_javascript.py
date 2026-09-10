@@ -1128,18 +1128,23 @@ class TestPlaywrightTypesNodePackage(BZTestCase):
 
 class TestPlaywrightCustomReporterInstallation(BZTestCase):
     """
-    Tests for PlaywrightCustomReporter: always a local (registry-free) install, every run -
-    it ships inside the bzt package itself, so there's no registry-unreachable problem for
-    it to solve and no reason to freeze/symlink it like the registry-backed packages.
+    Tests for PlaywrightCustomReporter: local (registry-free) npm install when not frozen,
+    linked from the frozen store when frozen - so an unrelated uncached customer dependency
+    sharing the same tools_dir can no longer collaterally block it.
     """
 
     def setUp(self):
         super(TestPlaywrightCustomReporterInstallation, self).setUp()
+        import tempfile
         self.node_mock = MagicMock()
         self.node_mock.tool_path = "node"
         self.npm_mock = MagicMock()
         self.npm_mock.tool_path = "npm"
-        self.tools_dir = "/tmp/customer-tools-dir"
+        self.frozen_store = tempfile.mkdtemp()
+        self.tools_dir = tempfile.mkdtemp()
+        self.get_full_path_patcher = patch('bzt.modules.javascript.get_full_path', return_value=self.frozen_store)
+        self.get_full_path_patcher.start()
+        self.addCleanup(self.get_full_path_patcher.stop)
 
     def _create_package(self):
         return PlaywrightCustomReporter(
@@ -1148,24 +1153,55 @@ class TestPlaywrightCustomReporterInstallation(BZTestCase):
             npm_tool=self.npm_mock,
         )
 
-    def test_check_if_installed_always_false(self):
-        """Always reinstall: npm version resolving for local modules is not reliable"""
+    def _freeze_reporter(self):
+        path = os.path.join(self.frozen_store, "node_modules", "@taurus", "playwright-custom-reporter")
+        os.makedirs(path, exist_ok=True)
+        with open(os.path.join(path, "index.js"), "w") as fds:
+            fds.write("module.exports = {};")
+
+    def test_check_if_installed_not_frozen_always_false(self):
+        """Not frozen: always reinstall - npm version resolving for local modules is not reliable"""
         pkg = self._create_package()
-        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.63.0'}):
-            self.assertFalse(pkg.check_if_installed())
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop('PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION', None)
             self.assertFalse(pkg.check_if_installed())
 
-    def test_install_runs_local_npm_install(self):
+    def test_install_not_frozen_runs_local_npm_install(self):
         pkg = self._create_package()
         pkg.call = MagicMock(return_value=("", ""))
 
-        pkg.install()
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop('PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION', None)
+            pkg.install()
 
         args, kwargs = pkg.call.call_args
         self.assertEqual(args[0], ["npm", "install", ".", "--install-links", "--prefix", self.tools_dir, "--offline"])
         self.assertEqual(kwargs.get("cwd"), pkg.package_local_path)
+
+    def test_install_frozen_links_reporter(self):
+        self._freeze_reporter()
+        pkg = self._create_package()
+        pkg.call = MagicMock()
+
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.63.0'}):
+            pkg.install()
+
+        target = os.path.join(self.tools_dir, "node_modules", "@taurus", "playwright-custom-reporter")
+        self.assertTrue(os.path.islink(target))
+        pkg.call.assert_not_called()
+
+    def test_check_if_installed_frozen_true_after_install(self):
+        self._freeze_reporter()
+        pkg = self._create_package()
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.63.0'}):
+            pkg.install()
+            self.assertTrue(pkg.check_if_installed())
+
+    def test_check_if_installed_frozen_false_before_install(self):
+        self._freeze_reporter()
+        pkg = self._create_package()
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.63.0'}):
+            self.assertFalse(pkg.check_if_installed())
 
 
 class TestNPMModuleInstallerInstallation(BZTestCase):

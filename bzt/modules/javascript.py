@@ -751,13 +751,32 @@ class PlaywrightTestPackage(FrozenPackageLink):
 
 
 class PlaywrightCustomReporter(NPMLocalModulePackage):
+    """
+    Ships inside the bzt package itself (RESOURCES_DIR), so there's no registry involved -
+    but `npm install . --prefix <tools_dir>` still reifies the customer's entire package.json
+    in that directory, so an unrelated uncached customer dependency sharing the same
+    tools_dir collaterally blocks this too. At frozen cloud runtime, link the copy already
+    installed once into the frozen store (~/.bzt/playwright) at Docker build time instead,
+    the same way as the registry-backed frozen packages.
+    """
     PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.1"
     PACKAGE_LOCAL_PATH = "./playwright-custom-reporter"
 
+    def _frozen(self):
+        return os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is not None
+
     def check_if_installed(self):
-        # always run install for local module to update to latest version
-        # npm version resolving for local modules is not reliable
-        return False
+        if not self._frozen():
+            # always run install for local module to update to latest version
+            # npm version resolving for local modules is not reliable
+            return False
+        return _is_linked_to_frozen_path(self.tools_dir, self.package_name.split("/"))
+
+    def install(self):
+        if not self._frozen():
+            super().install()
+            return
+        _link_frozen_path(self.tools_dir, self.package_name.split("/"))
 
 class PLAYWRIGHT(RequiredTool):
     def __init__(self, tools_dir, **kwargs):
