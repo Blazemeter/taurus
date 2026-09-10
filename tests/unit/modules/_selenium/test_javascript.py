@@ -7,7 +7,9 @@ import bzt
 
 from bzt import ToolError
 from bzt.modules.javascript import NPMPackage, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver, \
-    PlaywrightTester, PLAYWRIGHT, PlaywrightTestPackage, PlaywrightLogReader
+    PlaywrightTester, PLAYWRIGHT, PlaywrightTestPackage, PlaywrightTypesNodePackage, PlaywrightCustomReporter, \
+    NPMModuleInstaller, PlaywrightLogReader, OFFLINE_INSTALL_ARGS, _link_frozen_path, _is_linked_to_frozen_path, \
+    _pin_package_json_dependency, _read_frozen_installed_version
 from bzt.utils import get_full_path, EXE_SUFFIX
 
 from tests.unit import RESOURCES_DIR, BZTestCase, EngineEmul
@@ -698,10 +700,11 @@ class TestPlaywrightInstallation(BZTestCase):
         with patch.dict(os.environ, {'PLAYWRIGHT_PACKAGE_FORCED_VERSION': '1.40.0'}):
             playwright.install()
 
-            # Should call npx --no -- playwright --version once to check the installed version
+            # Should call npx --no -- playwright --version once, against the frozen
+            # build-time location (~/.bzt/playwright), not tools_dir.
             playwright.call.assert_called_once_with(
                 ["npx", "--no", "--", "playwright", "--version"],
-                cwd=self.tools_dir,
+                cwd=get_full_path("~/.bzt/playwright"),
             )
 
     @patch('bzt.modules.javascript.is_linux')
@@ -718,10 +721,10 @@ class TestPlaywrightInstallation(BZTestCase):
         with patch.dict(os.environ, {'PLAYWRIGHT_PACKAGE_FORCED_VERSION': '1.40.0'}):
             playwright.install()
 
-            # First call: version probe
+            # First call: version probe, run against the frozen build-time location
             first_call_args = playwright.call.call_args_list[0][0][0]
             self.assertEqual(first_call_args, ["npx", "--no", "--", "playwright", "--version"])
-            self.assertEqual(playwright.call.call_args_list[0][1].get('cwd'), self.tools_dir)
+            self.assertEqual(playwright.call.call_args_list[0][1].get('cwd'), get_full_path("~/.bzt/playwright"))
 
             # Second call: npx playwright@1.40.0 install --with-deps
             self.assertEqual(playwright.call.call_count, 2)
@@ -826,16 +829,131 @@ class TestPlaywrightInstallation(BZTestCase):
             self.assertTrue(any("playwright" in str(arg) and "@" not in str(arg) for arg in call_args if "playwright" in str(arg)))
 
 
+class TestFrozenPackageLinkHelpers(BZTestCase):
+    """Tests for the module-level symlink/pin helpers shared by all frozen packages"""
+
+    def setUp(self):
+        super(TestFrozenPackageLinkHelpers, self).setUp()
+        import tempfile
+        self.frozen_store = tempfile.mkdtemp()
+        self.tools_dir = tempfile.mkdtemp()
+        self.get_full_path_patcher = patch('bzt.modules.javascript.get_full_path', return_value=self.frozen_store)
+        self.get_full_path_patcher.start()
+        self.addCleanup(self.get_full_path_patcher.stop)
+
+    def _make_frozen_package(self, relative_parts, contents=b"module.exports = {};"):
+        path = os.path.join(self.frozen_store, "node_modules", *relative_parts)
+        os.makedirs(path, exist_ok=True)
+        with open(os.path.join(path, "index.js"), "wb") as fds:
+            fds.write(contents)
+        return path
+
+    def test_link_frozen_path_creates_symlink(self):
+        source = self._make_frozen_package(("@types", "node"))
+        _link_frozen_path(self.tools_dir, ("@types", "node"))
+
+        target = os.path.join(self.tools_dir, "node_modules", "@types", "node")
+        self.assertTrue(os.path.islink(target))
+        self.assertEqual(os.path.realpath(target), os.path.realpath(source))
+
+    def test_link_frozen_path_replaces_existing_real_directory(self):
+        self._make_frozen_package(("@types", "node"))
+        stale = os.path.join(self.tools_dir, "node_modules", "@types", "node")
+        os.makedirs(stale, exist_ok=True)
+        with open(os.path.join(stale, "stale.txt"), "w") as fds:
+            fds.write("stale customer-declared copy")
+
+        _link_frozen_path(self.tools_dir, ("@types", "node"))
+
+        self.assertTrue(os.path.islink(stale))
+
+    def test_link_frozen_path_replaces_existing_symlink(self):
+        self._make_frozen_package(("@types", "node"))
+        target = os.path.join(self.tools_dir, "node_modules", "@types", "node")
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        os.symlink("/nonexistent", target)
+
+        _link_frozen_path(self.tools_dir, ("@types", "node"))
+
+        self.assertTrue(os.path.exists(os.path.join(target, "index.js")))
+
+    def test_is_linked_to_frozen_path_true_after_linking(self):
+        self._make_frozen_package(("@playwright", "test"))
+        _link_frozen_path(self.tools_dir, ("@playwright", "test"))
+
+        self.assertTrue(_is_linked_to_frozen_path(self.tools_dir, ("@playwright", "test")))
+
+    def test_is_linked_to_frozen_path_false_when_missing(self):
+        self._make_frozen_package(("@playwright", "test"))
+        self.assertFalse(_is_linked_to_frozen_path(self.tools_dir, ("@playwright", "test")))
+
+    def test_is_linked_to_frozen_path_false_for_unrelated_symlink(self):
+        target = os.path.join(self.tools_dir, "node_modules", "@playwright", "test")
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        os.symlink("/somewhere/else", target)
+
+        self.assertFalse(_is_linked_to_frozen_path(self.tools_dir, ("@playwright", "test")))
+
+    def test_pin_package_json_dependency_updates_existing_devDependencies_entry(self):
+        pkg_json = os.path.join(self.tools_dir, "package.json")
+        with open(pkg_json, "w") as fds:
+            json.dump({"devDependencies": {"@types/node": "^22.15.21"}}, fds)
+
+        _pin_package_json_dependency(self.tools_dir, "@types/node", "26.5.0")
+
+        with open(pkg_json) as fds:
+            data = json.load(fds)
+        self.assertEqual(data["devDependencies"]["@types/node"], "^26.5.0")
+
+    def test_pin_package_json_dependency_updates_existing_dependencies_entry(self):
+        pkg_json = os.path.join(self.tools_dir, "package.json")
+        with open(pkg_json, "w") as fds:
+            json.dump({"dependencies": {"@playwright/test": "^1.58.1"}}, fds)
+
+        _pin_package_json_dependency(self.tools_dir, "@playwright/test", "1.63.0")
+
+        with open(pkg_json) as fds:
+            data = json.load(fds)
+        self.assertEqual(data["dependencies"]["@playwright/test"], "^1.63.0")
+        self.assertNotIn("@playwright/test", data.get("devDependencies", {}))
+
+    def test_pin_package_json_dependency_adds_missing_entry(self):
+        pkg_json = os.path.join(self.tools_dir, "package.json")
+        with open(pkg_json, "w") as fds:
+            json.dump({"devDependencies": {"@playwright/test": "^1.58.1"}}, fds)
+
+        _pin_package_json_dependency(self.tools_dir, "@types/node", "26.5.0")
+
+        with open(pkg_json) as fds:
+            data = json.load(fds)
+        self.assertEqual(data["devDependencies"]["@types/node"], "^26.5.0")
+
+    def test_read_frozen_installed_version_reads_actual_version(self):
+        path = self._make_frozen_package(("@types", "node"))
+        with open(os.path.join(path, "package.json"), "w") as fds:
+            json.dump({"version": "26.5.0"}, fds)
+
+        self.assertEqual(_read_frozen_installed_version(("@types", "node")), "26.5.0")
+
+    def test_read_frozen_installed_version_missing_returns_none(self):
+        self.assertIsNone(_read_frozen_installed_version(("@types", "node")))
+
+
 class TestPlaywrightTestPackageInstallation(BZTestCase):
-    """Tests for PlaywrightTestPackage.check_if_installed()"""
+    """Tests for PlaywrightTestPackage: symlink-based when frozen, normal npm install otherwise"""
 
     def setUp(self):
         super(TestPlaywrightTestPackageInstallation, self).setUp()
+        import tempfile
         self.node_mock = MagicMock()
         self.node_mock.tool_path = "node"
         self.npm_mock = MagicMock()
         self.npm_mock.tool_path = "npm"
-        self.tools_dir = "~/.bzt/playwright"
+        self.frozen_store = tempfile.mkdtemp()
+        self.tools_dir = tempfile.mkdtemp()
+        self.get_full_path_patcher = patch('bzt.modules.javascript.get_full_path', return_value=self.frozen_store)
+        self.get_full_path_patcher.start()
+        self.addCleanup(self.get_full_path_patcher.stop)
 
     def _create_package(self):
         return PlaywrightTestPackage(
@@ -844,72 +962,267 @@ class TestPlaywrightTestPackageInstallation(BZTestCase):
             npm_tool=self.npm_mock,
         )
 
-    def test_check_if_installed_super_returns_false(self):
-        """When the parent require() check fails, return False without probing version"""
-        pkg = self._create_package()
-        pkg.call = MagicMock(return_value=("", ""))
+    def _freeze_playwright_test(self, version="1.63.0"):
+        path = os.path.join(self.frozen_store, "node_modules", "@playwright", "test")
+        os.makedirs(path, exist_ok=True)
+        with open(os.path.join(path, "package.json"), "w") as fds:
+            json.dump({"version": version}, fds)
+        bin_dir = os.path.join(self.frozen_store, "node_modules", ".bin")
+        os.makedirs(bin_dir, exist_ok=True)
+        with open(os.path.join(bin_dir, "playwright"), "w") as fds:
+            fds.write("#!/bin/sh\n")
+        return version
 
-        result = pkg.check_if_installed()
-
-        self.assertFalse(result)
-        pkg.call.assert_called_once()
-
-    def test_check_if_installed_no_forced_version(self):
-        """When no forced version is set, any installed version is acceptable and the probe is not called"""
+    def test_check_if_installed_not_frozen_delegates_to_super(self):
+        """Without a forced version, behaves like a plain NPMPackage (require() check only)"""
         pkg = self._create_package()
         pkg.call = MagicMock(return_value=("@playwright/test is installed", ""))
 
         with patch.dict(os.environ, {}, clear=False):
-            if 'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION' in os.environ:
-                del os.environ['PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION']
-
+            os.environ.pop('PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION', None)
             result = pkg.check_if_installed()
 
         self.assertTrue(result)
         pkg.call.assert_called_once()
 
-    def test_check_if_installed_forced_version_correct(self):
-        """When forced version matches the installed version, return True"""
+    def test_install_not_frozen_delegates_to_super(self):
+        """Without a forced version, install() runs a normal npm install"""
         pkg = self._create_package()
-        pkg.call = MagicMock(side_effect=[
-            ("@playwright/test is installed", ""),
-            ("Version 1.40.0\n", ""),
-        ])
+        pkg.call = MagicMock(return_value=("", ""))
 
-        with patch.object(PlaywrightTestPackage, 'PACKAGE_NAME', '@playwright/test@1.40.0'):
-            with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.40.0'}):
-                result = pkg.check_if_installed()
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop('PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION', None)
+            pkg.install()
 
-        self.assertTrue(result)
-        self.assertEqual(pkg.call.call_count, 2)
-        second_call_args = pkg.call.call_args_list[1][0][0]
-        self.assertEqual(second_call_args, ["npx", "--no", "--", "@playwright/test", "--version"])
-        self.assertEqual(pkg.call.call_args_list[1][1].get('cwd'), self.tools_dir)
+        cmdline = pkg.call.call_args[0][0]
+        self.assertEqual(cmdline, ["npm", "install", "@playwright/test", "--prefix", self.tools_dir])
 
-    def test_check_if_installed_forced_version_mismatch(self):
-        """When the probed version differs from the forced version, return False"""
+    def test_install_frozen_links_package_and_bin(self):
+        """When frozen, install() symlinks both the package and the .bin/playwright entry"""
+        version = self._freeze_playwright_test()
         pkg = self._create_package()
-        pkg.call = MagicMock(side_effect=[
-            ("@playwright/test is installed", ""),
-            ("Version 1.39.0\n", ""),
-        ])
+        pkg.call = MagicMock()
 
-        with patch.object(PlaywrightTestPackage, 'PACKAGE_NAME', '@playwright/test@1.40.0'):
-            with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.40.0'}):
-                result = pkg.check_if_installed()
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': version}):
+            pkg.install()
 
-        self.assertFalse(result)
-        self.assertEqual(pkg.call.call_count, 2)
+        pkg_target = os.path.join(self.tools_dir, "node_modules", "@playwright", "test")
+        bin_target = os.path.join(self.tools_dir, "node_modules", ".bin", "playwright")
+        self.assertTrue(os.path.islink(pkg_target))
+        self.assertTrue(os.path.islink(bin_target))
+        pkg.call.assert_not_called()
 
-    def test_check_if_installed_version_probe_fails(self):
-        """When the version probe raises an OSError, return False"""
+    def test_install_frozen_pins_package_json(self):
+        version = self._freeze_playwright_test(version="1.63.0")
         pkg = self._create_package()
-        pkg.call = MagicMock(side_effect=[
-            ("@playwright/test is installed", ""),
-            OSError("npx probe failed"),
-        ])
+        with open(os.path.join(self.tools_dir, "package.json"), "w") as fds:
+            json.dump({"devDependencies": {"@playwright/test": "^1.58.1"}}, fds)
 
-        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.40.0'}):
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': version}):
+            pkg.install()
+
+        with open(os.path.join(self.tools_dir, "package.json")) as fds:
+            data = json.load(fds)
+        self.assertEqual(data["devDependencies"]["@playwright/test"], "^1.63.0")
+
+    def test_check_if_installed_frozen_true_after_install(self):
+        version = self._freeze_playwright_test()
+        pkg = self._create_package()
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': version}):
+            pkg.install()
+            self.assertTrue(pkg.check_if_installed())
+
+    def test_check_if_installed_frozen_false_before_install(self):
+        version = self._freeze_playwright_test()
+        pkg = self._create_package()
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': version}):
+            self.assertFalse(pkg.check_if_installed())
+
+    def test_check_if_installed_frozen_false_when_bin_missing(self):
+        """Package linked but .bin/playwright missing (e.g. interrupted prior run) -> not installed"""
+        version = self._freeze_playwright_test()
+        pkg = self._create_package()
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': version}):
+            pkg.install()
+            os.remove(os.path.join(self.tools_dir, "node_modules", ".bin", "playwright"))
+            self.assertFalse(pkg.check_if_installed())
+
+
+class TestPlaywrightTypesNodePackage(BZTestCase):
+    """Tests for PlaywrightTypesNodePackage: symlink-based when frozen, normal npm install otherwise"""
+
+    def setUp(self):
+        super(TestPlaywrightTypesNodePackage, self).setUp()
+        import tempfile
+        self.node_mock = MagicMock()
+        self.node_mock.tool_path = "node"
+        self.npm_mock = MagicMock()
+        self.npm_mock.tool_path = "npm"
+        self.frozen_store = tempfile.mkdtemp()
+        self.tools_dir = tempfile.mkdtemp()
+        self.get_full_path_patcher = patch('bzt.modules.javascript.get_full_path', return_value=self.frozen_store)
+        self.get_full_path_patcher.start()
+        self.addCleanup(self.get_full_path_patcher.stop)
+
+    def _create_package(self):
+        return PlaywrightTypesNodePackage(
+            tools_dir=self.tools_dir,
+            node_tool=self.node_mock,
+            npm_tool=self.npm_mock,
+        )
+
+    def _freeze_types_node(self, version="26.5.0"):
+        path = os.path.join(self.frozen_store, "node_modules", "@types", "node")
+        os.makedirs(path, exist_ok=True)
+        with open(os.path.join(path, "package.json"), "w") as fds:
+            json.dump({"version": version}, fds)
+        return version
+
+    def test_check_if_installed_not_frozen_delegates_to_super(self):
+        pkg = self._create_package()
+        pkg.call = MagicMock(return_value=("", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop('PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION', None)
+            # @types/node has no requirable entry point at all - always False, as expected
             result = pkg.check_if_installed()
 
         self.assertFalse(result)
+
+    def test_install_not_frozen_delegates_to_super(self):
+        pkg = self._create_package()
+        pkg.call = MagicMock(return_value=("", ""))
+
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop('PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION', None)
+            pkg.install()
+
+        cmdline = pkg.call.call_args[0][0]
+        self.assertEqual(cmdline, ["npm", "install", "@types/node", "--prefix", self.tools_dir])
+
+    def test_install_frozen_links_package(self):
+        version = self._freeze_types_node()
+        pkg = self._create_package()
+        pkg.call = MagicMock()
+
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': version}):
+            pkg.install()
+
+        target = os.path.join(self.tools_dir, "node_modules", "@types", "node")
+        self.assertTrue(os.path.islink(target))
+        pkg.call.assert_not_called()
+
+    def test_check_if_installed_frozen_true_after_install(self):
+        version = self._freeze_types_node()
+        pkg = self._create_package()
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': version}):
+            pkg.install()
+            self.assertTrue(pkg.check_if_installed())
+
+    def test_check_if_installed_frozen_false_before_install(self):
+        version = self._freeze_types_node()
+        pkg = self._create_package()
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': version}):
+            self.assertFalse(pkg.check_if_installed())
+
+
+class TestPlaywrightCustomReporterInstallation(BZTestCase):
+    """
+    Tests for PlaywrightCustomReporter: always a local (registry-free) install, every run -
+    it ships inside the bzt package itself, so there's no registry-unreachable problem for
+    it to solve and no reason to freeze/symlink it like the registry-backed packages.
+    """
+
+    def setUp(self):
+        super(TestPlaywrightCustomReporterInstallation, self).setUp()
+        self.node_mock = MagicMock()
+        self.node_mock.tool_path = "node"
+        self.npm_mock = MagicMock()
+        self.npm_mock.tool_path = "npm"
+        self.tools_dir = "/tmp/customer-tools-dir"
+
+    def _create_package(self):
+        return PlaywrightCustomReporter(
+            tools_dir=self.tools_dir,
+            node_tool=self.node_mock,
+            npm_tool=self.npm_mock,
+        )
+
+    def test_check_if_installed_always_false(self):
+        """Always reinstall: npm version resolving for local modules is not reliable"""
+        pkg = self._create_package()
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.63.0'}):
+            self.assertFalse(pkg.check_if_installed())
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop('PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION', None)
+            self.assertFalse(pkg.check_if_installed())
+
+    def test_install_runs_local_npm_install(self):
+        pkg = self._create_package()
+        pkg.call = MagicMock(return_value=("", ""))
+
+        pkg.install()
+
+        args, kwargs = pkg.call.call_args
+        self.assertEqual(args[0], ["npm", "install", ".", "--install-links", "--prefix", self.tools_dir, "--offline"])
+        self.assertEqual(kwargs.get("cwd"), pkg.package_local_path)
+
+
+class TestNPMModuleInstallerInstallation(BZTestCase):
+    """Tests for NPMModuleInstaller (customer's own arbitrary deps): offline-first, then --prefer-offline"""
+
+    def setUp(self):
+        super(TestNPMModuleInstallerInstallation, self).setUp()
+        self.node_mock = MagicMock()
+        self.node_mock.tool_path = "node"
+        self.npm_mock = MagicMock()
+        self.npm_mock.tool_path = "npm"
+        self.tools_dir = "/tmp/customer-tools-dir"
+
+    def _create_installer(self):
+        return NPMModuleInstaller(
+            tools_dir=self.tools_dir,
+            node_tool=self.node_mock,
+            npm_tool=self.npm_mock,
+        )
+
+    def test_package_local_path_is_tools_dir(self):
+        installer = self._create_installer()
+        self.assertEqual(installer.package_local_path, self.tools_dir)
+
+    def test_install_offline_succeeds(self):
+        installer = self._create_installer()
+        installer.call = MagicMock(return_value=("added 3 packages", ""))
+
+        installer.install()
+
+        installer.call.assert_called_once()
+        cmdline = installer.call.call_args[0][0]
+        self.assertIn("--offline", cmdline)
+        self.assertNotIn("--prefer-offline", cmdline)
+
+    def test_install_offline_fails_prefer_offline_succeeds(self):
+        installer = self._create_installer()
+        installer.call = MagicMock(side_effect=[
+            OSError("ENOTCACHED"),
+            ("added 3 packages", ""),
+        ])
+
+        installer.install()
+
+        self.assertEqual(installer.call.call_count, 2)
+        first_cmdline = installer.call.call_args_list[0][0][0]
+        second_cmdline = installer.call.call_args_list[1][0][0]
+        self.assertIn("--offline", first_cmdline)
+        self.assertIn("--prefer-offline", second_cmdline)
+
+    def test_install_both_offline_attempts_fail(self):
+        installer = self._create_installer()
+        installer.call = MagicMock(side_effect=[
+            OSError("ENOTCACHED"),
+            OSError("ECONNREFUSED"),
+        ])
+
+        installer.install()  # must not raise
+
+        self.assertEqual(installer.call.call_count, len(OFFLINE_INSTALL_ARGS))
