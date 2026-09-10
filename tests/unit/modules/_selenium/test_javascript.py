@@ -8,7 +8,8 @@ import bzt
 from bzt import ToolError
 from bzt.modules.javascript import NPMPackage, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver, \
     PlaywrightTester, PLAYWRIGHT, PlaywrightTestPackage, PlaywrightTypesNodePackage, PlaywrightCustomReporter, \
-    NPMModuleInstaller, PlaywrightLogReader, OFFLINE_INSTALL_ARGS, _link_frozen_path, _is_linked_to_frozen_path, \
+    PlaywrightBinLink, NPMModuleInstaller, PlaywrightLogReader, OFFLINE_INSTALL_ARGS, _link_frozen_path, \
+    _is_linked_to_frozen_path, \
     _pin_package_json_dependency, _read_frozen_installed_version
 from bzt.utils import get_full_path, EXE_SUFFIX
 
@@ -967,10 +968,6 @@ class TestPlaywrightTestPackageInstallation(BZTestCase):
         os.makedirs(path, exist_ok=True)
         with open(os.path.join(path, "package.json"), "w") as fds:
             json.dump({"version": version}, fds)
-        bin_dir = os.path.join(self.frozen_store, "node_modules", ".bin")
-        os.makedirs(bin_dir, exist_ok=True)
-        with open(os.path.join(bin_dir, "playwright"), "w") as fds:
-            fds.write("#!/bin/sh\n")
         return version
 
     def test_check_if_installed_not_frozen_delegates_to_super(self):
@@ -997,8 +994,7 @@ class TestPlaywrightTestPackageInstallation(BZTestCase):
         cmdline = pkg.call.call_args[0][0]
         self.assertEqual(cmdline, ["npm", "install", "@playwright/test", "--prefix", self.tools_dir])
 
-    def test_install_frozen_links_package_and_bin(self):
-        """When frozen, install() symlinks both the package and the .bin/playwright entry"""
+    def test_install_frozen_links_package(self):
         version = self._freeze_playwright_test()
         pkg = self._create_package()
         pkg.call = MagicMock()
@@ -1007,9 +1003,7 @@ class TestPlaywrightTestPackageInstallation(BZTestCase):
             pkg.install()
 
         pkg_target = os.path.join(self.tools_dir, "node_modules", "@playwright", "test")
-        bin_target = os.path.join(self.tools_dir, "node_modules", ".bin", "playwright")
         self.assertTrue(os.path.islink(pkg_target))
-        self.assertTrue(os.path.islink(bin_target))
         pkg.call.assert_not_called()
 
     def test_install_frozen_pins_package_json(self):
@@ -1038,14 +1032,64 @@ class TestPlaywrightTestPackageInstallation(BZTestCase):
         with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': version}):
             self.assertFalse(pkg.check_if_installed())
 
-    def test_check_if_installed_frozen_false_when_bin_missing(self):
-        """Package linked but .bin/playwright missing (e.g. interrupted prior run) -> not installed"""
-        version = self._freeze_playwright_test()
-        pkg = self._create_package()
-        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': version}):
-            pkg.install()
-            os.remove(os.path.join(self.tools_dir, "node_modules", ".bin", "playwright"))
-            self.assertFalse(pkg.check_if_installed())
+
+class TestPlaywrightBinLink(BZTestCase):
+    """
+    Tests for PlaywrightBinLink: reasserts node_modules/.bin/playwright -> @playwright/test's
+    cli.js as the last install step, since NPMModuleInstaller may have just overwritten it
+    while reifying a customer-declared top-level "playwright" dependency of their own (same
+    bin name, different package).
+    """
+
+    def setUp(self):
+        super(TestPlaywrightBinLink, self).setUp()
+        import tempfile
+        self.frozen_store = tempfile.mkdtemp()
+        self.tools_dir = tempfile.mkdtemp()
+        self.get_full_path_patcher = patch('bzt.modules.javascript.get_full_path', return_value=self.frozen_store)
+        self.get_full_path_patcher.start()
+        self.addCleanup(self.get_full_path_patcher.stop)
+
+    def _freeze_bin(self):
+        bin_dir = os.path.join(self.frozen_store, "node_modules", ".bin")
+        os.makedirs(bin_dir, exist_ok=True)
+        with open(os.path.join(bin_dir, "playwright"), "w") as fds:
+            fds.write("#!/bin/sh\n")
+
+    def test_check_if_installed_not_frozen_always_true(self):
+        link = PlaywrightBinLink(tools_dir=self.tools_dir)
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop('PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION', None)
+            self.assertTrue(link.check_if_installed())
+
+    def test_check_if_installed_frozen_false_when_missing(self):
+        self._freeze_bin()
+        link = PlaywrightBinLink(tools_dir=self.tools_dir)
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.63.0'}):
+            self.assertFalse(link.check_if_installed())
+
+    def test_install_creates_correct_link(self):
+        self._freeze_bin()
+        link = PlaywrightBinLink(tools_dir=self.tools_dir)
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.63.0'}):
+            link.install()
+            self.assertTrue(link.check_if_installed())
+
+    def test_install_overwrites_link_clobbered_by_another_package(self):
+        """Simulates NPMModuleInstaller overwriting .bin/playwright with a different package's cli.js"""
+        self._freeze_bin()
+        bin_target = os.path.join(self.tools_dir, "node_modules", ".bin", "playwright")
+        os.makedirs(os.path.dirname(bin_target), exist_ok=True)
+        os.symlink("../playwright/cli.js", bin_target)
+
+        link = PlaywrightBinLink(tools_dir=self.tools_dir)
+        with patch.dict(os.environ, {'PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION': '1.63.0'}):
+            link.install()
+
+        self.assertEqual(
+            os.path.realpath(bin_target),
+            os.path.realpath(os.path.join(self.frozen_store, "node_modules", ".bin", "playwright")),
+        )
 
 
 class TestPlaywrightTypesNodePackage(BZTestCase):

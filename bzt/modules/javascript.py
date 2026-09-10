@@ -111,8 +111,8 @@ class PlaywrightTester(JavaScriptExecutor):
 
         # Runs first so a customer declaration for it in tools_dir's package.json gets
         # resolved before PlaywrightTestPackage has to reconcile the same file.
-        npm_types_node = self._get_tool(PlaywrightTypesNodePackage, tools_dir=self.get_launch_cwd(),
-                                         node_tool=self.node, npm_tool=self.npm)
+        npm_types_node = self._get_tool(
+            PlaywrightTypesNodePackage, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
 
         npm_playwright_test = self._get_tool(PlaywrightTestPackage, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
         playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.get_launch_cwd())
@@ -120,8 +120,14 @@ class PlaywrightTester(JavaScriptExecutor):
 
         npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.get_launch_cwd())
 
+        # Must run last: NPMModuleInstaller may have just reified a customer-declared
+        # top-level "playwright" dependency, which overwrites node_modules/.bin/playwright
+        # (same bin name as @playwright/test) if it does. Reassert the correct target here,
+        # after everything else that could touch it has already run.
+        playwright_bin_link = self._get_tool(PlaywrightBinLink, tools_dir=self.get_launch_cwd())
+
         tools = [tcl_lib, self.node, self.npm, npm_types_node, npm_playwright_test, npm_all_packages,
-                 playwright, playwright_reporter]
+                 playwright, playwright_reporter, playwright_bin_link]
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
@@ -735,19 +741,30 @@ class PlaywrightTestPackage(FrozenPackageLink):
             return None
         return _read_frozen_installed_version(("@playwright", "test"))
 
+
+class PlaywrightBinLink(RequiredTool):
+    """
+    The unscoped `playwright` package declares the same `bin.playwright` entry as
+    @playwright/test. If a customer's own package.json also depends on plain `playwright`
+    (common - their own test code often imports it directly), NPMModuleInstaller's reify of
+    that dependency overwrites node_modules/.bin/playwright to point at THAT package's
+    cli.js instead, so `npx playwright test` ends up loading a second, different
+    @playwright/test instance internally and fails with "did not expect test() to be
+    called here". Runs last in install_required_tools() (after NPMModuleInstaller) to
+    reassert the correct target every time, regardless of what ran in between.
+    """
+
+    def __init__(self, tools_dir, **kwargs):
+        super(PlaywrightBinLink, self).__init__(installable=True, **kwargs)
+        self.tools_dir = tools_dir
+
     def check_if_installed(self):
-        if not super().check_if_installed():
-            return False
-        if self._frozen_version() is None:
+        if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None:
             return True
-        # Also make sure the npx-resolvable `playwright` CLI binary (used to launch the
-        # actual test run) is linked, not just the @playwright/test package itself.
         return _is_linked_to_frozen_path(self.tools_dir, (".bin", "playwright"))
 
     def install(self):
-        super().install()
-        if self._frozen_version() is not None:
-            _link_frozen_path(self.tools_dir, (".bin", "playwright"))
+        _link_frozen_path(self.tools_dir, (".bin", "playwright"))
 
 
 class PlaywrightCustomReporter(NPMLocalModulePackage):
