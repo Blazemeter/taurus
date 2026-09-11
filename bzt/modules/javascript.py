@@ -500,6 +500,12 @@ def _link_frozen_path(tools_dir, relative_parts):
     """
     source = _frozen_store_path(*relative_parts)
     target = os.path.join(tools_dir, "node_modules", *relative_parts)
+    if os.path.realpath(target) == os.path.realpath(source):
+        # tools_dir IS the frozen store itself (e.g. re-running -install-tools inside an
+        # already-configured shell in the built image, where the freeze env var is already
+        # set): source and target are the same path, so there's nothing to link, and the
+        # deletion below would destroy the frozen store's own content.
+        return
     os.makedirs(os.path.dirname(target), exist_ok=True)
     if os.path.islink(target):
         os.remove(target)
@@ -513,7 +519,7 @@ def _link_frozen_path(tools_dir, relative_parts):
 def _is_linked_to_frozen_path(tools_dir, relative_parts):
     source = _frozen_store_path(*relative_parts)
     target = os.path.join(tools_dir, "node_modules", *relative_parts)
-    return os.path.islink(target) and os.path.realpath(target) == os.path.realpath(source)
+    return os.path.realpath(target) == os.path.realpath(source)
 
 
 def _read_frozen_installed_version(relative_parts):
@@ -658,11 +664,13 @@ class NPMLocalModulePackage(NPMPackage):
             self.package_local_path = os.path.normpath(os.path.join(RESOURCES_DIR, self.package_local_path))
 
     def install(self):
-        # This local module rarely changes between runs, so try --offline first: if npm's
-        # cache from a previous run (or, in the frozen cloud image, from the Docker build
-        # itself) already has everything, this succeeds instantly with no network at all.
-        # Only fall back to --prefer-offline (reuse what's cached, fetch only what's
-        # genuinely missing) when something truly isn't cached yet, e.g. the very first run.
+        # Shared by PlaywrightCustomReporter (a local module that rarely changes between
+        # runs) and NPMModuleInstaller (a customer's own, unpredictable dependency tree) -
+        # try --offline first either way: if npm's cache already has everything (from a
+        # previous run, or in the frozen cloud image, from the Docker build itself), this
+        # succeeds instantly with no network at all. Only fall back to --prefer-offline
+        # (reuse what's cached, fetch only what's genuinely missing) when something truly
+        # isn't cached yet.
         cmdline = [self.npm.tool_path, 'install', ".", '--install-links', '--prefix', self.tools_dir]
 
         for i, extra_arg in enumerate(OFFLINE_INSTALL_ARGS):
@@ -726,6 +734,17 @@ class PlaywrightTypesNodePackage(FrozenPackageLink):
     specifically-requested package.
     """
     PACKAGE_NAME = "@types/node"
+
+    def check_if_installed(self):
+        if self._frozen_version() is not None:
+            return super().check_if_installed()
+        # @types/node has no requirable entry point at all (pure .d.ts, no main .js), so
+        # the inherited require()-based check would always return False here - even right
+        # after a successful install - forcing a redundant reinstall (and a real network
+        # round-trip) on every single non-frozen run. Check for the installed package's
+        # own metadata file instead.
+        pkg_json = os.path.join(self.tools_dir, "node_modules", "@types", "node", "package.json")
+        return os.path.exists(pkg_json)
 
     def _frozen_version(self):
         if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None:

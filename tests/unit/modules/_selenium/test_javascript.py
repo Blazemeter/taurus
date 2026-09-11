@@ -878,6 +878,18 @@ class TestFrozenPackageLinkHelpers(BZTestCase):
 
         self.assertTrue(os.path.exists(os.path.join(target, "index.js")))
 
+    def test_link_frozen_path_replaces_existing_plain_file(self):
+        self._make_frozen_package(("@types", "node"))
+        target = os.path.join(self.tools_dir, "node_modules", "@types", "node")
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, "w") as fds:
+            fds.write("stray file, neither a symlink nor a directory")
+
+        _link_frozen_path(self.tools_dir, ("@types", "node"))
+
+        self.assertTrue(os.path.islink(target))
+        self.assertTrue(os.path.exists(os.path.join(target, "index.js")))
+
     def test_is_linked_to_frozen_path_true_after_linking(self):
         self._make_frozen_package(("@playwright", "test"))
         _link_frozen_path(self.tools_dir, ("@playwright", "test"))
@@ -938,6 +950,26 @@ class TestFrozenPackageLinkHelpers(BZTestCase):
 
     def test_read_frozen_installed_version_missing_returns_none(self):
         self.assertIsNone(_read_frozen_installed_version(("@types", "node")))
+
+    def test_link_frozen_path_noop_when_tools_dir_is_frozen_store(self):
+        """
+        If tools_dir resolves to the frozen store itself (e.g. re-running -install-tools
+        inside an already-configured shell), source and target are the same path - must not
+        delete the frozen store's own content.
+        """
+        self._make_frozen_package(("@types", "node"))
+        target = os.path.join(self.frozen_store, "node_modules", "@types", "node")
+        self.assertTrue(os.path.isdir(target))
+
+        _link_frozen_path(self.frozen_store, ("@types", "node"))
+
+        self.assertTrue(os.path.isdir(target))
+        self.assertFalse(os.path.islink(target))
+        self.assertTrue(os.path.exists(os.path.join(target, "index.js")))
+
+    def test_is_linked_to_frozen_path_true_when_tools_dir_is_frozen_store(self):
+        self._make_frozen_package(("@types", "node"))
+        self.assertTrue(_is_linked_to_frozen_path(self.frozen_store, ("@types", "node")))
 
 
 class TestPlaywrightTestPackageInstallation(BZTestCase):
@@ -1122,16 +1154,31 @@ class TestPlaywrightTypesNodePackage(BZTestCase):
             json.dump({"version": version}, fds)
         return version
 
-    def test_check_if_installed_not_frozen_delegates_to_super(self):
+    def test_check_if_installed_not_frozen_false_when_missing(self):
         pkg = self._create_package()
-        pkg.call = MagicMock(return_value=("", ""))
 
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop('PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION', None)
-            # @types/node has no requirable entry point at all - always False, as expected
             result = pkg.check_if_installed()
 
         self.assertFalse(result)
+
+    def test_check_if_installed_not_frozen_true_after_install_no_reinstall(self):
+        """
+        @types/node has no requirable entry point at all (pure .d.ts, no main .js), so a
+        require()-based check would always return False even right after a successful
+        install, forcing a redundant npm install (and network round-trip) on every run.
+        """
+        pkg = self._create_package()
+        path = os.path.join(self.tools_dir, "node_modules", "@types", "node")
+        os.makedirs(path, exist_ok=True)
+        with open(os.path.join(path, "package.json"), "w") as fds:
+            json.dump({"version": "22.15.21"}, fds)
+        pkg.call = MagicMock(side_effect=AssertionError("should not need npm at all"))
+
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop('PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION', None)
+            self.assertTrue(pkg.check_if_installed())
 
     def test_install_not_frozen_delegates_to_super(self):
         pkg = self._create_package()
