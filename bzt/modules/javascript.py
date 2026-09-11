@@ -16,6 +16,7 @@ limitations under the License.
 import json
 import os
 import re
+import shutil
 from abc import abstractmethod
 
 from bzt import TaurusConfigError, ToolError
@@ -108,13 +109,25 @@ class PlaywrightTester(JavaScriptExecutor):
         self.node = self._get_tool(Node)
         self.npm = self._get_tool(NPM)
 
+        # Runs first so a customer declaration for it in tools_dir's package.json gets
+        # resolved before PlaywrightTestPackage has to reconcile the same file.
+        npm_types_node = self._get_tool(
+            PlaywrightTypesNodePackage, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
+
         npm_playwright_test = self._get_tool(PlaywrightTestPackage, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
         playwright = self._get_tool(PLAYWRIGHT, tools_dir=self.get_launch_cwd())
         playwright_reporter = self._get_tool(PlaywrightCustomReporter, tools_dir=self.get_launch_cwd(), node_tool=self.node, npm_tool=self.npm)
 
         npm_all_packages = self._get_tool(NPMModuleInstaller,node_tool=self.node, npm_tool=self.npm, tools_dir=self.get_launch_cwd())
 
-        tools = [tcl_lib, self.node, self.npm, npm_playwright_test, npm_all_packages, playwright, playwright_reporter]
+        # Must run last: NPMModuleInstaller may have just reified a customer-declared
+        # top-level "playwright" dependency, which overwrites node_modules/.bin/playwright
+        # (same bin name as @playwright/test) if it does. Reassert the correct target here,
+        # after everything else that could touch it has already run.
+        playwright_bin_link = self._get_tool(PlaywrightBinLink, tools_dir=self.get_launch_cwd())
+
+        tools = [tcl_lib, self.node, self.npm, npm_types_node, npm_playwright_test, npm_all_packages,
+                 playwright, playwright_reporter, playwright_bin_link]
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
@@ -468,6 +481,79 @@ class NPM(RequiredTool):
         return False
 
 
+OFFLINE_INSTALL_ARGS = ("--offline", "--prefer-offline")
+
+
+def _frozen_store_path(*relative_parts):
+    return os.path.join(get_full_path("~/.bzt/playwright"), "node_modules", *relative_parts)
+
+
+def _link_frozen_path(tools_dir, relative_parts):
+    """
+    Symlink <tools_dir>/node_modules/<relative_parts> to the same relative path under the
+    frozen store's (~/.bzt/playwright) node_modules, replacing whatever - if anything - is
+    already there. Used for packages Taurus itself owns and freezes at Docker build time:
+    once installed into the frozen store once, every actual test run just links to that
+    single copy instead of running npm, so it never depends on the registry - or even on
+    the active npm cache - being reachable, and it's immune to whichever registry is
+    configured at runtime differing from the one used at build time.
+    """
+    source = _frozen_store_path(*relative_parts)
+    target = os.path.join(tools_dir, "node_modules", *relative_parts)
+    if os.path.realpath(target) == os.path.realpath(source):
+        # tools_dir IS the frozen store itself (e.g. re-running -install-tools inside an
+        # already-configured shell in the built image, where the freeze env var is already
+        # set): source and target are the same path, so there's nothing to link, and the
+        # deletion below would destroy the frozen store's own content.
+        return
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    if os.path.islink(target):
+        os.remove(target)
+    elif os.path.isdir(target):
+        shutil.rmtree(target)
+    elif os.path.exists(target):
+        os.remove(target)
+    os.symlink(source, target)
+
+
+def _is_linked_to_frozen_path(tools_dir, relative_parts):
+    source = _frozen_store_path(*relative_parts)
+    target = os.path.join(tools_dir, "node_modules", *relative_parts)
+    return os.path.realpath(target) == os.path.realpath(source)
+
+
+def _read_frozen_installed_version(relative_parts):
+    pkg_json = _frozen_store_path(*relative_parts, "package.json")
+    try:
+        with open(pkg_json) as fds:
+            return json.load(fds).get("version")
+    except (OSError, ValueError):
+        return None
+
+
+def _pin_package_json_dependency(tools_dir, package_name, version):
+    """
+    Force <package_name> to resolve to <version> in <tools_dir>/package.json, matching what's
+    actually linked into node_modules there, so a later `npm install .` for the rest of a
+    customer's own declared dependencies sees an already-consistent tree and leaves this
+    entry alone.
+    """
+    pkg_json_path = os.path.join(tools_dir, "package.json")
+    try:
+        with open(pkg_json_path) as fds:
+            data = json.load(fds)
+    except (OSError, ValueError):
+        data = {}
+    section = "devDependencies"
+    for candidate in ("dependencies", "devDependencies"):
+        if package_name in data.get(candidate, {}):
+            section = candidate
+            break
+    data.setdefault(section, {})[package_name] = "^" + version
+    with open(pkg_json_path, "w") as fds:
+        json.dump(data, fds, indent=2)
+
+
 class NPMPackage(RequiredTool):
     PACKAGE_NAME = ""
 
@@ -523,11 +609,43 @@ class NPMPackage(RequiredTool):
             out, err = self.call(cmdline)
         except CALL_PROBLEMS as exc:
             self.log.debug("%s install failed: %s", self.package_name, exc)
+            self.log.warning("Failed to install %s", self.package_name)
             return
 
         self.log.debug("%s install stdout: %s", self.tool_name, out)
         if err:
             self.log.warning("%s install stderr: %s", self.tool_name, err)
+
+
+class FrozenPackageLink(NPMPackage):
+    """
+    For npm packages Taurus itself owns and freezes at Docker build time (not
+    customer-declared, unpredictable content): once a real npm install has happened once
+    into the frozen store (~/.bzt/playwright), every actual test run just links the
+    already-installed package into its own ephemeral directory instead of running npm at
+    all. No install command ever touches the registry - or whichever one is currently
+    configured, if it differs from the one used at build time - for these packages again.
+    """
+
+    def _frozen_version(self):
+        """Version to force-link to, or None when not running frozen."""
+        raise NotImplementedError
+
+    def check_if_installed(self):
+        frozen_version = self._frozen_version()
+        if frozen_version is None:
+            return super().check_if_installed()
+        return _is_linked_to_frozen_path(self.tools_dir, self.package_name.split("/"))
+
+    def install(self):
+        frozen_version = self._frozen_version()
+        if frozen_version is None:
+            super().install()
+            return
+
+        _link_frozen_path(self.tools_dir, self.package_name.split("/"))
+        _pin_package_json_dependency(self.tools_dir, self.package_name, frozen_version)
+
 
 class NPMModulePackage(NPMPackage):
     def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
@@ -546,17 +664,29 @@ class NPMLocalModulePackage(NPMPackage):
             self.package_local_path = os.path.normpath(os.path.join(RESOURCES_DIR, self.package_local_path))
 
     def install(self):
+        # Shared by PlaywrightCustomReporter (a local module that rarely changes between
+        # runs) and NPMModuleInstaller (a customer's own, unpredictable dependency tree) -
+        # try --offline first either way: if npm's cache already has everything (from a
+        # previous run, or in the frozen cloud image, from the Docker build itself), this
+        # succeeds instantly with no network at all. Only fall back to --prefer-offline
+        # (reuse what's cached, fetch only what's genuinely missing) when something truly
+        # isn't cached yet.
         cmdline = [self.npm.tool_path, 'install', ".", '--install-links', '--prefix', self.tools_dir]
 
-        try:
-            out, err = self.call(cmdline, cwd=self.package_local_path)
-        except CALL_PROBLEMS as exc:
-            self.log.debug("%s install failed: %s", self.package_name, exc)
-            return
+        for i, extra_arg in enumerate(OFFLINE_INSTALL_ARGS):
+            try:
+                out, err = self.call(cmdline + [extra_arg], cwd=self.package_local_path)
+                self.log.debug("%s install stdout: %s", self.tool_name, out)
+                if err:
+                    self.log.warning("%s install stderr: %s", self.tool_name, err)
+                return
+            except CALL_PROBLEMS as exc:
+                self.log.debug("%s install with %s failed: %s", self.package_name, extra_arg, exc)
+                if i + 1 < len(OFFLINE_INSTALL_ARGS):
+                    self.log.info("Failed to install %s with %s, retrying with %s",
+                                  self.package_name, extra_arg, OFFLINE_INSTALL_ARGS[i + 1])
 
-        self.log.debug("%s install stdout: %s", self.tool_name, out)
-        if err:
-            self.log.warning("%s install stderr: %s", self.tool_name, err)
+        self.log.warning("%s install failed with all attempts: %s", self.package_name, ", ".join(OFFLINE_INSTALL_ARGS))
 
 
 class NPMModuleInstaller(NPMLocalModulePackage):
@@ -592,41 +722,97 @@ class TaurusNewmanPlugin(RequiredTool):
         tool_path = os.path.join(RESOURCES_DIR, "newman-reporter-taurus.js")
         super(TaurusNewmanPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
-class PlaywrightTestPackage(NPMPackage):
-    PACKAGE_NAME = "@playwright/test" if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None \
-        else "@playwright/test@" + os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION")
+class PlaywrightTypesNodePackage(FrozenPackageLink):
+    """
+    Playwright's own official TypeScript scaffolding (`npm init playwright@latest`) always
+    adds @types/node as a devDependency alongside @playwright/test. It has no runtime code
+    at all (pure .d.ts type declarations, consulted only by the TypeScript compiler - never
+    by Node's own require()/import), but it typically lives in the SAME package.json that
+    PlaywrightTestPackage/PLAYWRIGHT also install into (the customer's own tools_dir). An
+    unresolvable copy of it (uncached, registry unreachable) can block THEIR install too,
+    since npm's reify step resolves the whole declared tree in that directory, not just the
+    specifically-requested package.
+    """
+    PACKAGE_NAME = "@types/node"
 
     def check_if_installed(self):
-        if not super().check_if_installed():
-            return False
-        # Check if installed version is expected version if we force version
-        forced_version = os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None)
-        if forced_version is None:
-            # Not forcing version, any installed is good
-            return True
+        if self._frozen_version() is not None:
+            return super().check_if_installed()
+        # @types/node has no requirable entry point at all (pure .d.ts, no main .js), so
+        # the inherited require()-based check would always return False here - even right
+        # after a successful install - forcing a redundant reinstall (and a real network
+        # round-trip) on every single non-frozen run. Check for the installed package's
+        # own metadata file instead.
+        pkg_json = os.path.join(self.tools_dir, "node_modules", "@types", "node", "package.json")
+        return os.path.exists(pkg_json)
 
-        # `npx --no` reads the locally-installed version without fetching from the
-        # registry. Mirrors the freeze step in taurus-cloud Dockerfile-reduced.
-        cmdline = ["npx", "--no", "--", "@playwright/test", "--version"]
-        try:
-            out, _ = self.call(cmdline, cwd=self.tools_dir)
-            installed = (out or "").strip().split()[-1] if (out or "").strip() else ""
-            version_changed = installed != forced_version
-            if version_changed:
-                self.log.warning("Frozen version not found in installed packages, will re-install %s", self.PACKAGE_NAME)
-            return not version_changed
-        except CALL_PROBLEMS as exc:
-            self.log.debug("%s check of forced version failed: %s", self.PACKAGE_NAME, exc)
-            return False
+    def _frozen_version(self):
+        if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None:
+            return None
+        return _read_frozen_installed_version(("@types", "node"))
+
+
+class PlaywrightTestPackage(FrozenPackageLink):
+    PACKAGE_NAME = "@playwright/test"
+
+    def _frozen_version(self):
+        if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None:
+            return None
+        return _read_frozen_installed_version(("@playwright", "test"))
+
+
+class PlaywrightBinLink(RequiredTool):
+    """
+    The unscoped `playwright` package declares the same `bin.playwright` entry as
+    @playwright/test. If a customer's own package.json also depends on plain `playwright`
+    (common - their own test code often imports it directly), NPMModuleInstaller's reify of
+    that dependency overwrites node_modules/.bin/playwright to point at THAT package's
+    cli.js instead, so `npx playwright test` ends up loading a second, different
+    @playwright/test instance internally and fails with "did not expect test() to be
+    called here". Runs last in install_required_tools() (after NPMModuleInstaller) to
+    reassert the correct target every time, regardless of what ran in between.
+    """
+
+    def __init__(self, tools_dir, **kwargs):
+        super(PlaywrightBinLink, self).__init__(installable=True, **kwargs)
+        self.tools_dir = tools_dir
+
+    def check_if_installed(self):
+        if os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is None:
+            return True
+        return _is_linked_to_frozen_path(self.tools_dir, (".bin", "playwright"))
+
+    def install(self):
+        _link_frozen_path(self.tools_dir, (".bin", "playwright"))
+
 
 class PlaywrightCustomReporter(NPMLocalModulePackage):
+    """
+    Ships inside the bzt package itself (RESOURCES_DIR), so there's no registry involved -
+    but `npm install . --prefix <tools_dir>` still reifies the customer's entire package.json
+    in that directory, so an unrelated uncached customer dependency sharing the same
+    tools_dir collaterally blocks this too. At frozen cloud runtime, link the copy already
+    installed once into the frozen store (~/.bzt/playwright) at Docker build time instead,
+    the same way as the registry-backed frozen packages.
+    """
     PACKAGE_NAME = "@taurus/playwright-custom-reporter@1.0.1"
     PACKAGE_LOCAL_PATH = "./playwright-custom-reporter"
 
+    def _frozen(self):
+        return os.environ.get("PLAYWRIGHT_TEST_PACKAGE_FORCED_VERSION", None) is not None
+
     def check_if_installed(self):
-        # always run install for local module to update to latest version
-        # npm version resolving for local modules is not reliable
-        return False
+        if not self._frozen():
+            # always run install for local module to update to latest version
+            # npm version resolving for local modules is not reliable
+            return False
+        return _is_linked_to_frozen_path(self.tools_dir, self.package_name.split("/"))
+
+    def install(self):
+        if not self._frozen():
+            super().install()
+            return
+        _link_frozen_path(self.tools_dir, self.package_name.split("/"))
 
 class PLAYWRIGHT(RequiredTool):
     def __init__(self, tools_dir, **kwargs):
@@ -643,10 +829,11 @@ class PLAYWRIGHT(RequiredTool):
         version_changed = False
         if frozen_version:
             # `npx --no` reads the locally-installed version without fetching from the
-            # registry. Mirrors the freeze step in taurus-cloud Dockerfile-reduced.
+            # registry, run against ~/.bzt/playwright: taurus-cloud's Dockerfile-reduced
+            # freezes the version by installing into that directory.
             cmdline = ["npx", "--no", "--", "playwright", "--version"]
             try:
-                out, _ = self.call(cmdline, cwd=self.tools_dir)
+                out, _ = self.call(cmdline, cwd=get_full_path("~/.bzt/playwright"))
                 installed = (out or "").strip().split()[-1] if (out or "").strip() else ""
                 version_changed = installed != frozen_version
                 if version_changed:
