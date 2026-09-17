@@ -417,7 +417,16 @@ When a CVE is in a system package (path is `/var/lib/dpkg/status`, empty, or in 
    ```bash
    # confirm you are inspecting THE SCANNED image first — compare against the CSV's `Image ID`
    # column; `unstable` is a mutable tag and may have been republished since the baseline scan.
-   docker image inspect --format '{{.Id}}' blazemeter/taurus:unstable
+   # twistcli's `Image ID` is the CONFIG digest. Do NOT compare it against
+   # `docker image inspect --format '{{.Id}}'` — under the containerd image store `.Id` is the
+   # MANIFEST digest and never matches, producing a false stale-image alarm. Resolve the config
+   # digest THROUGH the local image's RepoDigest (not the bare tag, which hits the registry and
+   # would happily confirm a republished image you don't have). See vulnerability_history.md,
+   # "The baseline scan can silently scan a STALE image" for both traps.
+   docker pull blazemeter/taurus:unstable   # let it FINISH before inspecting
+   docker manifest inspect \
+       "$(docker image inspect --format '{{index .RepoDigests 0}}' blazemeter/taurus:unstable)" \
+     | python3 -c "import json,sys; print(json.load(sys.stdin)['config']['digest'])"
    # which apt invocation installed it, at what version, and was it "automatic"?
    docker run --rm --entrypoint sh blazemeter/taurus:unstable -c \
      "grep -B4 '<pkg>:amd64' /var/log/apt/history.log | tail -8"
