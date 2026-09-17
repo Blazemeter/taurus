@@ -274,6 +274,8 @@ If there are no auto-fixable CVEs → report that and list any manual items. ("N
 
 **Before stopping, report any R (rebuild-clearable) findings** — see classification category 4. "Nothing to fix in the repo" and "a republish removes N CVEs" are **both** true at the same time, and stopping without mentioning R leaves a real, zero-code win on the table (and leaves taurus-cloud consuming a stale image). If `R > 0`, report it and follow "Republishing to clear R findings" below instead of just stopping.
 
+> ⚠️ **`R > 0` means the run is NOT over — do not stop here.** The deliverable of this skill is a lower CVE count, not a diff. Because every merge to master rebuilds and republishes `unstable`, **opening the PR is what clears R** — so still do the step-15 history/SKILL reconciliation, push the branch, and open the PR even when the code diff is empty or docs-only (skip Jira and the branch-build gate; there is no code fix to verify). Do not ask the user whether to bother. Full rationale and the two caveats: "Republishing to clear R findings" below.
+
 ### 7. Apply all auto-fixes
 
 Work in priority order: critical → high → medium → low. For each CVE apply the fix according to the classification table above.
@@ -794,9 +796,15 @@ There is **no promote/copy path**: no job takes an existing image and pushes it,
 
 **⚠️ Require explicit human approval before triggering it.** This is an outward-facing publish: it overwrites the public `unstable` tag, creates a new `master-<sha>-<date>` tag, notifies `#bm-taurus-dev` on Slack, and takes ~45–60 min. **State the side effects and wait for a clear yes** — do not infer approval from "I want the CVE gone" or "I want it published later". Triggering it unasked is a process violation, not a shortcut.
 
-**Default recommendation: usually don't.** Say *"this clears itself on the next merge to master"* and only advise forcing a republish when:
+**Default recommendation: usually don't trigger the JOB.** Say *"this clears itself on the next merge to master"* and only advise forcing a republish via `taurus-community-master` when:
 - a release or a taurus-cloud build is imminent and needs the fix now, or
 - R contains something with real severity (a high/critical). A single CVSS-0 medium does **not** justify a public republish.
+
+> **But "don't trigger the job" is NOT "do nothing" — ship the PR, because MERGING IT IS the republish.** Every merge to master runs `taurus-community-master`, which rebuilds `--no-cache` and pushes `unstable`. So **any** PR that lands — including a docs-only history/SKILL reconciliation PR with zero code changes — triggers the rebuild that clears every R finding, with no publish-job trigger, no approval gate and no Slack notification beyond the normal merge. That makes opening the PR the cheapest available route to the CVE reduction, not a side errand.
+>
+> **The skill's purpose is to reduce the CVE count, not to produce diffs.** A run that classifies everything correctly and then stops at "no code changes needed" has *failed its purpose* while `R > 0`: the win was sitting there and went unclaimed. So when `R > 0`, **do not end the run at the report** — finish the history/SKILL reconciliation, push, and open the PR as normal (step 15's create-PR step; skip the Jira ticket and the branch-build/decision gate, which only apply to code fixes there is something to verify). State plainly in the PR body that merging it republishes `unstable` and is expected to clear the `<R>` listed findings. Do not ask whether to open it — that is the run's deliverable.
+>
+> Two honest caveats to state, which do **not** change the action: a `--no-cache` rebuild re-resolves every unpinned dependency, so it is **not monotonic** — it can also pick up newly-disclosed CVEs (verify with a fresh `prisma-cloud-ondemand-scan` afterwards rather than asserting `-R`); and if `git tag --points-at origin/master` is non-empty, `isRelease` is true and `unstable` is **not** rebuilt, so R does not clear on that merge.
 
 If approved:
 ```bash
