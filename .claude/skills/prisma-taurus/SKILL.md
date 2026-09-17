@@ -274,7 +274,7 @@ If there are no auto-fixable CVEs → report that and list any manual items. ("N
 
 **Before stopping, report any R (rebuild-clearable) findings** — see classification category 4. "Nothing to fix in the repo" and "a republish removes N CVEs" are **both** true at the same time, and stopping without mentioning R leaves a real, zero-code win on the table (and leaves taurus-cloud consuming a stale image). If `R > 0`, report it and follow "Republishing to clear R findings" below instead of just stopping.
 
-> ⚠️ **`R > 0` means the run is NOT over — do not stop here.** The deliverable of this skill is a lower CVE count, not a diff. Because every merge to master rebuilds and republishes `unstable`, **opening the PR is what clears R** — so still do the step-15 history/SKILL reconciliation, push the branch, and open the PR even when the code diff is empty or docs-only (skip Jira and the branch-build gate; there is no code fix to verify). Do not ask the user whether to bother. Full rationale and the two caveats: "Republishing to clear R findings" below.
+> ⚠️ **`R > 0` means the run is NOT over — do not stop here.** The deliverable of this skill is a lower CVE count, not a diff. **Merging** a non-release PR to master rebuilds and republishes `unstable`, which is what clears R; **opening** the PR merely proposes that merge. So still do the step-15 history/SKILL reconciliation, push the branch, and open the PR even when the code diff is empty or docs-only — then report R as *"merging this PR is expected to clear these"*, never as cleared. Do not ask the user whether to bother. Use the **docs-only / R-only PR body** variant in step 15 (no Jira, no branch-builder verification claim — there is no code fix to verify), and check `git tag --points-at origin/master` is empty, since a release merge does **not** rebuild `unstable`. Full rationale and caveats: "Republishing to clear R findings" below.
 
 ### 7. Apply all auto-fixes
 
@@ -426,8 +426,15 @@ When a CVE is in a system package (path is `/var/lib/dpkg/status`, empty, or in 
    # would happily confirm a republished image you don't have). See vulnerability_history.md,
    # "The baseline scan can silently scan a STALE image" for both traps.
    docker pull blazemeter/taurus:unstable   # let it FINISH before inspecting
-   docker manifest inspect \
-       "$(docker image inspect --format '{{index .RepoDigests 0}}' blazemeter/taurus:unstable)" \
+   REF=$(docker image inspect --format '{{if .RepoDigests}}{{index .RepoDigests 0}}{{end}}' \
+           blazemeter/taurus:unstable)   # empty => locally-built, use .Created instead
+   AMD64=$(docker manifest inspect "$REF" | python3 -c "
+   import json,sys
+   d=json.load(sys.stdin)
+   print('' if 'config' in d else next(m['digest'] for m in d['manifests']
+         if m.get('platform',{}).get('architecture')=='amd64' and m.get('platform',{}).get('os')=='linux'))")
+   [ -n "$AMD64" ] && REF="${REF%@*}@$AMD64"   # multi-arch index => descend to the amd64 child
+   docker manifest inspect "$REF" \
      | python3 -c "import json,sys; print(json.load(sys.stdin)['config']['digest'])"
    # which apt invocation installed it, at what version, and was it "automatic"?
    docker run --rm --entrypoint sh blazemeter/taurus:unstable -c \
@@ -724,6 +731,13 @@ git push origin <branch-name>
 > **Caveat — the history file must exist on the base branch (`master`) for this to work.** The fix branch is cut from `origin/master`; `vulnerability_history.md` is only present there once the prisma-taurus skill itself has been merged to `master`. If the skill is not yet on `master` (e.g. still on a feature branch), the file won't be in the fix branch's worktree — in that case commit the history update on whatever branch the skill lives on instead, and note in the PR that the history doc lives elsewhere. Once the skill is merged, this caveat no longer applies and the history update rides along in the same PR every run.
 
 **Create the PR (only when the gate passes).** Do this in **two independent steps** so creating the PR never depends on Copilot being available.
+
+> **Docs-only / R-only PR (`Y = 0`, `R > 0`) — use this variant of the contract.** When the run made no code fix and the PR exists to carry the reconciliation *and* trigger the rebuild that clears R (see step 6), three items in the body list below cannot be satisfied honestly. Substitute, don't omit silently:
+> - **Jira** — skip it (no fix work to track), and **omit the key from the PR title** rather than inventing one. Say in the body: "No Jira ticket — no code fix to track."
+> - **The `taurus-branch-builder` verification line** — do **not** include it; asserting it would be a false verification claim. Replace with: "No branch-build verification — this PR contains no code change to verify. The `<R>` findings below are expected to clear when this PR is merged, because the merge rebuilds and republishes `unstable`."
+> - **The decision gate** (step 15's "vulnerabilities went down") — not applicable; there is no branch scan. The gate guards *fix* claims, and this PR makes none.
+>
+> Everything else is unchanged: lead with the `<X>` detected → `<Y>` fixed headline (`Y` will be 0 — that is an honest result, not a failure), list the R findings with their evidence, and give the `<Z>` count. Also state the non-monotonic caveat: a `--no-cache` rebuild re-resolves unpinned deps and can introduce newly-disclosed CVEs, so promise a post-merge scan rather than exactly `−R`.
 
 **15a — create the PR (must succeed on its own; do NOT put `--reviewer` here):** include the Jira key in the title so Jira ↔ GitHub link automatically.
 ```bash
