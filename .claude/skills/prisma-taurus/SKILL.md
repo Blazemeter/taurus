@@ -70,6 +70,16 @@ These two are **optional and best-effort**: if either is unset, the skill does *
 
 **Jira** (used by the ticket-creation step before the PR) is accessed through the **Atlassian MCP**, not an env var — it authenticates as the developer running the skill (that's how the ticket gets assigned to them). No token to set. Note: interactively-authenticated MCP servers may be **absent in headless/cron runs**; if the Atlassian tools aren't available, create the PR without a Jira ticket and flag that the ticket must be created manually — don't block the PR.
 
+## Polling long-running jobs (steps 2, 3, 14, 16, and the republish reference section)
+
+This skill can be invoked headlessly via `claude --print` (e.g. from a Jenkins job) — a single, non-interactive invocation with no later turn for anything to arrive into. Every poll in this skill (waiting on `prisma-cloud-ondemand-scan`, `taurus-branch-builder`, `taurus-community-master`, or Copilot's review) must be **one status check per separate, synchronous Bash tool call** - never:
+- a single shell loop (`for`/`while` with `sleep N` inside) that sleeps for the whole wait duration in one call, or
+- `run_in_background: true` on the Bash call, `Monitor`, `ScheduleWakeup`, `Task`, `Agent`, or any other mechanism that defers execution and ends your turn expecting to be re-invoked later.
+
+**Both of these have been observed causing a real, unattended run to end early with a false "success"** (in `blazect-asset-catalog`'s equivalent `all-vulnerabilities` skill, which this section's wording mirrors): once a shell loop that sleeps for 35+ minutes gets silently moved to a background task by the harness, or the model explicitly backgrounds the wait itself, ending the turn to "wait for it" just exits the process - the triggered job keeps running with nothing left to ever collect its result. If a plain foreground `sleep`/status check ever seems unavailable or restricted for any reason, do not substitute a deferred mechanism - just repeat the check immediately with no delay; a tight busy-poll is wasteful but safe, backgrounding is silently fatal.
+
+Check, decide, and if not done, make a fresh Bash call to check again - repeated across as many separate calls as the wait needs, never looped or deferred inside one.
+
 ## Fix classification rules
 
 Before applying any fix, classify each CVE — first through the **category-0 pre-filter, which keys on `Fix Status` rather than `Path`**, then **by its `Path`** (for everything else the path is the definitive identifier of what the vulnerable component belongs to). Apply the categories in this order — the first match wins, with **one exception**: a finding that matches category 3 (auto-fixable) must ALSO be tested against **category 4 (rebuild-clearable)** before any fix is applied. Category 4 is not reached by first-match-wins — it is a mandatory gate on category 3, because an R finding looks exactly like an auto-fixable one and "fixing" it produces a brittle pin for something already handled.
@@ -212,7 +222,7 @@ curl -s -o /dev/null -D - -X POST \
 
 Capture the `Location:` header — it contains the queue item URL (e.g. `.../queue/item/XXXXX/`).
 
-**Wait for build number** by polling the queue item every 10 seconds until `executable.number` appears:
+**Wait for build number** by polling the queue item every 10 seconds until `executable.number` appears (per the polling-safety section above: one check per separate Bash call, never a sleep loop or a backgrounded wait):
 ```bash
 curl -sL -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
   "https://blazect-jenkins.blazemeter.com/queue/item/<ID>/api/json"
@@ -650,7 +660,7 @@ Parameter rationale:
 - `public_docker=false` — **never** publish a branch image to the public registry.
 - `PERFORM_PRISMA_SCAN=true` — runs `twistcli images scan --details` and prints the full vulnerability table inline in the build console.
 
-Capture the `Location:` header (queue item URL), poll the queue item for `executable.number` to get the build number, then poll the build until `building=false` (typically **~30–40 min** with integration; ~14 min without). Tell the user the build number and that you are waiting.
+Capture the `Location:` header (queue item URL), poll the queue item for `executable.number` to get the build number, then poll the build until `building=false` (typically **~30–40 min** with integration; ~14 min without). Tell the user the build number and that you are waiting. **This is the longest wait in this skill — per the polling-safety section above, poll it via repeated separate Bash calls, never a sleep loop or a backgrounded wait.**
 
 ```bash
 curl -sL -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
@@ -786,15 +796,11 @@ PR body should include (apply the step-5 reporting rule — **lead with fixable-
 
 After 15b, **wait for Copilot to finish reviewing, then triage its comments** — but do this exactly **once**. This is best-effort: if Copilot never runs, don't block.
 
-**[16a] Detect completion (bounded poll).** If `gh` is not on PATH, **skip step 16 entirely** (note it in the summary) — don't burn the poll. Otherwise poll until Copilot posts its review — a review by `copilot-pull-request-reviewer[bot]` with a non-null `submitted_at` is the signal (Copilot also drops out of `requested_reviewers` when done, but the submitted review is sufficient):
+**[16a] Detect completion (bounded poll, max ~5 min).** If `gh` is not on PATH, **skip step 16 entirely** (note it in the summary) — don't burn the poll. Otherwise poll until Copilot posts its review — a review by `copilot-pull-request-reviewer[bot]` with a non-null `submitted_at` is the signal (Copilot also drops out of `requested_reviewers` when done, but the submitted review is sufficient). **Per the polling-safety section above: each check below is its own Bash tool call, not a shell loop** — run the check, and if not finished, make a fresh Bash call for `sleep 15` (or just re-check after the round-trip latency), then check again; repeat up to ~20 times before giving up:
 ```bash
 PR=<number>
-for i in $(seq 1 20); do   # ~5 min cap (15s * 20)
-  finished=$(gh api repos/Blazemeter/taurus/pulls/$PR/reviews \
-    --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]" and .submitted_at!=null)] | length' 2>/dev/null)
-  [ "$finished" -ge 1 ] 2>/dev/null && break
-  sleep 15
-done
+gh api repos/Blazemeter/taurus/pulls/$PR/reviews \
+  --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]" and .submitted_at!=null)] | length'
 ```
 If the cap elapses with no Copilot review, note "Copilot review did not complete in time" and go to step 17 — do not block.
 
