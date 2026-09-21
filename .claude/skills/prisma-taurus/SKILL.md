@@ -15,7 +15,7 @@ description: Use when the user wants to check, fix, or verify Prisma Cloud vulne
 
 ## Overview
 
-End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, gets an independent local code review (if a review skill is available) and amends accepted fixes **before pushing**, then **builds the fixed branch into a Docker image and re-scans it** to confirm the fixes actually reduce vulnerabilities in the real image. A PR is opened **only after** that branch scan shows fewer vulnerabilities than the baseline — never at an early stage; the PR then requests a GitHub Copilot review and triages it once.
+End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, gets an independent local code review (if a review skill is available) and amends accepted fixes **before pushing**, then **builds the fixed branch into a Docker image and re-scans it** to confirm the fixes actually reduce vulnerabilities in the real image. A PR is opened **only after** that branch scan shows fewer vulnerabilities than the baseline — never at an early stage; the PR then requests a GitHub Copilot review and triages it once, and finally posts a "ready for review" summary to Slack (best-effort; on a Jenkins-triggered run, this posts even when there was nothing to fix, so a scheduled run is never silent).
 
 **Why verify before the PR:** unit tests do not exercise the Dockerfile (gem/npm/apt changes) and a fix that "looks" applied can be a no-op against the scanner (e.g. `gem update` installs a patched gem but leaves the vulnerable Ruby *default-gem* version on disk, which Prisma still reports). The `taurus-branch-builder` Jenkins job can build any branch into an image and scan it with Prisma — so the fixes are proven in the image *before* a PR is created, not assumed.
 
@@ -59,7 +59,26 @@ GITHUB_TOKEN       # GitHub personal access token
 
 If any of the **three above** is missing, stop and tell the user which one is absent.
 
+**Optional — Slack notification (step 17 only):**
+
+```bash
+SLACK_BOT_TOKEN          # Slack bot token (xoxb-...) — posts the "ready for review" message
+SLACK_SPARTA_CHANNEL_ID  # Slack channel id (C...) to post it to
+```
+
+These two are **optional and best-effort**: if either is unset, the skill does **not** fail, block, or prompt for them — it builds the message it would have sent and **prints it instead of posting** (see step 17). (The bot must be a member of the channel, or the post returns `not_in_channel`.)
+
 **Jira** (used by the ticket-creation step before the PR) is accessed through the **Atlassian MCP**, not an env var — it authenticates as the developer running the skill (that's how the ticket gets assigned to them). No token to set. Note: interactively-authenticated MCP servers may be **absent in headless/cron runs**; if the Atlassian tools aren't available, create the PR without a Jira ticket and flag that the ticket must be created manually — don't block the PR.
+
+## Polling long-running jobs (steps 2, 3, 14, 16, and the republish reference section)
+
+This skill can be invoked headlessly via `claude --print` (e.g. from a Jenkins job) — a single, non-interactive invocation with no later turn for anything to arrive into. Every poll in this skill (waiting on `prisma-cloud-ondemand-scan`, `taurus-branch-builder`, `taurus-community-master`, or Copilot's review) must be **one status check per separate, synchronous Bash tool call** - never:
+- a single shell loop (`for`/`while` with `sleep N` inside) that sleeps for the whole wait duration in one call, or
+- `run_in_background: true` on the Bash call, `Monitor`, `ScheduleWakeup`, `Task`, `Agent`, or any other mechanism that defers execution and ends your turn expecting to be re-invoked later.
+
+**Both of these have been observed causing a real, unattended run to end early with a false "success"** (in `blazect-asset-catalog`'s equivalent `all-vulnerabilities` skill, which this section's wording mirrors): once a shell loop that sleeps for 35+ minutes gets silently moved to a background task by the harness, or the model explicitly backgrounds the wait itself, ending the turn to "wait for it" just exits the process - the triggered job keeps running with nothing left to ever collect its result. If a plain foreground `sleep`/status check ever seems unavailable or restricted for any reason, do not substitute a deferred mechanism - just repeat the check immediately with no delay; a tight busy-poll is wasteful but safe, backgrounding is silently fatal.
+
+Check, decide, and if not done, make a fresh Bash call to check again - repeated across as many separate calls as the wait needs, never looped or deferred inside one.
 
 ## Fix classification rules
 
@@ -84,7 +103,7 @@ These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjav
 
 > ⚠️ **`/var/lib/dpkg/status` is NOT in this category — it is the normal path for every OS/apt package.** This scanner reports **all** OS findings at `/var/lib/dpkg/status` (verified: scans #204, #215, #216 contain **zero** empty-path rows and 135/153/165 dpkg-path rows respectively). Treating that path as appeasement writes off *every* OS finding in the scan — in #216 that would have been 165 of 316 rows, including 16 with a real, non-ESM `fixed in` apt version (71 before removing Ubuntu Pro ESM). Route these to the **OS package** row of category 3 (then the category-4 gate), exactly like the libheif worked example in category 4 — whose finding also sat at `/var/lib/dpkg/status`.
 >
-> What genuinely belongs here is the *action*, not the path: **do not `sed`-patch `/var/lib/dpkg/status` to change a version string and silence the scanner** (see the Firefox patch at `Dockerfile:118-121` — the pattern not to repeat; `vulnerability_history.md` commit 5 argues it should not have been done). A Prisma Cloud suppression is the preferred route for a genuine false positive; the sed is a gated last resort, reachable only through step 17.
+> What genuinely belongs here is the *action*, not the path: **do not `sed`-patch `/var/lib/dpkg/status` to change a version string and silence the scanner** (see the Firefox patch at `Dockerfile:118-121` — the pattern not to repeat; `vulnerability_history.md` commit 5 argues it should not have been done). A Prisma Cloud suppression is the preferred route for a genuine false positive; the sed is a gated last resort, reachable only through step 18.
 
 **3. Auto-fixable → apply automatically (remaining CVEs where `Fix Status` starts with `fixed in`):**
 
@@ -203,7 +222,7 @@ curl -s -o /dev/null -D - -X POST \
 
 Capture the `Location:` header — it contains the queue item URL (e.g. `.../queue/item/XXXXX/`).
 
-**Wait for build number** by polling the queue item every 10 seconds until `executable.number` appears:
+**Wait for build number** by polling the queue item every 10 seconds until `executable.number` appears (per the polling-safety section above: one check per separate Bash call, never a sleep loop or a backgrounded wait):
 ```bash
 curl -sL -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
   "https://blazect-jenkins.blazemeter.com/queue/item/<ID>/api/json"
@@ -545,15 +564,17 @@ After applying all fixes inside the worktree, run the full unit test suite. This
 cd .worktrees/<branch-name> && python -m nose2 -s tests/unit -v
 ```
 
-**If tests fail → stop. Do NOT remove the worktree. Do NOT commit.**
+**If tests fail → stop. Do NOT commit.** `BUILD_URL` (a standard Jenkins env var, present for any Jenkins-triggered run and absent for a bare local run - the same signal used elsewhere in this skill) decides what happens to the worktree:
 
-Report:
-- Which tests failed and the error output
-- The worktree path: `.worktrees/<branch-name>`
-- The branch name so the user can investigate
+- **`BUILD_URL` unset (interactive/local run) — do NOT remove the worktree.** Report:
+  - Which tests failed and the error output
+  - The worktree path: `.worktrees/<branch-name>`
+  - The branch name so the user can investigate
 
-Tell the user:
-> "Tests failed. The worktree has been left at `.worktrees/<branch-name>` on branch `<branch-name>` for you to investigate. Once you've resolved the failures, you can commit and push manually from that directory."
+  Tell the user:
+  > "Tests failed. The worktree has been left at `.worktrees/<branch-name>` on branch `<branch-name>` for you to investigate. Once you've resolved the failures, you can commit and push manually from that directory."
+
+- **`BUILD_URL` set (Jenkins-triggered run) — do not try to preserve the worktree.** There is no persistent workspace to leave it in (the Jenkins job wipes the whole workspace after every build, success or failure) and no one present to use it if there were. Just report which tests failed and the error output, and state plainly that the worktree could not be preserved for investigation because this was a headless run - do not claim it was left anywhere.
 
 **If tests pass → continue to the coverage gate below.**
 
@@ -641,7 +662,7 @@ Parameter rationale:
 - `public_docker=false` — **never** publish a branch image to the public registry.
 - `PERFORM_PRISMA_SCAN=true` — runs `twistcli images scan --details` and prints the full vulnerability table inline in the build console.
 
-Capture the `Location:` header (queue item URL), poll the queue item for `executable.number` to get the build number, then poll the build until `building=false` (typically **~30–40 min** with integration; ~14 min without). Tell the user the build number and that you are waiting.
+Capture the `Location:` header (queue item URL), poll the queue item for `executable.number` to get the build number, then poll the build until `building=false` (typically **~30–40 min** with integration; ~14 min without). Tell the user the build number and that you are waiting. **This is the longest wait in this skill — per the polling-safety section above, poll it via repeated separate Bash calls, never a sleep loop or a backgrounded wait.**
 
 ```bash
 curl -sL -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
@@ -777,15 +798,11 @@ PR body should include (apply the step-5 reporting rule — **lead with fixable-
 
 After 15b, **wait for Copilot to finish reviewing, then triage its comments** — but do this exactly **once**. This is best-effort: if Copilot never runs, don't block.
 
-**[16a] Detect completion (bounded poll).** If `gh` is not on PATH, **skip step 16 entirely** (note it in the summary) — don't burn the poll. Otherwise poll until Copilot posts its review — a review by `copilot-pull-request-reviewer[bot]` with a non-null `submitted_at` is the signal (Copilot also drops out of `requested_reviewers` when done, but the submitted review is sufficient):
+**[16a] Detect completion (bounded poll, max ~5 min).** If `gh` is not on PATH, **skip step 16 entirely** (note it in the summary) — don't burn the poll. Otherwise poll until Copilot posts its review — a review by `copilot-pull-request-reviewer[bot]` with a non-null `submitted_at` is the signal (Copilot also drops out of `requested_reviewers` when done, but the submitted review is sufficient). **Per the polling-safety section above: each check below is its own Bash tool call, not a shell loop** — run the check, and if not finished, make a fresh Bash call for `sleep 15` (or just re-check after the round-trip latency), then check again; repeat up to ~20 times before giving up:
 ```bash
 PR=<number>
-for i in $(seq 1 20); do   # ~5 min cap (15s * 20)
-  finished=$(gh api repos/Blazemeter/taurus/pulls/$PR/reviews \
-    --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]" and .submitted_at!=null)] | length' 2>/dev/null)
-  [ "$finished" -ge 1 ] 2>/dev/null && break
-  sleep 15
-done
+gh api repos/Blazemeter/taurus/pulls/$PR/reviews \
+  --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]" and .submitted_at!=null)] | length'
 ```
 If the cap elapses with no Copilot review, note "Copilot review did not complete in time" and go to step 17 — do not block.
 
@@ -797,7 +814,7 @@ If the cap elapses with no Copilot review, note "Copilot review did not complete
 
 ### Republishing to clear R findings (no code change) — RECOMMEND, never auto-run
 
-> **Reference section, NOT a numbered step.** Despite sitting between steps 16 and 17, this is never "the next step" in the flow. Consult it whenever `R > 0` — which is reachable from **step 5** (the headline reports R), **step 6** (the no-auto-fixes branch), and **step 18** (the final summary). In a mixed run (some auto-fixable CVEs *and* `R > 0`) the numbered flow runs 7 → 16 and never lands here, so the R report itself is what must bring you back.
+> **Reference section, NOT a numbered step.** Despite sitting between steps 16 and 17, this is never "the next step" in the flow. Consult it whenever `R > 0` — which is reachable from **step 5** (the headline reports R), **step 6** (the no-auto-fixes branch), and **step 19** (the final summary). In a mixed run (some auto-fixable CVEs *and* `R > 0`) the numbered flow runs 7 → 16 and never lands here, so the R report itself is what must bring you back.
 
 **The only job that publishes to Docker Hub is `taurus-community-master`.** Get this right — it cost a wasted 45-minute build once:
 
@@ -821,6 +838,8 @@ There is **no promote/copy path**: no job takes an existing image and pushes it,
 > **The skill's purpose is to reduce the CVE count, not to produce diffs.** A run that classifies everything correctly and then stops at "no code changes needed" has *failed its purpose* while `R > 0`: the win was sitting there and went unclaimed. So when `R > 0`, **do not end the run at the report** — finish the history/SKILL reconciliation, push, and open the PR as normal (step 15's create-PR step; skip the Jira ticket and the branch-build/decision gate, which only apply to code fixes there is something to verify). State plainly in the PR body that merging it republishes `unstable` and is expected to clear the `<R>` listed findings. Do not ask whether to open it — that is the run's deliverable.
 >
 > Two honest caveats to state, which do **not** change the action: a `--no-cache` rebuild re-resolves every unpinned dependency, so it is **not monotonic** — it can also pick up newly-disclosed CVEs (verify with a fresh `prisma-cloud-ondemand-scan` afterwards rather than asserting `-R`); and if `git tag --points-at origin/master` is non-empty, `isRelease` is true and `unstable` is **not** rebuilt, so R does not clear on that merge.
+>
+> **If there is nothing to commit at all** — no code fix, and the history/SKILL reconciliation (step 15, "Before creating the PR") found no lesson or removal condition worth recording — the branch would otherwise be identical to `master`, and `gh pr create` has nothing to diff. Create an empty commit instead (`git commit --allow-empty -m "Republish to clear rebuild-clearable CVEs - <one-line summary of the R findings>"`) so the PR can exist; its only purpose is to be merged, not to carry a real change.
 
 If approved:
 ```bash
@@ -851,7 +870,99 @@ Safety property worth knowing: integration tests run **before** the push (stage 
 - When diffing, **key on `(CVE ID, package, version)` and ignore `Path` for temp-extracted jars** — `jmeter-plugins-manager` unpacks to `/tmp/…jar<random>.jar`, so its path changes every build and a naive path-inclusive diff reports the same CVE as both "gone" and "new".
 - *DevOps improvement worth requesting:* one line in the master job's Prisma stage — `archiveArtifacts artifacts: 'prisma-cloud-scan-results.json'` — would make every master build a diffable baseline and remove the need for a separate on-demand scan. (Caveat for consumers: twistcli's JSON has no `Path`; recover it by joining `(packageName, packageVersion)` to `results[0].entityInfo.packages[].pkgs[]`.)
 
-### 17. Report manual intervention and out-of-scope items
+### 17. Post the "ready for review" notification to Slack (best-effort; must NEVER fail the run)
+
+After step 16 — the PR exists (or the run confirmed there was nothing to fix), Copilot's single triage round is done (or timed out), and any accepted follow-up is pushed — post **one** summary to the team Slack channel. **Best-effort, exactly like the Copilot request (15b): it must never fail, block, or error the run.**
+
+**Jenkins build link.** `BUILD_URL`/`BUILD_NUMBER`/`JOB_NAME` are standard Jenkins env vars, present for any Jenkins-triggered run (the scheduled cron trigger or someone clicking "Build Now") and absent for a bare local/interactive run — this is the only signal used to tell the two apart. When `BUILD_URL` is set, prepend one line at the very top of the message: `:jenkins: <BUILD_URL|JOB_NAME #BUILD_NUMBER>`. Omit it entirely when unset.
+
+- **No PR was created** (the decision gate at step 15 failed, or there were no fixes at all). On a Jenkins-triggered run (`BUILD_URL` set), post anyway — just the build-link line plus a short one-line confirmation that nothing needed fixing this run, so a scheduled run is provably not silent. Outside Jenkins (`BUILD_URL` unset), skip the post entirely instead — a developer who ran this themselves doesn't need a "nothing to do" ping.
+- **`SLACK_BOT_TOKEN` or `SLACK_SPARTA_CHANNEL_ID` is unset.** Do not fail, do not prompt for them. Build the message exactly as you would have sent it, then **print it instead of posting** and say so in the summary — a human reading the run's own output can still see what would have been reported.
+- **Content, when there is a PR** = only the CVEs that landed (the ✅ "Fixed" set, `Y`). No pendings, no not-landed, no out-of-scope, no notes — just the fixed list.
+
+**Message format (locked).** Jenkins build line (if any) + header line + fixed CVEs grouped by package, each package's CVEs listed vertically. `unfurl_links:false`. The count is **computed** from the fixed list (`= Y`), never hand-typed. Build/send in Python (avoids shell-quoting pain), reading credentials and the Jenkins signal from the environment:
+
+```python
+import json, os, subprocess
+
+token   = os.environ.get("SLACK_BOT_TOKEN")
+channel = os.environ.get("SLACK_SPARTA_CHANNEL_ID")
+
+def esc(s):  # escape Slack mrkdwn metachars in dynamic text — NOT the <url|text> links we build
+    return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+# BUILD_URL/BUILD_NUMBER/JOB_NAME are standard Jenkins env vars, present for any
+# Jenkins-triggered run and absent for a bare local run - the only signal used
+# to tell the two apart.
+build_url = os.environ.get("BUILD_URL")
+job_name = os.environ.get("JOB_NAME", "job")
+build_number = os.environ.get("BUILD_NUMBER", "?")
+build_line = (f":jenkins: <{build_url}|{esc(job_name)} #{build_number}>") if build_url else None
+build_text = f"{job_name} #{build_number} ({build_url})" if build_url else None
+
+pr_num = <PR number>             # None if no PR was created
+pr_url = f"https://github.com/Blazemeter/taurus/pull/{pr_num}" if pr_num else None
+jira   = "<MOB-XXXXX>"            # None / "" if no Jira ticket was created (headless/cron)
+
+# ONLY the CVEs confirmed fixed (Y). (package, "old → new", [CVE, ...])
+groups = [
+    # ("perl", "5.38.2-3.2ubuntu0.2 → 5.38.2-3.2ubuntu0.3", ["CVE-2026-8376", "CVE-2026-42496"]),
+]
+total = sum(len(c) for _, _, c in groups)   # computed — must equal Y
+
+# pr_num (not groups) is what decides which message this is - a run can have
+# groups populated (fixes were attempted) but still have no PR, when the
+# decision gate at step 15 did not pass (branch scan didn't confirm a
+# reduction). That is still a "no PR" case for Slack, just worded differently
+# from "nothing to fix at all".
+if not pr_num:
+    if not build_line:
+        print("Slack notification skipped (no PR was created, not a Jenkins run)")
+        raise SystemExit
+    note = ("Fixes were attempted but the branch scan did not confirm a reduction - no PR created."
+            if groups else "No CVE fixes to report this run.")
+    blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": build_line + "\n" + note}}]
+    fallback = f"Prisma CVE scan completed - {note} - {build_text}"
+else:
+    lines = [build_line] if build_line else []
+    jira_seg = (f" · <https://perforce.atlassian.net/browse/{jira}|{jira}>"
+                if jira and jira != "<MOB-XXXXX>" else "")
+    lines.append(f":hammer_and_wrench: *Prisma CVE fixes ready for review* — "
+                 f"<{pr_url}|taurus #{pr_num}> · {total} CVEs fixed{jira_seg}")
+    for pkg, bump, cves in groups:
+        lines.append(f"• *{esc(pkg)}* {esc(bump)}")   # esc() so pip constraints like <13.0.0 don't break mrkdwn
+        for c in cves:
+            lines.append(f"        ◦ {esc(c)}")
+    blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": "\n".join(lines)}}]
+    fallback = f"Prisma CVE fixes ready for review — taurus #{pr_num} · {total} CVEs fixed"
+    if build_text:
+        fallback += f" - {build_text}"
+
+payload = {"channel": channel, "unfurl_links": False, "text": fallback, "blocks": blocks}
+
+if not (token and channel):
+    print("Slack not configured (SLACK_BOT_TOKEN / SLACK_SPARTA_CHANNEL_ID not set) - message that would have been sent:")
+    print(json.dumps(payload, indent=2))
+else:
+    try:
+        r = subprocess.run(
+            ["curl","-s","-X","POST","https://slack.com/api/chat.postMessage",
+             "-H", f"Authorization: Bearer {token}",
+             "-H", "Content-type: application/json; charset=utf-8",
+             "--data", json.dumps(payload)],
+            capture_output=True, text=True, timeout=30)
+        resp = json.loads(r.stdout or "{}")
+        print("Slack notification posted" if resp.get("ok")
+              else f"Slack notification failed: {resp.get('error')} (continuing)")
+    except Exception as e:
+        print(f"Slack notification errored: {e} (continuing)")
+```
+
+Non-fatal errors to note but never block on: `not_in_channel` (invite the bot to the channel), `channel_not_found` (wrong id), `invalid_auth` (bad/rotated token). Record the outcome (posted / printed-not-configured / skipped / failed) in the final summary; the PR (if any) stands regardless.
+
+> **Format is intentionally minimal and shared.** The same bot ("Sparta Scan") and the same format are reused by the taurus-cloud skills (`prisma-taurus-cloud` and `mend-taurus-cloud`, with a `Mend` tag instead of `Prisma`) and by `blazect-asset-catalog`'s `all-vulnerabilities` skill (link text `<repo> #<PR>` per repo). Keep the header/emoji/grouping identical so the channel reads consistently — only the scan-type tag and repo name differ.
+
+### 18. Report manual intervention and out-of-scope items
 
 First, list the JMeter/Gatling findings that are intentionally **not** fixed:
 
@@ -897,7 +1008,7 @@ What to do: <specific instruction — see below>
 > 2. Add a Prisma Cloud suppression with documented justification — **preferred** whenever the installed binary is genuinely not vulnerable
 > 3. **Last resort only:** a `sed` command in the Dockerfile patching `/var/lib/dpkg/status`. The existing Firefox patch (`Dockerfile:118-121`) is a *cautionary* reference, not a model — `vulnerability_history.md` commit 5 argues it should not have been done, since it makes the scanner report something untrue about the image. Do not add a new one without a recorded reason.
 
-### 18. Final summary
+### 19. Final summary
 
 End with a complete status summary:
 
@@ -937,6 +1048,7 @@ Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprin
    (raw scan, reconciliation only: baseline <a> → branch <b> [crit A→A', high B→B'])
 
 Copilot review: <triaged N comments — M applied, K kept | did not complete in time | skipped (no gh)>
+Slack: <posted to #channel / printed - not configured / skipped (no fixes, not a Jenkins run) / failed: <error>>  (step 17; never blocks)
 
 Next steps:
 1. Review and merge PR #<number> (verified to reduce vulnerabilities in the image)
