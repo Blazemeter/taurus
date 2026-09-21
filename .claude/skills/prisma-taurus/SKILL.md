@@ -564,15 +564,17 @@ After applying all fixes inside the worktree, run the full unit test suite. This
 cd .worktrees/<branch-name> && python -m nose2 -s tests/unit -v
 ```
 
-**If tests fail → stop. Do NOT remove the worktree. Do NOT commit.**
+**If tests fail → stop. Do NOT commit.** `BUILD_URL` (a standard Jenkins env var, present for any Jenkins-triggered run and absent for a bare local run - the same signal used elsewhere in this skill) decides what happens to the worktree:
 
-Report:
-- Which tests failed and the error output
-- The worktree path: `.worktrees/<branch-name>`
-- The branch name so the user can investigate
+- **`BUILD_URL` unset (interactive/local run) — do NOT remove the worktree.** Report:
+  - Which tests failed and the error output
+  - The worktree path: `.worktrees/<branch-name>`
+  - The branch name so the user can investigate
 
-Tell the user:
-> "Tests failed. The worktree has been left at `.worktrees/<branch-name>` on branch `<branch-name>` for you to investigate. Once you've resolved the failures, you can commit and push manually from that directory."
+  Tell the user:
+  > "Tests failed. The worktree has been left at `.worktrees/<branch-name>` on branch `<branch-name>` for you to investigate. Once you've resolved the failures, you can commit and push manually from that directory."
+
+- **`BUILD_URL` set (Jenkins-triggered run) — do not try to preserve the worktree.** There is no persistent workspace to leave it in (the Jenkins job wipes the whole workspace after every build, success or failure) and no one present to use it if there were. Just report which tests failed and the error output, and state plainly that the worktree could not be preserved for investigation because this was a headless run - do not claim it was left anywhere.
 
 **If tests pass → continue to the coverage gate below.**
 
@@ -836,6 +838,8 @@ There is **no promote/copy path**: no job takes an existing image and pushes it,
 > **The skill's purpose is to reduce the CVE count, not to produce diffs.** A run that classifies everything correctly and then stops at "no code changes needed" has *failed its purpose* while `R > 0`: the win was sitting there and went unclaimed. So when `R > 0`, **do not end the run at the report** — finish the history/SKILL reconciliation, push, and open the PR as normal (step 15's create-PR step; skip the Jira ticket and the branch-build/decision gate, which only apply to code fixes there is something to verify). State plainly in the PR body that merging it republishes `unstable` and is expected to clear the `<R>` listed findings. Do not ask whether to open it — that is the run's deliverable.
 >
 > Two honest caveats to state, which do **not** change the action: a `--no-cache` rebuild re-resolves every unpinned dependency, so it is **not monotonic** — it can also pick up newly-disclosed CVEs (verify with a fresh `prisma-cloud-ondemand-scan` afterwards rather than asserting `-R`); and if `git tag --points-at origin/master` is non-empty, `isRelease` is true and `unstable` is **not** rebuilt, so R does not clear on that merge.
+>
+> **If there is nothing to commit at all** — no code fix, and the history/SKILL reconciliation (step 15, "Before creating the PR") found no lesson or removal condition worth recording — the branch would otherwise be identical to `master`, and `gh pr create` has nothing to diff. Create an empty commit instead (`git commit --allow-empty -m "Republish to clear rebuild-clearable CVEs - <one-line summary of the R findings>"`) so the PR can exist; its only purpose is to be merged, not to carry a real change.
 
 If approved:
 ```bash
