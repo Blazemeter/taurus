@@ -219,9 +219,10 @@ RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.423/dotnet-sd
     ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
 
 # Install rbenv and Ruby
-# 3.4.10 ships patched net-imap (0.5.15) and erb (4.0.4.1) as its own bundled/default gems, which
-# removes the need to force-install and purge them below. Do not drop back to 3.4.9.
-ARG RUBY_VERSION=3.4.10
+# 3.4.11 ships patched net-imap (0.5.15), erb (4.0.4.1) and resolv (0.7.2) as its own bundled/default
+# gems, which removes the need to force-install them below. Do not drop back to 3.4.10 or earlier:
+# 3.4.10 still ships resolv 0.7.1 (CVE-2026-80212 high 7.5, CVE-2026-80213).
+ARG RUBY_VERSION=3.4.11
 
 RUN git clone --depth 1 https://github.com/rbenv/rbenv.git ${RBENV_ROOT} && \
     git clone --depth 1 https://github.com/rbenv/ruby-build.git ${RBENV_ROOT}/plugins/ruby-build && \
@@ -242,9 +243,11 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 
 # Patch vulnerable Ruby gems that Ruby itself still ships unpatched (CVE fix).
 #   json   2.9.1 -> 2.19.9: CVE-2026-54696
-#   resolv 0.7.1 -> 0.7.2:  CVE-2026-80212, CVE-2026-80213
 # (net-imap CVE-2026-42245/42246/42256/42257/42258/47240/47241/47242 -- incl. 2 critical -- and
-#  erb CVE-2026-41316 are fixed by Ruby 3.4.10 itself, so their former force-install + purge is gone.)
+#  erb CVE-2026-41316 are fixed by Ruby 3.4.10 itself -- retiring their force-install + purge -- and
+#  resolv CVE-2026-80212/80213 by 3.4.11, retiring its force-install. Bumping RUBY_VERSION is the
+#  real fix for a default gem: it replaces the stale specifications/default/<gem>-<old>.gemspec that
+#  Prisma reads, which a `gem install` alone never does.)
 #
 # Install the patched gem and DO NOT touch specifications/default/<gem>-<old>.gemspec.
 # Keeping that gemspec is what lets RubyGems activate the newer gem at require time. The previous
@@ -255,15 +258,16 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 # "When a Ruby gem has a CVE" step 3.
 #
 # Consequence, accepted deliberately: Prisma still reads the stale default gemspec and reports
-# json 2.9.1 / resolv 0.7.1. Those findings are VISIBLE AND HONEST while the loaded code is patched.
-# Do not "fix" them by deleting the gemspec. They clear for real when Ruby bundles the patched
-# versions (as 3.4.10 just did for net-imap and erb) -- then drop that gem's line here.
+# json 2.9.1. That finding is VISIBLE AND HONEST while the loaded code is patched.
+# Do not "fix" it by deleting the gemspec -- that is the appeasement bug above.
+# remove when a Ruby available in ruby-build bundles json >= 2.19.9 (3.4.11 still ships 2.9.1):
+# bump RUBY_VERSION instead, then delete the json install here and its entry in the assertion below
+# -- exactly how net-imap/erb retired at 3.4.10 and resolv at 3.4.11.
 #
 # The assertion below checks the thing that actually matters: that the patched version is what
 # `require` loads. A silent activation failure fails the build instead of shipping quietly.
 RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
     gem install json -v 2.19.9 --no-document && \
-    gem install resolv -v 0.7.2 --no-document && \
     rbenv rehash && \
     ruby -rjson -rerb -rnet/imap -rresolv -e '\
         want = { "json" => "2.19.9", "resolv" => "0.7.2", "erb" => "4.0.4.1", "net-imap" => "0.5.15" }; \
