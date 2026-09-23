@@ -771,19 +771,22 @@ gh pr create --repo Blazemeter/taurus --base master \
 If `gh` is not on PATH, create via the GitHub API using `$GITHUB_TOKEN` (`POST /repos/Blazemeter/taurus/pulls`).
 
 **15b — request GitHub Copilot's review (best-effort; must NEVER fail the run):**
+> ⚠️ **Do not gate the REST call on `gh`'s exit code — it is not a reliable signal.** `gh pr edit --add-reviewer @copilot` routes through GraphQL, which is a confirmed, known no-op for bot logins (Copilot is a bot, not a user): it returns **exit 0 while silently attaching nothing** (verified directly on a real PR — `gh`'s own `--add-reviewer @copilot` exited 0 twice with `requested_reviewers` staying empty both times). An `||`-chained fallback that only calls REST when `gh` "fails" therefore never reaches the REST call at all, since `gh` never reports failure. Always run **both**, unconditionally:
 ```bash
 # so the maintainer doesn't have to click "Request review" on the site.
 # Any failure here is fine — the PR from 15a already exists.
 if ! command -v gh >/dev/null 2>&1; then
   echo "gh not installed — skipping Copilot reviewer request (PR already created; request it manually if wanted)"
 else
-  gh pr edit <pr-number-or-url> --repo Blazemeter/taurus --add-reviewer @copilot 2>/dev/null \
-    || gh api repos/Blazemeter/taurus/pulls/<number>/requested_reviewers \
-         -f 'reviewers[]=copilot-pull-request-reviewer[bot]' 2>/dev/null \
-    || echo "Copilot reviewer not added (needs gh >= 2.88.0 and Copilot code review enabled) — PR created regardless; request it manually if wanted"
+  gh pr edit <pr-number-or-url> --repo Blazemeter/taurus --add-reviewer @copilot 2>/dev/null
+  gh api repos/Blazemeter/taurus/pulls/<number>/requested_reviewers \
+       -f 'reviewers[]=copilot-pull-request-reviewer[bot]' 2>/dev/null \
+    || echo "Copilot reviewer request failed outright (needs gh >= 2.88.0) — PR created regardless; request it manually if wanted"
 fi
 ```
 Keeping 15b separate is deliberate: a bad `--reviewer` on `gh pr create` can fail the *whole* create call and leave no PR. By creating first and requesting Copilot after, the PR is guaranteed and the Copilot request is a harmless add-on. (This is GitHub Copilot's own PR review — separate from and in addition to the step-12 local pre-push review.) Never block or error the run because Copilot couldn't be added.
+
+> ⚠️ **Do not verify attachment immediately either — that's a second, separate trap.** Even the REST call above can return `201 Created` while `requested_reviewers` still reads empty moments later (verified directly), because Copilot's actual review can take a long time to start (observed: ~2h from request to a submitted review, on a sibling repo's PR) — not the ~5 minutes step 16a budgets for. An empty `requested_reviewers`/no-review-yet check right after 15b proves nothing either way; step 16a's own bounded poll (and its cap-elapsed handling) is the only place that's allowed to conclude anything about whether Copilot reviewed.
 
 PR body should include (apply the step-5 reporting rule — **lead with fixable-detected/fixed, not the raw total**):
 - **Jira:** `<MOB-XXXXX>` (the ticket created above).
