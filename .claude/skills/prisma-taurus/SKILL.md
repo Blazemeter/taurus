@@ -771,14 +771,13 @@ gh pr create --repo Blazemeter/taurus --base master \
 If `gh` is not on PATH, create via the GitHub API using `$GITHUB_TOKEN` (`POST /repos/Blazemeter/taurus/pulls`).
 
 **15b — request GitHub Copilot's review (best-effort; must NEVER fail the run):**
-> ⚠️ **Do not gate the REST call on `gh`'s exit code — it is not a reliable signal.** `gh pr edit --add-reviewer @copilot` routes through GraphQL, which is a confirmed, known no-op for bot logins (Copilot is a bot, not a user): it returns **exit 0 while silently attaching nothing** (verified directly on a real PR — `gh`'s own `--add-reviewer @copilot` exited 0 twice with `requested_reviewers` staying empty both times). An `||`-chained fallback that only calls REST when `gh` "fails" therefore never reaches the REST call at all, since `gh` never reports failure. Always run **both**, unconditionally:
+> ⚠️ **Call the REST endpoint directly — do not call `gh pr edit --add-reviewer @copilot` at all.** It routes through GraphQL, which is a confirmed, known no-op for bot logins (Copilot is a bot, not a user): it returns **exit 0 while silently attaching nothing** (verified directly on a real PR — twice). Since it never reports failure, there's no way to gate the REST call on its result — and keeping it as an earlier statement in the same script is actively worse than useless: if the shell has `set -e` (or any other exit-on-error behavior) active and that call happens to genuinely fail for an unrelated reason (auth blip, rate limit), it aborts the script before the REST call below ever runs. It buys nothing (REST is the confirmed-working path for bot reviewers) and risks everything. Skip it:
 ```bash
 # so the maintainer doesn't have to click "Request review" on the site.
 # Any failure here is fine — the PR from 15a already exists.
 if ! command -v gh >/dev/null 2>&1; then
   echo "gh not installed — skipping Copilot reviewer request (PR already created; request it manually if wanted)"
 else
-  gh pr edit <pr-number-or-url> --repo Blazemeter/taurus --add-reviewer @copilot 2>/dev/null
   gh api repos/Blazemeter/taurus/pulls/<number>/requested_reviewers \
        -f 'reviewers[]=copilot-pull-request-reviewer[bot]' 2>/dev/null \
     || echo "Copilot reviewer request failed outright (needs gh >= 2.88.0) — PR created regardless; request it manually if wanted"
