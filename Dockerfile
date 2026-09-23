@@ -159,13 +159,13 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 # layer-cached taurus-branch-builder build the earlier install layer can be reused while this layer
 # re-resolves, so the entry is what actually applies the update. Keep them; just don't add a new
 # entry for a package on that basis alone (prove provenance first -- see the OS-provenance rule in
-# .claude/skills/prisma-taurus/vulnerability_history.md).
+# vulnerability_history.md, repo root).
 # (--only-upgrade never installs new packages; absent ones are skipped -- so a wrong/renamed name
 #  fails silently. Verify with `apt-cache policy <pkg>` in the image before adding one.)
 # These entries are unpinned and self-maintaining: each resolves to the pocket's current version at
 # build time, which also picks up security updates published AFTER the base image tag was built.
 # Do NOT prune an entry merely because the base image caught up -- that trades away the forward
-# protection for no benefit. See .claude/skills/prisma-taurus/vulnerability_history.md (pruning note).
+# protection for no benefit. See vulnerability_history.md (repo root; pruning note).
 RUN apt-get update && \
     apt-get install -y --no-install-recommends --only-upgrade \
         libgnutls30t64 \
@@ -251,7 +251,7 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 # recipe deleted it, which silenced Prisma but ALSO de-registered the feature, so `require` fell back
 # to Ruby's own stdlib copy and the VULNERABLE code kept loading (measured in the published image:
 # ERB.version 4.0.4 / JSON::VERSION 2.9.1 despite patched gems being installed). That is scanner
-# appeasement, not a fix -- see .claude/skills/prisma-taurus/vulnerability_history.md,
+# appeasement, not a fix -- see vulnerability_history.md (repo root),
 # "When a Ruby gem has a CVE" step 3.
 #
 # Consequence, accepted deliberately: Prisma still reads the stale default gemspec and reports
