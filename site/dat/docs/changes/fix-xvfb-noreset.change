@@ -1,0 +1,1 @@
+Fixed Selenium tests with 1 user per engine failing from iteration 56 on (Chrome "DevToolsActivePort file doesn't exist"): virtual display (Xvfb) now starts with `-noreset`.
