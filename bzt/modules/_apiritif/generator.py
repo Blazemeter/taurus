@@ -17,6 +17,7 @@ limitations under the License.
 import ast
 import math
 import numbers
+import os
 import re
 import string
 from collections import OrderedDict
@@ -123,6 +124,7 @@ class ApiritifScriptGenerator(object):
     EXECUTION_BLOCKS = "|".join(['if', 'loop', 'foreach', 'loopOverData'])
 
     SELENIUM_413_VERSION = LooseVersion('4.1.3')
+    SELENIUM_411_VERSION = LooseVersion('4.11')
     SELENIUM_491_VERSION = LooseVersion('4.9.1')
 
     # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
@@ -1285,14 +1287,25 @@ from selenium.webdriver.common.keys import Keys
 
     def _get_service(self, browser):
         if browser == 'chrome':
+            service_args = [ast.Constant(f"--log-path={self.wdlog}", kind="")]
+            keywords = []
+            if self.scenario.get("chromedriver-debug", False):
+                if LooseVersion(self.selenium_version) >= self.SELENIUM_411_VERSION and self.wdlog:
+                    # chromedriver's own verbose log + chrome's stderr (discarded by default).
+                    # log_output must be a file object: a str path makes selenium override --log-path
+                    service_args.append(ast.Constant("--verbose", kind=""))
+                    chrome_log = os.path.join(os.path.dirname(self.wdlog), "chrome-stderr.log")
+                    keywords.append(ast.keyword(arg="log_output", value=ast_call(
+                        func=ast.Name(id="open"),
+                        args=[ast.Constant(chrome_log, kind=""), ast.Constant("a", kind="")])))
+                else:
+                    self.log.warning("chromedriver-debug requires Selenium 4.11+, ignoring")
+            keywords.insert(0, ast.keyword(arg="service_args", value=ast.List(elts=service_args)))
             return [ast.Assign(
                 targets=[ast.Name(id="service")],
                 value=ast_call(
                     func=ast_attr("Service"),
-                    keywords=[
-                        ast.keyword(
-                            arg="service_args",
-                            value=ast.List(elts=[ast.Constant(f"--log-path={self.wdlog}", kind="")]))]))]
+                    keywords=keywords))]
 
     def _get_firefox_options(self):
         firefox_options = [

@@ -3066,6 +3066,36 @@ class TestSelenium4Only(SeleniumTestCase):
             gen_contents = generated.read()
         self.assertIn("options.headless = True", gen_contents)
 
+    def _chromedriver_debug_script(self, selenium_version, debug=None):
+        scenario = {"browser": "Chrome", "requests": ["http://blazedemo.com/"]}
+        if debug is not None:
+            scenario["chromedriver-debug"] = debug
+        self.configure({
+            "execution": [{"executor": "selenium", "scenario": "loc_sc"}],
+            "scenarios": {"loc_sc": scenario},
+            "modules": {"selenium": {"version": selenium_version}}})
+        self.obj_prepare()
+        with open(self.obj.script) as generated:
+            return generated.read()
+
+    def test_chromedriver_debug_off_by_default(self):
+        gen_contents = self._chromedriver_debug_script("4.49.0")
+        self.assertIn("service = Service(service_args=['--log-path=", gen_contents)
+        self.assertNotIn("--verbose", gen_contents)
+        self.assertNotIn("log_output", gen_contents)
+
+    def test_chromedriver_debug_on(self):
+        gen_contents = self._chromedriver_debug_script("4.49.0", debug=True)
+        self.assertIn("'--verbose']", gen_contents)
+        self.assertIn("log_output=open('", gen_contents)
+        self.assertIn("chrome-stderr.log', 'a')", gen_contents)
+        compile(gen_contents, self.obj.script, "exec")
+
+    def test_chromedriver_debug_ignored_on_old_selenium(self):
+        gen_contents = self._chromedriver_debug_script("4.10.0", debug=True)
+        self.assertNotIn("--verbose", gen_contents)
+        self.assertNotIn("log_output", gen_contents)
+
     def test_capabilities_options_for_remote_chrome(self):
         # Selenium version 4. Remote webdriver. Browser Chrome.
         # Supported options: arguments, experimental-options
