@@ -531,7 +531,10 @@ class VirtualDisplay(Service, Singletone):
         else:
             width = self.parameters.get("width", 1024)
             height = self.parameters.get("height", 768)
-            self.virtual_display = Display(size=(width, height))
+            # -noreset: pyvirtualdisplay keeps Xvfb's stderr in a pipe it never reads; each server
+            # reset (last X client disconnects) writes ~1.2KB of xkbcomp warnings there, so after ~55
+            # resets the 64KB pipe fills, xkbcomp blocks and Xvfb stops accepting connections (MOB-43620)
+            self.virtual_display = Display(size=(width, height), extra_args=["-noreset"])
             self.virtual_display.start()
             msg = "Starting virtual display[%s] %s"
             self.log.info(msg, (width, height), self.virtual_display.new_display_var)
