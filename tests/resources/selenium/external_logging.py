@@ -58,6 +58,7 @@ class TestSample(unittest.TestCase):
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
             options.add_argument('--disable-gpu')
+            options.add_argument('--remote-debugging-pipe')
             options.set_capability('unhandledPromptBehavior', 'ignore')
             self.driver = webdriver.Chrome(service_log_path='/somewhere/webdriver.log', options=options)
             self.driver.implicitly_wait(timeout)

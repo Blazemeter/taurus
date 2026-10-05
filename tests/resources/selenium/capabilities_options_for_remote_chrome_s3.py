@@ -55,6 +55,7 @@ class TestLocScRemote(unittest.TestCase):
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
+        options.add_argument('--remote-debugging-pipe')
         options.set_capability('unhandledPromptBehavior', 'ignore')
         options.add_argument('one')
         options.add_argument('two')
