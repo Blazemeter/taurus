@@ -1334,10 +1334,6 @@ from selenium.webdriver.common.keys import Keys
                 ast_call(
                     func=ast_attr("options.add_argument"),
                     args=[ast.Constant("--disable-gpu", kind="")])),
-            ast.Expr(
-                ast_call(
-                    func=ast_attr("options.add_argument"),
-                    args=[ast.Constant("--remote-debugging-pipe", kind="")])),
 
             ast.Expr(
                 ast_call(
