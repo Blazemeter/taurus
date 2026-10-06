@@ -531,7 +531,9 @@ class VirtualDisplay(Service, Singletone):
         else:
             width = self.parameters.get("width", 1024)
             height = self.parameters.get("height", 768)
-            self.virtual_display = Display(size=(width, height))
+            # -noreset: each reset writes xkbcomp warnings to Xvfb's unread stderr pipe;
+            # after ~55 resets the pipe fills and Xvfb hangs (MOB-43620)
+            self.virtual_display = Display(size=(width, height), extra_args=["-noreset"])
             self.virtual_display.start()
             msg = "Starting virtual display[%s] %s"
             self.log.info(msg, (width, height), self.virtual_display.new_display_var)
