@@ -1,3 +1,12 @@
+# .NET SDK version, declared globally so the single value feeds BOTH the download URL (runtimes
+# stage) and the /usr/share/dotnet/sdk/<version>/ paths of the .deps.json patch steps (final stage).
+# A global ARG must be RE-DECLARED (bare, no default) in each stage that consumes it; a parent
+# stage's default does NOT propagate, and an undeclared ${DOTNET_SDK_VERSION} expands to the empty
+# string, which would silently turn every patch step below into a no-op. Verified both behaviours.
+ARG DOTNET_SDK_VERSION=8.0.425
+# Minimum ASP.NET Core runtime the SDK above must bundle, asserted at build time (CVE-2026-69304).
+ARG DOTNET_ASPNET_MIN=8.0.31
+
 FROM ubuntu:24.04 AS base
 
 # Metadata
@@ -209,14 +218,29 @@ RUN apt-get update && \
 FROM system-deps AS runtimes
 
 # Install .NET SDK
-RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.423/dotnet-sdk-8.0.423-linux-x64.tar.gz" && \
-    DOTNET_SHA512="e94513dfe42271a85f01e87bd4272aa80b4ec13556f4531754802542225667775242c5e281a94837dae6cc65f7bcc457d2f663f240c0e2b7573fd909e786b1a5" && \
+# 8.0.425 (release 8.0.31) replaces 8.0.423 (release 8.0.29), whose bundled ASP.NET Core runtime
+# 8.0.29 is flagged by CVE-2026-69304 (medium 5.9, fixed in 8.0.31) at /usr/share/dotnet/dotnet.
+# Bumping the SDK is the real fix -- the runtime ships inside the SDK tarball and is not separately
+# upgradable by apt or by a .deps.json patch.
+ARG DOTNET_SDK_VERSION
+ARG DOTNET_ASPNET_MIN
+RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERSION}/dotnet-sdk-${DOTNET_SDK_VERSION}-linux-x64.tar.gz" && \
+    DOTNET_SHA512="934b8060a7190e5909ad1fd0785db542f487b3bbf6cdd14826b02095fdd0d0394298b1634085eff302928fccc33f7c1a7253e9b87df555fc36fce819bcd2e798" && \
     curl -fSL --output dotnet.tar.gz "${DOTNET_URL}" && \
     echo "${DOTNET_SHA512} dotnet.tar.gz" | sha512sum -c - && \
     mkdir -p /usr/share/dotnet && \
     tar -zxf dotnet.tar.gz -C /usr/share/dotnet && \
     rm dotnet.tar.gz && \
-    ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
+    ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet && \
+    # Assert the bump actually delivered what the CVE fix depends on. Without this the build stays
+    # green when the SDK ships an older runtime than expected, and the regression only surfaces in a
+    # Prisma scan ~40 min later -- the same silent-miss class as the Ruby gem assertion below.
+    [ -d "/usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}" ] || \
+        { echo "ERROR: /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION} missing; the .deps.json patch steps would silently no-op" >&2; exit 1; } && \
+    ASPNET="$(ls /usr/share/dotnet/shared/Microsoft.AspNetCore.App | sort -V | tail -1)" && \
+    [ "$(printf '%s\n%s\n' "${DOTNET_ASPNET_MIN}" "${ASPNET}" | sort -V | head -1)" = "${DOTNET_ASPNET_MIN}" ] || \
+        { echo "ERROR: ASP.NET Core runtime ${ASPNET} < ${DOTNET_ASPNET_MIN} (CVE-2026-69304 not fixed)" >&2; exit 1; } && \
+    echo ".NET SDK CVE check OK: sdk=${DOTNET_SDK_VERSION} aspnetcore=${ASPNET}"
 
 # Install rbenv and Ruby
 # 3.4.11 ships patched net-imap (0.5.15), erb (4.0.4.1) and resolv (0.7.2) as its own bundled/default
@@ -320,6 +344,9 @@ RUN cp "$(python3 -c "import bzt; print(f'{bzt.__path__[0]}/resources/chrome_lau
 # ================================
 FROM browser-setup AS final
 
+# Re-declared (bare) so the global default reaches the .deps.json patch steps below -- see the note
+# at the top of this file; without this the paths would expand to /usr/share/dotnet/sdk//... .
+ARG DOTNET_SDK_VERSION
 ARG DEBIAN_FRONTEND=noninteractive
 ARG APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 
@@ -376,23 +403,25 @@ RUN apt-get remove -y \
            /usr/share/doc
 
 # update dotnet metadata to make scanners happy
+# (The `17.11.31 -> 17.11.48` sed that used to sit between the two steps below was REMOVED in the
+#  8.0.423 -> 8.0.425 bump: 8.0.425's dotnet-format.deps.json already ships Microsoft.Build 17.11.48
+#  natively, so the search string occurs nowhere in the SDK and the step was a guaranteed no-op.
+#  Re-add only if a future SDK reintroduces a flagged 17.11.x -- verify by grepping the new tarball
+#  for the literal search string before trusting any sed here. See vulnerability_history.md.)
 RUN for f in \
-      /usr/share/dotnet/sdk/8.0.423/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
-      /usr/share/dotnet/sdk/8.0.423/Roslyn/bincore/VBCSCompiler.deps.json \
-      /usr/share/dotnet/sdk/8.0.423/Roslyn/bincore/csc.deps.json \
-      /usr/share/dotnet/sdk/8.0.423/Roslyn/bincore/vbc.deps.json \
-      /usr/share/dotnet/sdk/8.0.423/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; do \
+      /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
+      /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/Roslyn/bincore/VBCSCompiler.deps.json \
+      /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/Roslyn/bincore/csc.deps.json \
+      /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/Roslyn/bincore/vbc.deps.json \
+      /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; do \
       [ -f "$f" ] && sed -i 's/17\.10\.41/17.14.28/g' "$f" || true; \
     done
-RUN find /usr/share/dotnet/sdk/8.0.423/DotnetTools/dotnet-watch -name "*.deps.json" \
+RUN find /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/DotnetTools/dotnet-watch -name "*.deps.json" \
       -exec grep -lF "17.10.41" {} \; | \
     xargs -r sed -i 's/17\.10\.41/17.14.28/g'
-RUN if [ -f /usr/share/dotnet/sdk/8.0.423/DotnetTools/dotnet-format/dotnet-format.deps.json ]; then \
-      sed -i 's/17\.11\.31/17.11.48/g' /usr/share/dotnet/sdk/8.0.423/DotnetTools/dotnet-format/dotnet-format.deps.json; \
-    fi
 # System.Security.Cryptography.Xml -> 8.0.4 (CVE-2026-47302/47304/50525/50527/50648): patch every
 # SDK .deps.json that references it (scanner reads these metadata files across the whole SDK tree)
-RUN find /usr/share/dotnet/sdk/8.0.423 -name "*.deps.json" \
+RUN find /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION} -name "*.deps.json" \
       -exec grep -lF "System.Security.Cryptography.Xml" {} \; | \
     xargs -r sed -i \
       -e 's|System\.Security\.Cryptography\.Xml/[0-9][0-9.]*|System.Security.Cryptography.Xml/8.0.4|g' \
