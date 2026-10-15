@@ -9,6 +9,7 @@ from apiritif.action_plugins import BaseActionHandler
 
 import bzt.modules._apiritif.executor
 import bzt.modules._selenium
+from bzt.modules._apiritif import ApiritifNoseExecutor
 from bzt.modules._selenium import SeleniumExecutor
 from tests.unit import BZTestCase, RESOURCES_DIR, ExecutorTestCase, local_paths_config
 from tests.unit.modules._selenium import MockPythonTool
@@ -265,3 +266,64 @@ class TestSkipOnFailureGeneration(ExecutorTestCase):
         self.assertIn("'Checkout ${user}'", script)  # raw label, not 'Checkout {}'.format(self.vars['user'])
         calls, reported = self.run_master({"_3_Search": "failed"})  # FakeTest has no self.vars at all
         self.assertEqual(["Checkout ${user}"], reported)
+
+    # --- flag sources (roadmap §3: scenario key wins, modules.apiritif fallback) ---
+
+    def prepare_with_module(self, module_value, **scenario_keys):
+        self.obj.engine.config.merge({"modules": {"apiritif": {"skip-on-failure": module_value}}})
+        return self.prepare(**scenario_keys)
+
+    def test_module_setting_fallback(self):
+        script = self.prepare_with_module(True)  # what a.blazemeter MOB-54692 sends
+        self.assertIn("steps.pop(0)", script)
+
+    def test_scenario_false_wins_over_module(self):
+        script = self.prepare_with_module(True, **{"skip-on-failure": False})
+        self.assertNotIn("steps.pop(0)", script)
+
+    def test_scenario_true_wins_over_module_false(self):
+        script = self.prepare_with_module(False, **{"skip-on-failure": True})
+        self.assertIn("steps.pop(0)", script)
+
+    def test_string_true_is_on(self):
+        script = self.prepare(**{"skip-on-failure": "True"})
+        self.assertIn("steps.pop(0)", script)
+
+    def test_string_false_is_off(self):
+        script = self.prepare(**{"skip-on-failure": "false"})
+        self.assertNotIn("steps.pop(0)", script)
+
+    def test_script_scenario_is_noop(self):
+        script_path = RESOURCES_DIR + "selenium/python/test_blazemeter_fail.py"
+        self.configure({
+            "modules": {"apiritif": {"skip-on-failure": True}},
+            "execution": [{"executor": "selenium", "iterations": 1,
+                           "scenario": {"script": script_path, "skip-on-failure": True}}]})
+        self.obj.prepare()  # must not raise
+        self.assertTrue(self.obj.script.endswith("test_blazemeter_fail.py"), self.obj.script)
+        self.assertFalse(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "test_requests.py")))
+
+
+class TestSkipOnFailureApiritifMode(ExecutorTestCase):
+    """ plain apiritif (HTTP) scenarios are out of scope: the key is ignored """
+    EXECUTOR = ApiritifNoseExecutor
+
+    def test_apiritif_mode_ignores_key(self):
+        self.configure({
+            "modules": {"apiritif": {"skip-on-failure": True}},
+            "execution": [{
+                "test-mode": "apiritif",
+                "iterations": 1,
+                "scenario": {
+                    "skip-on-failure": True,
+                    "default-address": "http://blazedemo.com",
+                    "requests": ["/", "/reserve.php"]}}]})
+        tmp_tool = bzt.modules._apiritif.executor.Apiritif
+        try:
+            bzt.modules._apiritif.executor.Apiritif = MockPythonTool
+            self.obj.prepare()
+        finally:
+            bzt.modules._apiritif.executor.Apiritif = tmp_tool
+
+        with open(self.obj.script) as fds:
+            self.assertNotIn("steps.pop(0)", fds.read())
