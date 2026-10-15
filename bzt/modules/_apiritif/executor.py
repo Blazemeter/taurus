@@ -105,7 +105,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
             generate_markers = self.settings.get('generate-flow-markers', None)
             generate_markers = scenario.get('generate-flow-markers', generate_markers)
-            skip_on_failure = scenario.get('skip-on-failure', False)
+            skip_on_failure = self._is_skip_on_failure(scenario)
+            if skip_on_failure:
+                self.log.info("Skip on failure is on: iteration stops after the first failed transaction")
 
             scenario_caps = scenario.get("capabilities")
 
@@ -136,6 +138,13 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator) and isinstance(builder, ApiritifScriptGenerator):
             self.engine.aggregator.ignored_labels.extend(builder.service_methods)
         return filename
+
+    def _is_skip_on_failure(self, scenario):
+        """ scenario key wins over modules.apiritif setting; only real true or 'true' string turns it on """
+        value = scenario.get('skip-on-failure', self.settings.get('skip-on-failure', False))
+        if isinstance(value, str):
+            return value.strip().lower() == "true"
+        return bool(value)
 
     def get_load(self):
         load = super().get_load()
