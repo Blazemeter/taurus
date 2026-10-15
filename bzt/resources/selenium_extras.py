@@ -15,6 +15,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from apiritif.action_plugins import BaseActionHandler
 from bzt import TaurusException
 from bzt.resources.shadow_element import ShadowElement
+from bzt.resources.skip_on_failure import report_skipped_steps  # noqa: F401 (used by generated scripts)
 
 BYS = {
     'xpath': By.XPATH,
