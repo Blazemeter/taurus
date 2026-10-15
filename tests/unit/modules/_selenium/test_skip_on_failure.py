@@ -1,11 +1,17 @@
 # coding=utf-8
+import ast
+import os
 from unittest import mock
 
 import apiritif
 from apiritif import thread
 from apiritif.action_plugins import BaseActionHandler
 
-from tests.unit import BZTestCase
+import bzt.modules._apiritif.executor
+import bzt.modules._selenium
+from bzt.modules._selenium import SeleniumExecutor
+from tests.unit import BZTestCase, RESOURCES_DIR, ExecutorTestCase, local_paths_config
+from tests.unit.modules._selenium import MockPythonTool
 
 
 class RecordingActionHandler(BaseActionHandler):
@@ -93,3 +99,169 @@ class TestReportSkippedSteps(BZTestCase):
         path = os.path.join(os.path.dirname(bzt.__file__), "resources", "selenium_extras.py")
         with open(path) as fds:
             self.assertIn("from bzt.resources.skip_on_failure import report_skipped_steps", fds.read())
+
+
+# Login, set-variables, Search, "Checkout ${user}", teardown Logout -> _1_Login, _2_set_variables, _3_Search,
+# _4_Checkout_user, _5_Logout
+SKIP_REQUESTS = [
+    {"label": "Login", "actions": ["go(https://blazedemo.com/login)"]},
+    {"set-variables": {"user": "u1"}},
+    {"label": "Search", "actions": ["go(https://blazedemo.com/search)"]},
+    {"label": "Checkout ${user}", "actions": ["go(https://blazedemo.com/checkout)"]},
+    {"teardown": [{"label": "Logout", "actions": ["go(https://blazedemo.com/logout)"]}]},
+]
+MAIN_STEPS = ["_1_Login", "_2_set_variables", "_3_Search", "_4_Checkout_user"]
+TEARDOWN_STEPS = ["_5_Logout"]
+
+
+class FakeTest(object):
+    """ Stands in for the generated TestCase: each step records its call and sets the thread-store status """
+
+    def __init__(self, statuses):
+        self.calls = []
+        for name in MAIN_STEPS + TEARDOWN_STEPS:
+            status = statuses.get(name, None if name == "_2_set_variables" else "success")
+            setattr(self, name, self._make_step(name, status))
+
+    def _make_step(self, name, status):
+        def step():
+            self.calls.append(name)
+            if status is not None:  # set-variables steps don't open a transaction, so they set no status
+                apiritif.put_into_thread_store(status=status)
+
+        return step
+
+
+class TestSkipOnFailureGeneration(ExecutorTestCase):
+    EXECUTOR = SeleniumExecutor
+
+    def setUp(self):
+        super(TestSkipOnFailureGeneration, self).setUp()
+        self.tmp_selenium = bzt.modules._selenium.Selenium
+        self.tmp_apiritif = bzt.modules._apiritif.executor.Apiritif
+        self.tmp_selenium_apiritif = bzt.modules._apiritif.executor.Selenium
+        bzt.modules._selenium.Selenium = MockPythonTool
+        bzt.modules._apiritif.executor.Apiritif = MockPythonTool
+        bzt.modules._apiritif.executor.Selenium = MockPythonTool
+        self.engine.configure([local_paths_config()])
+        self.obj.settings = self.engine.config.get("modules").get("selenium")
+        self.obj.install_required_tools = lambda: None
+
+    def tearDown(self):
+        if self.obj and self.obj.runner:
+            if self.obj.runner.stdout:
+                self.obj.runner.stdout.close()
+            if self.obj.runner.stderr:
+                self.obj.runner.stderr.close()
+        bzt.modules._selenium.Selenium = self.tmp_selenium
+        bzt.modules._apiritif.executor.Apiritif = self.tmp_apiritif
+        bzt.modules._apiritif.executor.Selenium = self.tmp_selenium_apiritif
+        super(TestSkipOnFailureGeneration, self).tearDown()
+
+    def prepare(self, requests=None, markers=True, **scenario_keys):
+        scenario = {"generate-flow-markers": markers, "requests": requests or SKIP_REQUESTS}
+        scenario.update(scenario_keys)
+        self.configure({
+            "execution": [{"executor": "selenium", "iterations": 1, "scenario": "sc"}],
+            "scenarios": {"sc": scenario}})
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            return fds.read()
+
+    def run_master(self, statuses, preset_status=None):
+        """ Execute the generated test_* method against FakeTest; returns (step calls, reported labels) """
+        with open(self.obj.script) as fds:
+            tree = ast.parse(fds.read())
+        test_class = next(node for node in tree.body if isinstance(node, ast.ClassDef))
+        master = next(node for node in test_class.body
+                      if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"))
+        reported = []
+        namespace = {"apiritif": apiritif,
+                     "report_skipped_steps": lambda steps: reported.extend(label for _, label in steps)}
+        exec(compile(ast.Module(body=[master], type_ignores=[]), self.obj.script, "exec"), namespace)
+
+        apiritif.put_into_thread_store(status=preset_status)
+        fake = FakeTest(statuses)
+        namespace[master.name](fake)
+        return fake.calls, reported
+
+    # --- golden files ---
+
+    def test_nfc_golden_unchanged_when_flag_false(self):
+        self.obj.engine.config.load([RESOURCES_DIR + 'selenium/test_nfc.yml'])
+        self.obj.engine.config['scenarios']['sc1']['skip-on-failure'] = False
+        self.configure(self.obj.engine.config['execution'][0])
+        self.obj.settings['verbose'] = True
+        self.obj.prepare()
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(RESOURCES_DIR + "selenium/test_nfc.py", self.obj.script, str_to_replace,
+                              "/somewhere/", python_files=True)
+
+    def test_nfc_golden_flag_on(self):
+        self.obj.engine.config.load([RESOURCES_DIR + 'selenium/test_nfc.yml'])
+        self.obj.engine.config['scenarios']['sc1']['skip-on-failure'] = True
+        self.obj.engine.config['scenarios']['sc1']['generate-flow-markers'] = True
+        self.configure(self.obj.engine.config['execution'][0])
+        self.obj.settings['verbose'] = True
+        self.obj.prepare()
+        str_to_replace = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\')
+        self.assertFilesEqual(RESOURCES_DIR + "selenium/test_skip_on_failure.py", self.obj.script, str_to_replace,
+                              "/somewhere/", python_files=True)
+
+    # --- shape ---
+
+    def test_flag_absent_no_skip_code(self):
+        script = self.prepare()
+        self.assertNotIn("steps.pop(0)", script)
+        self.assertNotIn("report_skipped_steps", script)
+
+    def test_no_markers_no_report(self):
+        script = self.prepare(markers=False, **{"skip-on-failure": True})
+        self.assertIn("steps.pop(0)", script)
+        self.assertNotIn("report_skipped_steps", script)
+
+    def test_no_teardown_no_try(self):
+        script = self.prepare(requests=SKIP_REQUESTS[:4], **{"skip-on-failure": True})
+        self.assertIn("steps.pop(0)", script)
+        self.assertNotIn("set_stage", script)
+        calls, reported = self.run_master({"_1_Login": "failed"})
+        self.assertEqual(["_1_Login"], calls)
+        self.assertEqual([None, "Search", "Checkout ${user}"], reported)
+
+    # --- behaviour (FR-3, FR-4, FR-5, AC-7) ---
+
+    def test_assertion_failure_skips_rest_and_runs_teardown(self):
+        self.prepare(**{"skip-on-failure": True})
+        calls, reported = self.run_master({"_1_Login": "failed"})
+        self.assertEqual(["_1_Login", "_5_Logout"], calls)
+        self.assertEqual([None, "Search", "Checkout ${user}"], reported)
+
+    def test_broken_skips_rest_and_runs_teardown(self):
+        self.prepare(**{"skip-on-failure": True})
+        calls, reported = self.run_master({"_3_Search": "broken"})
+        self.assertEqual(["_1_Login", "_2_set_variables", "_3_Search", "_5_Logout"], calls)
+        self.assertEqual(["Checkout ${user}"], reported)
+
+    def test_all_pass_runs_everything(self):
+        self.prepare(**{"skip-on-failure": True})
+        calls, reported = self.run_master({})
+        self.assertEqual(MAIN_STEPS + TEARDOWN_STEPS, calls)
+        self.assertEqual([], reported)
+
+    def test_stale_failed_status_does_not_skip(self):
+        self.prepare(**{"skip-on-failure": True})
+        calls, reported = self.run_master({}, preset_status="failed")  # left over from a previous iteration
+        self.assertEqual(MAIN_STEPS + TEARDOWN_STEPS, calls)
+        self.assertEqual([], reported)
+
+    def test_teardown_failure_does_not_skip(self):
+        self.prepare(**{"skip-on-failure": True})
+        calls, reported = self.run_master({"_5_Logout": "failed"})
+        self.assertEqual(MAIN_STEPS + TEARDOWN_STEPS, calls)
+        self.assertEqual([], reported)
+
+    def test_label_with_undefined_var_does_not_crash(self):
+        script = self.prepare(**{"skip-on-failure": True})
+        self.assertIn("'Checkout ${user}'", script)  # raw label, not 'Checkout {}'.format(self.vars['user'])
+        calls, reported = self.run_master({"_3_Search": "failed"})  # FakeTest has no self.vars at all
+        self.assertEqual(["Checkout ${user}"], reported)

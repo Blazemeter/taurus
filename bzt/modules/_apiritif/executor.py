@@ -105,6 +105,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
             generate_markers = self.settings.get('generate-flow-markers', None)
             generate_markers = scenario.get('generate-flow-markers', generate_markers)
+            skip_on_failure = scenario.get('skip-on-failure', False)
 
             scenario_caps = scenario.get("capabilities")
 
@@ -127,7 +128,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 wd_addr=remote, test_mode=self.test_mode,
                 generate_external_handler=True if self.settings.get('plugins-path', False) else False,
                 selenium_version=selenium_version,
-                bzm_tdo_settings=bzm_tdo_settings)
+                bzm_tdo_settings=bzm_tdo_settings,
+                skip_on_failure=skip_on_failure)
 
         builder.build_source_code()
         builder.save(filename)
