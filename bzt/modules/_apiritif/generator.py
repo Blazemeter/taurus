@@ -155,7 +155,8 @@ from selenium.webdriver.common.keys import Keys
 
     def __init__(self, scenario, label, wdlog=None, executor=None, ignore_unknown_actions=False,
                  generate_markers=None, capabilities=None, wd_addr=None, test_mode="selenium",
-                 generate_external_handler=False, selenium_version=None, bzm_tdo_settings=None):
+                 generate_external_handler=False, selenium_version=None, bzm_tdo_settings=None,
+                 skip_on_failure=False):
         self.scenario = scenario
         self.selenium_extras = set()
         self.data_sources = list(scenario.get_data_sources())
@@ -180,6 +181,7 @@ from selenium.webdriver.common.keys import Keys
         self.test_mode = test_mode
         self.replace_dialogs = True
         self.bzm_tdo_settings = bzm_tdo_settings
+        self.skip_on_failure = skip_on_failure
         self.do_testdata_orchestration = False
         self.has_action_ids = False
         self._needs_remote_patch = False
@@ -1861,6 +1863,7 @@ from selenium.webdriver.common.keys import Keys
     def _gen_test_methods(self):
         methods = []
         try_block_content = []
+        try_block_labels = []  # label of each main step for skipped reporting, None if it's not a transaction
         finally_block_content = []
         finally_marker = False
 
@@ -1889,12 +1892,15 @@ from selenium.webdriver.common.keys import Keys
                     config=request.config,
                     scenario=request.scenario)
 
+            skip_label = None
             if isinstance(request, TransactionBlock):
                 body = [self._gen_transaction(request)]
                 label = create_method_name(request.label[:40])
+                skip_label = request.label
             elif isinstance(request, IncludeScenarioBlock):
                 body = [self._gen_transaction(request)]
                 label = create_method_name(request.scenario_name)
+                skip_label = request.scenario_name
             elif isinstance(request, SetVariables):
                 body = self._gen_set_vars(request)
                 label = request.config.get("label", "set_variables")
@@ -1917,8 +1923,9 @@ from selenium.webdriver.common.keys import Keys
                 finally_block_content.append(method_name)
             else:
                 try_block_content.append(method_name)
+                try_block_labels.append(skip_label)
 
-        methods.append(self._gen_master_test_method(try_block_content, finally_block_content))
+        methods.append(self._gen_master_test_method(try_block_content, finally_block_content, try_block_labels))
         return methods
 
     def _gen_set_vars(self, request):
@@ -2017,13 +2024,17 @@ from selenium.webdriver.common.keys import Keys
 
         return [wrapped_try]
 
-    def _gen_master_test_method(self, try_block, finally_block):
+    def _gen_master_test_method(self, try_block, finally_block, try_labels=None):
         if not try_block:
             raise TaurusConfigError("Supported transactions not found, test is empty")
 
-        main_body = []
-        for slave_name in try_block:
-            main_body.append(ast.Expr(ast_call(func=ast_attr("self." + slave_name))))
+        steps_init = []
+        if self.skip_on_failure:
+            steps_init, main_body = self._gen_skip_on_failure_steps(try_block, try_labels)
+        else:
+            main_body = []
+            for slave_name in try_block:
+                main_body.append(ast.Expr(ast_call(func=ast_attr("self." + slave_name))))
 
         finally_body = []
         for slave_name in finally_block:
@@ -2042,8 +2053,54 @@ from selenium.webdriver.common.keys import Keys
         else:
             body = main_body
 
+        body = steps_init + body
+        if self.skip_on_failure and self.generate_markers:
+            # after teardown, so skipped records never shift the index of real ones
+            self.selenium_extras.add("report_skipped_steps")
+            body.append(ast.Expr(ast_call(func="report_skipped_steps", args=[ast.Name(id="steps", ctx=ast.Load())])))
+
         name = 'test_' + create_method_name(self.label)
         return self._gen_test_method(name=name, body=body)
+
+    def _gen_skip_on_failure_steps(self, try_block, try_labels):
+        """
+        steps = [(self._1_login, 'login'), ...]
+        while steps:
+            (step, label) = steps.pop(0)
+            apiritif.put_into_thread_store(status=None)
+            step()
+            if apiritif.get_from_thread_store('status') in ('failed', 'broken'):
+                break
+        """
+        pairs = [ast.Tuple(elts=[ast_attr("self." + name), ast.Constant(value=label, kind="")], ctx=ast.Load())
+                 for name, label in zip(try_block, try_labels)]
+        steps_init = [ast.Assign(
+            targets=[ast.Name(id="steps", ctx=ast.Store())],
+            value=ast.List(elts=pairs, ctx=ast.Load()))]
+
+        failed = ast.Compare(
+            left=ast_call(func=ast_attr("apiritif.get_from_thread_store"), args=[ast.Constant(value="status", kind="")]),
+            ops=[ast.In()],
+            comparators=[ast.Tuple(
+                elts=[ast.Constant(value="failed", kind=""), ast.Constant(value="broken", kind="")],
+                ctx=ast.Load())])
+
+        loop = ast.While(
+            test=ast.Name(id="steps", ctx=ast.Load()),
+            body=[
+                ast.Assign(
+                    targets=[ast.Tuple(
+                        elts=[ast.Name(id="step", ctx=ast.Store()), ast.Name(id="label", ctx=ast.Store())],
+                        ctx=ast.Store())],
+                    value=ast_call(func=ast_attr("steps.pop"), args=[ast.Constant(value=0, kind="")])),
+                ast.Expr(ast_call(
+                    func=ast_attr("apiritif.put_into_thread_store"),
+                    keywords=[ast.keyword(arg="status", value=ast.Constant(value=None, kind=""))])),
+                ast.Expr(ast_call(func=ast.Name(id="step", ctx=ast.Load()))),
+                ast.If(test=failed, body=[ast.Break()], orelse=[])],
+            orelse=[])
+
+        return steps_init, [loop]
 
     @staticmethod
     def _gen_test_method(name, body):
