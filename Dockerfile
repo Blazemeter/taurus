@@ -3,9 +3,10 @@
 # A global ARG must be RE-DECLARED (bare, no default) in each stage that consumes it; a parent
 # stage's default does NOT propagate, and an undeclared ${DOTNET_SDK_VERSION} expands to the empty
 # string, which would silently turn every patch step below into a no-op. Verified both behaviours.
-ARG DOTNET_SDK_VERSION=8.0.425
-# Minimum ASP.NET Core runtime the SDK above must bundle, asserted at build time (CVE-2026-69304).
-ARG DOTNET_ASPNET_MIN=8.0.31
+ARG DOTNET_SDK_VERSION=8.0.426
+# Minimum ASP.NET Core runtime the SDK above must bundle, asserted at build time (CVE-2026-69304;
+# 8.0.32 also ships System.Security.Cryptography.Pkcs 8.0.2 for CVE-2026-84008/70162).
+ARG DOTNET_ASPNET_MIN=8.0.32
 
 FROM ubuntu:24.04 AS base
 
@@ -225,7 +226,7 @@ FROM system-deps AS runtimes
 ARG DOTNET_SDK_VERSION
 ARG DOTNET_ASPNET_MIN
 RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERSION}/dotnet-sdk-${DOTNET_SDK_VERSION}-linux-x64.tar.gz" && \
-    DOTNET_SHA512="934b8060a7190e5909ad1fd0785db542f487b3bbf6cdd14826b02095fdd0d0394298b1634085eff302928fccc33f7c1a7253e9b87df555fc36fce819bcd2e798" && \
+    DOTNET_SHA512="8141d01bdc53f604aed3bb661b604707a64209f8a947cd81bf95b4f518951593d77864069191f54ea5e84362a409da6b0f69074bf893b283d7e0cf93e2bf20a8" && \
     curl -fSL --output dotnet.tar.gz "${DOTNET_URL}" && \
     echo "${DOTNET_SHA512} dotnet.tar.gz" | sha512sum -c - && \
     mkdir -p /usr/share/dotnet && \
@@ -358,16 +359,16 @@ RUN mkdir -p /etc/bzt.d /bzt-configs /tmp/artifacts
 RUN echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json && \
     echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
 
-# Pre-seed Newman dependency overrides (CVE fix) only when Newman 6.2.2 is current
+# Pre-seed Newman dependency overrides (CVE fix) only when Newman 6.2.3 is current
 RUN npm install newman --prefix /tmp/newman-check --silent \
  && NEWMAN_VERSION=$(node -p "require('/tmp/newman-check/node_modules/newman/package.json').version") \
  && rm -rf /tmp/newman-check \
- && if [ "$NEWMAN_VERSION" = "6.2.2" ] && [ ! -f /root/.bzt/newman/package.json ]; then \
+ && if [ "$NEWMAN_VERSION" = "6.2.3" ] && [ ! -f /root/.bzt/newman/package.json ]; then \
         echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, lodash, uuid, underscore, qs, jose)" \
      && mkdir -p /root/.bzt/newman \
-     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.9",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "qs": "^6.15.2",\n    "jose": "^4.15.5",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
-    elif [ "$NEWMAN_VERSION" != "6.2.2" ]; then \
-        echo "WARNING: Newman $NEWMAN_VERSION found (expected 6.2.2); skipping dependency overrides"; \
+     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.10",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "qs": "^6.16.0",\n    "jose": "^4.15.5",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
+    elif [ "$NEWMAN_VERSION" != "6.2.3" ]; then \
+        echo "WARNING: Newman $NEWMAN_VERSION found (expected 6.2.3); skipping dependency overrides"; \
     fi
 
 # Pre-seed Mocha dependency overrides (CVE fix for serialize-javascript)
@@ -419,13 +420,16 @@ RUN for f in \
 RUN find /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/DotnetTools/dotnet-watch -name "*.deps.json" \
       -exec grep -lF "17.10.41" {} \; | \
     xargs -r sed -i 's/17\.10\.41/17.14.28/g'
-# System.Security.Cryptography.Xml -> 8.0.4 (CVE-2026-47302/47304/50525/50527/50648): patch every
-# SDK .deps.json that references it (scanner reads these metadata files across the whole SDK tree)
+# System.Security.Cryptography.Xml -> 8.0.5 (CVE-2026-47302/47304/50525/50527/50648): patch every
+# SDK .deps.json that references it (scanner reads these metadata files across the whole SDK tree).
+# The target must never be BELOW what the SDK ships natively: 8.0.426 already ships 8.0.5 in most
+# files, so the old 8.0.4 target would downgrade them. Only dotnet-format (8.0.3) and the Roslyn
+# file (7.0.1) actually change. Re-check the native versions on every SDK bump.
 RUN find /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION} -name "*.deps.json" \
       -exec grep -lF "System.Security.Cryptography.Xml" {} \; | \
     xargs -r sed -i \
-      -e 's|System\.Security\.Cryptography\.Xml/[0-9][0-9.]*|System.Security.Cryptography.Xml/8.0.4|g' \
-      -e 's|"System\.Security\.Cryptography\.Xml": "[0-9][0-9.]*"|"System.Security.Cryptography.Xml": "8.0.4"|g'
+      -e 's|System\.Security\.Cryptography\.Xml/[0-9][0-9.]*|System.Security.Cryptography.Xml/8.0.5|g' \
+      -e 's|"System\.Security\.Cryptography\.Xml": "[0-9][0-9.]*"|"System.Security.Cryptography.Xml": "8.0.5"|g'
 
 
 # Remove security-sensitive files

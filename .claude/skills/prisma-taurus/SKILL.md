@@ -315,7 +315,7 @@ Check `vulnerability_history.md` for any recorded removal condition before decid
 - **Dockerfile `RUN` steps** (gem installs, apt upgrades, sed patches, extra `pip install`) → put the `# remove when …` line directly above the `RUN`.
 - **JSON-based fixes** (npm `overrides` seeded via a `printf`'d `package.json`) → JSON has no comment syntax, so put the marker on the surrounding Dockerfile `RUN`/`echo` line that writes the file, and record the per-package removal conditions in `vulnerability_history.md`.
 
-A self-pruning runtime guard — like the Newman `NEWMAN_VERSION = 6.2.2` check that skips the override once Newman moves — satisfies this too. When the condition is non-obvious, also record it under the relevant recipe in `vulnerability_history.md`.
+A self-pruning runtime guard — like the Newman `NEWMAN_VERSION = 6.2.3` check that skips the override once Newman moves — satisfies this too. When the condition is non-obvious, also record it under the relevant recipe in `vulnerability_history.md`.
 
 ---
 
@@ -356,7 +356,7 @@ class Newman(NPMPackage):
     PACKAGE_NAME = "newman"          # UNVERSIONED — tracks npm latest; not bumped here
 ```
 
-For a **versioned** constant (e.g. Mocha), bump the version after `@` to the fixed version from `Fix Status`. **Newman's `PACKAGE_NAME` has no version** (`"newman"`), so it tracks npm's latest and can't be pinned here — its transitive-dep CVEs are handled by the Dockerfile `overrides` block (guarded on Newman `6.2.2`), see the npm overrides section below. (Confirm the actual constant values in `bzt/modules/javascript.py` before editing — they change as packages are bumped.)
+For a **versioned** constant (e.g. Mocha), bump the version after `@` to the fixed version from `Fix Status`. **Newman's `PACKAGE_NAME` has no version** (`"newman"`), so it tracks npm's latest and can't be pinned here — its transitive-dep CVEs are handled by the Dockerfile `overrides` block (guarded on Newman `6.2.3`), see the npm overrides section below. (Confirm the actual constant values in `bzt/modules/javascript.py` before editing — they change as packages are bumped.)
 
 ---
 
@@ -372,7 +372,7 @@ Find the existing `printf` block in the Dockerfile that seeds `/root/.bzt/newman
 RUN npm install newman --prefix /tmp/newman-check --silent \
  && NEWMAN_VERSION=$(node -p "require('/tmp/newman-check/node_modules/newman/package.json').version") \
  && rm -rf /tmp/newman-check \
- && if [ "$NEWMAN_VERSION" = "6.2.2" ] && [ ! -f /root/.bzt/newman/package.json ]; then \
+ && if [ "$NEWMAN_VERSION" = "6.2.3" ] && [ ! -f /root/.bzt/newman/package.json ]; then \
         echo "Applying Newman dependency overrides for CVE fix (...)" \
      && mkdir -p /root/.bzt/newman \
      && printf '{\n  "overrides": {\n    "existing-pkg": "^X.Y.Z",\n    ...\n  }\n}\n' > /root/.bzt/newman/package.json; \
