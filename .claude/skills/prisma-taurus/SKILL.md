@@ -33,11 +33,11 @@ End-to-end vulnerability management for the Taurus Docker image. Fetches the lat
 - **Reporting "nothing to do" when the real answer is "rebuild"** — a finding already covered by an unpinned Dockerfile line, whose patch was published after the image was built, needs no code change but is not "nothing". Classify it as R (category 4) and say so
 - Triggering a new scan when a valid one already exists (one already ran **today (UTC)** and after the last `unstable` push) — always check first
 - **Fixing JMeter/Gatling-bundled CVEs** — any finding whose `Path` is under `/root/.bzt/jmeter-taurus/` or `/root/.bzt/gatling-taurus/` is out of scope. Do not repin jars and **do not bump `JMeter.VERSION` / `Gatling.VERSION`** (a version bump is a JMeter/Gatling fix). List them only.
-- Auto-fixing scanner appeasement CVEs (`.deps.json` / Roslyn paths) — these must always be flagged as manual. **Note `/var/lib/dpkg/status` is NOT appeasement** — it's the normal path for every OS/apt package; see category 2
-- **Assuming a package is uncovered because it's absent from the `--only-upgrade` list** — it may be installed unpinned elsewhere in the Dockerfile, including as an *automatic dependency* of something else, which makes the finding R. Prove provenance from `/var/log/apt/history.log` before adding an entry (see "Prove provenance" under OS packages)
+- Writing off a `/usr/share/dotnet/sdk/` CVE as manual without checking whether a .NET servicing release fixes it — most do, and the fix is an SDK bump (see category 2). Adding a `.deps.json` `sed` to silence one is never an auto-fix. **Note `/var/lib/dpkg/status` is NOT appeasement** — it's the normal path for every OS/apt package; see category 2
+- **Assuming a package is uncovered because it's absent from the `--only-upgrade` list** — it may be installed unpinned elsewhere in the Dockerfile, as an *automatic dependency* of something else, or by an `apt-get install` that a tool the Dockerfile runs issues itself (e.g. `bzt -install-tools` → Playwright `--with-deps`), which makes the finding R. `grep <pkg> Dockerfile` is not a coverage test. Prove provenance from `/var/log/apt/history.log` before adding an entry (see "Prove provenance" under OS packages)
 - Removing the worktree after a test failure — leave it in place for the user to investigate
 - **Opening the PR before the branch scan confirms a reduction** — push the branch, build+re-scan it via `taurus-branch-builder`, compare against the baseline, and create the PR ONLY if vulnerabilities went down. The PR comes only after that verification — never early.
-- **Trusting that a Dockerfile fix landed just because the build succeeded** — always confirm in the branch scan that each fixed package's vulnerable version is actually gone. `gem update` on a Ruby *default gem* (e.g. `net-imap`, `erb`) installs the patched version but leaves the old default-gem version on disk, which the scanner still reports.
+- **Trusting that a Dockerfile fix landed just because the build succeeded** — always confirm in the branch scan that each fixed package's vulnerable version is actually gone (except an accepted Ruby default gem — see step 14). A Ruby *default gem* installed by `gem install` keeps its old default gemspec, which the scanner still reports; only a Ruby bump clears it.
 
 ## Image target
 
@@ -99,7 +99,9 @@ Before applying any fix, classify each CVE — first through the **category-0 pr
 These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjava, json-smart, json-path, commons-*, etc.) ship **inside** the JMeter/Gatling distributions. Taurus does not pin them individually, and **we do not remediate them** — not by replacing jars, and **not** by bumping the JMeter or Gatling version (a version bump is itself a JMeter/Gatling fix, only partially clears the CVEs, and carries runtime/behavioral risk). Display them in the report under "JMeter/Gatling — not fixed (out of scope)", never patch them.
 
 **2. Scanner appeasement → flag as manual, never auto-fix:**
-- `Path` contains `/usr/share/dotnet/sdk/` (Roslyn / .deps.json metadata patches)
+- `Path` contains `/usr/share/dotnet/sdk/` **and no .NET 8.0 servicing release fixes it** — e.g. `dotnet-format`'s bundled `System.Security.Cryptography.Pkcs` 8.0.1, which Microsoft hasn't serviced (monitor).
+
+> ⚠️ **Check for a servicing fix before putting an SDK row here.** Most `/usr/share/dotnet/sdk/` rows are versions Microsoft actually shipped in the SDK, not strings a `sed` wrote — read the file's lowercase `"path"` field, which no sed touches. The row is **category 3 → .NET SDK bump** only if a release **newer than the current `ARG DOTNET_SDK_VERSION`** names the CVE in its `cve-list` (snippet in the .NET SDK bump section) **and** that release's tarball ships the fixed version **in the flagged file** (check its lowercase `"path"`). If the SDK is already the latest, or the newer tarball still ships the old version in that file (e.g. `dotnet-format`'s Pkcs 8.0.1, although 8.0.32's `cve-list` names its CVEs), it stays here (ordinary in-run work; #2035 and #2037 both did this). Never let the path talk you out of that check. Prisma truncates `Fix Status` with `,...`, so it can't tell you no 8.x fix exists.
 
 > ⚠️ **`/var/lib/dpkg/status` is NOT in this category — it is the normal path for every OS/apt package.** This scanner reports **all** OS findings at `/var/lib/dpkg/status` (verified: scans #204, #215, #216 contain **zero** empty-path rows and 135/153/165 dpkg-path rows respectively). Treating that path as appeasement writes off *every* OS finding in the scan — in #216 that would have been 165 of 316 rows, including 16 with a real, non-ESM `fixed in` apt version (71 before removing Ubuntu Pro ESM). Route these to the **OS package** row of category 3 (then the category-4 gate), exactly like the libheif worked example in category 4 — whose finding also sat at `/var/lib/dpkg/status`.
 >
@@ -115,9 +117,11 @@ These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjav
 | `/root/.bzt/selenium-taurus/mocha/node_modules/` | npm override | Dockerfile mocha `package.json` printf block |
 | `/root/.bzt/selenium-taurus/*/node_modules/` | npm direct package | `bzt/modules/javascript.py` PACKAGE_NAME constant |
 | `/usr/lib/node_modules/npm/node_modules/` | npm-internal bundled dep | Check the **latest** npm's lockfile: if it bundles the fixed version → **R** (the existing `npm i -g npm@11` picks it up on rebuild); if it still bundles the vulnerable version → **monitor** (no upstream fix reachable). There is **no clean in-place override** (see "npm-internal bundled deps" section) |
-| `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | Dockerfile `gem install <gem> -v <fixed>` + default-gem/cache cleanup (see Ruby gems section) |
+| `/usr/local/rbenv/` or `/usr/local/lib/ruby/` | Ruby gem | bump `ARG RUBY_VERSION`, else Dockerfile `gem install <gem> -v <fixed>` + runtime assertion (see Ruby gems section) |
+| `/usr/share/dotnet/` (runtime, e.g. `/usr/share/dotnet/dotnet`, or `sdk/` when a servicing release fixes it — see category 2) | .NET SDK | Dockerfile `ARG DOTNET_SDK_VERSION` + SHA512 bump (see .NET SDK bump section) |
 | `/var/lib/dpkg/status` (the usual case), OS path (`/usr/lib/`, `/lib/`), or empty path — **excluding** `/usr/lib/node_modules/npm/node_modules/` (npm-internal, see row above) | OS package | **Apply the category-0 pre-filter, then the category-4 (R) gate — provenance before date (see step 0 of the OS packages section). Most OS findings are R.** If not R → add the package to the Dockerfile's existing **unpinned** `--only-upgrade` list (see OS packages section) |
-| Python pkg, `Path` under `/usr/local/lib/python3.x/...` | Python package | `requirements.txt` (feeds the wheel's `install_requires`) or a dedicated Dockerfile `pip install` step — **classify into 5 cases**, see Python section |
+| Python pkg, `Path` under `/root/.bzt/python-packages/<pyver>/...` | `bzt -install-tools` Python copy (unpinned) | **Usually R** — rebuild clears it; NOT `requirements.txt` (see Python case 6) |
+| Python pkg, `Path` under `/usr/local/lib/python3.x/...` | Python package | `requirements.txt` (feeds the wheel's `install_requires`) or a dedicated Dockerfile `pip install` step — **classify by case (1–4)**, see Python section |
 | Python pkg, `Path` under `/usr/lib/python3/dist-packages/...` | distro Python (apt) | Dockerfile `apt-get install --only-upgrade`/`apt-get purge` (NOT `requirements.txt`) |
 
 > **Note:** the `/root/.bzt/jmeter-taurus/*` and `/root/.bzt/gatling-taurus/*` paths are intentionally **absent** from this auto-fixable table — they belong to category 1 (do not fix). Do not reintroduce JMeter/Gatling jar fixes or version bumps.
@@ -130,7 +134,7 @@ A finding can be `fixed in <v>` and fully handled by the repo *already*, yet sti
 
 Classify a finding as **R** when ALL of these hold:
 - `Fix Status` starts with `fixed in`, and
-- the package is **already covered by an unpinned line** — it's in the `--only-upgrade` list, **or is installed unpinned by any earlier `apt-get install` in the Dockerfile, including as an automatic dependency that is never named there** (prove this per step 0(a) of the OS packages section; this is the source most often missed), or comes from `npm i -g`, `bzt -install-tools`, or the base image — and
+- the package is **already covered by an unpinned line** — it's in the `--only-upgrade` list, **or is installed unpinned by any earlier `apt-get install` — a Dockerfile one, an automatic dependency of one (never named there), or one issued by a tool the Dockerfile runs (e.g. `RUN bzt -install-tools` → `npx playwright install --with-deps`, `bzt/modules/javascript.py`, whose package list exists nowhere in this repo)** (prove this per step 0(a) of the OS packages section; these are the sources most often missed), or comes from `npm i -g`, `bzt -install-tools`, or the base image — and
 - a release containing the fix **exists upstream now** and the unpinned line would pick it up on a rebuild, and
 - the fixed version was **published after the scanned image's build started**.
 
@@ -154,10 +158,11 @@ Expect **several rows** (one per architecture, and per `Security`/`Updates` pock
 **Evidence required per source — an R claim without evidence is not allowed:**
 | Source | Evidence that the fix exists and post-dates the build |
 |---|---|
-| OS package (apt) | Launchpad `date_published` (above) |
+| OS package (apt) — any unpinned `apt-get install`, incl. automatic deps and tool-issued installs | Launchpad `date_published` (above) |
 | npm-internal (`npm i -g npm@11`) | the npm/cli lockfile check in the "npm-internal bundled deps" section — confirm the **latest** npm bundles the fixed version |
 | `bzt -install-tools` npm packages | the registry's published version + its release date |
-| base image — **only after `dpkg-query` confirms the base image actually ships the package** (step 0(a) of the OS packages section); otherwise use the "OS package (apt)" row | the `ubuntu:24.04` tag's own push time on Docker Hub |
+| `bzt -install-tools` Python packages (`/root/.bzt/python-packages/`) | the fixed version's PyPI upload time: `https://pypi.org/pypi/<pkg>/<fixed>/json` → `urls[0].upload_time_iso_8601` |
+| base image — **only after `dpkg-query` confirms the base image actually ships the package AND today's `ubuntu:24.04` ships the fixed version** (step 0(a) of the OS packages section); if it still ships the flagged version, it is NOT R; if it doesn't ship the package, use the "OS package (apt)" row | the `ubuntu:24.04` tag's own push time on Docker Hub |
 
 **Decide — and bias every ambiguity toward changing nothing:**
 - fix published **after** build start → **R**. Report it; do **not** add a version pin (brittle — the build breaks when Ubuntu supersedes that exact version and drops it from the pocket).
@@ -265,13 +270,13 @@ The raw scan total (e.g. 290) is **misleading** as a headline: the large majorit
 > **Rebuild-clearable: `<R>`** — no code change needed; a republish of current master clears these (omit the line when `R = 0`).
 
 Counting basis — X and Y are **distinct CVEs**:
-- **X** = distinct in-scope **fixable-in-taurus** CVEs at baseline: `Fix Status` starts with `fixed in`, AND NOT JMeter/Gatling, AND NOT Ubuntu Pro ESM (only fixed version(s) ending `+esmN`/`~esmN`), AND NOT a binary-internal lib (k6 Go libs under `/usr/bin/k6`), AND NOT distro pip apt can't reach, AND NOT a JDK finding whose only fix is a later Java major (`/usr/lib/jvm/…`, `fixed in 22.0.1, 18, 12` — no 11.x fix exists), AND NOT scanner-appeasement (`.deps.json`/Roslyn — those are manual, classification category 2, and belong in Z). **A `/var/lib/dpkg/status` path does NOT exclude a finding from X** — that is the normal OS/apt path, so such findings are in scope and usually resolve as R (see category 2). (Includes the items we then defer/skip for cause — setuptools-vendored, breaking npm major jumps, low-value — so the denominator is honest about what was *considered*.)
+- **X** = distinct in-scope **fixable-in-taurus** CVEs at baseline: `Fix Status` starts with `fixed in`, AND NOT JMeter/Gatling, AND NOT Ubuntu Pro ESM (only fixed version(s) ending `+esmN`/`~esmN`), AND NOT a binary-internal lib (k6 Go libs under `/usr/bin/k6`), AND NOT distro pip apt can't reach, AND NOT a JDK finding whose only fix is a later Java major (`/usr/lib/jvm/…`, `fixed in 22.0.1, 18, 12` — no 11.x fix exists), AND NOT a `/usr/share/dotnet/sdk/` row no servicing SDK fixes (manual, classification category 2, belongs in Z — an SDK row a servicing release fixes IS in X). **A `/var/lib/dpkg/status` path does NOT exclude a finding from X** — that is the normal OS/apt path, so such findings are in scope and usually resolve as R (see category 2). (Includes the items we then defer/skip for cause — setuptools-vendored, breaking npm major jumps, low-value — so the denominator is honest about what was *considered*.)
 - **Y** = the subset fixed by **a change made this run** to this repo's own `Dockerfile` / `requirements.txt`, whose old version is **confirmed gone in the branch re-scan**. A finding that cleared without any change this run (an existing unpinned line or an `npm@11` bump picking the fix up) is **R, not Y** — even though the branch scan shows it gone, which it will either way. If `Y < X`, list which didn't land and why.
 
 Every finding lands in **exactly one** bucket so nothing is silently omitted:
-- **Fixed (Y)** — verified gone in the branch image.
+- **Fixed (Y)** — verified gone in the branch image. (A Ruby default gem patched by `gem install` is **not** Y — Prisma keeps reading its stale default gemspec. Put it in X − Y labeled "patched at runtime (assertion OK), Prisma reads the stale default gemspec"; see "Ruby gems".)
 - **Fixable but did NOT land (X − Y)** — deferred/skipped for cause, or attempted-but-failed. **R (rebuild-clearable) is a *labeled subset of this bucket*, not a fourth bucket** — an R finding is in X (it is fixed-in and in scope) and not in Y (no code change landed it this run), but it is NOT "deferred for cause": label it "clears on rebuild, no code change". So `X`, `Y` and `Z` still partition every finding; `R` only tags some of `X − Y`, and must never be added to X, Y or Z as an extra count.
-- **Not actionable in this repo (Z)** — collapse into **ONE categorized count, never a per-CVE scoreboard**: monitor-only JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, JDK-later-major-only, distro pip, no-released-patch (open/needed/deferred), Ubuntu ESM, scanner-appeasement/manual (`.deps.json`/Roslyn). (In-scope OS/apt findings at `/var/lib/dpkg/status` belong in **X**, not here.)
+- **Not actionable in this repo (Z)** — collapse into **ONE categorized count, never a per-CVE scoreboard**: monitor-only JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, JDK-later-major-only, distro pip, no-released-patch (open/needed/deferred), Ubuntu ESM, .NET SDK rows with no servicing fix (manual). (In-scope OS/apt findings at `/var/lib/dpkg/status` belong in **X**, not here.)
 
 **taurus IS the base image** — there is no "base image tag bump" and no "base-owned (cleared by a base tag)" bucket; those exist only in taurus-cloud (which builds `FROM blazemeter/taurus`). Omit them here.
 
@@ -286,7 +291,7 @@ You may still display the full per-CVE table (ordered critical → high → medi
 Gather all CVEs where:
 - `Path` is NOT under `/root/.bzt/jmeter-taurus/` or `/root/.bzt/gatling-taurus/` (those are out of scope — category 1)
 - `Fix Status` starts with `fixed in`
-- Path does NOT match scanner appeasement patterns (`/usr/share/dotnet/sdk/` only — **not** `/var/lib/dpkg/status`, which is the normal OS/apt path; see category 2)
+- Not a `/usr/share/dotnet/sdk/` row that no servicing SDK fixes (category 2 — check the release `cve-list` first; **not** `/var/lib/dpkg/status`, which is the normal OS/apt path; see category 2)
 - The only fixed version(s) do NOT end in `+esmN`/`~esmN` (Ubuntu Pro ESM — `apt-get` cannot install it), and the finding is not k6-binary-internal, JDK-later-major-only or distro pip (see category 0)
 
 If there are no auto-fixable CVEs → report that and list any manual items. ("No auto-fixable CVEs" means *after* the category-4 gate has run: R findings start out looking auto-fixable and are removed from that set by the gate, so a run can legitimately reach this branch with `R > 0`.)
@@ -307,6 +312,7 @@ Past runs left temporary fixes in the Dockerfile and `requirements.txt`: npm `ov
 
 - **Does the CVE it was added for still appear in the current baseline scan (step 5)?** If the parent package or base image now ships the fixed version (the CVE is gone from the baseline), **remove that line on the fix branch.** The branch re-scan (step 14) is the safety net — if a removal regresses, the scan catches it before the PR.
 - **Is the entry inert?** An `--only-upgrade` entry for a package that is *also* installed unpinned earlier in the same stage can never fire in the `--no-cache` master build (see step 7's OS-packages step 0). Confirm with the provenance check, and note that **the branch re-scan cannot validate this one** — an inert entry and a working one look identical in the scan. Verify by re-reading `/var/log/apt/history.log` on the rebuilt image instead.
+- **Exception — the `.deps.json` Xml `sed`:** a CVE missing from the baseline does **not** mean it is removable. Its regex pattern can't grep-test as dead, and those CVEs are absent *because* the sed hides them (it holds the Roslyn file's native `7.0.1` down). Keep it; re-check it only per the .NET SDK bump section, step 3.
 - If the CVE is still present → leave the fix in place.
 
 Check `vulnerability_history.md` for any recorded removal condition before deciding.
@@ -327,10 +333,13 @@ Decide the mechanism from the finding's `Path`:
    ```
    urllib3==2.6.3   →   urllib3==2.7.0
    ```
-2. **Transitive dep not in `requirements.txt`** — `Path` under `/usr/local/lib/python3.x/...` but the package name is absent from `requirements.txt` → add an explicit pin to `requirements.txt`. It feeds the wheel's `install_requires` (see `setup.py`), so the Dockerfile's `pip install /tmp/bzt*.whl` step resolves the fixed version into the image. If the requirements resolver can't accommodate the pin, use a dedicated Dockerfile `pip install` step instead (case 3). Do **not** rely on `PipInstaller.pip_constraints` (`bzt/modules/services.py`) — that constraints file only governs packages bzt installs at **runtime** (`pip install -t <target>`), not the image site-packages the scanner reads.
+2. **Transitive dep not in `requirements.txt`** — `Path` under `/usr/local/lib/python3.x/...` but the package name is absent from `requirements.txt` → add an explicit pin to `requirements.txt`. It feeds the wheel's `install_requires` (see `setup.py`), so the Dockerfile's `pip install /tmp/bzt*.whl` step resolves the fixed version into the image. If the requirements resolver can't accommodate the pin, use a dedicated Dockerfile `pip install` step instead (case 3). `PipInstaller.pip_constraints` (`bzt/modules/services.py`) does **not** reach this copy — it governs only the separate `/root/.bzt/python-packages/` tree (case 6).
 3. **Resolver constraint blocks the pin** — another dependency caps the version, so re-resolving `requirements.txt` fails → add a dedicated `pip install <pkg>==<fixed>` step in the Dockerfile right after the BZT-install pip step, with a `# remove when <condition>` marker (see the pruning convention above).
 4. **Vendored inside setuptools** — `Path` contains `/setuptools/_vendor/...` → cannot be pinned directly; only bumping the pinned `setuptools==` in `requirements.txt` clears it. Bump setuptools if a patched, compatible version exists; otherwise skip a low-value vendored finding and list it.
 5. **System / distro Python** — `Path` under `/usr/lib/python3/dist-packages/...` → **not** a `requirements.txt` fix; the package came from `apt`, not pip. Upgrade or remove it in the Dockerfile (`apt-get install --only-upgrade <pkg>` or `apt-get purge <pkg>`), exactly like an OS package.
+6. **`bzt -install-tools` copy** — `Path` under `/root/.bzt/python-packages/<pyver>/...` → **not** a `requirements.txt` fix. The image holds a **second copy** of most Python deps: `RUN bzt -install-tools` (Dockerfile, final stage) → `PipInstaller` → `pip install -t ~/.bzt/python-packages/<pyver>`, which re-resolves its own tree at **build time**, so it is baked into the image and scanner-visible. It is unpinned (`pip_constraints` lists only `setuptools`), so it tracks latest and normally **clears on rebuild → R** (category 4, Python evidence row). Only if the fix was published before the build and is still flagged is it NOT R; then `pip_constraints` — not `requirements.txt` — is the lever.
+   - The same package can be flagged at **both** paths at different versions (measured: urllib3 2.7.0 in `dist-packages`, 2.8.0 in `.bzt`). Classify each occurrence by its own `Path`.
+   - At runtime `engine.py` adds this tree to `PYTHONPATH`, ahead of site-packages, so executor subprocesses (apiritif, pytest, locust, robot) import the `.bzt` copy, not the pinned one.
 
 ---
 
@@ -407,24 +416,29 @@ Deps bundled **inside the global `npm` CLI itself** (`undici`, `glob`, `cross-sp
 
 #### .NET SDK bump (Dockerfile)
 
-When a CVE is in a .NET SDK component:
+When a CVE is in the .NET runtime (`/usr/share/dotnet/dotnet`, `shared/…`) or in an SDK component a servicing release fixes (category 2). Full recipe, traps and history: `vulnerability_history.md`, "When .NET SDK has a CVE".
 
-1. Fetch the release metadata to find the latest 8.x SDK with security fixes:
+1. Fetch the release metadata and **confirm a release newer than the current `DOTNET_SDK_VERSION` names your CVE in its `cve-list`** — the cheapest proof the bump is the right fix. Bump to the latest release (`releases[0]`):
    ```bash
-   curl -s "https://dotnetcli.azureedge.net/dotnet/release-metadata/8.0/releases.json" \
+   CURRENT=$(sed -n 's/^ARG DOTNET_SDK_VERSION=//p' Dockerfile)
+   curl -sL "https://builds.dotnet.microsoft.com/dotnet/release-metadata/8.0/releases.json" \
      | python3 -c "
    import json,sys
-   data = json.load(sys.stdin)
-   latest = data['releases'][0]['sdk']
-   print('version:', latest['version'])
-   print('url linux-x64:', [f['url'] for f in latest['files'] if f['rid']=='linux-x64' and f['name'].endswith('.tar.gz')][0])
-   print('hash:', [f['hash'] for f in latest['files'] if f['rid']=='linux-x64' and f['name'].endswith('.tar.gz')][0])
-   "
+   for r in json.load(sys.stdin)['releases']:
+       if r['sdk']['version'] == sys.argv[1]: break
+       print(r['release-version'], 'sdk', r['sdk']['version'], 'aspnetcore', r['aspnetcore-runtime']['version'],
+             'cves', [c['cve-id'] for c in r.get('cve-list', [])])
+   " "$CURRENT"
    ```
-
-2. Update the `DOTNET_URL` and `DOTNET_SHA512` values in the Dockerfile `FROM system-deps AS runtimes` stage.
-
-3. Update ALL hardcoded SDK version strings in the `sed` commands below (the `.deps.json` metadata patch lines) to match the new SDK version number.
+   Empty output means the SDK is already the latest release, so a remaining SDK row is category 2 (manual). If it prints every release, `CURRENT` is empty or not a primary SDK version — check the `ARG` line. Take the SHA512 for the latest SDK's `linux-x64` `.tar.gz` from the same file (`releases[0].sdk.files[]`, `hash`).
+   SDK feature-band numbers don't track runtime patch numbers; map SDK → runtime via the release's `aspnetcore-runtime.version`.
+2. Edit the Dockerfile: `ARG DOTNET_SDK_VERSION` and `ARG DOTNET_ASPNET_MIN` (both before the first `FROM`), and `DOTNET_SHA512` in the `runtimes` stage. The install step fails the build if the SDK dir is missing or the ASP.NET Core runtime is below `DOTNET_ASPNET_MIN` (`sort -V`, never string compare).
+   > ⚠️ Keep `DOTNET_SDK_VERSION` declared before the first `FROM` and re-declared bare in `runtimes` and `final`. A parent stage's default does not propagate; an empty value yields `/usr/share/dotnet/sdk//…` and every `.deps.json` patch step skips silently with a green build.
+3. **Re-check every `.deps.json` `sed` against a fresh extraction of the NEW tarball** (Dockerfile "update dotnet metadata" block):
+   - Delete a sed whose literal search string no longer occurs. They fail open (`|| true`, `xargs -r`), so a dead sed looks the same as a working one in the build log and the scan.
+   - **A sed's target version must never be below the highest version the new SDK ships natively** — otherwise the bump *downgrades* metadata and brings rows back (8.0.426 nearly did this with `System.Security.Cryptography.Xml` 8.0.4 → 8.0.5). Grep the lowercase `"path"` fields first; no sed touches them.
+   - Never run the Dockerfile's sed against your reference extraction to "test it" — it mutates the tree. Re-extract to a fresh dir (`stat -c %y` tells pristine from rewritten files).
+4. A row the latest SDK still ships unpatched (e.g. `dotnet-format` Pkcs 8.0.1) stays as monitor — don't add a sed for it. Record its re-check condition in `vulnerability_history.md`.
 
 ---
 
@@ -434,7 +448,7 @@ When a CVE is in a system package (path is `/var/lib/dpkg/status`, empty, or in 
 
 0. **Run the category-4 (R) gate first — in this order, because (a) selects which evidence row (b) uses.** Only continue past this step if the finding is NOT R.
 
-   **(a) Prove provenance — where is this package actually installed from?** Do NOT reason from the Dockerfile text alone. R requires the package to be "already covered by an unpinned line", and *absence from the `--only-upgrade` list does not mean absence of coverage*: a package can be installed unpinned by any earlier `apt-get install`, **including as an automatic dependency that is never named in the Dockerfile.** Ask the image, not the source:
+   **(a) Prove provenance — where is this package actually installed from?** Do NOT reason from the Dockerfile text alone. R requires the package to be "already covered by an unpinned line", and *absence from the `--only-upgrade` list does not mean absence of coverage*: a package is covered if it is installed unpinned by **any** of three sources: a Dockerfile `apt-get install`; **an automatic dependency of one, never named in the Dockerfile**; or **an `apt-get install` issued by a tool the Dockerfile runs** (e.g. `RUN bzt -install-tools` → `npx playwright install --with-deps`, whose package list exists nowhere in this repo — scan #301's `libx11-6` was installed this way). Only `/var/log/apt/history.log` tells them apart. Ask the image, not the source:
    ```bash
    # confirm you are inspecting THE SCANNED image first — compare against the CSV's `Image ID`
    # column; `unstable` is a mutable tag and may have been republished since the baseline scan.
@@ -458,13 +472,13 @@ When a CVE is in a system package (path is `/var/lib/dpkg/status`, empty, or in 
    # which apt invocation installed it, at what version, and was it "automatic"?
    docker run --rm --entrypoint sh blazemeter/taurus:unstable -c \
      "grep -B4 '<pkg>:amd64' /var/log/apt/history.log | tail -8"
-   # and is it in the base image at all?  (also a mutable tag — reason about today's base only)
+   # is it in the base image, and at WHICH version?  (also a mutable tag — reason about today's base only)
    docker run --rm --platform linux/amd64 ubuntu:24.04 \
      sh -c "dpkg-query -W -f='\${Package} \${Version}\n' <pkg>"
    ```
    Provenance decides **which evidence row of category 4 applies**, and nothing more on its own:
-   - installed by an unpinned `apt-get install` (even as an automatic dependency) → **covered**; use the **"OS package (apt)"** row, i.e. Launchpad `date_published` vs **image build start**.
-   - genuinely shipped by the base image and never reinstalled → use the **"base image"** row.
+   - installed by an unpinned `apt-get install` — Dockerfile, automatic dependency, or tool-issued (the history line is a command the Dockerfile doesn't contain, e.g. Playwright's `apt-get install -y --no-install-recommends … libx11-6 …` during `RUN bzt -install-tools`) → **covered**; use the **"OS package (apt)"** row, i.e. Launchpad `date_published` vs **image build start**.
+   - genuinely shipped by the base image and never reinstalled → check the version `dpkg-query` printed. If today's `ubuntu:24.04` **still ships the flagged version**, no rebuild clears it and an unpinned `apt-get install <other-pkg>` won't upgrade it → **not R, genuinely fixable**; go to step 1 (scan #222: `coreutils`, `libattr1`, `libp11-kit0`). If it ships the fixed version → use the **"base image"** row. Don't mistake apt-history lines dated before the build (Canonical's own rootfs build log, baked into the base image) for taurus steps.
    - not covered by any unpinned line → the coverage condition fails, so it is **not R**; go to step 1.
 
    **(b) Then apply the date test** from category 4 with that row:
@@ -495,32 +509,21 @@ When a CVE is in a system package (path is `/var/lib/dpkg/status`, empty, or in 
 
 #### Ruby gems (Dockerfile)
 
-When a CVE is in a Ruby gem (path contains `/usr/local/rbenv/`):
+When a CVE is in a Ruby gem (path contains `/usr/local/rbenv/`). Full recipe and history: `vulnerability_history.md`, "When a Ruby gem has a CVE".
 
-Install the **explicit fixed version** in the Dockerfile after the rbenv setup block — pin the version with `gem install <gem> -v <fixed-version>`, never `gem update` (which jumps to latest and is not reproducible/auditable). Add `--no-document` to skip rdoc/ri generation (smaller image, faster build):
-```dockerfile
-# Fix <CVE-ID>: upgrade <gem> to <fixed-version>
-RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && gem install <gem> -v <fixed-version> --no-document && rbenv rehash
-```
+1. **Bump `ARG RUBY_VERSION` first** if a newer Ruby already bundles the fixed gem. For a default gem this is the **only** real fix: it replaces the stale `specifications/default/<gem>-<old>.gemspec` that Prisma reads, which `gem install` never does. Check what a candidate Ruby bundles before writing any gem install — default gems at `raw.githubusercontent.com/ruby/ruby/<tag>/lib/<gem>/version.rb` (json: `ext/json/lib/json/version.rb`), bundled gems in `raw.githubusercontent.com/ruby/ruby/<tag>/gems/bundled_gems` — and confirm ruby-build has the version: `api.github.com/repos/rbenv/ruby-build/contents/share/ruby-build/<version>`. Re-check every run; ruby-build availability changes within days.
+2. **Otherwise, install the explicit fixed version** in the existing gem `RUN` in the `runtimes` stage (`gem install json` builds a native extension; `final` has no compiler). Use `gem install <gem> -v <fixed-version> --no-document`, never `gem update` (jumps to latest, not reproducible).
+3. **Add the gem to the runtime assertion's `want` list** in that same `RUN`. It checks `Gem.loaded_specs[<gem>].version` — what `require` actually loads — and aborts the build otherwise. Keep `want` exhaustive, including gems Ruby now bundles correctly, so a Ruby downgrade also fails the build. Don't add a `<Const>::VERSION` fallback arm; it can't tell activation from a stdlib fallback. (The existing `ERB.version` arm is kept deliberately — don't add more, and don't strip it in a CVE run.)
+   ```dockerfile
+   RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
+       gem install <gem> -v <fixed-version> --no-document && \
+       rbenv rehash && \
+       ruby -r<gem> ... -e '<abort unless Gem.loaded_specs matches every entry in want>'
+   ```
 
-> ⚠️ **Default-gem / cached-archive caveat (verified the hard way — see `vulnerability_history.md`):** gems that ship *with Ruby* (`net-imap`, `erb`, `json`, `psych`, `uri`, etc.) are **default/bundled gems**, and Prisma reads the OLD version from **three** places that `gem install`/`gem update` leave behind — even though `gem list` shows only the patched version:
-> 1. **gemspec** — `…/specifications/<gem>-<old>.gemspec` or `…/specifications/default/<gem>-<old>.gemspec`
-> 2. **lib dir** — `…/gems/<gem>-<old>`
-> 3. **cached archive** — `…/cache/<gem>-<old>.gem`  ← **easily missed; this is what kept net-imap 0.5.8 flagged** even after the gemspec + lib dir were removed (build #567). `gem uninstall` refuses to remove default gems.
+> ⚠️ **Never delete `specifications/default/<gem>-<old>.gemspec` (no purge).** Keeping it is what lets RubyGems activate the patched gem. For a default gem whose code lives in Ruby's stdlib, deleting it makes `require` load the OLD stdlib copy: Prisma goes quiet while the vulnerable code runs (verified 2026-09-03 in the published image: `ERB.version` 4.0.4, `JSON::VERSION` 2.9.1 after the purge). The purge recipe was removed from the Dockerfile for this reason.
 >
-> Remove all three for the OLD version only, purge the gem cache, then **assert** the old version is gone so the build fails loudly instead of silently shipping it. Use **exact** old-version strings — never broad globs like `net-imap-0.*` or `erb-4.*`, which also match the patched version (e.g. `0.5.15`) and would delete the fix:
-> ```dockerfile
-> RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
->     gem install net-imap -v 0.5.15 --no-document && gem install erb -v 4.0.4.1 --no-document && \
->     GEMS_DIR="$(ruby -e 'print Gem.dir')" && \
->     for OLD in net-imap-0.5.8 erb-4.0.4; do \
->         rm -rf "$GEMS_DIR/gems/$OLD" "$GEMS_DIR/specifications/$OLD.gemspec" \
->                "$GEMS_DIR/specifications/default/$OLD.gemspec"; done && \
->     rm -f "$GEMS_DIR"/cache/*.gem && rbenv rehash && \
->     if find "${RBENV_ROOT}" -name 'net-imap-0.5.8.gem*' -o -name 'erb-4.0.4.gem' -o -name 'erb-4.0.4.gemspec' | grep -q .; then \
->         echo 'ERROR: vulnerable Ruby gem still on disk' >&2; exit 1; fi
-> ```
-> (substitute the actual gem/version pairs). Purging `cache/*.gem` wholesale is safe — cache archives aren't needed at runtime. Always confirm in the branch scan (step 14) that the old version is no longer flagged; `Successfully installed` in the build log is NOT proof.
+> **Accepted cost:** Prisma keeps reporting the old version from that gemspec (today `json 2.9.1`) although the loaded code is patched. That finding is honest — don't delete the gemspec to clear it. It clears when a Ruby bundling the fix is available in ruby-build (step 1); then delete that gem's install and keep its `want` entry, set to the version the new Ruby bundles (the assertion compares exact versions). For this gem, the branch-scan proof is the build's assertion output, not the scan (see step 14).
 
 ---
 
@@ -604,7 +607,7 @@ Commit so the local review (step 12) has a concrete diff, but **do not push** �
 cd .worktrees/<branch-name> && \
 git add requirements.txt Dockerfile bzt/modules/javascript.py
 ```
-(Do **not** stage `bzt/modules/jmeter.py` or `bzt/modules/gatling.py` — bumping `JMeter.VERSION`/`Gatling.VERSION` is category 1, out of scope. `bzt/modules/java/tools.py` is a **permitted-but-discouraged** target: stage it only if you deliberately bumped a `JarTool` version constant (TestNG, JUnit, org.json, etc.) for a specific reason — recipe in `vulnerability_history.md` ("When a Java jar has a CVE"). `bzt/modules/services.py` only holds the runtime `PipInstaller.pip_constraints`, which doesn't affect the scanned image, so it's normally not part of a CVE fix.)
+(Do **not** stage `bzt/modules/jmeter.py` or `bzt/modules/gatling.py` — bumping `JMeter.VERSION`/`Gatling.VERSION` is category 1, out of scope. `bzt/modules/java/tools.py` is a **permitted-but-discouraged** target: stage it only if you deliberately bumped a `JarTool` version constant (TestNG, JUnit, org.json, etc.) for a specific reason — recipe in `vulnerability_history.md` ("When a Java jar has a CVE"). `bzt/modules/services.py` holds `PipInstaller.pip_constraints`, which governs the scanner-visible `/root/.bzt/python-packages/` tree that `RUN bzt -install-tools` builds — stage it only when a Python case-6 finding is NOT R and a constraint is actually needed.)
 
 Commit message:
 ```
@@ -618,7 +621,7 @@ Do **not** push yet — the push is step 13, after the local review.
 
 ### 12. Local code review — before the push (amend into the commit)
 
-Review the committed-but-unpushed diff (`Dockerfile`, `requirements.txt`, and any `bzt/**/*.py`) with an independent reviewer **before pushing**, so any accepted fix is **amended into the commit** and the branch is pushed once, clean — and the build + re-scan (step 14) then validates the **already-reviewed** image (reviewing *after* the ~30-min scan would invalidate it). It catches judgment mistakes a self-check misses (a broad gem-purge glob that also deletes the patched version, an `apt` pin so exact it breaks on the next security-pocket bump, a fix that won't actually land, a `|| true` that masks a failure).
+Review the committed-but-unpushed diff (`Dockerfile`, `requirements.txt`, and any `bzt/**/*.py`) with an independent reviewer **before pushing**, so any accepted fix is **amended into the commit** and the branch is pushed once, clean — and the build + re-scan (step 14) then validates the **already-reviewed** image (reviewing *after* the ~30-min scan would invalidate it). It catches judgment mistakes a self-check misses (deleting a Ruby default gemspec to silence the scanner, an `apt` pin so exact it breaks on the next security-pocket bump, a fix that won't actually land, a `|| true` that masks a failure).
 
 **Pick the reviewer by what's available — this step must never block or fail the run because a review tool is missing (a "not available"/"unknown skill" error is not a failure; fall through to the next option):**
 1. If the **`superpowers:requesting-code-review`** skill is available, use it (preferred — an independent agent).
@@ -630,7 +633,7 @@ Review the committed-but-unpushed diff (`Dockerfile`, `requirements.txt`, and an
 Then, whichever ran (if any):
 1. Invoke the chosen review skill on the committed fix diff.
 2. **Triage every comment yourself — do not auto-apply.** Decide **change** vs **keep as-is** with technical rigor (as in `superpowers:receiving-code-review`), and justify each call:
-   - Accept when it improves correctness, robustness, or matches an in-repo convention (e.g. use `<gem>-<old>.gem*` like the net-imap line instead of an exact `.gem` in the default-gem purge assertion; keep an `apt --only-upgrade` unpinned so a security-pocket bump doesn't later break the build).
+   - Accept when it improves correctness, robustness, or matches an in-repo convention (e.g. add a new gem to the Ruby assertion's `want` list instead of a separate check; keep an `apt --only-upgrade` unpinned so a security-pocket bump doesn't later break the build).
    - Reject/keep when the current change is already correct, or the comment conflicts with the skill's classification rules (e.g. a suggestion to fix a JMeter/Gatling-bundled, ESM, or scanner-appeasement finding — out of scope here; keep it as-is).
 3. If you accept changes, apply them, **`git add` the changed files**, then **`git commit --amend --no-edit`** into the fix commit — safe, because nothing is pushed yet (**never force-push**). (Without the `git add`, `--amend` re-uses the previous tree and your accepted edit is silently dropped — never pushed, never in the PR.)
 4. Record the outcome for the PR body: which comments were applied, which were consciously kept and why.
@@ -689,11 +692,11 @@ Strip ANSI codes and count rows by severity (`critical`/`high`/`medium`/`low`). 
 
 Then do two checks:
 
-1. **Per-fix verification** — for every package you fixed, confirm its vulnerable version is **no longer flagged** in the branch scan. If a package is still flagged at the old version (e.g. `net-imap 0.5.8`), that fix did NOT land — diagnose it (see the default-gem caveat under "Ruby gems") before proceeding.
+1. **Per-fix verification** — for every package you fixed, confirm its vulnerable version is **no longer flagged** in the branch scan. If a package is still flagged at the old version, that fix did NOT land — diagnose it before proceeding. **Exception:** a Ruby default gem installed by `gem install` stays flagged by design (its old default gemspec is kept); its proof is the build's `Ruby gem CVE check OK` line, and the finding is reported as accepted (see "Ruby gems").
 2. **Aggregate comparison** — compare the branch counts (total + per severity) against the baseline scan from steps 4–5.
 
 **Decision gate** (keyed on the **all-severity branch-scan total**, not on the X→Y reporting framing from step 5):
-- **Vulnerabilities went down AND no fixed package is still flagged at its old version** → proceed to create the PR (below).
+- **Vulnerabilities went down AND no fixed package is still flagged at its old version** (a Ruby default gem covered by the step-1 exception above doesn't count as still flagged) → proceed to create the PR (below). A run whose **only** fix is such a gem install can't lower the total, so it lands in the next bullet — report that the runtime assertion passed and the finding is accepted, not that the fix failed.
 - **Vulnerabilities did not improve, OR a fix silently failed to land** → do NOT create a PR. Report the comparison, the failed fixes and why, and stop. Tell the user the branch is pushed and the build number so they can decide.
 
 **Before creating the PR — create a Jira Story for the fixes and reference its key in the PR.**
@@ -793,7 +796,7 @@ PR body should include (apply the step-5 reporting rule — **lead with fixable-
 - Table of the fixed CVEs: CVE ID, severity, package, old version → new version.
 - Note: "Verified against the `taurus-branch-builder` image scan (build #<BUILD>) before opening — integration passed."
 - Local code-review outcome (from step 12): which review comments were applied vs kept, and why.
-- **Not actionable in this repo — one categorized COUNT only (never per-CVE):** `<Z>` = monitor-only JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, JDK-later-major-only, distro pip, no-released-patch (open/needed/deferred), Ubuntu ESM, scanner-appeasement/manual (`.deps.json`/Roslyn). State this run's criticals explicitly and computed (e.g. "all N criticals are monitor-only JMeter/Gatling" — verify each run, don't assume).
+- **Not actionable in this repo — one categorized COUNT only (never per-CVE):** `<Z>` = monitor-only JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, JDK-later-major-only, distro pip, no-released-patch (open/needed/deferred), Ubuntu ESM, .NET SDK rows with no servicing fix (manual). State this run's criticals explicitly and computed (e.g. "all N criticals are monitor-only JMeter/Gatling" — verify each run, don't assume).
 - If you show the raw baseline→branch totals at all, put them in a single parenthetical **with at least crit/high** — never as the headline. (X/Y are distinct CVEs; the raw total counts per-occurrence, so it won't sum arithmetically with X — context, not a checksum.)
 - Note: "The following CVEs require manual intervention (see below)."
 - **Decision gate is unchanged by this framing — it keys on the all-severity branch-scan total going down (see the gate above), not on X/Y.**
@@ -994,13 +997,13 @@ They have NOT been included in the PR above.
 CVE: <CVE-ID> | Severity: <severity> | CVSS: <score>
 Package: <package> <version>
 Path: <path>
-Why manual: <reason — e.g. "Roslyn version string in .deps.json metadata file">
+Why manual: <reason — e.g. "dotnet-format bundles Pkcs 8.0.1; no .NET 8.0 servicing release fixes it">
 What to do: <specific instruction — see below>
 ```
 
-**For `.deps.json` / Roslyn findings:**
-> The scanner flags old Roslyn version strings in `.deps.json` metadata files inside the .NET SDK. These are not real vulnerable binaries — the actual Roslyn binaries are up to date. Fix options:
-> 1. Bump the .NET SDK version (the real fix — already handled if a .NET SDK CVE was auto-fixed above)
+**For `/usr/share/dotnet/sdk/` findings** (only those no servicing SDK fixes — the rest were bumped in this run, category 3):
+> The flagged version is either one the SDK genuinely ships in a component Microsoft hasn't serviced (e.g. `dotnet-format`), or a string an existing `.deps.json` `sed` wrote. Fix options:
+> 1. Bump the .NET SDK when a servicing release fixes it (re-check each run)
 > 2. Add a Prisma Cloud suppression for this CVE ID — **preferred** whenever the binary is not actually vulnerable
 > 3. **Last resort only:** a `sed` command in the Dockerfile patching the version string in that file. The existing `sed` pattern is a *cautionary* reference, not a model — it makes the scanner report something untrue about the image (`vulnerability_history.md` commit 5).
 
@@ -1035,7 +1038,8 @@ Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprin
 
 ✗ Fixable but did NOT land (excluded from PR):
    - <CVE-ID>: <package> — <reason: deferred for cause (breaking major jump / setuptools-vendored /
-     low value), OR attempted-but-failed (e.g. default-gem version still on disk)>
+     low value), OR attempted-but-failed (e.g. the fix didn't land in the branch image),
+     OR patched at runtime (assertion OK), Prisma reads the stale default gemspec (Ruby)>
    - ...
 
 ⚠  Manual intervention required (NOT in PR):
@@ -1045,8 +1049,8 @@ Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprin
 ℹ  Not actionable in this repo — not auto-fixed this run (count only): <Z> — monitor-only
    JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, JDK-later-major-only,
    distro pip, no-released-patch (open/needed/deferred), Ubuntu ESM,
-   scanner-appeasement/manual (.deps.json/Roslyn)
-   (the ⚠ manual-intervention items above are the detail behind Z's scanner-appeasement/manual
+   .NET SDK rows with no servicing fix (manual)
+   (the ⚠ manual-intervention items above are the detail behind Z's manual
     portion — a subset of Z, NOT an additional count)
    criticals this run: <state it — e.g. "all N monitor-only JMeter/Gatling (Tika)"; do NOT assume>
    (raw scan, reconciliation only: baseline <a> → branch <b> [crit A→A', high B→B'])
@@ -1090,7 +1094,7 @@ For each vulnerability, look up sources in this order:
 | Publish trigger | **Not listed here on purpose** — publishing is gated. See "Republishing to clear R findings" for the trigger and its approval requirements |
 | Prisma Cloud console (master job's scan lands here) | `https://us-west1.cloud.twistlock.com/us-4-161024623` → Monitor → Vulnerabilities → Images → CI |
 | Docker Hub unstable tag | `https://hub.docker.com/v2/repositories/blazemeter/taurus/tags/unstable` |
-| .NET 8.0 release metadata | `https://dotnetcli.azureedge.net/dotnet/release-metadata/8.0/releases.json` |
+| .NET 8.0 release metadata | `https://builds.dotnet.microsoft.com/dotnet/release-metadata/8.0/releases.json` |
 | Vulnerability fix history | `vulnerability_history.md` (repo root, not `.claude/` — see the reconciliation step before the PR) — consult this before fixing any CVE |
 
 ## taurus-branch-builder parameters
