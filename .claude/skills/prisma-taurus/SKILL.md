@@ -19,6 +19,8 @@ End-to-end vulnerability management for the Taurus Docker image. Fetches the lat
 
 **Why verify before the PR:** unit tests do not exercise the Dockerfile (gem/npm/apt changes) and a fix that "looks" applied can be a no-op against the scanner (e.g. `gem update` installs a patched gem but leaves the vulnerable Ruby *default-gem* version on disk, which Prisma still reports). The `taurus-branch-builder` Jenkins job can build any branch into an image and scan it with Prisma — so the fixes are proven in the image *before* a PR is created, not assumed.
 
+**`vulnerability_history.md` takes priority over this file.** Read it before classifying or fixing anything. The notes are updated by every run; this file is updated by hand, every now and then. When the two conflict, follow the notes.
+
 ## When to Use
 
 - User asks about Taurus CVEs, vulnerabilities, or security scan results
@@ -1095,7 +1097,7 @@ For each vulnerability, look up sources in this order:
 | Prisma Cloud console (master job's scan lands here) | `https://us-west1.cloud.twistlock.com/us-4-161024623` → Monitor → Vulnerabilities → Images → CI |
 | Docker Hub unstable tag | `https://hub.docker.com/v2/repositories/blazemeter/taurus/tags/unstable` |
 | .NET 8.0 release metadata | `https://builds.dotnet.microsoft.com/dotnet/release-metadata/8.0/releases.json` |
-| Vulnerability fix history | `vulnerability_history.md` (repo root, not `.claude/` — see the reconciliation step before the PR) — consult this before fixing any CVE |
+| Vulnerability fix history | `vulnerability_history.md` (repo root, not `.claude/` — see the reconciliation step before the PR) — read before fixing any CVE; **takes priority over this file on conflict** |
 
 ## taurus-branch-builder parameters
 
