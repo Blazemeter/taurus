@@ -15,11 +15,11 @@ description: Use when the user wants to check, fix, or verify Prisma Cloud vulne
 
 ## Overview
 
-End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, gets an independent local code review (if a review skill is available) and amends accepted fixes **before pushing**, then **builds the fixed branch into a Docker image and re-scans it** to confirm the fixes actually reduce vulnerabilities in the real image. A PR is opened **only after** that branch scan shows fewer vulnerabilities than the baseline — never at an early stage; the PR then requests a GitHub Copilot review and triages it once, and finally posts a "ready for review" summary to Slack (best-effort; on a Jenkins-triggered run, this posts even when there was nothing to fix, so a scheduled run is never silent).
+End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, gets an independent local code review (if a review skill is available) and amends accepted fixes **before pushing**, then **builds the fixed branch into a Docker image and re-scans it** to confirm the fixes actually reduce vulnerabilities in the real image. A PR is opened **only after** that branch scan shows fewer vulnerabilities than the baseline — never at an early stage; the PR then requests a GitHub Copilot review and triages it once (only when Copilot is configured for the repo, step 15b), and finally posts a "ready for review" summary to Slack (best-effort; on a Jenkins-triggered run, this posts even when there was nothing to fix, so a scheduled run is never silent).
 
 **Why verify before the PR:** unit tests do not exercise the Dockerfile (gem/npm/apt changes) and a fix that "looks" applied can be a no-op against the scanner (e.g. `gem update` installs a patched gem but leaves the vulnerable Ruby *default-gem* version on disk, which Prisma still reports). The `taurus-branch-builder` Jenkins job can build any branch into an image and scan it with Prisma — so the fixes are proven in the image *before* a PR is created, not assumed.
 
-**`vulnerability_history.md` takes priority over this file.** Read it before classifying or fixing anything. Runs update the notes as they learn; this file is updated by hand, every now and then. When the two conflict, follow the notes — the Patterns and Guidance section; the dated "Commit N" entries are historical context, as the notes themselves say.
+**`vulnerability_history.md` takes priority over this file.** Read it before classifying or fixing anything. Runs update the notes as they learn; this file is updated by hand, every now and then. When the two conflict, follow the notes.
 
 ## When to Use
 
@@ -278,7 +278,7 @@ Counting basis — X and Y are **distinct CVEs**:
 - **Y** = the subset fixed by **a change made this run** to this repo's own `Dockerfile` / `requirements.txt`, whose old version is **confirmed gone in the branch re-scan**. A finding that cleared without any change this run (an existing unpinned line or an `npm@11` bump picking the fix up) is **R, not Y** — even though the branch scan shows it gone, which it will either way. If `Y < X`, list which didn't land, each with its reason label (step 5's vocabulary).
 
 Every finding lands in **exactly one** bucket so nothing is silently omitted:
-- **Fixed (Y)** — verified gone in the branch image. (A Ruby default gem patched by `gem install` is **not** Y — Prisma keeps reading its stale default gemspec. Put it in X − Y labeled "patched at runtime (assertion OK), Prisma reads the stale default gemspec"; see "Ruby gems".)
+- **Fixed (Y)** — verified gone in the branch image. (A Ruby default gem patched by `gem install` is **not** Y — Prisma keeps reading its stale default gemspec. Put it in X − Y labeled `runtime-patched`; see "Ruby gems".)
 - **Fixable but did NOT land (X − Y)** — each with one reason label from the vocabulary below. **R (rebuild-clearable) is a *labeled subset of this bucket*, not a fourth bucket** — an R finding is in X (it is fixed-in and in scope) and not in Y (no code change landed it this run), but it is NOT "deferred for cause": label it `rebuild-clearable` ("clears on rebuild, no code change"). So `X`, `Y` and `Z` still partition every finding; `R` only tags some of `X − Y`, and must never be added to X, Y or Z as an extra count.
 - **Not actionable in this repo (Z)** — collapse into **ONE categorized count, never a per-CVE scoreboard**: monitor-only JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, JDK-later-major-only, distro pip, no-released-patch (open/needed/deferred), Ubuntu ESM, .NET SDK rows with no servicing fix (manual). (In-scope OS/apt findings at `/var/lib/dpkg/status` belong in **X**, not here.)
 
@@ -288,7 +288,8 @@ Every finding lands in **exactly one** bucket so nothing is silently omitted:
   - `not-landed` — a fix was applied but the branch scan still shows the old version.
   - `runtime-patched` — Ruby default gem: patched at runtime (assertion OK), Prisma reads the stale default gemspec.
   - `major-jump` — the only fix is a breaking major version (e.g. an npm transitive override).
-  - `setuptools-vendored` — inside setuptools' `_vendor/`, blocked by the setuptools pin (Python case 4).
+  - `setuptools-pin` — blocked by the `setuptools==` pin: a vendored dep in `_vendor/` (Python case 4) or the direct setuptools CVE that needs the `pkg_resources`-free release (see the notes, setuptools).
+  - `upstream-not-bundled` — the fixed version exists, but the parent that ships the vulnerable copy hasn't picked it up yet: npm-internal deps the latest npm still bundles, a .NET SDK file the latest servicing release still ships unpatched. Monitor; re-check each run.
   - `low-value` — deliberately skipped (e.g. a CVSS-0 low whose only fix is a brittle override); say why.
   - `inconclusive` — the R evidence is missing or ambiguous (category 4): monitor, no change.
   - `pre-pr-recheck` — found fixable at the step-15 re-check, not in this PR.
@@ -434,7 +435,7 @@ Deps bundled **inside the global `npm` CLI itself** (`undici`, `glob`, `cross-sp
 
 #### .NET SDK bump (Dockerfile)
 
-When a CVE is in the .NET runtime (`/usr/share/dotnet/dotnet`, `shared/…`) or in an SDK component a servicing release fixes (category 2). Full recipe, traps and history: `vulnerability_history.md`, "When .NET SDK has a CVE".
+When a CVE is in the .NET runtime (`/usr/share/dotnet/dotnet`, `shared/…`) or in an SDK component a servicing release fixes (category 2). Facts and history behind it: `vulnerability_history.md`, "When .NET SDK has a CVE".
 
 1. Fetch the release metadata and **confirm a release newer than the current `DOTNET_SDK_VERSION` names your CVE in its `cve-list`** — the cheapest proof the bump is the right fix. Bump to the latest release (`releases[0]`):
    ```bash
@@ -506,7 +507,7 @@ When a CVE is in a system package (path is `/var/lib/dpkg/status`, empty, or in 
 
    When the package is covered by an unpinned line, an `--only-upgrade` entry is also **inert in the `--no-cache` master build** (`Jenkinsfile:46`) — `--only-upgrade` can only act on a package that is installed *and* stale, and an unpinned install always yields pocket-current. (It is **not** inert in a layer-cached `taurus-branch-builder` build, where the earlier install layer can be reused while the `--only-upgrade` layer re-resolves — see the npm cached-layer caveat in `vulnerability_history.md`. Never read "it cleared in the branch scan" as proof the entry was needed.)
 
-   *Worked example (2026-08-27, scan #216):* openssl `3.0.13-0ubuntu3.12` flagged, fixed in `.15`. It is **not** in the `--only-upgrade` list, and `openssl` depends on `libssl3t64 (>= 3.0.9)` — loose — so `libssl-dev`'s strict `=` does not drag the CLI forward. That looked conclusively "not covered", and an entry was added. It was wrong: `ubuntu:24.04` ships **no** `openssl` package, and the image's own apt history shows `openssl:amd64 (3.0.13-0ubuntu3.12, automatic)` installed by the Dockerfile's line-38 `apt-get install … ca-certificates …` step at 2026-08-21 11:12:28 — pocket-current that day. So the correct evidence row was "OS package (apt)", not "base image"; `.15` published 2026-08-25, four days after build start. Correct answer: **R, zero code changes.** The entry was reverted before it was pushed.
+   *Worked example (2026-08-27, scan #216):* openssl `3.0.13-0ubuntu3.12` flagged, fixed in `.15`. It is **not** in the `--only-upgrade` list, and `openssl` depends on `libssl3t64 (>= 3.0.9)` — loose — so `libssl-dev`'s strict `=` does not drag the CLI forward. That looked conclusively "not covered", and an entry was added. It was wrong: `ubuntu:24.04` ships **no** `openssl` package, and the image's own apt history shows `openssl:amd64 (3.0.13-0ubuntu3.12, automatic)` installed by the Dockerfile's early `apt-get install … ca-certificates …` step at 2026-08-21 11:12:28 — pocket-current that day. So the correct evidence row was "OS package (apt)", not "base image"; `.15` published 2026-08-25, four days after build start. Correct answer: **R, zero code changes.** The entry was reverted before it was pushed.
 
    ⚠️ **The step-14/15 gate cannot catch this mistake** — a branch build shows the package gone and the total down either way, so it "validates" an inert entry. Settle provenance here, before the build; never let a green gate stand in for this check.
 1. Look up the fixed package version on NVD, and confirm it exists in a noble pocket. **If the only fixed version ends in `+esmN`/`~esmN` it is Ubuntu Pro ESM — `apt-get` cannot reach it. Stop: that is not fixable here (→ Z), not an `--only-upgrade` entry.**
@@ -527,7 +528,7 @@ When a CVE is in a system package (path is `/var/lib/dpkg/status`, empty, or in 
 
 #### Ruby gems (Dockerfile)
 
-When a CVE is in a Ruby gem (path contains `/usr/local/rbenv/`). Full recipe and history: `vulnerability_history.md`, "When a Ruby gem has a CVE".
+When a CVE is in a Ruby gem (path contains `/usr/local/rbenv/`). Facts and history behind it (including bundled vs pure default gems): `vulnerability_history.md`, "When a Ruby gem has a CVE".
 
 1. **Bump `ARG RUBY_VERSION` first** if a newer Ruby already bundles the fixed gem. For a default gem this is the **only** real fix: it replaces the stale `specifications/default/<gem>-<old>.gemspec` that Prisma reads, which `gem install` never does. Check what a candidate Ruby bundles before writing any gem install — default gems at `raw.githubusercontent.com/ruby/ruby/<tag>/lib/<gem>/version.rb` (json: `ext/json/lib/json/version.rb`), bundled gems in `raw.githubusercontent.com/ruby/ruby/<tag>/gems/bundled_gems` — and confirm ruby-build has the version: `api.github.com/repos/rbenv/ruby-build/contents/share/ruby-build/<version>`. Re-check every run; ruby-build availability changes within days.
 2. **Otherwise, install the explicit fixed version** in the existing gem `RUN` in the `runtimes` stage (`gem install json` builds a native extension; `final` has no compiler). Use `gem install <gem> -v <fixed-version> --no-document`, never `gem update` (jumps to latest, not reproducible).
@@ -649,7 +650,7 @@ Review the committed-but-unpushed diff (`Dockerfile`, `requirements.txt`, and an
 > **This order is MECHANICAL, not advisory. If `superpowers:requesting-code-review` is available, you MUST use it — always.** It is option 1 and it is mandatory whenever present; `/code-review` is a fallback used **only** when `superpowers:requesting-code-review` is genuinely absent or errors on invocation. Do **not** choose `/code-review` (or skip) while `superpowers:requesting-code-review` is available. There is **no exception for a "small" or "Dockerfile-only" diff, no "right-sized / lighter tool" judgment** — diff size is irrelevant to this choice and must never move you off `superpowers:requesting-code-review`. If you ever believe the fallback is better for the situation, do **not** silently substitute it: state out loud "the skill mandates `superpowers:requesting-code-review`; I'm considering `/code-review` because `<reason>`" and get confirmation before deviating. Substituting your own optimization for this explicit order is a process error even when the outcome would be the same.
 
 Then, whichever ran (if any):
-1. Invoke the chosen review skill on the committed fix diff. **The reviewer reads and reports; it must not change anything** — no edits, no `sed -i`, no re-running a Dockerfile step against a reference extraction to "test" it (build #6's review did that to the .NET SDK reference copy and made a live `sed` look dead; see `vulnerability_history.md`). Tell the reviewer this in its prompt.
+1. Invoke the chosen review skill on the committed fix diff. **The reviewer reads and reports; it must not change anything** — no edits, no `sed -i`, no re-running a Dockerfile step against a reference extraction to "test" it (build #6's review did that to the .NET SDK reference copy and made a live `sed` look dead; see the .NET SDK bump section, step 3). Tell the reviewer this in its prompt.
 2. **Triage every comment yourself — do not auto-apply.** Decide **change** vs **keep as-is** with technical rigor (as in `superpowers:receiving-code-review`), and justify each call:
    - Accept when it improves correctness, robustness, or matches an in-repo convention (e.g. add a new gem to the Ruby assertion's `want` list instead of a separate check; keep an `apt --only-upgrade` unpinned so a security-pocket bump doesn't later break the build).
    - Reject/keep when the current change is already correct, or the comment conflicts with the skill's classification rules (e.g. a suggestion to fix a JMeter/Gatling-bundled, ESM, or scanner-appeasement finding — out of scope here; keep it as-is).
@@ -819,12 +820,20 @@ RULESET_LIST_STATUS=$?
 if [ "$RULESET_LIST_STATUS" -eq 0 ]; then
   xargs -I{} gh api "repos/Blazemeter/taurus/rulesets/{}" \
     --jq 'select(.rules[]?.type=="copilot_code_review") | {id, enforcement}' \
-    < /tmp/copilot-ruleset-ids.txt
+    < /tmp/copilot-ruleset-ids.txt || RULESET_LIST_STATUS=$?   # a failed per-ruleset read is "can't tell", not "absent"
 fi
 echo "list_status=$RULESET_LIST_STATUS"
+# second signal: a manual REST request works whenever Copilot is licensed, ruleset or not.
+# Count Copilot reviews submitted in the LAST 14 DAYS on recent PRs (older ones prove nothing:
+# the last one before Copilot was removed was 2026-09-23, PR #2030).
+SINCE=$(python3 -c "import datetime as d; print((d.datetime.now(d.timezone.utc)-d.timedelta(days=14)).strftime('%Y-%m-%dT%H:%M:%SZ'))")
+gh api "repos/Blazemeter/taurus/pulls?state=all&sort=updated&direction=desc&per_page=20" --jq '.[].number' \
+  | xargs -I{} gh api "repos/Blazemeter/taurus/pulls/{}/reviews" \
+      --jq "[.[] | select(.user.login==\"copilot-pull-request-reviewer[bot]\" and .submitted_at >= \"$SINCE\")] | length" 2>/dev/null \
+  | awk '{s+=$1} END {print "recent_copilot_reviews=" s+0}'
 ```
-- **`list_status=0` and a rule with `enforcement: "active"`** → request the review below and run step 16. (A ruleset can read `active` while Copilot is unlicensed org-wide; step 16's bounded poll is the real test.)
-- **`list_status=0` and no `copilot_code_review` rule, or not `active`** → Copilot is not configured: skip the request and step 16, and note "Copilot review skipped — not configured for this repo (ruleset absent/disabled)" in the summary. As of 2026-10-21 taurus has no rulesets at all, so this is the expected outcome today; it switches back by itself if Copilot is reintroduced.
+- **`list_status=0` and a rule with `enforcement: "active"`, or `recent_copilot_reviews` > 0** → request the review below and run step 16. (A ruleset can read `active` while Copilot is unlicensed org-wide; step 16's bounded poll is the real test.)
+- **`list_status=0`, no active `copilot_code_review` rule, AND `recent_copilot_reviews=0`** → Copilot is not configured: skip the request and step 16, and note "Copilot review skipped — not configured for this repo (ruleset absent/disabled)" in the summary. As of 2026-10-21 taurus has no rulesets at all, so this is the expected outcome today. If Copilot is reintroduced, either an active ruleset or a Copilot review on a recent PR (someone requested it by hand) turns the request back on — so a licence-only return is still picked up once Copilot reviews any PR.
 - **`list_status` non-zero** (auth, rate limit, network, or a token without repo-administration read) → "can't tell", not "not configured": request the review and run step 16 anyway, and note "Copilot config check inconclusive (<status>) — requested anyway".
 
 > ⚠️ **Call the REST endpoint directly — do not call `gh pr edit --add-reviewer @copilot` at all.** It routes through GraphQL, which is a confirmed, known no-op for bot logins (Copilot is a bot, not a user): it returns **exit 0 while silently attaching nothing** (verified directly on a real PR — twice). Since it never reports failure, there's no way to gate the REST call on its result — and keeping it as an earlier statement in the same script is actively worse than useless: if the shell has `set -e` (or any other exit-on-error behavior) active and that call happens to genuinely fail for an unrelated reason (auth blip, rate limit), it aborts the script before the REST call below ever runs. It buys nothing (REST is the confirmed-working path for bot reviewers) and risks everything. Skip it:
@@ -848,6 +857,7 @@ PR body should include (apply the step-5 reporting rule — **lead with fixable-
 - **Headline first — Fixable in taurus, this run: `<X>` detected → `<Y>` fixed.** Distinct CVEs; count only this repo's own `Dockerfile` / `requirements.txt` fixes confirmed gone in the branch scan. This is the opening line — do **not** open with the raw total or any JMeter/Gatling count. If `Y < X`, list which didn't land, each with its reason label (step 5's vocabulary). Add `**Rebuild-clearable: <R>**` when `R > 0`, noting these need no code change and clear on the next master build (labeled subset of `X − Y`, never an extra count).
 - Table of the fixed CVEs: CVE ID, severity, package, old version → new version.
 - Note: "Verified against the `taurus-branch-builder` image scan (build #<BUILD>) before opening — integration passed."
+- Any notes line written this run marked `(promote to SKILL.md)`, quoted, so the maintainer sees it at review time.
 - Local code-review outcome (from step 12): which review comments were applied vs kept, and why.
 - **Not actionable in this repo — one categorized COUNT only (never per-CVE):** `<Z>` = monitor-only JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, JDK-later-major-only, distro pip, no-released-patch (open/needed/deferred), Ubuntu ESM, .NET SDK rows with no servicing fix (manual). State this run's criticals explicitly and computed (e.g. "all N criticals are monitor-only JMeter/Gatling" — verify each run, don't assume).
 - If you show the raw baseline→branch totals at all, put them in a single parenthetical **with at least crit/high** — never as the headline. (X/Y are distinct CVEs; the raw total counts per-occurrence, so it won't sum arithmetically with X — context, not a checksum.)
@@ -932,7 +942,7 @@ Safety property worth knowing: integration tests run **before** the push (stage 
 
 ### 17. Post the "ready for review" notification to Slack (best-effort; must NEVER fail the run)
 
-After step 16 — the PR exists (or the run confirmed there was nothing to fix), Copilot's single triage round is done (or timed out), and any accepted follow-up is pushed — post **one** summary to the team Slack channel. **Best-effort, exactly like the Copilot request (15b): it must never fail, block, or error the run.**
+After step 16 — the PR exists (or the run confirmed there was nothing to fix), Copilot's single triage round is done (or timed out, or skipped because Copilot isn't configured), and any accepted follow-up is pushed — post **one** summary to the team Slack channel. **Best-effort, exactly like the Copilot request (15b): it must never fail, block, or error the run.**
 
 **Jenkins build link.** `BUILD_URL`/`BUILD_NUMBER`/`JOB_NAME` are standard Jenkins env vars, present for any Jenkins-triggered run (the scheduled cron trigger or someone clicking "Build Now") and absent for a bare local/interactive run — this is the only signal used to tell the two apart. When `BUILD_URL` is set, prepend one line at the very top of the message: `:jenkins: <BUILD_URL|JOB_NAME #BUILD_NUMBER>`. Omit it entirely when unset.
 
@@ -1050,7 +1060,7 @@ They have NOT been included in the PR above.
 CVE: <CVE-ID> | Severity: <severity> | CVSS: <score>
 Package: <package> <version>
 Path: <path>
-Why manual: <reason — e.g. "dotnet-format bundles Pkcs 8.0.1; no .NET 8.0 servicing release fixes it">
+Why manual: <Z label from step 5, e.g. dotnet-no-servicing> — <detail, e.g. "dotnet-format bundles Pkcs 8.0.1; no .NET 8.0 servicing release fixes it">
 What to do: <specific instruction — see below>
 ```
 
@@ -1066,7 +1076,7 @@ What to do: <specific instruction — see below>
 > The scanner flags a package version string in dpkg's status database. Fix options, **in preference order**:
 > 1. Update the actual package to the flagged version if it's available in the Ubuntu repositories (this is the real fix — and if it's available, the finding was never appeasement; send it back to category 3)
 > 2. Add a Prisma Cloud suppression with documented justification — **preferred** whenever the installed binary is genuinely not vulnerable
-> 3. **Last resort only:** a `sed` command in the Dockerfile patching `/var/lib/dpkg/status`. The existing Firefox patch (`Dockerfile:118-121`) is a *cautionary* reference, not a model — `vulnerability_history.md`, "When the scanner flags something that looks like a version string issue" explains why it should not have been done, since it makes the scanner report something untrue about the image. Do not add a new one without a recorded reason.
+> 3. **Last resort only:** a `sed` command in the Dockerfile patching `/var/lib/dpkg/status`. The existing Firefox patch (the Dockerfile's "replace firefox version to make security scanners happy" step) is a *cautionary* reference, not a model — `vulnerability_history.md`, "When the scanner flags something that looks like a version string issue" explains why it should not have been done, since it makes the scanner report something untrue about the image. Do not add a new one without a recorded reason.
 
 ### 19. Final summary
 
@@ -1091,11 +1101,11 @@ Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprin
 
 ✗ Fixable but did NOT land (excluded from PR):
    - <CVE-ID>: <package> — <reason label from step 5's vocabulary, e.g. not-landed / major-jump /
-     setuptools-vendored / low-value / runtime-patched / pre-pr-recheck> — <one-line detail>
+     setuptools-pin / upstream-not-bundled / low-value / runtime-patched / pre-pr-recheck> — <one-line detail>
    - ...
 
 ⚠  Manual intervention required (NOT in PR):
-   - <CVE-ID>: <package> — <one-line reason>
+   - <CVE-ID>: <package> — <Z label from step 5> — <one-line detail>
    - ...
 
 ℹ  Not actionable in this repo — not auto-fixed this run (count only): <Z> — monitor-only
@@ -1107,7 +1117,8 @@ Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprin
    criticals this run: <state it — e.g. "all N monitor-only JMeter/Gatling (Tika)"; do NOT assume>
    (raw scan, reconciliation only: baseline <a> → branch <b> [crit A→A', high B→B'])
 
-Copilot review: <triaged N comments — M applied, K kept | did not complete in time | skipped (no gh)>
+Copilot review: <triaged N comments — M applied, K kept | did not complete in time | skipped (no gh) |
+                 skipped — not configured for this repo | config check inconclusive — requested anyway>
 Slack: <posted to #channel / printed - not configured / skipped (no fixes, not a Jenkins run) / failed: <error>>  (step 17; never blocks)
 
 Next steps:
