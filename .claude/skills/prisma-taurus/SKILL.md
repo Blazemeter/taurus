@@ -109,7 +109,7 @@ These jars (netty, log4j, tika, batik, xstream, jackson, logback, pebble, dnsjav
 
 > ⚠️ **`/var/lib/dpkg/status` is NOT in this category — it is the normal path for every OS/apt package.** This scanner reports **all** OS findings at `/var/lib/dpkg/status` (verified: scans #204, #215, #216 contain **zero** empty-path rows and 135/153/165 dpkg-path rows respectively). Treating that path as appeasement writes off *every* OS finding in the scan — in #216 that would have been 165 of 316 rows, including 16 with a real, non-ESM `fixed in` apt version (71 before removing Ubuntu Pro ESM). Route these to the **OS package** row of category 3 (then the category-4 gate), exactly like the libheif worked example in category 4 — whose finding also sat at `/var/lib/dpkg/status`.
 >
-> What genuinely belongs here is the *action*, not the path: **do not `sed`-patch `/var/lib/dpkg/status` to change a version string and silence the scanner** (see the Firefox `/var/lib/dpkg/status` sed in the Dockerfile, under "replace firefox version to make security scanners happy" — the pattern not to repeat; `vulnerability_history.md` commit 5 argues it should not have been done). A Prisma Cloud suppression is the preferred route for a genuine false positive; the sed is a gated last resort, reachable only through step 18.
+> What genuinely belongs here is the *action*, not the path: **do not `sed`-patch `/var/lib/dpkg/status` to change a version string and silence the scanner** (see the Firefox `/var/lib/dpkg/status` sed in the Dockerfile, under "replace firefox version to make security scanners happy" — the pattern not to repeat; `vulnerability_history.md`, "When the scanner flags something that looks like a version string issue" explains why it should not have been done). A Prisma Cloud suppression is the preferred route for a genuine false positive; the sed is a gated last resort, reachable only through step 18.
 
 **3. Auto-fixable → apply automatically (remaining CVEs where `Fix Status` starts with `fixed in`):**
 
@@ -427,7 +427,7 @@ Deps bundled **inside the global `npm` CLI itself** (`undici`, `glob`, `cross-sp
    If the latest npm bundles the fixed version → the existing `npm i -g npm@11` clears it on rebuild.
 2. **If the latest npm still bundles the vulnerable version → MONITOR.** Do **not** try to patch it in place:
    - `cd /usr/lib/node_modules/npm && npm install <dep>@<fixed>` **does not work** — it makes npm re-resolve its *own* `package.json`, which references unpublished workspace deps (`@npmcli/docs`), and the build fails with a registry `404`. **Verified failing** in taurus build #571 and taurus-cloud `MOB-51270` build #1.
-   - The only mechanism that would replace the dep is copying a temp-installed folder over npm's bundled one — that's the **brittle "manual unpack"** the cross-spawn lesson (commit #4) warns against. Don't.
+   - The only mechanism that would replace the dep is copying a temp-installed folder over npm's bundled one — that's the **brittle "manual unpack"** the cross-spawn lesson (`vulnerability_history.md`, "When cross-spawn / npm internals are flagged") warns against. Don't.
    - So the correct action is monitor: re-check each run; the fix lands automatically once an npm release bundles the patched dep and `npm i -g npm@11` picks it up.
 
 ---
@@ -1058,7 +1058,7 @@ What to do: <specific instruction — see below>
 > The flagged version is either one the SDK genuinely ships in a component Microsoft hasn't serviced (e.g. `dotnet-format`), or a string an existing `.deps.json` `sed` wrote. Fix options:
 > 1. Bump the .NET SDK when a servicing release fixes it (re-check each run)
 > 2. Add a Prisma Cloud suppression for this CVE ID — **preferred** whenever the binary is not actually vulnerable
-> 3. **Last resort only:** a `sed` command in the Dockerfile patching the version string in that file. The existing `sed` pattern is a *cautionary* reference, not a model — it makes the scanner report something untrue about the image (`vulnerability_history.md` commit 5).
+> 3. **Last resort only:** a `sed` command in the Dockerfile patching the version string in that file. The existing `sed` pattern is a *cautionary* reference, not a model — it makes the scanner report something untrue about the image (`vulnerability_history.md`, "When the scanner flags something that looks like a version string issue").
 
 **For `/var/lib/dpkg/` findings — only the rare true appeasement case:**
 > First confirm this really is appeasement. **Almost every `/var/lib/dpkg/status` finding is an ordinary OS/apt package** and belongs in category 3 + the category-4 gate, not here (see category 2). Only route a finding to this section when the installed binary is genuinely not vulnerable and the scanner is misreading a version string.
@@ -1066,7 +1066,7 @@ What to do: <specific instruction — see below>
 > The scanner flags a package version string in dpkg's status database. Fix options, **in preference order**:
 > 1. Update the actual package to the flagged version if it's available in the Ubuntu repositories (this is the real fix — and if it's available, the finding was never appeasement; send it back to category 3)
 > 2. Add a Prisma Cloud suppression with documented justification — **preferred** whenever the installed binary is genuinely not vulnerable
-> 3. **Last resort only:** a `sed` command in the Dockerfile patching `/var/lib/dpkg/status`. The existing Firefox patch (`Dockerfile:118-121`) is a *cautionary* reference, not a model — `vulnerability_history.md` commit 5 argues it should not have been done, since it makes the scanner report something untrue about the image. Do not add a new one without a recorded reason.
+> 3. **Last resort only:** a `sed` command in the Dockerfile patching `/var/lib/dpkg/status`. The existing Firefox patch (`Dockerfile:118-121`) is a *cautionary* reference, not a model — `vulnerability_history.md`, "When the scanner flags something that looks like a version string issue" explains why it should not have been done, since it makes the scanner report something untrue about the image. Do not add a new one without a recorded reason.
 
 ### 19. Final summary
 

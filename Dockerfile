@@ -280,7 +280,7 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 # to Ruby's own stdlib copy and the VULNERABLE code kept loading (measured in the published image:
 # ERB.version 4.0.4 / JSON::VERSION 2.9.1 despite patched gems being installed). That is scanner
 # appeasement, not a fix -- see vulnerability_history.md (repo root),
-# "When a Ruby gem has a CVE" step 3.
+# "When a Ruby gem has a CVE".
 #
 # Consequence, accepted deliberately: Prisma still reads the stale default gemspec and reports
 # json 2.9.1. That finding is VISIBLE AND HONEST while the loaded code is patched.
