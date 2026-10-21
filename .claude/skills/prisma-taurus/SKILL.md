@@ -275,12 +275,26 @@ The raw scan total (e.g. 290) is **misleading** as a headline: the large majorit
 
 Counting basis — X and Y are **distinct CVEs**:
 - **X** = distinct in-scope **fixable-in-taurus** CVEs at baseline: `Fix Status` starts with `fixed in` (or the row was found fixable at the pre-PR re-check, step 15), AND NOT JMeter/Gatling, AND NOT Ubuntu Pro ESM (only fixed version(s) ending `+esmN`/`~esmN`), AND NOT a binary-internal lib (k6 Go libs under `/usr/bin/k6`), AND NOT distro pip apt can't reach, AND NOT a JDK finding whose only fix is a later Java major (`/usr/lib/jvm/…`, `fixed in 22.0.1, 18, 12` — no 11.x fix exists), AND NOT a `/usr/share/dotnet/sdk/` row no servicing SDK fixes (manual, classification category 2, belongs in Z — an SDK row a servicing release fixes IS in X). **A `/var/lib/dpkg/status` path does NOT exclude a finding from X** — that is the normal OS/apt path, so such findings are in scope and usually resolve as R (see category 2). (Includes the items we then defer/skip for cause — setuptools-vendored, breaking npm major jumps, low-value — so the denominator is honest about what was *considered*.)
-- **Y** = the subset fixed by **a change made this run** to this repo's own `Dockerfile` / `requirements.txt`, whose old version is **confirmed gone in the branch re-scan**. A finding that cleared without any change this run (an existing unpinned line or an `npm@11` bump picking the fix up) is **R, not Y** — even though the branch scan shows it gone, which it will either way. If `Y < X`, list which didn't land and why.
+- **Y** = the subset fixed by **a change made this run** to this repo's own `Dockerfile` / `requirements.txt`, whose old version is **confirmed gone in the branch re-scan**. A finding that cleared without any change this run (an existing unpinned line or an `npm@11` bump picking the fix up) is **R, not Y** — even though the branch scan shows it gone, which it will either way. If `Y < X`, list which didn't land, each with its reason label (step 5's vocabulary).
 
 Every finding lands in **exactly one** bucket so nothing is silently omitted:
 - **Fixed (Y)** — verified gone in the branch image. (A Ruby default gem patched by `gem install` is **not** Y — Prisma keeps reading its stale default gemspec. Put it in X − Y labeled "patched at runtime (assertion OK), Prisma reads the stale default gemspec"; see "Ruby gems".)
-- **Fixable but did NOT land (X − Y)** — deferred/skipped for cause, or attempted-but-failed. **R (rebuild-clearable) is a *labeled subset of this bucket*, not a fourth bucket** — an R finding is in X (it is fixed-in and in scope) and not in Y (no code change landed it this run), but it is NOT "deferred for cause": label it "clears on rebuild, no code change". So `X`, `Y` and `Z` still partition every finding; `R` only tags some of `X − Y`, and must never be added to X, Y or Z as an extra count.
+- **Fixable but did NOT land (X − Y)** — each with one reason label from the vocabulary below. **R (rebuild-clearable) is a *labeled subset of this bucket*, not a fourth bucket** — an R finding is in X (it is fixed-in and in scope) and not in Y (no code change landed it this run), but it is NOT "deferred for cause": label it `rebuild-clearable` ("clears on rebuild, no code change"). So `X`, `Y` and `Z` still partition every finding; `R` only tags some of `X − Y`, and must never be added to X, Y or Z as an extra count.
 - **Not actionable in this repo (Z)** — collapse into **ONE categorized count, never a per-CVE scoreboard**: monitor-only JMeter/Gatling bundled jars (incl. criticals), k6 binary internals, JDK-later-major-only, distro pip, no-released-patch (open/needed/deferred), Ubuntu ESM, .NET SDK rows with no servicing fix (manual). (In-scope OS/apt findings at `/var/lib/dpkg/status` belong in **X**, not here.)
+
+**Reason vocabulary — use exactly these labels** for every finding that is not in Y, in the step-15 re-check, the PR body, step 18 and the step-19 summary, so the same finding carries the same label everywhere:
+- **In X − Y** (fixable, not landed this run):
+  - `rebuild-clearable` — R: clears on the next master build, no code change (category 4).
+  - `not-landed` — a fix was applied but the branch scan still shows the old version.
+  - `runtime-patched` — Ruby default gem: patched at runtime (assertion OK), Prisma reads the stale default gemspec.
+  - `major-jump` — the only fix is a breaking major version (e.g. an npm transitive override).
+  - `setuptools-vendored` — inside setuptools' `_vendor/`, blocked by the setuptools pin (Python case 4).
+  - `low-value` — deliberately skipped (e.g. a CVSS-0 low whose only fix is a brittle override); say why.
+  - `inconclusive` — the R evidence is missing or ambiguous (category 4): monitor, no change.
+  - `pre-pr-recheck` — found fixable at the step-15 re-check, not in this PR.
+- **In Z** (not actionable in this repo, count only): `jmeter-gatling`, `k6-internal`, `jdk-later-major`, `distro-pip`, `no-released-patch`, `ubuntu-esm`, `dotnet-no-servicing`.
+
+If a finding fits none of these, use the closest one and add a short note — don't invent a new label in one place only.
 
 **taurus IS the base image** — there is no "base image tag bump" and no "base-owned (cleared by a base tag)" bucket; those exist only in taurus-cloud (which builds `FROM blazemeter/taurus`). Omit them here.
 
@@ -710,7 +724,7 @@ Then do two checks:
    - **No released patch** (`needed` / `open` / `deferred`) **and ESM-only OS rows** → `https://ubuntu.com/security/cves/<CVE>.json`, the `noble` entry for the package. Fixable only if `status` is `released` **and** `pocket` is `security` or `updates` **and** the fixed version in `description` has no `+esm`/`~esm`. A `released` entry in an `esm-*` pocket is still ESM; `not-affected` is a suppression candidate, not a fix.
    - **No released patch, npm / PyPI** → get the fixed range from the advisory (`POST https://api.osv.dev/v1/query` with `{"package":{"name":"<pkg>","ecosystem":"npm"}, "version":"<installed>"}`, ecosystem `PyPI` for Python), then confirm in `registry.npmjs.org/<pkg>` / `pypi.org/pypi/<pkg>/json` that a version in that range is published.
    - **JMeter/Gatling, k6 internals, JDK later-major, distro pip** → no lookup; these are policy.
-3. **Run the category-4 gate on anything newly fixable.** A fix published after build start, for a package an unpinned line covers, is **R** — merging this PR clears it; add it to R with its evidence. Anything else newly fixable goes to X − Y with the reason "found at the pre-PR re-check, not in this PR". Do not fix it here: the image was already verified at step 14.
+3. **Run the category-4 gate on anything newly fixable.** A fix published after build start, for a package an unpinned line covers, is **R** — merging this PR clears it; add it to R with its evidence. Anything else newly fixable goes to X − Y with the reason `pre-pr-recheck`. Do not fix it here: the image was already verified at step 14.
 4. **Re-count X, Y, R and Z** and use the corrected numbers for the Jira ticket and the PR body. A misclassification found here is a durable lesson for the `vulnerability_history.md` reconciliation below.
 
 Step 18 prints the same lists in phase 3; they must match the PR body.
@@ -833,7 +847,7 @@ Keeping 15b separate is deliberate: a bad `--reviewer` on `gh pr create` can fai
 
 PR body should include (apply the step-5 reporting rule — **lead with fixable-detected/fixed, not the raw total**):
 - **Jira:** `<MOB-XXXXX>` (the ticket created above).
-- **Headline first — Fixable in taurus, this run: `<X>` detected → `<Y>` fixed.** Distinct CVEs; count only this repo's own `Dockerfile` / `requirements.txt` fixes confirmed gone in the branch scan. This is the opening line — do **not** open with the raw total or any JMeter/Gatling count. If `Y < X`, list which didn't land and why. Add `**Rebuild-clearable: <R>**` when `R > 0`, noting these need no code change and clear on the next master build (labeled subset of `X − Y`, never an extra count).
+- **Headline first — Fixable in taurus, this run: `<X>` detected → `<Y>` fixed.** Distinct CVEs; count only this repo's own `Dockerfile` / `requirements.txt` fixes confirmed gone in the branch scan. This is the opening line — do **not** open with the raw total or any JMeter/Gatling count. If `Y < X`, list which didn't land, each with its reason label (step 5's vocabulary). Add `**Rebuild-clearable: <R>**` when `R > 0`, noting these need no code change and clear on the next master build (labeled subset of `X − Y`, never an extra count).
 - Table of the fixed CVEs: CVE ID, severity, package, old version → new version.
 - Note: "Verified against the `taurus-branch-builder` image scan (build #<BUILD>) before opening — integration passed."
 - Local code-review outcome (from step 12): which review comments were applied vs kept, and why.
@@ -1078,9 +1092,8 @@ Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprin
     Rebuild-clearable line above, never here — the branch scan shows them gone either way.]
 
 ✗ Fixable but did NOT land (excluded from PR):
-   - <CVE-ID>: <package> — <reason: deferred for cause (breaking major jump / setuptools-vendored /
-     low value), OR attempted-but-failed (e.g. the fix didn't land in the branch image),
-     OR patched at runtime (assertion OK), Prisma reads the stale default gemspec (Ruby)>
+   - <CVE-ID>: <package> — <reason label from step 5's vocabulary, e.g. not-landed / major-jump /
+     setuptools-vendored / low-value / runtime-patched / pre-pr-recheck> — <one-line detail>
    - ...
 
 ⚠  Manual intervention required (NOT in PR):
