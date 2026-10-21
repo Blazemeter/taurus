@@ -760,6 +760,18 @@ git push origin <branch-name>
 
 **Create the PR (only when the gate passes).** Do this in **two independent steps** so creating the PR never depends on Copilot being available.
 
+> **Re-check the classification before writing the PR body — the body is written once and never edited later.** Phase 3 (Slack + final summary) runs without a GitHub token, so anything it discovers cannot reach the PR. Build #7 found in phase 3, while compiling the step-18 manual list, that 6 .NET SDK CVEs it had counted as "not actionable" were fixed by SDK 8.0.426 — and PR #2036 merged with the wrong text. So, in this invocation, before writing `<body.md>` (both the normal and the R-only variant):
+> 1. **Build the step-18 lists now** — the manual-intervention items and every finding counted in Z — exactly as step 18 will print them.
+> 2. **Repeat, per category, the one lookup that could prove the classification wrong** — not a per-CVE review of all of Z (most of Z is JMeter/Gatling, which is policy). Check `vulnerability_history.md` first (it takes priority over this file):
+>    - **.NET SDK rows** (`/usr/share/dotnet/sdk/`) → one run of the `releases.json` snippet in the .NET SDK bump section: is the CVE in a newer release's `cve-list`?
+>    - **No released patch** (`needed` / `open` / `deferred`) and **Ubuntu ESM-only** OS rows → Launchpad / `https://ubuntu.com/security/cves/<CVE>.json` for that package: is a non-ESM fix published in noble now?
+>    - **No released patch, npm / PyPI** → `registry.npmjs.org/<pkg>` / `pypi.org/pypi/<pkg>/json`: is a fixed version published now?
+>    - **JMeter/Gatling, k6 internals, JDK later-major, distro pip** → no lookup; these are policy.
+> 3. **Re-count X, Y, R and Z** after any move, and write the PR body from the corrected numbers.
+> 4. **If an item turns out to be fixable**, do not fix it in this PR (the image was already verified at step 14): move it from Z into X − Y ("Fixable but did NOT land", step 5) with the reason "found at the pre-PR re-check, not in this PR", so the reviewer sees it before merge.
+>
+> Step 18 then prints the same lists in phase 3 — it must not differ from what the PR body says.
+
 > **Docs-only / R-only PR (`Y = 0`, `R > 0`) — use this variant of the contract.** When the run made no code fix and the PR exists to carry the reconciliation *and* trigger the rebuild that clears R (see step 6), three items in the body list below cannot be satisfied honestly. Substitute, don't omit silently:
 > - **Jira** — skip it (no fix work to track), and **omit the key from the PR title** rather than inventing one. Say in the body: "No Jira ticket — no code fix to track."
 > - **The `taurus-branch-builder` verification line** — do **not** include it; asserting it would be a false verification claim. Replace with: "No branch-build verification — this PR contains no code change to verify. The `<R>` findings below are expected to clear when this PR is merged, because the merge rebuilds and republishes `unstable`."
