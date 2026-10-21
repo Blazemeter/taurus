@@ -280,14 +280,15 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 # to Ruby's own stdlib copy and the VULNERABLE code kept loading (measured in the published image:
 # ERB.version 4.0.4 / JSON::VERSION 2.9.1 despite patched gems being installed). That is scanner
 # appeasement, not a fix -- see vulnerability_history.md (repo root),
-# "When a Ruby gem has a CVE" step 3.
+# "When a Ruby gem has a CVE".
 #
 # Consequence, accepted deliberately: Prisma still reads the stale default gemspec and reports
 # json 2.9.1. That finding is VISIBLE AND HONEST while the loaded code is patched.
 # Do not "fix" it by deleting the gemspec -- that is the appeasement bug above.
 # remove when a Ruby available in ruby-build bundles json >= 2.19.9 (3.4.11 still ships 2.9.1):
-# bump RUBY_VERSION instead, then delete the json install here and its entry in the assertion below
-# -- exactly how net-imap/erb retired at 3.4.10 and resolv at 3.4.11.
+# bump RUBY_VERSION instead, then delete the json install here but KEEP its entry in the assertion
+# below, set to the version the new Ruby bundles -- exactly how net-imap/erb retired at 3.4.10 and resolv at 3.4.11. Entries for gems Ruby
+# bundles correctly are what turn a silent Ruby downgrade into a build failure.
 #
 # The assertion below checks the thing that actually matters: that the patched version is what
 # `require` loads. A silent activation failure fails the build instead of shipping quietly.
