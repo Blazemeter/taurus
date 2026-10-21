@@ -19,7 +19,7 @@ End-to-end vulnerability management for the Taurus Docker image. Fetches the lat
 
 **Why verify before the PR:** unit tests do not exercise the Dockerfile (gem/npm/apt changes) and a fix that "looks" applied can be a no-op against the scanner (e.g. `gem update` installs a patched gem but leaves the vulnerable Ruby *default-gem* version on disk, which Prisma still reports). The `taurus-branch-builder` Jenkins job can build any branch into an image and scan it with Prisma — so the fixes are proven in the image *before* a PR is created, not assumed.
 
-**`vulnerability_history.md` takes priority over this file.** Read it before classifying or fixing anything. The notes are updated by every run; this file is updated by hand, every now and then. When the two conflict, follow the notes.
+**`vulnerability_history.md` takes priority over this file.** Read it before classifying or fixing anything. Runs update the notes as they learn; this file is updated by hand, every now and then. When the two conflict, follow the notes — the Patterns and Guidance section; the dated "Commit N" entries are historical context, as the notes themselves say.
 
 ## When to Use
 
@@ -272,7 +272,7 @@ The raw scan total (e.g. 290) is **misleading** as a headline: the large majorit
 > **Rebuild-clearable: `<R>`** — no code change needed; a republish of current master clears these (omit the line when `R = 0`).
 
 Counting basis — X and Y are **distinct CVEs**:
-- **X** = distinct in-scope **fixable-in-taurus** CVEs at baseline: `Fix Status` starts with `fixed in`, AND NOT JMeter/Gatling, AND NOT Ubuntu Pro ESM (only fixed version(s) ending `+esmN`/`~esmN`), AND NOT a binary-internal lib (k6 Go libs under `/usr/bin/k6`), AND NOT distro pip apt can't reach, AND NOT a JDK finding whose only fix is a later Java major (`/usr/lib/jvm/…`, `fixed in 22.0.1, 18, 12` — no 11.x fix exists), AND NOT a `/usr/share/dotnet/sdk/` row no servicing SDK fixes (manual, classification category 2, belongs in Z — an SDK row a servicing release fixes IS in X). **A `/var/lib/dpkg/status` path does NOT exclude a finding from X** — that is the normal OS/apt path, so such findings are in scope and usually resolve as R (see category 2). (Includes the items we then defer/skip for cause — setuptools-vendored, breaking npm major jumps, low-value — so the denominator is honest about what was *considered*.)
+- **X** = distinct in-scope **fixable-in-taurus** CVEs at baseline: `Fix Status` starts with `fixed in` (or the row was found fixable at the pre-PR re-check, step 15), AND NOT JMeter/Gatling, AND NOT Ubuntu Pro ESM (only fixed version(s) ending `+esmN`/`~esmN`), AND NOT a binary-internal lib (k6 Go libs under `/usr/bin/k6`), AND NOT distro pip apt can't reach, AND NOT a JDK finding whose only fix is a later Java major (`/usr/lib/jvm/…`, `fixed in 22.0.1, 18, 12` — no 11.x fix exists), AND NOT a `/usr/share/dotnet/sdk/` row no servicing SDK fixes (manual, classification category 2, belongs in Z — an SDK row a servicing release fixes IS in X). **A `/var/lib/dpkg/status` path does NOT exclude a finding from X** — that is the normal OS/apt path, so such findings are in scope and usually resolve as R (see category 2). (Includes the items we then defer/skip for cause — setuptools-vendored, breaking npm major jumps, low-value — so the denominator is honest about what was *considered*.)
 - **Y** = the subset fixed by **a change made this run** to this repo's own `Dockerfile` / `requirements.txt`, whose old version is **confirmed gone in the branch re-scan**. A finding that cleared without any change this run (an existing unpinned line or an `npm@11` bump picking the fix up) is **R, not Y** — even though the branch scan shows it gone, which it will either way. If `Y < X`, list which didn't land and why.
 
 Every finding lands in **exactly one** bucket so nothing is silently omitted:
@@ -701,6 +701,18 @@ Then do two checks:
 - **Vulnerabilities went down AND no fixed package is still flagged at its old version** (a Ruby default gem covered by the step-1 exception above doesn't count as still flagged) → proceed to create the PR (below). A run whose **only** fix is such a gem install can't lower the total, so it lands in the next bullet — report that the runtime assertion passed and the finding is accepted, not that the fix failed.
 - **Vulnerabilities did not improve, OR a fix silently failed to land** → do NOT create a PR. Report the comparison, the failed fixes and why, and stop. Tell the user the branch is pushed and the build number so they can decide.
 
+**Before the Jira ticket and the PR — re-check the classification (also on the R-only path).** The PR body is written in this invocation; phase 3 (Slack + final summary) runs without a GitHub token and cannot edit it. Build #7 found in phase 3, while compiling the step-18 manual list, that 6 .NET SDK CVEs it had counted as "not actionable" were fixed by SDK 8.0.426, and the R-only PR #2036 merged with the wrong text. So, right after the decision gate passes (on the R-only path, before anything else in this step):
+1. **Build the step-18 lists now** (JMeter/Gatling and the manual-intervention items) **and the Z breakdown.**
+2. **Repeat, per category, the lookup that could prove the classification wrong** — one scripted loop over the distinct CVE IDs of each category, not a manual review of all of Z (most of Z is JMeter/Gatling, which is policy). Use `vulnerability_history.md` to know what to look up (e.g. a recorded re-check condition); a note's verdict never replaces the lookup.
+   - **.NET SDK rows** (`/usr/share/dotnet/sdk/`) → from the fix branch's checkout, run the `releases.json` snippet in the .NET SDK bump section. Fixable only if a newer release names the CVE in its `cve-list` **and** that release's tarball ships the fixed version in the flagged file (category 2). The `cve-list` alone is not enough: `dotnet-format`'s Pkcs 8.0.1 is named in 8.0.32's `cve-list` and still ships unpatched.
+   - **No released patch** (`needed` / `open` / `deferred`) **and ESM-only OS rows** → `https://ubuntu.com/security/cves/<CVE>.json`, the `noble` entry for the package. Fixable only if `status` is `released` **and** `pocket` is `security` or `updates` **and** the fixed version in `description` has no `+esm`/`~esm`. A `released` entry in an `esm-*` pocket is still ESM; `not-affected` is a suppression candidate, not a fix.
+   - **No released patch, npm / PyPI** → get the fixed range from the advisory (`POST https://api.osv.dev/v1/query` with `{"package":{"name":"<pkg>","ecosystem":"npm"}, "version":"<installed>"}`, ecosystem `PyPI` for Python), then confirm in `registry.npmjs.org/<pkg>` / `pypi.org/pypi/<pkg>/json` that a version in that range is published.
+   - **JMeter/Gatling, k6 internals, JDK later-major, distro pip** → no lookup; these are policy.
+3. **Run the category-4 gate on anything newly fixable.** A fix published after build start, for a package an unpinned line covers, is **R** — merging this PR clears it; add it to R with its evidence. Anything else newly fixable goes to X − Y with the reason "found at the pre-PR re-check, not in this PR". Do not fix it here: the image was already verified at step 14.
+4. **Re-count X, Y, R and Z** and use the corrected numbers for the Jira ticket and the PR body. A misclassification found here is a durable lesson for the `vulnerability_history.md` reconciliation below.
+
+Step 18 prints the same lists in phase 3; they must match the PR body.
+
 **Before creating the PR — create a Jira Story for the fixes and reference its key in the PR.**
 
 Do this **only after the decision gate passes** (never for a run that didn't reduce vulnerabilities — otherwise you leave an orphan ticket). Load the deferred Atlassian (Jira) MCP tools first, e.g. `ToolSearch` with `select:mcp__claude_ai_Atlassian_Rovo__atlassianUserInfo,mcp__claude_ai_Atlassian_Rovo__searchJiraIssuesUsingJql,mcp__claude_ai_Atlassian_Rovo__createJiraIssue,mcp__claude_ai_Atlassian_Rovo__editJiraIssue,mcp__claude_ai_Atlassian_Rovo__getTransitionsForJiraIssue,mcp__claude_ai_Atlassian_Rovo__transitionJiraIssue` (add `getAccessibleAtlassianResources` if you need the cloudId).
@@ -760,19 +772,8 @@ git push origin <branch-name>
 
 **Create the PR (only when the gate passes).** Do this in **two independent steps** so creating the PR never depends on Copilot being available.
 
-> **Re-check the classification before writing the PR body — the body is written once and never edited later.** Phase 3 (Slack + final summary) runs without a GitHub token, so anything it discovers cannot reach the PR. Build #7 found in phase 3, while compiling the step-18 manual list, that 6 .NET SDK CVEs it had counted as "not actionable" were fixed by SDK 8.0.426 — and PR #2036 merged with the wrong text. So, in this invocation, before writing `<body.md>` (both the normal and the R-only variant):
-> 1. **Build the step-18 lists now** — the manual-intervention items and every finding counted in Z — exactly as step 18 will print them.
-> 2. **Repeat, per category, the one lookup that could prove the classification wrong** — not a per-CVE review of all of Z (most of Z is JMeter/Gatling, which is policy). Check `vulnerability_history.md` first (it takes priority over this file):
->    - **.NET SDK rows** (`/usr/share/dotnet/sdk/`) → one run of the `releases.json` snippet in the .NET SDK bump section: is the CVE in a newer release's `cve-list`?
->    - **No released patch** (`needed` / `open` / `deferred`) and **Ubuntu ESM-only** OS rows → Launchpad / `https://ubuntu.com/security/cves/<CVE>.json` for that package: is a non-ESM fix published in noble now?
->    - **No released patch, npm / PyPI** → `registry.npmjs.org/<pkg>` / `pypi.org/pypi/<pkg>/json`: is a fixed version published now?
->    - **JMeter/Gatling, k6 internals, JDK later-major, distro pip** → no lookup; these are policy.
-> 3. **Re-count X, Y, R and Z** after any move, and write the PR body from the corrected numbers.
-> 4. **If an item turns out to be fixable**, do not fix it in this PR (the image was already verified at step 14): move it from Z into X − Y ("Fixable but did NOT land", step 5) with the reason "found at the pre-PR re-check, not in this PR", so the reviewer sees it before merge.
->
-> Step 18 then prints the same lists in phase 3 — it must not differ from what the PR body says.
-
 > **Docs-only / R-only PR (`Y = 0`, `R > 0`) — use this variant of the contract.** When the run made no code fix and the PR exists to carry the reconciliation *and* trigger the rebuild that clears R (see step 6), three items in the body list below cannot be satisfied honestly. Substitute, don't omit silently:
+> - **The pre-PR re-check** ("Before the Jira ticket and the PR", above) — run it first; it applies to this variant too.
 > - **Jira** — skip it (no fix work to track), and **omit the key from the PR title** rather than inventing one. Say in the body: "No Jira ticket — no code fix to track."
 > - **The `taurus-branch-builder` verification line** — do **not** include it; asserting it would be a false verification claim. Replace with: "No branch-build verification — this PR contains no code change to verify. The `<R>` findings below are expected to clear when this PR is merged, because the merge rebuilds and republishes `unstable`."
 > - **The decision gate** (step 15's "vulnerabilities went down") — not applicable; there is no branch scan. The gate guards *fix* claims, and this PR makes none.
