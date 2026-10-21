@@ -791,6 +791,23 @@ gh pr create --repo Blazemeter/taurus --base master \
 If `gh` is not on PATH, create via the GitHub API using `$GITHUB_TOKEN` (`POST /repos/Blazemeter/taurus/pulls`).
 
 **15b — request GitHub Copilot's review (best-effort; must NEVER fail the run):**
+
+**First check whether Copilot review is configured for this repo — skip 15b and step 16 if (and only if) it definitively is not.** Copilot has been removed from the org before without anyone updating this skill; don't assume it's there, and don't assume it's gone for good. Read-only check, capturing the exit code separately so a failed call is never read as "no rulesets":
+```bash
+gh api repos/Blazemeter/taurus/rulesets \
+  --jq '[.[] | select(.target=="branch")] | .[].id' > /tmp/copilot-ruleset-ids.txt 2>/tmp/copilot-ruleset-err.txt
+RULESET_LIST_STATUS=$?
+if [ "$RULESET_LIST_STATUS" -eq 0 ]; then
+  xargs -I{} gh api "repos/Blazemeter/taurus/rulesets/{}" \
+    --jq 'select(.rules[]?.type=="copilot_code_review") | {id, enforcement}' \
+    < /tmp/copilot-ruleset-ids.txt
+fi
+echo "list_status=$RULESET_LIST_STATUS"
+```
+- **`list_status=0` and a rule with `enforcement: "active"`** → request the review below and run step 16. (A ruleset can read `active` while Copilot is unlicensed org-wide; step 16's bounded poll is the real test.)
+- **`list_status=0` and no `copilot_code_review` rule, or not `active`** → Copilot is not configured: skip the request and step 16, and note "Copilot review skipped — not configured for this repo (ruleset absent/disabled)" in the summary. As of 2026-10-21 taurus has no rulesets at all, so this is the expected outcome today; it switches back by itself if Copilot is reintroduced.
+- **`list_status` non-zero** (auth, rate limit, network, or a token without repo-administration read) → "can't tell", not "not configured": request the review and run step 16 anyway, and note "Copilot config check inconclusive (<status>) — requested anyway".
+
 > ⚠️ **Call the REST endpoint directly — do not call `gh pr edit --add-reviewer @copilot` at all.** It routes through GraphQL, which is a confirmed, known no-op for bot logins (Copilot is a bot, not a user): it returns **exit 0 while silently attaching nothing** (verified directly on a real PR — twice). Since it never reports failure, there's no way to gate the REST call on its result — and keeping it as an earlier statement in the same script is actively worse than useless: if the shell has `set -e` (or any other exit-on-error behavior) active and that call happens to genuinely fail for an unrelated reason (auth blip, rate limit), it aborts the script before the REST call below ever runs. It buys nothing (REST is the confirmed-working path for bot reviewers) and risks everything. Skip it:
 ```bash
 # so the maintainer doesn't have to click "Request review" on the site.
@@ -820,7 +837,7 @@ PR body should include (apply the step-5 reporting rule — **lead with fixable-
 
 ### 16. Wait for and triage Copilot's review (one round only)
 
-After 15b, **wait for Copilot to finish reviewing, then triage its comments** — but do this exactly **once**. This is best-effort: if Copilot never runs, don't block.
+Skip this step if 15b's config check found Copilot not configured. Otherwise, after 15b, **wait for Copilot to finish reviewing, then triage its comments** — but do this exactly **once**. This is best-effort: if Copilot never runs, don't block.
 
 **[16a] Detect completion (bounded poll, max ~5 min).** If `gh` is not on PATH, **skip step 16 entirely** (note it in the summary) — don't burn the poll. Otherwise poll until Copilot posts its review — a review by `copilot-pull-request-reviewer[bot]` with a non-null `submitted_at` is the signal (Copilot also drops out of `requested_reviewers` when done, but the submitted review is sufficient). **Per the polling-safety section above: each check below is its own Bash tool call, not a shell loop** — run the check, and if not finished, make a fresh Bash call for `sleep 15` (or just re-check after the round-trip latency), then check again; repeat up to ~20 times before giving up:
 ```bash
