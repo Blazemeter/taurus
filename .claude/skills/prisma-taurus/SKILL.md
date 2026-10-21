@@ -762,6 +762,13 @@ At the end of every run, reconcile it for two things:
 - **A durable lesson** — a fix that silently didn't land and its root cause, a new not-buildable category, a corrected recipe, or a non-obvious decision worth preserving. The most valuable of these are only known *after* the branch scan in this step. Fold it into the matching "Patterns" recipe (or add a new recipe), not into a dated timeline.
 - **A removal condition** — if this run **pruned** a now-unneeded fix (step 7) or added a new temporary fix, record *under that recipe* what the fix is for and the upstream condition that makes it removable, so a future run can prune it confidently.
 
+**Prune when you write.** Every edit to the notes must also leave them no longer than they need to be:
+- **Replace, don't stack.** If the new lesson corrects, updates or supersedes an existing entry, rewrite or delete that entry — never leave the old and new versions side by side (the notes take priority over this file, so a stale entry left next to the new one still steers the next run).
+- **No duplication with this SKILL.md.** If a fact is already stated here, it does not belong in the notes. If the lesson is a rule this SKILL.md should own, **still write it in the notes** as one line marked `(promote to SKILL.md)` and mention it in the PR body — never edit SKILL.md in a run (it is under `.claude/`, see above). That marker is how the maintainer finds what to move into this file by hand.
+- **Rule plus one-line reason.** No run narrative ("run #N found…"); at most one "as of build N" marker.
+- **Delete only on positive evidence.** Re-check only the entries the new lesson touches; remove or correct one only when the current code or Jenkins shows it is false. If you cannot check it, keep it unchanged.
+- **No fixed size limit.** Never delete a lesson that is still true and actionable just to save space.
+
 If the run applied known recipes cleanly and there is no new lesson and nothing to prune, change nothing and go straight to the PR — don't pad the file. When there *is* something to record, commit it **on the fix branch** alongside the code fixes and push, so the doc update is part of this same PR rather than a separate one:
 ```bash
 cd .worktrees/<branch-name>   # or re-add the worktree on the fix branch if already removed
