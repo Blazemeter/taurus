@@ -15,7 +15,7 @@ description: Use when the user wants to check, fix, or verify Prisma Cloud vulne
 
 ## Overview
 
-End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, gets an independent local code review (if a review skill is available) and amends accepted fixes **before pushing**, then **builds the fixed branch into a Docker image and re-scans it** to confirm the fixes actually reduce vulnerabilities in the real image. A PR is opened **only after** that branch scan shows fewer vulnerabilities than the baseline — never at an early stage; the PR then requests a GitHub Copilot review and triages it once (only when Copilot is configured for the repo, step 15b), and finally posts a "ready for review" summary to Slack (best-effort; on a Jenkins-triggered run, this posts even when there was nothing to fix, so a scheduled run is never silent).
+End-to-end vulnerability management for the Taurus Docker image. Fetches the latest Prisma Cloud scan, classifies findings into auto-fixable and manual categories, applies all safe fixes, runs unit tests, gets an independent local code review (if a review skill is available) and amends accepted fixes **before pushing**, then **builds the fixed branch into a Docker image and re-scans it** to confirm the fixes actually reduce vulnerabilities in the real image. A PR that claims a fix is opened **only after** that branch scan shows fewer vulnerabilities than the baseline — never at an early stage. Three variants carry no fix and so skip the branch build: **R-only** (rebuild-clearable findings; merging republishes `unstable` and clears them), **notes-only** (the run learned a durable lesson worth recording), and the **failed-fix notes-only** route when the decision gate rejects a fix. None of them may claim a verified reduction — see step 15. the PR then requests a GitHub Copilot review and triages it once (only when Copilot is configured for the repo, step 15b), and finally posts a "ready for review" summary to Slack (best-effort; on a Jenkins-triggered run, this posts even when there was nothing to fix, so a scheduled run is never silent).
 
 **Why verify before the PR:** unit tests do not exercise the Dockerfile (gem/npm/apt changes) and a fix that "looks" applied can be a no-op against the scanner (e.g. `gem update` installs a patched gem but leaves the vulnerable Ruby *default-gem* version on disk, which Prisma still reports). The `taurus-branch-builder` Jenkins job can build any branch into an image and scan it with Prisma — so the fixes are proven in the image *before* a PR is created, not assumed.
 
@@ -317,6 +317,10 @@ If there are no auto-fixable CVEs → report that and list any manual items. ("N
 
 **Before stopping, report any R (rebuild-clearable) findings** — see classification category 4. "Nothing to fix in the repo" and "a republish removes N CVEs" are **both** true at the same time, and stopping without mentioning R leaves a real, zero-code win on the table (and leaves taurus-cloud consuming a stale image). If `R > 0`, report it and follow "Republishing to clear R findings" below instead of just stopping.
 
+> ⚠️ **A durable lesson also means the run is NOT over, even at `Y = 0` and `R = 0`.** Start from the null result: re-checking standing deferrals and finding them all still correctly deferred is **not** a lesson — that is status, the next run re-derives it live, and stopping with nothing pushed is the correct outcome. But if this run learned something that passes the **write test** (step 15), that lesson **is** the deliverable, and it dies with the session unless it is pushed. Only these are reachable *here*, before anything has been edited or built: a recorded re-check condition proven unreachable or already consumed, a notes entry the live lookup proved false, or a classification trap found while parsing (the kind step 5 warns about). The "a fix was tried and did not work" lessons belong to the step-15 route, not this one. When one qualifies: push a notes-only branch (`CVE-notes_YYYY-MM-DD`) carrying just the `vulnerability_history.md` edit and open the **notes-only PR** (step 15 variant).
+>
+> **If `R > 0`, do not use this path.** Fold the lesson into the R-only branch below instead — **one branch and one PR per run**, never both.
+
 > ⚠️ **`R > 0` means the run is NOT over — do not stop here.** The deliverable of this skill is a lower CVE count, not a diff. **Merging** a non-release PR to master rebuilds and republishes `unstable`, which is what clears R; **opening** the PR merely proposes that merge. So still do the step-15 history/SKILL reconciliation, push the branch, and open the PR even when the code diff is empty or docs-only — then report R as *"merging this PR is expected to clear these"*, never as cleared. Do not ask the user whether to bother. Use the **docs-only / R-only PR body** variant in step 15 (no Jira, no branch-builder verification claim — there is no code fix to verify), and check `git tag --points-at origin/master` is empty, since a release merge does **not** rebuild `unstable`. Full rationale and caveats: "Republishing to clear R findings" below.
 
 ### 7. Apply all auto-fixes
@@ -554,10 +558,10 @@ Print a status line before each step.
 
 Check if the branch already exists:
 ```bash
-git branch --list "CVE-fixes_$(date +%Y-%m-%d)*"
+git branch --list "CVE-fixes_$(date +%Y-%m-%d)*" "CVE-notes_$(date +%Y-%m-%d)*"
 ```
-- If not → use `CVE-fixes_YYYY-MM-DD`
-- If exists → append index: `CVE-fixes_YYYY-MM-DD-2`, `-3`, etc.
+- If not → use `CVE-fixes_YYYY-MM-DD` (or `CVE-notes_YYYY-MM-DD` for a notes-only branch — step 15)
+- If exists → append index: `CVE-fixes_YYYY-MM-DD-2`, `-3`, etc. Same suffix rule for `CVE-notes_`.
 
 **[2/6] Verify .worktrees/ is in .gitignore**
 
@@ -717,15 +721,16 @@ Then do two checks:
 **Decision gate** (keyed on the **all-severity branch-scan total**, not on the X→Y reporting framing from step 5):
 - **Vulnerabilities went down AND no fixed package is still flagged at its old version** (a Ruby default gem covered by the step-1 exception above doesn't count as still flagged) → proceed to create the PR (below). A run whose **only** fix is such a gem install can't lower the total, so it lands in the next bullet — report that the runtime assertion passed and the finding is accepted, not that the fix failed.
 - **Vulnerabilities did not improve, OR a fix silently failed to land** → do NOT create a PR. Report the comparison, the failed fixes and why, and stop. Tell the user the branch is pushed and the build number so they can decide.
+  > **Record the lesson before stopping — this is the most valuable one the skill produces.** "This fix was applied and the finding did not clear, because X" is exactly what stops a future run repeating the same attempt, and it is only knowable here, after the branch scan. The fix branch cannot carry it (its code change is the thing that failed), so branch `CVE-notes_YYYY-MM-DD` off **master**, write the lesson into `vulnerability_history.md` per the reconciliation below, push, and open the **notes-only PR**. Leave the failed fix branch pushed and unmerged for inspection, and name it in the notes-only PR body. Losing this lesson to keep the run tidy is the worse outcome.
 
-**Before the Jira ticket and the PR — re-check the classification (also on the R-only path).** The PR body is written in this invocation; phase 3 (Slack + final summary) runs without a GitHub token and cannot edit it. Build #7 found in phase 3, while compiling the step-18 manual list, that 6 .NET SDK CVEs it had counted as "not actionable" were fixed by SDK 8.0.426, and the R-only PR #2036 merged with the wrong text. So, right after the decision gate passes (on the R-only path, before anything else in this step):
+**Before the Jira ticket and the PR — re-check the classification (also on the R-only path).** The trigger is **publishing numbers, not creating a PR**: run this before the first place `X`/`Y`/`R`/`Z` leave the session — the PR body here, or, on a run that creates no PR at all, the Slack post (step 17) and the final summary (step 19). A run that stops at step 6 still publishes its counts, so it still owes this re-check. The PR body is written in this invocation; phase 3 (Slack + final summary) runs without a GitHub token and cannot edit it. Build #7 found in phase 3, while compiling the step-18 manual list, that 6 .NET SDK CVEs it had counted as "not actionable" were fixed by SDK 8.0.426, and the R-only PR #2036 merged with the wrong text. So, right after the decision gate **resolves — whichever way it went** — and on any path that reaches a PR body, a notes-only PR, or step 17 (on the R-only path, before anything else in this step):
 1. **Build the step-18 lists now** (JMeter/Gatling and the manual-intervention items) **and the Z breakdown.**
 2. **Repeat, per category, the lookup that could prove the classification wrong** — one scripted loop over the distinct CVE IDs of each category, not a manual review of all of Z (most of Z is JMeter/Gatling, which is policy). Use `vulnerability_history.md` to know what to look up (e.g. a recorded re-check condition); a note's verdict never replaces the lookup.
-   - **.NET SDK rows** (`/usr/share/dotnet/sdk/`) → from the fix branch's checkout, run the `releases.json` snippet in the .NET SDK bump section. Fixable only if a newer release names the CVE in its `cve-list` **and** that release's tarball ships the fixed version in the flagged file (category 2). The `cve-list` alone is not enough: `dotnet-format`'s Pkcs 8.0.1 is named in 8.0.32's `cve-list` and still ships unpatched.
+   - **.NET SDK rows** (`/usr/share/dotnet/sdk/`) → from the fix branch's checkout — or, when the run has no branch, from the workspace checkout of master, which has the same `Dockerfile` — run the `releases.json` snippet in the .NET SDK bump section. Fixable only if a newer release names the CVE in its `cve-list` **and** that release's tarball ships the fixed version in the flagged file (category 2). The `cve-list` alone is not enough: `dotnet-format`'s Pkcs 8.0.1 is named in 8.0.32's `cve-list` and still ships unpatched.
    - **No released patch** (`needed` / `open` / `deferred`) **and ESM-only OS rows** → `https://ubuntu.com/security/cves/<CVE>.json`, the `noble` entry for the package. Fixable only if `status` is `released` **and** `pocket` is `security` or `updates` **and** the fixed version in `description` has no `+esm`/`~esm`. A `released` entry in an `esm-*` pocket is still ESM; `not-affected` is a suppression candidate, not a fix.
    - **No released patch, npm / PyPI** → get the fixed range from the advisory (`POST https://api.osv.dev/v1/query` with `{"package":{"name":"<pkg>","ecosystem":"npm"}, "version":"<installed>"}`, ecosystem `PyPI` for Python), then confirm in `registry.npmjs.org/<pkg>` / `pypi.org/pypi/<pkg>/json` that a version in that range is published.
    - **JMeter/Gatling, k6 internals, JDK later-major, distro pip** → no lookup; these are policy.
-3. **Run the category-4 gate on anything newly fixable.** A fix published after build start, for a package an unpinned line covers, is **R** — merging this PR clears it; add it to R with its evidence. Anything else newly fixable goes to X − Y with the reason `pre-pr-recheck`. Do not fix it here: the image was already verified at step 14.
+3. **Run the category-4 gate on anything newly fixable.** Its build-start evidence needs the Jenkins-authenticated lookup from category 4, so this sub-step must run in an invocation that has `JENKINS_USERNAME`/`JENKINS_TOKEN` — phase 2, never phase 3. If you reach here without them, say so plainly and do not guess the date test. A fix published after build start, for a package an unpinned line covers, is **R** — merging this PR clears it; add it to R with its evidence. Anything else newly fixable goes to X − Y with the reason `pre-pr-recheck`. Do not fix it here: the image was already verified at step 14.
 4. **Re-count X, Y, R and Z** and use the corrected numbers for the Jira ticket and the PR body. A misclassification found here is a durable lesson for the `vulnerability_history.md` reconciliation below.
 
 Step 18 prints the same lists in phase 3; they must match the PR body.
@@ -773,23 +778,49 @@ Site / cloudId: `perforce.atlassian.net` = `2accdbdb-9d65-4c22-b174-5d4a9d437c59
 
 `vulnerability_history.md` is a **problem-solving reference, not a log of what happened.** Its job is to help a future run (a) fix similar vulnerabilities faster and (b) know when a temporary fix can be removed because a newer upstream version resolved the original CVE. Update it **in place** — improve the matching recipe or pattern; do **not** append a blow-by-blow "what happened today" entry.
 
+**The write test — apply it to every line before adding or editing it:**
+
+> **Without this line, would the next run make a wrong decision?**
+
+Only a yes earns a write. This skill already forces the next run to read the live sources for itself (registries, `releases.json`, the Ubuntu CVE JSON, the npm/cli lockfile, `apt`), and a note's verdict never replaces that lookup. So anything the next run re-derives on its own is not knowledge this file can supply — recording it only plants a sentence that goes stale and pulls a later run into refreshing it.
+
+- **Passes the test** — the rule or trap that sends a run down a wrong path, and the condition that lifts a deferral: *don't bump to `npm@12` — 12.x has shipped older bundled deps than 11.x*; *never unpack a fixed dep into npm's own `node_modules`*; *this pin can't move past X because `setup.py` needs `pkg_resources`*. These stay true whatever the next scan says.
+- **Fails the test** — today's version of anything, which packages this scan flagged, what a lookup returned today, "still not fixed as of scan N". That is status, and the next run gets it live and more accurately than this file ever could.
+
+**Effort is not a reason to write.** A run that re-verified every standing deferral and found them all still correctly deferred has confirmed the file, not learned from it. Change nothing.
+
 At the end of every run, reconcile it for two things:
-- **A durable lesson** — a fix that silently didn't land and its root cause, a new not-buildable category, a corrected recipe, or a non-obvious decision worth preserving. The most valuable of these are only known *after* the branch scan in this step. Fold it into the matching "Patterns" recipe (or add a new recipe), not into a dated timeline.
+- **A durable lesson** (must pass the write test) — a fix that silently didn't land and its root cause, a new not-buildable category, a corrected recipe, or a non-obvious decision worth preserving. The most valuable of these are only known *after* the branch scan in this step. Fold it into the matching "Patterns" recipe (or add a new recipe), not into a dated timeline.
 - **A removal condition** — if this run **pruned** a now-unneeded fix (step 7) or added a new temporary fix, record *under that recipe* what the fix is for and the upstream condition that makes it removable, so a future run can prune it confidently.
 
 **Prune when you write.** Every edit to the notes must also leave them no longer than they need to be:
 - **Replace, don't stack.** If the new lesson corrects, updates or supersedes an existing entry, rewrite or delete that entry — never leave the old and new versions side by side (the notes take priority over this file, so a stale entry left next to the new one still steers the next run).
 - **No duplication with this SKILL.md.** If a fact is already stated here, it does not belong in the notes. If the lesson is a rule this SKILL.md should own, **still write it in the notes** as one line marked `(promote to SKILL.md)` and mention it in the PR body — never edit SKILL.md in a run (it is under `.claude/`, see above). That marker is how the maintainer finds what to move into this file by hand.
-- **Rule plus one-line reason.** No run narrative ("run #N found…"); at most one "as of build N" marker.
+- **Rule plus one-line reason.** No run narrative ("run #N found…"); at most one "as of build N" marker, and refresh it only when you are already rewriting the line it marks — never as an edit of its own (see the status rule below).
+- **Rewrite status into rule — never refresh it.** When you find an existing entry stating something the next run re-derives live (a version snapshot, "current state as of scan N", which packages were flagged), do **not** update it to today's values. Cut it down to the durable rule underneath, or delete it if there is none. Refreshing status is how a line that fails the write test survives from run to run, and a stale one can talk a later run out of the lookup it owes. This is a restructuring, not the evidence-based deletion below: you are stripping status off a rule, not retiring a lesson, so it needs no proof that the old values were wrong. **Two exemptions, both narrow.** An entry whose own text declares itself volatile and says to overwrite it in place — "Measured job durations (volatile)" is the one that exists today, and this skill cites it six times — is maintained, not stale: refresh it or leave it, never delete it. And the current value trailing a standing re-check condition is *part of the condition* (it is what the next run compares against to decide the deferral still holds), so it stays. Apply this rule only **within an entry you are already rewriting** for another reason — finding one lesson is not licence to sweep the file for status.
 - **Delete only on positive evidence.** Re-check only the entries the new lesson touches; remove or correct one only when the current code or Jenkins shows it is false. If you cannot check it, keep it unchanged.
 - **No fixed size limit.** Never delete a lesson that is still true and actionable just to save space.
 
-If the run applied known recipes cleanly and there is no new lesson and nothing to prune, change nothing and go straight to the PR — don't pad the file. When there *is* something to record, commit it **on the fix branch** alongside the code fixes and push, so the doc update is part of this same PR rather than a separate one:
+If the run applied known recipes cleanly and there is no new lesson and nothing to prune, change nothing and go straight to the PR — don't pad the file. **This is the normal outcome, not a failure to notice something**, and it is near-certain on a run that fixed nothing: re-checking deferrals and finding them all still correctly deferred is status, not a lesson. When there *is* something to record, commit it **on the fix branch** alongside the code fixes and push, so the doc update is part of this same PR rather than a separate one. **If no branch has been pushed this run** — not the R-only case, which already has one, but the case where the run fixed nothing, or tried a fix and the gate rejected it — create `CVE-notes_YYYY-MM-DD` off current master, commit the notes edit alone, push it, and open the **notes-only PR** variant below.
+
+*Reconciliation onto a branch this run already pushed (fix branch, or the R-only docs branch):*
 ```bash
-cd .worktrees/<branch-name>   # or re-add the worktree on the fix branch if already removed
+cd .worktrees/<branch-name>   # or re-add the worktree on that branch if already removed
 git add vulnerability_history.md
 git commit -m "Document <lesson> in prisma-taurus history"
 git push origin <branch-name>
+```
+
+*Notes-only branch (nothing pushed yet this run):*
+```bash
+NOTES_BRANCH=CVE-notes_$(date +%Y-%m-%d)          # collision suffix per step 8 [1/6]
+git fetch origin master
+git worktree add ".worktrees/$NOTES_BRANCH" -b "$NOTES_BRANCH" origin/master
+cd ".worktrees/$NOTES_BRANCH"
+# write the lesson into vulnerability_history.md here
+git add vulnerability_history.md
+git commit -m "Document <lesson> in prisma-taurus history"
+git push -u origin "$NOTES_BRANCH"
 ```
 
 **Create the PR (only when the gate passes).** Do this in **two independent steps** so creating the PR never depends on Copilot being available.
@@ -799,15 +830,24 @@ git push origin <branch-name>
 > - **Jira** — skip it (no fix work to track), and **omit the key from the PR title** rather than inventing one. Say in the body: "No Jira ticket — no code fix to track."
 > - **The `taurus-branch-builder` verification line** — do **not** include it; asserting it would be a false verification claim. Replace with: "No branch-build verification — this PR contains no code change to verify. The `<R>` findings below are expected to clear when this PR is merged, because the merge rebuilds and republishes `unstable`."
 > - **The decision gate** (step 15's "vulnerabilities went down") — not applicable; there is no branch scan. The gate guards *fix* claims, and this PR makes none.
+> - **No worktree needed.** The branch is already on `origin`; pass `--head <branch-name>` to `gh pr create` (15a) and leave the cwd where it is.
 >
 > Everything else is unchanged: lead with the `<X>` detected → `<Y>` fixed headline (`Y` will be 0 — that is an honest result, not a failure), list the R findings with their evidence, and give the `<Z>` count. Also state the non-monotonic caveat: a `--no-cache` rebuild re-resolves unpinned deps and can introduce newly-disclosed CVEs, so promise a post-merge scan rather than exactly `−R`.
+
+> **Notes-only PR (`Y = 0`, `R = 0`, but the run learned a durable lesson) — use this variant.** The PR exists only to carry the `vulnerability_history.md` edit, so that a lesson — usually *an approach that was tried and does not work* — survives the session. Same substitutions as the R-only variant (pre-PR re-check applies, no Jira key, no branch-build verification line, no decision gate), plus:
+> - **Claim nothing about the CVE count.** There is no fix and no R, so do not write that merging clears anything. Merging still rebuilds and republishes `unstable` as a side effect of any non-release merge, which is harmless but is **not** this PR's purpose — say so in one line rather than letting a reader infer a win.
+> - **Lead with the lesson, not the scan.** Title: `CVE scan notes - YYYY-MM-DD: <the lesson in a few words>`. Body: what was attempted, why it does not work, what a future run should do instead, and the `<X>` / `<Z>` counts as context only.
+> - **One lesson per run is normal; zero is more normal.** If nothing passes the write test, there is no notes-only PR — do not manufacture one to show activity.
+> - **No worktree needed** for the PR itself: the branch is already on `origin`, so pass `--head <branch-name>` to `gh pr create` (15a).
+> - **Set `pr_kind = "notes-only"` for step 17** (`"r-only"` for the variant above). Slack branches on that, not on the PR number — otherwise it announces "fixes ready for review · 0 CVEs fixed".
 
 **15a — create the PR (must succeed on its own; do NOT put `--reviewer` here):** include the Jira key in the title so Jira ↔ GitHub link automatically.
 ```bash
 # gh if available; otherwise POST to the GitHub API with $GITHUB_TOKEN
-gh pr create --repo Blazemeter/taurus --base master \
+gh pr create --repo Blazemeter/taurus --base master --head <branch-name> \
   --title "<MOB-XXXXX>: CVE fixes - $(date +%Y-%m-%d)" --body-file <body.md>
 ```
+**`--head` is required, not optional.** Without it `gh` infers the branch from the current checkout, and this step runs in a later invocation (phase 2) that does **not** inherit phase 1's working directory — on the R-only and notes-only paths the cwd is the workspace on `master`, where the inference fails. With `--head` naming the branch already on `origin`, no worktree is needed here at all.
 If `gh` is not on PATH, create via the GitHub API using `$GITHUB_TOKEN` (`POST /repos/Blazemeter/taurus/pulls`).
 
 **15b — request GitHub Copilot's review (best-effort; must NEVER fail the run):**
@@ -942,13 +982,16 @@ Safety property worth knowing: integration tests run **before** the push (stage 
 
 ### 17. Post the "ready for review" notification to Slack (best-effort; must NEVER fail the run)
 
+> **Before posting: the step-15 re-check must already have run.** This is the first place `X`/`Y`/`R`/`Z` leave the session, and it is reached on every path including the ones that create no PR. The re-check belongs to the invocation that holds `JENKINS_USERNAME`/`JENKINS_TOKEN` (phase 2) — its category-4 gate cannot run without them. If you are here and it demonstrably has not run, and you have no Jenkins credentials, post the message **without per-category counts** and say the classification was not re-checked. Never publish a count this run could not verify.
+
 After step 16 — the PR exists (or the run confirmed there was nothing to fix), Copilot's single triage round is done (or timed out, or skipped because Copilot isn't configured), and any accepted follow-up is pushed — post **one** summary to the team Slack channel. **Best-effort, exactly like the Copilot request (15b): it must never fail, block, or error the run.**
 
 **Jenkins build link.** `BUILD_URL`/`BUILD_NUMBER`/`JOB_NAME` are standard Jenkins env vars, present for any Jenkins-triggered run (the scheduled cron trigger or someone clicking "Build Now") and absent for a bare local/interactive run — this is the only signal used to tell the two apart. When `BUILD_URL` is set, prepend one line at the very top of the message: `:jenkins: <BUILD_URL|JOB_NAME #BUILD_NUMBER>`. Omit it entirely when unset.
 
 - **No PR was created** (the decision gate at step 15 failed, or there were no fixes at all). On a Jenkins-triggered run (`BUILD_URL` set), post anyway — just the build-link line plus a short one-line confirmation that nothing needed fixing this run, so a scheduled run is provably not silent. Outside Jenkins (`BUILD_URL` unset), skip the post entirely instead — a developer who ran this themselves doesn't need a "nothing to do" ping.
 - **`SLACK_BOT_TOKEN` or `SLACK_SPARTA_CHANNEL_ID` is unset.** Do not fail, do not prompt for them. Build the message exactly as you would have sent it, then **print it instead of posting** and say so in the summary — a human reading the run's own output can still see what would have been reported.
-- **Content, when there is a PR** = only the CVEs that landed (the ✅ "Fixed" set, `Y`). No pendings, no not-landed, no out-of-scope, no notes — just the fixed list.
+- **A PR exists but fixed nothing** (the **R-only** and **notes-only** variants, and the failed-fix notes-only route). Do **not** use the "ready for review" header — it would announce `0 CVEs fixed` as a result. Post the build line plus one line naming the PR and what it actually is: for R-only, that merging it republishes `unstable` and is expected to clear `<R>` findings; for notes-only, that it records a lesson and fixes nothing. The branch below keys on `pr_kind`, **not** on `pr_num`.
+- **Content, when there is a fix PR** = only the CVEs that landed (the ✅ "Fixed" set, `Y`). No pendings, no not-landed, no out-of-scope, no notes — just the fixed list.
 
 **Message format (locked).** Jenkins build line (if any) + header line + fixed CVEs grouped by package, each package's CVEs listed vertically. `unfurl_links:false`. The count is **computed** from the fixed list (`= Y`), never hand-typed. Build/send in Python (avoids shell-quoting pain), reading credentials and the Jenkins signal from the environment:
 
@@ -971,6 +1014,8 @@ build_line = (f":jenkins: <{build_url}|{esc(job_name)} #{build_number}>") if bui
 build_text = f"{job_name} #{build_number} ({build_url})" if build_url else None
 
 pr_num = <PR number>             # None if no PR was created
+pr_kind = "fix"                  # "fix" | "r-only" | "notes-only" - which step-15 variant this PR is
+r_count = 0                      # <R>, only used by the r-only message
 pr_url = f"https://github.com/Blazemeter/taurus/pull/{pr_num}" if pr_num else None
 jira   = "<MOB-XXXXX>"            # None / "" if no Jira ticket was created (headless/cron)
 
@@ -980,11 +1025,12 @@ groups = [
 ]
 total = sum(len(c) for _, _, c in groups)   # computed — must equal Y
 
-# pr_num (not groups) is what decides which message this is - a run can have
-# groups populated (fixes were attempted) but still have no PR, when the
-# decision gate at step 15 did not pass (branch scan didn't confirm a
-# reduction). That is still a "no PR" case for Slack, just worded differently
-# from "nothing to fix at all".
+# pr_num and pr_kind (not groups) decide which message this is. A run can have
+# groups populated (fixes were attempted) and still have no PR, when the
+# decision gate at step 15 did not pass - that is a "no PR" case, just worded
+# differently from "nothing to fix at all". A run can equally have a PR that
+# fixed nothing (r-only, notes-only), which is why the second branch keys on
+# pr_kind: announcing those as "fixes ready for review" would be false.
 if not pr_num:
     if not build_line:
         print("Slack notification skipped (no PR was created, not a Jenkins run)")
@@ -993,6 +1039,18 @@ if not pr_num:
             if groups else "No CVE fixes to report this run.")
     blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": build_line + "\n" + note}}]
     fallback = f"Prisma CVE scan completed - {note} - {build_text}"
+elif pr_kind != "fix":
+    # A PR exists but landed no fix. Never the "ready for review" header - it would
+    # read as a result. Say what the PR is for instead.
+    note = (f"Republish PR to clear {r_count} rebuild-clearable finding(s) - no code fix in it."
+            if pr_kind == "r-only" else
+            "Notes-only PR - records a lesson in vulnerability_history.md. No CVEs fixed, nothing cleared.")
+    lines = [build_line] if build_line else []
+    lines.append(f":memo: <{pr_url}|taurus #{pr_num}> - {note}")
+    blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": "\n".join(lines)}}]
+    fallback = f"Prisma CVE scan - taurus #{pr_num} - {note}"
+    if build_text:
+        fallback += f" - {build_text}"
 else:
     lines = [build_line] if build_line else []
     jira_seg = (f" · <https://perforce.atlassian.net/browse/{jira}|{jira}>"
@@ -1033,6 +1091,8 @@ Non-fatal errors to note but never block on: `not_in_channel` (invite the bot to
 > **Format is intentionally minimal and shared.** The same bot ("Sparta Scan") and the same format are reused by the taurus-cloud skills (`prisma-taurus-cloud` and `mend-taurus-cloud`, with a `Mend` tag instead of `Prisma`) and by `blazect-asset-catalog`'s `all-vulnerabilities` skill (link text `<repo> #<PR>` per repo). Keep the header/emoji/grouping identical so the channel reads consistently — only the scan-type tag and repo name differ.
 
 ### 18. Report manual intervention and out-of-scope items
+
+> **Use the counts the step-15 re-check produced — do not recompute them here.** Build #7 found its miscount while compiling the list below (6 .NET SDK CVEs it had called "not actionable" were fixed by SDK 8.0.426) and could not fix the PR body from this phase. The re-check now runs earlier, in the invocation that still has credentials; this step consumes its output.
 
 First, list the JMeter/Gatling findings that are intentionally **not** fixed:
 
@@ -1091,7 +1151,10 @@ Rebuild-clearable: <R>  [omit when 0 — no code change; clears on the next mast
   Labeled subset of X − Y, NOT an extra count. If a republish was approved and run, say so + the build #]
   [distinct CVEs; this repo's own Dockerfile/requirements fixes, verified gone in branch scan #<BUILD>]
 Branch image scan (taurus-branch-builder #<BUILD>): integration <pass/fail>
-Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>  ·  PR #<number>
+  [no-fix PR variants: "none — no code change to verify" instead of a build number]
+Lesson recorded: <one line — the rule written into vulnerability_history.md, or "none this run">
+Jira: <MOB-XXXXX> (Story, ai_assisted, In Progress, assigned to <runner>) <sprint set | sprint NEEDS manual assignment>  ·  PR #<number> <kind: fix | r-only | notes-only>
+  [R-only and notes-only carry no Jira key — write "none — no code fix to track"]
 
 ✅ Fixed (in PR, old version gone in branch scan):
    - <CVE-ID>: <package> <old> → <new>
@@ -1123,12 +1186,14 @@ Slack: <posted to #channel / printed - not configured / skipped (no fixes, not a
 
 Next steps:
 1. Review and merge PR #<number> (verified to reduce vulnerabilities in the image)
+   [R-only: "merging republishes unstable, which is expected to clear the <R> findings above"]
+   [notes-only: "merging records the lesson; it fixes nothing and clears nothing" — never a verification claim]
 2. After merge, Jenkins builds a new blazemeter/taurus:unstable from master
 3. Re-run /prisma-taurus to confirm the fixes are reflected in the unstable scan
 4. Address manual-intervention items and any fixable ones that didn't land
 ```
 
-If the decision gate in step 15 did NOT pass, end instead with: the comparison, which fixes failed to land and why, the pushed branch name and build number, and that **no PR was created** — hand it to the user to decide.
+If the decision gate in step 15 did NOT pass, end instead with: the comparison, which fixes failed to land and why, the pushed branch name and build number, and that **no fix PR was created** — hand it to the user to decide. If the run also recorded the failure as a lesson (step 15's failed-fix route), name the notes-only PR and say plainly that it carries the lesson only, fixes nothing, and does **not** supersede the unmerged fix branch.
 
 ## Researching a CVE
 
