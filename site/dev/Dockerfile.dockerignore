@@ -1,0 +1,6 @@
+# used instead of site/.dockerignore for builds of dev/Dockerfile (context is site/)
+vendor
+aggregate_func.sql
+legacy/*
+!legacy/learn
+dev/regression
