@@ -115,7 +115,7 @@ execution:
 ```
 
 When enabled, after the run completes Taurus writes `failed_transactions.json` into the run's
-artifacts directory. Its `transactions[]` entries split failures into `errors` (general),
+artifacts directory. Its `transactions` array entries split failures into `errors` (general),
 `assertions` (each carrying a `name` — recovered when possible, otherwise a synthetic
 `assert::<transaction>` fallback), and `failedEmbeddedResources`, keyed by the existing
 ERRTYPE_* classification.
