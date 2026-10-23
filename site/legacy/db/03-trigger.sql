@@ -1,0 +1,1 @@
+CREATE TRIGGER agg_data BEFORE INSERT OR UPDATE ON public.raw_data FOR EACH ROW EXECUTE PROCEDURE public.agg_data();
