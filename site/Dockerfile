@@ -16,6 +16,8 @@ ADD php.ini /usr/local/etc/php/
 # exact dependency versions from the committed lock file
 ADD composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction
+# fail the build if a locked dependency has a published security advisory or is abandoned
+RUN composer audit --locked --no-dev
 
 RUN cp vendor/blazemeter/pwe/.htaccess ./
 ADD Taurus ./Taurus
