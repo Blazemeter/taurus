@@ -12,7 +12,6 @@
 *.pyc
 *.project
 
-/site/composer.lock
 /site/.htaccess
 /site/vendor
 /site/img/design
@@ -35,3 +34,5 @@ bzt/20*
 bzt/runtest/**
 .worktrees
 .specify/feature.json
+/site/dev/
+/site/legacy/

@@ -9,14 +9,16 @@ class UpdateChecker extends \PWE\Modules\PWEModule implements \PWE\Modules\Outpu
 
     public function process()
     {
+        $version = self::getRequestParam('version');
+        $installID = self::getRequestParam('installID');
         $latest = $this->getLatestVersion();
         $resp = array(
             "latest" => $latest,
-            "needsUpgrade" => version_compare($latest, $_REQUEST['version'], '>')
+            "needsUpgrade" => version_compare($latest, $version, '>')
         );
-        \PWE\Core\PWELogger::warn("Check update: %s %s %s %s", $_REQUEST['version'], $resp['latest'], $resp['needsUpgrade'], $_REQUEST['installID']);
+        \PWE\Core\PWELogger::warn("Check update: %s %s %s %s", $version, $resp['latest'], $resp['needsUpgrade'], $installID);
 
-        $stats_arr = array(date("d.m.Y"), date("W"), date("m.Y") ,  $_REQUEST['version'], $resp['latest'], $resp['needsUpgrade'], $_REQUEST['installID']);
+        $stats_arr = array(date("d.m.Y"), date("W"), date("m.Y") ,  $version, $resp['latest'], $resp['needsUpgrade'], $installID);
         $this->writeUserStatToDB($stats_arr);
 
         $smarty = $this->PWE->getSmarty();
@@ -45,9 +47,15 @@ class UpdateChecker extends \PWE\Modules\PWEModule implements \PWE\Modules\Outpu
                             ' password='. $json_cred['password'] .
                             ' connect_timeout=5');
 
-        $query = "INSERT INTO raw_data VALUES ('". $data_arr[0] ."', '". $data_arr[1] ."', '". $data_arr[2] ."', '".$data_arr[6] ."')";
-        pg_query($query);
+        $query = 'INSERT INTO raw_data VALUES ($1, $2, $3, $4)';
+        pg_query_params($db_conn, $query, array($data_arr[0], $data_arr[1], $data_arr[2], $data_arr[6]));
         pg_close($db_conn);
+    }
+
+    /** Request parameter as string, empty when missing or not a string (e.g. array syntax). */
+    private static function getRequestParam($name)
+    {
+        return isset($_REQUEST[$name]) && is_string($_REQUEST[$name]) ? $_REQUEST[$name] : '';
     }
 
     public function getPypiInfo()
