@@ -19,8 +19,10 @@ FROM php:${PHP_VERSION}-apache
 
 COPY --from=composer/composer:2.10.3-bin /composer /usr/bin/composer
 
+# apt-get upgrade applies Debian security updates published after the base image was built
 RUN a2enmod rewrite && \
     apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends git unzip libyaml-dev libpq-dev && \
     docker-php-ext-install pgsql && \
     pecl install yaml-2.3.0 && \
