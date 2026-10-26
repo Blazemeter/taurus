@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "blazemeter/pwe",
-            "version": "v2.0.0",
+            "version": "v2.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Blazemeter/pwe.git",
-                "reference": "357481d4189c569207000da52270d228e24bb407"
+                "reference": "f8444c6d0f087dd1219d87cf13a6456db0a8e7c9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Blazemeter/pwe/zipball/357481d4189c569207000da52270d228e24bb407",
-                "reference": "357481d4189c569207000da52270d228e24bb407",
+                "url": "https://api.github.com/repos/Blazemeter/pwe/zipball/f8444c6d0f087dd1219d87cf13a6456db0a8e7c9",
+                "reference": "f8444c6d0f087dd1219d87cf13a6456db0a8e7c9",
                 "shasum": ""
             },
             "require": {
@@ -64,7 +64,7 @@
                 "source": "https://github.com/Blazemeter/pwe",
                 "issues": "https://github.com/Blazemeter/pwe/issues"
             },
-            "time": "2026-10-23T12:46:21+00:00"
+            "time": "2026-10-26T12:33:05+00:00"
         },
         {
             "name": "easybook/geshi",
