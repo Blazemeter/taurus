@@ -1,0 +1,4 @@
+# site configuration and templates are read by PWE only, docs sources and images stay public
+<FilesMatch "\.(xml|tpl)$">
+    Require all denied
+</FilesMatch>

@@ -1,0 +1,340 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "7518c3b8c5cd4b7ff2bf4021da020eee",
+    "packages": [
+        {
+            "name": "blazemeter/pwe",
+            "version": "v2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Blazemeter/pwe.git",
+                "reference": "357481d4189c569207000da52270d228e24bb407"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Blazemeter/pwe/zipball/357481d4189c569207000da52270d228e24bb407",
+                "reference": "357481d4189c569207000da52270d228e24bb407",
+                "shasum": ""
+            },
+            "require": {
+                "ext-ctype": "*",
+                "ext-dom": "*",
+                "ext-json": "*",
+                "ext-posix": "*",
+                "ext-xml": "*",
+                "jelix/wikirenderer": "3.1.11",
+                "php": "^8.3",
+                "smarty/smarty": "^5.8"
+            },
+            "require-dev": {
+                "easybook/geshi": "~1",
+                "phpunit/phpunit": "^12"
+            },
+            "suggest": {
+                "easybook/geshi": "Syntax highlighting of code blocks in SimpleWiki (GPL-2.0), without it code blocks are rendered unhighlighted"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "PWE\\": "."
+                }
+            },
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Andrey Pokhilko",
+                    "email": "apc4@ya.ru",
+                    "role": "Original author"
+                },
+                {
+                    "name": "BlazeMeter",
+                    "homepage": "https://www.blazemeter.com",
+                    "role": "Maintainer"
+                }
+            ],
+            "description": "Lightweight PHP framework (Pluggable Web Engine), BlazeMeter fork of undera/pwe used by gettaurus.org",
+            "homepage": "https://github.com/Blazemeter/pwe",
+            "support": {
+                "source": "https://github.com/Blazemeter/pwe",
+                "issues": "https://github.com/Blazemeter/pwe/issues"
+            },
+            "time": "2026-10-23T12:46:21+00:00"
+        },
+        {
+            "name": "easybook/geshi",
+            "version": "v1.0.8.19",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/easybook/geshi.git",
+                "reference": "b4df5fa84a44d4e12eff67263a701eac7e157241"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/easybook/geshi/zipball/b4df5fa84a44d4e12eff67263a701eac7e157241",
+                "reference": "b4df5fa84a44d4e12eff67263a701eac7e157241",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.0"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "./"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Nigel McNie",
+                    "email": "nigel@geshi.org"
+                },
+                {
+                    "name": "Benny Baumann",
+                    "email": "BenBE@geshi.org"
+                }
+            ],
+            "description": "GeSHi - Generic Syntax Highlighter. This is an unmodified port of GeSHi project code found on SourceForge.",
+            "homepage": "http://qbnz.com/highlighter",
+            "keywords": [
+                "highlight",
+                "highlighter",
+                "syntax"
+            ],
+            "support": {
+                "source": "https://github.com/easybook/geshi/tree/master"
+            },
+            "time": "2018-04-20T18:19:44+00:00"
+        },
+        {
+            "name": "jelix/wikirenderer",
+            "version": "v3.1.11",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/laurentj/wikirenderer.git",
+                "reference": "11ca6c1e68a6c4292512675c5c51aaa299a3011d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/laurentj/wikirenderer/zipball/11ca6c1e68a6c4292512675c5c51aaa299a3011d",
+                "reference": "11ca6c1e68a6c4292512675c5c51aaa299a3011d",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.6"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "9.6.*"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "src/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "LGPL-2.1"
+            ],
+            "authors": [
+                {
+                    "name": "Laurent Jouanneau",
+                    "email": "ljouanneau@gmail.com",
+                    "homepage": "http://ljouanneau.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "WikiRenderer is a library to generate HTML or anything else from wiki content.",
+            "homepage": "http://wikirenderer.jelix.org",
+            "keywords": [
+                "wiki"
+            ],
+            "support": {
+                "issues": "https://github.com/laurentj/wikirenderer/issues",
+                "source": "https://github.com/laurentj/wikirenderer"
+            },
+            "time": "2024-04-28T21:01:28+00:00"
+        },
+        {
+            "name": "smarty/smarty",
+            "version": "v5.8.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/smarty-php/smarty.git",
+                "reference": "0ae663525dcbc9e996feb2a867e43bc85f960938"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/smarty-php/smarty/zipball/0ae663525dcbc9e996feb2a867e43bc85f960938",
+                "reference": "0ae663525dcbc9e996feb2a867e43bc85f960938",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.2 || ^8.0",
+                "symfony/polyfill-mbstring": "^1.27"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^8.5 || ^7.5",
+                "smarty/smarty-lexer": "^4.0.2"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "5.0.x-dev"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/functions.php"
+                ],
+                "psr-4": {
+                    "Smarty\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "LGPL-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "Monte Ohrt",
+                    "email": "monte@ohrt.com"
+                },
+                {
+                    "name": "Uwe Tews",
+                    "email": "uwe.tews@googlemail.com"
+                },
+                {
+                    "name": "Rodney Rehm",
+                    "email": "rodney.rehm@medialize.de"
+                },
+                {
+                    "name": "Simon Wisselink",
+                    "homepage": "https://www.iwink.nl/"
+                }
+            ],
+            "description": "Smarty - the compiling PHP template engine",
+            "homepage": "https://smarty-php.github.io/smarty/",
+            "keywords": [
+                "templating"
+            ],
+            "support": {
+                "forum": "https://github.com/smarty-php/smarty/discussions",
+                "issues": "https://github.com/smarty-php/smarty/issues",
+                "source": "https://github.com/smarty-php/smarty/tree/v5.8.5"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/wisskid",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-10-04T21:31:42+00:00"
+        },
+        {
+            "name": "symfony/polyfill-mbstring",
+            "version": "v1.43.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/polyfill-mbstring.git",
+                "reference": "4d5d331bf731e0aedbc6b2f5e61135b7b7996a72"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/4d5d331bf731e0aedbc6b2f5e61135b7b7996a72",
+                "reference": "4d5d331bf731e0aedbc6b2f5e61135b7b7996a72",
+                "shasum": ""
+            },
+            "require": {
+                "ext-iconv": "*",
+                "php": ">=7.2"
+            },
+            "provide": {
+                "ext-mbstring": "*"
+            },
+            "suggest": {
+                "ext-mbstring": "For best performance"
+            },
+            "type": "library",
+            "extra": {
+                "thanks": {
+                    "url": "https://github.com/symfony/polyfill",
+                    "name": "symfony/polyfill"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "bootstrap.php"
+                ],
+                "psr-4": {
+                    "Symfony\\Polyfill\\Mbstring\\": ""
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nicolas Grekas",
+                    "email": "p@tchwork.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Symfony polyfill for the Mbstring extension",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "compatibility",
+                "mbstring",
+                "polyfill",
+                "portable",
+                "shim"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.43.0"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-09-24T15:19:04+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": {},
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": {
+        "php": ">=8.3"
+    },
+    "platform-dev": {},
+    "plugin-api-version": "2.9.0"
+}

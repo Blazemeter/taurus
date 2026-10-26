@@ -1,7 +1,6 @@
 {
   "name": "blazemeter/taurus-website",
   "description": "Homepage for project Taurus",
-  "minimum-stability": "dev",
   "license": "Apache 2.0",
   "authors": [
     {
@@ -9,16 +8,15 @@
       "email": "andrey@blazemeter.com"
     }
   ],
-  "require-dev": {
-    "phpunit/phpunit": "~4"
-  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/Blazemeter/pwe"
+    }
+  ],
   "require": {
-    "php": ">=5.5.0",
-    "undera/pwe": "dev-master"
-  },
-  "config": {
-      "audit": {
-          "block-insecure": false
-      }
+    "php": ">=8.3",
+    "blazemeter/pwe": "^2.0",
+    "easybook/geshi": "~1"
   }
 }
