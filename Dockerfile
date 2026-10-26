@@ -35,7 +35,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright/browsers
 # ================================
 FROM base AS system-deps
 
-ARG NODE_VERSION=20
+ARG NODE_VERSION=22
 ARG PYTHON_VERSION=3.12
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -381,6 +381,38 @@ RUN mkdir -p /root/.bzt/selenium-taurus/mocha \
 
 # Install BZT tools
 RUN bzt -install-tools -v
+
+# Swap brotli4j 1.11.0 bundled in Gatling 3.9.5 for 1.24.0 (CVE-2026-111497, critical out-of-bounds
+# write in the bundled Brotli C decoder, reached by Netty when a target server answers with
+# `Content-Encoding: br`).
+# WARNING: replacing jars inside a vendor bundle is generally NOT a good idea - the bundle is tested
+# by Gatling as a whole and a swapped jar can break it in ways only seen at runtime. It is done here
+# only because of the severity of this CVE AND because the swap was tested: Gatling 3.9.5 (Netty
+# 4.1.92) decodes br responses correctly with brotli4j 1.24.0 (body assertion against
+# https://httpbin.org/brotli). Do not copy this pattern for routine findings.
+# The step fails the build when the 1.11.0 jars are missing, so a Gatling bump forces a re-check:
+# remove this step once the default Gatling bundles brotli4j >= 1.24.0.
+RUN GATLING_LIB=/root/.bzt/gatling-taurus/3.9.5/lib && \
+    BROTLI4J_URL=https://repo1.maven.org/maven2/com/aayushatharva/brotli4j && \
+    ls "${GATLING_LIB}"/brotli4j-1.11.0.jar "${GATLING_LIB}"/service-1.11.0.jar \
+       "${GATLING_LIB}"/native-linux-x86_64-1.11.0.jar > /dev/null || \
+        { echo "ERROR: brotli4j 1.11.0 not found in ${GATLING_LIB}; re-check the brotli4j swap step" >&2; exit 1; } && \
+    cd "${GATLING_LIB}" && \
+    printf '%s  %s\n' \
+        cd0ac4425d2c8449723c93d66ec4379faf1093eb6609ede83e49947f90a772e8 brotli4j-1.24.0.jar \
+        2fee8a977d617c4904f3260eca8a294927ec5364026478f82014484e96e8bfa5 service-1.24.0.jar \
+        49e5c5bcefb2d4247d3a2859d15ae90086b4c4089e08f2a560b8ac011e61ab06 native-linux-x86_64-1.24.0.jar \
+        25a03e939aba702375563c9248797cc9c76480b91dbd92dfe4a21fc51ce0ffdf native-linux-aarch64-1.24.0.jar \
+        adf6e516de53d6c9836759eaf52e9b9cb2c1faca2897cdb8019219d27a72b2c1 native-osx-x86_64-1.24.0.jar \
+        e005668daaf6dfaa1d23b6960ab0256ca989e536c1925c4e6478769841f89aad native-osx-aarch64-1.24.0.jar \
+        77a4007ba47e2676e9599075bee9dc8fc83ece642895170314c5fb1d1518a1c0 native-windows-x86_64-1.24.0.jar \
+        > /tmp/brotli4j.sha256 && \
+    for jar in $(awk '{print $2}' /tmp/brotli4j.sha256); do \
+        artifact="${jar%-1.24.0.jar}" && \
+        curl -fsSL -o "${jar}" "${BROTLI4J_URL}/${artifact}/1.24.0/${jar}" || exit 1; \
+    done && \
+    sha256sum -c /tmp/brotli4j.sha256 && \
+    rm -f /tmp/brotli4j.sha256 brotli4j-1.11.0.jar service-1.11.0.jar native-*-1.11.0.jar
 
 # Verify installations
 RUN google-chrome-stable --version && \
