@@ -1,0 +1,1 @@
+new `skip-on-failure` option for Selenium `requests` scenarios: stop the iteration after the first failed transaction, teardown still runs

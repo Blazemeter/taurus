@@ -114,6 +114,9 @@ reporting:
 
 Selenium executor supports building test script from the `requests` option of `scenario`. Look at [Apiritif executor manual page](Apiritif.md#Scenario) for more information. Note: it that case `test-mode` will be equal `selenium`
 
+To stop an iteration after the first failed transaction, use the `skip-on-failure` scenario option, see
+[Apiritif executor manual page](Apiritif.md#Skip-on-Failure).
+
 ## Automatic Installation of Web Driver
 
 By default, Taurus will download newest ChromeDriver and GeckoDriver and put them in PATH when running tests.
