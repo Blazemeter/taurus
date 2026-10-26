@@ -35,7 +35,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright/browsers
 # ================================
 FROM base AS system-deps
 
-ARG NODE_VERSION=20
+ARG NODE_VERSION=22
 ARG PYTHON_VERSION=3.12
 
 ARG DEBIAN_FRONTEND=noninteractive

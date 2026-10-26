@@ -1,0 +1,1 @@
+Updated Node.js in Docker image from 20.x (end-of-life) to 22.x, fixes CVE-2026-111497 in bundled Brotli.
