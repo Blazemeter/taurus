@@ -92,7 +92,7 @@ Before applying any fix, classify each CVE — first through the **category-0 pr
 - **Ubuntu Pro ESM** — the **only** fixed version(s) offered end in `+esmN` or `~esmN` (e.g. `7:6.1.1-3ubuntu5+esm5`). If a non-ESM fixed version is also listed, use that one and do not pre-filter. Not installable without an Ubuntu Pro subscription; plain `apt-get` fails and `--only-upgrade` cannot reach it. **55 of the 165 OS findings in scan #216 were this** (ffmpeg ×39, gnuplot ×7, python-pip ×3, openexr ×3, gst-plugins-bad1.0, qtbase-opensource-src, fonttools) — i.e. the majority of OS findings with a `fixed in` version. Do not add these to the upgrade list.
 - **Go libraries compiled into a binary** — `Path` is `/usr/bin/k6` (`net/http`, `crypto/tls`, `encoding/xml`, …). Only an upgrade of the k6 apt package can change them, never a library-level fix.
 - **JDK CVEs whose only fix is a later Java major** — `Path` under `/usr/lib/jvm/…` with `Fix Status` like `fixed in 22.0.1, 18, 12` (no 11.x fix exists). Unreachable by `apt --only-upgrade`; moving JMeter off OpenJDK 11 is a runtime-compatibility decision, not a CVE-run change.
-- **The distro (apt) `pip`** — `Path` `/usr/lib/python3/dist-packages/pip-*.dist-info`. Noble's pip fixes are `+esmN` or a pip version apt doesn't carry.
+- **The distro (apt) `pip`** — `Path` `/usr/lib/python3/dist-packages/pip-*.dist-info`. Noble's pip fixes are `+esmN` or a pip version apt doesn't carry. Only this path is `distro-pip`: a Prisma-proprietary `open` row (e.g. `PRISMA-2022-0168`) on the pip-upgraded `/usr/local/lib/python3.x/dist-packages/pip-*` copy is `no-released-patch`.
 
 > Note the distinction from category 4: these have **no reachable fix at all** (monitor), whereas an R finding's fix **exists and lands by itself** on a rebuild. Both mean "no code change", for opposite reasons. Full rationale in `vulnerability_history.md` → "Findings that are NOT fixable in a standard build".
 
@@ -252,6 +252,8 @@ If `result` is `FAILURE` → stop and give the console URL:
 curl -sL -u "$JENKINS_USERNAME:$JENKINS_TOKEN" \
   "https://blazect-jenkins.blazemeter.com/job/prisma-cloud-ondemand-scan/<BUILD>/artifact/taurus.csv"
 ```
+
+**Freshness gate — before classifying anything:** compare the CSV's `Image ID` against the **REGISTRY** config digest (snippet in step 7, OS packages step 0(a)). Step 2's timestamp rule cannot prove what the agent pulled: scan #319 ran after the push, matched the agent's *and* a fresh local pull's digest, and was still 5 days stale (registry mirror). If they differ, re-scan with `IMAGE_URL=blazemeter/taurus@sha256:<REGISTRY manifest digest>` through step 3's trigger/poll flow — this is a re-baseline, not a retry (step 2's "already running" filter on `unstable` won't see it) — fetch `artifact/taurus%40sha256.csv`, and use that as the baseline. If the registry digest cannot be resolved (rate limit, auth, no Docker), freshness is **INCONCLUSIVE** — say so; never treat it as fresh. Take the R date reference (build start) from the master build that produced **that** image: match the image's `.Created` / `/var/log/apt/history.log` tail to a `taurus-community-master` build window, not simply the newest build.
 
 ### 5. Parse, classify, and display
 
@@ -473,14 +475,27 @@ When a CVE is in a system package (path is `/var/lib/dpkg/status`, empty, or in 
 
    **(a) Prove provenance — where is this package actually installed from?** Do NOT reason from the Dockerfile text alone. R requires the package to be "already covered by an unpinned line", and *absence from the `--only-upgrade` list does not mean absence of coverage*: a package is covered if it is installed unpinned by **any** of three sources: a Dockerfile `apt-get install`; **an automatic dependency of one, never named in the Dockerfile**; or **an `apt-get install` issued by a tool the Dockerfile runs** (e.g. `RUN bzt -install-tools` → `npx playwright install --with-deps`, whose package list exists nowhere in this repo — scan #301's `libx11-6` was installed this way). Only `/var/log/apt/history.log` tells them apart. Ask the image, not the source:
    ```bash
-   # confirm you are inspecting THE SCANNED image first — compare against the CSV's `Image ID`
-   # column; `unstable` is a mutable tag and may have been republished since the baseline scan.
-   # twistcli's `Image ID` is the CONFIG digest. Do NOT compare it against
-   # `docker image inspect --format '{{.Id}}'` — under the containerd image store `.Id` is the
-   # MANIFEST digest and never matches, producing a false stale-image alarm. Resolve the config
-   # digest THROUGH the local image's RepoDigest (not the bare tag, which hits the registry and
-   # would happily confirm a republished image you don't have). See vulnerability_history.md,
-   # "The baseline scan can silently scan a STALE image" for both traps.
+   # confirm you are inspecting THE SCANNED image first. twistcli's `Image ID` (CSV column) is the
+   # CONFIG digest. Do NOT compare it against `docker image inspect --format '{{.Id}}'` — under the
+   # containerd image store `.Id` is the MANIFEST digest and never matches (false stale alarm).
+   # Resolve TWO config digests and compare BOTH against the CSV `Image ID`:
+   #   REGISTRY — what `unstable` actually is now. The only one that can prove freshness: the
+   #              agents' daemon pulls through a mirror (mirror.gcr.io), so the scan agent AND
+   #              your own `docker pull` can both serve the same stale image (scan #319, 10-28).
+   #   LOCAL    — via the local RepoDigest; says which image your apt-history reads come from.
+   # Any mismatch => re-scan / re-pull by the REGISTRY manifest digest (`.Descriptor.digest`),
+   # never by `.RepoDigests[0]` (that IS the stale image when the pull is stale). Decision table:
+   # vulnerability_history.md, "The baseline scan can silently scan a STALE image".
+   # IMG is what the apt-history reads below run against. A digest pull does NOT retag, so after a
+   # re-pull set IMG=blazemeter/taurus@sha256:<REGISTRY manifest digest> — the tag stays stale.
+   IMG=blazemeter/taurus:unstable
+   docker manifest inspect -v blazemeter/taurus:unstable | python3 -c "
+   import json,sys
+   d=json.load(sys.stdin); d=d if isinstance(d,list) else [d]   # list => multi-arch index
+   p=lambda x: x['Descriptor'].get('platform',{})
+   m=next(x for x in d if p(x).get('architecture','amd64')=='amd64' and p(x).get('os','linux')=='linux')
+   b=m.get('SchemaV2Manifest') or m['OCIManifest']   # Docker v2 vs OCI manifest
+   print('REGISTRY manifest', m['Descriptor']['digest'], 'config', b['config']['digest'])"
    docker pull blazemeter/taurus:unstable   # let it FINISH before inspecting
    REF=$(docker image inspect --format '{{if .RepoDigests}}{{index .RepoDigests 0}}{{end}}' \
            blazemeter/taurus:unstable)   # empty => locally-built, use .Created instead
@@ -491,9 +506,9 @@ When a CVE is in a system package (path is `/var/lib/dpkg/status`, empty, or in 
          if m.get('platform',{}).get('architecture')=='amd64' and m.get('platform',{}).get('os')=='linux'))")
    [ -n "$AMD64" ] && REF="${REF%@*}@$AMD64"   # multi-arch index => descend to the amd64 child
    docker manifest inspect "$REF" \
-     | python3 -c "import json,sys; print(json.load(sys.stdin)['config']['digest'])"
+     | python3 -c "import json,sys; print('LOCAL config', json.load(sys.stdin)['config']['digest'])"
    # which apt invocation installed it, at what version, and was it "automatic"?
-   docker run --rm --entrypoint sh blazemeter/taurus:unstable -c \
+   docker run --rm --entrypoint sh "$IMG" -c \
      "grep -B4 '<pkg>:amd64' /var/log/apt/history.log | tail -8"
    # is it in the base image, and at WHICH version?  (also a mutable tag — reason about today's base only)
    docker run --rm --platform linux/amd64 ubuntu:24.04 \
@@ -734,6 +749,7 @@ Then do two checks:
 2. **Repeat, per category, the lookup that could prove the classification wrong** — one scripted loop over the distinct CVE IDs of each category, not a manual review of all of Z (most of Z is JMeter/Gatling, which is policy). Use `vulnerability_history.md` to know what to look up (e.g. a recorded re-check condition); a note's verdict never replaces the lookup.
    - **.NET SDK rows** (`/usr/share/dotnet/sdk/`) → from the fix branch's checkout — or, when the run has no branch, from the workspace checkout of master, which has the same `Dockerfile` — run the `releases.json` snippet in the .NET SDK bump section. Fixable only if a newer release names the CVE in its `cve-list` **and** that release's tarball ships the fixed version in the flagged file (category 2). The `cve-list` alone is not enough: `dotnet-format`'s Pkcs 8.0.1 is named in 8.0.32's `cve-list` and still ships unpatched.
    - **No released patch** (`needed` / `open` / `deferred`) **and ESM-only OS rows** → `https://ubuntu.com/security/cves/<CVE>.json`, the `noble` entry for the package. **This feed rate-limits and the loop is ~200 requests: cap concurrency at ~4, retry with backoff, cache per CVE, and count any CVE you could not resolve as INCONCLUSIVE — never as "not fixable".** The loop's output is a count of newly-fixable rows, so timed-out lookups silently contribute zero and the run reports a passed re-check on a sample (measured: 12 workers lost 98 of 197; 4 with retry resolved 197 of 197). Fixable only if `status` is `released` **and** `pocket` is `security` or `updates` **and** the fixed version in `description` has no `+esm`/`~esm`. A `released` entry in an `esm-*` pocket is still ESM; `not-affected` is a suppression candidate, not a fix.
+     - **Not an Ubuntu-archive package → this feed says nothing about it.** `nodejs` at `<v>-1nodesourceN` comes from NodeSource, but Prisma matches it against Ubuntu's `nodejs` entry (`needed`), so the lookup above "confirms" Z for the wrong reason. Check the upstream fixed versions instead (the CVE's Node.js security release); if the installed version is already past the fix for its major line, the row is a false positive → still Z (`no-released-patch`), but list it as a Prisma suppression candidate in step 18 (scan #320: 7 such rows, e.g. `CVE-2024-27983` on `22.23.4`). If it is **not** past the fix: a fixed release in the same major on `deb.nodesource.com` → run the category-4 gate (the Dockerfile's `apt-get install -y nodejs` is unpinned); a fix only in a later major → manual (`ARG NODE_VERSION` bump), list it in step 18.
    - **No released patch, npm / PyPI** → get the fixed range from the advisory (`POST https://api.osv.dev/v1/query` with `{"package":{"name":"<pkg>","ecosystem":"npm"}, "version":"<installed>"}`, ecosystem `PyPI` for Python), then confirm in `registry.npmjs.org/<pkg>` / `pypi.org/pypi/<pkg>/json` that a version in that range is published.
    - **JMeter/Gatling, k6 internals, JDK later-major, distro pip** → no lookup; these are policy.
 3. **Run the category-4 gate on anything newly fixable.** Its build-start evidence needs the Jenkins-authenticated lookup from category 4, so this sub-step must run in an invocation that has `JENKINS_USERNAME`/`JENKINS_TOKEN` — phase 2, never phase 3. If you reach here without them, say so plainly and do not guess the date test. A fix published after build start, for a package an unpinned line covers, is **R**. What that means depends on the path:
