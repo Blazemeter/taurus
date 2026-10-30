@@ -7,10 +7,10 @@ from bzt import ToolError
 from bzt.utils import dehumanize_time, EXE_SUFFIX
 from bzt.modules.jmeter import JTLReader
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
-from bzt.modules._locustio import LocustIOExecutor, WorkersReader
+from bzt.modules._locustio import LocustIOExecutor, WorkersReader, Locust
 from bzt.modules.provisioning import Local
 
-from tests.unit import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul
+from tests.unit import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER, EngineEmul, BZTestCase
 
 
 class TestLocustIOExecutor(ExecutorTestCase):
@@ -338,3 +338,10 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.obj.post_process()
         diagnostics = self.obj.get_error_diagnostics()
         self.assertIsNotNone(diagnostics)
+
+
+class TestLocustTool(BZTestCase):
+    def test_brotli_pinned(self):
+        # GHSA-9v8h-qqgm-4m35: brotli is a transitive dep of locust (via geventhttpclient)
+        self.assertEqual("locust", Locust.PACKAGES[0])
+        self.assertIn("brotli==1.2.1", Locust.PACKAGES)

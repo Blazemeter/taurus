@@ -199,7 +199,9 @@ class LocustIOExecutor(ScenarioExecutor):
 
 
 class Locust(PythonTool):
-    PACKAGES = ["locust"]
+    # brotli is pulled in unpinned by locust -> geventhttpclient; pinned for GHSA-9v8h-qqgm-4m35 (fixed in 1.2.1).
+    # Must stay after "locust": PythonTool appends "==<version>" to PACKAGES[0].
+    PACKAGES = ["locust", "brotli==1.2.1"]
 
 
 class WorkersReader(ResultsProvider):
