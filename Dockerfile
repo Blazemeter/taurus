@@ -244,10 +244,12 @@ RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERS
     echo ".NET SDK CVE check OK: sdk=${DOTNET_SDK_VERSION} aspnetcore=${ASPNET}"
 
 # Install rbenv and Ruby
-# 3.4.11 ships patched net-imap (0.5.15), erb (4.0.4.1) and resolv (0.7.2) as its own bundled/default
-# gems, which removes the need to force-install them below. Do not drop back to 3.4.10 or earlier:
-# 3.4.10 still ships resolv 0.7.1 (CVE-2026-80212 high 7.5, CVE-2026-80213).
-ARG RUBY_VERSION=3.4.11
+# 3.4.12 fixes CVE-2026-97229 in the interpreter itself (fixed in 4.0.8, 3.4.12, 3.3.13) and still
+# ships patched net-imap (0.5.15), erb (4.0.4.1) and resolv (0.7.2) as its own bundled/default
+# gems, which removes the need to force-install them below. Do not drop back to 3.4.11 or earlier:
+# 3.4.11 is affected by CVE-2026-97229, and 3.4.10 also still ships resolv 0.7.1
+# (CVE-2026-80212 high 7.5, CVE-2026-80213).
+ARG RUBY_VERSION=3.4.12
 
 RUN git clone --depth 1 https://github.com/rbenv/rbenv.git ${RBENV_ROOT} && \
     git clone --depth 1 https://github.com/rbenv/ruby-build.git ${RBENV_ROOT}/plugins/ruby-build && \
@@ -285,17 +287,32 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 # Consequence, accepted deliberately: Prisma still reads the stale default gemspec and reports
 # json 2.9.1. That finding is VISIBLE AND HONEST while the loaded code is patched.
 # Do not "fix" it by deleting the gemspec -- that is the appeasement bug above.
-# remove when a Ruby available in ruby-build bundles json >= 2.19.9 (3.4.11 still ships 2.9.1):
+# remove when a Ruby available in ruby-build bundles json >= 2.19.9 (3.4.12 still ships 2.9.1):
 # bump RUBY_VERSION instead, then delete the json install here but KEEP its entry in the assertion
 # below, set to the version the new Ruby bundles -- exactly how net-imap/erb retired at 3.4.10 and resolv at 3.4.11. Entries for gems Ruby
 # bundles correctly are what turn a silent Ruby downgrade into a build failure.
 #
 # The assertion below checks the thing that actually matters: that the patched version is what
 # `require` loads. A silent activation failure fails the build instead of shipping quietly.
+#
+# RUBY_MIN is a CVE floor, not a style pin: CVE-2026-97229 is in the INTERPRETER, not in a gem, so
+# the gem `want` list below cannot catch it -- 3.4.11 and 3.4.12 ship an identical default/bundled
+# gem set, so the gem assertion passes clean on the vulnerable 3.4.11. Without this arm a
+# `--build-arg RUBY_VERSION=3.4.11` or a bad merge silently restores the vulnerable interpreter with
+# a green build (same silent-miss class the DOTNET_ASPNET_MIN check above exists to close).
+# Raise RUBY_MIN whenever a later Ruby is required to clear an interpreter-level CVE.
+# NOTE: this floor is expressed on the 3.4 line. CVE-2026-97229 is also fixed in the 3.3 and 4.x
+# series, so moving to another series means re-deriving the floor for that series, not reusing this
+# number. 3.4.12 also carries sibling Onigmo regexp fixes released alongside it.
 RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
     gem install json -v 2.19.9 --no-document && \
     rbenv rehash && \
     ruby -rjson -rerb -rnet/imap -rresolv -e '\
+        ruby_min = "3.4.12"; \
+        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(ruby_min); \
+            abort("ERROR: ruby #{RUBY_VERSION} is below the CVE floor #{ruby_min} " \
+                  "(CVE-2026-97229, interpreter-level - the gem check below cannot catch it)"); \
+        end; \
         want = { "json" => "2.19.9", "resolv" => "0.7.2", "erb" => "4.0.4.1", "net-imap" => "0.5.15" }; \
         bad = want.reject { |g, v| (Gem.loaded_specs[g] && Gem.loaded_specs[g].version.to_s == v) || \
                                    (g == "erb" && ERB.version == v) }; \
@@ -303,7 +320,7 @@ RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
             got = bad.keys.map { |g| "#{g}: want #{want[g]}, loaded #{Gem.loaded_specs[g]&.version || "stdlib"}" }; \
             abort("ERROR: vulnerable Ruby gem still active at runtime (build aborted)\n  " + got.join("\n  ")); \
         end; \
-        puts "Ruby gem CVE check OK: " + want.map { |g, v| "#{g}=#{v}" }.join(" ")'
+        puts "Ruby CVE check OK: ruby=#{RUBY_VERSION} (min #{ruby_min}) " + want.map { |g, v| "#{g}=#{v}" }.join(" ")'
 
 # Install OpenJDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
