@@ -71,11 +71,8 @@ RUN apt-get update && \
 # Download Chrome package
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
 
-# Add K6 repository with proper GPG setup
-RUN mkdir -p /root/.gnupg && \
-    chmod 700 /root/.gnupg && \
-    gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 && \
-    gpg --batch --export C5AD17C747E3415A3642D57D77C6C491D6AC1D69 | gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg && \
+# Add K6 repository
+RUN curl -fsSL https://dl.k6.io/key.gpg | gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list
 
 # Add Firefox PPA (avoid snap)
