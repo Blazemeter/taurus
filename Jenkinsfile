@@ -24,6 +24,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
+                    sh 'git config --global --add safe.directory "$(pwd)"'
                     initJenkinsGlobal()
                     tagName = sh(returnStdout: true, script: "git tag --points-at HEAD").trim()
                     isRelease = !tagName.isEmpty()
