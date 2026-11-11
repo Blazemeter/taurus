@@ -77,7 +77,7 @@ class JavaC(RequiredTool):
 
 
 class Json(JarTool):
-    REMOTE_PATH = "org/json/json/20240303/json-20240303.jar"
+    REMOTE_PATH = "org/json/json/20260719/json-20260719.jar"
     TOOL_FILE = "json.jar"
 
 
