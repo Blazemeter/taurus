@@ -13,7 +13,6 @@ pipeline {
     }
     parameters{
         booleanParam(name: 'PERFORM_PRISMA_SCAN', defaultValue: true, description: 'Perform a Prisma scan for the local image')
-        booleanParam(name: 'UPLOAD_WHL_TO_GCS', defaultValue: false, description: 'Upload the community WHL package to gs://blazemeter-images/crane-components/')
     }
     stages {
         stage('Checkout') {
@@ -39,12 +38,6 @@ pipeline {
                     sh "./build-artifacts.sh"
                 }
                 archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
-            }
-        }
-        stage("Upload WHL to GCS") {
-            when { expression { return params.UPLOAD_WHL_TO_GCS } }
-            steps {
-                sh "gsutil cp -a public-read dist/*.whl gs://blazemeter-images/crane-components/"
             }
         }
         stage("Docker Image Build") {
