@@ -41,7 +41,6 @@ jobs:
           echo "DISPLAY=:99.0" >> $GITHUB_ENV
           sleep 10
           ps aux | grep Xvfb
-          xdpyinfo -display :99
 
       - name: Run tests
         run: |
