@@ -134,8 +134,57 @@ class RecordingPlugin(object):
             self._report_sample(test_name)
 
 
-def run_pytest(argv, report_path, iteration_limit, duration_limit, numprocesses):
-    plugin = RecordingPlugin(report_path)
+class RemoteRecordingPlugin(RecordingPlugin):
+    """
+    Used only with --remote-metrics (RemotePyTestExecutor). Keeps the state of every test separately, because
+    under pytest-xdist the reports of concurrently running tests interleave, and writes the number of tests
+    running at the same time ("concurrency") into every row.
+    """
+
+    def __init__(self, report_path):
+        super(RemoteRecordingPlugin, self).__init__(report_path)
+        self._samples = {}
+        self._peaks = {}
+        self._current_node = None
+
+    def pytest_sessionstart(self, session):
+        self._samples.clear()
+        self._peaks.clear()
+
+    def _write_sample(self, sample):
+        if self._report_fds is None:
+            raise ValueError("Plugin wasn't prepared")
+
+        row = sample.to_dict()
+        row["concurrency"] = self._peaks.get(self._current_node, 1)
+        self._report_fds.write("%s\n" % json.dumps(row))
+        self._report_fds.flush()
+
+    def pytest_runtest_logreport(self, report):
+        node = report.nodeid
+        if report.when == 'setup':
+            self._peaks[node] = 1
+            running = len(self._peaks)
+            for other in self._peaks:
+                self._peaks[other] = max(self._peaks[other], running)
+
+        self._current_node = node
+        self._sample = self._samples.pop(node, None)
+        try:
+            super(RemoteRecordingPlugin, self).pytest_runtest_logreport(report)
+        finally:
+            if self._sample is not None:
+                self._samples[node] = self._sample
+            self._sample = None
+            if report.when == 'teardown':
+                self._samples.pop(node, None)
+                self._peaks.pop(node, None)
+            self._current_node = None
+
+
+def run_pytest(argv, report_path, iteration_limit, duration_limit, numprocesses, remote_metrics=False):
+    plugin_class = RemoteRecordingPlugin if remote_metrics else RecordingPlugin
+    plugin = plugin_class(report_path)
     plugin.prepare()
     start_time = int(time.time())
     iteration = 0
@@ -175,6 +224,7 @@ if __name__ == '__main__':
     parser.add_option('-i', '--iterations', action='store', default=0)
     parser.add_option('-d', '--duration', action='store', default=0)
     parser.add_option('-n', '--numprocesses', action='store', default=0)
+    parser.add_option('--remote-metrics', action='store_true', default=False)
     opts, args = parser.parse_args()
 
     opts.iterations = int(opts.iterations)
@@ -189,4 +239,5 @@ if __name__ == '__main__':
         else:
             opts.iterations = 1
 
-    run_pytest(args, opts.report_file, int(opts.iterations), float(opts.duration), str(opts.numprocesses))
+    run_pytest(args, opts.report_file, int(opts.iterations), float(opts.duration), str(opts.numprocesses),
+               opts.remote_metrics)
