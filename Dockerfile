@@ -75,12 +75,15 @@ ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /t
 RUN curl -fsSL https://dl.k6.io/key.gpg | gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list
 
-# Add Firefox PPA (avoid snap) - manual setup to avoid launchpad API call that times out in BuildKit
+# Add Mozilla official apt repo (avoid snap Firefox; replaces mozillateam PPA which requires
+# Launchpad API access that times out in BuildKit)
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap && \
-    curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x0AB215679C571D1C8325275B9BDB3D89CE49EC21" | \
-        gpg --dearmor -o /usr/share/keyrings/mozillateam-ppa.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/mozillateam-ppa.gpg] https://ppa.launchpadcontent.net/mozillateam/ppa/ubuntu noble main" \
-        > /etc/apt/sources.list.d/mozillateam-ppa.list
+    curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg | \
+        gpg --dearmor -o /usr/share/keyrings/packages.mozilla.org.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/packages.mozilla.org.gpg] https://packages.mozilla.org/apt mozilla main" \
+        > /etc/apt/sources.list.d/mozilla.list && \
+    printf '%s\n' 'Package: *' 'Pin: origin packages.mozilla.org' 'Pin-Priority: 1000' \
+        > /etc/apt/preferences.d/mozilla
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
