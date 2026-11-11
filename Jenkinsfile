@@ -46,12 +46,6 @@ pipeline {
                 archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
             }
         }
-        stage("Upload WHL to GCS") {
-            when { expression { return params.UPLOAD_WHL_TO_GCS } }
-            steps {
-                sh "gsutil cp -a public-read dist/*.whl gs://blazemeter-images/crane-components/"
-            }
-        }
         stage("Docker Image Build") {
             steps {
                 script {
@@ -132,6 +126,12 @@ spec:
                         sh "docker image push --all-tags ${imageName}"
                     }
                 }
+            }
+        }
+        stage("Upload WHL to GCS") {
+            when { expression { return params.UPLOAD_WHL_TO_GCS } }
+            steps {
+                sh "gsutil cp -a public-read dist/*.whl gs://blazemeter-images/crane-components/"
             }
         }
         stage("Deploy site") {
