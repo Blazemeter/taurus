@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.17.2<sup> 26 October 2026</sup>
+- Added remote Playwright executor for cloud Playwright execution
+- BlazeMeter reporter can generate failed transactions report for browser-based tests (`generate-failed-transactions`)
+- Playwright tools are installed offline from the Docker image instead of per-run npm install (fixes private locations without npm registry access)
+- Fix aggregation error of extended labels (`extend-aggregation`) for Apiritif and Selenium tests
+- Fix Chrome failing with "DevToolsActivePort file doesn't exist" after 56 iterations in single-user Selenium tests
+- Docker image: Node.js 22, Ruby 3.4.11, .NET SDK 8.0.426
+- Vulnerability fixes
+
+## 1.17.1<sup> 31 August 2026</sup>
+- Added playwright option for report granularity (test.step)
+- Added playwright option for do not report title prefix
+- Playwright executor does not report skipped test
+- Fix chromedriver version check timeout on private locations (OPL)
+- Report the failing sub-sample's URL for transaction errors
+
+## 1.17.0<sup> 17 August 2026</sup>
+- Improved response-time percentile accuracy for externally-executed tests reported to BlazeMeter
+- Dependency updates & fixes
+
+## 1.16.51<sup> 15 June 2026</sup>
+- Playwright executor fixes
+- Selenium executor fixes
+- Vulnerability fixes
+
 ## 1.16.50<sup> 27 April 2026</sup>
 - Playwright executor fixes
 - Improved happysocks integration

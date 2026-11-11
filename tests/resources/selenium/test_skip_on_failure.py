@@ -1,0 +1,114 @@
+# coding=utf-8
+
+import logging
+import random
+import string
+import sys
+import unittest
+from time import time, sleep
+
+import apiritif
+
+import os
+import re
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support import expected_conditions as econd
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.options import ArgOptions
+from selenium.webdriver.remote.remote_connection import RemoteConnection
+import copy
+from bzt.resources.selenium_extras import add_flow_markers, get_locator, report_skipped_steps, waiter
+
+_original_execute = RemoteConnection.execute
+
+def execute_with_retries(self, command, params=None):
+    params_copy = copy.deepcopy(params)
+    retries = 3
+    delay = 2
+    last_exc = None
+    for attempt in range(retries):
+        try:
+            if (params != params_copy):
+                return _original_execute(self, command, params_copy)
+            else:
+                return _original_execute(self, command, params)
+        except Exception as e:
+            last_exc = e
+            print(f'[Retry] RemoteConnection.execute failed on attempt {(attempt + 1)}: {e}')
+            if (attempt < (retries - 1)):
+                sleep(delay)
+    raise last_exc
+RemoteConnection.execute = execute_with_retries
+
+
+class TestSc1(unittest.TestCase):
+
+    def setUp(self):
+        self.vars = {}
+
+        timeout = 2.0
+        options = webdriver.FirefoxOptions()
+        profile = webdriver.FirefoxProfile()
+        profile.set_preference('webdriver.log.file', '/somewhere/webdriver.log')
+        options.set_capability('unhandledPromptBehavior', 'ignore')
+        self.driver = webdriver.Firefox(profile, options=options)
+        self.driver.implicitly_wait(timeout)
+        add_flow_markers()
+        apiritif.put_into_thread_store(timeout=timeout, func_mode=False,
+                                       driver=self.driver, windows={}, scenario_name='sc1')
+
+
+    def _1_httpsblazedemocomsetup1(self):
+        with apiritif.smart_transaction('https://blazedemo.com/setup1'):
+            self.driver.get('https://blazedemo.com/setup1')
+
+    def _2_setup2(self):
+        with apiritif.smart_transaction('setup2'):
+            self.driver.get('https://blazedemo.com/setup2')
+
+            waiter()
+
+    def _3_httpsblazedemocommain1(self):
+        with apiritif.smart_transaction('https://blazedemo.com/main1'):
+            self.driver.get('https://blazedemo.com/main1')
+
+    def _4_main2(self):
+        with apiritif.smart_transaction('main2'):
+            self.driver.get('https://blazedemo.com/main2')
+
+            waiter()
+
+    def _5_httpsblazedemocomteardown1(self):
+        with apiritif.smart_transaction('https://blazedemo.com/teardown1'):
+            self.driver.get('https://blazedemo.com/teardown1')
+
+    def _6_teardown2(self):
+        with apiritif.smart_transaction('teardown2'):
+            self.driver.get('https://blazedemo.com/teardown2')
+
+            waiter()
+
+    def test_sc1(self):
+        steps = [(self._1_httpsblazedemocomsetup1, 'https://blazedemo.com/setup1'), (self._2_setup2, 'setup2'),
+                 (self._3_httpsblazedemocommain1, 'https://blazedemo.com/main1'), (self._4_main2, 'main2')]
+        try:
+            while steps:
+                (step, label) = steps.pop(0)
+                apiritif.put_into_thread_store(status=None)
+                step()
+                if apiritif.get_from_thread_store('status') in ('failed', 'broken'):
+                    break
+        finally:
+            apiritif.set_stage("teardown")      # can't be interrupted
+            self._5_httpsblazedemocomteardown1()
+            self._6_teardown2()
+        report_skipped_steps(steps)
+
+    def tearDown(self):
+        if self.driver:
+            self.driver.quit()

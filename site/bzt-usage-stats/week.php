@@ -22,7 +22,7 @@ function getWeekDataFromDB()
 
     $query = 'select week, sum(desktop_launch) AS "desktop_launch", sum(cloud_launch) AS "cloud_launch", sum(new_users) as "new_users", EXTRACT(YEAR FROM TO_DATE(date, \'DD/MM/YYYY\')) as year from aggregate_data group by week, year order by year;';
 
-    $contests = pg_query($query) or die('Query failed: ' . pg_last_error());
+    $contests = pg_query($db_conn, $query) or die('Query failed: ' . pg_last_error($db_conn));
     $column_number = pg_num_fields($contests);
 
     $week_arr = array();

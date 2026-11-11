@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<sample t="1200" lt="0" ct="0" ts="1690000000000" s="false" lb="01_LoginPage" rc="429" rm="Number of samples in transaction : 3, number of failing samples : 1" tn="Thread Group 1-1" dt="" de="" by="1000" ng="1" na="1">
+  <httpSample t="100" lt="50" ct="10" ts="1690000000000" s="true" lb="https://www.blazedemo.com/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="500" ng="1" na="1">
+    <java.net.URL>https://www.blazedemo.com/account</java.net.URL>
+  </httpSample>
+  <httpSample t="900" lt="0" ct="0" ts="1690000000100" s="false" lb="bzm - Parallel Controller" rc="429" rm="Number of samples in transaction : 2, number of failing samples : 1" tn="Thread Group 1-1" dt="" de="" by="500" ng="1" na="1">
+    <httpSample t="80" lt="40" ct="5" ts="1690000000100" s="true" lb="graphql" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="300" ng="1" na="1">
+      <java.net.URL>https://shop.blazedemo.com/graphql</java.net.URL>
+    </httpSample>
+    <httpSample t="70" lt="30" ct="5" ts="1690000000180" s="false" lb="channelsearch" rc="429" rm="Too Many Requests" tn="Thread Group 1-1" dt="text" de="utf-8" by="200" ng="1" na="1">
+      <java.net.URL>https://api.blazedemo.com/v1/catalog/channelsearch</java.net.URL>
+    </httpSample>
+  </httpSample>
+</sample>
+<sample t="1300" lt="0" ct="0" ts="1690000001000" s="false" lb="02_ChannelSearch" rc="429" rm="Number of samples in transaction : 3, number of failing samples : 2" tn="Thread Group 1-1" dt="" de="" by="1000" ng="1" na="1">
+  <httpSample t="100" lt="50" ct="10" ts="1690000001000" s="true" lb="https://www.blazedemo.com/" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="500" ng="1" na="1">
+    <java.net.URL>https://www.blazedemo.com/account</java.net.URL>
+  </httpSample>
+  <httpSample t="70" lt="30" ct="5" ts="1690000001100" s="false" lb="channelsearch" rc="429" rm="Too Many Requests" tn="Thread Group 1-1" dt="text" de="utf-8" by="200" ng="1" na="1">
+    <java.net.URL>https://api.blazedemo.com/v1/catalog/channelsearch</java.net.URL>
+  </httpSample>
+  <httpSample t="70" lt="30" ct="5" ts="1690000001200" s="false" lb="channelsearch" rc="429" rm="Too Many Requests" tn="Thread Group 1-1" dt="text" de="utf-8" by="200" ng="1" na="1">
+    <java.net.URL>https://api.blazedemo.com/v1/catalog/channelsearch</java.net.URL>
+  </httpSample>
+</sample>
+<httpSample t="120" lt="60" ct="10" ts="1690000002000" s="false" lb="03_Health" rc="500" rm="Internal Server Error" tn="Thread Group 1-1" dt="text" de="utf-8" by="200" ng="1" na="1">
+  <java.net.URL>https://api.blazedemo.com/v1/health</java.net.URL>
+</httpSample>
+</testResults>

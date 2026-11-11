@@ -4,3 +4,6 @@ Dockerfile
 tests
 site
 **/*.pyc
+.claude/
+.specify/
+specs/

@@ -4,3 +4,4 @@ nose2
 codecov
 gevent
 gevent-websocket
+hdrhistogram>=0.10.3

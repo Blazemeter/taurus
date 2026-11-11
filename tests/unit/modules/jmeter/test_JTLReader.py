@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import unittest
+from collections import Counter
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JTLErrorsReader, JTLReader, FuncJTLReader
@@ -378,6 +379,29 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(values.get("tc4")[0].get("type"), KPISet.ERRTYPE_SUBSAMPLE)
         self.assertEqual(values.get('tc5')[0].get("msg"), "NOT FOUND")
         self.assertEqual(values.get("tc5")[0].get("type"), KPISet.ERRTYPE_SUBSAMPLE)
+
+    def test_transaction_error_url_with_generate_parent_sample(self):
+        # 'Generate parent sample' makes JMeter propagate the failing sub-sample's response code onto
+        # the transaction sample, so the transaction's own first URL is not the one that failed
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-tc-generate-parent.jtl")
+        self.obj.read_file(final_pass=True)
+        values = self.obj.get_data(sys.maxsize)
+
+        channelsearch = "https://api.blazedemo.com/v1/catalog/channelsearch"
+
+        # failing sub-sample two levels deep is found instead of the transaction's first URL
+        login = values.get("01_LoginPage")[0]
+        self.assertEqual(Counter({channelsearch: 1}), login.get("urls"))
+        self.assertEqual("429", login.get("rc"))
+        self.assertEqual("Number of samples in transaction : 3, number of failing samples : 1", login.get("msg"))
+
+        # two failing sub-samples on the same URL are reported as one URL
+        search = values.get("02_ChannelSearch")[0]
+        self.assertEqual(Counter({channelsearch: 1}), search.get("urls"))
+
+        # a failing sample without sub-samples still reports its own URL
+        health = values.get("03_Health")[0]
+        self.assertEqual(Counter({"https://api.blazedemo.com/v1/health": 1}), health.get("urls"))
 
     def test_nonstandard_errors_unicode(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/nonstandard-unicode.jtl")

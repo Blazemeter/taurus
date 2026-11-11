@@ -1,3 +1,13 @@
+# .NET SDK version, declared globally so the single value feeds BOTH the download URL (runtimes
+# stage) and the /usr/share/dotnet/sdk/<version>/ paths of the .deps.json patch steps (final stage).
+# A global ARG must be RE-DECLARED (bare, no default) in each stage that consumes it; a parent
+# stage's default does NOT propagate, and an undeclared ${DOTNET_SDK_VERSION} expands to the empty
+# string, which would silently turn every patch step below into a no-op. Verified both behaviours.
+ARG DOTNET_SDK_VERSION=8.0.426
+# Minimum ASP.NET Core runtime the SDK above must bundle, asserted at build time (CVE-2026-69304;
+# 8.0.32 also ships System.Security.Cryptography.Pkcs 8.0.2 for CVE-2026-84008/70162).
+ARG DOTNET_ASPNET_MIN=8.0.32
+
 FROM ubuntu:24.04 AS base
 
 # Metadata
@@ -25,7 +35,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright/browsers
 # ================================
 FROM base AS system-deps
 
-ARG NODE_VERSION=20
+ARG NODE_VERSION=22
 ARG PYTHON_VERSION=3.12
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -124,23 +134,122 @@ RUN current_version=$(dpkg -l firefox | tail -1 | awk '{print $3}' | grep -oP '[
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
 
+# Upgrade OS packages to patched versions in noble-security/noble-updates (CVE fixes):
+#   libgnutls30t64 (gnutls28): CVE-2026-3832/3833/5260/5419/33845/33846/42009-42015
+#     (noble renamed libgnutls30 -> libgnutls30t64; the old name matches nothing and was being
+#      skipped silently, so this list was not actually enforced for gnutls)
+#   libgcrypt20:            CVE-2026-41989, CVE-2024-2236 (-> 1.10.3-2ubuntu0.2; base ships ...0.1)
+#   librabbitmq4:           CVE-2023-35789, CVE-2026-44235, CVE-2026-44236
+#   mesa userspace libs:    CVE-2026-40393
+#   perl:                   CVE-2026-8376, CVE-2026-42496 (-> 5.38.2-3.2ubuntu0.3)
+#   libxml2:                CVE-2026-6653 (-> 2.9.14+dfsg-1.3ubuntu3.8)
+#   libsqlite3-0 (sqlite3): CVE-2026-11822, CVE-2026-11824, CVE-2026-50813 (-> 3.45.1-1ubuntu2.7)
+#   libnss3 (nss):          CVE-2026-12318 (-> 2:3.98-1ubuntu0.2)
+#   tar:                    CVE-2026-5704, CVE-2025-45582 (-> 1.35+dfsg-3ubuntu0.3)
+#   python3.12:             CVE-2026-6100/9669, CVE-2025-69534, CVE-2026-4786/4519/7774/3276/4224/3644/1299/8328/2297/1502/6019, CVE-2025-13462 (-> 3.12.3-1ubuntu0.15)
+#   gzip:                   CVE-2026-41992, CVE-2026-41991 (-> 1.12-1ubuntu3.2)
+#   libnghttp2-14 (nghttp2):CVE-2026-58055 (-> 1.59.0-1ubuntu0.4)
+#   ncurses libs:           CVE-2025-69720, CVE-2025-6141 (-> 6.4+20240113-1ubuntu2.2; base ships ...2.1)
+#   pipewire libs:          CVE-2026-14324, CVE-2026-14330 (-> 1.0.5-1ubuntu3.3)
+#     (libpipewire-0.3-0 was likewise renamed to libpipewire-0.3-0t64 and was being skipped)
+#   libasound2t64 (alsa-lib): CVE-2026-56109 (-> 1.2.11-1ubuntu0.3)
+#   libde265-0 (libde265):  CVE-2026-33164 (-> 1.0.15-1ubuntu0.1)
+#   libheif1 (libheif):     CVE-2026-47714 (-> 1.17.6-1ubuntu4.6)
+#   wget:                   CVE-2026-58469 (fixed in 1.21.4-1ubuntu4.3; pocket ships 1.21.4-1ubuntu4.4)
+#   libp11-kit0 (p11-kit):  CVE-2026-18938, CVE-2026-13757 (-> 0.25.3-4ubuntu2.2)
+#   libattr1 (attr):        CVE-2026-54371 (-> 1:2.5.2-1ubuntu0.1)
+#   coreutils:              CVE-2025-5278 (-> 9.4-3ubuntu6.3)
+# libp11-kit0, libattr1 and coreutils (and also libgcrypt20 / the ncurses libs) ship in the
+# ubuntu:24.04 base image at exactly the flagged versions and are not reinstalled by any earlier
+# apt-get install, so a plain rebuild never picks up their fixes -- only an explicit --only-upgrade
+# does. That is the case an entry here is REQUIRED for.
+# Some entries below (e.g. wget, python3.12, libnss3) are instead installed unpinned by an earlier
+# apt-get install in this same stage. Those are already pocket-current in the --no-cache master
+# build (Jenkinsfile), so their entries add nothing there -- but they are NOT useless: in a
+# layer-cached taurus-branch-builder build the earlier install layer can be reused while this layer
+# re-resolves, so the entry is what actually applies the update. Keep them; just don't add a new
+# entry for a package on that basis alone (prove provenance first -- see the OS-provenance rule in
+# vulnerability_history.md, repo root).
+# (--only-upgrade never installs new packages; absent ones are skipped -- so a wrong/renamed name
+#  fails silently. Verify with `apt-cache policy <pkg>` in the image before adding one.)
+# These entries are unpinned and self-maintaining: each resolves to the pocket's current version at
+# build time, which also picks up security updates published AFTER the base image tag was built.
+# Do NOT prune an entry merely because the base image caught up -- that trades away the forward
+# protection for no benefit. See vulnerability_history.md (repo root; pruning note).
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends --only-upgrade \
+        libgnutls30t64 \
+        libgcrypt20 \
+        librabbitmq4 \
+        libgbm1 \
+        libgl1-mesa-dri \
+        libglx-mesa0 \
+        libegl-mesa0 \
+        perl \
+        libxml2 \
+        libsqlite3-0 \
+        libnss3 \
+        tar \
+        python3.12 \
+        python3.12-dev \
+        gzip \
+        libnghttp2-14 \
+        libtinfo6 \
+        libncurses6 \
+        libncursesw6 \
+        ncurses-base \
+        ncurses-bin \
+        pipewire \
+        libpipewire-0.3-0t64 \
+        libpipewire-0.3-common \
+        libpipewire-0.3-modules \
+        pipewire-bin \
+        libasound2t64 \
+        libde265-0 \
+        libheif1 \
+        wget \
+        libp11-kit0 \
+        libattr1 \
+        coreutils && \
+    rm -rf /var/lib/apt/lists/*
+
 # ================================
 # Stage 2: Language Runtimes
 # ================================
 FROM system-deps AS runtimes
 
 # Install .NET SDK
-RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.420/dotnet-sdk-8.0.420-linux-x64.tar.gz" && \
-    DOTNET_SHA512="36c68c1be9d5c6f24cd8e6bd4b6d36bfd7ab724ac7e3499fb13e42e70a9003310e5ee5759ed19ced1f0ecd3d26a55f135c7e72d6f788e7d44f5f0eaa72ad9a07" && \
+# 8.0.425 (release 8.0.31) replaces 8.0.423 (release 8.0.29), whose bundled ASP.NET Core runtime
+# 8.0.29 is flagged by CVE-2026-69304 (medium 5.9, fixed in 8.0.31) at /usr/share/dotnet/dotnet.
+# Bumping the SDK is the real fix -- the runtime ships inside the SDK tarball and is not separately
+# upgradable by apt or by a .deps.json patch.
+ARG DOTNET_SDK_VERSION
+ARG DOTNET_ASPNET_MIN
+RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERSION}/dotnet-sdk-${DOTNET_SDK_VERSION}-linux-x64.tar.gz" && \
+    DOTNET_SHA512="8141d01bdc53f604aed3bb661b604707a64209f8a947cd81bf95b4f518951593d77864069191f54ea5e84362a409da6b0f69074bf893b283d7e0cf93e2bf20a8" && \
     curl -fSL --output dotnet.tar.gz "${DOTNET_URL}" && \
     echo "${DOTNET_SHA512} dotnet.tar.gz" | sha512sum -c - && \
     mkdir -p /usr/share/dotnet && \
     tar -zxf dotnet.tar.gz -C /usr/share/dotnet && \
     rm dotnet.tar.gz && \
-    ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet
+    ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet && \
+    # Assert the bump actually delivered what the CVE fix depends on. Without this the build stays
+    # green when the SDK ships an older runtime than expected, and the regression only surfaces in a
+    # Prisma scan ~40 min later -- the same silent-miss class as the Ruby gem assertion below.
+    [ -d "/usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}" ] || \
+        { echo "ERROR: /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION} missing; the .deps.json patch steps would silently no-op" >&2; exit 1; } && \
+    ASPNET="$(ls /usr/share/dotnet/shared/Microsoft.AspNetCore.App | sort -V | tail -1)" && \
+    [ "$(printf '%s\n%s\n' "${DOTNET_ASPNET_MIN}" "${ASPNET}" | sort -V | head -1)" = "${DOTNET_ASPNET_MIN}" ] || \
+        { echo "ERROR: ASP.NET Core runtime ${ASPNET} < ${DOTNET_ASPNET_MIN} (CVE-2026-69304 not fixed)" >&2; exit 1; } && \
+    echo ".NET SDK CVE check OK: sdk=${DOTNET_SDK_VERSION} aspnetcore=${ASPNET}"
 
 # Install rbenv and Ruby
-ARG RUBY_VERSION=3.4.9
+# 3.4.12 fixes CVE-2026-97229 in the interpreter itself (fixed in 4.0.8, 3.4.12, 3.3.13) and still
+# ships patched net-imap (0.5.15), erb (4.0.4.1) and resolv (0.7.2) as its own bundled/default
+# gems, which removes the need to force-install them below. Do not drop back to 3.4.11 or earlier:
+# 3.4.11 is affected by CVE-2026-97229, and 3.4.10 also still ships resolv 0.7.1
+# (CVE-2026-80212 high 7.5, CVE-2026-80213).
+ARG RUBY_VERSION=3.4.12
 
 RUN git clone --depth 1 https://github.com/rbenv/rbenv.git ${RBENV_ROOT} && \
     git clone --depth 1 https://github.com/rbenv/ruby-build.git ${RBENV_ROOT}/plugins/ruby-build && \
@@ -158,6 +267,60 @@ RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
 # Set up Ruby alternatives
 RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/ruby 1 && \
     update-alternatives --install /usr/local/bin/gem gem ${RBENV_ROOT}/shims/gem 1
+
+# Patch vulnerable Ruby gems that Ruby itself still ships unpatched (CVE fix).
+#   json   2.9.1 -> 2.19.9: CVE-2026-54696
+# (net-imap CVE-2026-42245/42246/42256/42257/42258/47240/47241/47242 -- incl. 2 critical -- and
+#  erb CVE-2026-41316 are fixed by Ruby 3.4.10 itself -- retiring their force-install + purge -- and
+#  resolv CVE-2026-80212/80213 by 3.4.11, retiring its force-install. Bumping RUBY_VERSION is the
+#  real fix for a default gem: it replaces the stale specifications/default/<gem>-<old>.gemspec that
+#  Prisma reads, which a `gem install` alone never does.)
+#
+# Install the patched gem and DO NOT touch specifications/default/<gem>-<old>.gemspec.
+# Keeping that gemspec is what lets RubyGems activate the newer gem at require time. The previous
+# recipe deleted it, which silenced Prisma but ALSO de-registered the feature, so `require` fell back
+# to Ruby's own stdlib copy and the VULNERABLE code kept loading (measured in the published image:
+# ERB.version 4.0.4 / JSON::VERSION 2.9.1 despite patched gems being installed). That is scanner
+# appeasement, not a fix -- see vulnerability_history.md (repo root),
+# "When a Ruby gem has a CVE".
+#
+# Consequence, accepted deliberately: Prisma still reads the stale default gemspec and reports
+# json 2.9.1. That finding is VISIBLE AND HONEST while the loaded code is patched.
+# Do not "fix" it by deleting the gemspec -- that is the appeasement bug above.
+# remove when a Ruby available in ruby-build bundles json >= 2.19.9 (3.4.12 still ships 2.9.1):
+# bump RUBY_VERSION instead, then delete the json install here but KEEP its entry in the assertion
+# below, set to the version the new Ruby bundles -- exactly how net-imap/erb retired at 3.4.10 and resolv at 3.4.11. Entries for gems Ruby
+# bundles correctly are what turn a silent Ruby downgrade into a build failure.
+#
+# The assertion below checks the thing that actually matters: that the patched version is what
+# `require` loads. A silent activation failure fails the build instead of shipping quietly.
+#
+# RUBY_MIN is a CVE floor, not a style pin: CVE-2026-97229 is in the INTERPRETER, not in a gem, so
+# the gem `want` list below cannot catch it -- 3.4.11 and 3.4.12 ship an identical default/bundled
+# gem set, so the gem assertion passes clean on the vulnerable 3.4.11. Without this arm a
+# `--build-arg RUBY_VERSION=3.4.11` or a bad merge silently restores the vulnerable interpreter with
+# a green build (same silent-miss class the DOTNET_ASPNET_MIN check above exists to close).
+# Raise RUBY_MIN whenever a later Ruby is required to clear an interpreter-level CVE.
+# NOTE: this floor is expressed on the 3.4 line. CVE-2026-97229 is also fixed in the 3.3 and 4.x
+# series, so moving to another series means re-deriving the floor for that series, not reusing this
+# number. 3.4.12 also carries sibling Onigmo regexp fixes released alongside it.
+RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
+    gem install json -v 2.19.9 --no-document && \
+    rbenv rehash && \
+    ruby -rjson -rerb -rnet/imap -rresolv -e '\
+        ruby_min = "3.4.12"; \
+        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(ruby_min); \
+            abort("ERROR: ruby #{RUBY_VERSION} is below the CVE floor #{ruby_min} " \
+                  "(CVE-2026-97229, interpreter-level - the gem check below cannot catch it)"); \
+        end; \
+        want = { "json" => "2.19.9", "resolv" => "0.7.2", "erb" => "4.0.4.1", "net-imap" => "0.5.15" }; \
+        bad = want.reject { |g, v| (Gem.loaded_specs[g] && Gem.loaded_specs[g].version.to_s == v) || \
+                                   (g == "erb" && ERB.version == v) }; \
+        unless bad.empty?; \
+            got = bad.keys.map { |g| "#{g}: want #{want[g]}, loaded #{Gem.loaded_specs[g]&.version || "stdlib"}" }; \
+            abort("ERROR: vulnerable Ruby gem still active at runtime (build aborted)\n  " + got.join("\n  ")); \
+        end; \
+        puts "Ruby CVE check OK: ruby=#{RUBY_VERSION} (min #{ruby_min}) " + want.map { |g, v| "#{g}=#{v}" }.join(" ")'
 
 # Install OpenJDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -200,6 +363,9 @@ RUN cp "$(python3 -c "import bzt; print(f'{bzt.__path__[0]}/resources/chrome_lau
 # ================================
 FROM browser-setup AS final
 
+# Re-declared (bare) so the global default reaches the .deps.json patch steps below -- see the note
+# at the top of this file; without this the paths would expand to /usr/share/dotnet/sdk//... .
+ARG DOTNET_SDK_VERSION
 ARG DEBIAN_FRONTEND=noninteractive
 ARG APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 
@@ -211,16 +377,16 @@ RUN mkdir -p /etc/bzt.d /bzt-configs /tmp/artifacts
 RUN echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json && \
     echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
 
-# Pre-seed Newman dependency overrides (CVE fix) only when Newman 6.2.2 is current
+# Pre-seed Newman dependency overrides (CVE fix) only when Newman 6.2.3 is current
 RUN npm install newman --prefix /tmp/newman-check --silent \
  && NEWMAN_VERSION=$(node -p "require('/tmp/newman-check/node_modules/newman/package.json').version") \
  && rm -rf /tmp/newman-check \
- && if [ "$NEWMAN_VERSION" = "6.2.2" ] && [ ! -f /root/.bzt/newman/package.json ]; then \
-        echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, lodash, uuid, underscore)" \
+ && if [ "$NEWMAN_VERSION" = "6.2.3" ] && [ ! -f /root/.bzt/newman/package.json ]; then \
+        echo "Applying Newman dependency overrides for CVE fix (node-forge, flatted, handlebars, lodash, uuid, underscore, qs, jose)" \
      && mkdir -p /root/.bzt/newman \
-     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.9",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
-    elif [ "$NEWMAN_VERSION" != "6.2.2" ]; then \
-        echo "WARNING: Newman $NEWMAN_VERSION found (expected 6.2.2); skipping dependency overrides"; \
+     && printf '{\n  "overrides": {\n    "node-forge": "^1.4.0",\n    "flatted": "^3.4.2",\n    "handlebars": "^4.7.10",\n    "lodash": "^4.18.1",\n    "uuid": "^11.1.1",\n    "qs": "^6.16.0",\n    "jose": "^4.15.5",\n    "httpntlm": {\n      "underscore": "^1.13.8"\n    }\n  }\n}\n' > /root/.bzt/newman/package.json; \
+    elif [ "$NEWMAN_VERSION" != "6.2.3" ]; then \
+        echo "WARNING: Newman $NEWMAN_VERSION found (expected 6.2.3); skipping dependency overrides"; \
     fi
 
 # Pre-seed Mocha dependency overrides (CVE fix for serialize-javascript)
@@ -232,6 +398,38 @@ RUN mkdir -p /root/.bzt/selenium-taurus/mocha \
 
 # Install BZT tools
 RUN bzt -install-tools -v
+
+# Swap brotli4j 1.11.0 bundled in Gatling 3.9.5 for 1.24.0 (CVE-2026-111497, critical out-of-bounds
+# write in the bundled Brotli C decoder, reached by Netty when a target server answers with
+# `Content-Encoding: br`).
+# WARNING: replacing jars inside a vendor bundle is generally NOT a good idea - the bundle is tested
+# by Gatling as a whole and a swapped jar can break it in ways only seen at runtime. It is done here
+# only because of the severity of this CVE AND because the swap was tested: Gatling 3.9.5 (Netty
+# 4.1.92) decodes br responses correctly with brotli4j 1.24.0 (body assertion against
+# https://httpbin.org/brotli). Do not copy this pattern for routine findings.
+# The step fails the build when the 1.11.0 jars are missing, so a Gatling bump forces a re-check:
+# remove this step once the default Gatling bundles brotli4j >= 1.24.0.
+RUN GATLING_LIB=/root/.bzt/gatling-taurus/3.9.5/lib && \
+    BROTLI4J_URL=https://repo1.maven.org/maven2/com/aayushatharva/brotli4j && \
+    ls "${GATLING_LIB}"/brotli4j-1.11.0.jar "${GATLING_LIB}"/service-1.11.0.jar \
+       "${GATLING_LIB}"/native-linux-x86_64-1.11.0.jar > /dev/null || \
+        { echo "ERROR: brotli4j 1.11.0 not found in ${GATLING_LIB}; re-check the brotli4j swap step" >&2; exit 1; } && \
+    cd "${GATLING_LIB}" && \
+    printf '%s  %s\n' \
+        cd0ac4425d2c8449723c93d66ec4379faf1093eb6609ede83e49947f90a772e8 brotli4j-1.24.0.jar \
+        2fee8a977d617c4904f3260eca8a294927ec5364026478f82014484e96e8bfa5 service-1.24.0.jar \
+        49e5c5bcefb2d4247d3a2859d15ae90086b4c4089e08f2a560b8ac011e61ab06 native-linux-x86_64-1.24.0.jar \
+        25a03e939aba702375563c9248797cc9c76480b91dbd92dfe4a21fc51ce0ffdf native-linux-aarch64-1.24.0.jar \
+        adf6e516de53d6c9836759eaf52e9b9cb2c1faca2897cdb8019219d27a72b2c1 native-osx-x86_64-1.24.0.jar \
+        e005668daaf6dfaa1d23b6960ab0256ca989e536c1925c4e6478769841f89aad native-osx-aarch64-1.24.0.jar \
+        77a4007ba47e2676e9599075bee9dc8fc83ece642895170314c5fb1d1518a1c0 native-windows-x86_64-1.24.0.jar \
+        > /tmp/brotli4j.sha256 && \
+    for jar in $(awk '{print $2}' /tmp/brotli4j.sha256); do \
+        artifact="${jar%-1.24.0.jar}" && \
+        curl -fsSL -o "${jar}" "${BROTLI4J_URL}/${artifact}/1.24.0/${jar}" || exit 1; \
+    done && \
+    sha256sum -c /tmp/brotli4j.sha256 && \
+    rm -f /tmp/brotli4j.sha256 brotli4j-1.11.0.jar service-1.11.0.jar native-*-1.11.0.jar
 
 # Verify installations
 RUN google-chrome-stable --version && \
@@ -256,28 +454,32 @@ RUN apt-get remove -y \
            /usr/share/doc
 
 # update dotnet metadata to make scanners happy
+# (The `17.11.31 -> 17.11.48` sed that used to sit between the two steps below was REMOVED in the
+#  8.0.423 -> 8.0.425 bump: 8.0.425's dotnet-format.deps.json already ships Microsoft.Build 17.11.48
+#  natively, so the search string occurs nowhere in the SDK and the step was a guaranteed no-op.
+#  Re-add only if a future SDK reintroduces a flagged 17.11.x -- verify by grepping the new tarball
+#  for the literal search string before trusting any sed here. See vulnerability_history.md.)
 RUN for f in \
-      /usr/share/dotnet/sdk/8.0.420/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
-      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/VBCSCompiler.deps.json \
-      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/csc.deps.json \
-      /usr/share/dotnet/sdk/8.0.420/Roslyn/bincore/vbc.deps.json \
-      /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; do \
+      /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
+      /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/Roslyn/bincore/VBCSCompiler.deps.json \
+      /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/Roslyn/bincore/csc.deps.json \
+      /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/Roslyn/bincore/vbc.deps.json \
+      /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/DotnetTools/dotnet-format/BuildHost-netcore/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json; do \
       [ -f "$f" ] && sed -i 's/17\.10\.41/17.14.28/g' "$f" || true; \
     done
-RUN find /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-watch -name "*.deps.json" \
+RUN find /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION}/DotnetTools/dotnet-watch -name "*.deps.json" \
       -exec grep -lF "17.10.41" {} \; | \
     xargs -r sed -i 's/17\.10\.41/17.14.28/g'
-RUN if [ -f /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json ]; then \
-      sed -i 's/17\.11\.31/17.11.48/g' /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json; \
-    fi
-RUN for f in \
-      /usr/share/dotnet/sdk/8.0.420/Roslyn/Microsoft.Build.Tasks.CodeAnalysis.deps.json \
-      /usr/share/dotnet/sdk/8.0.420/DotnetTools/dotnet-format/dotnet-format.deps.json; do \
-      [ -f "$f" ] && sed -i \
-        -e 's|System\.Security\.Cryptography\.Xml/[0-9][0-9.]*|System.Security.Cryptography.Xml/8.0.3|g' \
-        -e 's|"System\.Security\.Cryptography\.Xml": "[0-9][0-9.]*"|"System.Security.Cryptography.Xml": "8.0.3"|g' \
-        "$f" || true; \
-    done
+# System.Security.Cryptography.Xml -> 8.0.5 (CVE-2026-47302/47304/50525/50527/50648): patch every
+# SDK .deps.json that references it (scanner reads these metadata files across the whole SDK tree).
+# The target must never be BELOW what the SDK ships natively: 8.0.426 already ships 8.0.5 in most
+# files, so the old 8.0.4 target would downgrade them. Only dotnet-format (8.0.3) and the Roslyn
+# file (7.0.1) actually change. Re-check the native versions on every SDK bump.
+RUN find /usr/share/dotnet/sdk/${DOTNET_SDK_VERSION} -name "*.deps.json" \
+      -exec grep -lF "System.Security.Cryptography.Xml" {} \; | \
+    xargs -r sed -i \
+      -e 's|System\.Security\.Cryptography\.Xml/[0-9][0-9.]*|System.Security.Cryptography.Xml/8.0.5|g' \
+      -e 's|"System\.Security\.Cryptography\.Xml": "[0-9][0-9.]*"|"System.Security.Cryptography.Xml": "8.0.5"|g'
 
 
 # Remove security-sensitive files

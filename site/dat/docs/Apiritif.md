@@ -100,6 +100,46 @@ In `selenium` mode follow request features are supported:
       - `assert` (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)
   - `timeout` and `think-time` on both scenario and request levels
 
+### Skip on Failure
+
+In `selenium` mode, a failed transaction doesn't stop the iteration by default: the next transactions run anyway
+and usually fail too. With `skip-on-failure` the iteration stops after the first top-level transaction that fails
+(assertion failure) or breaks (any other error, e.g. element not found or timeout):
+
+- the remaining transactions of the scenario are skipped for this iteration only, and write no samples
+  (no hits, no errors);
+- `teardown` requests still run;
+- the next iteration starts at once and runs all transactions again;
+- failures in `teardown` or in nested blocks only count as a failure of their top-level transaction.
+
+```yaml
+scenarios:
+  my-scenario:
+    skip-on-failure: true  # default: false
+    requests:
+    - label: login
+      actions:
+      - go(https://blazedemo.com/login)
+    - label: search
+      actions:
+      - go(https://blazedemo.com/search)
+    - teardown:
+      - label: logout
+        actions:
+        - go(https://blazedemo.com/logout)
+```
+
+It can also be set for all scenarios in module settings. A scenario value takes precedence:
+
+```yaml
+modules:
+  apiritif:
+    skip-on-failure: true
+```
+
+When `generate-flow-markers` is on, skipped transactions are also reported to the action handlers as test cases
+with status `skipped`. The option has no effect for `script` scenarios or for `test-mode: apiritif`.
+
 Here is the list of supported actions, sorted by action type.
 
 ### Locators

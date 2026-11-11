@@ -22,7 +22,7 @@ function getDayDataFromDB()
 
     $query = "SELECT * FROM aggregate_data ORDER BY TO_DATE(date, 'DD/MM/YYYY')";
 
-    $contests = pg_query($query) or die('Query failed: ' . pg_last_error());
+    $contests = pg_query($db_conn, $query) or die('Query failed: ' . pg_last_error($db_conn));
     $column_number = pg_num_fields($contests);
 
     $day_arr = array();

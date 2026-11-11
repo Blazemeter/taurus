@@ -50,37 +50,77 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     })
 
+    // series colors, same as the former Highcharts default palette
+    const COLORS = ['#2caffe', '#544fc5', '#00e272'];
+    let chart = null;
+
     form.day.classList.add("active");
     drawChart("Days");
 
     function drawChart(period) {
         let dataByPeriod = countPeriod(period);
 
-        Highcharts.chart('out', {
-            title: {
-                text: dataByPeriod.period_name + ' Chart'
+        if (chart) {
+            chart.destroy();
+        }
+        out.innerHTML = "<canvas></canvas>";
+        chart = new Chart(out.querySelector("canvas"), {
+            data: {
+                labels: dataByPeriod.categories,
+                datasets: [{
+                    type: 'bar',
+                    label: 'Desktop',
+                    data: dataByPeriod.desktop_users,
+                    backgroundColor: COLORS[0],
+                    order: 1
+                }, {
+                    type: 'bar',
+                    label: 'Cloud',
+                    data: dataByPeriod.cloud_users,
+                    backgroundColor: COLORS[1],
+                    order: 1
+                }, {
+                    type: 'line',
+                    label: 'New',
+                    data: dataByPeriod.new_users,
+                    borderColor: COLORS[2],
+                    backgroundColor: 'white',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    tension: 0.4,
+                    order: 0  // drawn over the bars
+                }]
             },
-            xAxis: {
-                categories: dataByPeriod.categories
-            },
-            series: [{
-                type: 'column',
-                name: 'Desktop',
-                data: dataByPeriod.desktop_users
-            }, {
-                type: 'column',
-                name: 'Cloud',
-                data: dataByPeriod.cloud_users
-            }, {
-                type: 'spline',
-                name: 'New',
-                data: dataByPeriod.new_users,
-                marker: {
-                    lineWidth: 2,
-                    lineColor: Highcharts.getOptions().colors[2],
-                    fillColor: 'white'
+            options: {
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    x: {
+                        grid: { display: false }
+                    },
+                    y: {
+                        title: { display: true, text: 'Values' }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: dataByPeriod.period_name + ' Chart',
+                        font: { size: 18 }
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            // keep dataset order (Desktop, Cloud, New) instead of drawing order
+                            sort: (a, b) => a.datasetIndex - b.datasetIndex
+                        }
+                    }
                 }
-            }]
+            }
         });
     }
 

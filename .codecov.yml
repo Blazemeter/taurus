@@ -4,6 +4,17 @@ codecov:
 
 coverage:
   round: up
+  status:
+    project:
+      default:
+        target: auto
+        # Tolerate sub-rounding noise so PRs that touch no Python (Dockerfile,
+        # docs, etc.) aren't blocked by a phantom -0.00% drop. Real regressions
+        # larger than this still fail the gate.
+        threshold: 0.1%
+    patch:
+      default:
+        target: auto
 
 ignore:
   - bzt/resources

@@ -17,7 +17,7 @@ from abc import abstractmethod
 
 from bzt.engine import Aggregator
 from bzt.modules.aggregator import ResultsReader
-from bzt.utils import BetterDict, iteritems, LDJSONReader
+from bzt.utils import BetterDict, iteritems, LDJSONReader, LinuxLDJSONReader
 
 
 class FunctionalAggregator(Aggregator):
@@ -196,6 +196,57 @@ class TestReportReader(object):
             yield row
 
 
+class LinuxTestReportReader(object):
+    SAMPLE_KEYS = [
+        "test_case",  # str
+        "test_suite",  # str
+        "status",  # str
+        "start_time",  # float, epoch
+        "duration",  # float, in seconds
+        "error_msg",  # short string
+        "error_trace",  # multiline string
+        "extras",  # dict
+        "subsamples",  # list of samples
+        "assertions",  # list of dicts, {"name": str, "failed": bool, "error_msg": str, "error_trace": str}
+        "path"  # list of components, [{"value": "test_Something", "type": "module"},
+        #                      {"value": "TestAPI", "type": "class"},
+        #                      {"value": "test_heartbeat", "type": "method"}
+        #                      {"value": "index page": "type": "transaction"}
+        #                      {"value": "http://blazedemo.com/": "type": "request"}
+    ]
+    TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
+    FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
+
+    def __init__(self, filename, parent_logger):
+        super(LinuxTestReportReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.json_reader = LinuxLDJSONReader(filename, self.log)
+
+    @staticmethod
+    def process_label(label):
+        if isinstance(label, str):
+            parts = label.split('_', 2)  # 'test_01_feeling_good'
+            if len(parts) == 3 and parts[0] == 'test' and parts[1].isdigit():
+                return parts[2]
+        return label
+
+    def process_path(self, path):
+        if isinstance(path, dict):
+            test_suite = ".".join(part["value"] for part in path[:-1])
+            test_case = path[-1]["value"]
+            return test_suite, test_case
+        return None
+
+    def read(self, last_pass=False):
+        for row in self.json_reader.read(last_pass):
+            if "path" in row:
+                processed_path = self.process_path(row["path"])
+                if processed_path is not None:
+                    row["test_suite"], row["test_case"] = processed_path
+            row["test_case"] = self.process_label(row["test_case"])
+            yield row
+
+
 class LoadSamplesReader(ResultsReader):
     STATUS_TO_CODE = {
         "PASSED": "200",
@@ -233,11 +284,92 @@ class LoadSamplesReader(ResultsReader):
                 yield sample
 
 
+class LinuxLoadSamplesReader(ResultsReader):
+    STATUS_TO_CODE = {
+        "PASSED": "200",
+        "SKIPPED": "300",
+        "FAILED": "400",
+        "BROKEN": "500",
+    }
+
+    def __init__(self, filename, parent_logger):
+        super(LinuxLoadSamplesReader, self).__init__()
+        self.report_reader = LinuxTestReportReader(filename, parent_logger)
+        self.read_records = 0
+
+    def extract_sample(self, item):
+        if item["status"] == 'SKIPPED':
+            return  # we ignore skipped samples to not skew results
+
+        tstmp = int(item["start_time"])
+        label = item["test_case"]
+        concur = 1
+        rtm = item["duration"]
+        cnn = 0
+        ltc = 0
+        rcd = self.STATUS_TO_CODE.get(item["status"], "UNKNOWN")
+        error = item["error_msg"] if item["status"] in LinuxTestReportReader.FAILING_TESTS_STATUSES else None
+        trname = item.get("workerID", "")
+        byte_count = None
+        return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count
+
+    def _read(self, last_pass=False):
+        for row in self.report_reader.read(last_pass):
+            self.read_records += 1
+            sample = self.extract_sample(row)
+            if sample:
+                yield sample
+
+
 class FuncSamplesReader(FunctionalResultsReader):
     FIELDS_EXTRACTED_TO_ARTIFACTS = ["requestBody", "responseBody", "requestCookiesRaw"]
 
     def __init__(self, filename, engine, parent_logger):
         self.report_reader = TestReportReader(filename, parent_logger)
+        self.engine = engine
+        self.read_records = 0
+
+    def _write_sample_data_to_artifacts(self, sample_extras):
+        if not sample_extras:
+            return
+        for file_field in self.FIELDS_EXTRACTED_TO_ARTIFACTS:
+            if file_field not in sample_extras:
+                continue
+            contents = sample_extras.pop(file_field)
+            if contents:
+                filename = "sample-%s" % file_field
+                artifact = self.engine.create_artifact(filename, ".bin")
+                with open(artifact, 'wb') as fds:
+                    fds.write(contents.encode('utf-8'))
+                sample_extras[file_field] = artifact
+
+    def _samples_from_row(self, row):
+        result = []
+        subsamples = [sample for item in row.get("subsamples", []) for sample in self._samples_from_row(item)]
+        if any(subsample.get_type() == 'transaction' for subsample in subsamples):
+            result.extend([sub for sub in subsamples if sub.get_type() == 'transaction'])
+        else:
+            sample = FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
+                                      status=row["status"], start_time=row["start_time"], duration=row["duration"],
+                                      error_msg=row["error_msg"], error_trace=row["error_trace"],
+                                      extras=row.get("extras", {}), subsamples=subsamples, path=row.get("path", []))
+            result.append(sample)
+        return result
+
+    def read(self, last_pass=False):
+        for row in self.report_reader.read(last_pass):
+            self.read_records += 1
+            samples = self._samples_from_row(row)
+            for sample in samples:
+                self._write_sample_data_to_artifacts(sample.extras)
+                yield sample
+
+
+class LinuxFuncSamplesReader(FunctionalResultsReader):
+    FIELDS_EXTRACTED_TO_ARTIFACTS = ["requestBody", "responseBody", "requestCookiesRaw"]
+
+    def __init__(self, filename, engine, parent_logger):
+        self.report_reader = LinuxTestReportReader(filename, parent_logger)
         self.engine = engine
         self.read_records = 0
 

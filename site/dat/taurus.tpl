@@ -19,22 +19,21 @@
     <!-- Bootstrap -->
 
     <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css"
+          integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu"
+          crossorigin="anonymous">
 
     <!-- Optional theme -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
-
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap-theme.min.css"
+          integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ"
+          crossorigin="anonymous">
 
     <meta name="keywords" content="{$node.$i.keywords|default:$node.$i.keywords}"/>
     <meta name="description" content="{$node.$i.description|default:$node.$i.description}"/>
     <link rel="icon" type="image/png" href="/img/favicon.png">
-    <script type='text/javascript' src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script type='text/javascript' src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+            integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs"
+            crossorigin="anonymous"></script>
     {if $smarty.server.SERVER_ADDR==$smarty.server.REMOTE_ADDR}
         <style type='text/css'>
             {include file='../img/taurus.css'}
@@ -42,8 +41,13 @@
     {else}
         <link rel="stylesheet" href="/img/taurus.css"/>
     {/if}
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"
+          integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN"
+          crossorigin="anonymous"/>
 
+    {* Trackers disabled for compliance: they fired without visitor consent (no consent banner on this site).
+       Google Ads AW-809157461 (BlazeMeter marketing), GA4 G-5WH1TH1Q1L, Facebook pixel 480508332302182.
+       To re-enable, remove this comment and its closing marker after {/literal} below.
     {literal}
     <!-- Global site tag (gtag.js) - AdWords: 809157461 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=AW-809157461"></script>
@@ -53,6 +57,8 @@
         gtag('js', new Date());
 
         gtag('config', 'AW-809157461');
+        // GA4 property formerly fed by the retired Universal Analytics snippet (UA-63369152-1)
+        gtag('config', 'G-5WH1TH1Q1L');
     </script>
 
 
@@ -74,6 +80,7 @@
         /></noscript>
     <!-- End Facebook Pixel Code -->
     {/literal}
+    *}
 </head>
 
 <body>
@@ -189,13 +196,6 @@
         </span>
         <span style="float: right"><a href="/bzt-usage-stats/">Usage Statistics</a></span>
     </div>
-
-    <!-- Latest compiled and minified JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-
-    {if $smarty.server.SERVER_ADDR!=$smarty.server.REMOTE_ADDR}
-        {include file="dat/counter.tpl"}
-    {/if}
 
     <script type="text/javascript">
         $(document).ready(function () {

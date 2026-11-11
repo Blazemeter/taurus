@@ -471,3 +471,38 @@ class TestJmeterRampup(BZTestCase):
                           self.log_recorder.info_buff.getvalue())
         finally:
             self.engine.provisioning.executors = executors
+
+
+class TestVirtualDisplay(BZTestCase):
+    def test_xvfb_started_with_noreset(self):
+        calls = []
+
+        class DisplayMock(object):
+            new_display_var = ":99"
+
+            def __init__(self, **kwargs):
+                calls.append(kwargs)
+
+            def start(self):
+                os.environ["DISPLAY"] = self.new_display_var
+
+        orig_display, orig_is_windows = bzt.modules.services.Display, bzt.modules.services.is_windows
+        old_env = os.environ.get("DISPLAY")
+        try:
+            bzt.modules.services.Display = DisplayMock
+            bzt.modules.services.is_windows = lambda: False
+            bzt.modules.services.VirtualDisplay.SHARED_VIRTUAL_DISPLAY = None
+            obj = bzt.modules.services.VirtualDisplay()
+            obj.engine = EngineEmul()
+            obj.set_virtual_display()
+        finally:
+            bzt.modules.services.Display, bzt.modules.services.is_windows = orig_display, orig_is_windows
+            bzt.modules.services.VirtualDisplay.SHARED_VIRTUAL_DISPLAY = None
+            if old_env is None:
+                os.environ.pop("DISPLAY", None)
+            else:
+                os.environ["DISPLAY"] = old_env
+
+        self.assertEqual(1, len(calls))
+        self.assertEqual((1024, 768), calls[0]["size"])
+        self.assertIn("-noreset", calls[0]["extra_args"])

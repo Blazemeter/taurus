@@ -1,5 +1,7 @@
 .dockerignore
 Dockerfile
 vendor
-composer.lock
 aggregate_func.sql
+# local playgrounds, not part of the production image
+dev
+legacy

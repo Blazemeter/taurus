@@ -1,20 +1,27 @@
-FROM php:7-apache
+FROM php:8.5-apache
 
+# Composer binary from the image published by the Composer project, pinned to the tested version
+COPY --from=composer/composer:2.10.3-bin /composer /usr/bin/composer
+
+# apt-get upgrade applies Debian security updates published after the base image was built
 RUN a2enmod rewrite && \
     apt-get update && \
-    apt-get install -y --no-install-recommends git zip unzip libyaml-dev libpq-dev && \
-    docker-php-ext-install pdo pdo_pgsql pgsql && \
-    curl --silent --show-error https://getcomposer.org/installer | php && \
-    mv composer.phar /usr/bin && \
-    pecl install yaml-2.0.4 && \
-    echo "extension=yaml.so" > /usr/local/etc/php/conf.d/ext-yaml.ini
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends git unzip libyaml-dev libpq-dev && \
+    docker-php-ext-install pgsql && \
+    pecl install yaml-2.3.0 && \
+    docker-php-ext-enable yaml && \
+    rm -rf /var/lib/apt/lists/*
 
 ADD php.ini /usr/local/etc/php/
 
-ADD composer.json ./
-RUN composer.phar update --prefer-stable --no-dev
+# exact dependency versions from the committed lock file
+ADD composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction
+# fail the build if a locked dependency has a published security advisory or is abandoned
+RUN composer audit --locked --no-dev
 
-RUN cp vendor/undera/pwe/.htaccess ./
+RUN cp vendor/blazemeter/pwe/.htaccess ./
 ADD Taurus ./Taurus
 ADD dat ./dat
 ADD img ./img

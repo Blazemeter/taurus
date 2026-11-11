@@ -35,6 +35,10 @@
             color: #fff;
         }
 
+        #out canvas {
+            background: #fff;
+        }
+
         .no-data {
             text-align: center;
             font-size: 20px;
@@ -61,9 +65,9 @@
         <button class="chart-button" name=month type="button">Month</button>
         <div id="out" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
     </form>
-    <script src="https://code.highcharts.com/highcharts.js"></script>
-    <script src="https://code.highcharts.com/modules/series-label.js"></script>
-    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+            integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+            crossorigin="anonymous"></script>
     <script src="bzt_usage_stats.js"></script>
 </body>
 
