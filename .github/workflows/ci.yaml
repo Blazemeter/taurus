@@ -14,7 +14,12 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install -y python3-tk xvfb x11-utils
+        run: |
+          for i in 1 2 3; do
+            sudo apt-get update && sudo apt-get install -y python3-tk xvfb x11-utils && break
+            echo "apt-get attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
