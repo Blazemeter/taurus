@@ -2,12 +2,14 @@ import importlib.util
 import json
 import os
 import tempfile
+
+import yaml
 from types import SimpleNamespace
 from unittest import mock
 
 from bzt.modules._remote_pytest import RemotePyTestExecutor, RemotePyTestLoadReader
 from bzt.modules.functional import LoadSamplesReader
-from bzt.utils import BetterDict, RESOURCES_DIR
+from bzt.utils import BetterDict, RESOURCES_DIR, load_class
 from tests.unit import BZTestCase
 from tests.unit.mocks import EngineEmul
 
@@ -146,3 +148,40 @@ class TestRemotePyTestExecutor(BZTestCase):
                 mock.patch("bzt.modules._remote_pytest.BridgeFilePuller"):
             obj.startup()
         self.assertIn("--remote-metrics", command.call_args[0][0])
+
+
+class TestRemoteModuleRegistry(BZTestCase):
+    REMOTE = {
+        "remote-pytest": "bzt.modules._remote_pytest.RemotePyTestExecutor",
+        "remote-jmeter": "bzt.modules.jmeter.RemoteJmeterExecutor",
+        "remote-junit": "bzt.modules.java.RemoteJUnitTester",
+        "remote-selenium": "bzt.modules._selenium.RemoteSeleniumExecutor",
+        "remote-playwright": "bzt.modules._remote_playwright.RemotePlaywrightExecutor",
+    }
+    NORMAL = {
+        "pytest": "bzt.modules._pytest.PyTestExecutor",
+        "jmeter": "bzt.modules.jmeter.JMeterExecutor",
+        "junit": "bzt.modules.java.JUnitTester",
+        "selenium": "bzt.modules._selenium.SeleniumExecutor",
+        "playwright": "bzt.modules.javascript.PlaywrightTester",
+    }
+
+    def setUp(self):
+        super(TestRemoteModuleRegistry, self).setUp()
+        with open(os.path.join(RESOURCES_DIR, "10-base-config.yml")) as fds:
+            documents = [doc for doc in yaml.safe_load_all(fds) if doc]
+        self.modules = next(doc["modules"] for doc in documents if "modules" in doc)
+
+    def test_remote_aliases_are_registered(self):
+        for alias, class_name in self.REMOTE.items():
+            self.assertEqual(class_name, self.modules[alias]["class"], alias)
+            load_class(class_name)
+
+    def test_normal_aliases_are_unchanged(self):
+        for alias, class_name in self.NORMAL.items():
+            self.assertEqual(class_name, self.modules[alias]["class"], alias)
+
+    def test_remote_jmeter_has_protocol_handlers(self):
+        self.assertTrue(self.modules["jmeter"]["protocol-handlers"])
+        self.assertEqual(self.modules["jmeter"]["protocol-handlers"],
+                         self.modules["remote-jmeter"]["protocol-handlers"])
