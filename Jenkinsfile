@@ -44,14 +44,7 @@ pipeline {
         stage("Upload WHL to GCS") {
             when { expression { return params.UPLOAD_WHL_TO_GCS } }
             steps {
-                script {
-                    withCredentials([file(credentialsId: 'GoogleCredForJenkins2', variable: 'CRED_JSON')]) {
-                        sh """
-                           gcloud auth activate-service-account --key-file \${CRED_JSON}
-                           gsutil cp -a public-read dist/*.whl gs://blazemeter-images/crane-components/
-                           """
-                    }
-                }
+                sh "gsutil cp -a public-read dist/*.whl gs://blazemeter-images/crane-components/"
             }
         }
         stage("Docker Image Build") {
