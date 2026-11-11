@@ -22,10 +22,25 @@ from bzt import TaurusConfigError
 from bzt.engine import SETTINGS, Provisioning
 from bzt.modules import ScenarioExecutor, RemoteExecutor
 from bzt.modules._bridge_file_puller import BridgeFilePuller
+from bzt.modules.functional import LoadSamplesReader
 from bzt.modules.services import PythonTool
 from bzt.utils import RESOURCES_DIR, RequiredTool
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
+
+
+class RemotePyTestLoadReader(LoadSamplesReader):
+    """Takes the number of simultaneously running tests from the row, instead of the fixed 1 per sample."""
+
+    def extract_sample(self, item):
+        sample = super(RemotePyTestLoadReader, self).extract_sample(item)
+        if sample is None:
+            return None
+
+        concurrency = item.get("concurrency")
+        if concurrency:
+            sample = (sample[0], sample[1], int(concurrency)) + tuple(sample[3:])
+        return sample
 
 
 class RemotePyTestExecutor(RemoteExecutor):
@@ -50,6 +65,9 @@ class RemotePyTestExecutor(RemoteExecutor):
             self._additional_args = shlex.split(argv)
         self.remote_report_path = self.remote_artifacts_path + '/RemotePyTestExecutor.ldjson'
         self.reporting_setup(suffix=".ldjson")
+
+    def create_load_reader(self, report_file):
+        return RemotePyTestLoadReader(report_file, self.log)
 
     def __is_verbose(self):
         engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
@@ -77,7 +95,7 @@ class RemotePyTestExecutor(RemoteExecutor):
         self.upload_file(self.runner_path, runner_remote_path)
         remote_test_path = self.remote_artifacts_path + '/' + os.path.basename(self.script)
         self.upload_file(self.script, remote_test_path)
-        cmdline = ['python', runner_remote_path, '--report-file', self.remote_report_path]
+        cmdline = ['python', runner_remote_path, '--report-file', self.remote_report_path, '--remote-metrics']
         load = self.get_load()
         if load.iterations:
             cmdline += ['-i', str(load.iterations)]
