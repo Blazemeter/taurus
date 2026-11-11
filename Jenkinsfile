@@ -18,7 +18,6 @@ pipeline {
     }
     parameters {
         booleanParam(name: 'PERFORM_PRISMA_SCAN', defaultValue: true, description: 'Perform a Prisma scan for the local image')
-        booleanParam(name: 'UPLOAD_WHL_TO_GCS', defaultValue: false, description: 'Upload the community WHL package to gs://blazemeter-images/crane-components/')
     }
     stages {
         stage('Checkout') {
