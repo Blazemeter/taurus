@@ -151,7 +151,7 @@ When reading multi-document YAML, Taurus will treat multiple documents as multip
 
 There's a number of tools you can use to help you to locate and fix syntactical errors in your YAML document.
 
-1. You can use online [services](https://yamltojson.com/) to convert it to JSON to check the structure (can be useful if you don’t have much experience with indentation-based languages)
+1. You can use online [services](https://freecodetools.org/yaml-to-json/) to convert it to JSON to check the structure (can be useful if you don’t have much experience with indentation-based languages)
 2. You can use [yamllint](https://github.com/adrienverge/yamllint) to see if there are any errors or issues with your document
 
 
