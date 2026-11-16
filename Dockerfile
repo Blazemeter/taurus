@@ -171,7 +171,7 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
 # entry for a package on that basis alone (prove provenance first -- see the OS-provenance rule in
 # vulnerability_history.md, repo root).
 # (--only-upgrade never installs new packages; absent ones are skipped -- so a wrong/renamed name
-#  fails silently. Verify with `apt-cache policy <pkg>` in the image before adding one.)
+#  fails silently. Verify with `apt-cache policy <pkg>` in an ubuntu:24.04 container after apt-get update before adding one.)
 # These entries are unpinned and self-maintaining: each resolves to the pocket's current version at
 # build time, which also picks up security updates published AFTER the base image tag was built.
 # Do NOT prune an entry merely because the base image caught up -- that trades away the forward
