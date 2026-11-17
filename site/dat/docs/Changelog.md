@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.3<sup> 17 November 2026</sup>
+- Added remote pytest, junit, selenium executors
+
 ## 1.17.2<sup> 26 October 2026</sup>
 - Added remote Playwright executor for cloud Playwright execution
 - BlazeMeter reporter can generate failed transactions report for browser-based tests (`generate-failed-transactions`)
