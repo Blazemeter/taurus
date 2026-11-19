@@ -244,12 +244,14 @@ RUN DOTNET_URL="https://builds.dotnet.microsoft.com/dotnet/Sdk/${DOTNET_SDK_VERS
     echo ".NET SDK CVE check OK: sdk=${DOTNET_SDK_VERSION} aspnetcore=${ASPNET}"
 
 # Install rbenv and Ruby
-# 3.4.12 fixes CVE-2026-97229 in the interpreter itself (fixed in 4.0.8, 3.4.12, 3.3.13) and still
+# 3.4.13 fixes 7 interpreter-level advisories (GHSA-34m4-m9fh-gqp5, 7x2q-68qv-6p8x, 87fm-7w84-j2px,
+# wpqw-5qxg-m68r, 3p8q-wmhx-vm2w, 7whj-cfh7-xgm4, pvgc-g7gj-pv6h: case conversion and regexp memory
+# corruption, fixed in 4.0.10, 3.4.13, 3.3.14) on top of CVE-2026-97229 (fixed in 3.4.12), and still
 # ships patched net-imap (0.5.15), erb (4.0.4.1) and resolv (0.7.2) as its own bundled/default
 # gems, which removes the need to force-install them below. Do not drop back to 3.4.11 or earlier:
-# 3.4.11 is affected by CVE-2026-97229, and 3.4.10 also still ships resolv 0.7.1
+# 3.4.12 and earlier are affected by those advisories, 3.4.11 by CVE-2026-97229, and 3.4.10 also still ships resolv 0.7.1
 # (CVE-2026-80212 high 7.5, CVE-2026-80213).
-ARG RUBY_VERSION=3.4.12
+ARG RUBY_VERSION=3.4.13
 
 RUN git clone --depth 1 https://github.com/rbenv/rbenv.git ${RBENV_ROOT} && \
     git clone --depth 1 https://github.com/rbenv/ruby-build.git ${RBENV_ROOT}/plugins/ruby-build && \
@@ -296,7 +298,7 @@ RUN update-alternatives --install /usr/local/bin/ruby ruby ${RBENV_ROOT}/shims/r
 # `require` loads. A silent activation failure fails the build instead of shipping quietly.
 #
 # RUBY_MIN is a CVE floor, not a style pin: CVE-2026-97229 is in the INTERPRETER, not in a gem, so
-# the gem `want` list below cannot catch it -- 3.4.11 and 3.4.12 ship an identical default/bundled
+# the gem `want` list below cannot catch it -- 3.4.11, 3.4.12 and 3.4.13 ship an identical default/bundled
 # gem set, so the gem assertion passes clean on the vulnerable 3.4.11. Without this arm a
 # `--build-arg RUBY_VERSION=3.4.11` or a bad merge silently restores the vulnerable interpreter with
 # a green build (same silent-miss class the DOTNET_ASPNET_MIN check above exists to close).
@@ -308,7 +310,7 @@ RUN eval "$(${RBENV_ROOT}/bin/rbenv init -)" && \
     gem install json -v 2.19.9 --no-document && \
     rbenv rehash && \
     ruby -rjson -rerb -rnet/imap -rresolv -e '\
-        ruby_min = "3.4.12"; \
+        ruby_min = "3.4.13"; \
         if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(ruby_min); \
             abort("ERROR: ruby #{RUBY_VERSION} is below the CVE floor #{ruby_min} " \
                   "(CVE-2026-97229, interpreter-level - the gem check below cannot catch it)"); \
