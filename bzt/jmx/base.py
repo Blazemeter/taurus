@@ -1018,8 +1018,8 @@ class JMX(object):
         element.append(JMX._string_prop("BoundaryExtractor.refname", varname))
         element.append(JMX._string_prop("BoundaryExtractor.lboundary", left))
         element.append(JMX._string_prop("BoundaryExtractor.rboundary", right))
-        element.append(JMX._string_prop("RegexExtractor.default", defvalue))
-        element.append(JMX._string_prop("RegexExtractor.match_number", match_no))
+        element.append(JMX._string_prop("BoundaryExtractor.default", defvalue))
+        element.append(JMX._string_prop("BoundaryExtractor.match_number", match_no))
         element.extend(JMX.get_scope_props(scope, from_var))
         return element
 

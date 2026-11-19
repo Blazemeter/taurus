@@ -396,6 +396,8 @@ scenarios:
           default: DEFVAL  # default value, if nothing is matched
 ```
 
+For boundary extractors, `match-no` defaults to `1` (the first match), and `default` defaults to `NOT_FOUND`.
+
 You can choose `scope` for applying expressions. Possible value for targets are:
   - `all` - main sample and sub-samples
   - `children` - sub-samples
