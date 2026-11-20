@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.4<sup> 20 November 2026</sup>
+- Vulnerability fixes
+
 ## 1.17.3<sup> 17 November 2026</sup>
 - Added remote pytest, junit, selenium executors
 
