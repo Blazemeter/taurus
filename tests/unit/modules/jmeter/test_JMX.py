@@ -555,6 +555,18 @@ class TestJMX(BZTestCase):
         self.assertEqual("code", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
         self.assertIsNone(res.find(".//stringProp[@name='Sample.scope']"))
 
+    def test_boundary_extractor_match_and_default(self):
+        for match_no, default in ((1, 'NOT_FOUND'), (2, 'fallback'), (0, ''), (-1, 'missing')):
+            with self.subTest(match_no=match_no, default=default):
+                extractor = JMX._get_boundary_extractor(
+                    'token', 'body', '[', ']', match_no, default)
+                self.assertEqual(str(match_no), extractor.findtext(
+                    "stringProp[@name='BoundaryExtractor.match_number']"))
+                self.assertEqual(default, extractor.findtext(
+                    "stringProp[@name='BoundaryExtractor.default']"))
+                self.assertIsNone(extractor.find("stringProp[@name='RegexExtractor.match_number']"))
+                self.assertIsNone(extractor.find("stringProp[@name='RegexExtractor.default']"))
+
     def test_int_udv(self):
         res = JMX()
         data = {"varname2": "1", "varname": 1, 2: 3}

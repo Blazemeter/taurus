@@ -264,6 +264,8 @@ class TestJMeterExecutor(ExecutorTestCase):
                         "varname": {
                             "left": "foo",
                             "right": "bar",
+                            "match-no": 2,
+                            "default": "missing",
                             "scope": "variable",
                             "from-variable": "RESULT"}}}]}}})
         self.obj.prepare()
@@ -274,6 +276,11 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual("varname", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.refname']")[0].text)
         self.assertEqual("variable", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
         self.assertEqual("RESULT", xml_tree.findall(".//stringProp[@name='Scope.variable']")[0].text)
+        extractor = xml_tree.find(".//BoundaryExtractor")
+        self.assertEqual("2", extractor.findtext("stringProp[@name='BoundaryExtractor.match_number']"))
+        self.assertEqual("missing", extractor.findtext("stringProp[@name='BoundaryExtractor.default']"))
+        self.assertIsNone(extractor.find("stringProp[@name='RegexExtractor.match_number']"))
+        self.assertIsNone(extractor.find("stringProp[@name='RegexExtractor.default']"))
 
     def test_boundary_extractors_exc(self):
         self.configure({"execution":
