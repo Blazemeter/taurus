@@ -17,7 +17,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.modules import ScenarioExecutor
 from bzt.modules.console import ExecutorWidget
 from bzt.modules.aggregator import ResultsReader, ConsolidatingAggregator
-from bzt.utils import RequiredTool, CALL_PROBLEMS, FileReader, shutdown_process
+from bzt.utils import RequiredTool, CALL_PROBLEMS, FileReader, shutdown_process, BetterDict
 
 
 class K6Executor(ScenarioExecutor):
@@ -47,27 +47,44 @@ class K6Executor(ScenarioExecutor):
             self.engine.aggregator.add_underling(self.reader)
 
     def startup(self):
-        cmdline = [self.k6.tool_name, "run", "--out", f"csv={self.kpi_file}"]
+        cmdline = [self.k6.tool_path, "run", "--out", f"csv={self.kpi_file}"]
 
-        load = self.get_load()
-        #using stages with duration/iteration is not allowed
-        if load.ramp_up:
-            cmdline += ['--stage', str(int(load.ramp_up)) + "s:" + str(load.concurrency or 1)]
-            if load.hold:
-                cmdline += ['--stage', str(int(load.hold) - int(load.ramp_up)) + "s:" + str(load.concurrency or 1)]
+        raw_load = self.get_raw_load()
+        if not (raw_load.concurrency or raw_load.hold or raw_load.iterations or raw_load.ramp_up):
+            # no load explicitly configured: don't inject any CLI load flags, since k6 treats
+            # --vus/--duration/--iterations/--stage as a signal to discard the script's own
+            # `options.scenarios` in favor of a single implicit scenario calling the function
+            # named `default` (mirrors how JMeterJMX.modify() skips thread-group rewriting when
+            # bzt/jmx/tools.py:117-119 sees no raw load configured, to avoid clobbering a
+            # hand-authored .jmx). Scripts that define their own env-var-driven scenarios rely
+            # on `-e` alone (see modules.k6.env) to control their load shape.
+            self.log.debug("No concurrency/hold-for/iterations/ramp-up found, skipping k6 load flags")
         else:
-            if load.concurrency:
-                cmdline += ['--vus', str(load.concurrency)]
+            load = self.get_load()
+            #using stages with duration/iteration is not allowed
+            if load.ramp_up:
+                cmdline += ['--stage', str(int(load.ramp_up)) + "s:" + str(load.concurrency or 1)]
+                if load.hold:
+                    cmdline += ['--stage', str(int(load.hold) - int(load.ramp_up)) + "s:" + str(load.concurrency or 1)]
+            else:
+                if load.concurrency:
+                    cmdline += ['--vus', str(load.concurrency)]
 
-            if load.hold:
-                cmdline += ['--duration', str(int(load.hold)) + "s"]
-                if load.iterations:
-                    self.log.warning("K6 doesn't support iterations with duration, ignoring iterations")
-            elif load.iterations:
-                iterations = load.iterations * load.concurrency if load.concurrency else load.iterations
-                cmdline += ['--iterations', str(iterations)]
+                if load.hold:
+                    cmdline += ['--duration', str(int(load.hold)) + "s"]
+                    if load.iterations:
+                        self.log.warning("K6 doesn't support iterations with duration, ignoring iterations")
+                elif load.iterations:
+                    iterations = load.iterations * load.concurrency if load.concurrency else load.iterations
+                    cmdline += ['--iterations', str(iterations)]
 
         cmdline += ['--no-usage-report']
+
+        for out in self.settings.get("outputs", []):
+            cmdline += ["--out", out]
+
+        for key, val in self.settings.get("env", {}).items():
+            cmdline += ["-e", f"{key}={val}"]
 
         user_cmd = self.settings.get("cmdline")
         if user_cmd:
@@ -99,7 +116,6 @@ class K6Executor(ScenarioExecutor):
 
     def install_required_tools(self):
         self.k6 = self._get_tool(K6, config=self.settings)
-        self.k6.tool_name = self.k6.tool_name.lower()
         if not self.k6.check_if_installed():
             self.k6.install()
 
@@ -117,6 +133,10 @@ class K6LogReader(ResultsReader):
                      'data_received': []}
         self.position = {'timestamp': None, 'metric_value': None, 'error': None,
                          'expected_response': None, 'name': None, 'status': None}
+        # persists across _read() calls (like self.position above), since the CSV header
+        # line only appears once at the top of the file, and later polls of a tailed,
+        # growing file see none of the earlier lines again.
+        self.check_position = {}
 
     def _read(self, last_pass=False):
         self.lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
@@ -129,6 +149,7 @@ class K6LogReader(ResultsReader):
             elif line.startswith("http_reqs"):
                 self.previous_timestamp = int(line.split(',')[self.position['timestamp']])
                 break
+
         for line in self.lines:
             if line.startswith("metric_name"):
                 parts = line[:-1].split(",")
@@ -145,8 +166,9 @@ class K6LogReader(ResultsReader):
                     if current_timestamp > self.previous_timestamp:
                         yield from self.calculate_timestamp_data()
                         self.previous_timestamp = current_timestamp
+                    name = parts[self.position['name']]
                     self.data['timestamp'].append(current_timestamp)
-                    self.data['label'].append(parts[self.position['name']])
+                    self.data['label'].append(name)
                     self.data['r_code'].append(parts[self.position['status']])
                     error = parts[self.position['error']]
                     if not error and parts[self.position['expected_response']] == 'false':
@@ -178,6 +200,28 @@ class K6LogReader(ResultsReader):
                     self.data['data_received'].append(float(parts[self.position['metric_value']]))
 
         yield from self.calculate_timestamp_data()
+
+        # k6's `checks` metric carries no request-level `name` tag (unlike JMeter, where
+        # assertionResult is nested inside the sample's own JTL element, guaranteeing a
+        # 1:1 link) - a failed check can't be reliably attributed to a specific http_reqs
+        # sample from CSV output alone. Surface each failed check as its own label instead
+        # of silently dropping it or mis-attributing it.
+        for line in self.lines:
+            if line.startswith("metric_name"):
+                parts = line[:-1].split(",")
+                self.check_position['timestamp'] = parts.index('timestamp')
+                self.check_position['metric_value'] = parts.index('metric_value')
+                self.check_position['check'] = parts.index('check')
+            elif line.startswith("checks"):
+                if not self.check_position:
+                    continue
+                parts = line.split(",")
+                if len(parts) > self.check_position['check']:
+                    if float(parts[self.check_position['metric_value']]) == 0:
+                        ts = int(parts[self.check_position['timestamp']])
+                        check_name = parts[self.check_position['check']]
+                        yield (ts, f"check: {check_name}", self.vus, 0, 0, 0, None,
+                              f"Check failed: {check_name}", '', 0)
 
     def calculate_timestamp_data(self):
         # calculate bandwidth
@@ -226,12 +270,14 @@ class K6LogReader(ResultsReader):
 
 class K6(RequiredTool):
     def __init__(self, config=None, **kwargs):
-        super(K6, self).__init__(installable=False, **kwargs)
+        settings = config or BetterDict()
+        tool_path = settings.get("path", "k6")
+        super(K6, self).__init__(installable=False, tool_path=tool_path, **kwargs)
 
     def check_if_installed(self):
         self.log.debug('Checking K6 Framework: %s' % self.tool_path)
         try:
-            out, err = self.call(['k6', 'version'])
+            out, err = self.call([self.tool_path, 'version'])
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
