@@ -71,16 +71,19 @@ RUN apt-get update && \
 # Download Chrome package
 ADD https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb /tmp
 
-# Add K6 repository with proper GPG setup
-RUN mkdir -p /root/.gnupg && \
-    chmod 700 /root/.gnupg && \
-    gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 && \
-    gpg --batch --export C5AD17C747E3415A3642D57D77C6C491D6AC1D69 | gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg && \
+# Add K6 repository
+RUN curl -fsSL https://dl.k6.io/key.gpg | gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | tee /etc/apt/sources.list.d/k6.list
 
-# Add Firefox PPA (avoid snap)
+# Add Mozilla official apt repo (avoid snap Firefox; replaces mozillateam PPA which requires
+# Launchpad API access that times out in BuildKit)
 RUN printf '%s\n' 'Package: firefox*' 'Pin: release o=Ubuntu*' 'Pin-Priority: -1' > /etc/apt/preferences.d/firefox-no-snap && \
-    add-apt-repository ppa:mozillateam/ppa -y
+    curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg | \
+        gpg --dearmor -o /usr/share/keyrings/packages.mozilla.org.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/packages.mozilla.org.gpg] https://packages.mozilla.org/apt mozilla main" \
+        > /etc/apt/sources.list.d/mozilla.list && \
+    printf '%s\n' 'Package: *' 'Pin: origin packages.mozilla.org' 'Pin-Priority: 1000' \
+        > /etc/apt/preferences.d/mozilla
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
