@@ -1,0 +1,1 @@
+fix: deduplicate included-configs to avoid loading the same config file multiple times
