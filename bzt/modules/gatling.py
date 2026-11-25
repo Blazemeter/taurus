@@ -945,6 +945,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
+    DOWNLOAD_LINK_WITHOUT_CLASSIFIER = DOWNLOAD_LINK.replace("-bundle.zip", ".zip")
     VERSION = "3.9.5"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
     LOCAL_PATH_MVN = "~/.bzt/gatling-taurus/{version}/gatling{suffix}"
@@ -952,16 +953,20 @@ class Gatling(RequiredTool):
 
     def __init__(self, config=None, **kwargs):
         settings = config or {}
-        version = settings.get("version", self.VERSION)
-        if self.is_mvn_gatling(version):
-            def_path = self.LOCAL_PATH_MVN.format(version=version, suffix=EXE_SUFFIX)
+        gatling_version = settings.get("version", self.VERSION)
+        default_download_link = self.DOWNLOAD_LINK
+        if self.is_mvn_gatling(gatling_version):
+            def_path = self.LOCAL_PATH_MVN.format(version=gatling_version, suffix=EXE_SUFFIX)
             level = 1
+            # Maven Central published 3.11–3.13 without the bundle classifier.
+            if version.parse(gatling_version) < version.parse("3.14.0"):
+                default_download_link = self.DOWNLOAD_LINK_WITHOUT_CLASSIFIER
         else:
-            def_path = self.LOCAL_PATH.format(version=version, suffix=EXE_SUFFIX)
+            def_path = self.LOCAL_PATH.format(version=gatling_version, suffix=EXE_SUFFIX)
             level = 2
         gatling_path = get_full_path(settings.get("path", def_path))
-        download_link = settings.get("download-link", self.DOWNLOAD_LINK).format(version=version)
-        super(Gatling, self).__init__(tool_path=gatling_path, download_link=download_link, version=version, **kwargs)
+        download_link = settings.get("download-link", default_download_link).format(version=gatling_version)
+        super(Gatling, self).__init__(tool_path=gatling_path, download_link=download_link, version=gatling_version, **kwargs)
 
         self.tool_dir = get_full_path(self.tool_path, step_up=level)
 
