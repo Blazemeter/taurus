@@ -6,10 +6,34 @@ import time
 
 from bzt import ToolError, TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.gatling import GatlingExecutor, DataLogReader
+from bzt.modules.gatling import Gatling, GatlingExecutor, DataLogReader
 from bzt.modules.provisioning import Local
 from bzt.utils import EXE_SUFFIX, get_full_path, is_windows
 from tests.unit import ExecutorTestCase, BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
+
+
+class TestGatlingDownload(BZTestCase):
+    def test_default_bundle_filename(self):
+        artifact = "gatling-charts-highcharts-bundle"
+        for version, suffix in (
+            ("3.10.5", "-bundle.zip"),
+            ("3.11.1", ".zip"),
+            ("3.12.0", ".zip"),
+            ("3.13.5", ".zip"),
+            ("3.14.0", "-bundle.zip"),
+        ):
+            with self.subTest(version=version):
+                tool = Gatling(config={"version": version})
+                expected = ("https://repo1.maven.org/maven2/io/gatling/highcharts/"
+                            f"{artifact}/{version}/{artifact}-{version}{suffix}")
+                self.assertEqual(tool.download_link, expected)
+
+    def test_custom_download_link(self):
+        tool = Gatling(config={
+            "version": "3.13.5",
+            "download-link": "https://example.org/gatling-{version}-bundle.zip",
+        })
+        self.assertEqual(tool.download_link, "https://example.org/gatling-3.13.5-bundle.zip")
 
 
 class TestGatlingExecutor(ExecutorTestCase):
