@@ -1,0 +1,1 @@
+Fix JMeter boundary extractors ignoring the configured match number and default value
