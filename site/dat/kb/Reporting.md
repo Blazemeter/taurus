@@ -6,11 +6,11 @@ Welcome to part 2 of our “Continuous Functional and Performance Test Automatio
 
 Taurus is a tool that provides a simple way to create and run performance tests, as well as an easy integration with additional open-source functional and performance testing software, like Selenium, JUnit, [Gatling](https://gatling.io/) or JMeter.
 
-Taurus also provides great ways for results reporting and analysis. The default way is [Console Reporting](/docs/Reporting/#Console-Reporter?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium). With console reporting, you can just run your test. The results are detailed and even more importantly - they are also in real-time. The metrics are self-explanatory and provide lots of information.
+Taurus also provides great ways for results reporting and analysis. The default way is [Console Reporting](/docs/Reporting/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium#Console-Reporter). With console reporting, you can just run your test. The results are detailed and even more importantly - they are also in real-time. The metrics are self-explanatory and provide lots of information.
 
 ![](console6.png)
 
-Another option is [final statistics reporting](/docs/Reporting/#Final-Stats-Reporter?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium). This reporting provides the basic metrics in the console after test execution. This report can also be tuned according to your needs. For example, you can specify a ‘dump-csv’ file for creating graphs by using Jenkins. In that case, the reporting section will look like this:
+Another option is [final statistics reporting](/docs/Reporting/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium#Final-Stats-Reporter). This reporting provides the basic metrics in the console after test execution. This report can also be tuned according to your needs. For example, you can specify a ‘dump-csv’ file for creating graphs by using Jenkins. In that case, the reporting section will look like this:
 
 ```yaml
 reporting:
@@ -27,7 +27,7 @@ The results produced by the test execution will look like this:
 
 ![](console7.png)
 
-Since Taurus also covers functional tests with Selenium, we recommend you provide pass-fail statistics. Taurus currently supports the ability to generate the [JUnit xml result file](/docs/Reporting/#JUnit-XML-Reporter?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium). Later, this result xml file can be used in Jenkins to provide functional tests statistics. In this case, we need an additional module into the reporting sections:
+Since Taurus also covers functional tests with Selenium, we recommend you provide pass-fail statistics. Taurus currently supports the ability to generate the [JUnit xml result file](/docs/Reporting/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium#JUnit-XML-Reporter). Later, this result xml file can be used in Jenkins to provide functional tests statistics. In this case, we need an additional module into the reporting sections:
 
 ```yaml
 reporting:
@@ -43,14 +43,14 @@ reporting:
   filename: TaurusResult/junit-result.xml
 ```
 
-The last and most convenient and detailed reporting option is by integrating with the‘blazemeter.com’ service. The [CA BlazeMeter](/docs/Reporting/#BlazeMeter-Reporter?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) integration provides very user-friendly and detailed graphs within the great user interface experience. First visit [https://www.blazemeter.com/](https://www.blazemeter.com/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) and create your own account.  Then, go to the ‘Settings’ -> ‘API Key’ and copy the specified key.
+To view results in a web dashboard, use the [BlazeMeter reporter](/docs/Reporting/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium#BlazeMeter-Reporter). In your BlazeMeter account, [create an API key](https://help.blazemeter.com/docs/guide/api-blazemeter-api-keys.html) under **Settings → Personal → API Keys** and copy the key ID and secret.
 
-There are two ways to specify this BlazeMeter API key for your reporting. You can either do it in YAML script, which is not secured, or create a ‘.bzt-rc’ file in your home folder and put the config in it:
+Join the key ID and secret with a colon and set them in your per-user configuration file, `~/.bzt-rc`, to keep the token out of the test YAML. Taurus can copy that file into its artifacts directory. The example below disables artifact uploads while still reporting test results. Remove files containing credentials before sharing local artifacts.
 
 ```yaml
 modules:
   blazemeter:
-    token: <Put your token here>
+    token: "<key-id>:<key-secret>"
 ```
 
 After that, add a module under the reporting section with appropriate information. Your reporting section will look like this:
@@ -71,13 +71,14 @@ reporting:
   report-name: Taurus test report
   test: Taurus test
   project: Taurus test project
+  upload-artifacts: false
 ```
 
-With this configuration, you will be automatically redirected to the CA BlazeMeter service, where your test execution is running.
+Taurus prints a link to the report in the console. Use it to view your results in BlazeMeter.
 
 ![](blazemeter2.png)
 
-By using the CA BlazeMeter web tool you can create and analyze detailed graphs with detailed performance metrics per each test script:
+In BlazeMeter, you can create and analyze graphs of performance metrics for each test script:
 
 ![](blazemeter3.png)
 
